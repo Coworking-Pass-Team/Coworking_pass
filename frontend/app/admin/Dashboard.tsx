@@ -1,5 +1,6 @@
+'use client';
 import { Building2, Users, CalendarDays, TrendingUp, ArrowRight, ArrowUpRight } from 'lucide-react';
-import { useApp } from '../../store';
+import { useApp } from '@/app/store';
 
 export default function AdminDashboard() {
   const { spaces, users, bookings, navigate } = useApp();

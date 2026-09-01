@@ -1,5 +1,6 @@
+'use client';
 import { CalendarDays, Users, MapPin, ArrowRight, Search, TrendingUp, Briefcase } from 'lucide-react';
-import { useApp } from '../../store';
+import { useApp } from '@/app/store';
 
 export default function OrgDashboard() {
   const { currentUser, bookings, spaces, navigate } = useApp();

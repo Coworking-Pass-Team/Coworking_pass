@@ -1,8 +1,9 @@
+'use client';
 import { useState } from 'react';
 import { Search, Shield, ShieldOff, ChevronDown, AlertCircle } from 'lucide-react';
-import { useApp } from '../../store';
-import { User, UserRole } from '../../types';
-import Modal from '../../components/Modal';
+import { useApp } from '@/app/store';
+import { User, UserRole } from '@/types/types';
+import Modal from '@/components/ui/Modal';
 
 const ROLES: UserRole[] = ['individual', 'organization', 'admin'];
 

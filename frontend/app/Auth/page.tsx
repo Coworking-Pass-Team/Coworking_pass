@@ -1,3 +1,4 @@
+'use client';
 import { useState } from 'react';
 import { Eye, EyeOff, Building2, User, ArrowRight } from 'lucide-react';
 import { useApp } from '@/app/store';
@@ -346,4 +347,11 @@ export function ChooseAccountType() {
       </div>
     </div>
   );
+}
+
+export default function AuthPage() {
+  const { nav } = useApp();
+  if (nav.screen === 'signup') return <SignUpScreen />;
+  if (nav.screen === 'choose-type') return <ChooseAccountType />;
+  return <LoginScreen />;
 }

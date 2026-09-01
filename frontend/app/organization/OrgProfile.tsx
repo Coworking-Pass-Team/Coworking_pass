@@ -1,8 +1,9 @@
+'use client';
 import { useState } from 'react';
 import { Building2, Settings, Users, Globe, Phone, Mail, Plus, Trash2 } from 'lucide-react';
-import { useApp } from '../../store';
-import { Employee } from '../../types';
-import Modal from '../../components/Modal';
+import { useApp } from '@/app/store';
+import { Employee } from '@/types/types';
+import Modal from '@/components/ui/Modal';
 
 export default function OrgProfile() {
   const { currentUser, navigate, nav, updateCurrentUser, showToast } = useApp();

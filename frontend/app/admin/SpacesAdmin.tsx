@@ -1,8 +1,9 @@
+'use client';
 import { useState } from 'react';
 import { Search, Plus, Eye, EyeOff, Pencil, Trash2, MapPin, Star, Users, AlertCircle, Check, X, ChevronDown } from 'lucide-react';
-import { useApp } from '../../store';
-import { Space } from '../../types';
-import Modal from '../../components/Modal';
+import { useApp } from '@/app/store';
+import { Space } from '@/types/types';
+import Modal from '@/components/ui/Modal';
 
 const AMENITY_OPTIONS = ['WiFi', 'Coffee', 'Printer', 'Parking', 'Prayer Room', 'Lounge', 'Showers', 'Kitchen', 'Meeting Rooms', 'Reception', 'Event Space'];
 const CITIES = ['Riyadh', 'Jeddah', 'Dammam', 'Khobar', 'Madinah', 'Makkah'];

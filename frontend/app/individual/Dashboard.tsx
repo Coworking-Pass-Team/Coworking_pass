@@ -1,5 +1,6 @@
+'use client';
 import { CalendarDays, MapPin, Search, Star, Clock, ArrowRight, Bookmark } from 'lucide-react';
-import { useApp } from '../../store';
+import { useApp } from '@/app/store';
 
 export default function IndividualDashboard() {
   const { currentUser, bookings, spaces, navigate, favorites } = useApp();

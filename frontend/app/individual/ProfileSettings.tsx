@@ -1,6 +1,7 @@
+'use client';
 import { useState } from 'react';
 import { User, Settings, Bell, Shield, Camera } from 'lucide-react';
-import { useApp } from '../../store';
+import { useApp } from '@/app/store';
 
 export default function ProfileSettings({ mode }: { mode: 'profile' | 'settings' }) {
   const { currentUser, updateCurrentUser, navigate, nav } = useApp();

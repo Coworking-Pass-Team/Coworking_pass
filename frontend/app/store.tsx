@@ -1,3 +1,4 @@
+'use client';
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { User, Space, Booking, Screen, NavState, UserRole, BookingPlan, BookingType } from '@/types/types';
 import { INITIAL_SPACES, INITIAL_USERS, INITIAL_BOOKINGS } from '@/data/data';
@@ -68,7 +69,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const navigate = (screen: Screen, params: Record<string, any> = {}) => {
     setHistory(prev => [...prev.slice(-9), nav]);
     setNav({ screen, params });
-    window.scrollTo(0, 0);
+    if (typeof window !== 'undefined') {
+      window.scrollTo(0, 0);
+    }
   };
 
   const goBack = () => {

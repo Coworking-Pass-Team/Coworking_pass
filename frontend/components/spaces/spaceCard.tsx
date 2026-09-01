@@ -1,6 +1,7 @@
+'use client';
 import { Heart, MapPin, Star, Users } from 'lucide-react';
-import { Space } from '../../types/types';
-import { useApp } from '../../app/store';
+import { Space } from '@/types/types';
+import { useApp } from '@/app/store';
 
 
 interface SpaceCardProps {

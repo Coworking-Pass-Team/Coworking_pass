@@ -1,7 +1,8 @@
+'use client';
 import { useState } from 'react';
 import { ArrowLeft, Check, Calendar, Users, CreditCard, MapPin, ChevronRight } from 'lucide-react';
-import { useApp } from '../../store';
-import { BookingPlan, BookingType } from '../../types';
+import { useApp } from '@/app/store';
+import { BookingPlan, BookingType } from '@/types/types';
 
 const STEPS = ['Plan', 'Details', 'Review', 'Confirm'];
 

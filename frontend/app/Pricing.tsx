@@ -1,3 +1,4 @@
+'use client';
 import { Check, ArrowRight } from 'lucide-react';
 import { useApp } from './store';
 

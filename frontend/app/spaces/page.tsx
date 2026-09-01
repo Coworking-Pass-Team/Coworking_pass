@@ -1,3 +1,4 @@
+'use client';
 import { useState, useMemo } from 'react';
 import { Search, SlidersHorizontal, X, MapPin, ChevronDown } from 'lucide-react';
 import { useApp } from '@/app/store';
@@ -9,8 +10,8 @@ const AMENITIES = ['WiFi', 'Coffee', 'Printer', 'Parking', 'Prayer Room', 'Meeti
 const SORT_OPTIONS = ['Recommended', 'Price: Low to High', 'Price: High to Low', 'Rating', 'Availability'];
 
 export default function Browse() {
-  const { spaces, navigate, currentUser } = useApp();
-  const initialCity = (window as any).__browseCity || '';
+  const { spaces, navigate, currentUser, nav } = useApp();
+  const initialCity = nav?.params?.city || (typeof window !== 'undefined' ? (window as any).__browseCity || '' : '');
 
   const [query, setQuery] = useState('');
   const [city, setCity] = useState(initialCity);

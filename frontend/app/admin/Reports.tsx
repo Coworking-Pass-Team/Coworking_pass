@@ -1,6 +1,7 @@
+'use client';
 import { useState } from 'react';
 import { TrendingUp, CalendarDays, Users, Building2, BarChart3 } from 'lucide-react';
-import { useApp } from '../../store';
+import { useApp } from '@/app/store';
 
 const PERIODS = ['Today', 'This week', 'This month', 'This year'];
 

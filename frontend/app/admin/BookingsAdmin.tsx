@@ -1,8 +1,9 @@
+'use client';
 import { useState } from 'react';
 import { Search, ChevronDown, MapPin, Calendar, Users } from 'lucide-react';
-import { useApp } from '../../store';
-import { Booking, BookingStatus } from '../../types';
-import Modal from '../../components/Modal';
+import { useApp } from '@/app/store';
+import { Booking, BookingStatus } from '@/types/types';
+import Modal from '@/components/ui/Modal';
 
 export default function BookingsAdmin() {
   const { bookings, users, updateBookingStatus } = useApp();

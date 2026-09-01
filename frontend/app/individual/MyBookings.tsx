@@ -1,8 +1,9 @@
+'use client';
 import { useState } from 'react';
 import { MapPin, Calendar, Users, ArrowLeft, Check, X, Edit2, AlertCircle } from 'lucide-react';
-import { useApp } from '../../store';
-import { Booking, BookingStatus } from '../../types';
-import Modal from '../../components/Modal';
+import { useApp } from '@/app/store';
+import { Booking, BookingStatus } from '@/types/types';
+import Modal from '@/components/ui/Modal';
 
 const TABS: { label: string; status: BookingStatus }[] = [
   { label: 'Active', status: 'active' },
