@@ -1,26 +1,227 @@
 @import "tailwindcss";
 
+@theme {
+  --color-plaster: #F2EFE2;
+  --color-plaster-dark: #E4DFCC;
+  --color-plaster-surface: #FAF8F3;
+  --color-soot: #2D3536;
+  --color-soot-light: #4A5657;
+  --color-eucalyptus: #98AA9D;
+  --color-eucalyptus-dark: #7A9481;
+  --color-moss: #697C70;
+  --color-mist: #B3C9D6;
+  --color-mist-light: #D9E8F0;
+
+  --font-display: 'DM Serif Display', serif;
+  --font-sans: 'Outfit', sans-serif;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Semantic Theme Tokens */
+  --bg-main: var(--color-plaster);
+  --bg-card: var(--color-plaster-surface);
+  --text-main: var(--color-soot);
+  --text-muted: var(--color-soot-light);
+  --border-subtle: rgba(45, 53, 54, 0.12);
+  --ring-focus: rgba(152, 170, 157, 0.4);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+html {
+  scroll-behavior: smooth;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body,
+#root {
+  height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  background-color: var(--color-plaster);
+  color: var(--color-soot);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+.font-serif-display {
+  font-family: var(--font-display);
+}
+
+/* Force pointer on clickable elements */
+button,
+a,
+select,
+input[type="button"],
+input[type="submit"],
+[role="button"] {
+  cursor: pointer !important;
+}
+
+/* Global Micro-Interactions */
+button,
+a,
+.ui-hover-card {
+  transition: background-color 200ms ease-in-out,
+              color 200ms ease-in-out,
+              border-color 200ms ease-in-out,
+              transform 200ms ease-in-out;
+}
+
+button:active,
+a:active,
+.ui-hover-card:active {
+  transform: scale(0.98) !important;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-plaster);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-moss);
+  border-radius: 9999px;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-moss) var(--color-plaster);
+}
+
+/* Card Interactivity */
+.ui-hover-card {
+  background-color: var(--color-plaster-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 1.25rem;
+  transition: background-color 200ms ease-in-out, transform 200ms ease-in-out;
+}
+
+.ui-hover-card:hover {
+  background-color: var(--color-plaster-dark);
+}
+
+/* Form Inputs & Selects */
+.ui-input,
+.ui-select {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border-subtle);
+  background-color: rgba(228, 223, 204, 0.4);
+  color: var(--color-soot);
+  font-size: 0.875rem;
+  outline: none;
+  transition: all 200ms ease-in-out;
+}
+
+.ui-input::placeholder {
+  color: var(--color-soot-light);
+  opacity: 0.7;
+}
+
+.ui-input:focus,
+.ui-select:focus {
+  background-color: var(--color-plaster-surface);
+  border-color: var(--color-eucalyptus);
+  box-shadow: 0 0 0 3px var(--ring-focus);
+}
+
+/* Global Button Design System Matching SpacesAdmin Design Tokens */
+
+/* Primary Button: bg-[#374142] text-[#FAF8F5] with subtle ring & hover */
+.btn-primary,
+.ui-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: 1rem; /* rounded-2xl */
+  background-color: #374142;
+  color: #FAF8F5 !important;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  cursor: pointer !important;
+  transition: all 200ms ease-in-out;
+}
+
+.btn-primary:hover,
+.ui-btn-primary:hover {
+  background-color: #2D3536;
+  color: #FAF8F5 !important;
+}
+
+.btn-primary:active,
+.ui-btn-primary:active {
+  transform: scale(0.98);
+}
+
+/* Secondary Button: border border-soot/20 text-soot */
+.btn-secondary,
+.ui-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.75rem; /* rounded-xl */
+  background-color: transparent;
+  color: var(--color-soot) !important;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: 1px solid rgba(45, 53, 54, 0.2);
+  cursor: pointer !important;
+  transition: all 200ms ease-in-out;
+}
+
+.btn-secondary:hover,
+.ui-btn-secondary:hover {
+  background-color: rgba(45, 53, 54, 0.08);
+  color: var(--color-soot) !important;
+}
+
+.btn-secondary:active,
+.ui-btn-secondary:active {
+  transform: scale(0.98);
+}
+
+/* Danger Button: bg-red-600 text-white */
+.btn-danger,
+.ui-btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.5rem;
+  border-radius: 0.75rem; /* rounded-xl */
+  background-color: #DC2626;
+  color: #FFFFFF !important;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: 1px solid rgba(220, 38, 38, 0.2);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  cursor: pointer !important;
+  transition: all 200ms ease-in-out;
+}
+
+.btn-danger:hover,
+.ui-btn-danger:hover {
+  background-color: #B91C1C;
+  color: #FFFFFF !important;
+}
+
+.btn-danger:active,
+.ui-btn-danger:active {
+  transform: scale(0.98);
 }
