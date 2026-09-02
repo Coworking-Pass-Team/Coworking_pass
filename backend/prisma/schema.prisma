@@ -1,0 +1,86 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============ الأنواع الثابتة (Enums) ============
+// بدل ما نكتب "individual" كنص عادي ونخطئ إملائياً، نحدد قيم مسموحة بس
+
+enum Role {
+  INDIVIDUAL   // فرد
+  ORGANIZATION // مؤسسة
+  ADMIN        // مدير النظام
+}
+
+enum PlanType {
+  DAILY
+  MONTHLY
+  YEARLY
+}
+
+enum BookingStatus {
+  CONFIRMED // مؤكد
+  EXPIRED   // منتهي
+}
+
+enum WaitlistStatus {
+  WAITING // بانتظار الدور
+  BOOKED  // تحول لحجز فعلي
+}
+
+// ============ الجداول (Models) ============
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String   // بتخزن هنا النسخة المشفرة، مو النص الصريح
+  role      Role
+  createdAt DateTime @default(now())
+
+  bookings  Booking[]  // كل اليوزرات المرتبطة بهذا اليوزر 
+  waitlist  Waitlist[]
+}
+
+model Space {
+  id            Int      @id @default(autoincrement())
+  name          String
+  location      String
+  priceDaily    Float
+  priceMonthly  Float
+  priceYearly   Float
+  capacity      Int
+
+  bookings      Booking[]
+  waitlist      Waitlist[]
+}
+
+model Booking {
+  id        Int           @id @default(autoincrement())
+  userId    Int
+  spaceId   Int
+  planType  PlanType
+  startDate DateTime
+  endDate   DateTime
+  status    BookingStatus @default(CONFIRMED)
+
+  user      User          @relation(fields: [userId], references: [id])
+  space     Space         @relation(fields: [spaceId], references: [id])
+}
+
+model Waitlist {
+  id             Int            @id @default(autoincrement())
+  userId         Int
+  spaceId        Int
+  requestedPlan  PlanType
+  autoBook       Boolean        @default(false)
+  status         WaitlistStatus @default(WAITING)
+
+  user           User           @relation(fields: [userId], references: [id])
+  space          Space          @relation(fields: [spaceId], references: [id])
+}
