@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Check, ArrowRight, Sparkles, HelpCircle, Building2, User, ChevronDown } from 'lucide-react';
-import { useApp } from './store';
+import { useApp } from '@/app/store';
 
 const individualPlans = [
   {

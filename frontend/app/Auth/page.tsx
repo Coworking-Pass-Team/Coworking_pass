@@ -165,8 +165,8 @@ export function LoginScreen() {
                 </label>
                 <button
                   type="button"
-                  onClick={() => {}}
-                  className="text-xs font-medium text-moss hover:text-soot transition-colors"
+                  onClick={() => navigate('forgot-password')}
+                  className="text-xs font-medium text-moss hover:text-soot hover:underline transition-colors cursor-pointer"
                 >
                   Forgot password?
                 </button>
@@ -237,7 +237,6 @@ export function LoginScreen() {
     </div>
   );
 }
-
 
 export function SignUpScreen() {
   const { signup, completeSignup, setPendingUser, navigate } = useApp();
@@ -647,7 +646,6 @@ export function SignUpScreen() {
   );
 }
 
-
 export function ChooseAccountType() {
   const { navigate, completeSignup, pendingUser, setPendingUser } = useApp();
   const [selected, setSelected] = useState<'individual' | 'organization' | 'provider' | null>(null);
@@ -868,9 +866,146 @@ export function ChooseAccountType() {
   );
 }
 
+export function ForgotPasswordScreen() {
+  const { navigate } = useApp();
+  const [email, setEmail] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) {
+      setError('Please enter your email address.');
+      return;
+    }
+    if (!/\S+@\S+\.\S+/.test(email)) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+    setError('');
+    setSubmitted(true);
+  };
+
+  return (
+    <div className="min-h-screen w-full flex bg-plaster text-soot">
+      {/* Left Form Column */}
+      <div className="w-full lg:w-1/2 flex flex-col justify-between p-6 sm:p-10 lg:p-14 min-h-screen">
+        {/* Top Header */}
+        <div className="flex items-center justify-between w-full max-w-md mx-auto">
+          <Logo onClick={() => navigate('landing')} />
+          <button
+            type="button"
+            onClick={() => navigate('login')}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-soot/5 hover:bg-soot/10 border border-soot/10 text-xs font-semibold text-soot transition-all duration-200 cursor-pointer group"
+          >
+            <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />
+            <span>Back to Sign in</span>
+          </button>
+        </div>
+
+        {/* Center Form */}
+        <div className="w-full max-w-md mx-auto my-auto py-8">
+          <div className="mb-7">
+            {!submitted ? (
+              <>
+                <h1 className="text-3xl sm:text-4xl font-normal font-serif-display text-soot tracking-tight mb-2">
+                  Forgot your password?
+                </h1>
+                <p className="text-moss text-xs sm:text-sm leading-relaxed">
+                  Enter your registered email and we&apos;ll send you a password reset link.
+                </p>
+              </>
+            ) : (
+              <div className="text-center sm:text-left">
+                <div className="w-12 h-12 rounded-2xl bg-eucalyptus/25 border border-eucalyptus/40 flex items-center justify-center mb-4">
+                  <Check size={22} className="text-soot" />
+                </div>
+                <h1 className="text-3xl font-normal font-serif-display text-soot tracking-tight mb-2">
+                  Check your email
+                </h1>
+                <p className="text-moss text-xs sm:text-sm leading-relaxed">
+                  If an account exists for <span className="font-semibold text-soot">{email}</span>, you will receive a reset instructions link shortly.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {!submitted ? (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <div className="bg-red-500/10 border border-red-500/20 text-red-700 text-xs sm:text-sm font-medium rounded-xl px-4 py-3">
+                  {error}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-semibold text-soot mb-1.5 uppercase tracking-wider">
+                  Email Address
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-moss">
+                    <Mail size={16} />
+                  </div>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="btn-primary w-full py-3.5 mt-2"
+              >
+                <span>Send Reset Link</span>
+                <ArrowRight size={16} />
+              </button>
+            </form>
+          ) : (
+            <button
+              type="button"
+              onClick={() => navigate('login')}
+              className="btn-primary w-full py-3.5 mt-2"
+            >
+              <span>Return to Sign In</span>
+            </button>
+          )}
+
+          <p className="text-center text-xs sm:text-sm text-moss mt-6 pt-4 border-t border-soot/10">
+            Remembered your password?{' '}
+            <button
+              type="button"
+              onClick={() => navigate('login')}
+              className="text-soot font-bold hover:underline cursor-pointer"
+            >
+              Sign in
+            </button>
+          </p>
+        </div>
+
+        {/* Micro Footer */}
+        <div className="w-full max-w-md mx-auto text-center text-[11px] text-moss">
+          &copy; 2026 Coworking Pass Inc. All rights reserved.
+        </div>
+      </div>
+
+      {/* Right Visual Image */}
+      <AuthVisualBanner
+        quote="Account recovery is seamless and protected by industry-standard encryption."
+        author="Security Operations"
+        role="Coworking Pass Platform"
+      />
+    </div>
+  );
+}
+
 export default function AuthPage() {
   const { nav } = useApp();
   if (nav.screen === 'signup') return <SignUpScreen />;
   if (nav.screen === 'choose-type') return <ChooseAccountType />;
+  if (nav.screen === 'forgot-password') return <ForgotPasswordScreen />;
   return <LoginScreen />;
 }

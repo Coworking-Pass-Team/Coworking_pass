@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { TrendingUp, CalendarDays, Users, Building2, BarChart3 } from 'lucide-react';
 import { useApp } from '@/app/store';
+import { getBookingPrice } from '@/types/types';
 
 const PERIODS = ['Today', 'This week', 'This month', 'This year'];
 
@@ -62,7 +63,7 @@ export default function Reports() {
   const nonAdminUsers = users.filter(u => u.role !== 'admin');
   const activeBookings = bookings.filter(b => b.status === 'active');
   const cancelledBookings = bookings.filter(b => b.status === 'cancelled');
-  const totalRevenue = bookings.filter(b => b.status !== 'cancelled').reduce((sum, b) => sum + b.totalPrice, 0);
+  const totalRevenue = bookings.filter(b => b.status !== 'cancelled').reduce((sum, b) => sum + getBookingPrice(b, spaces), 0);
 
   // Mock period-based data
   const periodMultiplier = period === 'Today' ? 0.03 : period === 'This week' ? 0.2 : period === 'This month' ? 1 : 12;
@@ -106,7 +107,7 @@ export default function Reports() {
   const topSpaces = spaces.map(s => ({
     ...s,
     bookingCount: bookings.filter(b => b.spaceId === s.id && b.status !== 'cancelled').length,
-    revenue: bookings.filter(b => b.spaceId === s.id && b.status !== 'cancelled').reduce((sum, b) => sum + b.totalPrice, 0),
+    revenue: bookings.filter(b => b.spaceId === s.id && b.status !== 'cancelled').reduce((sum, b) => sum + getBookingPrice(b, spaces), 0),
   })).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
 
   return (
