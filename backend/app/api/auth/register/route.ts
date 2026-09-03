@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { sendOtpEmail } from "@/lib/mailer";
 
-const VALID_ROLES = ["GUEST", "B2C", "HR_ADMIN", "PARTNER_ADMIN", "SUPER_ADMIN"];
+const VALID_ROLES = ["GUEST", "B2C"];
 
 function generateOtp() {
   return Math.floor(100000 + Math.random() * 900000).toString();
