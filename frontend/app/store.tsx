@@ -106,16 +106,40 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setCurrentUser(parsed);
       }
       const savedUsers = localStorage.getItem('cp_users');
+      let combinedUsers = INITIAL_USERS;
       if (savedUsers) {
-        const cleanedUsers = (JSON.parse(savedUsers) as User[]).map(u => {
-          if (u.avatar && (u.avatar.includes('images.unsplash.com') || u.avatar.includes('admin-avatar'))) {
-            return { ...u, avatar: '' };
-          }
-          return u;
-        });
-        setUsers(cleanedUsers);
-        localStorage.setItem('cp_users', JSON.stringify(cleanedUsers));
+        try {
+          const parsed = JSON.parse(savedUsers) as User[];
+          const mergedMap = new Map<string, User>();
+          // Load existing saved users
+          parsed.forEach(u => mergedMap.set(u.email.toLowerCase(), u));
+          // Overlay or add INITIAL_USERS so seed accounts are always present with updated membershipTier
+          INITIAL_USERS.forEach(initU => {
+            const existing = mergedMap.get(initU.email.toLowerCase());
+            if (!existing) {
+              mergedMap.set(initU.email.toLowerCase(), initU);
+            } else {
+              mergedMap.set(initU.email.toLowerCase(), {
+                ...existing,
+                membershipTier: initU.membershipTier || existing.membershipTier,
+                hasActivePass: initU.hasActivePass !== undefined ? initU.hasActivePass : existing.hasActivePass,
+              });
+            }
+          });
+          combinedUsers = Array.from(mergedMap.values());
+        } catch (err) {
+          console.error('Failed to parse saved users:', err);
+        }
       }
+      const cleanedUsers = combinedUsers.map(u => {
+        if (u.avatar && (u.avatar.includes('images.unsplash.com') || u.avatar.includes('admin-avatar'))) {
+          return { ...u, avatar: '' };
+        }
+        return u;
+      });
+      setUsers(cleanedUsers);
+      localStorage.setItem('cp_users', JSON.stringify(cleanedUsers));
+
       const savedNotifs = localStorage.getItem('cp_notifications');
       if (savedNotifs) {
         setNotifications(JSON.parse(savedNotifs));
@@ -154,7 +178,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const login = (email: string, password: string) => {
-    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
+    let user = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
+    if (!user) {
+      user = INITIAL_USERS.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
+    }
     if (!user) return { success: false, error: 'Invalid email or password. Please try again.' };
     if (user.isBlocked) return { success: false, error: 'Your account has been suspended. Please contact support.' };
     setCurrentUser(user);
