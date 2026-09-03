@@ -1,0 +1,413 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============ Enums ============
+
+enum Role {
+  GUEST
+  B2C
+  HR_ADMIN
+  PARTNER_ADMIN
+  SUPER_ADMIN
+}
+
+enum SectionType {
+  DESK
+  MEETING_ROOM
+  THEATER
+}
+
+enum HourlyPeriodType {
+  PER_DAY
+  PER_MONTH
+}
+
+enum ApprovalStatus {
+  APPROVED
+  PENDING_APPROVAL
+  REJECTED
+}
+
+enum PlanAudience {
+  B2C
+  B2B
+}
+
+enum LifecycleStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+enum DurationType {
+  DAILY
+  MONTHLY
+  YEARLY
+}
+
+enum DirectBookingStatus {
+  CONFIRMED
+  WAITLISTED
+  CANCELLED
+}
+
+enum QrStatus {
+  VALID
+  FRAUD_ATTEMPT
+}
+
+enum OtpPurpose {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+  LOGIN
+}
+
+enum PaymentMethod {
+  MADA
+  VISA
+  APPLE_PAY
+  SAMSUNG_PAY
+}
+
+enum PaymentFor {
+  DIRECT_BOOKING
+  HOURLY_BOOKING
+  SUBSCRIPTION
+  POINTS_REDEMPTION
+}
+
+enum PaymentStatus {
+  SUCCESS
+  FAILED
+}
+
+enum PayoutStatus {
+  PENDING
+  PAID
+}
+
+enum NotificationType {
+  BOOKING_CONFIRMED
+  BOOKING_CANCELLED
+  WAITLIST_PROMOTED
+  MEETING_BOOKED
+  PAYMENT_SUCCESS
+  PAYMENT_FAILED
+  PASS_ASSIGNED
+  PASS_EXPIRING
+  ACCOUNT_VERIFIED
+  POINTS_EARNED
+  POINTS_REDEEMED
+  PAYOUT_PROCESSED
+  PARTNER_APPROVED
+  AMENITY_REQUEST_STATUS
+}
+
+enum NotificationChannel {
+  EMAIL
+  IN_APP
+  BOTH
+}
+
+enum PointsTransactionType {
+  EARNED
+  REDEEMED
+}
+
+enum LoyaltyRuleType {
+  EARNING
+  REDEMPTION
+}
+
+// ============ 1. Core Entities ============
+
+model User {
+  id            String   @id @default(uuid())
+  name          String
+  email         String   @unique
+  passwordHash  String
+  role          Role
+  companyId     String?
+  emailVerified Boolean  @default(false)
+
+  company              Company?             @relation("CompanyEmployees", fields: [companyId], references: [id])
+  hrAdminOf            Company?             @relation("CompanyHrAdmin")
+  subscriptions        Subscription[]
+  directBookings       DirectBooking[]
+  hourlyBookings       HourlyBooking[]
+  payments             Payment[]
+  qrCheckIns           QrCheckIn[]
+  notifications        Notification[]
+  otpCodes             OtpCode[]
+  loyaltyPoints        LoyaltyPoint?
+  pointsTransactions   PointsTransaction[]
+  proposedRules        LoyaltyRule[]        @relation("RuleProposedBy")
+  approvedRules        LoyaltyRule[]        @relation("RuleApprovedBy")
+  requestedAmenities   AmenityCatalog[]
+}
+
+model Company {
+  id                    String @id @default(uuid())
+  companyName           String
+  hrAdminId             String @unique
+  totalPassesAllocated  Int    @default(0)
+
+  hrAdmin   User   @relation("CompanyHrAdmin", fields: [hrAdminId], references: [id])
+  employees User[] @relation("CompanyEmployees")
+}
+
+model Partner {
+  id                      String @id @default(uuid())
+  brandName               String
+  contactEmail            String
+  taxNumber               String
+  revenueSharePercentage  Float
+
+  workspaces Workspace[]
+  payouts    Payout[]
+}
+
+// ============ 2. Workspace & Sections ============
+
+model Workspace {
+  id               String @id @default(uuid())
+  partnerId        String
+  name             String
+  city             String
+  locationMapUrl   String?
+  dailyRate        Float?
+  monthlyRate      Float?
+  yearlyRate       Float?
+  passVisitValue   Float
+  totalCapacity    Int
+
+  partner    Partner              @relation(fields: [partnerId], references: [id])
+  sections   WorkspaceSection[]
+  amenities  WorkspaceAmenity[]
+  bookings   DirectBooking[]
+  qrCheckIns QrCheckIn[]
+}
+
+model WorkspaceSection {
+  id          String      @id @default(uuid())
+  workspaceId String
+  type        SectionType
+  name        String
+  capacity    Int
+  dailyRate   Float?
+  monthlyRate Float?
+  yearlyRate  Float?
+
+  workspace       Workspace        @relation(fields: [workspaceId], references: [id])
+  hourlyPackages  HourlyPackage[]
+  directBookings  DirectBooking[]
+  hourlyBookings  HourlyBooking[]
+  qrCheckIns      QrCheckIn[]
+}
+
+model HourlyPackage {
+  id          String           @id @default(uuid())
+  sectionId   String
+  packageName String
+  hoursAmount Int
+  periodType  HourlyPeriodType
+  price       Float
+
+  section        WorkspaceSection @relation(fields: [sectionId], references: [id])
+  hourlyBookings HourlyBooking[]
+}
+
+// ============ 3. Amenities Management ============
+
+model AmenityCatalog {
+  id          String         @id @default(uuid())
+  name        String
+  icon        String?
+  isDefault   Boolean        @default(true)
+  status      ApprovalStatus
+  requestedBy String?
+  createdAt   DateTime       @default(now())
+
+  requester  User?               @relation(fields: [requestedBy], references: [id])
+  workspaces WorkspaceAmenity[]
+}
+
+model WorkspaceAmenity {
+  id          String @id @default(uuid())
+  workspaceId String
+  amenityId   String
+
+  workspace Workspace      @relation(fields: [workspaceId], references: [id])
+  amenity   AmenityCatalog @relation(fields: [amenityId], references: [id])
+}
+
+// ============ 4. Plans & Bookings ============
+
+model MembershipPlan {
+  id                 String       @id @default(uuid())
+  planName           String
+  type               PlanAudience
+  totalVisitsAllowed Int
+  price              Float
+
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id         String          @id @default(uuid())
+  userId     String
+  planId     String
+  startDate  DateTime
+  endDate    DateTime
+  visitsUsed Int             @default(0)
+  status     LifecycleStatus
+
+  user User           @relation(fields: [userId], references: [id])
+  plan MembershipPlan @relation(fields: [planId], references: [id])
+}
+
+model DirectBooking {
+  id           String              @id @default(uuid())
+  userId       String
+  workspaceId  String
+  sectionId    String
+  durationType DurationType
+  bookingDate  DateTime
+  status       DirectBookingStatus
+  createdAt    DateTime            @default(now())
+
+  user      User             @relation(fields: [userId], references: [id])
+  workspace Workspace        @relation(fields: [workspaceId], references: [id])
+  section   WorkspaceSection @relation(fields: [sectionId], references: [id])
+}
+
+model HourlyBooking {
+  id        String          @id @default(uuid())
+  userId    String
+  sectionId String
+  packageId String
+  startDate DateTime
+  endDate   DateTime
+  hoursUsed Float           @default(0)
+  status    LifecycleStatus
+  createdAt DateTime        @default(now())
+
+  user    User             @relation(fields: [userId], references: [id])
+  section WorkspaceSection @relation(fields: [sectionId], references: [id])
+  package HourlyPackage    @relation(fields: [packageId], references: [id])
+}
+
+// ============ 5. Financial ============
+
+model Payment {
+  id                   String        @id @default(uuid())
+  userId               String
+  amount               Float
+  method               PaymentMethod
+  gatewayTransactionId String?
+  paymentFor           PaymentFor
+  referenceId          String?
+  status               PaymentStatus
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Payout {
+  id                  String       @id @default(uuid())
+  partnerId           String
+  billingMonth        String
+  totalVisitsReceived Int
+  amountDue           Float
+  status              PayoutStatus
+
+  partner Partner @relation(fields: [partnerId], references: [id])
+}
+
+// ============ 6. Verification & Security ============
+
+model QrCheckIn {
+  id          String   @id @default(uuid())
+  userId      String
+  workspaceId String
+  sectionId   String
+  scannedAt   DateTime @default(now())
+  qrCodeHash  String
+  status      QrStatus
+
+  user      User             @relation(fields: [userId], references: [id])
+  workspace Workspace        @relation(fields: [workspaceId], references: [id])
+  section   WorkspaceSection @relation(fields: [sectionId], references: [id])
+}
+
+model OtpCode {
+  id        String     @id @default(uuid())
+  userId    String
+  codeHash  String
+  purpose   OtpPurpose
+  expiresAt DateTime
+  isUsed    Boolean    @default(false)
+  createdAt DateTime   @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+// ============ 7. Notifications & Loyalty ============
+
+model Notification {
+  id        String              @id @default(uuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String
+  channel   NotificationChannel
+  isRead    Boolean             @default(false)
+  sentAt    DateTime?
+  createdAt DateTime            @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model LoyaltyPoint {
+  id               String @id @default(uuid())
+  userId           String @unique
+  totalEarned      Int    @default(0)
+  totalRedeemed    Int    @default(0)
+  availableBalance Int    @default(0)
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model PointsTransaction {
+  id          String                @id @default(uuid())
+  userId      String
+  type        PointsTransactionType
+  points      Int
+  description String?
+  referenceId String?
+  createdAt   DateTime              @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model LoyaltyRule {
+  id            String          @id @default(uuid())
+  ruleName      String
+  ruleType      LoyaltyRuleType
+  pointsValue   Int
+  monetaryValue Float
+  description   String?
+  status        ApprovalStatus
+  proposedBy    String
+  approvedBy    String?
+  isActive      Boolean         @default(false)
+  createdAt     DateTime        @default(now())
+
+  proposer User  @relation("RuleProposedBy", fields: [proposedBy], references: [id])
+  approver User? @relation("RuleApprovedBy", fields: [approvedBy], references: [id])
+}
