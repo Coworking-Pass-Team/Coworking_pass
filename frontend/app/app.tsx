@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import {
   LayoutDashboard, Search, CalendarDays, Settings, LogOut,
   Building2, Users, BarChart3, BookOpen,
-  Briefcase, AlertCircle, Bell, Sparkles, CheckCheck, ChevronRight
+  Briefcase, AlertCircle, Bell, Sparkles, CheckCheck, ChevronRight, ShoppingBag
 } from 'lucide-react';
 import { Screen } from '@/types/types';
 import { useApp } from '@/app/store';
@@ -13,6 +13,7 @@ import Footer from '@/components/layout/Footer';
 import LogoImage from '@/components/layout/logo';
 import Modal from '@/components/ui/Modal';
 import UserAvatar from '@/components/ui/UserAvatar';
+import CartDrawer from '@/app/CartDrawer';
 
 // Guest screens
 import Landing from './Landing';
@@ -89,7 +90,7 @@ const adminNav: NavItem[] = [
 ];
 
 function NotificationButton() {
-  const { navigate, notifications, unreadNotificationsCount, markNotificationRead, markAllNotificationsRead, generateFakeNotification } = useApp();
+  const { navigate, notifications, unreadNotificationsCount, markNotificationRead, markAllNotificationsRead } = useApp();
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -112,13 +113,14 @@ function NotificationButton() {
       {isOpen && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-          <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-soot/10 z-50 overflow-hidden divide-y divide-soot/5">
-            <div className="p-3.5 bg-[#374142] text-[#FAF8F3] flex items-center justify-between shadow-2xs border-b border-white/10">
+          <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-soot/10 z-50 overflow-hidden divide-y divide-soot/5 animate-in fade-in-50 zoom-in-95 duration-100">
+            {/* Header with Moss background */}
+            <div className="p-3.5 bg-moss text-[#FAF8F5] flex items-center justify-between shadow-2xs border-b border-white/10">
               <div className="flex items-center gap-2">
-                <Bell size={16} className="text-eucalyptus" />
-                <span className="text-xs font-bold tracking-wide">Notifications</span>
+                <Bell size={16} className="text-[#DDE6DF]" />
+                <span className="text-xs font-bold tracking-wide text-[#FAF8F5]">Notifications</span>
                 {unreadNotificationsCount > 0 && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-eucalyptus text-soot shadow-2xs">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#DDE6DF] text-soot shadow-2xs">
                     {unreadNotificationsCount} unread
                   </span>
                 )}
@@ -128,24 +130,25 @@ function NotificationButton() {
                   <button
                     type="button"
                     onClick={markAllNotificationsRead}
-                    className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-[#FAF8F3] transition-colors cursor-pointer flex items-center gap-1 text-[11px] font-medium border border-white/15"
+                    className="px-2.5 py-1 rounded-lg bg-white/15 hover:bg-white/25 text-[#FAF8F5] transition-colors cursor-pointer flex items-center gap-1.5 text-[11px] font-medium border border-white/20"
                     title="Mark all as read"
                   >
-                    <CheckCheck size={13} className="text-eucalyptus" />
+                    <CheckCheck size={13} className="text-[#DDE6DF]" />
                     <span>Mark all read</span>
                   </button>
                 )}
               </div>
             </div>
 
+            {/* Notification List */}
             <div className="max-h-80 overflow-y-auto divide-y divide-soot/5">
               {notifications.length === 0 ? (
                 <div className="p-6 text-center text-moss">
-                  <Bell size={24} className="mx-auto opacity-40 mb-2" />
-                  <p className="text-xs">No notifications yet.</p>
+                  <Bell size={24} className="mx-auto opacity-40 mb-2 text-moss" />
+                  <p className="text-xs font-medium">No notifications yet.</p>
                 </div>
               ) : (
-                notifications.slice(0, 5).map(n => (
+                notifications.slice(0, 5).map((n) => (
                   <div
                     key={n.id}
                     onClick={() => {
@@ -157,13 +160,17 @@ function NotificationButton() {
                       n.read ? 'bg-white' : 'bg-[#EAF1F5]/70'
                     }`}
                   >
-                    <span className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${n.read ? 'bg-transparent' : 'bg-eucalyptus'}`} />
+                    <span
+                      className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${
+                        n.read ? 'bg-transparent' : 'bg-eucalyptus'
+                      }`}
+                    />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
                         <p className={`text-xs ${n.read ? 'font-medium text-soot' : 'font-bold text-soot'} truncate`}>
                           {n.title}
                         </p>
-                        <span className="text-[10px] text-moss/70 shrink-0">{n.createdAt}</span>
+                        <span className="text-[10px] text-moss/80 shrink-0 font-medium">{n.createdAt}</span>
                       </div>
                       <p className="text-xs text-moss line-clamp-2 mt-0.5 leading-snug">{n.message}</p>
                     </div>
@@ -172,7 +179,8 @@ function NotificationButton() {
               )}
             </div>
 
-            <div className="p-2.5 bg-soot/2 text-center">
+            {/* Footer link */}
+            <div className="p-2.5 bg-plaster-dark/25 text-center">
               <button
                 type="button"
                 onClick={() => {
@@ -182,7 +190,7 @@ function NotificationButton() {
                 className="text-xs font-semibold text-soot hover:text-eucalyptus flex items-center justify-center gap-1 w-full py-1 cursor-pointer transition-colors"
               >
                 <span>View all notifications</span>
-                <ChevronRight size={13} />
+                <ChevronRight size={13} className="text-moss" />
               </button>
             </div>
           </div>
@@ -192,9 +200,31 @@ function NotificationButton() {
   );
 }
 
+
+function CartButton({ onClick }: { onClick: () => void }) {
+  const { cart } = useApp();
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label="Shopping Cart"
+      className="relative p-2 sm:p-2.5 rounded-2xl text-moss hover:text-soot hover:bg-soot/5 transition-colors cursor-pointer shrink-0"
+      title="Shopping Cart"
+    >
+      <ShoppingBag size={19} />
+      {cart.length > 0 && (
+        <span className="absolute top-1.5 right-1.5 min-w-4 h-4 px-1 rounded-full bg-emerald-800 text-white text-[9px] leading-4 text-center font-bold animate-pulse shadow-2xs">
+          {cart.length}
+        </span>
+      )}
+    </button>
+  );
+}
+
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { currentUser, navigate, logout, nav } = useApp();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [cartOpen, setCartOpen] = useState(false);
 
   if (!currentUser) return <>{children}</>;
 
@@ -285,6 +315,9 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               {role === 'organization' ? 'HR Admin (B2B)' : role === 'admin' ? 'Admin Portal' : `${role} portal`}
             </span>
 
+            {(role === 'individual' || role === 'organization' || (role as any) === 'B2C' || (role as any) === 'HR_ADMIN') && (
+              <CartButton onClick={() => setCartOpen(true)} />
+            )}
             <NotificationButton />
 
             <button
@@ -383,6 +416,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </Modal>
+
+      <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
     </div>
   );
 }

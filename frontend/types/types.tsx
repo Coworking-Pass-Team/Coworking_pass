@@ -543,7 +543,7 @@ export function getEffectiveSpacePrice(
     };
   }
 
-  if (!user) {
+  if (!user || user.hasActivePass === false) {
     return {
       isCovered: false,
       effectivePrice: originalPrice,
@@ -553,16 +553,15 @@ export function getEffectiveSpacePrice(
     };
   }
 
-  const tier: MembershipTier = user.membershipTier
-    ? (user.membershipTier.toLowerCase().includes('enterprise') ? 'enterprise'
-        : user.membershipTier.toLowerCase().includes('all-access') ? 'all-access'
-        : user.membershipTier.toLowerCase().includes('pro') ? 'pro'
-        : user.membershipTier.toLowerCase().includes('basic') ? 'basic' : 'none')
-    : (user.hasActivePass === true ? 'all-access' : 'none');
+  const tierStr = (user.membershipTier || '').toLowerCase();
 
-  const targetType = deskType || space?.type;
+  const isYearlyPass = tierStr.includes('yearly') || tierStr.includes('enterprise') || tierStr.includes('all-access');
+  const isMonthlyPass = tierStr.includes('monthly') || tierStr.includes('pro');
+  const isDailyPass = tierStr.includes('daily') || tierStr.includes('basic');
 
-  if (tier === 'enterprise') {
+  // Strict 1-to-1 Plan Matching:
+  // 1. Yearly Pass Member -> ONLY Yearly plan reservations are Included in Pass (SAR 0)
+  if (isYearlyPass && planType === 'yearly') {
     return {
       isCovered: true,
       effectivePrice: 0,
@@ -573,18 +572,8 @@ export function getEffectiveSpacePrice(
     };
   }
 
-  if (tier === 'all-access') {
-    if (targetType === 'private-office') {
-      const effectivePrice = Math.round(originalPrice * 0.3);
-      return {
-        isCovered: false,
-        effectivePrice,
-        originalPrice,
-        badgeLabel: `SAR ${effectivePrice.toLocaleString()} (70% Off Upgrade)`,
-        hasDiscount: true,
-        discountPercentage: 70,
-      };
-    }
+  // 2. Monthly Pass Member -> ONLY Monthly plan reservations are Included in Pass (SAR 0)
+  if (isMonthlyPass && planType === 'monthly') {
     return {
       isCovered: true,
       effectivePrice: 0,
@@ -595,43 +584,19 @@ export function getEffectiveSpacePrice(
     };
   }
 
-  if (tier === 'pro') {
-    if (targetType === 'hot-desk' || targetType === 'mixed' || targetType === 'shared-desk') {
-      if (planType === 'daily' || planType === 'monthly') {
-        return {
-          isCovered: true,
-          effectivePrice: 0,
-          originalPrice,
-          badgeLabel: 'Included in Pass',
-          hasDiscount: true,
-          discountPercentage: 100,
-        };
-      }
-    }
-    const effectivePrice = Math.round(originalPrice * 0.5);
+  // 3. Daily Pass Member -> ONLY Daily plan reservations are Included in Pass (SAR 0)
+  if (isDailyPass && planType === 'daily') {
     return {
-      isCovered: false,
-      effectivePrice,
+      isCovered: true,
+      effectivePrice: 0,
       originalPrice,
-      badgeLabel: `SAR ${effectivePrice.toLocaleString()} (50% Off)`,
+      badgeLabel: 'Included in Pass',
       hasDiscount: true,
-      discountPercentage: 50,
+      discountPercentage: 100,
     };
   }
 
-  if (tier === 'basic') {
-    if ((targetType === 'hot-desk' || targetType === 'shared-desk') && planType === 'daily') {
-      return {
-        isCovered: true,
-        effectivePrice: 0,
-        originalPrice,
-        badgeLabel: 'Included in Pass',
-        hasDiscount: true,
-        discountPercentage: 100,
-      };
-    }
-  }
-
+  // Non-matching plan types are charged full original price
   return {
     isCovered: false,
     effectivePrice: originalPrice,
@@ -672,6 +637,28 @@ export interface Booking {
   totalPrice: number;
   status: BookingStatus;
   createdAt?: string;
+  notes?: string;
+}
+
+export interface CartItem {
+  id: string;
+  spaceId: string;
+  spaceName: string;
+  spaceCity: string;
+  spaceAddress: string;
+  spaceImage: string;
+  type: BookingType | SpaceType;
+  plan: BookingPlan;
+  startTime?: string;
+  endTime?: string;
+  durationHours?: number;
+  durationMonths?: number;
+  startDate: string;
+  endDate: string;
+  seats: number;
+  employees?: string[];
+  pricePerSeat: number;
+  itemTotal: number;
   notes?: string;
 }
 

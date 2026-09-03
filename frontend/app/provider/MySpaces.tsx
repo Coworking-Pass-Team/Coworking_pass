@@ -18,6 +18,7 @@ import {
   Upload,
   Presentation,
   Clapperboard,
+  X,
 } from 'lucide-react';
 import { useApp } from '@/app/store';
 import { Space, SpaceType, SpaceCategory, ALL_SPACE_TYPES, isHourlyOnlySpace, isOfficeSpace, isHourlyAllowed, getSpaceCategory } from '@/types/types';
@@ -189,12 +190,44 @@ export default function ProviderMySpaces() {
     toggleSpaceVisibility(spaceId);
   };
 
+  const [customAmenityInput, setCustomAmenityInput] = useState('');
+
   const toggleAmenity = (amenity: string) => {
     setForm((prev) => ({
       ...prev,
       amenities: prev.amenities?.includes(amenity)
         ? prev.amenities.filter((item) => item !== amenity)
         : [...(prev.amenities || []), amenity],
+    }));
+  };
+
+  const handleAddCustomAmenity = () => {
+    const trimmed = customAmenityInput.trim();
+    if (!trimmed) return;
+    const current = form.amenities || [];
+    const exists = current.some((a) => a.toLowerCase() === trimmed.toLowerCase());
+    if (!exists) {
+      setForm((prev) => ({
+        ...prev,
+        amenities: [...(prev.amenities || []), trimmed],
+      }));
+    } else {
+      // If it exists but isn't selected, select it
+      if (!current.includes(trimmed)) {
+        const match = current.find((a) => a.toLowerCase() === trimmed.toLowerCase()) || trimmed;
+        setForm((prev) => ({
+          ...prev,
+          amenities: [...(prev.amenities || []), match],
+        }));
+      }
+    }
+    setCustomAmenityInput('');
+  };
+
+  const handleRemoveCustomAmenity = (amenityToRemove: string) => {
+    setForm((prev) => ({
+      ...prev,
+      amenities: (prev.amenities || []).filter((a) => a !== amenityToRemove),
     }));
   };
 
@@ -486,20 +519,13 @@ export default function ProviderMySpaces() {
                         setFilterCity(city === 'All Cities' ? '' : city);
                         setDropdownOpen(false);
                       }}
-                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors duration-150 text-left cursor-pointer focus:outline-none ${
+                      className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-sm font-medium transition-colors text-left cursor-pointer ${
                         isSelected
                           ? 'bg-soot text-plaster font-semibold'
-                          : 'text-soot hover:bg-plaster-dark/60 hover:text-soot'
+                          : 'text-soot hover:bg-plaster-dark/60'
                       }`}
                     >
-                      <div className="flex items-center gap-2.5">
-                        <span
-                          className={`w-1.5 h-1.5 rounded-full ${
-                            isSelected ? 'bg-eucalyptus' : 'bg-transparent'
-                          }`}
-                        />
-                        <span>{city}</span>
-                      </div>
+                      <span>{city}</span>
                       {isSelected && <Check size={14} className="text-eucalyptus" />}
                     </button>
                   );
@@ -685,37 +711,42 @@ export default function ProviderMySpaces() {
                 <button
                   type="button"
                   onClick={() => setModalCityOpen(!modalCityOpen)}
-                  className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white border border-soot/12 text-soot text-sm text-left cursor-pointer focus:outline-none"
+                  className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white border border-soot/12 text-soot text-sm font-medium text-left transition-all duration-200 cursor-pointer focus:outline-none"
                 >
-                  <span>{form.city || 'Select City'}</span>
+                  <span className="truncate">{form.city || 'Select City'}</span>
                   <ChevronDown
                     size={15}
-                    className={`text-moss transition-transform duration-200 ${
+                    className={`text-moss shrink-0 transition-transform duration-200 ${
                       modalCityOpen ? 'rotate-180 text-soot' : ''
                     }`}
                   />
                 </button>
 
                 {modalCityOpen && (
-                  <div className="absolute top-full left-0 right-0 mt-1 p-1 bg-white border border-soot/15 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto">
-                    {CITIES.map((c) => (
-                      <button
-                        key={c}
-                        type="button"
-                        onClick={() => {
-                          setForm((p) => ({ ...p, city: c }));
-                          setModalCityOpen(false);
-                        }}
-                        className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium cursor-pointer ${
-                          form.city === c
-                            ? 'bg-soot text-plaster font-semibold'
-                            : 'text-soot hover:bg-soot/5'
-                        }`}
-                      >
-                        <span>{c}</span>
-                        {form.city === c && <Check size={14} className="text-eucalyptus" />}
-                      </button>
-                    ))}
+                  <div className="absolute top-full left-0 right-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100 max-h-52 overflow-y-auto">
+                    <div className="space-y-0.5">
+                      {CITIES.map((c) => {
+                        const isSelected = form.city === c;
+                        return (
+                          <button
+                            key={c}
+                            type="button"
+                            onClick={() => {
+                              setForm((p) => ({ ...p, city: c }));
+                              setModalCityOpen(false);
+                            }}
+                            className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-sm font-medium transition-colors text-left cursor-pointer ${
+                              isSelected
+                                ? 'bg-soot text-plaster font-semibold'
+                                : 'text-soot hover:bg-plaster-dark/60'
+                            }`}
+                          >
+                            <span>{c}</span>
+                            {isSelected && <Check size={14} className="text-eucalyptus" />}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </div>
@@ -755,39 +786,44 @@ export default function ProviderMySpaces() {
                 <button
                   type="button"
                   onClick={() => setModalTypeOpen(!modalTypeOpen)}
-                  className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white border border-soot/12 text-soot text-sm text-left cursor-pointer focus:outline-none"
+                  className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white border border-soot/12 text-soot text-sm font-medium text-left transition-all duration-200 cursor-pointer focus:outline-none"
                 >
                   <span className="truncate">
                     {TYPES.find((t) => t.value === form.type)?.label || 'Select Type'}
                   </span>
                   <ChevronDown
                     size={15}
-                    className={`text-moss transition-transform duration-200 shrink-0 ${
+                    className={`text-moss shrink-0 transition-transform duration-200 ${
                       modalTypeOpen ? 'rotate-180 text-soot' : ''
                     }`}
                   />
                 </button>
 
                 {modalTypeOpen && (
-                  <div className="absolute top-full left-0 right-0 mt-1 p-1 bg-white border border-soot/15 rounded-xl shadow-lg z-50 max-h-60 overflow-y-auto">
-                    {TYPES.map((t) => (
-                      <button
-                        key={t.value}
-                        type="button"
-                        onClick={() => {
-                          setForm((p) => ({ ...p, type: t.value }));
-                          setModalTypeOpen(false);
-                        }}
-                        className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium cursor-pointer ${
-                          form.type === t.value
-                            ? 'bg-soot text-plaster font-semibold'
-                            : 'text-soot hover:bg-soot/5'
-                        }`}
-                      >
-                        <span>{t.label}</span>
-                        {form.type === t.value && <Check size={14} className="text-eucalyptus" />}
-                      </button>
-                    ))}
+                  <div className="absolute top-full left-0 right-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100 max-h-52 overflow-y-auto">
+                    <div className="space-y-0.5">
+                      {TYPES.map((t) => {
+                        const isSelected = form.type === t.value;
+                        return (
+                          <button
+                            key={t.value}
+                            type="button"
+                            onClick={() => {
+                              setForm((p) => ({ ...p, type: t.value }));
+                              setModalTypeOpen(false);
+                            }}
+                            className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-sm font-medium transition-colors text-left cursor-pointer ${
+                              isSelected
+                                ? 'bg-soot text-plaster font-semibold'
+                                : 'text-soot hover:bg-plaster-dark/60'
+                            }`}
+                          >
+                            <span>{t.label}</span>
+                            {isSelected && <Check size={14} className="text-eucalyptus" />}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </div>
@@ -980,7 +1016,34 @@ export default function ProviderMySpaces() {
               <span className="text-[11px] font-bold uppercase tracking-wider text-moss block border-b border-soot/10 pb-1.5">
                 Available Amenities
               </span>
-              <div className="flex flex-wrap gap-2">
+
+              {/* Custom Amenity Input */}
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={customAmenityInput}
+                  onChange={(e) => setCustomAmenityInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddCustomAmenity();
+                    }
+                  }}
+                  placeholder="Add custom amenity..."
+                  className="flex-1 px-3.5 py-2 rounded-xl border border-soot/12 bg-plaster-dark/30 text-soot text-xs placeholder:text-moss/70 outline-none focus:border-eucalyptus focus:bg-plaster-surface transition-all"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddCustomAmenity}
+                  className="px-3.5 py-2 rounded-xl bg-soot text-plaster hover:bg-soot/90 text-xs font-semibold cursor-pointer transition-all shrink-0 flex items-center gap-1 shadow-2xs"
+                >
+                  <Plus size={14} />
+                  <span>Add</span>
+                </button>
+              </div>
+
+              <div className="flex flex-wrap gap-2 pt-1">
+                {/* Preset AMENITY_OPTIONS Chips */}
                 {AMENITY_OPTIONS.map((a) => {
                   const sel = form.amenities?.includes(a);
                   return (
@@ -996,6 +1059,37 @@ export default function ProviderMySpaces() {
                     </button>
                   );
                 })}
+
+                {/* Custom Added Amenities Chips */}
+                {(form.amenities || [])
+                  .filter((a) => !AMENITY_OPTIONS.includes(a))
+                  .map((a) => {
+                    const sel = form.amenities?.includes(a);
+                    return (
+                      <div
+                        key={a}
+                        onClick={() => toggleAmenity(a)}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
+                          sel
+                            ? 'bg-soot text-plaster font-semibold'
+                            : 'bg-plaster-dark/40 text-soot hover:bg-plaster-dark/70'
+                        }`}
+                      >
+                        <span>{a}</span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemoveCustomAmenity(a);
+                          }}
+                          className="p-0.5 hover:bg-white/20 rounded-md transition-colors"
+                          title="Remove custom amenity"
+                        >
+                          <X size={13} className={sel ? 'text-plaster/80 hover:text-white' : 'text-soot/70 hover:text-soot'} />
+                        </button>
+                      </div>
+                    );
+                  })}
               </div>
             </div>
           </div>

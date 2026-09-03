@@ -1,7 +1,7 @@
 'use client';
 
 import { Heart, MapPin, Star, Users, Check } from 'lucide-react';
-import { Space, getEffectiveSpacePrice, isHourlyOnlySpace, isHourlyAllowed } from '@/types/types';
+import { Space, BookingPlan, getEffectiveSpacePrice, isHourlyOnlySpace, isHourlyAllowed } from '@/types/types';
 import { useApp } from '@/app/store';
 import Badge from '@/components/ui/Badge';
 
@@ -13,7 +13,14 @@ interface SpaceCardProps {
 export default function SpaceCard({ space, onSelect }: SpaceCardProps) {
   const { favorites, toggleFavorite, currentUser } = useApp();
   const isFav = favorites.includes(space.id);
-  const planInfo = getEffectiveSpacePrice(currentUser, space, 'daily');
+  const userTier = (currentUser?.membershipTier || '').toLowerCase();
+  const userPlan: BookingPlan = userTier.includes('yearly') || userTier.includes('enterprise') || userTier.includes('all-access')
+    ? 'yearly'
+    : userTier.includes('monthly') || userTier.includes('pro')
+    ? 'monthly'
+    : 'daily';
+
+  const planInfo = getEffectiveSpacePrice(currentUser, space, userPlan);
 
   const availability = space.availableCapacity === 0
     ? { label: 'Fully Booked', variant: 'danger' as const }

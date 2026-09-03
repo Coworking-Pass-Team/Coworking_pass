@@ -18,7 +18,8 @@ import {
   Info,
   Sparkles,
   ShieldCheck,
-  ArrowRight
+  ArrowRight,
+  ShoppingBag
 } from 'lucide-react';
 import { useApp } from '@/app/store';
 import {
@@ -39,7 +40,7 @@ import Modal from '@/components/ui/Modal';
 import Badge from '@/components/ui/Badge';
 
 export default function SpaceDetails() {
-  const { nav, navigate, goBack, spaces, currentUser, favorites, toggleFavorite, waitlist, autobooking, joinWaitlist } = useApp();
+  const { nav, navigate, goBack, spaces, currentUser, favorites, toggleFavorite, waitlist, autobooking, joinWaitlist, addToCart } = useApp();
   const passActive = isUserPassHolder(currentUser);
 
   const urlId = typeof window !== 'undefined' ? window.location.pathname.split('/').pop() : '';
@@ -530,14 +531,45 @@ export default function SpaceDetails() {
                   )}
                 </div>
               ) : (
-                <button
-                  type="button"
-                  onClick={handleBook}
-                  className="w-full py-3.5 px-4 rounded-xl font-semibold text-sm bg-soot text-plaster hover:bg-moss active:scale-[0.99] transition-all duration-200 shadow-md flex items-center justify-center gap-2 cursor-pointer focus-visible:ring-2 focus-visible:ring-eucalyptus"
-                >
-                  <span>{currentUser ? 'Proceed to Reservation' : 'Sign in to Reserve'}</span>
-                  <ArrowRight size={16} />
-                </button>
+                <div className="space-y-2.5">
+                  <button
+                    type="button"
+                    onClick={handleBook}
+                    className="w-full py-3.5 px-4 rounded-xl font-semibold text-sm bg-soot text-plaster hover:bg-moss active:scale-[0.99] transition-all duration-200 shadow-md flex items-center justify-center gap-2 cursor-pointer focus-visible:ring-2 focus-visible:ring-eucalyptus"
+                  >
+                    <span>{currentUser ? 'Proceed to Reservation' : 'Sign in to Reserve'}</span>
+                    <ArrowRight size={16} />
+                  </button>
+
+                  {currentUser && (currentUser.role === 'individual' || currentUser.role === 'organization' || (currentUser.role as any) === 'B2C' || (currentUser.role as any) === 'HR_ADMIN') && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const today = new Date().toISOString().split('T')[0];
+                        addToCart({
+                          spaceId: space.id,
+                          spaceName: space.name,
+                          spaceCity: space.city,
+                          spaceAddress: space.address || (space as any).location || space.city,
+                          spaceImage: space.images?.[0] || 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80',
+                          type: space.type,
+                          plan: selectedPlan,
+                          durationHours: selectedPlan === 'hourly' ? durationHours : undefined,
+                          startTime: selectedPlan === 'hourly' ? '09:00 AM' : undefined,
+                          startDate: today,
+                          endDate: today,
+                          seats: 1,
+                          pricePerSeat: planPrice,
+                          itemTotal: planPrice,
+                        });
+                      }}
+                      className="w-full py-3 px-4 rounded-xl font-semibold text-xs border border-soot/15 text-soot bg-white hover:bg-plaster-dark/40 active:scale-[0.99] transition-all duration-200 shadow-2xs flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <ShoppingBag size={15} />
+                      <span>Add Pass to Cart</span>
+                    </button>
+                  )}
+                </div>
               )}
 
               {!currentUser && (

@@ -65,10 +65,21 @@ export default function CompanyTeam() {
   const [deleteModal, setDeleteModal] = useState<TeamMemberExt | null>(null);
   const [newMember, setNewMember] = useState({ name: '', email: '', department: '', role: 'Team Member' as CompanyRole });
 
+  const [addRoleOpen, setAddRoleOpen] = useState(false);
+  const [editRoleOpen, setEditRoleOpen] = useState(false);
+  const addRoleRef = useRef<HTMLDivElement>(null);
+  const editRoleRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (roleDropdownRef.current && !roleDropdownRef.current.contains(event.target as Node)) {
         setRoleDropdownOpen(false);
+      }
+      if (addRoleRef.current && !addRoleRef.current.contains(event.target as Node)) {
+        setAddRoleOpen(false);
+      }
+      if (editRoleRef.current && !editRoleRef.current.contains(event.target as Node)) {
+        setEditRoleOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -388,17 +399,49 @@ export default function CompanyTeam() {
               className="w-full px-3.5 py-2.5 rounded-xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-eucalyptus"
             />
           </div>
-          <div>
+          <div className="relative" ref={addRoleRef}>
             <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">Company Access Role</label>
-            <select
-              value={newMember.role}
-              onChange={e => setNewMember(p => ({ ...p, role: e.target.value as CompanyRole }))}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-eucalyptus"
+            <button
+              type="button"
+              onClick={() => setAddRoleOpen(!addRoleOpen)}
+              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white border border-soot/12 text-soot text-sm font-medium text-left transition-all duration-200 cursor-pointer focus:outline-none"
             >
-              {COMPANY_ROLES.map(r => (
-                <option key={r} value={r}>{r}</option>
-              ))}
-            </select>
+              <span className="truncate">{newMember.role}</span>
+              <ChevronDown
+                size={15}
+                className={`text-moss shrink-0 transition-transform duration-200 ${
+                  addRoleOpen ? 'rotate-180 text-soot' : ''
+                }`}
+              />
+            </button>
+
+            {addRoleOpen && (
+              <div className="absolute top-full left-0 right-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100 max-h-52 overflow-y-auto">
+                <div className="space-y-0.5">
+                  {COMPANY_ROLES.map((r) => {
+                    const isSelected = newMember.role === r;
+                    return (
+                      <button
+                        key={r}
+                        type="button"
+                        onClick={() => {
+                          setNewMember((p) => ({ ...p, role: r }));
+                          setAddRoleOpen(false);
+                        }}
+                        className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-sm font-medium transition-colors text-left cursor-pointer ${
+                          isSelected
+                            ? 'bg-soot text-plaster font-semibold'
+                            : 'text-soot hover:bg-plaster-dark/60'
+                        }`}
+                      >
+                        <span>{r}</span>
+                        {isSelected && <Check size={14} className="text-eucalyptus" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </Modal>
@@ -438,17 +481,49 @@ export default function CompanyTeam() {
                 className="w-full px-3.5 py-2.5 rounded-xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-eucalyptus"
               />
             </div>
-            <div>
+            <div className="relative" ref={editRoleRef}>
               <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">Company Role</label>
-              <select
-                value={editModal.role}
-                onChange={e => setEditModal(p => p ? { ...p, role: e.target.value as CompanyRole } : null)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-eucalyptus"
+              <button
+                type="button"
+                onClick={() => setEditRoleOpen(!editRoleOpen)}
+                className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white border border-soot/12 text-soot text-sm font-medium text-left transition-all duration-200 cursor-pointer focus:outline-none"
               >
-                {COMPANY_ROLES.map(r => (
-                  <option key={r} value={r}>{r}</option>
-                ))}
-              </select>
+                <span className="truncate">{editModal.role}</span>
+                <ChevronDown
+                  size={15}
+                  className={`text-moss shrink-0 transition-transform duration-200 ${
+                    editRoleOpen ? 'rotate-180 text-soot' : ''
+                  }`}
+                />
+              </button>
+
+              {editRoleOpen && (
+                <div className="absolute top-full left-0 right-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100 max-h-52 overflow-y-auto">
+                  <div className="space-y-0.5">
+                    {COMPANY_ROLES.map((r) => {
+                      const isSelected = editModal.role === r;
+                      return (
+                        <button
+                          key={r}
+                          type="button"
+                          onClick={() => {
+                            setEditModal((p) => (p ? { ...p, role: r } : null));
+                            setEditRoleOpen(false);
+                          }}
+                          className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-sm font-medium transition-colors text-left cursor-pointer ${
+                            isSelected
+                              ? 'bg-soot text-plaster font-semibold'
+                              : 'text-soot hover:bg-plaster-dark/60'
+                          }`}
+                        >
+                          <span>{r}</span>
+                          {isSelected && <Check size={14} className="text-eucalyptus" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </Modal>
