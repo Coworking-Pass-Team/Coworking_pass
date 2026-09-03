@@ -1,9 +1,9 @@
 'use client';
 
 import React from 'react';
-import { CalendarDays, MapPin, Star, Clock, ArrowRight, Bookmark, Check, Building2 } from 'lucide-react';
+import { CalendarDays, MapPin, Star, Clock, ArrowRight, Bookmark, Check, Sparkles } from 'lucide-react';
 import { useApp } from '@/app/store';
-import { Space, getEffectiveSpacePrice, Booking, getHourlyPriceForDuration } from '@/types/types';
+import { Space, getEffectiveSpacePrice, Booking, getHourlyPriceForDuration, BookingPlan } from '@/types/types';
 
 export default function Dashboard() {
   const { currentUser, spaces, bookings, favorites, navigate } = useApp();
@@ -34,14 +34,29 @@ export default function Dashboard() {
     return 'Good evening';
   };
 
+  const tierName = currentUser.membershipTier || (currentUser.hasActivePass ? 'All-Access Pass' : 'Standard Member');
+  const tierLower = tierName.toLowerCase();
+
+  const userPassPlan: BookingPlan = tierLower.includes('yearly') || tierLower.includes('enterprise') || tierLower.includes('all-access')
+    ? 'yearly'
+    : tierLower.includes('monthly') || tierLower.includes('pro')
+    ? 'monthly'
+    : 'daily';
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
-          <span className="text-xs font-semibold tracking-wider uppercase text-moss block mb-1">
-            Personal Workspace Portal
-          </span>
+          <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
+            <span className="text-xs font-semibold tracking-wider uppercase text-moss block">
+              Personal Workspace Portal
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E2E8E4] border border-[#2D3536]/15 text-soot text-xs font-semibold shadow-2xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
+              <span>{tierName}</span>
+            </span>
+          </div>
           <h1 className="text-3xl sm:text-4xl text-soot font-normal font-serif-display">
             {greeting()}, {currentUser.name.split(' ')[0]}
           </h1>
@@ -49,8 +64,8 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Admin-Matching Elevated Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+      {/* Stats Cards Matching Organization Dashboard */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {[
           {
             label: 'Active Bookings',
@@ -80,10 +95,18 @@ export default function Dashboard() {
             icon: Clock,
             iconBg: 'bg-blue-500/15 text-blue-800 border-blue-500/30',
           },
+          {
+            label: 'Loyalty Points',
+            count: currentUser.loyaltyPoints || 0,
+            badge: 'bg-amber-500/20 text-amber-900 border border-amber-500/40',
+            icon: Sparkles,
+            iconBg: 'bg-amber-500/15 text-amber-600 border border-amber-500/30',
+          },
         ].map((stat) => (
           <div
             key={stat.label}
-            className="bg-plaster-surface rounded-3xl border border-soot/12 p-5 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between group"
+            onClick={() => stat.label === 'Loyalty Points' ? navigate('loyalty') : undefined}
+            className={`bg-plaster-surface rounded-3xl border border-soot/12 p-5 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between group ${stat.label === 'Loyalty Points' ? 'cursor-pointer hover:border-amber-500/40' : ''}`}
           >
             <div className="flex items-center gap-3.5">
               <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs ${stat.iconBg}`}>
@@ -140,7 +163,7 @@ export default function Dashboard() {
                         <MapPin size={12} className="shrink-0" />
                         <span className="truncate">{b.spaceCity}</span>
                         <span>•</span>
-                        <span className="truncate">{b.startDate} → {b.endDate}</span>
+                        <span className="truncate">{b.startDate} {b.endDate && b.endDate !== b.startDate ? `→ ${b.endDate}` : ''}</span>
                       </div>
                       <div className="mt-1.5">
                         <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-500/15 text-emerald-800 border border-emerald-500/30 uppercase tracking-wider">
@@ -211,7 +234,7 @@ export default function Dashboard() {
                   </div>
                   <div className="text-right shrink-0">
                     {(() => {
-                      const planInfo = getEffectiveSpacePrice(currentUser, space, 'daily');
+                      const planInfo = getEffectiveSpacePrice(currentUser, space, userPassPlan);
                       if (planInfo.isCovered) {
                         return (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-800 font-bold text-[10px] border border-emerald-500/30 uppercase tracking-wider shadow-2xs">

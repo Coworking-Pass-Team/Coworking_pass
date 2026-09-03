@@ -13,7 +13,8 @@ import {
   Clock,
   Info,
   Receipt,
-  ShoppingBag
+  ShoppingBag,
+  Sparkles
 } from 'lucide-react';
 import { useApp } from '@/app/store';
 import {
@@ -38,7 +39,7 @@ const START_TIMES = [
 ];
 
 export default function TeamBooking() {
-  const { nav, goBack, spaces, bookings, currentUser, addBooking, navigate, showToast, addToCart } = useApp();
+  const { nav, goBack, spaces, bookings, currentUser, addBooking, navigate, showToast, addToCart, updateCurrentUser } = useApp();
   const spaceId = nav.params?.spaceId;
   const space = spaces.find((s: Space) => s.id === spaceId);
 
@@ -68,12 +69,16 @@ export default function TeamBooking() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
   const [seats, setSeats] = useState(2);
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [manualEndDate, setManualEndDate] = useState('');
   const [confirmedBooking, setConfirmedBooking] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+
+  // Loyalty Points State
+  const [useLoyaltyPoints, setUseLoyaltyPoints] = useState(false);
 
   const employees = currentUser?.employees || [];
 
@@ -95,7 +100,18 @@ export default function TeamBooking() {
 
   const planInfo = getEffectiveSpacePrice(currentUser, space, plan, bookingType, durationHours);
   const pricePerSeat = planInfo.effectivePrice;
-  const totalPrice = pricePerSeat * seats;
+  const rawTotalPrice = pricePerSeat * seats;
+
+  // منطق نقاط الولاء المكتسبة والمستخدمة
+  const multiplier = space.loyaltyPointsMultiplier || 1;
+  const earnedPoints = Math.floor(rawTotalPrice / 100) * 10 * multiplier;
+  const availablePoints = currentUser.loyaltyPoints || 0;
+  const maxRedeemablePoints = Math.min(
+    Math.floor(availablePoints / 100) * 100,
+    Math.floor(rawTotalPrice / 5) * 100
+  );
+  const pointsDiscount = useLoyaltyPoints && maxRedeemablePoints > 0 ? (maxRedeemablePoints / 100) * 5 : 0;
+  const finalPayablePrice = Math.max(0, rawTotalPrice - pointsDiscount);
 
   const planLabel = isHourly
     ? `for ${durationHours} hours`
@@ -165,13 +181,22 @@ export default function TeamBooking() {
         endDate,
         seats,
         employees: selectedEmployees,
-        totalPrice,
+        totalPrice: finalPayablePrice,
         status: 'active',
       });
+
+      // تحديث نقاط الولاء للمؤسسة / المستخدم
+      const pointsUsed = useLoyaltyPoints ? maxRedeemablePoints : 0;
+      const updatedPoints = Math.max(0, availablePoints - pointsUsed + earnedPoints);
+      updateCurrentUser({ loyaltyPoints: updatedPoints });
+
       setConfirmedBooking(booking);
       setStep(4);
       setLoading(false);
-      showToast('Team workspace reserved successfully!', 'success');
+      showToast(
+        `Team workspace reserved! Earned ${earnedPoints} points${pointsUsed > 0 ? ` and redeemed ${pointsUsed} points` : ''}.`,
+        'success'
+      );
     }, 1000);
   };
 
@@ -224,9 +249,27 @@ export default function TeamBooking() {
                 <span className="text-moss text-xs">Reserved Seats</span>
                 <span className="text-soot font-medium text-xs">{seats} seats</span>
               </div>
+
+              {/* تفاصيل نقاط الولاء في شاشة التأكيد */}
+              {pointsDiscount > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-moss text-xs">Points Redeemed</span>
+                  <span className="text-emerald-700 font-semibold text-xs">-{maxRedeemablePoints} pts (SAR {pointsDiscount})</span>
+                </div>
+              )}
+              {earnedPoints > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-moss text-xs">Points Earned</span>
+                  <span className="inline-flex items-center gap-1 text-emerald-700 font-bold text-xs">
+                    <Sparkles size={12} className="text-amber-500" />
+                    +{earnedPoints} pts
+                  </span>
+                </div>
+              )}
+
               <div className="pt-3 border-t border-soot/8 flex justify-between items-center font-semibold text-base">
                 <span className="text-soot">Total Paid (incl. VAT)</span>
-                <span className="text-soot font-bold text-lg">SAR {totalPrice.toLocaleString()}</span>
+                <span className="text-soot font-bold text-lg">SAR {finalPayablePrice.toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -283,6 +326,12 @@ export default function TeamBooking() {
             <div className="text-xs text-moss flex items-center gap-1 mt-0.5">
               <MapPin size={11} />
               <span>{space.city} · {space.availableCapacity} seats available</span>
+              {(space.loyaltyPointsMultiplier || 1) > 1 && (
+                <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-900 border border-amber-500/30">
+                  <Sparkles size={10} className="text-amber-500" />
+                  {space.loyaltyPointsMultiplier}× Points
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -293,7 +342,7 @@ export default function TeamBooking() {
             Total ({seats} seats)
           </span>
           <div className="font-bold text-soot text-base">
-            {planInfo.isCovered ? 'SAR 0' : `SAR ${totalPrice.toLocaleString()}`}
+            {planInfo.isCovered ? 'SAR 0' : `SAR ${finalPayablePrice.toLocaleString()}`}
           </div>
           <div className="text-[10px] text-moss">
             {planInfo.isCovered ? 'Enterprise Pass' : `SAR ${pricePerSeat}/seat`}
@@ -421,7 +470,7 @@ export default function TeamBooking() {
                 Calculated Total ({seats} seats × SAR {pricePerSeat})
               </span>
               <span className="text-base font-bold text-soot">
-                {planInfo.isCovered ? 'SAR 0 (Included)' : `SAR ${totalPrice.toLocaleString()}`}
+                {planInfo.isCovered ? 'SAR 0 (Included)' : `SAR ${rawTotalPrice.toLocaleString()}`}
               </span>
             </div>
           </div>
@@ -640,7 +689,7 @@ export default function TeamBooking() {
             </div>
             <div className="text-right">
               <span className="text-lg font-bold text-soot">
-                {planInfo.isCovered ? 'SAR 0' : `SAR ${totalPrice.toLocaleString()}`}
+                {planInfo.isCovered ? 'SAR 0' : `SAR ${rawTotalPrice.toLocaleString()}`}
               </span>
             </div>
           </div>
@@ -696,6 +745,45 @@ export default function TeamBooking() {
               </div>
             </div>
 
+            {/* قسم نقاط الولاء (Redeem Loyalty Points) */}
+            <div className="p-5 rounded-2xl bg-plaster-dark/40 border border-soot/10 space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0 mt-0.5">
+                    <Sparkles size={16} className="text-amber-600" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold text-soot">Loyalty Points Rewards</div>
+                    <div className="text-xs text-moss mt-0.5">
+                      You have <strong className="text-soot">{availablePoints}</strong> points. (100 pts = SAR 5 discount)
+                    </div>
+                  </div>
+                </div>
+
+                {maxRedeemablePoints >= 100 && (
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={useLoyaltyPoints}
+                      onChange={e => setUseLoyaltyPoints(e.target.checked)}
+                      className="w-4 h-4 rounded accent-soot cursor-pointer"
+                    />
+                    <span className="text-xs font-semibold text-soot">
+                      Use {maxRedeemablePoints} pts (-SAR {(maxRedeemablePoints / 100) * 5})
+                    </span>
+                  </label>
+                )}
+              </div>
+
+              <div className="pt-2 border-t border-soot/8 flex items-center justify-between text-xs">
+                <span className="text-moss">Points to be earned from this booking:</span>
+                <span className="font-bold text-emerald-800 flex items-center gap-1">
+                  <Sparkles size={11} className="text-amber-500" />
+                  +{earnedPoints} points {multiplier > 1 ? `(${multiplier}× promotion)` : ''}
+                </span>
+              </div>
+            </div>
+
             {/* Prominent Price Breakdown Box */}
             <div className="p-5 rounded-2xl bg-white border-2 border-soot/10 space-y-3">
               <div className="flex items-center gap-2 pb-2 border-b border-soot/8">
@@ -715,11 +803,17 @@ export default function TeamBooking() {
               </div>
               <div className="flex justify-between text-xs sm:text-sm">
                 <span className="text-moss">Subtotal</span>
-                <span className="text-soot font-medium">SAR {totalPrice.toLocaleString()}</span>
+                <span className="text-soot font-medium">SAR {rawTotalPrice.toLocaleString()}</span>
               </div>
+              {pointsDiscount > 0 && (
+                <div className="flex justify-between text-xs sm:text-sm">
+                  <span className="text-moss">Loyalty Points Discount ({maxRedeemablePoints} pts)</span>
+                  <span className="text-emerald-700 font-semibold">-SAR {pointsDiscount.toLocaleString()}</span>
+                </div>
+              )}
               <div className="flex justify-between text-xs sm:text-sm">
                 <span className="text-moss">VAT (15% included)</span>
-                <span className="text-soot font-medium">SAR {(totalPrice * 0.15).toFixed(0)}</span>
+                <span className="text-soot font-medium">SAR {(finalPayablePrice * 0.15).toFixed(0)}</span>
               </div>
 
               <div className="pt-3 border-t border-soot/10 flex justify-between items-center bg-plaster-dark/30 -mx-5 -mb-5 p-5 rounded-b-2xl">
@@ -731,7 +825,7 @@ export default function TeamBooking() {
                   {planInfo.isCovered ? (
                     <span className="text-2xl font-bold text-soot">SAR 0 <span className="text-xs font-medium text-moss">(Enterprise Pass)</span></span>
                   ) : (
-                    <span className="text-2xl font-bold text-soot">SAR {totalPrice.toLocaleString()}</span>
+                    <span className="text-2xl font-bold text-soot">SAR {finalPayablePrice.toLocaleString()}</span>
                   )}
                 </div>
               </div>
@@ -778,7 +872,7 @@ export default function TeamBooking() {
                   seats: seats,
                   employees: selectedEmployees,
                   pricePerSeat: pricePerSeat,
-                  itemTotal: totalPrice,
+                  itemTotal: finalPayablePrice,
                 });
                 navigate('browse');
               }}
@@ -798,7 +892,7 @@ export default function TeamBooking() {
               ) : (
                 <>
                   <CreditCard size={15} />
-                  <span>Confirm Reservation (SAR {totalPrice.toLocaleString()})</span>
+                  <span>Confirm Reservation (SAR {finalPayablePrice.toLocaleString()})</span>
                 </>
               )}
             </button>

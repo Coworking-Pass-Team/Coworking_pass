@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, Space, Booking, Screen, NavState, UserRole, BookingPlan, BookingType, PaymentCard, Notification, CartItem } from '@/types/types';
+import { User, Space, Booking, Screen, NavState, UserRole, BookingType, PaymentCard, Notification, CartItem } from '@/types/types';
 import { INITIAL_SPACES, INITIAL_USERS, INITIAL_BOOKINGS, INITIAL_NOTIFICATIONS } from '@/data/data';
 
 interface AppContextType {
@@ -35,6 +35,7 @@ interface AppContextType {
   cancelBooking: (id: string) => void;
   updateBookingStatus: (id: string, status: Booking['status']) => void;
 
+  // Notifications
   notifications: Notification[];
   unreadNotificationsCount: number;
   markNotificationRead: (id: string) => void;
@@ -51,10 +52,10 @@ interface AppContextType {
   unblockUser: (id: string) => void;
   changeUserRole: (id: string, role: UserRole) => void;
 
-  // Waitlist
+  // Waitlist & Auto-booking
   waitlist: Record<string, boolean>;
   autobooking: Record<string, boolean>;
-  autobookingCard: Record<string, string>; // spaceId -> PaymentCard.id used for auto-booking charges
+  autobookingCard: Record<string, string>;
   joinWaitlist: (spaceId: string) => void;
   enableAutoBooking: (spaceId: string, cardId: string) => void;
   disableAutoBooking: (spaceId: string) => void;
@@ -62,13 +63,16 @@ interface AppContextType {
   // Payment cards
   addPaymentCard: (card: Omit<PaymentCard, 'id'>) => PaymentCard;
 
-  // Shopping Cart
+  // Shopping Cart (نفس كودك الأصلي تماماً)
   cart: CartItem[];
   addToCart: (item: Omit<CartItem, 'id'>) => void;
   removeFromCart: (cartItemId: string) => void;
   updateCartItemSeats: (cartItemId: string, seats: number) => void;
   clearCart: () => void;
   checkoutCart: () => Booking[];
+
+  // Loyalty Points (الميزة المضافة من كودهم)
+  applyLoyaltyDiscount: (pointsToUse: number) => { discount: number; safePoints: number };
 
   // Toast
   toast: { message: string; type: 'success' | 'error' | 'info' } | null;
@@ -93,7 +97,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
 
-  // Sync state from localStorage after initial client mount to avoid SSR hydration mismatch
+  const sanitizeBookings = (list: Booking[]): Booking[] => {
+    const seen = new Set<string>();
+    return list.map((b, idx) => {
+      let uniqueId = b.id;
+      if (!uniqueId || seen.has(uniqueId)) {
+        uniqueId = `${b.id || 'booking'}-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 6)}`;
+      }
+      seen.add(uniqueId);
+      return { ...b, id: uniqueId };
+    });
+  };
+
+  const sanitizeNotifications = (list: Notification[]): Notification[] => {
+    const seen = new Set<string>();
+    return list.map((n, idx) => {
+      let uniqueId = n.id;
+      if (!uniqueId || seen.has(uniqueId)) {
+        uniqueId = `${n.id || 'notif'}-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 6)}`;
+      }
+      seen.add(uniqueId);
+      return { ...n, id: uniqueId };
+    });
+  };
+
   useEffect(() => {
     try {
       const savedUser = localStorage.getItem('cp_currentUser');
@@ -111,9 +138,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         try {
           const parsed = JSON.parse(savedUsers) as User[];
           const mergedMap = new Map<string, User>();
-          // Load existing saved users
           parsed.forEach(u => mergedMap.set(u.email.toLowerCase(), u));
-          // Overlay or add INITIAL_USERS so seed accounts are always present with updated membershipTier
           INITIAL_USERS.forEach(initU => {
             const existing = mergedMap.get(initU.email.toLowerCase());
             if (!existing) {
@@ -123,6 +148,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 ...existing,
                 membershipTier: initU.membershipTier || existing.membershipTier,
                 hasActivePass: initU.hasActivePass !== undefined ? initU.hasActivePass : existing.hasActivePass,
+                loyaltyPoints: existing.loyaltyPoints ?? (initU as any).loyaltyPoints ?? 0,
               });
             }
           });
@@ -140,13 +166,38 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setUsers(cleanedUsers);
       localStorage.setItem('cp_users', JSON.stringify(cleanedUsers));
 
+      const savedBookings = localStorage.getItem('cp_bookings');
+      if (savedBookings) {
+        try {
+          const parsed = JSON.parse(savedBookings);
+          const sanitized = sanitizeBookings(parsed);
+          setBookings(sanitized);
+          localStorage.setItem('cp_bookings', JSON.stringify(sanitized));
+        } catch (e) {
+          setBookings(sanitizeBookings(INITIAL_BOOKINGS));
+        }
+      } else {
+        const sanitized = sanitizeBookings(INITIAL_BOOKINGS);
+        setBookings(sanitized);
+        localStorage.setItem('cp_bookings', JSON.stringify(sanitized));
+      }
+
       const savedNotifs = localStorage.getItem('cp_notifications');
       if (savedNotifs) {
-        setNotifications(JSON.parse(savedNotifs));
+        try {
+          const parsed = JSON.parse(savedNotifs);
+          const sanitized = sanitizeNotifications(parsed);
+          setNotifications(sanitized);
+          localStorage.setItem('cp_notifications', JSON.stringify(sanitized));
+        } catch (e) {
+          setNotifications(sanitizeNotifications(INITIAL_NOTIFICATIONS));
+        }
       } else {
-        setNotifications(INITIAL_NOTIFICATIONS);
+        const sanitized = sanitizeNotifications(INITIAL_NOTIFICATIONS);
+        setNotifications(sanitized);
         localStorage.setItem('cp_notifications', JSON.stringify(INITIAL_NOTIFICATIONS));
       }
+
       const savedCart = localStorage.getItem('cp_cart');
       if (savedCart) {
         setCart(JSON.parse(savedCart));
@@ -159,9 +210,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const navigate = (screen: Screen, params: Record<string, any> = {}) => {
     setHistory(prev => [...prev.slice(-9), nav]);
     setNav({ screen, params });
-    if (typeof window !== 'undefined') {
-      window.scrollTo(0, 0);
-    }
+    if (typeof window !== 'undefined') window.scrollTo(0, 0);
   };
 
   const goBack = () => {
@@ -210,6 +259,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       joinDate: new Date().toISOString().split('T')[0],
       university: '',
       bio: '',
+      loyaltyPoints: 0,
     };
     const updatedUsers = [...users, newUser];
     setUsers(updatedUsers);
@@ -294,22 +344,38 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const addBooking = (booking: Omit<Booking, 'id' | 'createdAt'>) => {
     const newBooking: Booking = {
       ...booking,
-      id: `booking-${Date.now()}`,
+      id: `booking-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       createdAt: new Date().toISOString().split('T')[0],
     };
     setBookings(prev => [...prev, newBooking]);
     
+    // Auto-calculate loyalty points earned
+    const space = spaces.find(s => s.id === booking.spaceId);
+    const multiplier = space?.loyaltyPointsMultiplier || 1;
+    const earnedPoints = Math.floor((booking.totalPrice || 0) / 100) * 10 * multiplier;
+
+    if (currentUser && currentUser.id === booking.userId && earnedPoints > 0) {
+      const updatedUser = {
+        ...currentUser,
+        loyaltyPoints: (currentUser.loyaltyPoints || 0) + earnedPoints,
+      };
+      setCurrentUser(updatedUser);
+      setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('cp_currentUser', JSON.stringify(updatedUser));
+      }
+    }
+
     setNotifications(prev => [{
-      id: `notification-${Date.now()}`,
+      id: `notification-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       userId: booking.userId,
       title: 'Booking confirmed',
-      message: `${booking.spaceName} has been added to your bookings.`,
+      message: `${booking.spaceName} confirmed.${earnedPoints > 0 ? ` Earned ${earnedPoints} loyalty points!` : ''}`,
       type: 'booking',
       read: false,
       createdAt: new Date().toLocaleString(),
     }, ...prev]);
 
-    // تقليل السعة المتاحة
     setSpaces(prev => prev.map(s =>
       s.id === booking.spaceId
         ? { ...s, availableCapacity: Math.max(0, s.availableCapacity - booking.seats) }
@@ -347,7 +413,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // دوال الإشعارات المشتقة والخاصة بالمستخدم المسجل
   const userNotifications = currentUser ? notifications.filter(n => n.userId === currentUser.id || currentUser.role === 'admin') : [];
 
   const markNotificationRead = (id: string) => setNotifications(prev => {
@@ -447,15 +512,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       type = (presetType as Notification['type']) || 'info';
     }
 
-    const created = addNotification({ userId, title, message, type });
-    return created;
+    return addNotification({ userId, title, message, type });
   };
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      (window as any).generateFakeNotification = generateFakeNotification;
-    }
-  }, [currentUser]);
 
   const blockUser = (id: string) => {
     setUsers(prev => prev.map(u => u.id === id ? { ...u, isBlocked: true } : u));
@@ -517,6 +575,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return newCard;
   };
 
+  // دوال السلة الخاصة بك
   const saveCartToStorage = (newCart: CartItem[]) => {
     if (typeof window !== 'undefined') {
       try {
@@ -569,6 +628,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // دالة استخدام النقاط كخصم (من كودهم)
+  const applyLoyaltyDiscount = (pointsToUse: number) => {
+    if (!currentUser) return { discount: 0, safePoints: 0 };
+    const availablePoints = currentUser.loyaltyPoints || 0;
+    const safePoints = Math.max(0, Math.min(Math.floor(pointsToUse / 100) * 100, availablePoints));
+    const discount = (safePoints / 100) * 5; // كل 100 نقطة = 5 ريالات
+    return { discount, safePoints };
+  };
+
+  // دالة الدفع مع إبقاء التوقيع نفسه، وتحديث النقاط المكتسبة تلقائياً
   const checkoutCart = (): Booking[] => {
     if (!currentUser || cart.length === 0) return [];
 
@@ -597,16 +666,34 @@ export function AppProvider({ children }: { children: ReactNode }) {
       newBookings.push(b);
     });
 
+    // احتساب نقاط الولاء المكتسبة بناءً على كودهم
+    const earned = cart.reduce((sum, item) => {
+      const space = spaces.find(s => s.id === item.spaceId);
+      const multiplier = space?.loyaltyPointsMultiplier || 1;
+      return sum + Math.floor(item.itemTotal / 100) * 10 * multiplier;
+    }, 0);
+
+    const currentPoints = currentUser.loyaltyPoints || 0;
+    const updatedUser = { ...currentUser, loyaltyPoints: currentPoints + earned };
+    setCurrentUser(updatedUser);
+    const updatedUsers = users.map(u => u.id === updatedUser.id ? updatedUser : u);
+    setUsers(updatedUsers);
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cp_currentUser', JSON.stringify(updatedUser));
+      localStorage.setItem('cp_users', JSON.stringify(updatedUsers));
+    }
+
     clearCart();
 
     addNotification({
       userId: currentUser.id,
       title: 'Batch Checkout Successful',
-      message: `Payment confirmed for ${newBookings.length} workspace pass${newBookings.length > 1 ? 'es' : ''}.`,
+      message: `Payment confirmed for ${newBookings.length} workspace pass${newBookings.length > 1 ? 'es' : ''}. Earned ${earned} loyalty points!`,
       type: 'payment',
     });
 
-    showToast(`Payment processed! ${newBookings.length} workspace pass${newBookings.length > 1 ? 'es' : ''} confirmed.`, 'success');
+    showToast(`Payment processed! ${newBookings.length} pass${newBookings.length > 1 ? 'es' : ''} confirmed (+${earned} points).`, 'success');
 
     return newBookings;
   };
@@ -624,6 +711,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       waitlist, autobooking, autobookingCard, joinWaitlist, enableAutoBooking, disableAutoBooking,
       addPaymentCard,
       cart, addToCart, removeFromCart, updateCartItemSeats, clearCart, checkoutCart,
+      applyLoyaltyDiscount,
       toast, showToast, updateCurrentUser, completeSignup,
     }}>
       {children}

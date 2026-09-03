@@ -28,6 +28,7 @@ import Notifications from '@/Notifications';
 import IndividualDashboard from './individual/Dashboard';
 import BookingFlow from './individual/BookingFlow';
 import MyBookings from './individual/MyBookings';
+import LoyaltyPage from '@/app/loyalty/page';
 import ProfileSettings from './individual/ProfileSettings';
 
 // Organization screens
@@ -221,6 +222,24 @@ function CartButton({ onClick }: { onClick: () => void }) {
   );
 }
 
+export function LoyaltyButton() {
+  const { navigate, currentUser } = useApp();
+  if (!currentUser) return null;
+  const points = currentUser.loyaltyPoints || 0;
+
+  return (
+    <button
+      type="button"
+      onClick={() => navigate('loyalty')}
+      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#E2E8E4] hover:bg-[#DDE6DF] border border-[#2D3536]/15 text-soot text-xs font-semibold shadow-2xs transition-all cursor-pointer shrink-0"
+      title="Loyalty Rewards Hub"
+    >
+      <Sparkles size={14} className="text-moss shrink-0" />
+      <span>{points.toLocaleString()} pts</span>
+    </button>
+  );
+}
+
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { currentUser, navigate, logout, nav } = useApp();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -316,7 +335,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             </span>
 
             {(role === 'individual' || role === 'organization' || (role as any) === 'B2C' || (role as any) === 'HR_ADMIN') && (
-              <CartButton onClick={() => setCartOpen(true)} />
+              <>
+                <LoyaltyButton />
+                <CartButton onClick={() => setCartOpen(true)} />
+              </>
             )}
             <NotificationButton />
 
@@ -504,6 +526,7 @@ export function Router() {
         {screen === 'org-profile' && <OrgProfile />}
         {screen === 'org-settings' && <OrgProfile />}
         {screen === 'notifications' && <Notifications />}
+        {screen === 'loyalty' && <LoyaltyPage />}
         {screen === 'browse' && <Browse />}
         {screen === 'space-details' && <SpaceDetails />}
         {screen === 'pricing' && <Pricing />}
@@ -522,6 +545,7 @@ export function Router() {
         {screen === 'provider-profile' && <ProviderProfileSettings />}
         {screen === 'provider-settings' && <ProviderProfileSettings />}
         {screen === 'notifications' && <Notifications />}
+        {screen === 'loyalty' && <LoyaltyPage />}
         {screen === 'browse' && <Browse />}
         {screen === 'space-details' && <SpaceDetails />}
         {screen === 'pricing' && <Pricing />}
@@ -543,6 +567,7 @@ export function Router() {
       {screen === 'ind-profile' && <ProfileSettings mode="profile" />}
       {screen === 'ind-settings' && <ProfileSettings mode="settings" />}
       {screen === 'notifications' && <Notifications />}
+      {screen === 'loyalty' && <LoyaltyPage />}
       {screen === 'pricing' && <Pricing />}
       {screen === 'contact' && <Contact />}
     </DashboardLayout>

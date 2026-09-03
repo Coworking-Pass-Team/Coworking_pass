@@ -80,7 +80,7 @@ function Row({ label, value }: { label: string; value: string | React.ReactNode 
 }
 
 export default function BookingFlow() {
-  const { nav, navigate, goBack, spaces, bookings, currentUser, addBooking, showToast, addToCart } = useApp();
+  const { nav, navigate, goBack, spaces, bookings, currentUser, addBooking, showToast, addToCart, updateCurrentUser } = useApp();
   
   const urlId = typeof window !== 'undefined' ? window.location.pathname.split('/').pop() : '';
   const spaceId = nav?.params?.spaceId || (urlId && urlId !== 'page' && urlId !== 'booking-flow' ? urlId : '') || 'space-1';
@@ -121,6 +121,7 @@ export default function BookingFlow() {
   const [notes, setNotes] = useState('');
   const [confirmedBooking, setConfirmedBooking] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [useLoyaltyPoints, setUseLoyaltyPoints] = useState(false);
 
   if (!space || !currentUser) return null;
 
@@ -141,7 +142,18 @@ export default function BookingFlow() {
   // Price calculations
   const planInfo = getEffectiveSpacePrice(currentUser, space, plan, deskType, durationHours);
   const planPrice = planInfo.effectivePrice;
-  const totalPrice = planPrice * seats;
+  const rawTotalPrice = planPrice * seats;
+
+  // Loyalty calculations
+  const multiplier = space.loyaltyPointsMultiplier || 1;
+  const earnedPoints = Math.floor(rawTotalPrice / 100) * 10 * multiplier;
+  const availablePoints = currentUser?.loyaltyPoints || 0;
+  const maxRedeemablePoints = Math.min(
+    Math.floor(availablePoints / 100) * 100,
+    Math.floor(rawTotalPrice / 5) * 100
+  );
+  const pointsDiscount = useLoyaltyPoints && maxRedeemablePoints > 0 ? (maxRedeemablePoints / 100) * 5 : 0;
+  const totalPrice = Math.max(0, rawTotalPrice - pointsDiscount);
 
   const priceLabel = isHourly
     ? `for ${durationHours} hour${durationHours > 1 ? 's' : ''}`
@@ -198,6 +210,12 @@ export default function BookingFlow() {
   const confirmBooking = () => {
     setLoading(true);
     setTimeout(() => {
+      const pointsUsed = useLoyaltyPoints ? maxRedeemablePoints : 0;
+      if (pointsUsed > 0) {
+        const updatedPoints = Math.max(0, availablePoints - pointsUsed);
+        updateCurrentUser({ loyaltyPoints: updatedPoints });
+      }
+
       const booking = addBooking({
         userId: currentUser.id,
         spaceId: space.id,
@@ -752,6 +770,40 @@ export default function BookingFlow() {
                 <Row label="End Date" value={endDate} />
               ) : null}
               <Row label="Reserved Seats" value={`${seats} seat${seats > 1 ? 's' : ''}`} />
+            </div>
+
+            {/* Loyalty Rewards Program Card */}
+            <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Sparkles size={16} className="text-amber-600 shrink-0" />
+                  <div>
+                    <div className="text-xs font-semibold text-soot">Loyalty Rewards Program</div>
+                    <div className="text-[11px] text-moss">Balance: {availablePoints} points</div>
+                  </div>
+                </div>
+                {availablePoints >= 100 && rawTotalPrice > 0 && maxRedeemablePoints > 0 && (
+                  <label className="flex items-center gap-2 text-xs font-semibold text-soot cursor-pointer bg-white/80 px-3 py-1.5 rounded-xl border border-amber-500/30 hover:bg-white transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={useLoyaltyPoints}
+                      onChange={(e) => setUseLoyaltyPoints(e.target.checked)}
+                      className="rounded border-soot/20 text-eucalyptus focus:ring-eucalyptus cursor-pointer"
+                    />
+                    <span>Use {maxRedeemablePoints} pts (-SAR {(maxRedeemablePoints / 100) * 5})</span>
+                  </label>
+                )}
+              </div>
+              {earnedPoints > 0 && (
+                <div className="text-[11px] font-medium text-amber-900 bg-amber-500/15 px-3 py-1.5 rounded-xl border border-amber-500/30 flex items-center justify-between">
+                  <span>🎉 You will earn <strong>+{earnedPoints} loyalty points</strong> upon booking completion!</span>
+                  {multiplier > 1 && (
+                    <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-600 text-white px-2 py-0.5 rounded-full ml-2">
+                      {multiplier}× Points
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Clear Itemized Price Breakdown */}

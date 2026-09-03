@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { CalendarDays, MapPin, Star, Clock, ArrowRight, Bookmark, Check, Users, Building2 } from 'lucide-react';
+import { CalendarDays, MapPin, Star, Clock, ArrowRight, Bookmark, Check, Users, Building2, Sparkles } from 'lucide-react';
 import { useApp } from '@/app/store';
 import { Space, getEffectiveSpacePrice, Booking, getHourlyPriceForDuration, Employee } from '@/types/types';
 
@@ -37,14 +37,22 @@ export default function OrgDashboard() {
 
   const getEmpName = (id: string) => employees.find((e: Employee) => e.id === id)?.name || id;
 
+  const orgTierName = currentUser.membershipTier || (currentUser.hasActivePass ? 'Enterprise Pass' : 'Corporate Plan');
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
-          <span className="text-xs font-semibold tracking-wider uppercase text-moss block mb-1">
-            Enterprise HR & Corporate Portal
-          </span>
+          <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
+            <span className="text-xs font-semibold tracking-wider uppercase text-moss block">
+              Enterprise HR & Corporate Portal
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E2E8E4] border border-[#2D3536]/15 text-soot text-xs font-semibold shadow-2xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
+              <span>{orgTierName}</span>
+            </span>
+          </div>
           <h1 className="text-3xl sm:text-4xl text-soot font-normal font-serif-display">
             {currentUser.orgName || currentUser.name}
           </h1>
@@ -54,8 +62,8 @@ export default function OrgDashboard() {
         </div>
       </div>
 
-      {/* Admin-Matching Elevated Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+      {/* Stats Cards مع بطاقة نقاط الولاء المدمجة */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {[
           {
             label: 'Active Bookings',
@@ -85,10 +93,18 @@ export default function OrgDashboard() {
             icon: Clock,
             iconBg: 'bg-blue-500/15 text-blue-800 border-blue-500/30',
           },
+          {
+            label: 'Loyalty Points',
+            count: currentUser.loyaltyPoints || 0,
+            badge: 'bg-amber-500/20 text-amber-900 border border-amber-500/40',
+            icon: Sparkles,
+            iconBg: 'bg-amber-500/15 text-amber-600 border border-amber-500/30',
+          },
         ].map((stat) => (
           <div
             key={stat.label}
-            className="bg-plaster-surface rounded-3xl border border-soot/12 p-5 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between group"
+            onClick={() => stat.label === 'Loyalty Points' ? navigate('loyalty') : undefined}
+            className={`bg-plaster-surface rounded-3xl border border-soot/12 p-5 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between group ${stat.label === 'Loyalty Points' ? 'cursor-pointer hover:border-amber-500/40' : ''}`}
           >
             <div className="flex items-center gap-3.5">
               <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs ${stat.iconBg}`}>

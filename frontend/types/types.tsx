@@ -45,7 +45,7 @@ export interface SpaceBookingPackage {
 
 export interface SpacePricing {
   hourly?: number; // Base 1-hour rate
-  hourlyTiers?: { hours: number; price: number }[]; // Specific duration pricing, e.g. [{hours: 1, price: 50}, {hours: 2, price: 90}, ...]
+  hourlyTiers?: { hours: number; price: number }[]; // Specific duration pricing, e.g. [{hours: 1, price: 50}, {hours: 2, price: 90}]
   daily: number;
   monthly: number;
   yearly: number;
@@ -66,9 +66,10 @@ export interface Space {
   availableCapacity: number;
   pricing: SpacePricing;
 
-  // باقات الحجز بالساعات (من كودهم)
+  // باقات الحجز بالساعات ونقاط الولاء
   bookingMode?: BookingMode;
   bookingPackages?: SpaceBookingPackage[];
+  loyaltyPointsMultiplier?: number;
 
   rating: number;
   reviewCount: number;
@@ -125,12 +126,18 @@ export interface User {
   revenueShare?: number;
   hasActivePass?: boolean;
   membershipTier?: 'All-Access Pass' | 'Pro Pass' | 'Basic Pass' | 'Enterprise Pass' | string;
+  loyaltyPoints?: number;
 }
 
 export function isUserPassHolder(user: User | null): boolean {
   if (!user) return false;
   if (user.hasActivePass !== undefined) return user.hasActivePass;
-  return user.role === 'individual' || user.role === 'organization' || user.role === 'B2C' || user.role === 'HR_ADMIN';
+  return (
+    user.role === 'individual' ||
+    user.role === 'organization' ||
+    user.role === 'B2C' ||
+    user.role === 'HR_ADMIN'
+  );
 }
 
 export type MembershipTier = 'all-access' | 'pro' | 'basic' | 'enterprise' | 'none';
@@ -146,7 +153,6 @@ export interface PlanPricingResult {
 
 /**
  * Calculate the price for a specific duration in hours for a space.
- * Checks for specific custom duration tier, otherwise computes based on hourly rate with multi-hour discounts.
  */
 export function getHourlyPriceForDuration(space: Space, durationHours: number = 1): number {
   if (!space || !space.pricing) return 50 * durationHours;
@@ -163,11 +169,9 @@ export function getHourlyPriceForDuration(space: Space, durationHours: number = 
   // 2. Base hourly rate fallback
   const baseHourly = space.pricing.hourly || Math.max(25, Math.round((space.pricing.daily || 150) / 4));
 
-  // If hours is 1, return base rate
   if (hours === 1) return baseHourly;
 
-  // Progressive volume discount for multi-hour reservations:
-  // 2h = 1.8x, 3h = 2.5x, 4h = 3.1x, 6h = 4.4x, 8h = 5.5x
+  // Progressive volume discount for multi-hour reservations
   const discountMultiplier =
     hours === 2 ? 1.8
     : hours === 3 ? 2.5
@@ -188,16 +192,15 @@ export function getHourlyPriceForDuration(space: Space, durationHours: number = 
  */
 export function calculateEndTime(startTimeStr: string, durationHours: number = 1): string {
   if (!startTimeStr) return '';
-  // Parse format like "09:00", "09:00 AM", "14:30"
   let hours = 9;
   let minutes = 0;
-  
+
   const cleanStr = startTimeStr.trim().toUpperCase();
   const isPM = cleanStr.includes('PM');
   const isAM = cleanStr.includes('AM');
   const timeOnly = cleanStr.replace(/[^\d:]/g, '');
   const parts = timeOnly.split(':');
-  
+
   if (parts.length >= 1) {
     hours = parseInt(parts[0], 10) || 9;
     if (isPM && hours < 12) hours += 12;
@@ -219,7 +222,7 @@ export function calculateEndTime(startTimeStr: string, durationHours: number = 1
 }
 
 /**
- * Converts a time string (e.g. "09:00 AM", "14:30") to minutes from midnight for arithmetic comparisons.
+ * Converts a time string (e.g. "09:00 AM", "14:30") to minutes from midnight.
  */
 export function timeStringToMinutes(timeStr: string): number {
   if (!timeStr) return 0;
@@ -253,7 +256,6 @@ export function isTimeWithinOpenHours(
     return { valid: false, reason: 'End time must be after start time.' };
   }
 
-  // Default operating window: 07:00 AM (420m) to 11:00 PM (1380m)
   let openMin = 420;  // 7:00 AM
   let closeMin = 1380; // 11:00 PM
 
@@ -262,11 +264,9 @@ export function isTimeWithinOpenHours(
     if (lower.includes('24/7') || lower.includes('24 hours')) {
       return { valid: true };
     }
-    // Check if weekend / Friday specific hours exist
     if (dateStr) {
-      const dayOfWeek = new Date(dateStr).getDay(); // 5 is Friday, 6 is Saturday
+      const dayOfWeek = new Date(dateStr).getDay();
       if ((dayOfWeek === 5 || dayOfWeek === 6) && lower.includes('fri')) {
-        // e.g. "Fri: 2pm-10pm" or "Fri-Sat: 9am-6pm"
         if (lower.includes('2pm') || lower.includes('14:00')) openMin = 14 * 60;
         else if (lower.includes('9am')) openMin = 9 * 60;
         else if (lower.includes('10am')) openMin = 10 * 60;
@@ -302,7 +302,7 @@ export function isTimeWithinOpenHours(
 }
 
 /**
- * Check if the requested booking overlaps with existing active bookings for the same space and exceeds capacity.
+ * Check if the requested booking overlaps with existing active bookings for the same space.
  */
 export function checkSpaceOverlap(
   bookings: Booking[],
@@ -323,20 +323,17 @@ export function checkSpaceOverlap(
     if (b.status !== 'active') return false;
     if (excludeBookingId && b.id === excludeBookingId) return false;
 
-    // Check date overlap
     const bStart = b.startDate || '';
     const bEnd = b.endDate || b.startDate || '';
     if (date < bStart || date > bEnd) return false;
 
-    // Check time interval overlap if both have start/end times
     if (b.startTime && b.endTime && startTime && endTime) {
       const bStartMin = timeStringToMinutes(b.startTime);
       const bEndMin = timeStringToMinutes(b.endTime);
-      // Overlap condition: startMin < bEndMin && endMin > bStartMin
       return startMin < bEndMin && endMin > bStartMin;
     }
 
-    return true; // daily/monthly bookings span the whole day
+    return true;
   });
 
   const bookedSeats = conflictingBookings.reduce((sum, b) => sum + (b.seats || 1), 0);
@@ -363,7 +360,6 @@ export function getEffectiveSpacePrice(
     originalPrice = space?.pricing?.[planType] ?? 100;
   }
 
-  // Hourly duration bookings are on-demand per-hour reservations
   if (planType === 'hourly') {
     return {
       isCovered: false,
@@ -390,8 +386,6 @@ export function getEffectiveSpacePrice(
   const isMonthlyPass = tierStr.includes('monthly') || tierStr.includes('pro');
   const isDailyPass = tierStr.includes('daily') || tierStr.includes('basic');
 
-  // Strict 1-to-1 Plan Matching:
-  // 1. Yearly Pass Member -> ONLY Yearly plan reservations are Included in Pass (SAR 0)
   if (isYearlyPass && planType === 'yearly') {
     return {
       isCovered: true,
@@ -403,7 +397,6 @@ export function getEffectiveSpacePrice(
     };
   }
 
-  // 2. Monthly Pass Member -> ONLY Monthly plan reservations are Included in Pass (SAR 0)
   if (isMonthlyPass && planType === 'monthly') {
     return {
       isCovered: true,
@@ -415,7 +408,6 @@ export function getEffectiveSpacePrice(
     };
   }
 
-  // 3. Daily Pass Member -> ONLY Daily plan reservations are Included in Pass (SAR 0)
   if (isDailyPass && planType === 'daily') {
     return {
       isCovered: true,
@@ -427,7 +419,6 @@ export function getEffectiveSpacePrice(
     };
   }
 
-  // Non-matching plan types are charged full original price
   return {
     isCovered: false,
     effectivePrice: originalPrice,
@@ -446,14 +437,12 @@ export interface Booking {
   spaceAddress: string;
   spaceImage: string;
   type: BookingType;
-  plan: BookingPlan; // 'hourly' | 'daily' | 'monthly' | 'yearly'
+  plan: BookingPlan;
 
-  // Time & Duration for Hourly Reservations
-  startTime?: string; // e.g. '09:00 AM'
-  endTime?: string;   // e.g. '11:00 AM'
-  durationHours?: number; // e.g. 1, 2, 3, 4
+  startTime?: string;
+  endTime?: string;
+  durationHours?: number;
 
-  // Package reference if any
   bookingPackageId?: string;
   bookingHours?: number;
 
@@ -527,7 +516,9 @@ export type Screen =
   | 'provider-bookings'
   | 'provider-profile'
   | 'provider-settings'
-  | 'notifications';
+  | 'notifications'
+  | 'cart'
+  | 'loyalty';
 
 export interface NavState {
   screen: Screen;

@@ -201,6 +201,13 @@ export default function SpaceDetails() {
                 <span className={`shrink-0 text-xs font-semibold px-3 py-1 rounded-full border ${availabilityInfo.color}`}>
                   {availabilityInfo.label}
                 </span>
+
+                {(space.loyaltyPointsMultiplier || 1) > 1 && (
+                  <span className="shrink-0 text-xs font-semibold px-3 py-1 rounded-full bg-amber-500/15 text-amber-900 border border-amber-500/30 flex items-center gap-1">
+                    <Sparkles size={12} className="text-amber-600" />
+                    <span>{space.loyaltyPointsMultiplier}× Points Bonus</span>
+                  </span>
+                )}
               </div>
 
               <div className="flex items-center gap-4 text-xs sm:text-sm pt-1">
