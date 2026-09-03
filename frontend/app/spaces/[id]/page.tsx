@@ -7,6 +7,7 @@ import {
   Star,
   Users,
   Clock,
+  Calendar,
   Phone,
   Mail,
   Heart,
@@ -21,7 +22,20 @@ import {
   ShoppingBag
 } from 'lucide-react';
 import { useApp } from '@/app/store';
-import { isUserPassHolder, getEffectiveSpacePrice, BookingPlan } from '@/types/types';
+import {
+  Space,
+  BookingPlan,
+  isUserPassHolder,
+  getEffectiveSpacePrice,
+  getHourlyPriceForDuration,
+  getMonthlyPriceForDuration,
+  isHourlyOnlySpace,
+  isHourlyAllowed,
+  isOfficeSpace,
+  getAllowedPlansForSpace,
+  getSpaceTypeLabel,
+  getSpaceCategory
+} from '@/types/types';
 import Modal from '@/components/ui/Modal';
 import Badge from '@/components/ui/Badge';
 
@@ -33,9 +47,13 @@ export default function SpaceDetails() {
   const spaceId = nav?.params?.spaceId || (urlId && urlId !== 'page' && urlId !== '[id]' ? urlId : '') || 'space-1';
   const space = spaces.find(s => s.id === spaceId) || spaces[0];
 
+  const allowedPlans: BookingPlan[] = space ? getAllowedPlansForSpace(space) : (['hourly', 'daily', 'monthly', 'yearly'] as BookingPlan[]);
+  const defaultPlan: BookingPlan = isOfficeSpace(space?.type) ? 'daily' : isHourlyOnlySpace(space?.type) ? 'hourly' : 'hourly';
+
   const [imgIndex, setImgIndex] = useState(0);
-  const [selectedPlan, setSelectedPlan] = useState<BookingPlan>('hourly');
+  const [selectedPlan, setSelectedPlan] = useState<BookingPlan>(defaultPlan);
   const [durationHours, setDurationHours] = useState(2);
+  const [durationMonths, setDurationMonths] = useState(1);
   const [waitlistModal, setWaitlistModal] = useState(false);
   const [waitlistDone, setWaitlistDone] = useState(false);
   const [preferredDate, setPreferredDate] = useState('');
@@ -45,7 +63,16 @@ export default function SpaceDetails() {
 
   useEffect(() => {
     setImgIndex(0);
-  }, [spaceId]);
+    if (space) {
+      if (isHourlyAllowed(space)) {
+        // Default to hourly if space supports hourly
+        setSelectedPlan('hourly');
+      } else {
+        // Office/Desks: Default to daily or monthly, never hourly
+        setSelectedPlan('daily');
+      }
+    }
+  }, [spaceId, space?.type]);
 
   if (!space) {
     return (
@@ -71,10 +98,11 @@ export default function SpaceDetails() {
 
   const handleBook = () => {
     if (!currentUser) { navigate('login'); return; }
+    const params = { spaceId: space.id, plan: selectedPlan, durationHours, durationMonths };
     if (currentUser.role === 'organization') {
-      navigate('team-booking', { spaceId: space.id, plan: selectedPlan, durationHours });
+      navigate('team-booking', params);
     } else {
-      navigate('booking-flow', { spaceId: space.id, plan: selectedPlan, durationHours });
+      navigate('booking-flow', params);
     }
   };
 
@@ -89,9 +117,15 @@ export default function SpaceDetails() {
     ? { label: `${space.availableCapacity} spots left`, color: 'text-amber-800 bg-amber-500/15 border-amber-500/25' }
     : { label: `${space.availableCapacity} spots available`, color: 'text-soot bg-eucalyptus/25 border-eucalyptus/30' };
 
-  const currentPlanInfo = getEffectiveSpacePrice(currentUser, space, selectedPlan, undefined, durationHours);
+  const currentPlanInfo = getEffectiveSpacePrice(currentUser, space, selectedPlan, undefined, durationHours, durationMonths);
   const planPrice = currentPlanInfo.effectivePrice;
-  const planLabel = selectedPlan === 'hourly' ? `for ${durationHours} hour${durationHours > 1 ? 's' : ''}` : selectedPlan === 'daily' ? '/day' : selectedPlan === 'monthly' ? '/month' : '/year';
+  const planLabel = selectedPlan === 'hourly'
+    ? `for ${durationHours} hour${durationHours > 1 ? 's' : ''}`
+    : selectedPlan === 'monthly'
+    ? `for ${durationMonths} month${durationMonths > 1 ? 's' : ''}`
+    : selectedPlan === 'daily'
+    ? '/day'
+    : '/year';
 
   const hoursDisplay = (space as any).openHours || (space as any).hours || 'Sun–Thu: 8am–10pm | Fri: 2pm–10pm';
   const phoneDisplay = space.phone || '+966 11 234 5678';
@@ -298,66 +332,66 @@ export default function SpaceDetails() {
               {/* Price Tag / Pass Badge */}
               <div className="mb-6 pb-5 border-b border-soot/10">
                 <span className="text-xs font-semibold uppercase tracking-wider text-moss block mb-1.5">
-                  {currentPlanInfo.isCovered ? 'Pass Access' : currentPlanInfo.hasDiscount ? 'Plan Upgrade Rate' : 'Membership Rate'}
+                  {currentPlanInfo.isCovered ? 'Workspace Rate' : currentPlanInfo.hasDiscount ? 'Plan Upgrade Rate' : 'Membership Rate'}
                 </span>
-                {currentPlanInfo.isCovered ? (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-2xl sm:text-3xl font-semibold text-soot tracking-tight">
-                        SAR 0
-                      </span>
-                      <span className="text-xs font-medium text-moss">with pass</span>
-                    </div>
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-eucalyptus/30 text-soot font-semibold text-xs border border-eucalyptus/40 shadow-2xs">
-                      <Check size={13} className="text-moss shrink-0" />
-                      <span>Included in Pass</span>
-                    </div>
-                  </div>
-                ) : currentPlanInfo.hasDiscount ? (
-                  <div className="space-y-1.5">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-3xl font-semibold text-soot tracking-tight">
-                        SAR {currentPlanInfo.effectivePrice.toLocaleString()}
-                      </span>
-                      <span className="text-sm font-medium text-moss">{planLabel}</span>
-                    </div>
-                    <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-900 font-semibold text-xs border border-amber-500/30">
-                      <span>{currentPlanInfo.discountPercentage}% Pass Discount</span>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-baseline gap-1.5">
+
+                <div className="space-y-2">
+                  <div className="flex items-baseline gap-2">
                     <span className="text-3xl font-semibold text-soot tracking-tight">
-                      SAR {planPrice.toLocaleString()}
+                      {currentPlanInfo.isCovered ? 'SAR 0' : `SAR ${currentPlanInfo.effectivePrice.toLocaleString()}`}
                     </span>
                     <span className="text-sm font-medium text-moss">{planLabel}</span>
                   </div>
-                )}
+
+                  {currentPlanInfo.isCovered ? (
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-eucalyptus/30 text-soot font-semibold text-xs border border-eucalyptus/40 shadow-2xs">
+                      <Check size={13} className="text-moss shrink-0" />
+                      <span>Included in Pass · SAR 0</span>
+                    </div>
+                  ) : currentPlanInfo.hasDiscount ? (
+                    <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-900 font-semibold text-xs border border-amber-500/30">
+                      <span>{currentPlanInfo.discountPercentage}% Pass Discount · SAR {currentPlanInfo.effectivePrice.toLocaleString()}</span>
+                    </div>
+                  ) : null}
+                </div>
               </div>
 
               {/* Plan Choice Selectors */}
               <div className="mb-6 space-y-4">
                 <div>
-                  <label className="text-xs font-semibold uppercase tracking-wider text-moss mb-2.5 block">
-                    Select Booking Plan
-                  </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    {(['hourly', 'daily', 'monthly', 'yearly'] as const).map(plan => {
+                  <div className="flex items-center justify-between mb-2.5">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-moss">
+                      Select Booking Plan
+                    </label>
+                    <span className="text-[10px] font-semibold text-soot bg-[#E5ECE9] px-2 py-0.5 rounded-full">
+                      {isHourlyAllowed(space) ? 'Hourly • Daily • Monthly • Yearly' : 'Daily • Monthly • Yearly'}
+                    </span>
+                  </div>
+
+                  <div className={`grid gap-2 ${allowedPlans.length === 3 ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-4'}`}>
+                    {allowedPlans.map((plan: BookingPlan) => {
                       const isSelected = selectedPlan === plan;
-                      const planP = getEffectiveSpacePrice(currentUser, space, plan, undefined, plan === 'hourly' ? durationHours : 1);
+                      const planP = getEffectiveSpacePrice(
+                        currentUser,
+                        space,
+                        plan,
+                        undefined,
+                        plan === 'hourly' ? durationHours : 1,
+                        plan === 'monthly' ? durationMonths : 1
+                      );
                       return (
                         <button
                           key={plan}
                           type="button"
                           onClick={() => setSelectedPlan(plan)}
-                          className={`py-2.5 px-2 rounded-xl text-center border transition-all cursor-pointer ${
+                          className={`py-3 px-2 rounded-xl text-center border transition-all cursor-pointer ${
                             isSelected
-                              ? 'bg-eucalyptus text-soot border-eucalyptus/80 shadow-xs font-semibold'
+                              ? 'bg-soot text-plaster border-soot shadow-2xs font-semibold'
                               : 'bg-plaster-dark/30 border-soot/10 text-moss hover:text-soot hover:bg-plaster-dark/60'
                           }`}
                         >
                           <div className="capitalize text-xs font-semibold">{plan}</div>
-                          <div className={`text-[10px] mt-0.5 ${isSelected ? 'text-soot/80 font-medium' : 'text-moss/70'}`}>
+                          <div className={`text-[10px] mt-1 ${isSelected ? 'text-plaster/80 font-medium' : 'text-moss/80'}`}>
                             {planP.isCovered ? 'Included' : `SAR ${planP.effectivePrice.toLocaleString()}`}
                           </div>
                         </button>
@@ -366,31 +400,79 @@ export default function SpaceDetails() {
                   </div>
                 </div>
 
-                {/* Direct Hourly Duration Selector */}
-                {selectedPlan === 'hourly' && (
+                {/* Multi-Month Duration Selector (when monthly is chosen) */}
+                {selectedPlan === 'monthly' && (
+                  <div className="p-4 rounded-2xl bg-plaster-dark/40 border border-soot/10 space-y-3">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <label className="text-[11px] font-semibold uppercase tracking-wider text-moss flex items-center gap-1.5">
+                        <Calendar size={13} />
+                        <span>Select Number of Months</span>
+                      </label>
+                      <span className="text-xs font-bold text-soot bg-white px-3 py-1 rounded-full border border-soot/10 shadow-2xs">
+                        {durationMonths} Month{durationMonths > 1 ? 's' : ''} ({currentPlanInfo.isCovered ? 'Included (SAR 0)' : `SAR ${currentPlanInfo.effectivePrice.toLocaleString()}`})
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-5 gap-2">
+                      {[1, 2, 3, 6, 12].map(m => {
+                        const tierPrice = getMonthlyPriceForDuration(space, m);
+                        const isSelected = durationMonths === m;
+                        const isTierCovered = currentPlanInfo.isCovered && m === 1;
+                        return (
+                          <button
+                            key={m}
+                            type="button"
+                            onClick={() => setDurationMonths(m)}
+                            className={`py-2.5 px-1.5 rounded-xl text-xs font-medium border text-center transition-all cursor-pointer ${
+                              isSelected
+                                ? 'bg-soot text-plaster border-soot shadow-2xs font-semibold'
+                                : 'bg-white border-soot/10 text-moss hover:text-soot hover:border-soot/30'
+                            }`}
+                          >
+                            <div className="font-bold text-xs">{m} {m === 1 ? 'Mo' : 'Mos'}</div>
+                            <div className={`text-[10px] mt-1 ${isSelected ? 'text-plaster/80 font-medium' : 'text-moss'}`}>
+                              {isTierCovered ? 'Included' : `SAR ${tierPrice.toLocaleString()}`}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Hourly Duration Selector (Only for Halls & Theaters) */}
+                {selectedPlan === 'hourly' && isHourlyAllowed(space) && (
                   <div className="p-3.5 rounded-2xl bg-plaster-dark/40 border border-soot/10 space-y-2.5">
                     <div className="flex items-center justify-between">
                       <label className="text-[11px] font-semibold uppercase tracking-wider text-moss flex items-center gap-1.5">
                         <Clock size={12} />
-                        <span>Select Duration</span>
+                        <span>Select Duration in Hours</span>
                       </label>
-                      <span className="text-xs font-bold text-soot">{durationHours} Hours</span>
+                      <span className="text-xs font-bold text-soot bg-white px-2.5 py-0.5 rounded-full border border-soot/10 shadow-2xs">
+                        {durationHours} Hours (SAR {getHourlyPriceForDuration(space, durationHours).toLocaleString()})
+                      </span>
                     </div>
-                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
-                      {[1, 2, 3, 4, 6, 8].map(h => (
-                        <button
-                          key={h}
-                          type="button"
-                          onClick={() => setDurationHours(h)}
-                          className={`py-1.5 rounded-lg text-xs font-medium border text-center transition-all cursor-pointer ${
-                            durationHours === h
-                              ? 'bg-soot text-plaster border-soot shadow-2xs font-semibold'
-                              : 'bg-white border-soot/10 text-moss hover:text-soot hover:border-soot/30'
-                          }`}
-                        >
-                          {h}h
-                        </button>
-                      ))}
+                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                      {[1, 2, 3, 4, 6, 8].map(h => {
+                        const tierPrice = getHourlyPriceForDuration(space, h);
+                        const isSelected = durationHours === h;
+                        return (
+                          <button
+                            key={h}
+                            type="button"
+                            onClick={() => setDurationHours(h)}
+                            className={`py-2 px-1 rounded-xl text-xs font-medium border text-center transition-all cursor-pointer ${
+                              isSelected
+                                ? 'bg-soot text-plaster border-soot shadow-2xs font-semibold ring-1 ring-soot'
+                                : 'bg-white border-soot/10 text-moss hover:text-soot hover:border-soot/30'
+                            }`}
+                          >
+                            <div className="font-bold">{h} Hour{h > 1 ? 's' : ''}</div>
+                            <div className={`text-[10px] mt-0.5 ${isSelected ? 'text-plaster/80' : 'text-moss'}`}>
+                              SAR {tierPrice.toLocaleString()}
+                            </div>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 )}

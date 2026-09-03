@@ -16,7 +16,7 @@ import {
   Building2,
 } from 'lucide-react';
 import { useApp } from '@/app/store';
-import { Booking, BookingStatus } from '@/types/types';
+import { Booking, BookingStatus, getBookingPrice } from '@/types/types';
 
 export default function ProviderSpaceBookings() {
   const { currentUser, spaces, bookings, users, updateBookingStatus, showToast } = useApp();
@@ -86,7 +86,7 @@ export default function ProviderSpaceBookings() {
 
   const totalRevenue = myBookings
     .filter((b) => b.status !== 'cancelled')
-    .reduce((sum, b) => sum + b.totalPrice, 0);
+    .reduce((sum, b) => sum + getBookingPrice(b, spaces), 0);
 
   const handleUpdateStatus = (bookingId: string, status: BookingStatus) => {
     updateBookingStatus(bookingId, status);
@@ -350,7 +350,11 @@ export default function ProviderSpaceBookings() {
 
                 {/* Plan & Seats */}
                 <div className="col-span-1 mt-2 lg:mt-0 text-xs font-semibold text-soot capitalize">
-                  {b.plan === 'hourly' ? `${b.durationHours || 1}h Hourly` : b.plan}
+                  {b.plan === 'hourly'
+                    ? `${b.durationHours || 1}h Hourly`
+                    : b.plan === 'monthly'
+                    ? `${b.durationMonths || 1}mo Monthly`
+                    : `${b.plan} pass`}
                   <span className="block text-[11px] font-normal text-moss">
                     {b.seats} seat{b.seats > 1 ? 's' : ''}
                   </span>
@@ -358,7 +362,7 @@ export default function ProviderSpaceBookings() {
 
                 {/* Revenue Amount */}
                 <div className="col-span-1 mt-2 lg:mt-0 text-sm font-semibold text-soot">
-                  SAR {b.totalPrice.toLocaleString()}
+                  SAR {getBookingPrice(b, spaces).toLocaleString()}
                 </div>
 
                 {/* Status & Actions */}
@@ -471,7 +475,7 @@ export default function ProviderSpaceBookings() {
                 <div>
                   <span className="text-xs text-plaster/70 block">Total Revenue Collected</span>
                   <span className="text-2xl font-serif-display font-normal">
-                    SAR {selectedBooking.totalPrice.toLocaleString()}
+                    SAR {getBookingPrice(selectedBooking, spaces).toLocaleString()}
                   </span>
                 </div>
                 <span

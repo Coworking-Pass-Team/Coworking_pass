@@ -19,7 +19,7 @@ import {
   Download,
 } from 'lucide-react';
 import { useApp } from '@/app/store';
-import { Booking, BookingStatus, Space, User } from '@/types/types';
+import { Booking, BookingStatus, Space, User, getBookingPrice } from '@/types/types';
 
 export default function CompanyBookings() {
   const { currentUser, bookings, spaces, users, cancelBooking, showToast } = useApp();
@@ -90,7 +90,7 @@ export default function CompanyBookings() {
 
   const totalRevenue = companyBookings
     .filter((b: Booking) => b.status !== 'cancelled')
-    .reduce((sum: number, b: Booking) => sum + b.totalPrice, 0);
+    .reduce((sum: number, b: Booking) => sum + getBookingPrice(b, spaces), 0);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -294,7 +294,7 @@ export default function CompanyBookings() {
 
                 {/* Amount */}
                 <div className="col-span-1 mt-2 lg:mt-0 text-sm font-semibold text-soot">
-                  SAR {b.totalPrice.toLocaleString()}
+                  SAR {getBookingPrice(b, spaces).toLocaleString()}
                 </div>
 
                 {/* Actions */}

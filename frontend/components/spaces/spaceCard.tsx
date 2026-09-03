@@ -1,7 +1,7 @@
 'use client';
 
 import { Heart, MapPin, Star, Users, Check } from 'lucide-react';
-import { Space, BookingPlan, getEffectiveSpacePrice } from '@/types/types';
+import { Space, BookingPlan, getEffectiveSpacePrice, isHourlyOnlySpace, isHourlyAllowed } from '@/types/types';
 import { useApp } from '@/app/store';
 import Badge from '@/components/ui/Badge';
 
@@ -42,11 +42,14 @@ export default function SpaceCard({ space, onSelect }: SpaceCardProps) {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-soot/60 via-transparent to-black/10" />
 
-        {/* Top-left Status Badge */}
-        <div className="absolute top-3.5 left-3.5">
-          <Badge variant={availability.variant} className="shadow-xs text-xs font-semibold px-3 py-1 bg-white/95 backdrop-blur-md">
+        {/* Top-left Status and Classification Badges */}
+        <div className="absolute top-3.5 left-3.5 flex items-center gap-1.5 flex-wrap max-w-[80%]">
+          <Badge variant={availability.variant} className="shadow-xs text-xs font-semibold px-2.5 py-1 bg-white/95 backdrop-blur-md">
             {availability.label}
           </Badge>
+          <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-soot/85 text-white backdrop-blur-md shadow-xs capitalize tracking-wide">
+            {space.type.replace('-', ' ')}
+          </span>
         </div>
 
         {/* Top-right Favorite Button */}
@@ -96,8 +99,12 @@ export default function SpaceCard({ space, onSelect }: SpaceCardProps) {
                 </div>
               ) : (
                 <>
-                  <div className="text-soot font-semibold text-xs sm:text-sm">SAR {space.pricing.daily}</div>
-                  <div className="text-moss text-[10px] sm:text-[11px] font-normal">/ day</div>
+                  <div className="text-soot font-semibold text-xs sm:text-sm">
+                    SAR {isHourlyAllowed(space) ? (space.pricing.hourly || 150) : space.pricing.daily}
+                  </div>
+                  <div className="text-moss text-[10px] sm:text-[11px] font-normal">
+                    {isHourlyAllowed(space) ? '/ hour' : '/ day'}
+                  </div>
                 </>
               )}
             </div>

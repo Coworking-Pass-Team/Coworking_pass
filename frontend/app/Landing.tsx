@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { ArrowRight, MapPin, Star, Users, Zap, Headphones, Shield, ChevronDown, Quote, Check } from 'lucide-react';
+import { ArrowRight, MapPin, Star, Users, Zap, Headphones, Shield, ChevronDown, Quote, Check, Building2, Presentation, Clapperboard } from 'lucide-react';
 import { useApp } from '@/app/store';
-import { isUserPassHolder, getEffectiveSpacePrice } from '@/types/types';
+import { isUserPassHolder, getEffectiveSpacePrice, getSpaceCategory } from '@/types/types';
 import GuestNav from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import Button from '@/components/ui/Button';
@@ -17,6 +17,11 @@ export default function Landing() {
   const [searchCity, setSearchCity] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const visibleSpaces = spaces.filter(s => s.isVisible);
+  const officeCount = visibleSpaces.filter(s => getSpaceCategory(s) === 'office').length;
+  const hallCount = visibleSpaces.filter(s => getSpaceCategory(s) === 'hall').length;
+  const theaterCount = visibleSpaces.filter(s => getSpaceCategory(s) === 'theater').length;
 
   const featured = spaces.filter(s => s.isFeatured && s.isVisible).slice(0, 3);
 
@@ -154,8 +159,98 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* Explore by Space Category Section */}
+      <section className="py-16 max-w-6xl mx-auto px-4 sm:px-6 w-full">
+        <div className="text-center max-w-2xl mx-auto mb-10">
+          <p className="text-moss text-xs font-semibold uppercase tracking-wider mb-2">Space Categories</p>
+          <h2 className="text-3xl sm:text-4xl text-soot font-normal font-serif-display">
+            Find the Right Space for Every Need
+          </h2>
+          <p className="text-moss text-sm mt-2">
+            Explore dedicated work environments tailored for individuals, teams, presentations, and events.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Offices Card */}
+          <div
+            onClick={() => navigate('browse', { category: 'office' })}
+            className="p-6 rounded-3xl bg-plaster-surface border border-soot/12 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-between"
+          >
+            <div>
+              <div className="w-12 h-12 rounded-2xl bg-soot text-plaster flex items-center justify-center mb-5 shadow-xs group-hover:bg-moss transition-colors">
+                <Building2 size={24} />
+              </div>
+              <div className="flex items-center justify-between mb-1.5">
+                <h3 className="text-xl font-semibold text-soot font-serif-display">Offices</h3>
+                <span className="text-xs font-bold text-moss bg-plaster-dark/60 px-2.5 py-0.5 rounded-full">
+                  {officeCount} Available
+                </span>
+              </div>
+              <p className="text-xs text-moss leading-relaxed mb-4">
+                Hot desks, shared desks, dedicated workstations, and private team suites. Available for daily, monthly, and annual bookings.
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-soot group-hover:text-emerald-900 transition-colors pt-3 border-t border-soot/8">
+              <span>Browse Offices</span>
+              <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+            </div>
+          </div>
+
+          {/* Halls Card */}
+          <div
+            onClick={() => navigate('browse', { category: 'hall' })}
+            className="p-6 rounded-3xl bg-plaster-surface border border-soot/12 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-between"
+          >
+            <div>
+              <div className="w-12 h-12 rounded-2xl bg-[#E5ECE9] text-soot border border-eucalyptus/40 flex items-center justify-center mb-5 shadow-xs group-hover:bg-eucalyptus transition-colors">
+                <Presentation size={24} className="text-moss" />
+              </div>
+              <div className="flex items-center justify-between mb-1.5">
+                <h3 className="text-xl font-semibold text-soot font-serif-display">Halls</h3>
+                <span className="text-xs font-bold text-moss bg-plaster-dark/60 px-2.5 py-0.5 rounded-full">
+                  {hallCount} Available
+                </span>
+              </div>
+              <p className="text-xs text-moss leading-relaxed mb-4">
+                Meeting halls, interactive training halls, workshop spaces, and multi-purpose event halls with flexible hourly scheduling.
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-soot group-hover:text-emerald-900 transition-colors pt-3 border-t border-soot/8">
+              <span>Browse Halls</span>
+              <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+            </div>
+          </div>
+
+          {/* Theaters Card */}
+          <div
+            onClick={() => navigate('browse', { category: 'theater' })}
+            className="p-6 rounded-3xl bg-plaster-surface border border-soot/12 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-between"
+          >
+            <div>
+              <div className="w-12 h-12 rounded-2xl bg-soot/10 text-soot flex items-center justify-center mb-5 shadow-xs group-hover:bg-soot group-hover:text-plaster transition-colors">
+                <Clapperboard size={24} />
+              </div>
+              <div className="flex items-center justify-between mb-1.5">
+                <h3 className="text-xl font-semibold text-soot font-serif-display">Theaters</h3>
+                <span className="text-xs font-bold text-moss bg-plaster-dark/60 px-2.5 py-0.5 rounded-full">
+                  {theaterCount} Available
+                </span>
+              </div>
+              <p className="text-xs text-moss leading-relaxed mb-4">
+                Auditoriums, cinema-grade screening halls, and tiered conference & performance theaters equipped with laser projection and stage lighting.
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-soot group-hover:text-emerald-900 transition-colors pt-3 border-t border-soot/8">
+              <span>Browse Theaters</span>
+              <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Featured Spaces Section */}
-      <section className="py-20 max-w-6xl mx-auto px-4 sm:px-6">
+      <section className="py-12 max-w-6xl mx-auto px-4 sm:px-6 w-full">
         <div className="flex items-end justify-between mb-10">
           <div>
             <p className="text-moss text-xs font-semibold uppercase tracking-wider mb-2">Featured Workspaces</p>

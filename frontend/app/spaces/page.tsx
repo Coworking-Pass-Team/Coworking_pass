@@ -1,20 +1,55 @@
 'use client';
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Search, SlidersHorizontal, X, MapPin, ChevronDown, Check, ArrowUpDown, Sparkles } from 'lucide-react';
+import { Search, SlidersHorizontal, X, MapPin, ChevronDown, Check, ArrowUpDown, Sparkles, Building2, Presentation, Clapperboard, LayoutGrid } from 'lucide-react';
 import { useApp } from '@/app/store';
 import SpaceCard from '@/components/spaces/spaceCard';
 import Badge from '@/components/ui/Badge';
+import { getSpaceCategory, SpaceCategory } from '@/types/types';
 
 const CITIES = ['All Cities', 'Riyadh', 'Jeddah', 'Dammam', 'Khobar', 'Madinah', 'Makkah'];
-const TYPES = [
-  { id: 'all', label: 'All Types' },
+const CATEGORY_TABS: { id: 'all' | SpaceCategory; label: string; icon: any }[] = [
+  { id: 'all', label: 'All Spaces', icon: LayoutGrid },
+  { id: 'office', label: 'Offices', icon: Building2 },
+  { id: 'hall', label: 'Halls', icon: Presentation },
+  { id: 'theater', label: 'Theaters', icon: Clapperboard },
+];
+
+const OFFICE_TYPES = [
+  { id: 'all', label: 'All Offices' },
   { id: 'hot-desk', label: 'Hot Desk' },
+  { id: 'shared-desk', label: 'Shared Desk' },
   { id: 'private-office', label: 'Private Office' },
   { id: 'meeting-room', label: 'Meeting Room' },
   { id: 'mixed', label: 'Mixed Workspace' },
 ];
-const AMENITIES = ['WiFi', 'Coffee', 'Printer', 'Parking', 'Prayer Room', 'Meeting Rooms'];
+
+const HALL_TYPES = [
+  { id: 'all', label: 'All Halls' },
+  { id: 'meeting-hall', label: 'Meeting Hall' },
+  { id: 'training-hall', label: 'Training Hall' },
+  { id: 'conference-hall', label: 'Conference Hall' },
+  { id: 'workshop-hall', label: 'Workshop Hall' },
+  { id: 'event-hall', label: 'Event Hall' },
+  { id: 'lecture-hall', label: 'Lecture Hall' },
+  { id: 'multipurpose-hall', label: 'Multi-purpose Hall' },
+];
+
+const THEATER_TYPES = [
+  { id: 'all', label: 'All Theaters' },
+  { id: 'theater', label: 'Theaters & Auditoriums' },
+  { id: 'performance-theater', label: 'Performance Theater' },
+  { id: 'conference-theater', label: 'Conference & Event Theater' },
+];
+
+const ALL_TYPES = [
+  { id: 'all', label: 'All Types' },
+  ...OFFICE_TYPES.filter(t => t.id !== 'all'),
+  ...HALL_TYPES.filter(t => t.id !== 'all'),
+  ...THEATER_TYPES.filter(t => t.id !== 'all'),
+];
+
+const AMENITIES = ['WiFi', 'Coffee', 'Printer', 'Parking', 'Prayer Room', 'Meeting Rooms', 'Projector', 'Sound System'];
 const SORT_OPTIONS = [
   'Recommended',
   'Price: Low to High',
@@ -26,15 +61,28 @@ const SORT_OPTIONS = [
 export default function Browse() {
   const { spaces, navigate, currentUser, nav } = useApp();
   const initialCity = nav?.params?.city || (typeof window !== 'undefined' ? (window as any).__browseCity || '' : '');
+  const initialCategory = (nav?.params?.category as ('all' | SpaceCategory)) || 'all';
 
   const [query, setQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<'all' | SpaceCategory>(initialCategory);
   const [city, setCity] = useState(initialCity === 'All Cities' ? '' : initialCity);
   const [spaceType, setSpaceType] = useState('all');
-  const [maxPrice, setMaxPrice] = useState(300);
+  const [maxPrice, setMaxPrice] = useState(1000);
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
   const [sort, setSort] = useState('Recommended');
   const [showFilters, setShowFilters] = useState(false);
   const [availableOnly, setAvailableOnly] = useState(false);
+
+  // Sync navigation params if navigated from another page
+  useEffect(() => {
+    if (nav?.params?.category) {
+      setCategoryFilter(nav.params.category);
+      setSpaceType('all');
+    }
+    if (nav?.params?.city) {
+      setCity(nav.params.city === 'All Cities' ? '' : nav.params.city);
+    }
+  }, [nav?.params]);
 
   // Dropdown States
   const [cityDropdownOpen, setCityDropdownOpen] = useState(false);
@@ -57,6 +105,16 @@ export default function Browse() {
 
   const visible = spaces.filter(s => (currentUser?.role === 'admin' ? true : s.isVisible));
 
+  // Category counts
+  const categoryCounts = useMemo(() => {
+    return {
+      all: visible.length,
+      office: visible.filter(s => getSpaceCategory(s) === 'office').length,
+      hall: visible.filter(s => getSpaceCategory(s) === 'hall').length,
+      theater: visible.filter(s => getSpaceCategory(s) === 'theater').length,
+    };
+  }, [visible]);
+
   const filtered = useMemo(() => {
     let list = visible.filter(s => {
       if (
@@ -67,6 +125,7 @@ export default function Browse() {
       ) {
         return false;
       }
+      if (categoryFilter !== 'all' && getSpaceCategory(s) !== categoryFilter) return false;
       if (city && s.city !== city) return false;
       if (spaceType !== 'all' && s.type !== spaceType) return false;
       if (s.pricing.daily > maxPrice) return false;
@@ -81,19 +140,20 @@ export default function Browse() {
     else if (sort === 'Availability') list.sort((a, b) => b.availableCapacity - a.availableCapacity);
 
     return list;
-  }, [visible, query, city, spaceType, maxPrice, availableOnly, selectedAmenities, sort]);
+  }, [visible, query, categoryFilter, city, spaceType, maxPrice, availableOnly, selectedAmenities, sort]);
 
   const clearFilters = () => {
     setQuery('');
+    setCategoryFilter('all');
     setCity('');
     setSpaceType('all');
-    setMaxPrice(300);
+    setMaxPrice(1000);
     setSelectedAmenities([]);
     setAvailableOnly(false);
   };
 
   const hasActiveFilters = Boolean(
-    query || city || spaceType !== 'all' || maxPrice < 300 || selectedAmenities.length > 0 || availableOnly
+    query || categoryFilter !== 'all' || city || spaceType !== 'all' || maxPrice < 1000 || selectedAmenities.length > 0 || availableOnly
   );
 
   const toggleAmenity = (a: string) => {
@@ -104,7 +164,7 @@ export default function Browse() {
     <div className="min-h-screen bg-plaster text-soot py-10 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Header Banner */}
-        <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-soot/10">
+        <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-soot/10">
           <div>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-soot/5 border border-soot/10 text-moss text-xs font-semibold mb-3">
               <Sparkles size={13} className="text-eucalyptus shrink-0" />
@@ -113,18 +173,49 @@ export default function Browse() {
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-normal font-serif-display text-soot tracking-tight">
               Browse Workspaces
             </h1>
-           <p className="text-moss text-xs sm:text-sm mt-1.5 max-w-2xl leading-relaxed">
-  Discover and book flexible, fully-equipped coworking spaces across Riyadh, Jeddah, and&nbsp;beyond.
-</p>
-
+            <p className="text-moss text-xs sm:text-sm mt-1.5 max-w-2xl leading-relaxed">
+              Discover and book flexible, fully-equipped offices, halls, and theaters across Saudi Arabia.
+            </p>
           </div>
 
           <div className="flex items-center gap-3">
             <span className="text-xs text-moss font-medium">Showing:</span>
             <Badge variant="eucalyptus" className="px-3.5 py-1.5 text-xs font-semibold">
-              {filtered.length} Workspaces Available
+              {filtered.length} {filtered.length === 1 ? 'Space' : 'Spaces'} Available
             </Badge>
           </div>
+        </div>
+
+        {/* Category Tabs: All, Offices, Halls, Theaters */}
+        <div className="flex flex-wrap gap-2.5 mb-6">
+          {CATEGORY_TABS.map(tab => {
+            const Icon = tab.icon;
+            const isSelected = categoryFilter === tab.id;
+            const count = categoryCounts[tab.id];
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => {
+                  setCategoryFilter(tab.id);
+                  setSpaceType('all');
+                }}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                  isSelected
+                    ? 'bg-soot text-plaster shadow-xs'
+                    : 'bg-white border border-soot/10 text-moss hover:text-soot hover:border-soot/30'
+                }`}
+              >
+                <Icon size={15} />
+                <span>{tab.label}</span>
+                <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${
+                  isSelected ? 'bg-plaster/20 text-plaster' : 'bg-plaster-dark/60 text-soot'
+                }`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Search & Main Filter Controls Bar */}
@@ -287,7 +378,7 @@ export default function Browse() {
                   Workspace Type
                 </label>
                 <div className="flex flex-col gap-1.5">
-                  {TYPES.map(t => (
+                  {ALL_TYPES.map(t => (
                     <button
                       key={t.id}
                       type="button"
@@ -308,7 +399,7 @@ export default function Browse() {
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <label className="text-xs font-semibold uppercase tracking-wider text-moss">
-                    Max Daily Rate
+                    Max Rate
                   </label>
                   <span className="text-xs font-bold text-soot bg-soot/5 px-2 py-0.5 rounded-md">
                     SAR {maxPrice}
@@ -317,15 +408,15 @@ export default function Browse() {
                 <input
                   type="range"
                   min={50}
-                  max={300}
-                  step={10}
+                  max={3000}
+                  step={50}
                   value={maxPrice}
                   onChange={e => setMaxPrice(+e.target.value)}
                   className="w-full accent-soot cursor-pointer"
                 />
                 <div className="flex justify-between text-[11px] text-moss mt-2 font-medium">
                   <span>SAR 50</span>
-                  <span>SAR 300</span>
+                  <span>SAR 3,000</span>
                 </div>
               </div>
 

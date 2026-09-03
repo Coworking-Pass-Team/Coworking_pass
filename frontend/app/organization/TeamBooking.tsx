@@ -24,9 +24,17 @@ import {
   Space,
   getEffectiveSpacePrice,
   getHourlyPriceForDuration,
+  getMonthlyPriceForDuration,
   calculateEndTime,
+  calculateEndDate,
   isTimeWithinOpenHours,
-  checkSpaceOverlap
+  checkSpaceOverlap,
+  isHourlyOnlySpace,
+  isHourlyAllowed,
+  isOfficeSpace,
+  getAllowedPlansForSpace,
+  getSpaceTypeLabel,
+  getSpaceCategory
 } from '@/types/types';
 
 const STEPS = ['Type & Plan', 'Team', 'Schedule', 'Review'];
@@ -43,13 +51,21 @@ export default function TeamBooking() {
   const spaceId = nav.params?.spaceId;
   const space = spaces.find((s: Space) => s.id === spaceId);
 
-  const initialPlan = (nav?.params?.plan as BookingPlan) || 'hourly';
+  const isHourlySpace = isHourlyAllowed(space);
+  const isOffice = isOfficeSpace(space?.type);
+  const allowedPlans = getAllowedPlansForSpace(space);
+
+  const defaultInitialPlan: BookingPlan = isOffice
+    ? 'daily'
+    : (nav?.params?.plan as BookingPlan) || (isHourlySpace ? 'hourly' : 'daily');
   const initialDuration = (nav?.params?.durationHours as number) || 2;
+  const initialMonths = (nav?.params?.durationMonths as number) || 1;
 
   const [step, setStep] = useState(0);
-  const [bookingType, setBookingType] = useState<BookingType>('hot-desk');
-  const [plan, setPlan] = useState<BookingPlan>(initialPlan);
+  const [bookingType, setBookingType] = useState<BookingType>(space?.type || 'hot-desk');
+  const [plan, setPlan] = useState<BookingPlan>(defaultInitialPlan);
   const [durationHours, setDurationHours] = useState<number>(initialDuration);
+  const [durationMonths, setDurationMonths] = useState<number>(initialMonths);
   const [startTime, setStartTime] = useState('10:00 AM');
   
   const [startTimeOpen, setStartTimeOpen] = useState(false);
@@ -73,32 +89,40 @@ export default function TeamBooking() {
   const [seats, setSeats] = useState(2);
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
-  const [manualEndDate, setManualEndDate] = useState('');
   const [confirmedBooking, setConfirmedBooking] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
   // Loyalty Points State
   const [useLoyaltyPoints, setUseLoyaltyPoints] = useState(false);
 
+  // Sync state if navigation params change
+  useEffect(() => {
+    if (nav?.params?.plan) {
+      setPlan(nav.params.plan as BookingPlan);
+    }
+    if (nav?.params?.durationHours) {
+      setDurationHours(nav.params.durationHours as number);
+    }
+    if (nav?.params?.durationMonths) {
+      setDurationMonths(nav.params.durationMonths as number);
+    }
+    if (nav?.params?.bookingType) {
+      setBookingType(nav.params.bookingType as BookingType);
+    }
+  }, [nav?.params?.spaceId, nav?.params?.plan, nav?.params?.durationHours, nav?.params?.durationMonths, nav?.params?.bookingType]);
+
   const employees = currentUser?.employees || [];
 
   if (!space || !currentUser) return null;
 
-  const isHourly = plan === 'hourly';
+  const isHourly = isHourlySpace && plan === 'hourly';
   const endTime = isHourly ? calculateEndTime(startTime, durationHours) : '';
 
-  const getEndDate = (start: string, p: BookingPlan) => {
-    if (!start) return '';
-    if (p === 'hourly') return start;
-    const d = new Date(start);
-    if (p === 'monthly') d.setMonth(d.getMonth() + 1);
-    else if (p === 'yearly') d.setFullYear(d.getFullYear() + 1);
-    return d.toISOString().split('T')[0];
-  };
+  const endDate = isHourly || plan === 'daily'
+    ? startDate
+    : calculateEndDate(startDate, plan, durationMonths);
 
-  const endDate = isHourly ? startDate : plan === 'daily' ? manualEndDate || startDate : getEndDate(startDate, plan);
-
-  const planInfo = getEffectiveSpacePrice(currentUser, space, plan, bookingType, durationHours);
+  const planInfo = getEffectiveSpacePrice(currentUser, space, plan, bookingType, durationHours, durationMonths);
   const pricePerSeat = planInfo.effectivePrice;
   const rawTotalPrice = pricePerSeat * seats;
 
@@ -115,12 +139,34 @@ export default function TeamBooking() {
 
   const planLabel = isHourly
     ? `for ${durationHours} hours`
-    : plan === 'daily' ? '/day' : plan === 'monthly' ? '/month' : '/year';
+    : plan === 'monthly'
+    ? `for ${durationMonths} month${durationMonths > 1 ? 's' : ''}`
+    : plan === 'daily'
+    ? '/day'
+    : '/year';
+
+  const allEmployeesSelected = employees.length > 0 && selectedEmployees.length === employees.length;
+
+  const toggleSelectAll = () => {
+    if (allEmployeesSelected) {
+      setSelectedEmployees([]);
+      setSeats(1);
+    } else {
+      const allIds = employees.map(e => e.id);
+      setSelectedEmployees(allIds);
+      setSeats(Math.max(1, allIds.length));
+    }
+  };
 
   const toggleEmployee = (id: string) => {
-    setSelectedEmployees(prev =>
-      prev.includes(id) ? prev.filter(e => e !== id) : [...prev, id]
-    );
+    setSelectedEmployees(prev => {
+      const isSelected = prev.includes(id);
+      const next = isSelected ? prev.filter(e => e !== id) : [...prev, id];
+      if (next.length > 0) {
+        setSeats(next.length);
+      }
+      return next;
+    });
   };
 
   const validateStep = () => {
@@ -172,11 +218,13 @@ export default function TeamBooking() {
         spaceCity: space.city,
         spaceAddress: space.address,
         spaceImage: space.images[0],
+        category: getSpaceCategory(space),
         type: bookingType,
         plan,
         startTime: isHourly ? startTime : undefined,
         endTime: isHourly ? endTime : undefined,
         durationHours: isHourly ? durationHours : undefined,
+        durationMonths: plan === 'monthly' ? durationMonths : undefined,
         startDate,
         endDate,
         seats,
@@ -345,7 +393,7 @@ export default function TeamBooking() {
             {planInfo.isCovered ? 'SAR 0' : `SAR ${finalPayablePrice.toLocaleString()}`}
           </div>
           <div className="text-[10px] text-moss">
-            {planInfo.isCovered ? 'Enterprise Pass' : `SAR ${pricePerSeat}/seat`}
+            {planInfo.isCovered ? 'Included in Pass · SAR 0 to Pay' : `SAR ${pricePerSeat.toLocaleString()}/seat`}
           </div>
         </div>
       </div>
@@ -355,38 +403,41 @@ export default function TeamBooking() {
         <div className="space-y-6">
           <div className="bg-white rounded-3xl border border-soot/8 p-6 shadow-sm space-y-5">
             <h2 className="text-xl font-normal text-soot" style={{ fontFamily: 'DM Serif Display, serif' }}>
-              Select Workspace Type
+              {isHourlySpace ? 'Configure Hourly Reservation' : isOffice ? 'Select Office Pass Plan' : 'Select Workspace Type & Plan'}
             </h2>
-            <div className="space-y-2.5">
-              {[
-                { type: 'hot-desk' as BookingType, label: 'Hot Desks', desc: 'Flexible open seating for your team' },
-                { type: 'meeting-room' as BookingType, label: 'Meeting Room', desc: 'Private room for client presentations and collaborative sessions' },
-                { type: 'private-office' as BookingType, label: 'Private Office', desc: 'Dedicated lockable office space for team focus' },
-              ].map(t => (
-                <button
-                  key={t.type}
-                  onClick={() => setBookingType(t.type)}
-                  className={`w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all text-left cursor-pointer ${
-                    bookingType === t.type
-                      ? 'border-eucalyptus bg-[#E5ECE9]/60 shadow-xs'
-                      : 'border-soot/8 bg-white hover:border-soot/20'
-                  }`}
-                >
-                  <div>
-                    <div className="font-medium text-soot text-sm">{t.label}</div>
-                    <div className="text-xs text-moss mt-0.5">{t.desc}</div>
-                  </div>
-                  {bookingType === t.type && <Check size={16} className="text-moss shrink-0" />}
-                </button>
-              ))}
-            </div>
+
+            {!isHourlySpace && !isOffice && (
+              <div className="space-y-2.5">
+                {[
+                  { type: 'hot-desk' as BookingType, label: 'Hot Desks', desc: 'Flexible open seating for your team' },
+                  { type: 'meeting-room' as BookingType, label: 'Meeting Room', desc: 'Private room for client presentations and collaborative sessions' },
+                  { type: 'private-office' as BookingType, label: 'Private Office', desc: 'Dedicated lockable office space for team focus' },
+                ].map(t => (
+                  <button
+                    key={t.type}
+                    onClick={() => setBookingType(t.type)}
+                    className={`w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all text-left cursor-pointer ${
+                      bookingType === t.type
+                        ? 'border-eucalyptus bg-[#E5ECE9]/60 shadow-xs'
+                        : 'border-soot/8 bg-white hover:border-soot/20'
+                    }`}
+                  >
+                    <div>
+                      <div className="font-medium text-soot text-sm">{t.label}</div>
+                      <div className="text-xs text-moss mt-0.5">{t.desc}</div>
+                    </div>
+                    {bookingType === t.type && <Check size={16} className="text-moss shrink-0" />}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* Plan selector */}
             <div className="pt-2">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-moss mb-3">Choose Plan</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {(['hourly', 'daily', 'monthly', 'yearly'] as BookingPlan[]).map(p => {
-                  const pInfo = getEffectiveSpacePrice(currentUser, space, p, bookingType, durationHours);
+              <div className={`grid gap-2 ${allowedPlans.length === 3 ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-4'}`}>
+                {allowedPlans.map(p => {
+                  const pInfo = getEffectiveSpacePrice(currentUser, space, p, bookingType, durationHours, durationMonths);
                   return (
                     <button
                       key={p}
@@ -394,7 +445,7 @@ export default function TeamBooking() {
                       onClick={() => setPlan(p)}
                       className={`p-3 rounded-2xl border text-center transition-all cursor-pointer ${
                         plan === p
-                          ? 'bg-[#DDE6DF] text-soot border-soot/20 shadow-xs font-semibold'
+                          ? 'bg-[#DDE6DF] text-soot border-soot/20 shadow-xs font-semibold ring-2 ring-soot/10'
                           : 'bg-[#F9F8F5] border-soot/8 text-moss hover:text-soot'
                       }`}
                     >
@@ -407,6 +458,36 @@ export default function TeamBooking() {
                 })}
               </div>
             </div>
+
+            {/* Monthly duration selector */}
+            {plan === 'monthly' && (
+              <div className="p-4 rounded-2xl bg-[#F9F8F5] border border-soot/8 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-moss flex items-center gap-1.5">
+                    <Calendar size={12} />
+                    <span>Select Number of Months</span>
+                  </span>
+                  <span className="text-xs font-bold text-soot">{durationMonths} Month{durationMonths > 1 ? 's' : ''} (SAR {getMonthlyPriceForDuration(space, durationMonths).toLocaleString()}/seat)</span>
+                </div>
+                <div className="grid grid-cols-5 gap-2">
+                  {[1, 2, 3, 6, 12].map(m => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setDurationMonths(m)}
+                      className={`py-2 px-1 rounded-xl text-xs font-medium border text-center transition-all cursor-pointer ${
+                        durationMonths === m
+                          ? 'bg-[#DDE6DF] border-soot/20 text-soot shadow-2xs font-semibold ring-2 ring-soot/10'
+                          : 'bg-white border-soot/10 text-moss hover:text-soot'
+                      }`}
+                    >
+                      <div>{m} Mo{m > 1 ? 's' : ''}</div>
+                      <div className="text-[10px] font-bold text-soot mt-0.5">SAR {getMonthlyPriceForDuration(space, m).toLocaleString()}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Hourly duration selector */}
             {isHourly && (
@@ -437,86 +518,103 @@ export default function TeamBooking() {
                 </div>
               </div>
             )}
-
-            {/* Number of seats */}
-            <div className="pt-2">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-2 flex items-center gap-1.5">
-                <Users size={13} />
-                <span>Team Seats to Reserve</span>
-              </label>
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => setSeats(s => Math.max(1, s - 1))}
-                  className="w-10 h-10 rounded-xl border border-soot/12 text-soot hover:bg-soot/5 font-bold cursor-pointer"
-                >
-                  −
-                </button>
-                <span className="text-soot font-semibold w-8 text-center">{seats}</span>
-                <button
-                  type="button"
-                  onClick={() => setSeats(s => Math.min(space.availableCapacity || 20, s + 1))}
-                  className="w-10 h-10 rounded-xl border border-soot/12 text-soot hover:bg-soot/5 font-bold cursor-pointer"
-                >
-                  +
-                </button>
-                <span className="text-xs text-moss">{space.availableCapacity} seats available</span>
-              </div>
-            </div>
-
-            {/* Total summary box */}
-            <div className="p-3.5 rounded-2xl bg-plaster-dark/40 border border-soot/10 flex items-center justify-between">
-              <span className="text-xs font-medium text-moss">
-                Calculated Total ({seats} seats × SAR {pricePerSeat})
-              </span>
-              <span className="text-base font-bold text-soot">
-                {planInfo.isCovered ? 'SAR 0 (Included)' : `SAR ${rawTotalPrice.toLocaleString()}`}
-              </span>
-            </div>
           </div>
         </div>
       )}
 
       {/* Step 1: Team Members */}
       {step === 1 && (
-        <div className="bg-white rounded-3xl border border-soot/8 p-6 shadow-sm space-y-4">
-          <h2 className="text-xl font-normal text-soot" style={{ fontFamily: 'DM Serif Display, serif' }}>
-            Assign Team Members (Optional)
-          </h2>
-          <p className="text-xs text-moss">Select up to {seats} employee{seats > 1 ? 's' : ''} ({selectedEmployees.length}/{seats} selected)</p>
+        <div className="bg-white rounded-3xl border border-soot/8 p-6 shadow-sm space-y-5">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <h2 className="text-xl font-normal text-soot" style={{ fontFamily: 'DM Serif Display, serif' }}>
+                Assign Team Members
+              </h2>
+              <p className="text-moss text-xs mt-0.5">Select members to assign or use Select All</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-medium text-moss">
+                {selectedEmployees.length} of {employees.length} selected
+              </span>
+              {employees.length > 0 && (
+                <button
+                  type="button"
+                  onClick={toggleSelectAll}
+                  className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-plaster-dark/60 hover:bg-[#DDE6DF] text-soot border border-soot/10 transition-all cursor-pointer"
+                >
+                  {allEmployeesSelected ? 'Deselect All' : 'Select All'}
+                </button>
+              )}
+            </div>
+          </div>
 
           {employees.length === 0 ? (
-            <div className="rounded-2xl border border-soot/8 p-8 text-center bg-[#F9F8F5]">
-              <Users size={28} className="text-moss mx-auto mb-2" />
-              <div className="text-xs text-moss">No employees listed in your team roster yet. You can still proceed with reservation.</div>
+            <div className="p-4 rounded-2xl bg-plaster text-xs text-moss text-center">
+              No employees registered. You can still book {seats} seats for unnamed team members.
             </div>
           ) : (
-            <div className="divide-y divide-soot/6 border border-soot/8 rounded-2xl overflow-hidden">
-              {employees.map((emp: Employee) => {
-                const sel = selectedEmployees.includes(emp.id);
-                const disabled = !sel && selectedEmployees.length >= seats;
-                return (
-                  <button
-                    key={emp.id}
-                    type="button"
-                    onClick={() => { if (!disabled || sel) toggleEmployee(emp.id); }}
-                    disabled={disabled && !sel}
-                    className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors cursor-pointer ${
-                      sel ? 'bg-eucalyptus/15' : disabled ? 'opacity-40 cursor-not-allowed' : 'hover:bg-soot/3'
-                    }`}
-                  >
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold shrink-0 ${
-                      sel ? 'bg-soot text-plaster' : 'bg-eucalyptus/20 text-moss'
-                    }`}>
-                      {sel ? <Check size={14} /> : emp.name.charAt(0)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-soot">{emp.name}</div>
-                      <div className="text-xs text-moss">{emp.department} · {emp.email}</div>
-                    </div>
-                  </button>
-                );
-              })}
+            <div className="space-y-2.5">
+              {/* Select All Option Row */}
+              <button
+                type="button"
+                onClick={toggleSelectAll}
+                className={`w-full flex items-center gap-3 p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
+                  allEmployeesSelected
+                    ? 'border-eucalyptus bg-[#E5ECE9]/60 shadow-xs'
+                    : 'border-soot/12 bg-plaster-dark/25 hover:border-soot/25'
+                }`}
+              >
+                <div
+                  className={`w-5 h-5 rounded-md border flex items-center justify-center text-xs transition-colors ${
+                    allEmployeesSelected
+                      ? 'border-eucalyptus bg-eucalyptus text-white'
+                      : selectedEmployees.length > 0
+                      ? 'border-eucalyptus/60 bg-eucalyptus/20 text-soot'
+                      : 'border-soot/25 bg-white'
+                  }`}
+                >
+                  {allEmployeesSelected ? (
+                    <Check size={12} />
+                  ) : selectedEmployees.length > 0 ? (
+                    <div className="w-2 h-0.5 bg-soot/70 rounded-full" />
+                  ) : null}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold text-soot">Select All Team Members</div>
+                  <div className="text-xs text-moss">
+                    {allEmployeesSelected
+                      ? `All ${employees.length} members selected (${seats} seat${seats > 1 ? 's' : ''})`
+                      : `Assign all ${employees.length} team members at once`}
+                  </div>
+                </div>
+              </button>
+
+              <div className="pt-1 space-y-2">
+                {employees.map(emp => {
+                  const isSelected = selectedEmployees.includes(emp.id);
+                  return (
+                    <button
+                      key={emp.id}
+                      onClick={() => toggleEmployee(emp.id)}
+                      className={`w-full flex items-center gap-3 p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
+                        isSelected
+                          ? 'border-eucalyptus bg-[#E5ECE9]/60 shadow-xs'
+                          : 'border-soot/8 bg-white hover:border-soot/20'
+                      }`}
+                    >
+                      <div className={`w-5 h-5 rounded-md border flex items-center justify-center text-xs ${
+                        isSelected ? 'border-eucalyptus bg-eucalyptus text-white' : 'border-soot/20'
+                      }`}>
+                        {isSelected && <Check size={12} />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-soot">{emp.name}</div>
+                        <div className="text-xs text-moss">{emp.department} · {emp.email}</div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
@@ -532,7 +630,7 @@ export default function TeamBooking() {
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1.5 flex items-center gap-1.5">
               <Calendar size={13} />
-              <span>Reservation Date</span>
+              <span>Start Date</span>
             </label>
             <input
               type="date"
@@ -543,6 +641,45 @@ export default function TeamBooking() {
             />
           </div>
 
+          {/* Monthly Schedule Summary */}
+          {plan === 'monthly' && (
+            <div className="p-4 rounded-2xl bg-[#F9F8F5] border border-soot/8 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wider text-moss">
+                  Monthly Duration
+                </span>
+                <span className="text-xs font-bold text-soot">{durationMonths} Months</span>
+              </div>
+              <div className="grid grid-cols-5 gap-1.5">
+                {[1, 2, 3, 6, 12].map(m => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setDurationMonths(m)}
+                    className={`py-2 rounded-xl text-xs font-medium border text-center transition-all cursor-pointer ${
+                      durationMonths === m
+                        ? 'bg-soot text-plaster font-semibold'
+                        : 'bg-white border-soot/10 text-moss hover:text-soot'
+                    }`}
+                  >
+                    {m} Mo{m > 1 ? 's' : ''}
+                  </button>
+                ))}
+              </div>
+              <div className="bg-white p-3 rounded-xl border border-soot/8 flex items-center justify-between text-xs">
+                <div>
+                  <span className="text-moss block text-[10px] uppercase font-semibold">Period</span>
+                  <span className="font-semibold text-soot">{startDate} → {endDate}</span>
+                </div>
+                <div className="text-right">
+                  <span className="text-moss block text-[10px] uppercase font-semibold">Months Total</span>
+                  <span className="font-bold text-soot">{durationMonths} Month{durationMonths > 1 ? 's' : ''}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Hourly Start Time & Duration Controls */}
           {isHourly && (
             <div className="space-y-4 p-5 rounded-2xl bg-[#F9F8F5] border border-soot/8">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -664,33 +801,21 @@ export default function TeamBooking() {
             </div>
           )}
 
-          {!isHourly && plan === 'daily' && (
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1.5">
-                End Date (Optional for multi-day team booking)
-              </label>
-              <input
-                type="date"
-                value={manualEndDate}
-                min={startDate}
-                onChange={e => setManualEndDate(e.target.value)}
-                className="w-full px-4 py-3 rounded-2xl border border-soot/12 bg-[#F9F8F5] text-soot text-sm outline-none focus:border-eucalyptus font-normal"
-              />
-            </div>
-          )}
-
           {/* Pricing Box in Schedule Step */}
           <div className="p-4 rounded-2xl bg-plaster-dark/40 border border-soot/10 flex items-center justify-between">
             <div>
               <span className="text-xs font-semibold text-soot block">Calculated Total</span>
               <span className="text-[11px] text-moss">
-                {seats} seats × SAR {pricePerSeat} {planLabel}
+                {seats} seats × SAR {planInfo.originalPrice.toLocaleString()} {planLabel}
               </span>
             </div>
             <div className="text-right">
               <span className="text-lg font-bold text-soot">
-                {planInfo.isCovered ? 'SAR 0' : `SAR ${rawTotalPrice.toLocaleString()}`}
+                {planInfo.isCovered ? 'SAR 0' : `SAR ${finalPayablePrice.toLocaleString()}`}
               </span>
+              {planInfo.isCovered && (
+                <span className="text-[10px] text-emerald-800 font-semibold block">Included in Pass</span>
+              )}
             </div>
           </div>
         </div>
@@ -794,8 +919,12 @@ export default function TeamBooking() {
               </div>
 
               <div className="flex justify-between text-xs sm:text-sm">
-                <span className="text-moss">Rate per Seat</span>
-                <span className="text-soot font-medium">SAR {pricePerSeat.toLocaleString()}</span>
+                <span className="text-moss">
+                  Rate per Seat ({isHourly ? `${durationHours}h Hourly` : plan === 'monthly' ? `${durationMonths} Mo Monthly` : `${plan} pass`})
+                </span>
+                <span className="text-soot font-medium">
+                  SAR {planInfo.originalPrice.toLocaleString()} {planInfo.isCovered ? '(Included in Pass)' : ''}
+                </span>
               </div>
               <div className="flex justify-between text-xs sm:text-sm">
                 <span className="text-moss">Seats</span>
@@ -803,7 +932,9 @@ export default function TeamBooking() {
               </div>
               <div className="flex justify-between text-xs sm:text-sm">
                 <span className="text-moss">Subtotal</span>
-                <span className="text-soot font-medium">SAR {rawTotalPrice.toLocaleString()}</span>
+                <span className="text-soot font-medium">
+                  SAR {(planInfo.originalPrice * seats).toLocaleString()}
+                </span>
               </div>
               {pointsDiscount > 0 && (
                 <div className="flex justify-between text-xs sm:text-sm">
@@ -813,7 +944,9 @@ export default function TeamBooking() {
               )}
               <div className="flex justify-between text-xs sm:text-sm">
                 <span className="text-moss">VAT (15% included)</span>
-                <span className="text-soot font-medium">SAR {(finalPayablePrice * 0.15).toFixed(0)}</span>
+                <span className="text-soot font-medium">
+                  SAR {((finalPayablePrice) * 0.15).toFixed(0)}
+                </span>
               </div>
 
               <div className="pt-3 border-t border-soot/10 flex justify-between items-center bg-plaster-dark/30 -mx-5 -mb-5 p-5 rounded-b-2xl">
@@ -823,7 +956,10 @@ export default function TeamBooking() {
                 </div>
                 <div className="text-right">
                   {planInfo.isCovered ? (
-                    <span className="text-2xl font-bold text-soot">SAR 0 <span className="text-xs font-medium text-moss">(Enterprise Pass)</span></span>
+                    <div>
+                      <span className="text-2xl font-bold text-soot">SAR 0</span>
+                      <span className="text-xs font-medium text-moss ml-1.5">(Enterprise Pass · Standard: SAR {(planInfo.originalPrice * seats).toLocaleString()})</span>
+                    </div>
                   ) : (
                     <span className="text-2xl font-bold text-soot">SAR {finalPayablePrice.toLocaleString()}</span>
                   )}
@@ -865,6 +1001,7 @@ export default function TeamBooking() {
                   type: bookingType,
                   plan: plan,
                   durationHours: isHourly ? durationHours : undefined,
+                  durationMonths: plan === 'monthly' ? durationMonths : undefined,
                   startTime: isHourly ? startTime : undefined,
                   endTime: isHourly ? endTime : undefined,
                   startDate: startDate,
@@ -889,6 +1026,11 @@ export default function TeamBooking() {
             >
               {loading ? (
                 <span>Confirming...</span>
+              ) : planInfo.isCovered ? (
+                <>
+                  <Check size={15} className="text-moss" />
+                  <span>Confirm Reservation (Enterprise Pass)</span>
+                </>
               ) : (
                 <>
                   <CreditCard size={15} />

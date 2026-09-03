@@ -25,9 +25,17 @@ import {
   isUserPassHolder,
   getEffectiveSpacePrice,
   getHourlyPriceForDuration,
+  getMonthlyPriceForDuration,
   calculateEndTime,
+  calculateEndDate,
   isTimeWithinOpenHours,
-  checkSpaceOverlap
+  checkSpaceOverlap,
+  isHourlyOnlySpace,
+  isHourlyAllowed,
+  isOfficeSpace,
+  getAllowedPlansForSpace,
+  getSpaceTypeLabel,
+  getSpaceCategory
 } from '@/types/types';
 
 const STEPS = ['Plan', 'Details', 'Review', 'Confirm'];
@@ -86,15 +94,23 @@ export default function BookingFlow() {
   const spaceId = nav?.params?.spaceId || (urlId && urlId !== 'page' && urlId !== 'booking-flow' ? urlId : '') || 'space-1';
   const space = spaces.find(s => s.id === spaceId) || spaces[0];
 
-  const initialPlan = (nav?.params?.plan as BookingPlan) || 'hourly';
+  const isHourlySpace = isHourlyAllowed(space);
+  const isOffice = isOfficeSpace(space?.type);
+  const allowedPlans = getAllowedPlansForSpace(space);
+
+  const defaultInitialPlan: BookingPlan = isOffice
+    ? 'daily'
+    : (nav?.params?.plan as BookingPlan) || (isHourlySpace ? 'hourly' : 'daily');
   const initialDuration = (nav?.params?.durationHours as number) || 2;
+  const initialMonths = (nav?.params?.durationMonths as number) || 1;
 
   const [step, setStep] = useState(0); 
-  const [plan, setPlan] = useState<BookingPlan>(initialPlan);
-  const [deskType, setDeskType] = useState<BookingType>('hot-desk');
+  const [plan, setPlan] = useState<BookingPlan>(defaultInitialPlan);
+  const [deskType, setDeskType] = useState<BookingType>(space?.type || 'hot-desk');
   
-  // Hourly Booking Configuration State
+  // Duration State
   const [durationHours, setDurationHours] = useState<number>(initialDuration);
+  const [durationMonths, setDurationMonths] = useState<number>(initialMonths);
   const [startTime, setStartTime] = useState('10:00 AM');
   
   const [startTimeOpen, setStartTimeOpen] = useState(false);
@@ -116,31 +132,39 @@ export default function BookingFlow() {
   }, []);
   
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
-  const [manualEndDate, setManualEndDate] = useState('');
   const [seats, setSeats] = useState(1);
   const [notes, setNotes] = useState('');
   const [confirmedBooking, setConfirmedBooking] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [useLoyaltyPoints, setUseLoyaltyPoints] = useState(false);
 
+  // Sync state if navigation params change
+  useEffect(() => {
+    if (nav?.params?.plan) {
+      setPlan(nav.params.plan as BookingPlan);
+    }
+    if (nav?.params?.durationHours) {
+      setDurationHours(nav.params.durationHours as number);
+    }
+    if (nav?.params?.durationMonths) {
+      setDurationMonths(nav.params.durationMonths as number);
+    }
+    if (nav?.params?.deskType) {
+      setDeskType(nav.params.deskType as BookingType);
+    }
+  }, [nav?.params?.spaceId, nav?.params?.plan, nav?.params?.durationHours, nav?.params?.durationMonths, nav?.params?.deskType]);
+
   if (!space || !currentUser) return null;
 
-  const isHourly = plan === 'hourly';
+  const isHourly = isHourlySpace && plan === 'hourly';
   const endTime = isHourly ? calculateEndTime(startTime, durationHours) : '';
 
-  const getEndDate = (start: string, p: BookingPlan) => {
-    if (!start) return '';
-    if (p === 'hourly') return start;
-    const d = new Date(start);
-    if (p === 'monthly') d.setMonth(d.getMonth() + 1);
-    else if (p === 'yearly') d.setFullYear(d.getFullYear() + 1);
-    return d.toISOString().split('T')[0];
-  };
-
-  const endDate = isHourly ? startDate : plan === 'daily' ? manualEndDate || startDate : getEndDate(startDate, plan);
+  const endDate = isHourly || plan === 'daily'
+    ? startDate
+    : calculateEndDate(startDate, plan, durationMonths);
 
   // Price calculations
-  const planInfo = getEffectiveSpacePrice(currentUser, space, plan, deskType, durationHours);
+  const planInfo = getEffectiveSpacePrice(currentUser, space, plan, deskType, durationHours, durationMonths);
   const planPrice = planInfo.effectivePrice;
   const rawTotalPrice = planPrice * seats;
 
@@ -157,7 +181,11 @@ export default function BookingFlow() {
 
   const priceLabel = isHourly
     ? `for ${durationHours} hour${durationHours > 1 ? 's' : ''}`
-    : plan === 'daily' ? '/day' : plan === 'monthly' ? '/month' : '/year';
+    : plan === 'monthly'
+    ? `for ${durationMonths} month${durationMonths > 1 ? 's' : ''}`
+    : plan === 'daily'
+    ? '/day'
+    : '/year';
 
   // Validation
   const validateStep = () => {
@@ -185,9 +213,6 @@ export default function BookingFlow() {
           showToast(`This space is fully reserved at ${startTime}. Please select a different time or date.`, 'error');
           return false;
         }
-      } else if (plan === 'daily' && manualEndDate && manualEndDate < startDate) {
-        showToast('End date cannot be before start date.', 'error');
-        return false;
       }
     }
 
@@ -223,11 +248,13 @@ export default function BookingFlow() {
         spaceCity: space.city,
         spaceAddress: space.address,
         spaceImage: space.images[0],
+        category: getSpaceCategory(space),
         type: deskType,
         plan,
         startTime: isHourly ? startTime : undefined,
         endTime: isHourly ? endTime : undefined,
         durationHours: isHourly ? durationHours : undefined,
+        durationMonths: plan === 'monthly' ? durationMonths : undefined,
         startDate,
         endDate: endDate || startDate,
         seats,
@@ -245,6 +272,14 @@ export default function BookingFlow() {
 
   // Confirmation screen
   if (step === 3 && confirmedBooking) {
+    const durationSummaryText = isHourly
+      ? `Hourly Reservation (${durationHours} hrs · ${startTime} – ${endTime})`
+      : plan === 'monthly'
+      ? `Monthly Pass (${durationMonths} Month${durationMonths > 1 ? 's' : ''})`
+      : plan === 'daily'
+      ? `Daily Pass`
+      : 'Yearly Pass (1 Year)';
+
     return (
       <div className="max-w-xl mx-auto px-6 py-12">
         <div className="text-center">
@@ -255,7 +290,7 @@ export default function BookingFlow() {
             Booking Confirmed!
           </h1>
           <p className="text-moss text-sm mb-8 font-normal">
-            Your pass is ready. We have saved all details in your My Bookings section.
+            Your reservation is confirmed and active in your My Bookings section.
           </p>
 
           <div className="bg-white rounded-3xl border border-soot/8 p-6 sm:p-8 text-left mb-8 shadow-sm">
@@ -265,19 +300,21 @@ export default function BookingFlow() {
                 <div className="font-semibold text-soot text-lg">{space.name}</div>
                 <div className="flex items-center gap-1.5 text-xs text-moss mt-1">
                   <MapPin size={12} />
-                  <span>{space.city}</span>
+                  <span>{space.city} · <span className="capitalize">{getSpaceCategory(space)}</span></span>
                 </div>
               </div>
             </div>
             <div className="space-y-2.5 text-sm">
               <Row label="Booking Reference" value={`#${confirmedBooking.id.slice(-8).toUpperCase()}`} />
-              <Row label="Desk Type" value={deskType.replace('-', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())} />
-              <Row label="Plan / Mode" value={isHourly ? `Hourly Reservation (${durationHours} hrs)` : `${plan.charAt(0).toUpperCase() + plan.slice(1)} Pass`} />
-              <Row label="Reservation Date" value={startDate} />
-              {isHourly && (
+              <Row label="Space Category" value={getSpaceCategory(space).toUpperCase()} />
+              <Row label="Workspace Type" value={deskType.replace('-', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())} />
+              <Row label="Plan / Duration" value={durationSummaryText} />
+              <Row label="Start Date" value={startDate} />
+              {isHourly ? (
                 <Row label="Time Window" value={`${startTime} – ${endTime}`} />
+              ) : (
+                <Row label="End Date" value={endDate} />
               )}
-              {!isHourly && plan !== 'daily' && <Row label="End Date" value={endDate} />}
               <Row label="Reserved Seats" value={`${seats} seat${seats > 1 ? 's' : ''}`} />
               <div className="pt-3 border-t border-soot/8 flex justify-between items-center font-semibold text-base">
                 <span className="text-soot">Total Paid (incl. VAT)</span>
@@ -324,7 +361,7 @@ export default function BookingFlow() {
             <div className="font-semibold text-soot text-base truncate">{space.name}</div>
             <div className="flex items-center gap-1.5 text-xs text-moss mt-0.5">
               <MapPin size={12} />
-              <span>{space.city} · <span className="capitalize">{deskType.replace('-', ' ')}</span></span>
+              <span>{space.city} · <span className="capitalize">{getSpaceCategory(space)}</span></span>
             </div>
           </div>
         </div>
@@ -335,14 +372,10 @@ export default function BookingFlow() {
             {seats > 1 ? `Total (${seats} Seats)` : 'Total Price'}
           </span>
           <div className="font-bold text-soot text-lg sm:text-xl leading-tight">
-            {planInfo.isCovered ? (
-              <span className="text-moss">SAR 0</span>
-            ) : (
-              <span>SAR {totalPrice.toLocaleString()}</span>
-            )}
+            SAR {(planInfo.originalPrice * seats).toLocaleString()}
           </div>
           <div className="text-[11px] text-moss mt-0.5">
-            {planInfo.isCovered ? 'Included with Pass' : `SAR ${planPrice.toLocaleString()} ${priceLabel}`}
+            {planInfo.isCovered ? 'Included with Pass · SAR 0 to Pay' : `SAR ${planPrice.toLocaleString()} ${priceLabel}`}
           </div>
         </div>
       </div>
@@ -352,36 +385,46 @@ export default function BookingFlow() {
         <div className="bg-white rounded-3xl border border-soot/8 p-6 sm:p-8 shadow-sm space-y-6">
           <div>
             <h2 className="text-2xl text-soot font-normal mb-1 font-serif-display">
-              Choose Your Pass & Duration
+              {isHourlySpace
+                ? 'Select Reservation Plan & Duration'
+                : isOffice
+                ? 'Choose Office Pass Plan'
+                : 'Choose Your Pass & Duration'}
             </h2>
-            <p className="text-moss text-sm">Select hourly duration or flexible ongoing pass access</p>
+            <p className="text-moss text-sm">
+              {isHourlySpace
+                ? 'Halls and Theaters support Hourly, Daily, Monthly (multi-month), and Yearly reservations'
+                : 'Offices support Daily, Monthly (multi-month), and Yearly reservations'}
+            </p>
           </div>
 
-          {/* Workspace Desk Type Selector */}
-          <div>
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-moss mb-3">Workspace Type</h3>
-            <div className="grid grid-cols-3 gap-3">
-              {(['hot-desk', 'private-office', 'meeting-room'] as BookingType[]).map(t => (
-                <button
-                  key={t}
-                  onClick={() => setDeskType(t)}
-                  className={`py-3 px-3 rounded-2xl border text-xs font-semibold text-center transition-all cursor-pointer ${
-                    deskType === t
-                      ? 'bg-soot text-plaster border-soot shadow-sm'
-                      : 'border-soot/10 text-moss hover:border-soot/30 bg-plaster/30'
-                  }`}
-                >
-                  {t.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                </button>
-              ))}
+          {/* Workspace Desk Type Selector (for mixed / desk spaces) */}
+          {!isHourlySpace && !isOffice && (
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-moss mb-3">Workspace Type</h3>
+              <div className="grid grid-cols-3 gap-3">
+                {(['hot-desk', 'private-office', 'meeting-room'] as BookingType[]).map(t => (
+                  <button
+                    key={t}
+                    onClick={() => setDeskType(t)}
+                    className={`py-3 px-3 rounded-2xl border text-xs font-semibold text-center transition-all cursor-pointer ${
+                      deskType === t
+                        ? 'bg-soot text-plaster border-soot shadow-sm'
+                        : 'border-soot/10 text-moss hover:border-soot/30 bg-plaster/30'
+                    }`}
+                  >
+                    {t.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Plan Choice List */}
           <div className="space-y-3">
-            {(['hourly', 'daily', 'monthly', 'yearly'] as BookingPlan[]).map(p => {
+            {allowedPlans.map(p => {
               const isSelected = plan === p;
-              const pInfo = getEffectiveSpacePrice(currentUser, space, p, deskType, durationHours);
+              const pInfo = getEffectiveSpacePrice(currentUser, space, p, deskType, durationHours, durationMonths);
               return (
                 <button
                   key={p}
@@ -395,20 +438,25 @@ export default function BookingFlow() {
                 >
                   <div>
                     <div className="font-semibold text-soot text-base capitalize flex items-center gap-2">
-                      <span>{p} Pass</span>
+                      <span>{p} Plan</span>
                       {p === 'hourly' && (
                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-eucalyptus/30 text-soot font-semibold uppercase tracking-wider">
-                          Flexible Duration
+                          Hourly Booking
+                        </span>
+                      )}
+                      {p === 'monthly' && durationMonths > 1 && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-soot/10 text-soot font-semibold uppercase tracking-wider">
+                          {durationMonths} Months
                         </span>
                       )}
                     </div>
                     <div className="text-xs text-moss mt-1">
                       {p === 'hourly'
-                        ? `Reserve for ${durationHours} hours with instant confirmation`
+                        ? `Reserve for specific hours with custom duration pricing`
                         : p === 'daily'
-                        ? 'Full single day access with all standard desk perks'
+                        ? 'Full single day workspace access'
                         : p === 'monthly'
-                        ? 'Best for steady ongoing monthly coworking access'
+                        ? 'Reserve for 1, 2, 3, 6, or 12 months with flexible terms'
                         : 'Dedicated full-year workspace with maximum annual savings'}
                     </div>
                   </div>
@@ -432,7 +480,7 @@ export default function BookingFlow() {
                           SAR {pInfo.originalPrice.toLocaleString()}
                         </div>
                         <div className="text-xs text-moss">
-                          /{p === 'hourly' ? `${durationHours}h` : p === 'daily' ? 'day' : p === 'monthly' ? 'month' : 'year'}
+                          /{p === 'hourly' ? `${durationHours}h` : p === 'daily' ? 'day' : p === 'monthly' ? `${durationMonths}mo` : 'year'}
                         </div>
                       </>
                     )}
@@ -442,7 +490,47 @@ export default function BookingFlow() {
             })}
           </div>
 
-          {/* Hourly Duration Selector if Hourly plan is active */}
+          {/* Multi-Month Duration Selector when Monthly is selected */}
+          {plan === 'monthly' && (
+            <div className="p-5 rounded-2xl bg-[#F9F8F5] border border-soot/8 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-moss flex items-center gap-1.5">
+                    <Calendar size={13} />
+                    <span>Select Number of Months</span>
+                  </h4>
+                  <p className="text-xs text-moss mt-0.5">Choose duration: 1, 2, 3, 6, or 12 months</p>
+                </div>
+                <div className="text-sm font-bold text-soot">
+                  {durationMonths} {durationMonths === 1 ? 'Month' : 'Months'} · SAR {((space.pricing?.monthly || 1800) * durationMonths).toLocaleString()}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-5 gap-2">
+                {[1, 2, 3, 6, 12].map(m => {
+                  const isActive = durationMonths === m;
+                  const priceForM = getMonthlyPriceForDuration(space, m);
+                  return (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setDurationMonths(m)}
+                      className={`py-3 px-1 rounded-xl text-center border transition-all cursor-pointer ${
+                        isActive
+                          ? 'bg-[#DDE6DF] text-soot border-soot/20 shadow-xs font-semibold ring-2 ring-soot/10'
+                          : 'bg-white border-soot/10 text-moss hover:text-soot hover:border-soot/20'
+                      }`}
+                    >
+                      <div className="text-xs font-semibold">{m} Mo{m > 1 ? 's' : ''}</div>
+                      <div className="text-[10px] font-bold text-soot mt-0.5">SAR {priceForM.toLocaleString()}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Hourly Duration Selector for Halls, Theaters, and Hourly Plan */}
           {isHourly && (
             <div className="p-5 rounded-2xl bg-[#F9F8F5] border border-soot/8 space-y-4">
               <div className="flex items-center justify-between">
@@ -451,7 +539,7 @@ export default function BookingFlow() {
                     <Clock size={13} />
                     <span>Select Duration in Hours</span>
                   </h4>
-                  <p className="text-xs text-moss mt-0.5">Price dynamically updates for selected duration</p>
+                  <p className="text-xs text-moss mt-0.5">Price dynamically updates based on space rates</p>
                 </div>
                 <div className="text-sm font-bold text-soot">
                   {durationHours} {durationHours === 1 ? 'Hour' : 'Hours'} · SAR {getHourlyPriceForDuration(space, durationHours)}
@@ -467,7 +555,7 @@ export default function BookingFlow() {
                       key={hours}
                       type="button"
                       onClick={() => setDurationHours(hours)}
-                      className={`py-2.5 px-2 rounded-xl text-center border transition-all cursor-pointer ${
+                      className={`py-3 px-2 rounded-xl text-center border transition-all cursor-pointer ${
                         isActive
                           ? 'bg-[#DDE6DF] text-soot border-soot/20 shadow-xs font-semibold ring-2 ring-soot/10'
                           : 'bg-white border-soot/10 text-moss hover:text-soot hover:border-soot/20'
@@ -486,7 +574,7 @@ export default function BookingFlow() {
             onClick={next}
             className="w-full py-3.5 px-6 rounded-full bg-[#DDE6DF] text-soot hover:bg-[#D0DDD3] font-medium text-sm transition-all flex items-center justify-center gap-2 shadow-xs border border-soot/8 cursor-pointer"
           >
-            <span>Continue to Schedule & Details (SAR {totalPrice.toLocaleString()})</span>
+            <span>Continue to Schedule & Details (SAR {(planInfo.originalPrice * seats).toLocaleString()})</span>
             <ChevronRight size={16} />
           </button>
         </div>
@@ -499,14 +587,14 @@ export default function BookingFlow() {
             <h2 className="text-2xl text-soot font-normal mb-1 font-serif-display">
               Schedule & Seats
             </h2>
-            <p className="text-moss text-sm">Choose your date, time window, and required capacity</p>
+            <p className="text-moss text-sm">Choose your date, duration, and required capacity</p>
           </div>
 
           <div className="space-y-6">
             {/* Booking Date */}
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-2">
-                Reservation Date
+                Start Date
               </label>
               <input
                 type="date"
@@ -621,52 +709,54 @@ export default function BookingFlow() {
                   </div>
                 </div>
 
-                {/* Real-time Dynamic Schedule & Price Summary Card */}
-                <div className="bg-white rounded-2xl p-4 border border-soot/8 flex flex-wrap items-center justify-between gap-4">
-                  <div className="flex items-center gap-4 text-xs">
-                    <div>
-                      <span className="text-moss block text-[10px] uppercase font-semibold">Start</span>
-                      <span className="font-semibold text-soot text-sm">{startTime}</span>
-                    </div>
-                    <span className="text-soot/20 font-bold">→</span>
-                    <div>
-                      <span className="text-moss block text-[10px] uppercase font-semibold">End</span>
-                      <span className="font-semibold text-soot text-sm">{endTime}</span>
-                    </div>
-                    <div className="border-l border-soot/8 pl-4">
-                      <span className="text-moss block text-[10px] uppercase font-semibold">Duration</span>
-                      <span className="font-semibold text-soot text-sm">{durationHours} {durationHours === 1 ? 'Hour' : 'Hours'}</span>
-                    </div>
+                <div className="bg-white p-3 rounded-xl border border-soot/8 flex items-center justify-between text-xs">
+                  <div>
+                    <span className="text-moss block text-[10px] uppercase font-semibold">Scheduled Time Window</span>
+                    <span className="font-semibold text-soot">{startTime} → {endTime}</span>
                   </div>
-
                   <div className="text-right">
-                    <span className="text-moss block text-[10px] uppercase font-semibold">Rate per Seat</span>
-                    <span className="font-bold text-soot text-base">SAR {planPrice}</span>
+                    <span className="text-moss block text-[10px] uppercase font-semibold">Rate Calculation</span>
+                    <span className="font-bold text-soot">SAR {getHourlyPriceForDuration(space, durationHours)} / seat</span>
                   </div>
-                </div>
-
-                {/* Space Operating Hours Helper */}
-                <div className="text-[11px] text-moss flex items-center gap-1.5">
-                  <Info size={13} className="shrink-0 text-moss/80" />
-                  <span>Operating hours: {space.openHours || 'Daily: 8am–10pm'}</span>
                 </div>
               </div>
             )}
 
-            {/* End Date for Daily plan */}
-            {!isHourly && plan === 'daily' && (
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-2">
-                  End Date (Optional for multi-day)
-                </label>
-                <input
-                  type="date"
-                  value={manualEndDate}
-                  min={startDate}
-                  onChange={e => setManualEndDate(e.target.value)}
-                  placeholder={startDate}
-                  className="w-full px-4 py-3 rounded-2xl border border-soot/10 bg-[#F9F8F5] text-soot text-sm outline-none focus:border-eucalyptus focus:bg-white font-medium"
-                />
+            {/* Monthly Schedule Summary */}
+            {plan === 'monthly' && (
+              <div className="p-4 rounded-2xl bg-[#F9F8F5] border border-soot/8 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-moss">
+                    Monthly Duration
+                  </span>
+                  <span className="text-xs font-bold text-soot">{durationMonths} Months</span>
+                </div>
+                <div className="grid grid-cols-5 gap-1.5">
+                  {[1, 2, 3, 6, 12].map(m => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setDurationMonths(m)}
+                      className={`py-2 rounded-xl text-xs font-medium border text-center transition-all cursor-pointer ${
+                        durationMonths === m
+                          ? 'bg-soot text-plaster font-semibold'
+                          : 'bg-white border-soot/10 text-moss hover:text-soot'
+                      }`}
+                    >
+                      {m} Mo{m > 1 ? 's' : ''}
+                    </button>
+                  ))}
+                </div>
+                <div className="bg-white p-3 rounded-xl border border-soot/8 flex items-center justify-between text-xs">
+                  <div>
+                    <span className="text-moss block text-[10px] uppercase font-semibold">Period</span>
+                    <span className="font-semibold text-soot">{startDate} → {endDate}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-moss block text-[10px] uppercase font-semibold">Months Total</span>
+                    <span className="font-bold text-soot">SAR {getMonthlyPriceForDuration(space, durationMonths).toLocaleString()}</span>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -716,14 +806,18 @@ export default function BookingFlow() {
               <div>
                 <span className="text-xs font-semibold text-soot block">Calculated Total</span>
                 <span className="text-[11px] text-moss">
-                  {seats} {seats > 1 ? 'seats' : 'seat'} × SAR {planPrice.toLocaleString()} {priceLabel}
+                  {seats} {seats > 1 ? 'seats' : 'seat'} × SAR {planInfo.originalPrice.toLocaleString()} {priceLabel}
                 </span>
               </div>
               <div className="text-right">
                 <span className="text-xl font-bold text-soot">
-                  SAR {totalPrice.toLocaleString()}
+                  SAR {(planInfo.originalPrice * seats).toLocaleString()}
                 </span>
-                <span className="text-[10px] text-moss block">VAT included</span>
+                {planInfo.isCovered ? (
+                  <span className="text-[10px] text-emerald-800 font-semibold block">Included with Pass</span>
+                ) : (
+                  <span className="text-[10px] text-moss block">VAT included</span>
+                )}
               </div>
             </div>
           </div>
@@ -816,8 +910,8 @@ export default function BookingFlow() {
               </div>
 
               <Row
-                label={`Rate per Seat (${isHourly ? `${durationHours}h` : plan})`}
-                value={`SAR ${planPrice.toLocaleString()}`}
+                label={`Rate per Seat (${isHourly ? `${durationHours}h Hourly` : plan === 'monthly' ? `${durationMonths} Mo Monthly` : `${plan} pass`})`}
+                value={`SAR ${planInfo.originalPrice.toLocaleString()}${planInfo.isCovered ? ' (Included with Pass)' : ''}`}
               />
               <Row
                 label={`Number of Reserved Seats`}
@@ -825,11 +919,11 @@ export default function BookingFlow() {
               />
               <Row
                 label={`Subtotal`}
-                value={`SAR ${totalPrice.toLocaleString()}`}
+                value={`SAR ${(planInfo.originalPrice * seats).toLocaleString()}`}
               />
               <Row
                 label="VAT (15% included in price)"
-                value={`SAR ${(totalPrice * 0.15).toFixed(0)}`}
+                value={`SAR ${((planInfo.originalPrice * seats) * 0.15).toFixed(0)}`}
               />
 
               {/* Highlighted Final Payable Amount */}
@@ -844,7 +938,7 @@ export default function BookingFlow() {
                     <div>
                       <span className="text-2xl font-bold text-soot">SAR 0</span>
                       <div className="text-xs text-moss font-semibold bg-eucalyptus/25 border border-eucalyptus/30 px-2.5 py-0.5 rounded-full inline-block ml-2">
-                        Included in Pass
+                        Included in Pass (Standard: SAR {(planInfo.originalPrice * seats).toLocaleString()})
                       </div>
                     </div>
                   ) : planInfo.hasDiscount ? (
@@ -906,6 +1000,11 @@ export default function BookingFlow() {
             >
               {loading ? (
                 <span>Processing Payment...</span>
+              ) : planInfo.isCovered ? (
+                <>
+                  <Check size={16} className="text-moss" />
+                  <span>Confirm Reservation (Included in Pass)</span>
+                </>
               ) : (
                 <>
                   <CreditCard size={16} />

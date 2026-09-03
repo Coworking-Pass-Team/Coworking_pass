@@ -19,7 +19,7 @@ import {
   Plus,
 } from 'lucide-react';
 import { useApp } from '@/app/store';
-import { Booking, BookingStatus, Employee, getHourlyPriceForDuration } from '@/types/types';
+import { Booking, BookingStatus, Employee, getHourlyPriceForDuration, getBookingPrice } from '@/types/types';
 import Modal from '@/components/ui/Modal';
 
 export default function TeamBookings() {
@@ -46,19 +46,6 @@ export default function TeamBookings() {
   }, []);
 
   if (!currentUser) return null;
-
-  const getBookingPrice = (b: Booking) => {
-    if (typeof b.totalPrice === 'number' && b.totalPrice > 0) return b.totalPrice;
-    const sp = spaces.find(s => s.id === b.spaceId || s.name.toLowerCase() === b.spaceName.toLowerCase());
-    if (sp) {
-      if (b.plan === 'hourly') {
-        return getHourlyPriceForDuration(sp, b.durationHours || 1) * (b.seats || 1);
-      }
-      const rate = sp.pricing?.[b.plan] || 150;
-      return rate * (b.seats || 1);
-    }
-    return b.totalPrice || 0;
-  };
 
   const orgBookings = bookings.filter((b: Booking) => b.userId === currentUser.id);
   const employees = currentUser.employees || [];
@@ -284,12 +271,15 @@ export default function TeamBookings() {
 
                 {/* Plan & Seats */}
                 <div className="col-span-2 mt-2 lg:mt-0 text-xs font-semibold text-soot capitalize">
-                  {b.plan === 'hourly' ? `${b.durationHours || 1}h Hourly` : `${b.plan} pass`}
+                  {b.plan === 'hourly'
+                    ? `${b.durationHours || 1}h Hourly`
+                    : b.plan === 'monthly'
+                    ? `${b.durationMonths || 1}mo Monthly`
+                    : `${b.plan} pass`}
                   <span className="block text-[11px] font-normal text-moss">
                     {b.seats} seat{b.seats > 1 ? 's' : ''}
                   </span>
                 </div>
-
                 {/* Revenue Amount */}
                 <div className="col-span-1 mt-2 lg:mt-0 text-sm font-semibold text-soot">
                   SAR {getBookingPrice(b).toLocaleString()}
@@ -379,18 +369,34 @@ export default function TeamBookings() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4 text-xs">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                 <div className="p-3 bg-white/60 rounded-xl border border-soot/8">
-                  <span className="text-moss block mb-1">Start Date</span>
-                  <span className="font-semibold text-soot text-sm">{selectedBooking.startDate}</span>
+                  <span className="text-moss block mb-1">Plan / Duration</span>
+                  <span className="font-semibold text-soot text-xs capitalize">
+                    {selectedBooking.plan === 'hourly'
+                      ? `${selectedBooking.durationHours || 1}h Hourly`
+                      : selectedBooking.plan === 'monthly'
+                      ? `${selectedBooking.durationMonths || 1} Months`
+                      : `${selectedBooking.plan} Pass`}
+                  </span>
                 </div>
                 <div className="p-3 bg-white/60 rounded-xl border border-soot/8">
-                  <span className="text-moss block mb-1">End Date</span>
-                  <span className="font-semibold text-soot text-sm">{selectedBooking.endDate}</span>
+                  <span className="text-moss block mb-1">Start Date</span>
+                  <span className="font-semibold text-soot text-xs">{selectedBooking.startDate}</span>
+                </div>
+                <div className="p-3 bg-white/60 rounded-xl border border-soot/8">
+                  <span className="text-moss block mb-1">
+                    {selectedBooking.startTime ? 'Time Window' : 'End Date'}
+                  </span>
+                  <span className="font-semibold text-soot text-xs">
+                    {selectedBooking.startTime
+                      ? `${selectedBooking.startTime} – ${selectedBooking.endTime}`
+                      : selectedBooking.endDate}
+                  </span>
                 </div>
                 <div className="p-3 bg-white/60 rounded-xl border border-soot/8">
                   <span className="text-moss block mb-1">Seats Reserved</span>
-                  <span className="font-semibold text-soot text-sm">{selectedBooking.seats} Seats</span>
+                  <span className="font-semibold text-soot text-xs">{selectedBooking.seats} Seats</span>
                 </div>
               </div>
 

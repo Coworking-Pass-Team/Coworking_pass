@@ -17,10 +17,10 @@ import {
   CreditCard,
 } from 'lucide-react';
 import { useApp } from '@/app/store';
-import { Booking, BookingStatus } from '@/types/types';
+import { Booking, BookingStatus, getBookingPrice } from '@/types/types';
 
 export default function BookingsAdmin() {
-  const { bookings, users, updateBookingStatus, showToast } = useApp();
+  const { bookings, spaces, users, updateBookingStatus, showToast } = useApp();
   const [query, setQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterPlan, setFilterPlan] = useState('');
@@ -335,7 +335,11 @@ export default function BookingsAdmin() {
               {/* Plan & Seats */}
               <div className="col-span-1 mt-2 lg:mt-0">
                 <div className="text-xs font-semibold text-soot capitalize">
-                  {b.plan === 'hourly' ? `${b.durationHours || 1}h Hourly` : b.plan}
+                  {b.plan === 'hourly'
+                    ? `${b.durationHours || 1}h Hourly`
+                    : b.plan === 'monthly'
+                    ? `${b.durationMonths || 1}mo Monthly`
+                    : `${b.plan} pass`}
                 </div>
                 <div className="flex items-center gap-1 text-[11px] text-moss mt-0.5">
                   <Users size={11} />
@@ -345,7 +349,7 @@ export default function BookingsAdmin() {
 
               {/* Total Price */}
               <div className="col-span-1 mt-2 lg:mt-0 text-sm font-bold text-soot">
-                SAR {b.totalPrice.toLocaleString()}
+                SAR {getBookingPrice(b, spaces).toLocaleString()}
               </div>
 
               {/* Status Badge & Eye Details Button */}
@@ -440,13 +444,22 @@ export default function BookingsAdmin() {
               {/* Data Summary Grid */}
               <div className="space-y-3 text-sm">
                 {[
-                  { label: 'Booking Plan', value: selectedBooking.plan === 'hourly' ? `HOURLY RESERVATION (${selectedBooking.durationHours || 1} HOURS)` : `${selectedBooking.plan.toUpperCase()} PASS`, icon: CreditCard },
+                  {
+                    label: 'Booking Plan',
+                    value: selectedBooking.plan === 'hourly'
+                      ? `HOURLY RESERVATION (${selectedBooking.durationHours || 1} HOURS)`
+                      : selectedBooking.plan === 'monthly'
+                      ? `MONTHLY PASS (${selectedBooking.durationMonths || 1} MONTH${(selectedBooking.durationMonths || 1) > 1 ? 'S' : ''})`
+                      : `${selectedBooking.plan.toUpperCase()} PASS`,
+                    icon: CreditCard,
+                  },
                   { label: 'Reserved Seats', value: `${selectedBooking.seats} seat(s)`, icon: Users },
                   { label: 'Start Date', value: selectedBooking.startDate, icon: Calendar },
                   ...(selectedBooking.startTime ? [{ label: 'Time Window', value: `${selectedBooking.startTime} – ${selectedBooking.endTime || ''}`, icon: Clock }] : []),
                   ...(selectedBooking.durationHours ? [{ label: 'Duration', value: `${selectedBooking.durationHours} Hours`, icon: Clock }] : []),
+                  ...(selectedBooking.durationMonths && selectedBooking.durationMonths > 1 ? [{ label: 'Duration (Months)', value: `${selectedBooking.durationMonths} Months`, icon: Calendar }] : []),
                   ...(selectedBooking.plan !== 'hourly' && selectedBooking.endDate !== selectedBooking.startDate ? [{ label: 'End Date', value: selectedBooking.endDate, icon: Calendar }] : []),
-                  { label: 'Total Amount Paid', value: `SAR ${selectedBooking.totalPrice.toLocaleString()}`, icon: DollarSign },
+                  { label: 'Total Amount Paid', value: `SAR ${getBookingPrice(selectedBooking, spaces).toLocaleString()}`, icon: DollarSign },
                 ].map((row) => (
                   <div key={row.label} className="flex items-center justify-between py-1.5 border-b border-soot/6 last:border-0">
                     <span className="text-moss text-xs flex items-center gap-2">

@@ -1,31 +1,45 @@
 'use client';
 
-import React from 'react';
-import { CalendarDays, MapPin, Star, Clock, ArrowRight, Bookmark, Check, Sparkles } from 'lucide-react';
+import React, { useState } from 'react';
+import {
+  CalendarDays,
+  MapPin,
+  Star,
+  Clock,
+  ArrowRight,
+  Bookmark,
+  Check,
+  Sparkles,
+  Building2,
+  Presentation,
+  Clapperboard
+} from 'lucide-react';
 import { useApp } from '@/app/store';
-import { Space, getEffectiveSpacePrice, Booking, getHourlyPriceForDuration, BookingPlan } from '@/types/types';
+import {
+  Space,
+  getEffectiveSpacePrice,
+  Booking,
+  getHourlyPriceForDuration,
+  BookingPlan,
+  getBookingPrice,
+  getSpaceCategory,
+  SpaceCategory
+} from '@/types/types';
 
 export default function Dashboard() {
   const { currentUser, spaces, bookings, favorites, navigate } = useApp();
+  const [selectedCategory, setSelectedCategory] = useState<'all' | SpaceCategory>('all');
 
   if (!currentUser) return null;
 
   const myBookings = bookings.filter(b => b.userId === currentUser.id);
   const activeBookings = myBookings.filter(b => b.status === 'active');
   const favoriteSpaces = spaces.filter(s => favorites.includes(s.id) && s.isVisible);
+  const visibleSpaces = spaces.filter(s => s.isVisible);
 
-  const getBookingPrice = (b: Booking) => {
-    if (typeof b.totalPrice === 'number' && b.totalPrice > 0) return b.totalPrice;
-    const sp = spaces.find(s => s.id === b.spaceId || s.name.toLowerCase() === b.spaceName.toLowerCase());
-    if (sp) {
-      if (b.plan === 'hourly') {
-        return getHourlyPriceForDuration(sp, b.durationHours || 1) * (b.seats || 1);
-      }
-      const rate = (b.plan === 'daily' ? sp.pricing?.daily : b.plan === 'monthly' ? sp.pricing?.monthly : b.plan === 'yearly' ? sp.pricing?.yearly : 150) || 150;
-      return rate * (b.seats || 1);
-    }
-    return b.totalPrice || 0;
-  };
+  const categoryFilteredSpaces = selectedCategory === 'all'
+    ? visibleSpaces
+    : visibleSpaces.filter(s => getSpaceCategory(s) === selectedCategory);
 
   const greeting = () => {
     const h = new Date().getHours();
@@ -173,7 +187,7 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <div className="text-right shrink-0">
-                    <div className="text-sm font-semibold text-soot">SAR {getBookingPrice(b).toLocaleString()}</div>
+                    <div className="text-sm font-semibold text-soot">SAR {getBookingPrice(b, spaces).toLocaleString()}</div>
                     <span className="text-[10px] text-emerald-800 font-bold uppercase tracking-wider">Confirmed</span>
                   </div>
                 </div>
@@ -258,6 +272,127 @@ export default function Dashboard() {
               ))}
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Explore Spaces by Type Section */}
+      <div className="space-y-4 pt-4 border-t border-soot/8">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+          <div>
+            <span className="text-xs font-semibold tracking-wider uppercase text-moss block mb-1">
+              Discovery & Booking
+            </span>
+            <h2 className="text-2xl font-serif-display text-soot">Explore Spaces by Category</h2>
+          </div>
+          <button
+            onClick={() => navigate('browse')}
+            className="text-xs font-semibold text-moss hover:text-soot flex items-center gap-1 cursor-pointer transition-colors"
+          >
+            <span>Open full catalog</span>
+            <ArrowRight size={13} />
+          </button>
+        </div>
+
+        {/* Category Filter Tabs */}
+        <div className="flex flex-wrap gap-2">
+          {[
+            { id: 'all', label: 'All Spaces' },
+            { id: 'office', label: 'Offices' },
+            { id: 'hall', label: 'Halls' },
+            { id: 'theater', label: 'Theaters' },
+          ].map(cat => {
+            const isSelected = selectedCategory === cat.id;
+            const count = cat.id === 'all'
+              ? visibleSpaces.length
+              : visibleSpaces.filter(s => getSpaceCategory(s) === cat.id).length;
+            return (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => setSelectedCategory(cat.id as any)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-semibold transition-all cursor-pointer ${
+                  isSelected
+                    ? 'bg-soot text-plaster shadow-xs'
+                    : 'bg-plaster-surface border border-soot/10 text-moss hover:text-soot hover:border-soot/25'
+                }`}
+              >
+                <span>{cat.label}</span>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                  isSelected ? 'bg-plaster/20 text-plaster' : 'bg-plaster-dark/60 text-soot'
+                }`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Grid of Categorized Spaces */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 pt-2">
+          {categoryFilteredSpaces.slice(0, 6).map(space => {
+            const cat = getSpaceCategory(space);
+            const planInfo = getEffectiveSpacePrice(currentUser, space, cat === 'office' ? 'daily' : 'hourly');
+            const isHourly = cat === 'hall' || cat === 'theater';
+            return (
+              <div
+                key={space.id}
+                onClick={() => navigate('space-details', { spaceId: space.id })}
+                className="bg-plaster-surface hover:bg-plaster-dark/30 rounded-3xl border border-soot/12 overflow-hidden shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer group flex flex-col justify-between"
+              >
+                <div className="relative h-44 overflow-hidden">
+                  <img
+                    src={space.images[0]}
+                    alt={space.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-soot/70 via-transparent to-transparent" />
+                  
+                  {/* Category & Type Badges */}
+                  <div className="absolute top-3 left-3 flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-white/95 text-soot backdrop-blur-md shadow-xs capitalize">
+                      {cat}
+                    </span>
+                    <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-soot/80 text-white backdrop-blur-md shadow-xs capitalize">
+                      {space.type.replace('-', ' ')}
+                    </span>
+                  </div>
+
+                  <div className="absolute bottom-3 left-3 right-3 text-white">
+                    <h3 className="font-semibold text-base truncate font-serif-display">{space.name}</h3>
+                    <div className="flex items-center gap-1 text-xs text-plaster/90 mt-0.5">
+                      <MapPin size={11} className="text-eucalyptus shrink-0" />
+                      <span className="truncate">{space.city} • {space.address}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-4 flex items-center justify-between gap-3 border-t border-soot/6">
+                  <div>
+                    <div className="text-xs text-moss">
+                      {isHourly ? 'Hourly Rate' : 'Daily Pass'}
+                    </div>
+                    <div className="font-bold text-soot text-sm">
+                      {planInfo.isCovered ? (
+                        <span className="text-emerald-800 font-semibold">Included in Pass</span>
+                      ) : (
+                        <span>SAR {planInfo.originalPrice.toLocaleString()} {isHourly ? '/h' : '/day'}</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate('booking-flow', { spaceId: space.id });
+                    }}
+                    className="px-3.5 py-1.5 rounded-xl bg-[#DDE6DF] hover:bg-[#D0DDD3] text-soot font-semibold text-xs transition-colors shadow-2xs border border-soot/10 cursor-pointer"
+                  >
+                    Book Now
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

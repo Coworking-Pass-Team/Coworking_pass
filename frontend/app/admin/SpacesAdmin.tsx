@@ -16,9 +16,11 @@ import {
   Building2,
   X,
   Upload,
+  Presentation,
+  Clapperboard,
 } from 'lucide-react';
 import { useApp } from '@/app/store';
-import { Space, SpaceBookingPackage } from '@/types/types';
+import { Space, SpaceBookingPackage, SpaceCategory, ALL_SPACE_TYPES, isHourlyOnlySpace, isOfficeSpace, isHourlyAllowed, getSpaceCategory } from '@/types/types';
 
 const AMENITY_OPTIONS = [
   'WiFi',
@@ -32,18 +34,14 @@ const AMENITY_OPTIONS = [
   'Meeting Rooms',
   'Reception',
   'Event Space',
+  '4K Projector',
+  'Sound System',
+  'Interactive Smartboard',
+  'Auditorium Seating',
 ];
 
 const CITIES = ['Riyadh', 'Jeddah', 'Dammam', 'Khobar', 'Madinah', 'Makkah'];
-const TYPES: { value: Space['type']; label: string }[] = [
-  { value: 'hot-desk', label: 'Shared Desks / Hot Desks' },
-  { value: 'private-office', label: 'Private Office' },
-  { value: 'meeting-room', label: 'Meeting Rooms' },
-  { value: 'theater' as Space['type'], label: 'Theaters / Auditoriums' },
-  { value: 'mixed', label: 'Mixed Space' },
-];
-
-const isHourlyType = (type?: string) => type === 'theater' || type === 'meeting-room';
+const TYPES = ALL_SPACE_TYPES;
 
 const emptyForm = (): Partial<Space> => ({
   name: '',
@@ -68,6 +66,13 @@ const emptyForm = (): Partial<Space> => ({
     ],
     daily: 150,
     monthly: 1800,
+    monthlyTiers: [
+      { months: 1, price: 1800 },
+      { months: 2, price: 3400 },
+      { months: 3, price: 5000 },
+      { months: 6, price: 9500 },
+      { months: 12, price: 18000 },
+    ],
     yearly: 18000,
   },
   rating: 4.5,
@@ -86,6 +91,7 @@ export default function SpacesAdmin() {
   const { spaces, addSpace, updateSpace, toggleSpaceVisibility, deleteSpace, navigate } = useApp();
   const [query, setQuery] = useState('');
   const [filterCity, setFilterCity] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<'all' | SpaceCategory>('all');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -156,6 +162,7 @@ export default function SpacesAdmin() {
     const q = query.trim().toLowerCase();
     if (q && !s.name.toLowerCase().includes(q) && !s.city.toLowerCase().includes(q)) return false;
     if (filterCity && s.city !== filterCity) return false;
+    if (categoryFilter !== 'all' && getSpaceCategory(s) !== categoryFilter) return false;
     return true;
   });
 
@@ -175,7 +182,7 @@ export default function SpacesAdmin() {
   };
 
   const handleTypeChange = (type: Space['type']) => {
-    const hourly = isHourlyType(type);
+    const hourly = isHourlyOnlySpace(type);
     setForm((prev) => ({
       ...prev,
       type,
@@ -280,7 +287,7 @@ export default function SpacesAdmin() {
 
   const setPrice = (field: 'hourly' | 'daily' | 'monthly' | 'yearly', val: number) => {
     setForm((prev) => {
-      const currentPricing = prev.pricing || { hourly: 45, daily: 150, monthly: 1800, yearly: 18000 };
+      const currentPricing = prev.pricing || { daily: 150, monthly: 1800, yearly: 18000 };
       const updatedPricing = { ...currentPricing, [field]: Number.isNaN(val) ? 0 : val };
       if (field === 'hourly') {
         const base = val || 45;
@@ -292,6 +299,22 @@ export default function SpacesAdmin() {
           { hours: 6, price: Math.round(base * 4.4) },
           { hours: 8, price: Math.round(base * 5.5) },
         ];
+      }
+      if (field === 'monthly') {
+        const baseMonthly = val || 1800;
+        updatedPricing.monthlyTiers = [
+          { months: 1, price: baseMonthly },
+          { months: 2, price: Math.round(baseMonthly * 1.9) },
+          { months: 3, price: Math.round(baseMonthly * 2.8) },
+          { months: 6, price: Math.round(baseMonthly * 5.3) },
+          { months: 12, price: updatedPricing.yearly || Math.round(baseMonthly * 10) },
+        ];
+      }
+      if (field === 'yearly') {
+        if (updatedPricing.monthlyTiers) {
+          const idx = updatedPricing.monthlyTiers.findIndex((t) => t.months === 12);
+          if (idx >= 0) updatedPricing.monthlyTiers[idx] = { months: 12, price: val };
+        }
       }
       return { ...prev, pricing: updatedPricing };
     });
@@ -322,6 +345,36 @@ export default function SpacesAdmin() {
           ...currentPricing,
           hourly: hours === 1 ? val : currentPricing.hourly,
           hourlyTiers: updatedTiers,
+        },
+      };
+    });
+  };
+
+  const setMonthlyTierPrice = (months: number, val: number) => {
+    setForm((prev) => {
+      const currentPricing = prev.pricing || { daily: 150, monthly: 1800, yearly: 18000 };
+      const currentTiers = currentPricing.monthlyTiers || [
+        { months: 1, price: currentPricing.monthly || 1800 },
+        { months: 2, price: Math.round((currentPricing.monthly || 1800) * 1.9) },
+        { months: 3, price: Math.round((currentPricing.monthly || 1800) * 2.8) },
+        { months: 6, price: Math.round((currentPricing.monthly || 1800) * 5.3) },
+        { months: 12, price: currentPricing.yearly || Math.round((currentPricing.monthly || 1800) * 10) },
+      ];
+      const existingIdx = currentTiers.findIndex((t) => t.months === months);
+      let updatedTiers = [...currentTiers];
+      if (existingIdx >= 0) {
+        updatedTiers[existingIdx] = { months, price: val };
+      } else {
+        updatedTiers.push({ months, price: val });
+        updatedTiers.sort((a, b) => a.months - b.months);
+      }
+      return {
+        ...prev,
+        pricing: {
+          ...currentPricing,
+          monthly: months === 1 ? val : currentPricing.monthly,
+          yearly: months === 12 ? val : currentPricing.yearly,
+          monthlyTiers: updatedTiers,
         },
       };
     });
@@ -406,6 +459,40 @@ export default function SpacesAdmin() {
         ))}
       </div>
 
+      {/* Category Tabs: All, Offices, Halls, Theaters */}
+      <div className="flex flex-wrap gap-2.5">
+        {[
+          { id: 'all' as const, label: 'All Spaces', count: spaces.length, icon: Building2 },
+          { id: 'office' as const, label: 'Offices', count: spaces.filter((s) => getSpaceCategory(s) === 'office').length, icon: Building2 },
+          { id: 'hall' as const, label: 'Halls', count: spaces.filter((s) => getSpaceCategory(s) === 'hall').length, icon: Presentation },
+          { id: 'theater' as const, label: 'Theaters', count: spaces.filter((s) => getSpaceCategory(s) === 'theater').length, icon: Clapperboard },
+        ].map((tab) => {
+          const isSelected = categoryFilter === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setCategoryFilter(tab.id)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                isSelected
+                  ? 'bg-soot text-plaster shadow-xs'
+                  : 'bg-plaster-surface border border-soot/10 text-moss hover:text-soot hover:border-soot/30'
+              }`}
+            >
+              <tab.icon size={15} />
+              <span>{tab.label}</span>
+              <span
+                className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                  isSelected ? 'bg-plaster/20 text-plaster' : 'bg-plaster-dark/60 text-soot'
+                }`}
+              >
+                {tab.count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
       {/* Search & Custom City Dropdown Bar */}
       <div className="flex flex-col sm:flex-row gap-3 bg-plaster-surface p-3 rounded-2xl border border-soot/10 shadow-2xs relative z-30">
         <div className="relative flex-1">
@@ -478,12 +565,13 @@ export default function SpacesAdmin() {
           <div className="col-span-5">Space Name</div>
           <div className="col-span-2">City</div>
           <div className="col-span-2">Capacity</div>
-          <div className="col-span-2">Daily Price</div>
+          <div className="col-span-2">Price Rate</div>
           <div className="col-span-1 text-right">Actions</div>
         </div>
 
         <div className="divide-y divide-soot/8">
           {filtered.map((space) => {
+            const cat = getSpaceCategory(space);
             const occupancyRatio =
               space.totalCapacity > 0 ? (space.availableCapacity / space.totalCapacity) * 100 : 0;
 
@@ -504,6 +592,9 @@ export default function SpacesAdmin() {
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-semibold text-soot group-hover:text-emerald-900 transition-colors truncate">
                         {space.name}
+                      </span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-soot/8 text-soot border border-soot/10 shrink-0 capitalize">
+                        {cat}
                       </span>
                       {!space.isVisible && (
                         <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-red-500/10 text-red-700 shrink-0">
@@ -550,16 +641,12 @@ export default function SpacesAdmin() {
                   </div>
                 </div>
 
-                {/* Daily Price */}
+                {/* Space Price */}
                 <div className="col-span-2 mt-3 md:mt-0 text-sm font-semibold text-soot">
-                  {isHourlyType(space.type) ? (
-                    <span className="text-xs text-moss">Flexible hourly</span>
-                  ) : (
-                    <>
-                      SAR {space.pricing.daily.toLocaleString()}
-                      <span className="text-xs text-moss font-normal ml-1">/ day</span>
-                    </>
-                  )}
+                  SAR {isHourlyOnlySpace(space.type) ? (space.pricing?.hourly || 150).toLocaleString() : space.pricing?.daily?.toLocaleString()}
+                  <span className="text-xs text-moss font-normal ml-1">
+                    {isHourlyOnlySpace(space.type) ? '/ hour' : '/ day'}
+                  </span>
                 </div>
 
                 {/* Actions */}
@@ -793,10 +880,10 @@ export default function SpacesAdmin() {
                 <span className="text-[11px] font-bold uppercase tracking-wider text-moss block">
                   Booking Mode & Packages
                 </span>
-                {isHourlyType(form.type) ? (
+                {isHourlyOnlySpace(form.type) ? (
                   <div className="space-y-3">
                     <p className="text-xs text-moss">
-                      Theaters and meeting rooms use hourly booking packages.
+                      Halls and Theaters use hourly booking packages.
                     </p>
                     <div className="space-y-2">
                       {(form.bookingPackages || []).map((pkg, index) => (
@@ -880,17 +967,33 @@ export default function SpacesAdmin() {
               </div>
 
               {/* Standard Pricing Section */}
-              <div className="space-y-4 pt-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-moss block border-b border-soot/10 pb-1.5">
-                  Standard Rates & Pass Pricing (SAR)
-                </span>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {(['hourly', 'daily', 'monthly', 'yearly'] as const).map((plan) => (
+              <div className="space-y-4 pt-2">
+                <div className="flex items-center justify-between border-b border-soot/10 pb-1.5">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-moss">
+                    {isHourlyAllowed(form.type)
+                      ? `${getSpaceCategory(form.type).toUpperCase()} Rates (Hourly, Daily, Monthly, Yearly)`
+                      : 'Office Periodic Rates (Daily, Monthly, Yearly)'}
+                  </span>
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#E5ECE9] text-soot">
+                    {isHourlyAllowed(form.type)
+                      ? 'Hourly • Daily • Monthly • Yearly'
+                      : 'Daily • Monthly • Yearly (No Hourly)'}
+                  </span>
+                </div>
+
+                {/* Standard Plans Grid */}
+                <div className={`grid gap-3 ${isOfficeSpace(form.type) ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-4'}`}>
+                  {(isOfficeSpace(form.type)
+                    ? (['daily', 'monthly', 'yearly'] as const)
+                    : (['hourly', 'daily', 'monthly', 'yearly'] as const)
+                  ).map((plan) => (
                     <div key={plan} className="space-y-1">
-                      <span className="block text-[10px] font-bold text-moss uppercase tracking-wider">{plan === 'hourly' ? '1 Hour (Base)' : plan}</span>
+                      <span className="block text-[10px] font-bold text-moss uppercase tracking-wider">
+                        {plan === 'hourly' ? '1 Hour (Base Rate)' : plan}
+                      </span>
                       <input
                         type="number"
-                        value={form.pricing?.[plan] ?? (plan === 'hourly' ? 45 : 150)}
+                        value={form.pricing?.[plan] ?? (plan === 'hourly' ? (isHourlyAllowed(form.type) ? 250 : 45) : plan === 'daily' ? 150 : plan === 'monthly' ? 1800 : 18000)}
                         onChange={(e) => setPrice(plan, +e.target.value)}
                         className="w-full px-3 py-2 rounded-xl border border-soot/15 bg-white text-soot text-sm font-semibold outline-none focus:border-soot shadow-2xs"
                       />
@@ -899,24 +1002,66 @@ export default function SpacesAdmin() {
                 </div>
 
                 {/* Hourly Duration Tiers */}
+                {!isOfficeSpace(form.type) && (
+                  <div className="p-3.5 rounded-2xl bg-plaster-dark/40 border border-soot/10 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-soot">
+                        Multi-Hour Duration Pricing (SAR)
+                      </span>
+                      <span className="text-[10px] text-moss">Custom pricing for specific hourly durations</span>
+                    </div>
+                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                      {[1, 2, 3, 4, 6, 8].map((hours) => {
+                        const baseRate = form.pricing?.hourly || (isHourlyOnlySpace(form.type) ? 250 : 45);
+                        const currentPrice =
+                          form.pricing?.hourlyTiers?.find((t) => t.hours === hours)?.price ||
+                          (hours === 1
+                            ? baseRate
+                            : Math.round(
+                                baseRate *
+                                  (hours === 2 ? 1.8 : hours === 3 ? 2.5 : hours === 4 ? 3.1 : hours === 6 ? 4.4 : 5.5)
+                              ));
+                        return (
+                          <div key={hours} className="space-y-1 bg-white p-2 rounded-xl border border-soot/10">
+                            <span className="block text-[10px] font-semibold text-moss text-center">{hours}h Duration</span>
+                            <input
+                              type="number"
+                              value={currentPrice}
+                              onChange={(e) => setTierPrice(hours, +e.target.value)}
+                              className="w-full text-center px-1.5 py-1 rounded-lg border border-soot/10 bg-plaster-dark/20 text-soot text-xs font-semibold outline-none focus:border-soot"
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Multi-Month Duration Tiers (Available for ALL space types) */}
                 <div className="p-3.5 rounded-2xl bg-plaster-dark/40 border border-soot/10 space-y-2.5">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-soot">
-                      Multi-Hour Duration Pricing (SAR)
+                      Multi-Month Duration Pricing (SAR)
                     </span>
-                    <span className="text-[10px] text-moss">Custom rates for duration booking</span>
+                    <span className="text-[10px] text-moss">Custom pricing for specific monthly durations</span>
                   </div>
-                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                    {[1, 2, 3, 4, 6, 8].map((hours) => {
-                      const currentPrice = form.pricing?.hourlyTiers?.find(t => t.hours === hours)?.price ||
-                        (hours === 1 ? form.pricing?.hourly || 45 : Math.round((form.pricing?.hourly || 45) * (hours === 2 ? 1.8 : hours === 3 ? 2.5 : hours === 4 ? 3.1 : hours === 6 ? 4.4 : 5.5)));
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                    {[1, 2, 3, 6, 12].map((months) => {
+                      const baseMonthly = form.pricing?.monthly || 1800;
+                      const currentPrice =
+                        form.pricing?.monthlyTiers?.find((t) => t.months === months)?.price ||
+                        (months === 1
+                          ? baseMonthly
+                          : months === 12
+                          ? form.pricing?.yearly || baseMonthly * 10
+                          : Math.round(baseMonthly * (months === 2 ? 1.9 : months === 3 ? 2.8 : 5.3)));
                       return (
-                        <div key={hours} className="space-y-1 bg-white p-2 rounded-xl border border-soot/10">
-                          <span className="block text-[10px] font-semibold text-moss text-center">{hours}h Duration</span>
+                        <div key={months} className="space-y-1 bg-white p-2 rounded-xl border border-soot/10">
+                          <span className="block text-[10px] font-semibold text-moss text-center">{months} Mo{months > 1 ? 's' : ''} Duration</span>
                           <input
                             type="number"
                             value={currentPrice}
-                            onChange={(e) => setTierPrice(hours, +e.target.value)}
+                            onChange={(e) => setMonthlyTierPrice(months, +e.target.value)}
                             className="w-full text-center px-1.5 py-1 rounded-lg border border-soot/10 bg-plaster-dark/20 text-soot text-xs font-semibold outline-none focus:border-soot"
                           />
                         </div>

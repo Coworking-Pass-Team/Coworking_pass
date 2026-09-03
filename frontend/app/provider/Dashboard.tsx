@@ -2,6 +2,7 @@
 
 import { Warehouse, CalendarDays, TrendingUp, Percent, ArrowRight, MapPin, Building2, CheckCircle2 } from 'lucide-react';
 import { useApp } from '@/app/store';
+import { getBookingPrice, getSpaceCategory, isHourlyAllowed } from '@/types/types';
 
 export default function ProviderDashboard() {
   const { currentUser, spaces, bookings, navigate } = useApp();
@@ -13,7 +14,7 @@ export default function ProviderDashboard() {
   const activeBookings = myBookings.filter((b) => b.status === 'active');
   const totalRevenue = myBookings
     .filter((b) => b.status !== 'cancelled')
-    .reduce((sum, b) => sum + b.totalPrice, 0);
+    .reduce((sum, b) => sum + getBookingPrice(b, spaces), 0);
 
   const totalCapacity = mySpaces.reduce((sum, s) => sum + s.totalCapacity, 0);
   const totalAvailable = mySpaces.reduce((sum, s) => sum + s.availableCapacity, 0);
@@ -140,6 +141,10 @@ export default function ProviderDashboard() {
                       )}
                     </div>
                     <div className="flex items-center gap-1.5 text-xs text-moss mt-1 font-medium">
+                      <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-soot/8 text-soot border border-soot/10 capitalize">
+                        {getSpaceCategory(space)}
+                      </span>
+                      <span>·</span>
                       <MapPin size={12} className="text-moss shrink-0" />
                       <span className="truncate">{space.city}</span>
                       <span>·</span>
@@ -149,8 +154,10 @@ export default function ProviderDashboard() {
                     </div>
                   </div>
                   <div className="text-right text-xs font-semibold text-soot shrink-0">
-                    SAR {space.pricing.daily}
-                    <span className="text-[10px] text-moss font-normal block">/ day</span>
+                    SAR {isHourlyAllowed(space) ? (space.pricing.hourly || 150) : space.pricing.daily}
+                    <span className="text-[10px] text-moss font-normal block">
+                      {isHourlyAllowed(space) ? '/ hour' : '/ day'}
+                    </span>
                   </div>
                 </div>
               ))}
@@ -210,7 +217,7 @@ export default function ProviderDashboard() {
                     >
                       {b.status}
                     </span>
-                    <span className="text-xs font-semibold text-soot block mt-1">SAR {b.totalPrice}</span>
+                    <span className="text-xs font-semibold text-soot block mt-1">SAR {getBookingPrice(b, spaces).toLocaleString()}</span>
                   </div>
                 </div>
               ))}
