@@ -1,9 +1,25 @@
 'use client';
 
-import { useState } from 'react';
-import { Users, Plus, Search, Trash2, Edit2, Mail, Phone, Shield } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import {
+  Users,
+  Plus,
+  Search,
+  Trash2,
+  Edit2,
+  Mail,
+  Phone,
+  Shield,
+  Check,
+  ChevronDown,
+  UserCheck,
+  UserPlus,
+  Building,
+  MoreVertical,
+  Pencil,
+} from 'lucide-react';
 import { useApp } from '@/app/store';
-import { Employee } from '@/types';
+import { Employee } from '@/types/types';
 import Modal from '@/components/ui/Modal';
 
 type CompanyRole = 'Company Owner' | 'Company Manager' | 'Booking Manager' | 'Team Member';
@@ -16,18 +32,11 @@ interface TeamMemberExt extends Employee {
 
 const COMPANY_ROLES: CompanyRole[] = ['Company Owner', 'Company Manager', 'Booking Manager', 'Team Member'];
 
-const ROLE_DESC: Record<CompanyRole, string> = {
-  'Company Owner': 'Full access to all company data and settings',
-  'Company Manager': 'Manage workspaces and bookings',
-  'Booking Manager': 'Manage bookings only',
-  'Team Member': 'View assigned workspaces and bookings',
-};
-
 const ROLE_BADGE: Record<CompanyRole, string> = {
-  'Company Owner': 'bg-soot/10 text-soot',
-  'Company Manager': 'bg-eucalyptus/15 text-moss',
-  'Booking Manager': 'bg-mist/30 text-soot',
-  'Team Member': 'bg-plaster text-moss border border-soot/8',
+  'Company Owner': 'bg-soot text-plaster border border-soot/20',
+  'Company Manager': 'bg-emerald-500/15 text-emerald-800 border border-emerald-500/30',
+  'Booking Manager': 'bg-blue-500/15 text-blue-800 border border-blue-500/30',
+  'Team Member': 'bg-soot/10 text-soot border border-soot/15',
 };
 
 export default function CompanyTeam() {
@@ -46,15 +55,40 @@ export default function CompanyTeam() {
     })),
   ]);
 
-  const [search, setSearch] = useState('');
+  const [query, setQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('All');
+  const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
+  const roleDropdownRef = useRef<HTMLDivElement>(null);
+
   const [addModal, setAddModal] = useState(false);
   const [editModal, setEditModal] = useState<TeamMemberExt | null>(null);
   const [deleteModal, setDeleteModal] = useState<TeamMemberExt | null>(null);
   const [newMember, setNewMember] = useState({ name: '', email: '', department: '', role: 'Team Member' as CompanyRole });
 
+  const [addRoleOpen, setAddRoleOpen] = useState(false);
+  const [editRoleOpen, setEditRoleOpen] = useState(false);
+  const addRoleRef = useRef<HTMLDivElement>(null);
+  const editRoleRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (roleDropdownRef.current && !roleDropdownRef.current.contains(event.target as Node)) {
+        setRoleDropdownOpen(false);
+      }
+      if (addRoleRef.current && !addRoleRef.current.contains(event.target as Node)) {
+        setAddRoleOpen(false);
+      }
+      if (editRoleRef.current && !editRoleRef.current.contains(event.target as Node)) {
+        setEditRoleOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const filtered = members.filter(m => {
-    const matchSearch = !search || m.name.toLowerCase().includes(search.toLowerCase()) || m.email.toLowerCase().includes(search.toLowerCase()) || m.department.toLowerCase().includes(search.toLowerCase());
+    const q = query.trim().toLowerCase();
+    const matchSearch = !q || m.name.toLowerCase().includes(q) || m.email.toLowerCase().includes(q) || m.department.toLowerCase().includes(q);
     const matchRole = roleFilter === 'All' || m.role === roleFilter;
     return matchSearch && matchRole;
   });
@@ -95,177 +129,432 @@ export default function CompanyTeam() {
     showToast('Team member updated.', 'success');
   };
 
+  const activeCount = members.filter(m => m.status === 'active').length;
+  const invitedCount = members.filter(m => m.status === 'invited').length;
+  const departmentCount = new Set(members.map(m => m.department).filter(Boolean)).size;
+
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
-      <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-3xl text-soot" style={{ fontFamily: 'DM Serif Display, serif' }}>Team Members</h1>
-          <p className="text-moss text-sm mt-1">{members.length} member{members.length !== 1 ? 's' : ''}</p>
+          <span className="text-xs font-semibold tracking-wider uppercase text-moss block mb-1">
+            Corporate Team & Access Management
+          </span>
+          <h1 className="text-3xl sm:text-4xl text-soot font-normal font-serif-display">
+            Team Members
+          </h1>
+          <p className="text-moss text-sm mt-1">Manage team roles, pass access, and enterprise employee seats.</p>
         </div>
-        <button onClick={() => setAddModal(true)} className="inline-flex items-center justify-center gap-2.5 px-5 py-2.5 rounded-2xl bg-[#374142] text-[#FAF8F5] text-sm font-medium ring-1 ring-white/15 shadow-sm hover:bg-[#2D3536] transition-all duration-200 active:scale-[0.98] cursor-pointer">
-          <Plus size={15} />
-          Invite member
+
+        <button
+          type="button"
+          onClick={() => setAddModal(true)}
+          className="btn-primary"
+        >
+          <Plus size={16} />
+          <span>Add member</span>
         </button>
       </div>
 
-      {/* Role permissions overview */}
-      <div className="bg-mist/15 border border-mist/40 rounded-2xl p-5 mb-6">
-        <div className="flex items-center gap-2 mb-3">
-          <Shield size={15} className="text-moss" />
-          <span className="text-sm font-semibold text-soot">Company roles & permissions</span>
-        </div>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {COMPANY_ROLES.map(r => (
-            <div key={r} className="bg-white rounded-xl p-3 border border-soot/8">
-              <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${ROLE_BADGE[r]} block w-fit mb-2`}>{r}</span>
-              <p className="text-[11px] text-moss leading-relaxed">{ROLE_DESC[r]}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3 mb-5">
-        <div className="flex items-center gap-2 flex-1 min-w-40 px-3 py-2 rounded-xl border border-soot/10 bg-white">
-          <Search size={14} className="text-moss shrink-0" />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search members..." className="flex-1 bg-transparent text-soot text-sm outline-none" />
-        </div>
-        <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)} className="px-3 py-2 rounded-xl border border-soot/10 bg-white text-soot text-sm outline-none">
-          <option>All</option>
-          {COMPANY_ROLES.map(r => <option key={r}>{r}</option>)}
-        </select>
-      </div>
-
-      {/* Members list */}
-      <div className="bg-white rounded-2xl border border-soot/8 divide-y divide-soot/5">
-        {filtered.length === 0 ? (
-          <div className="p-12 text-center">
-            <Users size={28} className="text-moss mx-auto mb-3" />
-            <p className="text-sm text-moss">No team members match your search.</p>
-          </div>
-        ) : filtered.map(member => (
-          <div key={member.id} className="flex items-center gap-4 px-5 py-4">
-            <div className="w-10 h-10 rounded-full bg-eucalyptus/20 flex items-center justify-center text-sm font-semibold text-moss shrink-0">
-              {member.name.charAt(0)}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <div className="font-medium text-soot text-sm">{member.name}</div>
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${ROLE_BADGE[member.role]}`}>{member.role}</span>
-                {member.status === 'invited' && (
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-600">Invited</span>
-                )}
+      {/* Admin-Matching Elevated Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          {
+            label: 'Total Members',
+            count: members.length,
+            badge: 'bg-soot/10 text-soot border border-soot/15',
+            icon: Users,
+            iconBg: 'bg-soot text-plaster border-soot/20',
+          },
+          {
+            label: 'Active Users',
+            count: activeCount,
+            badge: 'bg-emerald-500/15 text-emerald-800 border border-emerald-500/30',
+            icon: UserCheck,
+            iconBg: 'bg-emerald-500/15 text-emerald-800 border-emerald-500/30',
+          },
+          {
+            label: 'Pending Invited',
+            count: invitedCount,
+            badge: 'bg-amber-500/15 text-amber-800 border border-amber-500/30',
+            icon: UserPlus,
+            iconBg: 'bg-amber-500/15 text-amber-800 border-amber-500/30',
+          },
+          {
+            label: 'Departments',
+            count: departmentCount || 1,
+            badge: 'bg-blue-500/15 text-blue-800 border border-blue-500/30',
+            icon: Building,
+            iconBg: 'bg-blue-500/15 text-blue-800 border-blue-500/30',
+          },
+        ].map((stat) => (
+          <div
+            key={stat.label}
+            className="bg-plaster-surface rounded-3xl border border-soot/12 p-5 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between group"
+          >
+            <div className="flex items-center gap-3.5">
+              <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs ${stat.iconBg}`}>
+                <stat.icon size={20} />
               </div>
-              <div className="text-xs text-moss mt-0.5 truncate">{member.department} · {member.email}</div>
-              <div className="text-[10px] text-moss/60 mt-0.5">Last active: {member.lastActive}</div>
-            </div>
-            {member.id !== 'owner' && (
-              <div className="flex items-center gap-2 shrink-0">
-                <button onClick={() => setEditModal({ ...member })} className="p-1.5 rounded-lg hover:bg-soot/5 text-moss transition-colors">
-                  <Edit2 size={13} />
-                </button>
-                <button onClick={() => setDeleteModal(member)} className="p-1.5 rounded-lg hover:bg-red-50 text-moss hover:text-red-500 transition-colors">
-                  <Trash2 size={13} />
-                </button>
+              <div>
+                <div className="text-3xl font-normal text-soot tracking-tight font-serif-display">{stat.count}</div>
+                <div className="text-xs font-medium text-moss mt-0.5">{stat.label}</div>
               </div>
-            )}
+            </div>
           </div>
         ))}
       </div>
 
-      {/* Add member modal */}
+      {/* Admin-Matching Search & Custom Dropdown Filter Bar */}
+      <div className="flex flex-col sm:flex-row gap-3 bg-plaster-surface p-3 rounded-2xl border border-soot/10 shadow-2xs relative z-30">
+        <div className="relative flex-1">
+          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-moss" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search team member by name, email, or department..."
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-soot/12 bg-plaster-dark/30 text-soot text-sm placeholder:text-moss/70 outline-none focus:border-eucalyptus focus:bg-plaster-surface transition-all"
+          />
+        </div>
+
+        {/* Custom Role Dropdown */}
+        <div className="relative min-w-48" ref={roleDropdownRef}>
+          <button
+            type="button"
+            onClick={() => setRoleDropdownOpen(!roleDropdownOpen)}
+            className="w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/50 border border-soot/12 transition-all duration-200 text-left cursor-pointer focus:outline-none"
+          >
+            <span className="text-sm font-medium text-soot truncate">
+              {roleFilter === 'All' ? 'All Roles' : roleFilter}
+            </span>
+            <ChevronDown
+              size={15}
+              className={`text-moss transition-transform duration-200 shrink-0 ${
+                roleDropdownOpen ? 'rotate-180 text-soot' : ''
+              }`}
+            />
+          </button>
+
+          {roleDropdownOpen && (
+            <div className="absolute top-full left-0 right-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
+              <div className="space-y-0.5">
+                {['All', ...COMPANY_ROLES].map((role) => {
+                  const isSelected = roleFilter === role;
+                  return (
+                    <button
+                      key={role}
+                      type="button"
+                      onClick={() => {
+                        setRoleFilter(role);
+                        setRoleDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors text-left cursor-pointer ${
+                        isSelected
+                          ? 'bg-soot text-plaster font-semibold'
+                          : 'text-soot hover:bg-plaster-dark/60'
+                      }`}
+                    >
+                      <span>{role === 'All' ? 'All Roles' : role}</span>
+                      {isSelected && <Check size={14} className="text-eucalyptus" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Admin-Matching 12-Column Table Layout */}
+      <div className="bg-plaster-surface rounded-3xl border border-soot/10 overflow-hidden shadow-2xs relative z-10">
+        <div className="hidden lg:grid grid-cols-12 gap-6 px-6 py-4 border-b border-soot/10 text-xs font-semibold uppercase tracking-wider text-moss bg-plaster-dark/40 items-center">
+          <div className="col-span-4">Team Member & Email</div>
+          <div className="col-span-3">Department</div>
+          <div className="col-span-3">Company Role</div>
+          <div className="col-span-1">Status</div>
+          <div className="col-span-1 text-right">Actions</div>
+        </div>
+
+        {filtered.length === 0 ? (
+          <div className="py-16 text-center text-moss">
+            <Users size={32} className="mx-auto mb-3 opacity-50" />
+            <p className="text-sm">No team members match your search criteria.</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-soot/8">
+            {filtered.map((m) => (
+              <div
+                key={m.id}
+                className="px-6 py-4 hover:bg-plaster-dark/30 transition-colors flex flex-col lg:grid lg:grid-cols-12 lg:gap-6 lg:items-center group"
+              >
+                {/* User Avatar & Name */}
+                <div className="col-span-4 flex items-center gap-3.5 min-w-0">
+                  <div className="w-10 h-10 rounded-2xl bg-soot text-plaster font-semibold flex items-center justify-center text-sm shrink-0 shadow-2xs">
+                    {m.name.charAt(0)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-semibold text-soot truncate">{m.name}</div>
+                    <div className="text-xs text-moss truncate">{m.email}</div>
+                  </div>
+                </div>
+
+                {/* Department */}
+                <div className="col-span-3 mt-2 lg:mt-0 text-sm font-medium text-soot truncate">
+                  {m.department || 'General Team'}
+                </div>
+
+                {/* Role Badge */}
+                <div className="col-span-3 mt-2 lg:mt-0">
+                  <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider ${ROLE_BADGE[m.role]}`}>
+                    {m.role}
+                  </span>
+                </div>
+
+                {/* Status */}
+                <div className="col-span-1 mt-2 lg:mt-0">
+                  <span
+                    className={`text-[10px] px-2 py-0.5 rounded-full font-bold capitalize ${
+                      m.status === 'active'
+                        ? 'bg-emerald-500/15 text-emerald-800'
+                        : 'bg-amber-500/15 text-amber-800'
+                    }`}
+                  >
+                    {m.status}
+                  </span>
+                </div>
+
+                {/* Actions */}
+                <div className="col-span-1 mt-4 lg:mt-0 flex items-center justify-end gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setEditModal(m)}
+                    className="p-2 rounded-xl text-moss hover:text-soot hover:bg-plaster-surface border border-transparent hover:border-soot/10 transition-all cursor-pointer"
+                    title="Edit Member"
+                  >
+                    <Pencil size={15} />
+                  </button>
+                  {m.id !== 'owner' && (
+                    <button
+                      type="button"
+                      onClick={() => setDeleteModal(m)}
+                      className="p-2 rounded-xl text-moss hover:text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-all cursor-pointer"
+                      title="Remove Member"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Add Team Member Modal */}
       <Modal
         open={addModal}
         onClose={() => setAddModal(false)}
-        title="Invite team member"
-        size="sm"
+        title="Add Team Member"
+        subtitle="Invite a new colleague to your corporate pass account."
+        size="md"
         footer={
           <>
-            <button onClick={() => setAddModal(false)} className="btn-secondary flex-1">Cancel</button>
-            <button onClick={handleAdd} className="btn-primary flex-1">Send invite</button>
+            <button type="button" onClick={() => setAddModal(false)} className="btn-secondary">
+              Cancel
+            </button>
+            <button type="button" onClick={handleAdd} className="btn-primary">
+              Send Invite
+            </button>
           </>
         }
       >
-        <div className="space-y-4 py-2">
-          {[
-            { label: 'Full name', key: 'name', placeholder: 'Ahmed Al-Dosari', type: 'text' },
-            { label: 'Email address', key: 'email', placeholder: 'ahmed@company.sa', type: 'email' },
-            { label: 'Department', key: 'department', placeholder: 'Engineering, Design, Marketing...', type: 'text' },
-          ].map(f => (
-            <div key={f.key}>
-              <label className="block text-xs font-medium text-moss mb-1.5">{f.label}</label>
-              <input
-                type={f.type}
-                value={(newMember as any)[f.key]}
-                onChange={e => setNewMember(prev => ({ ...prev, [f.key]: e.target.value }))}
-                placeholder={f.placeholder}
-                className="w-full px-4 py-2.5 rounded-xl border border-soot/12 bg-plaster text-soot text-sm outline-none focus:border-eucalyptus"
-              />
-            </div>
-          ))}
+        <div className="space-y-4 text-sm text-soot">
           <div>
-            <label className="block text-xs font-medium text-moss mb-1.5">Role</label>
-            <select value={newMember.role} onChange={e => setNewMember(prev => ({ ...prev, role: e.target.value as CompanyRole }))} className="w-full px-4 py-2.5 rounded-xl border border-soot/12 bg-plaster text-soot text-sm outline-none focus:border-eucalyptus">
-              {COMPANY_ROLES.filter(r => r !== 'Company Owner').map(r => <option key={r}>{r}</option>)}
-            </select>
-            <p className="text-[10px] text-moss mt-1">{ROLE_DESC[newMember.role]}</p>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">Full Name *</label>
+            <input
+              value={newMember.name}
+              onChange={e => setNewMember(p => ({ ...p, name: e.target.value }))}
+              placeholder="e.g. Tariq Mansoor"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-eucalyptus"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">Corporate Email *</label>
+            <input
+              type="email"
+              value={newMember.email}
+              onChange={e => setNewMember(p => ({ ...p, email: e.target.value }))}
+              placeholder="name@company.com"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-eucalyptus"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">Department</label>
+            <input
+              value={newMember.department}
+              onChange={e => setNewMember(p => ({ ...p, department: e.target.value }))}
+              placeholder="e.g. Engineering, Product, Sales"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-eucalyptus"
+            />
+          </div>
+          <div className="relative" ref={addRoleRef}>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">Company Access Role</label>
+            <button
+              type="button"
+              onClick={() => setAddRoleOpen(!addRoleOpen)}
+              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white border border-soot/12 text-soot text-sm font-medium text-left transition-all duration-200 cursor-pointer focus:outline-none"
+            >
+              <span className="truncate">{newMember.role}</span>
+              <ChevronDown
+                size={15}
+                className={`text-moss shrink-0 transition-transform duration-200 ${
+                  addRoleOpen ? 'rotate-180 text-soot' : ''
+                }`}
+              />
+            </button>
+
+            {addRoleOpen && (
+              <div className="absolute top-full left-0 right-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100 max-h-52 overflow-y-auto">
+                <div className="space-y-0.5">
+                  {COMPANY_ROLES.map((r) => {
+                    const isSelected = newMember.role === r;
+                    return (
+                      <button
+                        key={r}
+                        type="button"
+                        onClick={() => {
+                          setNewMember((p) => ({ ...p, role: r }));
+                          setAddRoleOpen(false);
+                        }}
+                        className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-sm font-medium transition-colors text-left cursor-pointer ${
+                          isSelected
+                            ? 'bg-soot text-plaster font-semibold'
+                            : 'text-soot hover:bg-plaster-dark/60'
+                        }`}
+                      >
+                        <span>{r}</span>
+                        {isSelected && <Check size={14} className="text-eucalyptus" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </Modal>
 
-      {/* Edit member modal */}
-      <Modal
-        open={!!editModal}
-        onClose={() => setEditModal(null)}
-        title="Edit team member"
-        size="sm"
-        footer={
-          <>
-            <button onClick={() => setEditModal(null)} className="btn-secondary flex-1">Cancel</button>
-            <button onClick={handleEditSave} className="btn-primary flex-1">Save changes</button>
-          </>
-        }
-      >
-        {editModal && (
-          <div className="space-y-4 py-2">
+      {/* Edit Modal */}
+      {editModal && (
+        <Modal
+          open={!!editModal}
+          onClose={() => setEditModal(null)}
+          title="Edit Team Member"
+          size="md"
+          footer={
+            <>
+              <button type="button" onClick={() => setEditModal(null)} className="btn-secondary">
+                Cancel
+              </button>
+              <button type="button" onClick={handleEditSave} className="btn-primary">
+                Save Changes
+              </button>
+            </>
+          }
+        >
+          <div className="space-y-4 text-sm text-soot">
             <div>
-              <label className="block text-xs font-medium text-moss mb-1.5">Full name</label>
-              <input value={editModal.name} onChange={e => setEditModal(m => m ? { ...m, name: e.target.value } : m)} className="w-full px-4 py-2.5 rounded-xl border border-soot/12 bg-plaster text-soot text-sm outline-none focus:border-eucalyptus" />
+              <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">Full Name</label>
+              <input
+                value={editModal.name}
+                onChange={e => setEditModal(p => p ? { ...p, name: e.target.value } : null)}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-eucalyptus"
+              />
             </div>
             <div>
-              <label className="block text-xs font-medium text-moss mb-1.5">Department</label>
-              <input value={editModal.department} onChange={e => setEditModal(m => m ? { ...m, department: e.target.value } : m)} className="w-full px-4 py-2.5 rounded-xl border border-soot/12 bg-plaster text-soot text-sm outline-none focus:border-eucalyptus" />
+              <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">Department</label>
+              <input
+                value={editModal.department}
+                onChange={e => setEditModal(p => p ? { ...p, department: e.target.value } : null)}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-eucalyptus"
+              />
             </div>
-            <div>
-              <label className="block text-xs font-medium text-moss mb-1.5">Role</label>
-              <select value={editModal.role} onChange={e => setEditModal(m => m ? { ...m, role: e.target.value as CompanyRole } : m)} className="w-full px-4 py-2.5 rounded-xl border border-soot/12 bg-plaster text-soot text-sm outline-none focus:border-eucalyptus">
-                {COMPANY_ROLES.filter(r => r !== 'Company Owner').map(r => <option key={r}>{r}</option>)}
-              </select>
-            </div>
-          </div>
-        )}
-      </Modal>
+            <div className="relative" ref={editRoleRef}>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">Company Role</label>
+              <button
+                type="button"
+                onClick={() => setEditRoleOpen(!editRoleOpen)}
+                className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white border border-soot/12 text-soot text-sm font-medium text-left transition-all duration-200 cursor-pointer focus:outline-none"
+              >
+                <span className="truncate">{editModal.role}</span>
+                <ChevronDown
+                  size={15}
+                  className={`text-moss shrink-0 transition-transform duration-200 ${
+                    editRoleOpen ? 'rotate-180 text-soot' : ''
+                  }`}
+                />
+              </button>
 
-      {/* Delete confirmation */}
-      <Modal
-        open={!!deleteModal}
-        onClose={() => setDeleteModal(null)}
-        title="Remove member"
-        size="sm"
-        footer={
-          <>
-            <button onClick={() => setDeleteModal(null)} className="btn-secondary flex-1">Cancel</button>
-            <button onClick={() => handleDelete(deleteModal!)} className="btn-danger flex-1">Remove</button>
-          </>
-        }
-      >
-        {deleteModal && (
-          <div className="py-2">
-            <p className="text-sm text-moss mb-1">Remove <span className="font-semibold text-soot">{deleteModal.name}</span> from the team?</p>
-            <p className="text-xs text-moss/70">They will lose access to all company workspaces and data.</p>
+              {editRoleOpen && (
+                <div className="absolute top-full left-0 right-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100 max-h-52 overflow-y-auto">
+                  <div className="space-y-0.5">
+                    {COMPANY_ROLES.map((r) => {
+                      const isSelected = editModal.role === r;
+                      return (
+                        <button
+                          key={r}
+                          type="button"
+                          onClick={() => {
+                            setEditModal((p) => (p ? { ...p, role: r } : null));
+                            setEditRoleOpen(false);
+                          }}
+                          className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-sm font-medium transition-colors text-left cursor-pointer ${
+                            isSelected
+                              ? 'bg-soot text-plaster font-semibold'
+                              : 'text-soot hover:bg-plaster-dark/60'
+                          }`}
+                        >
+                          <span>{r}</span>
+                          {isSelected && <Check size={14} className="text-eucalyptus" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-        )}
-      </Modal>
+        </Modal>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteModal && (
+        <Modal
+          open={!!deleteModal}
+          onClose={() => setDeleteModal(null)}
+          title="Remove Team Member"
+          size="sm"
+          footer={
+            <>
+              <button type="button" onClick={() => setDeleteModal(null)} className="btn-secondary">
+                Cancel
+              </button>
+              <button type="button" onClick={() => handleDelete(deleteModal)} className="btn-danger">
+                Remove Member
+              </button>
+            </>
+          }
+        >
+          <div className="text-sm text-soot space-y-2 py-2">
+            <p>
+              Are you sure you want to remove <span className="font-semibold">{deleteModal.name}</span> from your team?
+            </p>
+            <p className="text-xs text-moss">They will no longer have access to enterprise workspace passes.</p>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

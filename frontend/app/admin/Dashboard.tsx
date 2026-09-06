@@ -15,12 +15,13 @@ import {
   CalendarX 
 } from 'lucide-react';
 import { useApp } from '@/app/store';
+import { getBookingPrice } from '@/types/types';
 
 export default function AdminDashboard() {
   const { spaces, users, bookings, navigate } = useApp();
 
   const nonAdminUsers = users.filter(u => u.role !== 'admin');
-  const totalRevenue = bookings.filter(b => b.status !== 'cancelled').reduce((sum, b) => sum + b.totalPrice, 0);
+  const totalRevenue = bookings.filter(b => b.status !== 'cancelled').reduce((sum, b) => sum + getBookingPrice(b, spaces), 0);
   const activeBookings = bookings.filter(b => b.status === 'active');
   const cancelledBookings = bookings.filter(b => b.status === 'cancelled');
   const individuals = users.filter(u => u.role === 'individual');
@@ -201,7 +202,7 @@ export default function AdminDashboard() {
                   </div>
 
                   <div className="text-right shrink-0">
-                    <div className="text-sm font-medium text-soot">SAR {b.totalPrice.toLocaleString()}</div>
+                    <div className="text-sm font-medium text-soot">SAR {getBookingPrice(b, spaces).toLocaleString()}</div>
                     <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize mt-1 ${
                       b.status === 'active'
                         ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'

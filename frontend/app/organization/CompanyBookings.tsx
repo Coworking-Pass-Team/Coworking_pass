@@ -1,220 +1,332 @@
 'use client';
 
-import { useState } from 'react';
-import { Search, CalendarDays, Download, X, MapPin, User as UserIcon } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import {
+  Search,
+  ChevronDown,
+  MapPin,
+  Calendar,
+  Users,
+  Check,
+  CalendarDays,
+  Clock,
+  Ban,
+  DollarSign,
+  Eye,
+  X,
+  CreditCard,
+  Building2,
+  Download,
+} from 'lucide-react';
 import { useApp } from '@/app/store';
-import { Booking, Space, User } from '@/types';
-import Modal from '@/components/Modal';
-
-const STATUSES = ['All', 'active', 'previous', 'cancelled'];
+import { Booking, BookingStatus, Space, User, getBookingPrice } from '@/types/types';
 
 export default function CompanyBookings() {
   const { currentUser, bookings, spaces, users, cancelBooking, showToast } = useApp();
+  const [query, setQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [filterSpace, setFilterSpace] = useState('');
+
+  // Dropdown states for filters
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+  const [spaceDropdownOpen, setSpaceDropdownOpen] = useState(false);
+  const statusDropdownRef = useRef<HTMLDivElement>(null);
+  const spaceDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Detail Modal State
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target as Node)) {
+        setStatusDropdownOpen(false);
+      }
+      if (spaceDropdownRef.current && !spaceDropdownRef.current.contains(event.target as Node)) {
+        setSpaceDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   if (!currentUser) return null;
 
-  const companySpaceIds = spaces.filter((s: Space) => s.ownerId === currentUser.id).map((s: Space) => s.id);
+  const companySpaceIds = spaces
+    .filter((s: Space) => s.ownerId === currentUser.id)
+    .map((s: Space) => s.id);
+
   const companyBookings = bookings.filter((b: Booking) => companySpaceIds.includes(b.spaceId));
 
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('All');
-  const [spaceFilter, setSpaceFilter] = useState('All');
-  const [detailsModal, setDetailsModal] = useState<Booking | null>(null);
-  const [cancelModal, setCancelModal] = useState<Booking | null>(null);
-
-  const companySpaceNames: string[] = ['All', ...Array.from(new Set(companyBookings.map((b: Booking) => b.spaceName)))];
-
-  const filtered = companyBookings.filter((b: Booking) => {
-    const matchSearch = !search
-      || b.id.toLowerCase().includes(search.toLowerCase())
-      || b.spaceName.toLowerCase().includes(search.toLowerCase())
-      || b.spaceCity.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = statusFilter === 'All' || b.status === statusFilter;
-    const matchSpace = spaceFilter === 'All' || b.spaceName === spaceFilter;
-    return matchSearch && matchStatus && matchSpace;
-  }).sort((a: Booking, b: Booking) => b.createdAt.localeCompare(a.createdAt));
-
   const getUserName = (userId: string) => {
-    const u = users.find((u: User) => u.id === userId);
+    const u = users.find((user: User) => user.id === userId);
     return u ? u.name : userId;
   };
 
-  const getUserType = (userId: string) => {
-    const u = users.find((u: User) => u.id === userId);
-    if (!u) return 'Unknown';
-    return u.role === 'organization' ? u.orgName || 'Organization' : 'Individual';
-  };
+  const filtered = companyBookings
+    .filter((b: Booking) => {
+      const q = query.trim().toLowerCase();
+      if (
+        q &&
+        !b.spaceName.toLowerCase().includes(q) &&
+        !b.spaceCity.toLowerCase().includes(q) &&
+        !getUserName(b.userId).toLowerCase().includes(q)
+      ) {
+        return false;
+      }
+      if (filterStatus && b.status !== filterStatus) return false;
+      if (filterSpace && b.spaceId !== filterSpace) return false;
+      return true;
+    })
+    .slice()
+    .sort((a: Booking, b: Booking) => {
+      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return timeB - timeA;
+    });
 
-  const handleCancel = (b: Booking) => {
-    cancelBooking(b.id);
-    setCancelModal(null);
-    showToast('Booking cancelled.', 'success');
-  };
+  const activeCount = companyBookings.filter((b) => b.status === 'active').length;
+  const previousCount = companyBookings.filter((b) => b.status === 'previous').length;
+  const cancelledCount = companyBookings.filter((b) => b.status === 'cancelled').length;
 
-  const totalRevenue = filtered.filter((b: Booking) => b.status !== 'cancelled').reduce((sum: number, b: Booking) => sum + b.totalPrice, 0);
+  const totalRevenue = companyBookings
+    .filter((b: Booking) => b.status !== 'cancelled')
+    .reduce((sum: number, b: Booking) => sum + getBookingPrice(b, spaces), 0);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
-      <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-3xl text-soot" style={{ fontFamily: 'DM Serif Display, serif' }}>Bookings</h1>
-          <p className="text-moss text-sm mt-1">{filtered.length} bookings · SAR {totalRevenue.toLocaleString()} revenue</p>
+          <span className="text-xs font-semibold tracking-wider uppercase text-moss block mb-1">
+            Corporate Reservations & Revenue Catalog
+          </span>
+          <h1 className="text-3xl sm:text-4xl text-soot font-normal font-serif-display">
+            Company Bookings
+          </h1>
+          <p className="text-moss text-sm mt-1">
+            {companyBookings.length} total bookings across corporate venues.
+          </p>
         </div>
-        <button className="btn-secondary">
-          <Download size={14} />
-          <span>Export</span>
+
+        <button type="button" className="btn-secondary">
+          <Download size={15} />
+          <span>Export Data</span>
         </button>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white rounded-2xl border border-soot/8 p-4 mb-6 flex flex-wrap gap-3 items-center">
-        <div className="flex items-center gap-2 flex-1 min-w-40 px-3 py-2 rounded-xl border border-soot/10 bg-plaster">
-          <Search size={14} className="text-moss shrink-0" />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search bookings..." className="flex-1 bg-transparent text-soot text-sm outline-none" />
-        </div>
-        <select value={spaceFilter} onChange={e => setSpaceFilter(e.target.value)} className="px-3 py-2 rounded-xl border border-soot/10 bg-plaster text-soot text-sm outline-none">
-          {companySpaceNames.map((s: string) => <option key={s}>{s}</option>)}
-        </select>
-        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="px-3 py-2 rounded-xl border border-soot/10 bg-plaster text-soot text-sm outline-none capitalize">
-          {STATUSES.map(s => <option key={s} className="capitalize">{s}</option>)}
-        </select>
+      {/* Admin-Matching Elevated Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          {
+            label: 'Total Revenue',
+            count: `SAR ${totalRevenue.toLocaleString()}`,
+            badge: 'bg-emerald-500/15 text-emerald-800 border border-emerald-500/30',
+            icon: DollarSign,
+            iconBg: 'bg-emerald-500/15 text-emerald-800 border-emerald-500/30',
+          },
+          {
+            label: 'Active Bookings',
+            count: activeCount,
+            badge: 'bg-soot/10 text-soot border border-soot/15',
+            icon: CalendarDays,
+            iconBg: 'bg-soot text-plaster border-soot/20',
+          },
+          {
+            label: 'Completed Visits',
+            count: previousCount,
+            badge: 'bg-blue-500/15 text-blue-800 border border-blue-500/30',
+            icon: Clock,
+            iconBg: 'bg-blue-500/15 text-blue-800 border-blue-500/30',
+          },
+          {
+            label: 'Cancelled',
+            count: cancelledCount,
+            badge: 'bg-red-500/15 text-red-700 border border-red-500/30',
+            icon: Ban,
+            iconBg: 'bg-red-500/15 text-red-700 border-red-500/30',
+          },
+        ].map((stat) => (
+          <div
+            key={stat.label}
+            className="bg-plaster-surface rounded-3xl border border-soot/12 p-5 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between group"
+          >
+            <div className="flex items-center gap-3.5">
+              <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs ${stat.iconBg}`}>
+                <stat.icon size={20} />
+              </div>
+              <div>
+                <div className="text-2xl sm:text-3xl font-normal text-soot tracking-tight font-serif-display">{stat.count}</div>
+                <div className="text-xs font-medium text-moss mt-0.5">{stat.label}</div>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
 
-      {filtered.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-soot/8 p-16 text-center">
-          <CalendarDays size={32} className="text-moss mx-auto mb-4" />
-          <h3 className="font-semibold text-soot mb-2">No bookings found</h3>
-          <p className="text-sm text-moss">
-            {companySpaceIds.length === 0 ? 'Add workspaces to start receiving bookings.' : 'No bookings match the current filters.'}
-          </p>
+      {/* Admin-Matching Search & Custom Dropdown Filter Bar */}
+      <div className="flex flex-col sm:flex-row gap-3 bg-plaster-surface p-3 rounded-2xl border border-soot/10 shadow-2xs relative z-30">
+        <div className="relative flex-1">
+          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-moss" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search by space name, city, or user..."
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-soot/12 bg-plaster-dark/30 text-soot text-sm placeholder:text-moss/70 outline-none focus:border-eucalyptus focus:bg-plaster-surface transition-all"
+          />
         </div>
-      ) : (
-        <>
-          {/* Mobile cards */}
-          <div className="lg:hidden space-y-3">
-            {filtered.map((b: Booking) => {
-              const statusCls = b.status === 'active' ? 'bg-eucalyptus/15 text-moss' : b.status === 'cancelled' ? 'bg-red-50 text-red-500' : 'bg-soot/8 text-moss';
-              return (
-                <div key={b.id} className="bg-white rounded-2xl border border-soot/8 p-4">
-                  <div className="flex items-start justify-between mb-2">
-                    <div>
-                      <div className="font-medium text-soot text-sm">{b.spaceName}</div>
-                      <div className="flex items-center gap-1 text-xs text-moss mt-0.5"><MapPin size={10} />{b.spaceCity}</div>
+
+        {/* Custom Status Dropdown */}
+        <div className="relative min-w-44" ref={statusDropdownRef}>
+          <button
+            type="button"
+            onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
+            className="w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/50 border border-soot/12 transition-all duration-200 text-left cursor-pointer focus:outline-none"
+          >
+            <span className="text-sm font-medium text-soot truncate capitalize">
+              {filterStatus ? `${filterStatus} Bookings` : 'All Status'}
+            </span>
+            <ChevronDown
+              size={15}
+              className={`text-moss transition-transform duration-200 shrink-0 ${
+                statusDropdownOpen ? 'rotate-180 text-soot' : ''
+              }`}
+            />
+          </button>
+
+          {statusDropdownOpen && (
+            <div className="absolute top-full left-0 right-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
+              <div className="space-y-0.5">
+                {[
+                  { value: '', label: 'All Status' },
+                  { value: 'active', label: 'Active Bookings' },
+                  { value: 'previous', label: 'Completed Visits' },
+                  { value: 'cancelled', label: 'Cancelled' },
+                ].map((item) => {
+                  const isSelected = filterStatus === item.value;
+                  return (
+                    <button
+                      key={item.label}
+                      type="button"
+                      onClick={() => {
+                        setFilterStatus(item.value);
+                        setStatusDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors text-left cursor-pointer ${
+                        isSelected
+                          ? 'bg-soot text-plaster font-semibold'
+                          : 'text-soot hover:bg-plaster-dark/60'
+                      }`}
+                    >
+                      <span>{item.label}</span>
+                      {isSelected && <Check size={14} className="text-eucalyptus" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Admin-Matching Table Layout */}
+      <div className="bg-plaster-surface rounded-3xl border border-soot/10 overflow-hidden shadow-2xs relative z-10">
+        <div className="hidden lg:grid grid-cols-12 gap-6 px-6 py-4 border-b border-soot/10 text-xs font-semibold uppercase tracking-wider text-moss bg-plaster-dark/40 items-center">
+          <div className="col-span-4">Workspace & Location</div>
+          <div className="col-span-2">Customer / User</div>
+          <div className="col-span-2">Booking Period</div>
+          <div className="col-span-1">Seats</div>
+          <div className="col-span-1">Amount</div>
+          <div className="col-span-2 text-right">Status & Actions</div>
+        </div>
+
+        {filtered.length === 0 ? (
+          <div className="py-16 text-center text-moss">
+            <CalendarDays size={32} className="mx-auto mb-3 opacity-50" />
+            <p className="text-sm">No bookings match your filter criteria.</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-soot/8">
+            {filtered.map((b) => (
+              <div
+                key={b.id}
+                onClick={() => setSelectedBooking(b)}
+                className="px-6 py-4 hover:bg-plaster-dark/30 transition-colors flex flex-col lg:grid lg:grid-cols-12 lg:gap-6 lg:items-center cursor-pointer group"
+              >
+                {/* Workspace Name & Image */}
+                <div className="col-span-4 flex items-center gap-3.5 min-w-0">
+                  <img
+                    src={b.spaceImage}
+                    alt={b.spaceName}
+                    className="w-11 h-11 rounded-xl object-cover border border-soot/10 shrink-0 shadow-2xs group-hover:scale-105 transition-transform"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-semibold text-soot group-hover:text-emerald-900 transition-colors truncate">
+                      {b.spaceName}
                     </div>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium capitalize ${statusCls}`}>{b.status}</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-xs text-moss mb-3">
-                    <span className="flex items-center gap-1"><UserIcon size={10} />{getUserName(b.userId)}</span>
-                    <span>{b.seats} seat{b.seats > 1 ? 's' : ''}</span>
-                    <span className="capitalize">{b.plan}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="font-semibold text-soot text-sm">SAR {b.totalPrice.toLocaleString()}</div>
-                    <div className="flex gap-2">
-                      <button onClick={() => setDetailsModal(b)} className="text-xs text-moss hover:text-soot font-medium">Details</button>
-                      {b.status === 'active' && (
-                        <button onClick={() => setCancelModal(b)} className="text-xs text-red-500 hover:text-red-600 font-medium">Cancel</button>
-                      )}
+                    <div className="flex items-center gap-1.5 text-xs text-moss mt-0.5 font-medium">
+                      <MapPin size={12} className="text-moss shrink-0" />
+                      <span className="truncate">{b.spaceCity}</span>
                     </div>
                   </div>
                 </div>
-              );
-            })}
-          </div>
 
-          {/* Desktop table */}
-          <div className="hidden lg:block bg-white rounded-2xl border border-soot/8 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-soot/8 bg-plaster/50">
-                    {['Booking ID', 'Customer', 'Type', 'Workspace', 'Plan', 'Dates', 'Seats', 'Total', 'Status', 'Actions'].map(h => (
-                      <th key={h} className="px-4 py-3 text-left text-xs font-medium text-moss whitespace-nowrap">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-soot/5">
-                  {filtered.map((b: Booking) => {
-                    const statusCls = b.status === 'active' ? 'bg-eucalyptus/15 text-moss' : b.status === 'cancelled' ? 'bg-red-50 text-red-500' : 'bg-soot/8 text-moss';
-                    return (
-                      <tr key={b.id} className="hover:bg-plaster/30 transition-colors">
-                        <td className="px-4 py-3 font-mono text-xs text-moss">{b.id}</td>
-                        <td className="px-4 py-3">
-                          <div className="text-sm font-medium text-soot">{getUserName(b.userId)}</div>
-                          <div className="text-[10px] text-moss">{getUserType(b.userId)}</div>
-                        </td>
-                        <td className="px-4 py-3 text-xs text-moss capitalize">{b.type.replace('-', ' ')}</td>
-                        <td className="px-4 py-3 text-sm text-soot">{b.spaceName}</td>
-                        <td className="px-4 py-3 text-xs text-moss capitalize">{b.plan}</td>
-                        <td className="px-4 py-3 text-xs text-moss whitespace-nowrap">{b.startDate}{b.endDate !== b.startDate ? ` → ${b.endDate}` : ''}</td>
-                        <td className="px-4 py-3 text-sm text-soot text-center">{b.seats}</td>
-                        <td className="px-4 py-3 font-medium text-soot whitespace-nowrap">SAR {b.totalPrice.toLocaleString()}</td>
-                        <td className="px-4 py-3">
-                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium capitalize ${statusCls}`}>{b.status}</span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <button onClick={() => setDetailsModal(b)} className="text-xs text-moss hover:text-soot font-medium transition-colors">Details</button>
-                            {b.status === 'active' && (
-                              <button onClick={() => setCancelModal(b)} className="text-xs text-red-400 hover:text-red-600 font-medium transition-colors">Cancel</button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </>
-      )}
+                {/* User */}
+                <div className="col-span-2 mt-2 lg:mt-0 text-sm font-medium text-soot truncate">
+                  {getUserName(b.userId)}
+                </div>
 
-      {/* Details modal */}
-      <Modal open={!!detailsModal} onClose={() => setDetailsModal(null)} title="Booking details" size="sm">
-        {detailsModal && (
-          <div className="p-6 space-y-3 text-sm">
-            {[
-              { l: 'Booking ID', v: detailsModal.id },
-              { l: 'Customer', v: getUserName(detailsModal.userId) },
-              { l: 'Customer type', v: getUserType(detailsModal.userId) },
-              { l: 'Workspace', v: detailsModal.spaceName },
-              { l: 'City', v: detailsModal.spaceCity },
-              { l: 'Type', v: detailsModal.type.replace('-', ' ') },
-              { l: 'Plan', v: detailsModal.plan },
-              { l: 'Start date', v: detailsModal.startDate },
-              { l: 'End date', v: detailsModal.endDate },
-              { l: 'Seats', v: String(detailsModal.seats) },
-              { l: 'Total amount', v: `SAR ${detailsModal.totalPrice.toLocaleString()}` },
-              { l: 'Status', v: detailsModal.status },
-              { l: 'Created', v: detailsModal.createdAt },
-            ].map(r => (
-              <div key={r.l} className="flex justify-between py-2 border-b border-soot/5 last:border-0">
-                <span className="text-moss capitalize">{r.l}</span>
-                <span className="text-soot font-medium capitalize">{r.v}</span>
+                {/* Booking Period */}
+                <div className="col-span-2 mt-2 lg:mt-0 text-xs text-soot font-medium">
+                  <div className="flex items-center gap-1">
+                    <Calendar size={12} className="text-moss shrink-0" />
+                    <span>{b.startDate}</span>
+                  </div>
+                  {b.startDate !== b.endDate && (
+                    <div className="text-moss text-[11px] mt-0.5 pl-4">to {b.endDate}</div>
+                  )}
+                </div>
+
+                {/* Seats */}
+                <div className="col-span-1 mt-2 lg:mt-0 text-xs font-semibold text-soot">
+                  {b.seats} seat{b.seats > 1 ? 's' : ''}
+                </div>
+
+                {/* Amount */}
+                <div className="col-span-1 mt-2 lg:mt-0 text-sm font-semibold text-soot">
+                  SAR {getBookingPrice(b, spaces).toLocaleString()}
+                </div>
+
+                {/* Actions */}
+                <div className="col-span-2 mt-4 lg:mt-0 flex items-center justify-end gap-3">
+                  <span
+                    className={`text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider ${
+                      b.status === 'active'
+                        ? 'bg-emerald-500/15 text-emerald-800 border border-emerald-500/30'
+                        : b.status === 'previous'
+                        ? 'bg-soot/10 text-soot border border-soot/15'
+                        : 'bg-red-500/15 text-red-700 border border-red-500/30'
+                    }`}
+                  >
+                    {b.status}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedBooking(b);
+                    }}
+                    className="p-2 rounded-xl text-moss hover:text-soot hover:bg-plaster-surface border border-transparent hover:border-soot/10 transition-all cursor-pointer"
+                    title="View Details"
+                  >
+                    <Eye size={15} />
+                  </button>
+                </div>
               </div>
             ))}
-            {detailsModal.status === 'active' && (
-              <button onClick={() => { setCancelModal(detailsModal); setDetailsModal(null); }} className="w-full py-2.5 rounded-xl border border-red-200 text-red-500 text-sm font-medium mt-2">
-                Cancel booking
-              </button>
-            )}
           </div>
         )}
-      </Modal>
-
-      {/* Cancel confirmation */}
-      <Modal open={!!cancelModal} onClose={() => setCancelModal(null)} title="Cancel booking" size="sm">
-        {cancelModal && (
-          <div className="p-6">
-            <p className="text-sm text-moss mb-1">Cancel booking <span className="font-semibold text-soot">{cancelModal.id}</span>?</p>
-            <p className="text-xs text-moss/70 mb-6">This will restore {cancelModal.seats} seat{cancelModal.seats > 1 ? 's' : ''} to the workspace availability.</p>
-            <div className="flex gap-3">
-              <button onClick={() => setCancelModal(null)} className="flex-1 py-2.5 rounded-xl border border-soot/15 text-soot text-sm font-medium">Keep</button>
-              <button onClick={() => handleCancel(cancelModal)} className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold">Cancel booking</button>
-            </div>
-          </div>
-        )}
-      </Modal>
+      </div>
     </div>
   );
 }
