@@ -58,8 +58,8 @@ export default function Navbar() {
     if (role === 'organization') {
       return [
         { label: 'Dashboard', screen: 'org-dashboard' as const },
-        { label: 'Workspaces', screen: 'company-workspaces' as const },
-        { label: 'Reports', screen: 'company-reports' as const },
+        { label: 'Browse Spaces', screen: 'browse' as const },
+        { label: 'Team Bookings', screen: 'team-bookings' as const },
       ];
     }
 

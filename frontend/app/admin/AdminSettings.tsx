@@ -131,7 +131,7 @@ export default function AdminSettings() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
       {/* Top Header Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
@@ -244,10 +244,10 @@ export default function AdminSettings() {
               <button
                 type="button"
                 onClick={handleOpenEdit}
-                className="btn-secondary"
+                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#DDE6DF] text-soot hover:bg-[#D0DDD3] text-xs sm:text-sm font-medium transition-all shadow-xs border border-soot/8 cursor-pointer active:scale-98"
               >
                 <Edit3 size={15} />
-                <span>Edit Info</span>
+                <span>Edit Profile</span>
               </button>
             </div>
 

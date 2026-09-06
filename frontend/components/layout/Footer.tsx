@@ -66,7 +66,7 @@ export default function Footer() {
               {role === 'organization' && (
                 <>
                   <li><button onClick={() => navigate('org-dashboard')} className="text-plaster/75 hover:text-eucalyptus transition-colors text-left">Company Dashboard</button></li>
-                  <li><button onClick={() => navigate('company-workspaces')} className="text-plaster/75 hover:text-eucalyptus transition-colors text-left">Workspaces Inventory</button></li>
+                  <li><button onClick={() => navigate('browse')} className="text-plaster/75 hover:text-eucalyptus transition-colors text-left">Browse Spaces</button></li>
                   <li><button onClick={() => navigate('team-bookings')} className="text-plaster/75 hover:text-eucalyptus transition-colors text-left">Team Bookings</button></li>
                   <li><button onClick={() => navigate('company-team')} className="text-plaster/75 hover:text-eucalyptus transition-colors text-left">Team Members</button></li>
                 </>
@@ -116,7 +116,7 @@ export default function Footer() {
                 ))
               ) : role === 'organization' ? (
                 <>
-                  <li><button onClick={() => navigate('company-reports')} className="text-plaster/75 hover:text-eucalyptus transition-colors text-left">Reports & Analytics</button></li>
+                  <li><button onClick={() => navigate('team-bookings')} className="text-plaster/75 hover:text-eucalyptus transition-colors text-left">Team Bookings</button></li>
                   <li><button onClick={() => navigate('org-profile')} className="text-plaster/75 hover:text-eucalyptus transition-colors text-left">Company Profile</button></li>
                   <li><button onClick={() => navigate('org-settings')} className="text-plaster/75 hover:text-eucalyptus transition-colors text-left">Enterprise Settings</button></li>
                   <li><button onClick={() => navigate('org-settings')} className="text-plaster/75 hover:text-eucalyptus transition-colors text-left">Billing & Invoices</button></li>

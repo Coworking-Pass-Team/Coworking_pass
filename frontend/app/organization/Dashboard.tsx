@@ -1,227 +1,425 @@
 'use client';
 
-import { Building2, CalendarDays, Users, TrendingUp, ArrowRight, Plus, BarChart3, Eye, EyeOff, Check } from 'lucide-react';
+import React, { useState } from 'react';
+import {
+  CalendarDays,
+  MapPin,
+  Star,
+  Clock,
+  ArrowRight,
+  Bookmark,
+  Check,
+  Users,
+  Building2,
+  Sparkles,
+  Presentation,
+  Clapperboard
+} from 'lucide-react';
 import { useApp } from '@/app/store';
-import { Booking, Space, getEffectiveSpacePrice } from '@/types/types';
-
-import { useState } from 'react';
-import Modal from '@/components/ui/Modal';
-import AddWorkspace from './AddWorkspace';
+import {
+  Space,
+  getEffectiveSpacePrice,
+  Booking,
+  getHourlyPriceForDuration,
+  Employee,
+  getBookingPrice,
+  getSpaceCategory,
+  SpaceCategory
+} from '@/types/types';
 
 export default function OrgDashboard() {
-  const { currentUser, bookings, spaces, navigate } = useApp();
-  const [addModalOpen, setAddModalOpen] = useState(false);
+  const { currentUser, spaces, bookings, favorites, navigate } = useApp();
+  const [selectedCategory, setSelectedCategory] = useState<'all' | SpaceCategory>('all');
+
   if (!currentUser) return null;
 
-  const companySpaces = spaces.filter((s: Space) => s.ownerId === currentUser.id);
-  const publishedSpaces = companySpaces.filter((s: Space) => s.status === 'published' && s.isVisible);
-  const companySpaceIds = companySpaces.map((s: Space) => s.id);
-  const companyBookings = bookings.filter((b: Booking) => companySpaceIds.includes(b.spaceId));
-  const activeCompanyBookings = companyBookings.filter((b: Booking) => b.status === 'active');
-  const totalRevenue = companyBookings.filter((b: Booking) => b.status !== 'cancelled').reduce((sum: number, b: Booking) => sum + b.totalPrice, 0);
-  const totalOccupied = companySpaces.reduce((sum: number, s: Space) => sum + (s.totalCapacity - s.availableCapacity), 0);
-  const totalCapacity = companySpaces.reduce((sum: number, s: Space) => sum + s.totalCapacity, 0);
-  const occupancyPct = totalCapacity > 0 ? Math.round((totalOccupied / totalCapacity) * 100) : 0;
+  const orgBookings = bookings.filter((b: Booking) => b.userId === currentUser.id);
+  const activeBookings = orgBookings.filter((b: Booking) => b.status === 'active');
+  const favoriteSpaces = spaces.filter((s: Space) => favorites.includes(s.id) && s.isVisible);
+  const visibleSpaces = spaces.filter((s: Space) => s.isVisible);
+  const employees = currentUser.employees || [];
 
-  const stats = [
-    { label: 'Total workspaces', value: companySpaces.length, icon: Building2, color: 'text-eucalyptus', sub: `${publishedSpaces.length} active` },
-    { label: 'Active bookings', value: activeCompanyBookings.length, icon: CalendarDays, color: 'text-moss', sub: 'at your spaces' },
-    { label: 'Occupancy rate', value: `${occupancyPct}%`, icon: BarChart3, color: 'text-mist', sub: `${totalOccupied}/${totalCapacity} seats` },
-    { label: 'Total revenue', value: `SAR ${totalRevenue.toLocaleString()}`, icon: TrendingUp, color: 'text-eucalyptus', sub: 'all time' },
-  ];
+  const categoryFilteredSpaces = selectedCategory === 'all'
+    ? visibleSpaces
+    : visibleSpaces.filter(s => getSpaceCategory(s) === selectedCategory);
 
-  const recentBookings = companyBookings.slice(0, 5);
+  const greeting = () => {
+    const h = new Date().getHours();
+    if (h < 12) return 'Good morning';
+    if (h < 17) return 'Good afternoon';
+    return 'Good evening';
+  };
 
-  const hasSpaces = companySpaces.length > 0;
+  const getEmpName = (id: string) => employees.find((e: Employee) => e.id === id)?.name || id;
+
+  const orgTierName = currentUser.membershipTier || (currentUser.hasActivePass ? 'Enterprise Pass' : 'Corporate Plan');
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Header */}
-      <div className="mb-8">
-        <p className="text-moss text-xs sm:text-sm font-normal mb-1">Company dashboard</p>
-        <h1 className="text-3xl sm:text-4xl text-soot font-normal" style={{ fontFamily: 'DM Serif Display, serif' }}>
-          {currentUser.orgName || currentUser.name}
-        </h1>
-        <p className="text-moss text-xs sm:text-sm mt-1 font-normal">
-          {currentUser.industry || 'Technology'} · {currentUser.orgSize || 0} employees
-        </p>
+      <div className="flex items-start justify-between flex-wrap gap-4">
+        <div>
+          <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
+            <span className="text-xs font-semibold tracking-wider uppercase text-moss block">
+              Enterprise HR & Corporate Portal
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E2E8E4] border border-[#2D3536]/15 text-soot text-xs font-semibold shadow-2xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
+              <span>{orgTierName}</span>
+            </span>
+          </div>
+          <h1 className="text-3xl sm:text-4xl text-soot font-normal font-serif-display">
+            {currentUser.orgName || currentUser.name}
+          </h1>
+          <p className="text-moss text-sm mt-1">
+            {currentUser.industry || 'Enterprise Solutions'} · {employees.length || currentUser.orgSize || 15} team members on pass
+          </p>
+        </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {stats.map(s => (
-          <div key={s.label} className="bg-white rounded-3xl p-5 border border-soot/8 shadow-sm">
-            <div className={`${s.color} mb-3`}><s.icon size={18} /></div>
-            <div className="text-xl font-semibold text-soot">{s.value}</div>
-            <div className="text-xs text-moss mt-0.5">{s.label}</div>
-            <div className="text-[10px] text-moss/60 mt-0.5">{s.sub}</div>
+      {/* Stats Cards مع بطاقة نقاط الولاء المدمجة */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        {[
+          {
+            label: 'Active Bookings',
+            count: activeBookings.length,
+            badge: 'bg-emerald-500/15 text-emerald-800 border border-emerald-500/30',
+            icon: CalendarDays,
+            iconBg: 'bg-emerald-500/15 text-emerald-800 border-emerald-500/30',
+          },
+          {
+            label: 'Total Bookings',
+            count: orgBookings.length,
+            badge: 'bg-soot/10 text-soot border border-soot/15',
+            icon: Bookmark,
+            iconBg: 'bg-soot text-plaster border-soot/20',
+          },
+          {
+            label: 'Team Members',
+            count: employees.length || 1,
+            badge: 'bg-amber-500/15 text-amber-800 border border-amber-500/30',
+            icon: Users,
+            iconBg: 'bg-amber-500/15 text-amber-800 border-amber-500/30',
+          },
+          {
+            label: 'Days Booked',
+            count: orgBookings.filter(b => b.status !== 'cancelled').length * 4,
+            badge: 'bg-blue-500/15 text-blue-800 border border-blue-500/30',
+            icon: Clock,
+            iconBg: 'bg-blue-500/15 text-blue-800 border-blue-500/30',
+          },
+          {
+            label: 'Loyalty Points',
+            count: currentUser.loyaltyPoints || 0,
+            badge: 'bg-amber-500/20 text-amber-900 border border-amber-500/40',
+            icon: Sparkles,
+            iconBg: 'bg-amber-500/15 text-amber-600 border border-amber-500/30',
+          },
+        ].map((stat) => (
+          <div
+            key={stat.label}
+            onClick={() => stat.label === 'Loyalty Points' ? navigate('loyalty') : undefined}
+            className={`bg-plaster-surface rounded-3xl border border-soot/12 p-5 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between group ${stat.label === 'Loyalty Points' ? 'cursor-pointer hover:border-amber-500/40' : ''}`}
+          >
+            <div className="flex items-center gap-3.5">
+              <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs ${stat.iconBg}`}>
+                <stat.icon size={20} />
+              </div>
+              <div>
+                <div className="text-3xl font-normal text-soot tracking-tight font-serif-display">{stat.count}</div>
+                <div className="text-xs font-medium text-moss mt-0.5">{stat.label}</div>
+              </div>
+            </div>
           </div>
         ))}
       </div>
 
-      {!hasSpaces ? (
-        /* Empty state */
-        <div className="bg-white rounded-3xl border border-soot/8 p-12 text-center shadow-sm">
-          <div className="w-16 h-16 rounded-2xl bg-[#DDE6DF]/50 flex items-center justify-center mx-auto mb-5 border border-soot/6">
-            <Building2 size={28} className="text-moss" />
+      {/* Main Grid: Active bookings & Saved spaces */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+        {/* Active bookings column */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-serif-display text-soot">Active Team Bookings</h2>
+            <button
+              onClick={() => navigate('team-bookings')}
+              className="text-xs font-semibold text-moss hover:text-soot flex items-center gap-1 cursor-pointer transition-colors"
+            >
+              <span>View all</span>
+              <ArrowRight size={13} />
+            </button>
           </div>
-          <h2 className="text-xl font-normal text-soot mb-2" style={{ fontFamily: 'DM Serif Display, serif' }}>
-            No workspaces yet
-          </h2>
-          <p className="text-moss text-xs sm:text-sm mb-6 max-w-sm mx-auto font-normal">
-            Manage your company workspaces and team reservations directly from the Workspaces tab.
-          </p>
+
+          {activeBookings.length === 0 ? (
+            <div className="bg-plaster-surface rounded-3xl border border-soot/10 p-8 text-center shadow-2xs min-h-[200px] flex flex-col items-center justify-center">
+              <CalendarDays size={32} className="text-moss mx-auto mb-3" />
+              <div className="text-sm font-semibold text-soot mb-1">No active team bookings</div>
+              <button
+                onClick={() => navigate('browse')}
+                className="text-xs font-semibold text-moss hover:text-soot flex items-center gap-1 transition-colors cursor-pointer mt-2"
+              >
+                Browse workspaces →
+              </button>
+            </div>
+          ) : (
+            <div className="bg-plaster-surface rounded-3xl border border-soot/10 overflow-hidden shadow-2xs divide-y divide-soot/8">
+              {activeBookings.slice(0, 3).map(b => (
+                <div
+                  key={b.id}
+                  onClick={() => navigate('team-bookings')}
+                  className="p-4 hover:bg-plaster-dark/30 transition-colors flex items-center justify-between gap-4 cursor-pointer group"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <img src={b.spaceImage} alt={b.spaceName} className="w-12 h-12 rounded-xl object-cover border border-soot/10 shrink-0 shadow-2xs group-hover:scale-105 transition-transform" />
+                    <div className="min-w-0">
+                      <h4 className="font-semibold text-soot text-sm truncate group-hover:text-emerald-900 transition-colors">{b.spaceName}</h4>
+                      <div className="flex items-center gap-1.5 text-xs text-moss mt-0.5 font-medium">
+                        <MapPin size={12} className="shrink-0" />
+                        <span className="truncate">{b.spaceCity}</span>
+                        <span>•</span>
+                        <span className="truncate">{b.startDate} {b.endDate && b.endDate !== b.startDate ? `→ ${b.endDate}` : ''}</span>
+                      </div>
+                      <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+                        <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-500/15 text-emerald-800 border border-emerald-500/30 uppercase tracking-wider">
+                          {b.plan === 'hourly' ? `${b.durationHours || 1}h Hourly` : `${b.plan} pass`} • {b.seats} seat{b.seats > 1 ? 's' : ''}
+                        </span>
+                        {b.employees && b.employees.length > 0 && (
+                          <span className="text-[10px] text-moss bg-soot/5 px-2 py-0.5 rounded-full border border-soot/8 font-medium">
+                            {getEmpName(b.employees[0]).split(' ')[0]} {b.employees.length > 1 ? `+${b.employees.length - 1}` : ''}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="text-sm font-semibold text-soot">SAR {getBookingPrice(b).toLocaleString()}</div>
+                    <span className="text-[10px] text-emerald-800 font-bold uppercase tracking-wider">Confirmed</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Saved spaces column */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-serif-display text-soot">Saved Workspaces</h2>
+            <button
+              onClick={() => navigate('browse')}
+              className="text-xs font-semibold text-moss hover:text-soot flex items-center gap-1 cursor-pointer transition-colors"
+            >
+              <span>Browse more</span>
+              <ArrowRight size={13} />
+            </button>
+          </div>
+
+          {favoriteSpaces.length === 0 ? (
+            <div className="bg-plaster-surface rounded-3xl border border-soot/10 p-8 text-center shadow-2xs min-h-[200px] flex flex-col items-center justify-center">
+              <Star size={32} className="text-moss mx-auto mb-3" />
+              <div className="text-sm font-semibold text-soot mb-1">No saved spaces yet</div>
+              <button
+                onClick={() => navigate('browse')}
+                className="text-xs font-semibold text-moss hover:text-soot flex items-center gap-1 transition-colors cursor-pointer mt-2"
+              >
+                Browse workspaces →
+              </button>
+            </div>
+          ) : (
+            <div className="bg-plaster-surface rounded-3xl border border-soot/10 overflow-hidden shadow-2xs divide-y divide-soot/8">
+              {favoriteSpaces.map(space => (
+                <div
+                  key={space.id}
+                  onClick={() => navigate('space-details', { spaceId: space.id })}
+                  className="p-4 hover:bg-plaster-dark/30 transition-colors flex items-center justify-between gap-4 cursor-pointer group"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <img
+                      src={space.images[0]}
+                      alt={space.name}
+                      className="w-12 h-12 rounded-xl object-cover border border-soot/10 shrink-0 shadow-2xs group-hover:scale-105 transition-transform"
+                    />
+                    <div className="min-w-0">
+                      <h4 className="font-semibold text-soot text-sm truncate group-hover:text-emerald-900 transition-colors">{space.name}</h4>
+                      <div className="flex items-center gap-1.5 text-xs text-moss mt-0.5 font-medium">
+                        <MapPin size={12} className="shrink-0" />
+                        <span>{space.city}</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-moss mt-1 font-medium">
+                        <Star size={12} className="fill-amber-400 text-amber-400" />
+                        <span>{space.rating}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    {(() => {
+                      const planInfo = getEffectiveSpacePrice(currentUser, space, 'daily');
+                      if (planInfo.isCovered) {
+                        return (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-800 font-bold text-[10px] border border-emerald-500/30 uppercase tracking-wider shadow-2xs">
+                            <Check size={11} className="text-emerald-800 shrink-0" />
+                            <span>Corporate Pass</span>
+                          </span>
+                        );
+                      }
+                      if (planInfo.hasDiscount) {
+                        return (
+                          <div>
+                            <div className="text-sm font-semibold text-soot">SAR {planInfo.effectivePrice}/day</div>
+                            <div className="text-[10px] text-amber-800 font-bold">{planInfo.discountPercentage}% Pass Discount</div>
+                          </div>
+                        );
+                      }
+                      return <div className="text-sm font-semibold text-soot">SAR {space.pricing.daily}/day</div>;
+                    })()}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Explore Spaces by Type Section */}
+      <div className="space-y-4 pt-4 border-t border-soot/8">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+          <div>
+            <span className="text-xs font-semibold tracking-wider uppercase text-moss block mb-1">
+              Corporate Reservation & Discovery
+            </span>
+            <h2 className="text-2xl font-serif-display text-soot">Book Workspaces for Your Team</h2>
+          </div>
           <button
-            type="button"
-            onClick={() => navigate('company-workspaces')}
-            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#DDE6DF] text-soot hover:bg-[#D0DDD3] font-medium text-sm transition-all shadow-xs border border-soot/8 cursor-pointer"
+            onClick={() => navigate('browse')}
+            className="text-xs font-semibold text-moss hover:text-soot flex items-center gap-1 cursor-pointer transition-colors"
           >
-            <span>Go to Workspaces</span>
+            <span>Open workspace directory</span>
+            <ArrowRight size={13} />
           </button>
         </div>
-      ) : (
-        <div className="grid lg:grid-cols-2 gap-8">
-          {/* Workspaces overview */}
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-soot">Your workspaces</h2>
-              <button onClick={() => navigate('company-workspaces')} className="text-xs text-moss hover:text-soot flex items-center gap-1">
-                Manage all <ArrowRight size={12} />
-              </button>
-            </div>
-            <div className="space-y-3">
-              {companySpaces.slice(0, 4).map((space: Space) => {
-                const occupancy = space.totalCapacity > 0
-                  ? Math.round(((space.totalCapacity - space.availableCapacity) / space.totalCapacity) * 100)
-                  : 0;
-                const statusColor = space.status === 'published' && space.isVisible
-                  ? 'bg-eucalyptus/15 text-moss'
-                  : space.status === 'draft'
-                  ? 'bg-amber-50 text-amber-600'
-                  : 'bg-soot/8 text-moss';
-                const statusLabel = space.status === 'draft' ? 'Draft' : space.isVisible ? 'Active' : 'Hidden';
-                return (
-                  <div key={space.id} className="bg-white rounded-2xl border border-soot/8 p-4">
-                    <div className="flex items-start gap-3">
-                      <img src={space.images[0]} alt={space.name} className="w-12 h-12 rounded-xl object-cover shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <div className="font-medium text-soot text-sm truncate">{space.name}</div>
-                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ${statusColor}`}>{statusLabel}</span>
-                        </div>
-                        <div className="text-xs text-moss mb-2">{space.city} · {space.type.replace('-', ' ')}</div>
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 h-1.5 bg-soot/8 rounded-full overflow-hidden">
-                            <div
-                              className="h-full rounded-full bg-eucalyptus transition-all"
-                              style={{ width: `${occupancy}%` }}
-                            />
-                          </div>
-                          <span className="text-[10px] text-moss shrink-0">{occupancy}% full</span>
-                        </div>
-                      </div>
-                      <div className="text-right shrink-0">
-                        {(() => {
-                          const pInfo = getEffectiveSpacePrice(currentUser, space, 'daily');
-                          if (pInfo.isCovered) {
-                            return (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-eucalyptus/30 text-soot font-semibold text-[11px] border border-eucalyptus/40 shadow-2xs">
-                                <Check size={11} className="text-moss shrink-0" />
-                                <span>Corporate Pass</span>
-                              </span>
-                            );
-                          }
-                          if (pInfo.hasDiscount) {
-                            return (
-                              <div>
-                                <div className="text-xs font-semibold text-soot">SAR {pInfo.effectivePrice}</div>
-                                <div className="text-[9px] text-amber-900 font-semibold">{pInfo.discountPercentage}% Discount</div>
-                              </div>
-                            );
-                          }
-                          return (
-                            <>
-                              <div className="text-xs font-medium text-soot">SAR {space.pricing.daily}</div>
-                              <div className="text-[10px] text-moss">/day</div>
-                            </>
-                          );
-                        })()}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
 
-          {/* Recent bookings */}
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-soot">Recent bookings</h2>
-              <button onClick={() => navigate('company-bookings')} className="text-xs text-moss hover:text-soot flex items-center gap-1">
-                View all <ArrowRight size={12} />
+        {/* Category Filter Tabs */}
+        <div className="flex flex-wrap gap-2">
+          {[
+            { id: 'all', label: 'All Spaces' },
+            { id: 'office', label: 'Offices' },
+            { id: 'hall', label: 'Halls' },
+            { id: 'theater', label: 'Theaters' },
+          ].map(cat => {
+            const isSelected = selectedCategory === cat.id;
+            const count = cat.id === 'all'
+              ? visibleSpaces.length
+              : visibleSpaces.filter(s => getSpaceCategory(s) === cat.id).length;
+            return (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => setSelectedCategory(cat.id as any)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-semibold transition-all cursor-pointer ${
+                  isSelected
+                    ? 'bg-soot text-plaster shadow-xs'
+                    : 'bg-plaster-surface border border-soot/10 text-moss hover:text-soot hover:border-soot/25'
+                }`}
+              >
+                <span>{cat.label}</span>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                  isSelected ? 'bg-plaster/20 text-plaster' : 'bg-plaster-dark/60 text-soot'
+                }`}>
+                  {count}
+                </span>
               </button>
-            </div>
-            {recentBookings.length === 0 ? (
-              <div className="bg-white rounded-2xl border border-soot/8 p-8 text-center">
-                <CalendarDays size={24} className="text-moss mx-auto mb-3" />
-                <div className="text-sm text-moss">No bookings yet at your spaces</div>
-              </div>
-            ) : (
-              <div className="bg-white rounded-2xl border border-soot/8 divide-y divide-soot/5">
-                {recentBookings.map((b: Booking) => (
-                  <div key={b.id} className="px-4 py-3 flex items-center gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-soot truncate">{b.spaceName}</div>
-                      <div className="text-xs text-moss">{b.seats} seat{b.seats > 1 ? 's' : ''} · {b.plan} · {b.startDate}</div>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <div className="text-sm font-medium text-soot">SAR {b.totalPrice.toLocaleString()}</div>
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full ${
-                        b.status === 'active' ? 'bg-eucalyptus/15 text-moss'
-                        : b.status === 'cancelled' ? 'bg-red-50 text-red-500'
-                        : 'bg-soot/8 text-moss'
-                      }`}>{b.status}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+            );
+          })}
         </div>
-      )}
 
-      {/* Quick actions */}
-      <div className="mt-8 grid sm:grid-cols-3 gap-4">
+        {/* Grid of Categorized Spaces */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 pt-2">
+          {categoryFilteredSpaces.slice(0, 6).map(space => {
+            const cat = getSpaceCategory(space);
+            const planInfo = getEffectiveSpacePrice(currentUser, space, cat === 'office' ? 'daily' : 'hourly');
+            const isHourly = cat === 'hall' || cat === 'theater';
+            return (
+              <div
+                key={space.id}
+                onClick={() => navigate('space-details', { spaceId: space.id })}
+                className="bg-plaster-surface hover:bg-plaster-dark/30 rounded-3xl border border-soot/12 overflow-hidden shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer group flex flex-col justify-between"
+              >
+                <div className="relative h-44 overflow-hidden">
+                  <img
+                    src={space.images[0]}
+                    alt={space.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-soot/70 via-transparent to-transparent" />
+                  
+                  {/* Category & Type Badges */}
+                  <div className="absolute top-3 left-3 flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-white/95 text-soot backdrop-blur-md shadow-xs capitalize">
+                      {cat}
+                    </span>
+                    <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-soot/80 text-white backdrop-blur-md shadow-xs capitalize">
+                      {space.type.replace('-', ' ')}
+                    </span>
+                  </div>
+
+                  <div className="absolute bottom-3 left-3 right-3 text-white">
+                    <h3 className="font-semibold text-base truncate font-serif-display">{space.name}</h3>
+                    <div className="flex items-center gap-1 text-xs text-plaster/90 mt-0.5">
+                      <MapPin size={11} className="text-eucalyptus shrink-0" />
+                      <span className="truncate">{space.city} • {space.address}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-4 flex items-center justify-between gap-3 border-t border-soot/6">
+                  <div>
+                    <div className="text-xs text-moss">
+                      {isHourly ? 'Hourly Rate' : 'Daily Pass'}
+                    </div>
+                    <div className="font-bold text-soot text-sm">
+                      {planInfo.isCovered ? (
+                        <span className="text-emerald-800 font-semibold">Corporate Pass</span>
+                      ) : (
+                        <span>SAR {planInfo.originalPrice.toLocaleString()} {isHourly ? '/h' : '/seat'}</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate('team-booking', { spaceId: space.id });
+                    }}
+                    className="px-3.5 py-1.5 rounded-xl bg-[#DDE6DF] hover:bg-[#D0DDD3] text-soot font-semibold text-xs transition-colors shadow-2xs border border-soot/10 cursor-pointer"
+                  >
+                    Book for Team
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Admin-Matching Action Cards */}
+      <div className="mt-10 grid sm:grid-cols-3 gap-4">
         {[
-          { label: 'Add workspace', desc: 'List a new coworking space', action: () => setAddModalOpen(true), icon: Plus },
-          { label: 'View bookings', desc: 'Manage customer reservations', action: () => navigate('company-bookings'), icon: CalendarDays },
-          { label: 'Manage team', desc: 'Add and organize team members', action: () => navigate('company-team'), icon: Users },
+          { label: 'Browse Workspaces', desc: 'Find and reserve desks, halls & theaters', action: () => navigate('browse'), icon: Building2 },
+          { label: 'Team Bookings', desc: 'Manage active company reservations', action: () => navigate('team-bookings'), icon: CalendarDays },
+          { label: 'Manage Team', desc: 'Add colleagues to enterprise pass', action: () => navigate('company-team'), icon: Users },
         ].map(a => (
           <button
             key={a.label}
             onClick={a.action}
-            className="bg-white rounded-2xl border border-soot/8 p-5 text-left hover:border-eucalyptus/40 hover:shadow-sm transition-all group"
+            className="bg-plaster-surface rounded-3xl border border-soot/12 p-5 text-left hover:border-eucalyptus/40 hover:shadow-md transition-all group cursor-pointer"
           >
-            <div className="w-9 h-9 rounded-xl bg-eucalyptus/15 flex items-center justify-center mb-3 group-hover:bg-eucalyptus/25 transition-colors">
-              <a.icon size={16} className="text-moss" />
+            <div className="w-11 h-11 rounded-2xl bg-soot text-plaster flex items-center justify-center mb-3 shadow-2xs group-hover:scale-105 transition-transform">
+              <a.icon size={20} />
             </div>
-            <div className="font-semibold text-soot text-sm">{a.label}</div>
-            <div className="text-xs text-moss mt-0.5">{a.desc}</div>
+            <div className="font-semibold text-soot text-base">{a.label}</div>
+            <div className="text-xs text-moss mt-1 font-medium">{a.desc}</div>
           </button>
         ))}
       </div>
-
-      {/* Add Workspace Modal */}
-      <Modal
-        open={addModalOpen}
-        onClose={() => setAddModalOpen(false)}
-        title="Add New Workspace"
-        subtitle="List a new coworking space or office for your organization."
-        size="2xl"
-      >
-        <AddWorkspace onCloseModal={() => setAddModalOpen(false)} />
-      </Modal>
     </div>
   );
 }

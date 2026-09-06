@@ -1,10 +1,52 @@
 'use client';
-import React, { useState } from 'react';
-import { ArrowLeft, Check, Calendar, Users, CreditCard, MapPin, ChevronRight } from 'lucide-react';
+
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  ArrowLeft,
+  Check,
+  Calendar,
+  Users,
+  CreditCard,
+  MapPin,
+  ChevronRight,
+  ChevronDown,
+  Clock,
+  AlertCircle,
+  Sparkles,
+  Info,
+  ShieldCheck,
+  Receipt,
+  ShoppingBag
+} from 'lucide-react';
 import { useApp } from '@/app/store';
-import { BookingPlan, BookingType, isUserPassHolder, getEffectiveSpacePrice } from '@/types/types';
+import {
+  BookingPlan,
+  BookingType,
+  isUserPassHolder,
+  getEffectiveSpacePrice,
+  getHourlyPriceForDuration,
+  getMonthlyPriceForDuration,
+  calculateEndTime,
+  calculateEndDate,
+  isTimeWithinOpenHours,
+  checkSpaceOverlap,
+  isHourlyOnlySpace,
+  isHourlyAllowed,
+  isOfficeSpace,
+  getAllowedPlansForSpace,
+  getSpaceTypeLabel,
+  getSpaceCategory
+} from '@/types/types';
 
 const STEPS = ['Plan', 'Details', 'Review', 'Confirm'];
+
+const DURATION_OPTIONS = [1, 2, 3, 4, 6, 8];
+
+const START_TIMES = [
+  '07:00 AM', '08:00 AM', '09:00 AM', '10:00 AM', '11:00 AM',
+  '12:00 PM', '01:00 PM', '02:00 PM', '03:00 PM', '04:00 PM',
+  '05:00 PM', '06:00 PM', '07:00 PM', '08:00 PM', '09:00 PM',
+];
 
 function StepIndicator({ current }: { current: number }) {
   return (
@@ -36,74 +78,146 @@ function StepIndicator({ current }: { current: number }) {
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function Row({ label, value }: { label: string; value: string | React.ReactNode }) {
   return (
-    <div className="flex justify-between items-center py-1.5">
-      <span className="text-moss text-sm">{label}</span>
-      <span className="text-soot font-medium text-sm">{value}</span>
+    <div className="flex justify-between items-center py-2.5">
+      <span className="text-moss text-sm font-normal">{label}</span>
+      <span className="text-soot font-medium text-sm text-right">{value}</span>
     </div>
   );
 }
 
 export default function BookingFlow() {
-  const { nav, navigate, goBack, spaces, currentUser, addBooking, showToast } = useApp();
+  const { nav, navigate, goBack, spaces, bookings, currentUser, addBooking, showToast, addToCart, updateCurrentUser } = useApp();
   
   const urlId = typeof window !== 'undefined' ? window.location.pathname.split('/').pop() : '';
   const spaceId = nav?.params?.spaceId || (urlId && urlId !== 'page' && urlId !== 'booking-flow' ? urlId : '') || 'space-1';
   const space = spaces.find(s => s.id === spaceId) || spaces[0];
 
-  const initialPlan = (nav?.params?.plan as BookingPlan) || 'daily';
+  const isHourlySpace = isHourlyAllowed(space);
+  const isOffice = isOfficeSpace(space?.type);
+  const allowedPlans = getAllowedPlansForSpace(space);
+
+  const defaultInitialPlan: BookingPlan = isOffice
+    ? 'daily'
+    : (nav?.params?.plan as BookingPlan) || (isHourlySpace ? 'hourly' : 'daily');
+  const initialDuration = (nav?.params?.durationHours as number) || 2;
+  const initialMonths = (nav?.params?.durationMonths as number) || 1;
+
   const [step, setStep] = useState(0); 
-  const [plan, setPlan] = useState<BookingPlan>(initialPlan);
-  const [deskType, setDeskType] = useState<BookingType>('hot-desk');
+  const [plan, setPlan] = useState<BookingPlan>(defaultInitialPlan);
+  const [deskType, setDeskType] = useState<BookingType>(space?.type || 'hot-desk');
+  
+  // Duration State
+  const [durationHours, setDurationHours] = useState<number>(initialDuration);
+  const [durationMonths, setDurationMonths] = useState<number>(initialMonths);
+  const [startTime, setStartTime] = useState('10:00 AM');
+  
+  const [startTimeOpen, setStartTimeOpen] = useState(false);
+  const [durationOpen, setDurationOpen] = useState(false);
+  const startTimeRef = useRef<HTMLDivElement>(null);
+  const durationRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (startTimeRef.current && !startTimeRef.current.contains(event.target as Node)) {
+        setStartTimeOpen(false);
+      }
+      if (durationRef.current && !durationRef.current.contains(event.target as Node)) {
+        setDurationOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+  
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
-  const [manualEndDate, setManualEndDate] = useState('');
   const [seats, setSeats] = useState(1);
   const [notes, setNotes] = useState('');
   const [confirmedBooking, setConfirmedBooking] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [useLoyaltyPoints, setUseLoyaltyPoints] = useState(false);
+
+  // Sync state if navigation params change
+  useEffect(() => {
+    if (nav?.params?.plan) {
+      setPlan(nav.params.plan as BookingPlan);
+    }
+    if (nav?.params?.durationHours) {
+      setDurationHours(nav.params.durationHours as number);
+    }
+    if (nav?.params?.durationMonths) {
+      setDurationMonths(nav.params.durationMonths as number);
+    }
+    if (nav?.params?.deskType) {
+      setDeskType(nav.params.deskType as BookingType);
+    }
+  }, [nav?.params?.spaceId, nav?.params?.plan, nav?.params?.durationHours, nav?.params?.durationMonths, nav?.params?.deskType]);
 
   if (!space || !currentUser) return null;
 
-  const passActive = isUserPassHolder(currentUser);
-  const getEndDate = (start: string, p: BookingPlan) => {
-    if (!start) return '';
-    const d = new Date(start);
-    if (p === 'monthly') d.setMonth(d.getMonth() + 1);
-    else if (p === 'yearly') d.setFullYear(d.getFullYear() + 1);
-    return d.toISOString().split('T')[0];
-  };
+  const isHourly = isHourlySpace && plan === 'hourly';
+  const endTime = isHourly ? calculateEndTime(startTime, durationHours) : '';
 
-  const endDate = plan === 'daily'
-    ? manualEndDate
-    : getEndDate(startDate, plan);
-  const planInfo = getEffectiveSpacePrice(currentUser, space, plan, deskType);
+  const endDate = isHourly || plan === 'daily'
+    ? startDate
+    : calculateEndDate(startDate, plan, durationMonths);
+
+  // Price calculations
+  const planInfo = getEffectiveSpacePrice(currentUser, space, plan, deskType, durationHours, durationMonths);
   const planPrice = planInfo.effectivePrice;
-  const totalPrice = planPrice * seats;
-  const priceLabel = plan === 'daily' ? '/day' : plan === 'monthly' ? '/month' : '/year';
+  const rawTotalPrice = planPrice * seats;
 
+  // Loyalty calculations
+  const multiplier = space.loyaltyPointsMultiplier || 1;
+  const earnedPoints = Math.floor(rawTotalPrice / 100) * 10 * multiplier;
+  const availablePoints = currentUser?.loyaltyPoints || 0;
+  const maxRedeemablePoints = Math.min(
+    Math.floor(availablePoints / 100) * 100,
+    Math.floor(rawTotalPrice / 5) * 100
+  );
+  const pointsDiscount = useLoyaltyPoints && maxRedeemablePoints > 0 ? (maxRedeemablePoints / 100) * 5 : 0;
+  const totalPrice = Math.max(0, rawTotalPrice - pointsDiscount);
+
+  const priceLabel = isHourly
+    ? `for ${durationHours} hour${durationHours > 1 ? 's' : ''}`
+    : plan === 'monthly'
+    ? `for ${durationMonths} month${durationMonths > 1 ? 's' : ''}`
+    : plan === 'daily'
+    ? '/day'
+    : '/year';
+
+  // Validation
   const validateStep = () => {
-  if (step === 1 && !startDate) {
-    showToast('Please select a start date.', 'error');
-    return false;
-  }
+    if (step === 1) {
+      if (!startDate) {
+        showToast('Please select a booking date.', 'error');
+        return false;
+      }
 
-  if (step === 1 && plan === 'daily' && !manualEndDate) {
-    showToast('Please select an end date.', 'error');
-    return false;
-  }
+      if (isHourly) {
+        if (!startTime) {
+          showToast('Please select a start time.', 'error');
+          return false;
+        }
+        // Validate operating hours
+        const hoursCheck = isTimeWithinOpenHours(startDate, startTime, endTime, space.openHours);
+        if (!hoursCheck.valid) {
+          showToast(hoursCheck.reason || 'Requested time is outside space operating hours.', 'error');
+          return false;
+        }
 
-  if (
-    step === 1 &&
-    plan === 'daily' &&
-    manualEndDate < startDate
-  ) {
-    showToast('End date cannot be before start date.', 'error');
-    return false;
-  }
+        // Validate space overlap & capacity
+        const overlapCheck = checkSpaceOverlap(bookings, space.id, startDate, startTime, endTime, space.totalCapacity);
+        if (!overlapCheck.available) {
+          showToast(`This space is fully reserved at ${startTime}. Please select a different time or date.`, 'error');
+          return false;
+        }
+      }
+    }
 
-  return true;
-};
+    return true;
+  };
 
   const next = () => {
     if (!validateStep()) return;
@@ -121,6 +235,12 @@ export default function BookingFlow() {
   const confirmBooking = () => {
     setLoading(true);
     setTimeout(() => {
+      const pointsUsed = useLoyaltyPoints ? maxRedeemablePoints : 0;
+      if (pointsUsed > 0) {
+        const updatedPoints = Math.max(0, availablePoints - pointsUsed);
+        updateCurrentUser({ loyaltyPoints: updatedPoints });
+      }
+
       const booking = addBooking({
         userId: currentUser.id,
         spaceId: space.id,
@@ -128,8 +248,13 @@ export default function BookingFlow() {
         spaceCity: space.city,
         spaceAddress: space.address,
         spaceImage: space.images[0],
+        category: getSpaceCategory(space),
         type: deskType,
         plan,
+        startTime: isHourly ? startTime : undefined,
+        endTime: isHourly ? endTime : undefined,
+        durationHours: isHourly ? durationHours : undefined,
+        durationMonths: plan === 'monthly' ? durationMonths : undefined,
         startDate,
         endDate: endDate || startDate,
         seats,
@@ -147,17 +272,25 @@ export default function BookingFlow() {
 
   // Confirmation screen
   if (step === 3 && confirmedBooking) {
+    const durationSummaryText = isHourly
+      ? `Hourly Reservation (${durationHours} hrs · ${startTime} – ${endTime})`
+      : plan === 'monthly'
+      ? `Monthly Pass (${durationMonths} Month${durationMonths > 1 ? 's' : ''})`
+      : plan === 'daily'
+      ? `Daily Pass`
+      : 'Yearly Pass (1 Year)';
+
     return (
       <div className="max-w-xl mx-auto px-6 py-12">
         <div className="text-center">
           <div className="w-18 h-18 rounded-3xl bg-eucalyptus/20 border border-eucalyptus/30 flex items-center justify-center mx-auto mb-6 shadow-sm">
             <Check size={32} className="text-moss" />
           </div>
-          <h1 className="text-3xl sm:text-4xl text-soot font-normal mb-2" style={{ fontFamily: 'DM Serif Display, serif' }}>
+          <h1 className="text-3xl sm:text-4xl text-soot font-normal mb-2 font-serif-display">
             Booking Confirmed!
           </h1>
-          <p className="text-moss text-sm mb-8">
-            Your pass is ready. We've saved all details in your My Bookings section.
+          <p className="text-moss text-sm mb-8 font-normal">
+            Your reservation is confirmed and active in your My Bookings section.
           </p>
 
           <div className="bg-white rounded-3xl border border-soot/8 p-6 sm:p-8 text-left mb-8 shadow-sm">
@@ -167,20 +300,25 @@ export default function BookingFlow() {
                 <div className="font-semibold text-soot text-lg">{space.name}</div>
                 <div className="flex items-center gap-1.5 text-xs text-moss mt-1">
                   <MapPin size={12} />
-                  <span>{space.city}</span>
+                  <span>{space.city} · <span className="capitalize">{getSpaceCategory(space)}</span></span>
                 </div>
               </div>
             </div>
             <div className="space-y-2.5 text-sm">
-              <Row label="Booking ID" value={`#${confirmedBooking.id.slice(-8).toUpperCase()}`} />
-              <Row label="Desk Type" value={deskType.replace('-', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())} />
-              <Row label="Pass Plan" value={`${plan.charAt(0).toUpperCase() + plan.slice(1)} Pass`} />
+              <Row label="Booking Reference" value={`#${confirmedBooking.id.slice(-8).toUpperCase()}`} />
+              <Row label="Space Category" value={getSpaceCategory(space).toUpperCase()} />
+              <Row label="Workspace Type" value={deskType.replace('-', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())} />
+              <Row label="Plan / Duration" value={durationSummaryText} />
               <Row label="Start Date" value={startDate} />
-              {plan !== 'daily' && <Row label="End Date" value={endDate} />}
+              {isHourly ? (
+                <Row label="Time Window" value={`${startTime} – ${endTime}`} />
+              ) : (
+                <Row label="End Date" value={endDate} />
+              )}
               <Row label="Reserved Seats" value={`${seats} seat${seats > 1 ? 's' : ''}`} />
               <div className="pt-3 border-t border-soot/8 flex justify-between items-center font-semibold text-base">
-                <span className="text-soot">Total Paid</span>
-                <span className="text-soot">SAR {totalPrice.toLocaleString()}</span>
+                <span className="text-soot">Total Paid (incl. VAT)</span>
+                <span className="text-soot font-bold text-lg">SAR {totalPrice.toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -208,60 +346,121 @@ export default function BookingFlow() {
     <div className="max-w-3xl mx-auto px-6 sm:px-8 py-10">
       <button
         onClick={back}
-        className="flex items-center gap-2 text-moss hover:text-soot text-sm font-medium mb-6 transition-colors"
+        className="flex items-center gap-2 text-moss hover:text-soot text-sm font-medium mb-6 transition-colors cursor-pointer"
       >
         <ArrowLeft size={16} /> Back
       </button>
 
       <StepIndicator current={step} />
 
-      {/* Space Summary Bar */}
-      <div className="flex items-center gap-4 bg-white rounded-3xl border border-soot/8 p-5 mb-8 shadow-sm">
-        <img src={space.images[0]} alt={space.name} className="w-14 h-14 rounded-2xl object-cover shadow-sm shrink-0" />
-        <div className="flex-1 min-w-0">
-          <div className="font-semibold text-soot text-base truncate">{space.name}</div>
-          <div className="flex items-center gap-1 text-xs text-moss mt-0.5">
-            <MapPin size={12} />
-            <span>{space.city}</span>
+      {/* Prominent Space & Live Price Header Bar */}
+      <div className="flex items-center justify-between gap-4 bg-white rounded-3xl border border-soot/8 p-5 mb-8 shadow-sm">
+        <div className="flex items-center gap-4 min-w-0">
+          <img src={space.images[0]} alt={space.name} className="w-14 h-14 rounded-2xl object-cover shadow-sm shrink-0" />
+          <div className="min-w-0">
+            <div className="font-semibold text-soot text-base truncate">{space.name}</div>
+            <div className="flex items-center gap-1.5 text-xs text-moss mt-0.5">
+              <MapPin size={12} />
+              <span>{space.city} · <span className="capitalize">{getSpaceCategory(space)}</span></span>
+            </div>
           </div>
         </div>
-        <div className="text-right shrink-0">
-          <div className="font-semibold text-soot text-base">SAR {planPrice.toLocaleString()}</div>
-          <div className="text-xs text-moss">{priceLabel}</div>
+
+        {/* Live Dynamic Price Display */}
+        <div className="text-right shrink-0 bg-plaster-dark/40 px-4 py-2.5 rounded-2xl border border-soot/10">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-moss block">
+            {seats > 1 ? `Total (${seats} Seats)` : 'Total Price'}
+          </span>
+          <div className="font-bold text-soot text-lg sm:text-xl leading-tight">
+            SAR {(planInfo.originalPrice * seats).toLocaleString()}
+          </div>
+          <div className="text-[11px] text-moss mt-0.5">
+            {planInfo.isCovered ? 'Included with Pass · SAR 0 to Pay' : `SAR ${planPrice.toLocaleString()} ${priceLabel}`}
+          </div>
         </div>
       </div>
 
-      {/* Step 0: Plan */}
+      {/* Step 0: Choose Plan */}
       {step === 0 && (
-        <div className="bg-white rounded-3xl border border-soot/8 p-6 sm:p-8 shadow-sm">
-          <h2 className="text-2xl text-soot font-normal mb-2" style={{ fontFamily: 'DM Serif Display, serif' }}>
-            Choose Your Pass
-          </h2>
-          <p className="text-moss text-sm mb-6">Select how long you'd like to access {space.name}</p>
+        <div className="bg-white rounded-3xl border border-soot/8 p-6 sm:p-8 shadow-sm space-y-6">
+          <div>
+            <h2 className="text-2xl text-soot font-normal mb-1 font-serif-display">
+              {isHourlySpace
+                ? 'Select Reservation Plan & Duration'
+                : isOffice
+                ? 'Choose Office Pass Plan'
+                : 'Choose Your Pass & Duration'}
+            </h2>
+            <p className="text-moss text-sm">
+              {isHourlySpace
+                ? 'Halls and Theaters support Hourly, Daily, Monthly (multi-month), and Yearly reservations'
+                : 'Offices support Daily, Monthly (multi-month), and Yearly reservations'}
+            </p>
+          </div>
 
-          <div className="space-y-3 mb-8">
-            {(['daily', 'monthly', 'yearly'] as BookingPlan[]).map(p => {
-              const pInfo = getEffectiveSpacePrice(currentUser, space, p, deskType);
+          {/* Workspace Desk Type Selector (for mixed / desk spaces) */}
+          {!isHourlySpace && !isOffice && (
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-moss mb-3">Workspace Type</h3>
+              <div className="grid grid-cols-3 gap-3">
+                {(['hot-desk', 'private-office', 'meeting-room'] as BookingType[]).map(t => (
+                  <button
+                    key={t}
+                    onClick={() => setDeskType(t)}
+                    className={`py-3 px-3 rounded-2xl border text-xs font-semibold text-center transition-all cursor-pointer ${
+                      deskType === t
+                        ? 'bg-soot text-plaster border-soot shadow-sm'
+                        : 'border-soot/10 text-moss hover:border-soot/30 bg-plaster/30'
+                    }`}
+                  >
+                    {t.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Plan Choice List */}
+          <div className="space-y-3">
+            {allowedPlans.map(p => {
+              const isSelected = plan === p;
+              const pInfo = getEffectiveSpacePrice(currentUser, space, p, deskType, durationHours, durationMonths);
               return (
                 <button
                   key={p}
+                  type="button"
                   onClick={() => setPlan(p)}
                   className={`w-full p-4 sm:p-5 rounded-2xl border text-left transition-all flex items-center justify-between cursor-pointer ${
-                    plan === p
+                    isSelected
                       ? 'border-eucalyptus bg-[#E5ECE9]/60 shadow-sm'
                       : 'border-soot/8 bg-white hover:border-soot/20'
                   }`}
                 >
                   <div>
-                    <div className="font-semibold text-soot text-base capitalize">{p} Pass</div>
+                    <div className="font-semibold text-soot text-base capitalize flex items-center gap-2">
+                      <span>{p} Plan</span>
+                      {p === 'hourly' && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-eucalyptus/30 text-soot font-semibold uppercase tracking-wider">
+                          Hourly Booking
+                        </span>
+                      )}
+                      {p === 'monthly' && durationMonths > 1 && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-soot/10 text-soot font-semibold uppercase tracking-wider">
+                          {durationMonths} Months
+                        </span>
+                      )}
+                    </div>
                     <div className="text-xs text-moss mt-1">
-                      {p === 'daily'
-                        ? 'Flexibility for single or intermittent work days'
+                      {p === 'hourly'
+                        ? `Reserve for specific hours with custom duration pricing`
+                        : p === 'daily'
+                        ? 'Full single day workspace access'
                         : p === 'monthly'
-                        ? 'Best for steady ongoing monthly access'
-                        : 'Dedicated full-year workspace with maximum savings'}
+                        ? 'Reserve for 1, 2, 3, 6, or 12 months with flexible terms'
+                        : 'Dedicated full-year workspace with maximum annual savings'}
                     </div>
                   </div>
+
                   <div className="text-right shrink-0 pl-4">
                     {pInfo.isCovered ? (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-eucalyptus/30 text-soot font-semibold text-xs border border-eucalyptus/40 shadow-2xs">
@@ -270,23 +469,20 @@ export default function BookingFlow() {
                       </span>
                     ) : pInfo.hasDiscount ? (
                       <div>
-                        <div className="font-semibold text-soot text-base">SAR {pInfo.effectivePrice.toLocaleString()}</div>
+                        <div className="font-bold text-soot text-base">SAR {pInfo.effectivePrice.toLocaleString()}</div>
                         <div className="text-[10px] text-amber-900 font-semibold bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-full mt-0.5">
                           {pInfo.discountPercentage}% Pass Discount
                         </div>
                       </div>
                     ) : (
                       <>
-                        <div className="font-semibold text-soot text-lg">SAR {space.pricing[p].toLocaleString()}</div>
+                        <div className="font-bold text-soot text-lg">
+                          SAR {pInfo.originalPrice.toLocaleString()}
+                        </div>
                         <div className="text-xs text-moss">
-                          /{p === 'daily' ? 'day' : p === 'monthly' ? 'month' : 'year'}
+                          /{p === 'hourly' ? `${durationHours}h` : p === 'daily' ? 'day' : p === 'monthly' ? `${durationMonths}mo` : 'year'}
                         </div>
                       </>
-                    )}
-                    {p === 'yearly' && !pInfo.isCovered && !pInfo.hasDiscount && (
-                      <div className="text-[10px] text-moss font-semibold bg-eucalyptus/20 border border-eucalyptus/30 px-2 py-0.5 rounded-full mt-1">
-                        Save {Math.round((1 - space.pricing.yearly / (space.pricing.monthly * 12)) * 100)}%
-                      </div>
                     )}
                   </div>
                 </button>
@@ -294,44 +490,108 @@ export default function BookingFlow() {
             })}
           </div>
 
-          <div className="mb-8">
-            <h3 className="text-sm font-semibold uppercase tracking-wider text-moss mb-3">Workspace Type</h3>
-            <div className="grid grid-cols-3 gap-3">
-              {(['hot-desk', 'private-office', 'meeting-room'] as BookingType[]).map(t => (
-                <button
-                  key={t}
-                  onClick={() => setDeskType(t)}
-                  className={`py-3 px-3 rounded-2xl border text-xs font-semibold text-center transition-all cursor-pointer ${
-                    deskType === t
-                      ? 'bg-soot text-plaster border-soot shadow-sm'
-                      : 'border-soot/10 text-moss hover:border-soot/30 bg-plaster/30'
-                  }`}
-                >
-                  {t.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                </button>
-              ))}
+          {/* Multi-Month Duration Selector when Monthly is selected */}
+          {plan === 'monthly' && (
+            <div className="p-5 rounded-2xl bg-[#F9F8F5] border border-soot/8 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-moss flex items-center gap-1.5">
+                    <Calendar size={13} />
+                    <span>Select Number of Months</span>
+                  </h4>
+                  <p className="text-xs text-moss mt-0.5">Choose duration: 1, 2, 3, 6, or 12 months</p>
+                </div>
+                <div className="text-sm font-bold text-soot">
+                  {durationMonths} {durationMonths === 1 ? 'Month' : 'Months'} · SAR {((space.pricing?.monthly || 1800) * durationMonths).toLocaleString()}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-5 gap-2">
+                {[1, 2, 3, 6, 12].map(m => {
+                  const isActive = durationMonths === m;
+                  const priceForM = getMonthlyPriceForDuration(space, m);
+                  return (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setDurationMonths(m)}
+                      className={`py-3 px-1 rounded-xl text-center border transition-all cursor-pointer ${
+                        isActive
+                          ? 'bg-[#DDE6DF] text-soot border-soot/20 shadow-xs font-semibold ring-2 ring-soot/10'
+                          : 'bg-white border-soot/10 text-moss hover:text-soot hover:border-soot/20'
+                      }`}
+                    >
+                      <div className="text-xs font-semibold">{m} Mo{m > 1 ? 's' : ''}</div>
+                      <div className="text-[10px] font-bold text-soot mt-0.5">SAR {priceForM.toLocaleString()}</div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Hourly Duration Selector for Halls, Theaters, and Hourly Plan */}
+          {isHourly && (
+            <div className="p-5 rounded-2xl bg-[#F9F8F5] border border-soot/8 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-moss flex items-center gap-1.5">
+                    <Clock size={13} />
+                    <span>Select Duration in Hours</span>
+                  </h4>
+                  <p className="text-xs text-moss mt-0.5">Price dynamically updates based on space rates</p>
+                </div>
+                <div className="text-sm font-bold text-soot">
+                  {durationHours} {durationHours === 1 ? 'Hour' : 'Hours'} · SAR {getHourlyPriceForDuration(space, durationHours)}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                {DURATION_OPTIONS.map(hours => {
+                  const isActive = durationHours === hours;
+                  const tierPrice = getHourlyPriceForDuration(space, hours);
+                  return (
+                    <button
+                      key={hours}
+                      type="button"
+                      onClick={() => setDurationHours(hours)}
+                      className={`py-3 px-2 rounded-xl text-center border transition-all cursor-pointer ${
+                        isActive
+                          ? 'bg-[#DDE6DF] text-soot border-soot/20 shadow-xs font-semibold ring-2 ring-soot/10'
+                          : 'bg-white border-soot/10 text-moss hover:text-soot hover:border-soot/20'
+                      }`}
+                    >
+                      <div className="text-xs font-semibold">{hours} {hours === 1 ? 'Hour' : 'Hours'}</div>
+                      <div className="text-[11px] font-bold text-soot mt-0.5">SAR {tierPrice}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <button
             onClick={next}
             className="w-full py-3.5 px-6 rounded-full bg-[#DDE6DF] text-soot hover:bg-[#D0DDD3] font-medium text-sm transition-all flex items-center justify-center gap-2 shadow-xs border border-soot/8 cursor-pointer"
           >
-            <span>Continue to Details</span>
+            <span>Continue to Schedule & Details (SAR {(planInfo.originalPrice * seats).toLocaleString()})</span>
             <ChevronRight size={16} />
           </button>
         </div>
       )}
 
-      {/* Step 1: Details */}
+      {/* Step 1: Schedule & Details */}
       {step === 1 && (
-        <div className="bg-white rounded-3xl border border-soot/8 p-6 sm:p-8 shadow-sm">
-          <h2 className="text-2xl text-soot font-normal mb-2" style={{ fontFamily: 'DM Serif Display, serif' }}>
-            Booking Details
-          </h2>
-          <p className="text-moss text-sm mb-6">Choose your schedule and required seats</p>
+        <div className="bg-white rounded-3xl border border-soot/8 p-6 sm:p-8 shadow-sm space-y-6">
+          <div>
+            <h2 className="text-2xl text-soot font-normal mb-1 font-serif-display">
+              Schedule & Seats
+            </h2>
+            <p className="text-moss text-sm">Choose your date, duration, and required capacity</p>
+          </div>
 
-          <div className="space-y-6 mb-8">
+          <div className="space-y-6">
+            {/* Booking Date */}
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-2">
                 Start Date
@@ -345,46 +605,171 @@ export default function BookingFlow() {
               />
             </div>
 
-            {startDate && plan === 'daily' && (
-  <div>
-    <label className="block text-xs font-medium text-moss mb-1.5 flex items-center gap-1.5">
-      <Calendar size={13} />
-      End date
-    </label>
+            {/* Hourly Start Time & Duration Controls */}
+            {isHourly && (
+              <div className="space-y-4 p-5 rounded-2xl bg-[#F9F8F5] border border-soot/8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="relative" ref={startTimeRef}>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-2 flex items-center gap-1.5">
+                      <Clock size={13} />
+                      <span>Start Time</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setStartTimeOpen(!startTimeOpen)}
+                      className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white border border-soot/12 text-soot text-sm font-medium text-left transition-all duration-200 cursor-pointer focus:outline-none shadow-2xs"
+                    >
+                      <span className="truncate">{startTime}</span>
+                      <ChevronDown
+                        size={15}
+                        className={`text-moss shrink-0 transition-transform duration-200 ${
+                          startTimeOpen ? 'rotate-180 text-soot' : ''
+                        }`}
+                      />
+                    </button>
 
-    <input
-      type="date"
-      value={manualEndDate}
-      min={startDate}
-      onChange={e => setManualEndDate(e.target.value)}
-      className="w-full px-4 py-2.5 rounded-xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-eucalyptus"
-    />
-  </div>
-)}
+                    {startTimeOpen && (
+                      <div className="absolute top-full left-0 right-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100 max-h-52 overflow-y-auto">
+                        <div className="space-y-0.5">
+                          {START_TIMES.map((t) => {
+                            const isSelected = startTime === t;
+                            return (
+                              <button
+                                key={t}
+                                type="button"
+                                onClick={() => {
+                                  setStartTime(t);
+                                  setStartTimeOpen(false);
+                                }}
+                                className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-sm font-medium transition-colors text-left cursor-pointer ${
+                                  isSelected
+                                    ? 'bg-soot text-plaster font-semibold'
+                                    : 'text-soot hover:bg-plaster-dark/60'
+                                }`}
+                              >
+                                <span>{t}</span>
+                                {isSelected && <Check size={14} className="text-eucalyptus" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
-            {startDate && plan !== 'daily' && (
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-2">
-                  End Date (Auto-calculated)
-                </label>
-                <input
-                  type="date"
-                  value={endDate}
-                  disabled
-                  className="w-full px-4 py-3 rounded-2xl border border-soot/8 bg-soot/5 text-moss text-sm cursor-not-allowed font-medium"
-                />
+                  <div className="relative" ref={durationRef}>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-2">
+                      Duration (Hours)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setDurationOpen(!durationOpen)}
+                      className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white border border-soot/12 text-soot text-sm font-medium text-left transition-all duration-200 cursor-pointer focus:outline-none shadow-2xs"
+                    >
+                      <span className="truncate">
+                        {durationHours} {durationHours === 1 ? 'Hour' : 'Hours'} — SAR {getHourlyPriceForDuration(space, durationHours)}
+                      </span>
+                      <ChevronDown
+                        size={15}
+                        className={`text-moss shrink-0 transition-transform duration-200 ${
+                          durationOpen ? 'rotate-180 text-soot' : ''
+                        }`}
+                      />
+                    </button>
+
+                    {durationOpen && (
+                      <div className="absolute top-full left-0 right-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100 max-h-52 overflow-y-auto">
+                        <div className="space-y-0.5">
+                          {DURATION_OPTIONS.map((h) => {
+                            const isSelected = durationHours === h;
+                            return (
+                              <button
+                                key={h}
+                                type="button"
+                                onClick={() => {
+                                  setDurationHours(h);
+                                  setDurationOpen(false);
+                                }}
+                                className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-sm font-medium transition-colors text-left cursor-pointer ${
+                                  isSelected
+                                    ? 'bg-soot text-plaster font-semibold'
+                                    : 'text-soot hover:bg-plaster-dark/60'
+                                }`}
+                              >
+                                <span>
+                                  {h} {h === 1 ? 'Hour' : 'Hours'} — SAR {getHourlyPriceForDuration(space, h)}
+                                </span>
+                                {isSelected && <Check size={14} className="text-eucalyptus" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="bg-white p-3 rounded-xl border border-soot/8 flex items-center justify-between text-xs">
+                  <div>
+                    <span className="text-moss block text-[10px] uppercase font-semibold">Scheduled Time Window</span>
+                    <span className="font-semibold text-soot">{startTime} → {endTime}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-moss block text-[10px] uppercase font-semibold">Rate Calculation</span>
+                    <span className="font-bold text-soot">SAR {getHourlyPriceForDuration(space, durationHours)} / seat</span>
+                  </div>
+                </div>
               </div>
             )}
 
+            {/* Monthly Schedule Summary */}
+            {plan === 'monthly' && (
+              <div className="p-4 rounded-2xl bg-[#F9F8F5] border border-soot/8 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-moss">
+                    Monthly Duration
+                  </span>
+                  <span className="text-xs font-bold text-soot">{durationMonths} Months</span>
+                </div>
+                <div className="grid grid-cols-5 gap-1.5">
+                  {[1, 2, 3, 6, 12].map(m => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setDurationMonths(m)}
+                      className={`py-2 rounded-xl text-xs font-medium border text-center transition-all cursor-pointer ${
+                        durationMonths === m
+                          ? 'bg-soot text-plaster font-semibold'
+                          : 'bg-white border-soot/10 text-moss hover:text-soot'
+                      }`}
+                    >
+                      {m} Mo{m > 1 ? 's' : ''}
+                    </button>
+                  ))}
+                </div>
+                <div className="bg-white p-3 rounded-xl border border-soot/8 flex items-center justify-between text-xs">
+                  <div>
+                    <span className="text-moss block text-[10px] uppercase font-semibold">Period</span>
+                    <span className="font-semibold text-soot">{startDate} → {endDate}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-moss block text-[10px] uppercase font-semibold">Months Total</span>
+                    <span className="font-bold text-soot">SAR {getMonthlyPriceForDuration(space, durationMonths).toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Number of Seats */}
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-2">
-                Number of Seats
+                Number of Reserved Desks / Seats
               </label>
               <div className="flex items-center gap-4">
                 <button
                   type="button"
                   onClick={() => setSeats(Math.max(1, seats - 1))}
-                  className="w-11 h-11 rounded-2xl border border-soot/10 bg-plaster/50 hover:bg-plaster flex items-center justify-center text-soot font-bold text-lg"
+                  className="w-11 h-11 rounded-2xl border border-soot/10 bg-plaster/50 hover:bg-plaster flex items-center justify-center text-soot font-bold text-lg cursor-pointer"
                 >
                   -
                 </button>
@@ -392,13 +777,17 @@ export default function BookingFlow() {
                 <button
                   type="button"
                   onClick={() => setSeats(Math.min(space.availableCapacity || 10, seats + 1))}
-                  className="w-11 h-11 rounded-2xl border border-soot/10 bg-plaster/50 hover:bg-plaster flex items-center justify-center text-soot font-bold text-lg"
+                  className="w-11 h-11 rounded-2xl border border-soot/10 bg-plaster/50 hover:bg-plaster flex items-center justify-center text-soot font-bold text-lg cursor-pointer"
                 >
                   +
                 </button>
+                <span className="text-xs text-moss font-normal">
+                  {space.availableCapacity} seats currently open
+                </span>
               </div>
             </div>
 
+            {/* Notes */}
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-2">
                 Special Requests or Notes (Optional)
@@ -407,13 +796,33 @@ export default function BookingFlow() {
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
                 placeholder="Any special setup or desk requirements..."
-                rows={3}
-                className="w-full px-4 py-3 rounded-2xl border border-soot/10 bg-[#F9F8F5] text-soot text-sm outline-none focus:border-eucalyptus focus:bg-white resize-none"
+                rows={2}
+                className="w-full px-4 py-3 rounded-2xl border border-soot/10 bg-[#F9F8F5] text-soot text-sm outline-none focus:border-eucalyptus focus:bg-white resize-none font-normal"
               />
+            </div>
+
+            {/* Live Pricing Summary Box in Step 1 */}
+            <div className="p-4 rounded-2xl bg-plaster-dark/40 border border-soot/10 flex items-center justify-between">
+              <div>
+                <span className="text-xs font-semibold text-soot block">Calculated Total</span>
+                <span className="text-[11px] text-moss">
+                  {seats} {seats > 1 ? 'seats' : 'seat'} × SAR {planInfo.originalPrice.toLocaleString()} {priceLabel}
+                </span>
+              </div>
+              <div className="text-right">
+                <span className="text-xl font-bold text-soot">
+                  SAR {(planInfo.originalPrice * seats).toLocaleString()}
+                </span>
+                {planInfo.isCovered ? (
+                  <span className="text-[10px] text-emerald-800 font-semibold block">Included with Pass</span>
+                ) : (
+                  <span className="text-[10px] text-moss block">VAT included</span>
+                )}
+              </div>
             </div>
           </div>
 
-          <div className="flex gap-4">
+          <div className="flex gap-4 pt-2">
             <button
               onClick={back}
               className="flex-1 py-3.5 px-6 rounded-full border border-soot/15 text-soot font-medium text-sm hover:bg-soot/5 transition-all bg-white cursor-pointer"
@@ -424,64 +833,165 @@ export default function BookingFlow() {
               onClick={next}
               className="flex-1 py-3.5 px-6 rounded-full bg-[#DDE6DF] text-soot font-medium text-sm hover:bg-[#D0DDD3] transition-all flex items-center justify-center gap-2 shadow-xs border border-soot/8 cursor-pointer"
             >
-              <span>Review Booking</span>
+              <span>Proceed to Review & Payment</span>
               <ChevronRight size={16} />
             </button>
           </div>
         </div>
       )}
 
-      {/* Step 2: Review */}
+      {/* Step 2: Review & Payment */}
       {step === 2 && (
-        <div className="bg-white rounded-3xl border border-soot/8 p-6 sm:p-8 shadow-sm">
-          <h2 className="text-2xl text-soot font-normal mb-2" style={{ fontFamily: 'DM Serif Display, serif' }}>
-            Review & Payment
-          </h2>
-          <p className="text-moss text-sm mb-6">Confirm your workspace reservation details</p>
+        <div className="bg-white rounded-3xl border border-soot/8 p-6 sm:p-8 shadow-sm space-y-6">
+          <div>
+            <h2 className="text-2xl text-soot font-normal mb-1 font-serif-display">
+              Review & Payment
+            </h2>
+            <p className="text-moss text-sm">Review your booking summary and confirm payment</p>
+          </div>
 
-          <div className="space-y-3 mb-8 divide-y divide-soot/6">
-            <div className="pt-2">
-              <Row label="Space" value={space.name} />
+          <div className="space-y-4">
+            {/* Booking Details Summary */}
+            <div className="p-5 rounded-2xl bg-[#F9F8F5] border border-soot/8 divide-y divide-soot/6">
+              <Row label="Workspace" value={space.name} />
               <Row label="Location" value={`${space.address}, ${space.city}`} />
-              <Row label="Plan" value={`${plan.charAt(0).toUpperCase() + plan.slice(1)} Pass`} />
-              <Row label="Type" value={deskType.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())} />
-              <Row label="Start Date" value={startDate} />
-              {plan !== 'daily' && <Row label="End Date" value={endDate} />}
-              <Row label="Seats" value={`${seats} seat${seats > 1 ? 's' : ''}`} />
+              <Row label="Desk Type" value={deskType.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())} />
+              <Row label="Plan / Mode" value={isHourly ? `Hourly Reservation (${durationHours} hours)` : `${plan.charAt(0).toUpperCase() + plan.slice(1)} Pass`} />
+              <Row label="Date" value={startDate} />
+              {isHourly ? (
+                <Row label="Time Window" value={`${startTime} – ${endTime} (${durationHours} hrs)`} />
+              ) : plan !== 'daily' ? (
+                <Row label="End Date" value={endDate} />
+              ) : null}
+              <Row label="Reserved Seats" value={`${seats} seat${seats > 1 ? 's' : ''}`} />
             </div>
 
-            <div className="pt-4">
-              <Row label={`Subtotal (${seats} seat × SAR ${planPrice.toLocaleString()})`} value={`SAR ${totalPrice.toLocaleString()}`} />
-              <Row label="VAT (15% included)" value={`SAR ${(totalPrice * 0.15).toFixed(0)}`} />
-              <div className="pt-3 flex justify-between items-center font-semibold text-lg text-soot">
-                <span>Total Amount</span>
-                {planInfo.isCovered ? (
-                  <div className="text-right">
-                    <span className="text-soot">SAR 0</span>
-                    <div className="text-xs text-moss font-semibold bg-eucalyptus/25 border border-eucalyptus/30 px-2.5 py-0.5 rounded-full inline-block ml-2">
-                      Included in Pass
-                    </div>
+            {/* Loyalty Rewards Program Card */}
+            <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Sparkles size={16} className="text-amber-600 shrink-0" />
+                  <div>
+                    <div className="text-xs font-semibold text-soot">Loyalty Rewards Program</div>
+                    <div className="text-[11px] text-moss">Balance: {availablePoints} points</div>
                   </div>
-                ) : planInfo.hasDiscount ? (
-                  <div className="text-right">
-                    <span className="text-soot">SAR {totalPrice.toLocaleString()}</span>
-                    <div className="text-xs text-amber-900 font-semibold bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 rounded-full inline-block ml-2">
-                      {planInfo.discountPercentage}% Pass Discount Applied
-                    </div>
-                  </div>
-                ) : (
-                  <span>SAR {totalPrice.toLocaleString()}</span>
+                </div>
+                {availablePoints >= 100 && rawTotalPrice > 0 && maxRedeemablePoints > 0 && (
+                  <label className="flex items-center gap-2 text-xs font-semibold text-soot cursor-pointer bg-white/80 px-3 py-1.5 rounded-xl border border-amber-500/30 hover:bg-white transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={useLoyaltyPoints}
+                      onChange={(e) => setUseLoyaltyPoints(e.target.checked)}
+                      className="rounded border-soot/20 text-eucalyptus focus:ring-eucalyptus cursor-pointer"
+                    />
+                    <span>Use {maxRedeemablePoints} pts (-SAR {(maxRedeemablePoints / 100) * 5})</span>
+                  </label>
                 )}
+              </div>
+              {earnedPoints > 0 && (
+                <div className="text-[11px] font-medium text-amber-900 bg-amber-500/15 px-3 py-1.5 rounded-xl border border-amber-500/30 flex items-center justify-between">
+                  <span>🎉 You will earn <strong>+{earnedPoints} loyalty points</strong> upon booking completion!</span>
+                  {multiplier > 1 && (
+                    <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-600 text-white px-2 py-0.5 rounded-full ml-2">
+                      {multiplier}× Points
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Clear Itemized Price Breakdown */}
+            <div className="p-5 rounded-2xl bg-white border-2 border-soot/10 space-y-3">
+              <div className="flex items-center gap-2 pb-2 border-b border-soot/8">
+                <Receipt size={16} className="text-moss" />
+                <span className="text-xs font-semibold uppercase tracking-wider text-soot">
+                  Price Breakdown & Payment Receipt
+                </span>
+              </div>
+
+              <Row
+                label={`Rate per Seat (${isHourly ? `${durationHours}h Hourly` : plan === 'monthly' ? `${durationMonths} Mo Monthly` : `${plan} pass`})`}
+                value={`SAR ${planInfo.originalPrice.toLocaleString()}${planInfo.isCovered ? ' (Included with Pass)' : ''}`}
+              />
+              <Row
+                label={`Number of Reserved Seats`}
+                value={`× ${seats}`}
+              />
+              <Row
+                label={`Subtotal`}
+                value={`SAR ${(planInfo.originalPrice * seats).toLocaleString()}`}
+              />
+              <Row
+                label="VAT (15% included in price)"
+                value={`SAR ${((planInfo.originalPrice * seats) * 0.15).toFixed(0)}`}
+              />
+
+              {/* Highlighted Final Payable Amount */}
+              <div className="pt-3 border-t border-soot/10 flex justify-between items-center bg-plaster-dark/30 -mx-5 -mb-5 p-5 rounded-b-2xl">
+                <div>
+                  <span className="text-sm font-bold text-soot block">Total Payable Amount</span>
+                  <span className="text-xs text-moss">Instant confirmation & access</span>
+                </div>
+
+                <div className="text-right">
+                  {planInfo.isCovered ? (
+                    <div>
+                      <span className="text-2xl font-bold text-soot">SAR 0</span>
+                      <div className="text-xs text-moss font-semibold bg-eucalyptus/25 border border-eucalyptus/30 px-2.5 py-0.5 rounded-full inline-block ml-2">
+                        Included in Pass (Standard: SAR {(planInfo.originalPrice * seats).toLocaleString()})
+                      </div>
+                    </div>
+                  ) : planInfo.hasDiscount ? (
+                    <div>
+                      <span className="text-2xl font-bold text-soot">SAR {totalPrice.toLocaleString()}</span>
+                      <div className="text-xs text-amber-900 font-semibold bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 rounded-full block mt-0.5">
+                        {planInfo.discountPercentage}% Pass Discount
+                      </div>
+                    </div>
+                  ) : (
+                    <span className="text-2xl font-bold text-soot">
+                      SAR {totalPrice.toLocaleString()}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="flex gap-4">
+          <div className="flex gap-3 pt-2">
             <button
               onClick={back}
-              className="flex-1 py-3.5 px-6 rounded-full border border-soot/15 text-soot font-medium text-sm hover:bg-soot/5 transition-all bg-white cursor-pointer"
+              className="py-3.5 px-6 rounded-full border border-soot/15 text-soot font-medium text-sm hover:bg-soot/5 transition-all bg-white cursor-pointer"
             >
               Back
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                addToCart({
+                  spaceId: space.id,
+                  spaceName: space.name,
+                  spaceCity: space.city,
+                  spaceAddress: space.address || space.city,
+                  spaceImage: space.images?.[0] || 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80',
+                  type: deskType,
+                  plan: plan,
+                  durationHours: isHourly ? durationHours : undefined,
+                  startTime: isHourly ? startTime : undefined,
+                  endTime: isHourly ? endTime : undefined,
+                  startDate: startDate,
+                  endDate: endDate,
+                  seats: seats,
+                  notes: notes,
+                  pricePerSeat: planPrice,
+                  itemTotal: totalPrice,
+                });
+                navigate('browse');
+              }}
+              className="py-3.5 px-5 rounded-full border border-soot/15 text-soot font-medium text-sm hover:bg-soot/5 transition-all bg-white flex items-center justify-center gap-2 cursor-pointer shadow-2xs"
+            >
+              <ShoppingBag size={16} />
+              <span>Add to Cart</span>
             </button>
             <button
               onClick={confirmBooking}
@@ -489,11 +999,16 @@ export default function BookingFlow() {
               className="flex-1 py-3.5 px-6 rounded-full bg-[#DDE6DF] text-soot font-medium text-sm hover:bg-[#D0DDD3] transition-all flex items-center justify-center gap-2 shadow-xs border border-soot/8 cursor-pointer disabled:opacity-50"
             >
               {loading ? (
-                <span>Processing...</span>
+                <span>Processing Payment...</span>
+              ) : planInfo.isCovered ? (
+                <>
+                  <Check size={16} className="text-moss" />
+                  <span>Confirm Reservation (Included in Pass)</span>
+                </>
               ) : (
                 <>
                   <CreditCard size={16} />
-                  <span>Pay & Confirm</span>
+                  <span>Pay Now (SAR {totalPrice.toLocaleString()})</span>
                 </>
               )}
             </button>

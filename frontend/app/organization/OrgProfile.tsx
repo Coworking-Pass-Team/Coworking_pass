@@ -19,7 +19,10 @@ import {
   MapPin,
   Lock,
   Edit3,
-  AlertCircle
+  AlertCircle,
+  ArrowRight,
+  Sparkles,
+  Clock
 } from 'lucide-react';
 import { useApp } from '@/app/store';
 import { Employee } from '@/types/types';
@@ -27,7 +30,7 @@ import Modal from '@/components/ui/Modal';
 import UserAvatar from '@/components/ui/UserAvatar';
 
 export default function OrgProfile() {
-  const { currentUser, navigate, nav, updateCurrentUser, showToast } = useApp();
+  const { currentUser, navigate, nav, updateCurrentUser, showToast, bookings } = useApp();
   if (!currentUser) return null;
 
   const [activeTab, setActiveTab] = useState<'profile' | 'settings'>(
@@ -37,7 +40,7 @@ export default function OrgProfile() {
   // Edit Profile Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
-  // Edit Form Fields
+  // Edit Form Fields (Exact existing Organization fields preserved)
   const [editOrgName, setEditOrgName] = useState(currentUser.orgName || currentUser.name || '');
   const [editIndustry, setEditIndustry] = useState(currentUser.industry || 'Technology & Digital Solutions');
   const [editOrgSize, setEditOrgSize] = useState(String(currentUser.orgSize || '15'));
@@ -64,6 +67,12 @@ export default function OrgProfile() {
   const [addEmpModal, setAddEmpModal] = useState(false);
   const [newEmp, setNewEmp] = useState({ name: '', email: '', department: '' });
 
+  // Password Security Form State
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordSaved, setPasswordSaved] = useState(false);
+
   // Notifications & Privacy Settings
   const [notifications, setNotifications] = useState({
     teamBookings: true,
@@ -72,6 +81,8 @@ export default function OrgProfile() {
     passUsage: false,
   });
   const [privacy, setPrivacy] = useState({ allowTeamSelfBooking: true, centralBilling: true });
+
+  const orgBookings = bookings.filter(b => b.userId === currentUser.id);
 
   const handleOpenEdit = () => {
     setEditOrgName(currentUser.orgName || currentUser.name || '');
@@ -148,7 +159,7 @@ export default function OrgProfile() {
   const handleAddEmployee = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newEmp.name.trim() || !newEmp.email.trim()) {
-      showToast('Name and email are required.', 'error');
+      showToast('Please provide employee name and corporate email', 'error');
       return;
     }
     const emp: Employee = {
@@ -162,14 +173,37 @@ export default function OrgProfile() {
     updateCurrentUser({ employees: updated });
     setNewEmp({ name: '', email: '', department: '' });
     setAddEmpModal(false);
-    showToast('Team member added successfully.', 'success');
+    showToast(`${emp.name} added to team roster!`, 'success');
   };
 
-  const handleRemoveEmployee = (id: string) => {
-    const updated = employees.filter(e => e.id !== id);
+  const handleRemoveEmployee = (empId: string) => {
+    const updated = employees.filter(e => e.id !== empId);
     setEmployees(updated);
     updateCurrentUser({ employees: updated });
-    showToast('Team member removed.');
+    showToast('Team member removed', 'info');
+  };
+
+  const handlePasswordChangeSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentPassword) {
+      showToast('Please enter current security password', 'error');
+      return;
+    }
+    if (newPassword.length < 6) {
+      showToast('New password must be at least 6 characters', 'error');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      showToast('New passwords do not match', 'error');
+      return;
+    }
+
+    setPasswordSaved(true);
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    showToast('Organization security password updated!', 'success');
+    setTimeout(() => setPasswordSaved(false), 3000);
   };
 
   return (
@@ -178,10 +212,10 @@ export default function OrgProfile() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-3xl sm:text-4xl text-soot font-normal" style={{ fontFamily: 'DM Serif Display, serif' }}>
-            {activeTab === 'profile' ? 'Organization Profile' : 'Company Settings'}
+            {activeTab === 'profile' ? 'Organization Profile' : 'Organization Settings'}
           </h1>
           <p className="text-moss text-xs sm:text-sm mt-1 font-normal">
-            Manage company identity, team members, and enterprise preferences
+            Manage your company identity, corporate pass credentials, and team workspace access
           </p>
         </div>
 
@@ -200,7 +234,7 @@ export default function OrgProfile() {
             }`}
           >
             <Building2 size={15} />
-            <span>Profile & Team</span>
+            <span>Company Profile</span>
           </button>
           <button
             type="button"
@@ -237,9 +271,8 @@ export default function OrgProfile() {
 
             {/* Profile Content Details */}
             <div className="px-6 sm:px-8 pb-8 pt-0 relative">
-              {/* Header Row: Logo */}
+              {/* Header Row: Avatar / Logo */}
               <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 -mt-16 sm:-mt-20 mb-6">
-                {/* Logo with Ring */}
                 <div className="relative inline-block self-start">
                   <UserAvatar
                     src={currentUser.avatar}
@@ -250,7 +283,7 @@ export default function OrgProfile() {
                 </div>
               </div>
 
-              {/* Organization Name, Role Badge, Website */}
+              {/* Organization Name, Role Badge, Location */}
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-3">
                   <h2
@@ -265,7 +298,13 @@ export default function OrgProfile() {
                     Organization Account
                   </span>
 
-                  {/* Team Count Badge */}
+                  {/* Pass Membership Badge */}
+                  <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-medium bg-white text-moss border border-soot/10">
+                    <Check size={12} className="text-moss" />
+                    <span>{currentUser.membershipTier || 'Enterprise Pass Holder'}</span>
+                  </span>
+
+                  {/* Team Members Count Badge */}
                   <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-medium bg-white text-moss border border-soot/10">
                     <Users size={12} />
                     <span>{employees.length} Team Members</span>
@@ -274,6 +313,8 @@ export default function OrgProfile() {
 
                 <div className="text-xs sm:text-sm text-moss font-normal flex flex-wrap items-center gap-3">
                   <span>{currentUser.industry || 'Technology & Digital Solutions'}</span>
+                  <span>•</span>
+                  <span>{currentUser.city || 'Riyadh, Saudi Arabia'}</span>
                   {currentUser.website && (
                     <>
                       <span>•</span>
@@ -288,24 +329,32 @@ export default function OrgProfile() {
                       </a>
                     </>
                   )}
+                  <span>•</span>
+                  <span>{orgBookings.length} Total Bookings</span>
                 </div>
+
+                {currentUser.orgDescription && (
+                  <p className="text-xs sm:text-sm text-soot/80 font-normal pt-2 max-w-2xl leading-relaxed">
+                    {currentUser.orgDescription}
+                  </p>
+                )}
               </div>
             </div>
           </div>
 
-          {/* Card 2: Company Information Section */}
+          {/* Card 2: Organization Information Section Card */}
           <div className="bg-white rounded-3xl border border-soot/8 p-6 sm:p-8 shadow-sm">
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-soot/8 gap-4 flex-wrap">
               <div>
                 <h3 className="text-xl font-normal text-soot" style={{ fontFamily: 'DM Serif Display, serif' }}>
-                  Company Information
+                  Organization Information
                 </h3>
-                <p className="text-moss text-xs mt-0.5 font-normal">Official business registration and contact details</p>
+                <p className="text-moss text-xs mt-0.5 font-normal">Official corporate entity credentials and business profile</p>
               </div>
               <button
                 type="button"
                 onClick={handleOpenEdit}
-                className="btn-secondary"
+                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#DDE6DF] text-soot hover:bg-[#D0DDD3] text-xs sm:text-sm font-medium transition-all shadow-xs border border-soot/8 cursor-pointer active:scale-98"
               >
                 <Edit3 size={15} />
                 <span>Edit Profile</span>
@@ -318,87 +367,87 @@ export default function OrgProfile() {
               <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 transition-all hover:border-soot/12">
                 <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
                   <Building2 size={13} className="text-moss/80" />
-                  Company Name
+                  Organization / Company Name
                 </div>
                 <div className="text-sm sm:text-base font-normal text-soot">
                   {currentUser.orgName || currentUser.name}
                 </div>
               </div>
 
-              {/* Industry / Sector */}
+              {/* Industry & Sector */}
               <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 transition-all hover:border-soot/12">
                 <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
                   <Briefcase size={13} className="text-moss/80" />
-                  Industry / Sector
+                  Industry & Sector
                 </div>
                 <div className="text-sm sm:text-base font-normal text-soot">
                   {currentUser.industry || 'Technology & Digital Solutions'}
                 </div>
               </div>
 
-              {/* Official Email */}
+              {/* Registered Email */}
               <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 transition-all hover:border-soot/12">
                 <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
                   <Mail size={13} className="text-moss/80" />
-                  Official Email Address
+                  Corporate Billing Email
                 </div>
                 <div className="text-sm sm:text-base font-normal text-soot truncate" title={currentUser.email}>
                   {currentUser.email}
                 </div>
               </div>
 
-              {/* Phone Number */}
+              {/* Contact Phone Number */}
               <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 transition-all hover:border-soot/12">
                 <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
                   <Phone size={13} className="text-moss/80" />
-                  Phone Number
+                  Contact Phone Number
                 </div>
                 <div className="text-sm sm:text-base font-normal text-soot">
                   {currentUser.phone || '+966 56 456 7890'}
                 </div>
               </div>
 
-              {/* Website */}
-              <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 transition-all hover:border-soot/12">
-                <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
-                  <Globe size={13} className="text-moss/80" />
-                  Website
-                </div>
-                <div className="text-sm sm:text-base font-normal text-soot truncate">
-                  {currentUser.website || 'https://sauditech.sa'}
-                </div>
-              </div>
-
-              {/* Total Team Size */}
-              <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 transition-all hover:border-soot/12">
-                <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
-                  <Users size={13} className="text-moss/80" />
-                  Team Size
-                </div>
-                <div className="text-sm sm:text-base font-normal text-soot">
-                  {currentUser.orgSize || '15'} Employees
-                </div>
-              </div>
-
-              {/* Commercial Registration (CR) */}
+              {/* CR Number */}
               <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 transition-all hover:border-soot/12">
                 <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
                   <FileText size={13} className="text-moss/80" />
-                  CR / Registration Number
+                  Commercial Registration (CR)
                 </div>
                 <div className="text-sm sm:text-base font-normal text-soot">
                   {currentUser.crNumber || '1010874921'}
                 </div>
               </div>
 
-              {/* Location */}
+              {/* Organization Size */}
+              <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 transition-all hover:border-soot/12">
+                <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
+                  <Users size={13} className="text-moss/80" />
+                  Total Company Size
+                </div>
+                <div className="text-sm sm:text-base font-normal text-soot">
+                  {currentUser.orgSize || employees.length || 15} Employees
+                </div>
+              </div>
+
+              {/* Headquarters Location */}
               <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 transition-all hover:border-soot/12">
                 <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
                   <MapPin size={13} className="text-moss/80" />
-                  Headquarters Location
+                  Headquarters City
                 </div>
                 <div className="text-sm sm:text-base font-normal text-soot">
                   {currentUser.city || 'Riyadh, Saudi Arabia'}
+                </div>
+              </div>
+
+              {/* Official Website */}
+              <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 transition-all hover:border-soot/12">
+                <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
+                  <Globe size={13} className="text-moss/80" />
+                  Official Website URL
+                </div>
+                <div className="text-sm sm:text-base font-normal text-soot truncate">
+                  {currentUser.website || 'https://sauditech.sa'}
                 </div>
               </div>
 
@@ -406,7 +455,7 @@ export default function OrgProfile() {
               <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 sm:col-span-2 transition-all hover:border-soot/12">
                 <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
                   <FileText size={13} className="text-moss/80" />
-                  Company Overview
+                  Company Description & Overview
                 </div>
                 <div className="text-sm font-normal text-soot leading-relaxed">
                   {currentUser.orgDescription ||
@@ -414,41 +463,41 @@ export default function OrgProfile() {
                 </div>
               </div>
 
-              {/* Member Since */}
+              {/* Account Member Since */}
               <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 sm:col-span-2 transition-all hover:border-soot/12">
                 <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
                   <Calendar size={13} className="text-moss/80" />
-                  Account Created
+                  Corporate Account Member Since
                 </div>
                 <div className="text-sm font-normal text-soot">
-                  {currentUser.joinDate || 'January 2024'}
+                  {currentUser.joinDate || 'November 2023'}
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Card 3: Team Members Card */}
+          {/* Card 3: Team Roster Overview */}
           <div className="bg-white rounded-3xl border border-soot/8 p-6 sm:p-8 shadow-sm">
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-soot/8 gap-4 flex-wrap">
               <div>
                 <h3 className="text-xl font-normal text-soot" style={{ fontFamily: 'DM Serif Display, serif' }}>
-                  Team Members ({employees.length})
+                  Team Members Roster ({employees.length})
                 </h3>
-                <p className="text-moss text-xs mt-0.5 font-normal">Colleagues with corporate pass booking access</p>
+                <p className="text-moss text-xs mt-0.5 font-normal">Colleagues and team members authorized to book workspaces</p>
               </div>
               <button
                 type="button"
                 onClick={() => setAddEmpModal(true)}
-                className="btn-primary"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#DDE6DF] text-soot hover:bg-[#D0DDD3] text-xs sm:text-sm font-medium transition-all shadow-xs border border-soot/8 cursor-pointer active:scale-98"
               >
                 <Plus size={15} />
-                <span>Add Member</span>
+                <span>Add Team Member</span>
               </button>
             </div>
 
             {employees.length === 0 ? (
               <div className="text-center py-10 text-moss text-sm">
-                No team members added yet. Click &quot;Add Member&quot; to invite colleagues.
+                No team members added yet. Click &quot;Add Team Member&quot; to invite your team.
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -458,23 +507,21 @@ export default function OrgProfile() {
                     className="flex items-center justify-between p-4 rounded-2xl bg-[#F9F8F5] border border-soot/6 hover:border-soot/12 transition-all"
                   >
                     <div className="flex items-center gap-3.5 min-w-0">
-                      <div className="w-10 h-10 rounded-full bg-[#DDE6DF] text-soot flex items-center justify-center text-sm font-medium shrink-0 border border-soot/6">
+                      <div className="w-10 h-10 rounded-2xl bg-white border border-soot/8 flex items-center justify-center font-bold text-xs text-soot shadow-2xs shrink-0">
                         {emp.name.charAt(0)}
                       </div>
                       <div className="min-w-0">
                         <div className="text-sm font-medium text-soot truncate">{emp.name}</div>
-                        <div className="text-xs text-moss truncate">
-                          {emp.department} • {emp.email}
-                        </div>
+                        <div className="text-xs text-moss truncate">{emp.department} · {emp.email}</div>
                       </div>
                     </div>
                     <button
                       type="button"
                       onClick={() => handleRemoveEmployee(emp.id)}
-                      className="p-2 rounded-xl hover:bg-red-50 text-moss hover:text-red-600 transition-colors cursor-pointer shrink-0 ml-2"
+                      className="p-2 text-moss/60 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors cursor-pointer shrink-0 ml-2"
                       title="Remove member"
                     >
-                      <Trash2 size={15} />
+                      <Trash2 size={14} />
                     </button>
                   </div>
                 ))}
@@ -483,21 +530,21 @@ export default function OrgProfile() {
           </div>
         </div>
       ) : (
-        /* Settings Tab */
+        /* Organization Settings Tab */
         <div className="space-y-6">
           {/* Notification Preferences */}
           <div className="bg-white rounded-3xl border border-soot/8 p-6 sm:p-8 shadow-sm">
             <h3 className="text-xl font-normal text-soot mb-1" style={{ fontFamily: 'DM Serif Display, serif' }}>
-              Company Notification Preferences
+              Corporate Notification Preferences
             </h3>
-            <p className="text-moss text-xs mb-6 font-normal">Choose which alerts administrators and team leaders receive</p>
+            <p className="text-moss text-xs mb-6 font-normal">Configure alerts for team reservations, billing summaries, and workspace access</p>
 
             <div className="space-y-4 divide-y divide-soot/6">
               {[
-                { key: 'teamBookings', label: 'Team booking confirmations', desc: 'Receive instant notifications when employees book desks or meeting rooms' },
-                { key: 'monthlyInvoices', label: 'Monthly billing & invoice summaries', desc: 'Centralized consolidated invoice delivery at the end of each billing cycle' },
-                { key: 'spaceAlerts', label: 'Partner network & space alerts', desc: 'Notices regarding partner venue updates, maintenance, and premium rooms' },
-                { key: 'passUsage', label: 'Weekly pass utilization reports', desc: 'Summary report on team attendance and active workspace usage' },
+                { key: 'teamBookings', label: 'Team booking notifications', desc: 'Get notified when an employee reserves desks or meeting rooms' },
+                { key: 'monthlyInvoices', label: 'Monthly billing & VAT invoices', desc: 'Consolidated corporate invoice delivered at the end of each billing cycle' },
+                { key: 'spaceAlerts', label: 'Corporate workspace announcements', desc: 'Alerts regarding new corporate pass venues and enterprise amenities' },
+                { key: 'passUsage', label: 'Individual employee check-in alerts', desc: 'Real-time notifications for every desk badge scan' },
               ].map(item => (
                 <div key={item.key} className="flex items-center justify-between pt-4 first:pt-0">
                   <div className="pr-4">
@@ -527,18 +574,71 @@ export default function OrgProfile() {
             </div>
           </div>
 
-          {/* Access & Central Billing */}
+          {/* Security & Password */}
           <div className="bg-white rounded-3xl border border-soot/8 p-6 sm:p-8 shadow-sm">
             <h3 className="text-xl font-normal text-soot mb-1" style={{ fontFamily: 'DM Serif Display, serif' }}>
-              Enterprise Policies
+              Corporate Security & Password
             </h3>
-            <p className="text-moss text-xs mb-6 font-normal">Control employee booking permissions and billing controls</p>
+            <p className="text-moss text-xs mb-6 font-normal">Update the administrative password for your organization account</p>
+
+            <form onSubmit={handlePasswordChangeSubmit} className="space-y-4 max-w-lg">
+              <div>
+                <label className="block text-xs font-medium text-soot mb-1.5">Current Administrator Password</label>
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={e => setCurrentPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full px-4 py-2.5 rounded-2xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs font-normal"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-soot mb-1.5">New Administrator Password</label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={e => setNewPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full px-4 py-2.5 rounded-2xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs font-normal"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-soot mb-1.5">Confirm New Password</label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full px-4 py-2.5 rounded-2xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs font-normal"
+                />
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#DDE6DF] text-soot hover:bg-[#D0DDD3] text-xs sm:text-sm font-medium transition-all shadow-xs border border-soot/8 cursor-pointer active:scale-98"
+                >
+                  <Lock size={14} />
+                  <span>Update Password</span>
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Corporate Workspace Access & Billing Policies */}
+          <div className="bg-white rounded-3xl border border-soot/8 p-6 sm:p-8 shadow-sm">
+            <h3 className="text-xl font-normal text-soot mb-1" style={{ fontFamily: 'DM Serif Display, serif' }}>
+              Corporate Workspace Policies
+            </h3>
+            <p className="text-moss text-xs mb-6 font-normal">Manage permissions for team reservations and automated billing</p>
 
             <div className="space-y-4">
               <div className="flex items-center justify-between py-2">
                 <div>
-                  <div className="text-sm font-medium text-soot">Self-Service Employee Booking</div>
-                  <div className="text-xs text-moss font-normal">Allow verified employees to directly reserve workspaces using corporate credits</div>
+                  <div className="text-sm font-medium text-soot">Team Self-Booking Permission</div>
+                  <div className="text-xs text-moss font-normal">Allow rostered team members to book hot desks directly under the enterprise pass</div>
                 </div>
                 <button
                   type="button"
@@ -558,7 +658,7 @@ export default function OrgProfile() {
               <div className="flex items-center justify-between py-2 border-t border-soot/6 pt-4">
                 <div>
                   <div className="text-sm font-medium text-soot">Centralized Corporate Billing</div>
-                  <div className="text-xs text-moss font-normal">Consolidate all employee bookings to the organization primary corporate card</div>
+                  <div className="text-xs text-moss font-normal">Automatically charge all team bookings to the primary organization invoice</div>
                 </div>
                 <button
                   type="button"
@@ -583,15 +683,15 @@ export default function OrgProfile() {
               Danger Zone
             </h3>
             <p className="text-moss text-xs mb-6 font-normal">
-              Deleting your organization account will remove all team access, active bookings, and company profiles.
+              Deleting your corporate organization account will immediately terminate all team passes and workspace bookings.
             </p>
             <button
               type="button"
-              onClick={() => showToast('To delete your organization account, please contact enterprise support.', 'error')}
+              onClick={() => showToast('To close your organization account, please contact corporate account management.', 'error')}
               className="btn-danger"
             >
               <AlertCircle size={15} />
-              <span>Delete Organization</span>
+              <span>Delete Organization Account</span>
             </button>
           </div>
         </div>
@@ -605,7 +705,7 @@ export default function OrgProfile() {
         size="lg"
       >
         <form onSubmit={handleSaveProfile} className="space-y-6">
-          {/* Logo Section */}
+          {/* Avatar Section */}
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 p-5 rounded-2xl bg-[#F9F8F5] border border-soot/8">
             <div className="relative shrink-0">
               <UserAvatar
@@ -620,7 +720,7 @@ export default function OrgProfile() {
               <div>
                 <div className="text-sm font-medium text-soot">Company Logo</div>
                 <p className="text-xs text-moss font-normal mt-0.5">
-                  Upload an official company logo or use the default enterprise placeholder.
+                  Upload your corporate brand logo or use the clean default avatar.
                 </p>
               </div>
 
@@ -637,7 +737,7 @@ export default function OrgProfile() {
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="btn-secondary"
+                  className="h-10 px-5 rounded-full bg-[#DDE6DF] text-soot hover:bg-[#D0DDD3] text-xs sm:text-sm font-medium transition-all shadow-xs border border-soot/8 cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap shrink-0"
                 >
                   <Upload size={14} className="shrink-0" />
                   <span>Upload Logo</span>
@@ -647,264 +747,222 @@ export default function OrgProfile() {
                   <button
                     type="button"
                     onClick={handleRemovePhoto}
-                    className="btn-danger"
+                    className="h-10 px-4 rounded-full border border-red-200 text-red-600 hover:bg-red-50 text-xs sm:text-sm font-medium transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0"
                   >
                     <Trash2 size={14} className="shrink-0" />
-                    <span>Reset to Default</span>
+                    <span>Remove</span>
                   </button>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Form Fields with generous spacing and clear distinction */}
-          <div className="space-y-5">
+          {/* Form Fields Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Organization Name */}
             <div>
-              <label className="block text-xs font-medium uppercase tracking-wider text-moss mb-1.5 flex items-center justify-between">
-                <span>Organization Name <span className="text-red-500">*</span></span>
-                <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">Editable</span>
+              <label className="block text-xs font-medium text-soot mb-1.5">
+                Organization Name <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={editOrgName}
                 onChange={e => setEditOrgName(e.target.value)}
-                placeholder="e.g. Saudi Tech Solutions LLC"
-                className={`w-full px-4 py-3 rounded-2xl border text-sm text-soot outline-none transition-all font-normal ${
-                  errors.orgName ? 'border-red-400 bg-red-50/20 focus:ring-2 focus:ring-red-200' : 'border-soot/12 bg-white focus:border-eucalyptus focus:ring-2 focus:ring-eucalyptus/20'
-                }`}
+                placeholder="e.g. Saudi Tech Solutions"
+                className={`w-full px-4 py-3 rounded-2xl border ${
+                  errors.orgName ? 'border-red-400 bg-red-50/20' : 'border-soot/12 bg-white'
+                } text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs font-normal`}
               />
               {errors.orgName && <p className="text-red-500 text-xs mt-1 font-normal">{errors.orgName}</p>}
             </div>
 
-            {/* Industry / Sector & Team Size */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-medium uppercase tracking-wider text-moss mb-1.5 flex items-center justify-between">
-                  <span>Industry / Sector</span>
-                  <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">Editable</span>
-                </label>
-                <input
-                  type="text"
-                  value={editIndustry}
-                  onChange={e => setEditIndustry(e.target.value)}
-                  placeholder="e.g. Technology & Consulting"
-                  className="w-full px-4 py-3 rounded-2xl border border-soot/12 bg-white text-sm text-soot outline-none focus:border-eucalyptus focus:ring-2 focus:ring-eucalyptus/20 font-normal"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium uppercase tracking-wider text-moss mb-1.5 flex items-center justify-between">
-                  <span>Total Team Size</span>
-                  <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">Editable</span>
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={editOrgSize}
-                  onChange={e => setEditOrgSize(e.target.value)}
-                  placeholder="e.g. 50"
-                  className="w-full px-4 py-3 rounded-2xl border border-soot/12 bg-white text-sm text-soot outline-none focus:border-eucalyptus focus:ring-2 focus:ring-eucalyptus/20 font-normal"
-                />
-              </div>
+            {/* Industry */}
+            <div>
+              <label className="block text-xs font-medium text-soot mb-1.5">
+                Industry & Sector
+              </label>
+              <input
+                type="text"
+                value={editIndustry}
+                onChange={e => setEditIndustry(e.target.value)}
+                placeholder="e.g. Technology & Digital Solutions"
+                className="w-full px-4 py-3 rounded-2xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs font-normal"
+              />
             </div>
 
-            {/* Official Email Address (Non-Editable / Read-Only with distinction) */}
+            {/* Registered Email (Disabled) */}
             <div>
-              <label className="block text-xs font-medium uppercase tracking-wider text-moss mb-1.5 flex items-center justify-between">
-                <span className="flex items-center gap-1.5">
-                  <Mail size={12} />
-                  <span>Admin Contact Email</span>
-                </span>
-                <span className="text-[10px] text-moss/80 bg-soot/5 px-2 py-0.5 rounded-full flex items-center gap-1">
-                  <Lock size={10} /> Read-only
-                </span>
+              <label className="block text-xs font-medium text-soot mb-1.5">
+                Corporate Billing Email
               </label>
               <input
                 type="email"
                 value={currentUser.email}
                 disabled
-                className="w-full px-4 py-3 rounded-2xl border border-soot/8 bg-soot/5 text-moss text-sm cursor-not-allowed font-normal"
+                className="w-full px-4 py-3 rounded-2xl border border-soot/8 bg-soot/5 text-moss text-sm cursor-not-allowed shadow-2xs font-normal"
               />
             </div>
 
-            {/* Phone Number & Website */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-medium uppercase tracking-wider text-moss mb-1.5 flex items-center justify-between">
-                  <span>Phone Number</span>
-                  <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">Editable</span>
-                </label>
-                <input
-                  type="tel"
-                  value={editPhone}
-                  onChange={e => setEditPhone(e.target.value)}
-                  placeholder="+966 56 456 7890"
-                  className="w-full px-4 py-3 rounded-2xl border border-soot/12 bg-white text-sm text-soot outline-none focus:border-eucalyptus focus:ring-2 focus:ring-eucalyptus/20 font-normal"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium uppercase tracking-wider text-moss mb-1.5 flex items-center justify-between">
-                  <span>Company Website</span>
-                  <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">Editable</span>
-                </label>
-                <input
-                  type="url"
-                  value={editWebsite}
-                  onChange={e => setEditWebsite(e.target.value)}
-                  placeholder="https://sauditech.sa"
-                  className="w-full px-4 py-3 rounded-2xl border border-soot/12 bg-white text-sm text-soot outline-none focus:border-eucalyptus focus:ring-2 focus:ring-eucalyptus/20 font-normal"
-                />
-              </div>
-            </div>
-
-            {/* Commercial Registration (CR) & Location */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-medium uppercase tracking-wider text-moss mb-1.5 flex items-center justify-between">
-                  <span>CR / Registration Number</span>
-                  <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">Editable</span>
-                </label>
-                <input
-                  type="text"
-                  value={editCrNumber}
-                  onChange={e => setEditCrNumber(e.target.value)}
-                  placeholder="1010874921"
-                  className="w-full px-4 py-3 rounded-2xl border border-soot/12 bg-white text-sm text-soot outline-none focus:border-eucalyptus focus:ring-2 focus:ring-eucalyptus/20 font-normal"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium uppercase tracking-wider text-moss mb-1.5 flex items-center justify-between">
-                  <span>Headquarters Location</span>
-                  <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">Editable</span>
-                </label>
-                <input
-                  type="text"
-                  value={editCity}
-                  onChange={e => setEditCity(e.target.value)}
-                  placeholder="Riyadh, Saudi Arabia"
-                  className="w-full px-4 py-3 rounded-2xl border border-soot/12 bg-white text-sm text-soot outline-none focus:border-eucalyptus focus:ring-2 focus:ring-eucalyptus/20 font-normal"
-                />
-              </div>
-            </div>
-
-            {/* Role / Account Type (Non-Editable distinction) */}
+            {/* Phone Number */}
             <div>
-              <label className="block text-xs font-medium uppercase tracking-wider text-moss mb-1.5 flex items-center justify-between">
-                <span className="flex items-center gap-1.5">
-                  <Shield size={12} />
-                  <span>Account Role</span>
-                </span>
-                <span className="text-[10px] text-moss/80 bg-soot/5 px-2 py-0.5 rounded-full flex items-center gap-1">
-                  <Lock size={10} /> Read-only
-                </span>
+              <label className="block text-xs font-medium text-soot mb-1.5">
+                Contact Phone Number
               </label>
               <input
                 type="text"
-                value="Organization Account"
-                disabled
-                className="w-full px-4 py-3 rounded-2xl border border-soot/8 bg-soot/5 text-moss text-sm cursor-not-allowed font-normal"
+                value={editPhone}
+                onChange={e => setEditPhone(e.target.value)}
+                placeholder="+966 56 456 7890"
+                className="w-full px-4 py-3 rounded-2xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs font-normal"
               />
             </div>
 
-            {/* Company Overview / Bio */}
+            {/* CR Number */}
             <div>
-              <label className="block text-xs font-medium uppercase tracking-wider text-moss mb-1.5 flex items-center justify-between">
-                <span>Company Overview</span>
-                <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">Editable</span>
+              <label className="block text-xs font-medium text-soot mb-1.5">
+                Commercial Registration (CR)
+              </label>
+              <input
+                type="text"
+                value={editCrNumber}
+                onChange={e => setEditCrNumber(e.target.value)}
+                placeholder="1010874921"
+                className="w-full px-4 py-3 rounded-2xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs font-normal"
+              />
+            </div>
+
+            {/* Organization Size */}
+            <div>
+              <label className="block text-xs font-medium text-soot mb-1.5">
+                Team Size (Employees)
+              </label>
+              <input
+                type="number"
+                min="1"
+                value={editOrgSize}
+                onChange={e => setEditOrgSize(e.target.value)}
+                placeholder="15"
+                className="w-full px-4 py-3 rounded-2xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs font-normal"
+              />
+            </div>
+
+            {/* HQ City */}
+            <div>
+              <label className="block text-xs font-medium text-soot mb-1.5">
+                Headquarters City
+              </label>
+              <input
+                type="text"
+                value={editCity}
+                onChange={e => setEditCity(e.target.value)}
+                placeholder="Riyadh, Saudi Arabia"
+                className="w-full px-4 py-3 rounded-2xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs font-normal"
+              />
+            </div>
+
+            {/* Official Website */}
+            <div>
+              <label className="block text-xs font-medium text-soot mb-1.5">
+                Official Website
+              </label>
+              <input
+                type="text"
+                value={editWebsite}
+                onChange={e => setEditWebsite(e.target.value)}
+                placeholder="https://sauditech.sa"
+                className="w-full px-4 py-3 rounded-2xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs font-normal"
+              />
+            </div>
+
+            {/* Company Description */}
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-medium text-soot mb-1.5">
+                Company Description & Overview
               </label>
               <textarea
                 value={editOrgDescription}
                 onChange={e => setEditOrgDescription(e.target.value)}
                 rows={3}
-                placeholder="A brief overview about your company and operations..."
-                className="w-full px-4 py-3 rounded-2xl border border-soot/12 bg-white text-sm text-soot outline-none focus:border-eucalyptus focus:ring-2 focus:ring-eucalyptus/20 font-normal resize-none"
+                placeholder="Briefly describe your company's core operations and workspace requirements..."
+                className="w-full px-4 py-3 rounded-2xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs resize-none font-normal"
               />
             </div>
           </div>
 
-          {/* Modal Actions: Same sizes, matching heights, consistent gaps, and no text wrapping */}
-          <div className="flex items-center gap-4 pt-4 border-t border-soot/8">
+          {/* Modal Actions */}
+          <div className="flex items-center justify-end gap-3 pt-5 border-t border-soot/8">
             <button
               type="button"
               onClick={() => setIsEditModalOpen(false)}
-              className="btn-secondary flex-1"
+              className="px-6 py-3 rounded-full border border-soot/15 text-soot text-xs sm:text-sm font-medium hover:bg-soot/5 transition-all bg-white cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSaving}
-              className="btn-primary flex-1 disabled:opacity-60"
+              className="px-7 py-3 rounded-full bg-[#DDE6DF] text-soot hover:bg-[#D0DDD3] text-xs sm:text-sm font-medium transition-all shadow-xs border border-soot/8 cursor-pointer disabled:opacity-50 active:scale-98"
             >
-              {isSaving ? (
-                <span>Saving...</span>
-              ) : (
-                <>
-                  <Check size={16} className="shrink-0" />
-                  <span>Save Changes</span>
-                </>
-              )}
+              {isSaving ? 'Saving...' : 'Save Changes'}
             </button>
           </div>
         </form>
       </Modal>
 
-      {/* Add Team Member Modal */}
-      <Modal open={addEmpModal} onClose={() => setAddEmpModal(false)} title="Add Team Member" size="md">
+      {/* Add Employee Modal */}
+      <Modal
+        open={addEmpModal}
+        onClose={() => setAddEmpModal(false)}
+        title="Add Team Member"
+        size="md"
+      >
         <form onSubmit={handleAddEmployee} className="space-y-4">
           <div>
-            <label className="block text-xs font-medium uppercase tracking-wider text-moss mb-1.5">
-              Full Name <span className="text-red-500">*</span>
-            </label>
+            <label className="block text-xs font-medium text-soot mb-1.5">Full Name</label>
             <input
               type="text"
               value={newEmp.name}
-              onChange={e => setNewEmp(prev => ({ ...prev, name: e.target.value }))}
-              placeholder="e.g. Fahad Al-Dosari"
-              className="w-full px-4 py-3 rounded-2xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-eucalyptus font-normal"
+              onChange={e => setNewEmp(p => ({ ...p, name: e.target.value }))}
+              placeholder="e.g. Sara Al-Ghamdi"
+              className="w-full px-4 py-2.5 rounded-2xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-soot"
             />
           </div>
+
           <div>
-            <label className="block text-xs font-medium uppercase tracking-wider text-moss mb-1.5">
-              Email Address <span className="text-red-500">*</span>
-            </label>
+            <label className="block text-xs font-medium text-soot mb-1.5">Corporate Email</label>
             <input
               type="email"
               value={newEmp.email}
-              onChange={e => setNewEmp(prev => ({ ...prev, email: e.target.value }))}
-              placeholder="e.g. fahad@sauditech.sa"
-              className="w-full px-4 py-3 rounded-2xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-eucalyptus font-normal"
+              onChange={e => setNewEmp(p => ({ ...p, email: e.target.value }))}
+              placeholder="sara@sauditech.sa"
+              className="w-full px-4 py-2.5 rounded-2xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-soot"
             />
           </div>
+
           <div>
-            <label className="block text-xs font-medium uppercase tracking-wider text-moss mb-1.5">
-              Department
-            </label>
+            <label className="block text-xs font-medium text-soot mb-1.5">Department / Role</label>
             <input
               type="text"
               value={newEmp.department}
-              onChange={e => setNewEmp(prev => ({ ...prev, department: e.target.value }))}
+              onChange={e => setNewEmp(p => ({ ...p, department: e.target.value }))}
               placeholder="e.g. Engineering, Design, Operations"
-              className="w-full px-4 py-3 rounded-2xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-eucalyptus font-normal"
+              className="w-full px-4 py-2.5 rounded-2xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-soot"
             />
           </div>
-          <div className="flex items-center gap-4 pt-4 border-t border-soot/8">
+
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-soot/8">
             <button
               type="button"
               onClick={() => setAddEmpModal(false)}
-              className="btn-secondary flex-1"
+              className="px-5 py-2.5 rounded-full border border-soot/15 text-soot text-xs font-medium hover:bg-soot/5 bg-white cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="btn-primary flex-1"
+              className="px-6 py-2.5 rounded-full bg-[#DDE6DF] text-soot hover:bg-[#D0DDD3] text-xs font-medium shadow-xs border border-soot/8 cursor-pointer"
             >
-              <Plus size={16} />
-              <span>Add Member</span>
+              Add Member
             </button>
           </div>
         </form>
