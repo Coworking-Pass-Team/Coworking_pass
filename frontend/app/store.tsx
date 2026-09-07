@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, Space, Booking, Screen, NavState, UserRole, BookingType, PaymentCard, Notification, CartItem, AmenityRequest, AmenityRequestStatus, calculateEndDate, isCancellationRefundEligible, getBookingPrice } from '@/types/types';
+import { User, Space, Booking, Screen, NavState, UserRole, BookingType, PaymentCard, Notification, CartItem, AmenityRequest, AmenityRequestStatus, calculateEndDate, isCancellationRefundEligible, getBookingPrice, OtpSession } from '@/types/types';
 import { INITIAL_SPACES, INITIAL_USERS, INITIAL_BOOKINGS, INITIAL_NOTIFICATIONS } from '@/data/data';
 
 interface AppContextType {
@@ -10,11 +10,17 @@ interface AppContextType {
   navigate: (screen: Screen, params?: Record<string, any>) => void;
   goBack: () => void;
 
-  // Auth
+  // Auth & 2FA OTP
   currentUser: User | null;
-  login: (email: string, password: string) => { success: boolean; error?: string };
+  otpSession: OtpSession | null;
+  login: (email: string, password: string) => { success: boolean; error?: string; requireOtp?: boolean };
   signup: (name: string, email: string, password: string, phone: string) => User;
+  requestSignupOtp: (newUser: User, role: UserRole, extraData?: Partial<User>) => void;
   completeSignup: (role: UserRole, extraData?: Partial<User>) => void;
+  verifyOtp: (code: string) => { success: boolean; error?: string };
+  resendOtp: () => void;
+  cancelOtp: () => void;
+  startOtpVerification: (session: OtpSession) => void;
   logout: () => void;
   setPendingUser: (user: Partial<User>) => void;
   pendingUser: Partial<User> | null;
@@ -96,6 +102,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [history, setHistory] = useState<NavState[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [pendingUser, setPendingUser] = useState<Partial<User> | null>(null);
+  const [otpSession, setOtpSession] = useState<OtpSession | null>(null);
   const [spaces, setSpaces] = useState<Space[]>(INITIAL_SPACES);
   const [bookings, setBookings] = useState<Booking[]>(INITIAL_BOOKINGS);
   const [users, setUsers] = useState<User[]>(INITIAL_USERS);
@@ -277,6 +284,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setTimeout(() => setToast(null), 3500);
   };
 
+  const startOtpVerification = (session: OtpSession) => {
+    setOtpSession(session);
+    navigate('otp-verify');
+  };
+
   const login = (email: string, password: string) => {
     let user = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
     if (!user) {
@@ -284,15 +296,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
     if (!user) return { success: false, error: 'Invalid email or password. Please try again.' };
     if (user.isBlocked) return { success: false, error: 'Your account has been suspended. Please contact support.' };
-    setCurrentUser(user);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('cp_currentUser', JSON.stringify(user));
-    }
-    if (user.role === 'admin') navigate('admin-dashboard');
-    else if (user.role === 'organization') navigate('org-dashboard');
-    else if (user.role === 'provider') navigate('provider-dashboard');
-    else navigate('ind-dashboard');
-    return { success: true };
+
+    const session: OtpSession = {
+      user,
+      targetEmailOrPhone: user.email || email,
+      mode: 'login',
+      role: user.role,
+      demoCode: '123456',
+    };
+    setOtpSession(session);
+    navigate('otp-verify');
+    showToast(`Verification code sent to ${user.email}`, 'info');
+    return { success: true, requireOtp: true };
   };
 
   const signup = (name: string, email: string, password: string, phone: string) => {
@@ -319,6 +334,80 @@ export function AppProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('cp_users', JSON.stringify(updatedUsers));
     }
     return newUser;
+  };
+
+  const requestSignupOtp = (newUser: User, role: UserRole, extraData?: Partial<User>) => {
+    const session: OtpSession = {
+      user: newUser,
+      targetEmailOrPhone: newUser.email || newUser.phone,
+      mode: 'signup',
+      role,
+      extraData,
+      demoCode: '123456',
+    };
+    setOtpSession(session);
+    navigate('otp-verify');
+    showToast(`Verification code sent to ${newUser.email || newUser.phone}`, 'info');
+  };
+
+  const verifyOtp = (code: string) => {
+    if (!otpSession) {
+      return { success: false, error: 'No active verification session. Please sign in again.' };
+    }
+    const cleanCode = code.trim();
+    if (cleanCode.length !== 6 || !/^\d{6}$/.test(cleanCode)) {
+      return { success: false, error: 'Please enter a valid 6-digit verification code.' };
+    }
+
+    if (otpSession.mode === 'login') {
+      const user = otpSession.user;
+      setCurrentUser(user);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('cp_currentUser', JSON.stringify(user));
+      }
+      setOtpSession(null);
+      if (user.role === 'admin') navigate('admin-dashboard');
+      else if (user.role === 'organization') navigate('org-dashboard');
+      else if (user.role === 'provider') navigate('provider-dashboard');
+      else navigate('ind-dashboard');
+      showToast(`Welcome back, ${user.name}!`, 'success');
+      return { success: true };
+    }
+
+    // signup mode
+    const updated: User = {
+      ...otpSession.user,
+      role: otpSession.role || 'individual',
+      avatar: otpSession.user.avatar || '',
+      ...(otpSession.extraData || {}),
+    };
+    const updatedUsers = users.some(u => u.id === updated.id)
+      ? users.map(u => u.id === updated.id ? updated : u)
+      : [...users, updated];
+    setUsers(updatedUsers);
+    setCurrentUser(updated);
+    setPendingUser(null);
+    setOtpSession(null);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cp_currentUser', JSON.stringify(updated));
+      localStorage.setItem('cp_users', JSON.stringify(updatedUsers));
+    }
+    if (updated.role === 'organization') navigate('org-dashboard');
+    else if (updated.role === 'provider') navigate('provider-dashboard');
+    else navigate('ind-dashboard');
+    showToast(`Account verified! Welcome to Coworking Pass, ${updated.name}!`, 'success');
+    return { success: true };
+  };
+
+  const resendOtp = () => {
+    if (!otpSession) return;
+    showToast(`New verification code sent to ${otpSession.targetEmailOrPhone}`, 'info');
+  };
+
+  const cancelOtp = () => {
+    const prevMode = otpSession?.mode || 'login';
+    setOtpSession(null);
+    navigate(prevMode === 'signup' ? 'signup' : 'login');
   };
 
   const completeSignup = (role: UserRole, extraData?: Partial<User>) => {
@@ -1021,6 +1110,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       cart, addToCart, removeFromCart, updateCartItemSeats, updateCartItem, clearCart, checkoutCart,
       applyLoyaltyDiscount,
       toast, showToast, updateCurrentUser, completeSignup,
+      otpSession, startOtpVerification, requestSignupOtp, verifyOtp, resendOtp, cancelOtp,
     }}>
       {children}
     </AppContext.Provider>

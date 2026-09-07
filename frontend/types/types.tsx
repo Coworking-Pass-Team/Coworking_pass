@@ -820,6 +820,7 @@ export type Screen =
   | 'signup'
   | 'choose-type'
   | 'forgot-password'
+  | 'otp-verify'
   | 'ind-dashboard'
   | 'booking-flow'
   | 'booking-confirm'
@@ -855,6 +856,17 @@ export type Screen =
   | 'privacy-policy'
   | 'terms-of-service'
   | 'legal';
+
+export interface OtpSession {
+  user: User;
+  targetEmailOrPhone: string;
+  mode: 'login' | 'signup';
+  role?: UserRole;
+  extraData?: Partial<User>;
+  demoCode?: string;
+  destinationScreen?: Screen;
+  destinationParams?: Record<string, any>;
+}
 
 export interface NavState {
   screen: Screen;
