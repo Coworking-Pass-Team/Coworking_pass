@@ -69,6 +69,7 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordSaved, setPasswordSaved] = useState(false);
+  const [passwordErrors, setPasswordErrors] = useState<Record<string, string>>({});
 
   // Notifications & Privacy Settings
   const [notifications, setNotifications] = useState({
@@ -182,23 +183,21 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
 
   const handlePasswordChangeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentPassword) {
-      showToast('Please enter your current password', 'error');
-      return;
-    }
-    if (newPassword.length < 6) {
-      showToast('New password must be at least 6 characters', 'error');
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      showToast('New passwords do not match', 'error');
-      return;
-    }
+    const pErrs: Record<string, string> = {};
+    if (!currentPassword) pErrs.current = 'Current password is required';
+    if (!newPassword) pErrs.new = 'New password is required';
+    else if (newPassword.length < 6) pErrs.new = 'New password must be at least 6 characters';
+    if (!confirmPassword) pErrs.confirm = 'Please confirm your new password';
+    else if (newPassword && newPassword !== confirmPassword) pErrs.confirm = 'New passwords do not match';
+
+    setPasswordErrors(pErrs);
+    if (Object.keys(pErrs).length > 0) return;
 
     setPasswordSaved(true);
     setCurrentPassword('');
     setNewPassword('');
     setConfirmPassword('');
+    setPasswordErrors({});
     showToast('Security password updated successfully!', 'success');
     setTimeout(() => setPasswordSaved(false), 3000);
   };
@@ -546,36 +545,72 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
 
             <form onSubmit={handlePasswordChangeSubmit} className="space-y-4 max-w-lg">
               <div>
-                <label className="block text-xs font-medium text-soot mb-1.5">Current Password</label>
+                <label className="block text-xs font-medium text-soot mb-1.5">
+                  Current Password <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="password"
                   value={currentPassword}
-                  onChange={e => setCurrentPassword(e.target.value)}
+                  onChange={e => {
+                    setCurrentPassword(e.target.value);
+                    if (passwordErrors.current) setPasswordErrors(p => ({ ...p, current: '' }));
+                  }}
                   placeholder="••••••••"
-                  className="w-full px-4 py-2.5 rounded-2xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs font-normal"
+                  className={`w-full px-4 py-2.5 rounded-2xl border ${
+                    passwordErrors.current ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/20' : 'border-soot/12 bg-white'
+                  } text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs font-normal`}
                 />
+                {passwordErrors.current && (
+                  <p className="text-rose-600 text-xs mt-1 font-medium flex items-center gap-1">
+                    <span>*</span> {passwordErrors.current}
+                  </p>
+                )}
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-soot mb-1.5">New Password</label>
+                <label className="block text-xs font-medium text-soot mb-1.5">
+                  New Password <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="password"
                   value={newPassword}
-                  onChange={e => setNewPassword(e.target.value)}
+                  onChange={e => {
+                    setNewPassword(e.target.value);
+                    if (passwordErrors.new) setPasswordErrors(p => ({ ...p, new: '' }));
+                  }}
                   placeholder="••••••••"
-                  className="w-full px-4 py-2.5 rounded-2xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs font-normal"
+                  className={`w-full px-4 py-2.5 rounded-2xl border ${
+                    passwordErrors.new ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/20' : 'border-soot/12 bg-white'
+                  } text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs font-normal`}
                 />
+                {passwordErrors.new && (
+                  <p className="text-rose-600 text-xs mt-1 font-medium flex items-center gap-1">
+                    <span>*</span> {passwordErrors.new}
+                  </p>
+                )}
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-soot mb-1.5">Confirm New Password</label>
+                <label className="block text-xs font-medium text-soot mb-1.5">
+                  Confirm New Password <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="password"
                   value={confirmPassword}
-                  onChange={e => setConfirmPassword(e.target.value)}
+                  onChange={e => {
+                    setConfirmPassword(e.target.value);
+                    if (passwordErrors.confirm) setPasswordErrors(p => ({ ...p, confirm: '' }));
+                  }}
                   placeholder="••••••••"
-                  className="w-full px-4 py-2.5 rounded-2xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs font-normal"
+                  className={`w-full px-4 py-2.5 rounded-2xl border ${
+                    passwordErrors.confirm ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/20' : 'border-soot/12 bg-white'
+                  } text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs font-normal`}
                 />
+                {passwordErrors.confirm && (
+                  <p className="text-rose-600 text-xs mt-1 font-medium flex items-center gap-1">
+                    <span>*</span> {passwordErrors.confirm}
+                  </p>
+                )}
               </div>
 
               <div className="pt-2">

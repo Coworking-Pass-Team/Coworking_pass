@@ -67,7 +67,7 @@ export default function Browse() {
   const [categoryFilter, setCategoryFilter] = useState<'all' | SpaceCategory>(initialCategory);
   const [city, setCity] = useState(initialCity === 'All Cities' ? '' : initialCity);
   const [spaceType, setSpaceType] = useState('all');
-  const [maxPrice, setMaxPrice] = useState(1000);
+  const [maxPrice, setMaxPrice] = useState(5000);
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
   const [sort, setSort] = useState('Recommended');
   const [showFilters, setShowFilters] = useState(false);
@@ -147,13 +147,13 @@ export default function Browse() {
     setCategoryFilter('all');
     setCity('');
     setSpaceType('all');
-    setMaxPrice(1000);
+    setMaxPrice(5000);
     setSelectedAmenities([]);
     setAvailableOnly(false);
   };
 
   const hasActiveFilters = Boolean(
-    query || categoryFilter !== 'all' || city || spaceType !== 'all' || maxPrice < 1000 || selectedAmenities.length > 0 || availableOnly
+    query || categoryFilter !== 'all' || city || spaceType !== 'all' || maxPrice < 5000 || selectedAmenities.length > 0 || availableOnly
   );
 
   const toggleAmenity = (a: string) => {
@@ -408,7 +408,7 @@ export default function Browse() {
                 <input
                   type="range"
                   min={50}
-                  max={3000}
+                  max={5000}
                   step={50}
                   value={maxPrice}
                   onChange={e => setMaxPrice(+e.target.value)}
@@ -416,7 +416,7 @@ export default function Browse() {
                 />
                 <div className="flex justify-between text-[11px] text-moss mt-2 font-medium">
                   <span>SAR 50</span>
-                  <span>SAR 3,000</span>
+                  <span>SAR 5,000</span>
                 </div>
               </div>
 

@@ -9,9 +9,21 @@ export default function Contact() {
   const [email, setEmail] = useState('');
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const errs: Record<string, string> = {};
+    if (!name.trim()) errs.name = 'Your name is required';
+    if (!email.trim()) errs.email = 'Email address is required';
+    if (!subject.trim()) errs.subject = 'Subject is required';
+    if (!message.trim()) errs.message = 'Message is required';
+
+    if (Object.keys(errs).length > 0) {
+      setFieldErrors(errs);
+      return;
+    }
+    setFieldErrors({});
     setSubmitted(true);
   };
 
@@ -128,75 +140,79 @@ export default function Contact() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-soot mb-1.5 uppercase tracking-wider">
-                    Your Name *
+                    Your Name <span className="text-rose-600">*</span>
                   </label>
                   <input
                     type="text"
                     value={name}
-                    onChange={e => setName(e.target.value)}
-                    placeholder="Mohammed Al-Faisal"
-                    required
-                    style={{
-                      backgroundColor: 'var(--plaster-dark, #F9F8F5)',
-                      borderColor: 'var(--border, rgba(45, 53, 54, 0.15))',
+                    onChange={e => {
+                      setName(e.target.value);
+                      if (fieldErrors.name) setFieldErrors(errs => ({ ...errs, name: '' }));
                     }}
-                    className="w-full px-4 py-3 rounded-xl border text-soot text-sm placeholder:text-moss/60 focus:outline-none focus:ring-2 focus:ring-eucalyptus/40 transition-all shadow-xs"
+                    placeholder="Mohammed Al-Faisal"
+                    className={`w-full px-4 py-3 rounded-xl border text-soot text-sm placeholder:text-moss/60 focus:outline-none transition-all shadow-xs ${
+                      fieldErrors.name ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/20' : 'border-soot/15 focus:ring-2 focus:ring-eucalyptus/40 bg-plaster-dark/30'
+                    }`}
                   />
+                  {fieldErrors.name && <p className="text-xs text-rose-600 font-medium mt-1">* {fieldErrors.name}</p>}
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-soot mb-1.5 uppercase tracking-wider">
-                    Email Address *
+                    Email Address <span className="text-rose-600">*</span>
                   </label>
                   <input
                     type="email"
                     value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    placeholder="name@company.com"
-                    required
-                    style={{
-                      backgroundColor: 'var(--plaster-dark, #F9F8F5)',
-                      borderColor: 'var(--border, rgba(45, 53, 54, 0.15))',
+                    onChange={e => {
+                      setEmail(e.target.value);
+                      if (fieldErrors.email) setFieldErrors(errs => ({ ...errs, email: '' }));
                     }}
-                    className="w-full px-4 py-3 rounded-xl border text-soot text-sm placeholder:text-moss/60 focus:outline-none focus:ring-2 focus:ring-eucalyptus/40 transition-all shadow-xs"
+                    placeholder="name@company.com"
+                    className={`w-full px-4 py-3 rounded-xl border text-soot text-sm placeholder:text-moss/60 focus:outline-none transition-all shadow-xs ${
+                      fieldErrors.email ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/20' : 'border-soot/15 focus:ring-2 focus:ring-eucalyptus/40 bg-plaster-dark/30'
+                    }`}
                   />
+                  {fieldErrors.email && <p className="text-xs text-rose-600 font-medium mt-1">* {fieldErrors.email}</p>}
                 </div>
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-soot mb-1.5 uppercase tracking-wider">
-                  Subject *
+                  Subject <span className="text-rose-600">*</span>
                 </label>
                 <input
                   type="text"
                   value={subject}
-                  onChange={e => setSubject(e.target.value)}
-                  placeholder="How can we help you?"
-                  required
-                  style={{
-                    backgroundColor: 'var(--plaster-dark, #F9F8F5)',
-                    borderColor: 'var(--border, rgba(45, 53, 54, 0.15))',
+                  onChange={e => {
+                    setSubject(e.target.value);
+                    if (fieldErrors.subject) setFieldErrors(errs => ({ ...errs, subject: '' }));
                   }}
-                  className="w-full px-4 py-3 rounded-xl border text-soot text-sm placeholder:text-moss/60 focus:outline-none focus:ring-2 focus:ring-eucalyptus/40 transition-all shadow-xs"
+                  placeholder="How can we help you?"
+                  className={`w-full px-4 py-3 rounded-xl border text-soot text-sm placeholder:text-moss/60 focus:outline-none transition-all shadow-xs ${
+                    fieldErrors.subject ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/20' : 'border-soot/15 focus:ring-2 focus:ring-eucalyptus/40 bg-plaster-dark/30'
+                  }`}
                 />
+                {fieldErrors.subject && <p className="text-xs text-rose-600 font-medium mt-1">* {fieldErrors.subject}</p>}
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-soot mb-1.5 uppercase tracking-wider">
-                  Message *
+                  Message <span className="text-rose-600">*</span>
                 </label>
                 <textarea
                   rows={5}
                   value={message}
-                  onChange={e => setMessage(e.target.value)}
-                  placeholder="Provide details about your inquiry..."
-                  required
-                  style={{
-                    backgroundColor: 'var(--plaster-dark, #F9F8F5)',
-                    borderColor: 'var(--border, rgba(45, 53, 54, 0.15))',
+                  onChange={e => {
+                    setMessage(e.target.value);
+                    if (fieldErrors.message) setFieldErrors(errs => ({ ...errs, message: '' }));
                   }}
-                  className="w-full px-4 py-3 rounded-xl border text-soot text-sm placeholder:text-moss/60 focus:outline-none focus:ring-2 focus:ring-eucalyptus/40 transition-all shadow-xs resize-y"
+                  placeholder="Provide details about your inquiry..."
+                  className={`w-full px-4 py-3 rounded-xl border text-soot text-sm placeholder:text-moss/60 focus:outline-none transition-all shadow-xs resize-y ${
+                    fieldErrors.message ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/20' : 'border-soot/15 focus:ring-2 focus:ring-eucalyptus/40 bg-plaster-dark/30'
+                  }`}
                 />
+                {fieldErrors.message && <p className="text-xs text-rose-600 font-medium mt-1">* {fieldErrors.message}</p>}
               </div>
 
               {/* Form Submit Action */}

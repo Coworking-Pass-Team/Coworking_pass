@@ -113,6 +113,7 @@ export default function SpacesAdmin() {
   const [editingSpace, setEditingSpace] = useState<Space | null>(null);
   const [spaceToDelete, setSpaceToDelete] = useState<Space | null>(null);
   const [form, setForm] = useState<Partial<Space>>(emptyForm());
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -228,7 +229,17 @@ export default function SpacesAdmin() {
   };
 
   const handleSave = () => {
-    if (!form.name || !form.city || !form.address) return;
+    const errs: Record<string, string> = {};
+    if (!form.name || !form.name.trim()) errs.name = 'Workspace name is required.';
+    if (!form.city || !form.city.trim()) errs.city = 'City selection is required.';
+    if (!form.address || !form.address.trim()) errs.address = 'Full address is required.';
+
+    if (Object.keys(errs).length > 0) {
+      setFormErrors(errs);
+      return;
+    }
+    setFormErrors({});
+
     if (editingSpace) {
       updateSpace(editingSpace.id, form as Space);
     } else {
@@ -880,6 +891,13 @@ export default function SpacesAdmin() {
                 </div>
               )}
 
+              {Object.keys(formErrors).length > 0 && (
+                <div className="bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold rounded-2xl p-3.5 flex items-center gap-2">
+                  <AlertCircle size={16} className="text-rose-600 shrink-0" />
+                  <span>Please complete all required fields highlighted in red below.</span>
+                </div>
+              )}
+
               <div className="space-y-4">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-moss block border-b border-soot/10 pb-1.5">
                   General Details
@@ -887,23 +905,35 @@ export default function SpacesAdmin() {
 
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-soot mb-1.5">Space Name *</label>
+                    <label className="block text-xs font-semibold text-soot mb-1.5">
+                      Space Name <span className="text-rose-600">*</span>
+                    </label>
                     <input
                       type="text"
                       value={form.name || ''}
-                      onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+                      onChange={(e) => {
+                        setForm((p) => ({ ...p, name: e.target.value }));
+                        if (formErrors.name) setFormErrors((errs) => ({ ...errs, name: '' }));
+                      }}
                       placeholder="e.g. Olaya Hub"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-soot/15 bg-white text-soot text-sm placeholder:text-moss/60 outline-none focus:border-soot transition-all shadow-2xs"
+                      className={`w-full px-3.5 py-2.5 rounded-xl border bg-white text-soot text-sm placeholder:text-moss/60 outline-none transition-all shadow-2xs ${
+                        formErrors.name ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-soot/15 focus:border-soot'
+                      }`}
                     />
+                    {formErrors.name && <p className="text-xs text-rose-600 font-medium mt-1">* {formErrors.name}</p>}
                   </div>
 
                   {/* Custom Styled City Dropdown */}
                   <div className="relative" ref={modalCityRef}>
-                    <label className="block text-xs font-semibold text-soot mb-1.5">City *</label>
+                    <label className="block text-xs font-semibold text-soot mb-1.5">
+                      City <span className="text-rose-600">*</span>
+                    </label>
                     <button
                       type="button"
                       onClick={() => setModalCityOpen(!modalCityOpen)}
-                      className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border border-soot/12 bg-white text-soot text-sm font-medium text-left transition-all duration-200 cursor-pointer focus:outline-none shadow-2xs"
+                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border bg-white text-soot text-sm font-medium text-left transition-all duration-200 cursor-pointer focus:outline-none shadow-2xs ${
+                        formErrors.city ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-soot/12'
+                      }`}
                     >
                       <span className="truncate">{form.city || 'Select City'}</span>
                       <ChevronDown
@@ -913,6 +943,7 @@ export default function SpacesAdmin() {
                         }`}
                       />
                     </button>
+                    {formErrors.city && <p className="text-xs text-rose-600 font-medium mt-1">* {formErrors.city}</p>}
 
                     {modalCityOpen && (
                       <div className="absolute top-full left-0 right-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100 max-h-52 overflow-y-auto">
@@ -925,6 +956,7 @@ export default function SpacesAdmin() {
                                 type="button"
                                 onClick={() => {
                                   setForm((p) => ({ ...p, city: c }));
+                                  if (formErrors.city) setFormErrors((errs) => ({ ...errs, city: '' }));
                                   setModalCityOpen(false);
                                 }}
                                 className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-sm font-medium transition-colors text-left cursor-pointer ${
@@ -944,14 +976,22 @@ export default function SpacesAdmin() {
                   </div>
 
                   <div className="sm:col-span-2">
-                    <label className="block text-xs font-semibold text-soot mb-1.5">Full Address *</label>
+                    <label className="block text-xs font-semibold text-soot mb-1.5">
+                      Full Address <span className="text-rose-600">*</span>
+                    </label>
                     <input
                       type="text"
                       value={form.address || ''}
-                      onChange={(e) => setForm((p) => ({ ...p, address: e.target.value }))}
+                      onChange={(e) => {
+                        setForm((p) => ({ ...p, address: e.target.value }));
+                        if (formErrors.address) setFormErrors((errs) => ({ ...errs, address: '' }));
+                      }}
                       placeholder="District, Street Name, Building Number"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-soot/15 bg-white text-soot text-sm placeholder:text-moss/60 outline-none focus:border-soot transition-all shadow-2xs"
+                      className={`w-full px-3.5 py-2.5 rounded-xl border bg-white text-soot text-sm placeholder:text-moss/60 outline-none transition-all shadow-2xs ${
+                        formErrors.address ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-soot/15 focus:border-soot'
+                      }`}
                     />
+                    {formErrors.address && <p className="text-xs text-rose-600 font-medium mt-1">* {formErrors.address}</p>}
                   </div>
 
                   {/* Description */}
