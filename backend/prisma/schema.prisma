@@ -150,6 +150,8 @@ model User {
   proposedRules        LoyaltyRule[]        @relation("RuleProposedBy")
   approvedRules        LoyaltyRule[]        @relation("RuleApprovedBy")
   requestedAmenities   AmenityCatalog[]
+  tickets       Ticket[]
+  ticketReplies TicketReply[]
 }
 
 model Company {
@@ -160,6 +162,7 @@ model Company {
 
   hrAdmin   User   @relation("CompanyHrAdmin", fields: [hrAdminId], references: [id])
   employees User[] @relation("CompanyEmployees")
+    tickets   Ticket[]
 }
 
 model Partner {
@@ -410,4 +413,36 @@ model LoyaltyRule {
 
   proposer User  @relation("RuleProposedBy", fields: [proposedBy], references: [id])
   approver User? @relation("RuleApprovedBy", fields: [approvedBy], references: [id])
+
+
+  }
+
+  enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  CLOSED
+}
+
+model Ticket {
+  id        String       @id @default(uuid())
+  companyId String
+  userId    String
+  subject   String
+  status    TicketStatus @default(OPEN)
+  createdAt DateTime     @default(now())
+
+  company Company       @relation(fields: [companyId], references: [id])
+  user    User          @relation(fields: [userId], references: [id])
+  replies TicketReply[]
+}
+
+model TicketReply {
+  id        String   @id @default(uuid())
+  ticketId  String
+  userId    String
+  message   String
+  createdAt DateTime @default(now())
+
+  ticket Ticket @relation(fields: [ticketId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
 }
