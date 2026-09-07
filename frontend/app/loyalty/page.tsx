@@ -24,7 +24,7 @@ export default function LoyaltyPage() {
   if (!currentUser) return null;
 
   const points = currentUser.loyaltyPoints || 0;
-  const cashEquivalent = (points / 100) * 5;
+  const cashEquivalent = (points / 100) * 25;
 
   // Determine Tier Level
   const getTierInfo = (pts: number) => {

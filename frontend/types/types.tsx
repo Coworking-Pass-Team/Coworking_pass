@@ -269,6 +269,32 @@ export interface User {
   hasActivePass?: boolean;
   membershipTier?: 'All-Access Pass' | 'Pro Pass' | 'Basic Pass' | 'Enterprise Pass' | string;
   loyaltyPoints?: number;
+  walletBalance?: number;
+}
+
+/**
+ * Check if a booking is eligible for a full refund upon cancellation.
+ * Individual (B2C) members must cancel 6+ hours in advance.
+ * Organization (B2B) members must cancel 24+ hours in advance.
+ */
+export function isCancellationRefundEligible(
+  startDate?: string,
+  startTime?: string,
+  role: UserRole = 'individual'
+): { eligible: boolean; hoursRemaining: number; requiredHours: number } {
+  const requiredHours = role === 'organization' ? 24 : 6;
+  if (!startDate) return { eligible: true, hoursRemaining: 999, requiredHours };
+
+  const bookingTimeStr = startTime ? `${startDate}T${startTime}:00` : `${startDate}T08:00:00`;
+  const bookingTime = new Date(bookingTimeStr).getTime();
+  const now = new Date().getTime();
+
+  if (isNaN(bookingTime)) return { eligible: true, hoursRemaining: 999, requiredHours };
+
+  const hoursRemaining = (bookingTime - now) / (1000 * 60 * 60);
+  const eligible = hoursRemaining >= requiredHours;
+
+  return { eligible, hoursRemaining: Math.max(0, hoursRemaining), requiredHours };
 }
 
 export function isUserPassHolder(user: User | null): boolean {
@@ -825,7 +851,10 @@ export type Screen =
   | 'provider-settings'
   | 'notifications'
   | 'cart'
-  | 'loyalty';
+  | 'loyalty'
+  | 'privacy-policy'
+  | 'terms-of-service'
+  | 'legal';
 
 export interface NavState {
   screen: Screen;

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ShoppingBag,
   X,
@@ -46,6 +46,20 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   const [step, setStep] = useState<'cart' | 'review'>('cart');
   const [useLoyaltyPoints, setUseLoyaltyPoints] = useState(false);
 
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const todayISO = new Date().toISOString().split('T')[0];
@@ -60,11 +74,11 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   }, 0);
 
   const availablePoints = currentUser?.loyaltyPoints || 0;
-  const maxRedeemablePoints = Math.min(
-    Math.floor(availablePoints / 100) * 100,
-    Math.floor(totalAmount / 5) * 100
-  );
-  const pointsDiscount = useLoyaltyPoints && maxRedeemablePoints > 0 ? (maxRedeemablePoints / 100) * 5 : 0;
+  const usableUserPoints = Math.floor(availablePoints / 100) * 100;
+  const pointsNeededToCover = Math.max(100, Math.ceil(totalAmount / 25) * 100);
+  const maxRedeemablePoints = Math.min(usableUserPoints, pointsNeededToCover);
+  const rawPointsDiscount = useLoyaltyPoints && maxRedeemablePoints > 0 ? (maxRedeemablePoints / 100) * 25 : 0;
+  const pointsDiscount = Math.min(totalAmount, rawPointsDiscount);
   const finalTotalAmount = Math.max(0, totalAmount - pointsDiscount);
 
   const handleStartReview = () => {
@@ -367,7 +381,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
             </div>
 
             {/* Loyalty Points Redemption Widget */}
-            {currentUser && availablePoints >= 100 && maxRedeemablePoints > 0 && (
+            {currentUser && availablePoints >= 100 && maxRedeemablePoints >= 100 && (
               <div className="bg-gradient-to-r from-amber-500/10 to-amber-600/10 border border-amber-500/30 rounded-2xl p-4 space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">

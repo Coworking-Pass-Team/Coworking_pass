@@ -164,13 +164,13 @@ export default function Footer() {
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-plaster/65">
           <p>© {new Date().getFullYear()} Coworking Pass Inc. All rights reserved.</p>
           <div className="flex items-center gap-6">
-            <button onClick={() => navigate('contact')} className="hover:text-eucalyptus transition-colors duration-200">
+            <button onClick={() => navigate('privacy-policy')} className="hover:text-eucalyptus transition-colors duration-200 cursor-pointer font-medium">
               Privacy Policy
             </button>
-            <button onClick={() => navigate('contact')} className="hover:text-eucalyptus transition-colors duration-200">
+            <button onClick={() => navigate('terms-of-service')} className="hover:text-eucalyptus transition-colors duration-200 cursor-pointer font-medium">
               Terms of Service
             </button>
-            <button onClick={() => navigate('contact')} className="hover:text-eucalyptus transition-colors duration-200">
+            <button onClick={() => navigate('contact')} className="hover:text-eucalyptus transition-colors duration-200 cursor-pointer font-medium">
               Support
             </button>
           </div>

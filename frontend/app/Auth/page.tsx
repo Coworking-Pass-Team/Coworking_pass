@@ -272,6 +272,7 @@ export function SignUpScreen() {
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const [orgName, setOrgName] = useState('');
   const [orgSize, setOrgSize] = useState('');
@@ -295,6 +296,7 @@ export function SignUpScreen() {
     if (!password) e.password = 'Password is required.';
     else if (password.length < 6) e.password = 'Password must be at least 6 characters.';
     if (password !== confirm) e.confirm = 'Passwords do not match.';
+    if (!agreedToTerms) e.agreedToTerms = 'You must agree to the Terms of Service and Privacy Policy.';
 
     if (role === 'organization') {
       if (!orgName.trim()) e.orgName = 'Organization name is required.';
@@ -640,6 +642,55 @@ export function SignUpScreen() {
                   </div>
                   {errors.confirm && <p className="text-red-500 text-xs mt-0.5 font-medium">{errors.confirm}</p>}
                 </div>
+              </div>
+
+              {/* Terms and Policies Agreement Checkbox */}
+              <div className="pt-2">
+                <label className="flex items-start gap-2.5 cursor-pointer text-xs text-moss select-none">
+                  <input
+                    type="checkbox"
+                    checked={agreedToTerms}
+                    onChange={(e) => {
+                      setAgreedToTerms(e.target.checked);
+                      if (errors.agreedToTerms) {
+                        setErrors((prev) => {
+                          const copy = { ...prev };
+                          delete copy.agreedToTerms;
+                          return copy;
+                        });
+                      }
+                    }}
+                    className="mt-0.5 h-4 w-4 rounded border-soot/20 text-soot focus:ring-eucalyptus accent-soot cursor-pointer shrink-0"
+                  />
+                  <span className="leading-relaxed">
+                    I agree to the{' '}
+                    <button
+                      type="button"
+                      onClick={(evt) => {
+                        evt.preventDefault();
+                        navigate('terms-of-service');
+                      }}
+                      className="text-soot font-bold underline hover:text-emerald-800 cursor-pointer"
+                    >
+                      Terms of Service
+                    </button>{' '}
+                    and{' '}
+                    <button
+                      type="button"
+                      onClick={(evt) => {
+                        evt.preventDefault();
+                        navigate('privacy-policy');
+                      }}
+                      className="text-soot font-bold underline hover:text-emerald-800 cursor-pointer"
+                    >
+                      Privacy Policy
+                    </button>{' '}
+                    <span className="text-rose-600">*</span>
+                  </span>
+                </label>
+                {errors.agreedToTerms && (
+                  <p className="text-rose-600 text-xs mt-1 font-medium">* {errors.agreedToTerms}</p>
+                )}
               </div>
 
               <button

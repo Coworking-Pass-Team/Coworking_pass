@@ -29,6 +29,7 @@ import IndividualDashboard from './individual/Dashboard';
 import BookingFlow from './individual/BookingFlow';
 import MyBookings from './individual/MyBookings';
 import LoyaltyPage from '@/app/loyalty/page';
+import LegalPage from '@/app/legal/page';
 import ProfileSettings from './individual/ProfileSettings';
 
 // Organization screens
@@ -481,6 +482,7 @@ export function Router() {
           {screen === 'space-details' && <SpaceDetails />}
           {screen === 'pricing' && <Pricing />}
           {screen === 'contact' && <Contact />}
+          {(screen === 'privacy-policy' || screen === 'terms-of-service' || screen === 'legal') && <LegalPage />}
           {screen === 'login' && <LoginScreen />}
           {screen === 'signup' && <SignUpScreen />}
           {screen === 'choose-type' && <ChooseAccountType />}
@@ -570,6 +572,7 @@ export function Router() {
       {screen === 'loyalty' && <LoyaltyPage />}
       {screen === 'pricing' && <Pricing />}
       {screen === 'contact' && <Contact />}
+      {(screen === 'privacy-policy' || screen === 'terms-of-service' || screen === 'legal') && <LegalPage />}
     </DashboardLayout>
   );
 }
