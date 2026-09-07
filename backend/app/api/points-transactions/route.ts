@@ -31,6 +31,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // ✅ منع الخصم إذا الرصيد غير كافٍ
+    if (type === 'REDEEMED') {
+      const loyaltyPoints = await prisma.loyaltyPoint.findUnique({
+        where: { userId }
+      })
+
+      if (!loyaltyPoints || loyaltyPoints.availableBalance < points) {
+        return NextResponse.json(
+          { error: 'رصيد النقاط غير كافٍ' },
+          { status: 400 }
+        )
+      }
+    }
+
     const transaction = await prisma.pointsTransaction.create({
       data: {
         userId,
