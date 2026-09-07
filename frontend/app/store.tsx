@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, Space, Booking, Screen, NavState, UserRole, BookingType, PaymentCard, Notification, CartItem, AmenityRequest, AmenityRequestStatus } from '@/types/types';
+import { User, Space, Booking, Screen, NavState, UserRole, BookingType, PaymentCard, Notification, CartItem, AmenityRequest, AmenityRequestStatus, calculateEndDate } from '@/types/types';
 import { INITIAL_SPACES, INITIAL_USERS, INITIAL_BOOKINGS, INITIAL_NOTIFICATIONS } from '@/data/data';
 
 interface AppContextType {
@@ -77,8 +77,9 @@ interface AppContextType {
   addToCart: (item: Omit<CartItem, 'id'>) => void;
   removeFromCart: (cartItemId: string) => void;
   updateCartItemSeats: (cartItemId: string, seats: number) => void;
+  updateCartItem: (cartItemId: string, updates: Partial<CartItem>) => void;
   clearCart: () => void;
-  checkoutCart: () => Booking[];
+  checkoutCart: (pointsToUse?: number) => Booking[];
 
   // Loyalty Points (الميزة المضافة من كودهم)
   applyLoyaltyDiscount: (pointsToUse: number) => { discount: number; safePoints: number };
@@ -677,13 +678,49 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const updateCartItemSeats = (cartItemId: string, seats: number) => {
     if (seats < 1) return;
+    updateCartItem(cartItemId, { seats });
+  };
+
+  const updateCartItem = (cartItemId: string, updates: Partial<CartItem>) => {
     const updated = cart.map((i) => {
       if (i.id === cartItemId) {
-        const itemTotal = i.pricePerSeat * seats;
-        return { ...i, seats, itemTotal };
+        const newItem = { ...i, ...updates };
+
+        // Recalculate end date if start date, plan or durationMonths updated
+        if (updates.startDate !== undefined || updates.plan !== undefined || updates.durationMonths !== undefined) {
+          const sDate = updates.startDate ?? i.startDate;
+          const plan = updates.plan ?? i.plan;
+          const durM = updates.durationMonths ?? i.durationMonths ?? 1;
+          newItem.endDate = calculateEndDate(sDate, plan, durM);
+        }
+
+        // Recalculate end time for hourly plan if startTime or durationHours changed
+        if (newItem.plan === 'hourly' && newItem.startTime) {
+          const durH = newItem.durationHours || 1;
+          const [h, m] = newItem.startTime.split(':').map(Number);
+          if (!isNaN(h)) {
+            const endH = (h + durH) % 24;
+            newItem.endTime = `${endH.toString().padStart(2, '0')}:${(m || 0).toString().padStart(2, '0')}`;
+          }
+        }
+
+        // Recalculate item total price
+        const seats = newItem.seats || 1;
+        if (newItem.plan === 'hourly') {
+          const hours = newItem.durationHours || 1;
+          newItem.itemTotal = newItem.pricePerSeat * hours * seats;
+        } else if (newItem.plan === 'monthly') {
+          const months = newItem.durationMonths || 1;
+          newItem.itemTotal = newItem.pricePerSeat * months * seats;
+        } else {
+          newItem.itemTotal = newItem.pricePerSeat * seats;
+        }
+
+        return newItem;
       }
       return i;
     });
+
     setCart(updated);
     saveCartToStorage(updated);
   };
@@ -709,11 +746,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   // دالة الدفع مع إبقاء التوقيع نفسه، وتحديث النقاط المكتسبة تلقائياً
-  const checkoutCart = (): Booking[] => {
+  const checkoutCart = (pointsToUse: number = 0): Booking[] => {
     if (!currentUser || cart.length === 0) return [];
+
+    const rawTotal = cart.reduce((sum, item) => sum + item.itemTotal, 0);
+    const userPoints = currentUser.loyaltyPoints || 0;
+    const safePointsToUse = Math.max(
+      0,
+      Math.min(Math.floor(pointsToUse / 100) * 100, userPoints, Math.floor(rawTotal / 5) * 100)
+    );
+    const pointsDiscount = (safePointsToUse / 100) * 5;
+    const discountRatio = rawTotal > 0 ? pointsDiscount / rawTotal : 0;
 
     const newBookings: Booking[] = [];
     cart.forEach((item) => {
+      const itemDiscount = item.itemTotal * discountRatio;
+      const finalItemPrice = Math.max(0, item.itemTotal - itemDiscount);
+
       const b = addBooking({
         userId: currentUser.id,
         spaceId: item.spaceId,
@@ -730,7 +779,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         endDate: item.endDate,
         seats: item.seats,
         employees: item.employees || [],
-        totalPrice: item.itemTotal,
+        totalPrice: finalItemPrice,
         status: 'active',
         notes: item.notes,
       });
@@ -739,15 +788,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     // احتساب نقاط الولاء المكتسبة بناءً على كودهم
     const earned = cart.reduce((sum, item) => {
-      const space = spaces.find(s => s.id === item.spaceId);
+      const space = spaces.find((s) => s.id === item.spaceId);
       const multiplier = space?.loyaltyPointsMultiplier || 1;
       return sum + Math.floor(item.itemTotal / 100) * 10 * multiplier;
     }, 0);
 
-    const currentPoints = currentUser.loyaltyPoints || 0;
-    const updatedUser = { ...currentUser, loyaltyPoints: currentPoints + earned };
+    const updatedPoints = Math.max(0, userPoints - safePointsToUse) + earned;
+    const updatedUser = { ...currentUser, loyaltyPoints: updatedPoints };
     setCurrentUser(updatedUser);
-    const updatedUsers = users.map(u => u.id === updatedUser.id ? updatedUser : u);
+    const updatedUsers = users.map((u) => (u.id === updatedUser.id ? updatedUser : u));
     setUsers(updatedUsers);
 
     if (typeof window !== 'undefined') {
@@ -760,11 +809,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
     addNotification({
       userId: currentUser.id,
       title: 'Batch Checkout Successful',
-      message: `Payment confirmed for ${newBookings.length} workspace pass${newBookings.length > 1 ? 'es' : ''}. Earned ${earned} loyalty points!`,
+      message: `Payment confirmed for ${newBookings.length} workspace pass${
+        newBookings.length > 1 ? 'es' : ''
+      }.${safePointsToUse > 0 ? ` Redeemed ${safePointsToUse} points for SAR ${pointsDiscount} off.` : ''} Earned ${earned} loyalty points!`,
       type: 'payment',
     });
 
-    showToast(`Payment processed! ${newBookings.length} pass${newBookings.length > 1 ? 'es' : ''} confirmed (+${earned} points).`, 'success');
+    showToast(
+      `Payment processed! ${newBookings.length} pass${
+        newBookings.length > 1 ? 'es' : ''
+      } confirmed (+${earned} points).`,
+      'success'
+    );
 
     return newBookings;
   };
@@ -918,7 +974,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       users, blockUser, unblockUser, changeUserRole,
       waitlist, autobooking, autobookingCard, joinWaitlist, leaveWaitlist, enableAutoBooking, disableAutoBooking,
       addPaymentCard,
-      cart, addToCart, removeFromCart, updateCartItemSeats, clearCart, checkoutCart,
+      cart, addToCart, removeFromCart, updateCartItemSeats, updateCartItem, clearCart, checkoutCart,
       applyLoyaltyDiscount,
       toast, showToast, updateCurrentUser, completeSignup,
     }}>
