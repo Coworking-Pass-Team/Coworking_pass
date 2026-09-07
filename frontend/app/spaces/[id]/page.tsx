@@ -40,7 +40,7 @@ import Modal from '@/components/ui/Modal';
 import Badge from '@/components/ui/Badge';
 
 export default function SpaceDetails() {
-  const { nav, navigate, goBack, spaces, currentUser, favorites, toggleFavorite, waitlist, autobooking, joinWaitlist, addToCart } = useApp();
+  const { nav, navigate, goBack, spaces, currentUser, favorites, toggleFavorite, waitlist, autobooking, joinWaitlist, leaveWaitlist, enableAutoBooking, disableAutoBooking, addToCart } = useApp();
   const passActive = isUserPassHolder(currentUser);
 
   const urlId = typeof window !== 'undefined' ? window.location.pathname.split('/').pop() : '';
@@ -93,8 +93,8 @@ export default function SpaceDetails() {
 
   const isFav = favorites.includes(space.id);
   const isFullyBooked = space.availableCapacity === 0;
-  const inWaitlist = waitlist[space.id];
-  const autoBookOn = autobooking[space.id];
+  const inWaitlist = Boolean(currentUser && waitlist[`${currentUser.id}_${space.id}`]);
+  const autoBookOn = Boolean(currentUser && autobooking[`${currentUser.id}_${space.id}`]);
 
   const handleBook = () => {
     if (!currentUser) { navigate('login'); return; }
@@ -517,11 +517,18 @@ export default function SpaceDetails() {
                   </div>
 
                   {inWaitlist ? (
-                    <div className="bg-eucalyptus/25 border border-eucalyptus/35 rounded-xl p-3 text-center">
-                      <div className="text-soot font-medium text-xs flex items-center justify-center gap-2">
+                    <div className="bg-eucalyptus/25 border border-eucalyptus/35 rounded-2xl p-4 text-center space-y-2">
+                      <div className="text-soot font-semibold text-xs flex items-center justify-center gap-2">
                         <Check size={14} className="text-soot stroke-[2.5]" />
                         <span>You are on the priority waitlist</span>
                       </div>
+                      <button
+                        type="button"
+                        onClick={() => leaveWaitlist(space.id)}
+                        className="text-[11px] text-moss hover:text-red-700 font-medium underline transition-colors cursor-pointer"
+                      >
+                        Leave Waitlist
+                      </button>
                     </div>
                   ) : (
                     <button
@@ -703,10 +710,34 @@ export default function SpaceDetails() {
                 </div>
               </div>
 
-              <div className="flex items-start gap-2 p-3 rounded-xl bg-plaster-dark/30 border border-soot/10">
-                <Info size={14} className="text-moss mt-0.5 shrink-0" />
+              <div className="p-3.5 rounded-2xl bg-plaster-dark/30 border border-soot/12 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-soot">
+                    <Sparkles size={15} className="text-moss" />
+                    <span>Enable Instant Auto-Booking</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (autoBookOn) {
+                        disableAutoBooking(space.id);
+                      } else {
+                        enableAutoBooking(space.id, currentUser?.savedCards?.[0]?.id || 'card-1');
+                      }
+                    }}
+                    className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer ${
+                      autoBookOn ? 'bg-soot' : 'bg-soot/20'
+                    }`}
+                  >
+                    <div
+                      className={`w-4 h-4 rounded-full bg-white transition-transform ${
+                        autoBookOn ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
                 <p className="text-[11px] text-moss leading-relaxed">
-                  You’ll have a 10-minute window to confirm your booking after being alerted before the desk is passed to the next member.
+                  Automatically reserve and charge your default card as soon as a desk opens up.
                 </p>
               </div>
 
