@@ -1,7 +1,25 @@
 'use client';
 
-import React from 'react';
-import { ShoppingBag, X, Trash2, Plus, Minus, CreditCard, MapPin, Clock } from 'lucide-react';
+import React, { useState } from 'react';
+import {
+  ShoppingBag,
+  X,
+  Trash2,
+  Plus,
+  Minus,
+  CreditCard,
+  MapPin,
+  Clock,
+  Calendar,
+  ArrowLeft,
+  CheckCircle2,
+  ChevronRight,
+  Edit3,
+  AlertCircle,
+  Users,
+  Award,
+  Sparkles
+} from 'lucide-react';
 import { useApp } from '@/app/store';
 import { formatHourlyTimeRange } from '@/types/types';
 
