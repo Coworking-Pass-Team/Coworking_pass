@@ -449,12 +449,14 @@ export default function ProviderSpaceBookings() {
 
               <div className="grid grid-cols-3 gap-4 text-xs">
                 <div className="p-3 bg-white/60 rounded-xl border border-soot/8">
-                  <span className="text-moss block mb-1">Start Date</span>
+                  <span className="text-moss block mb-1">{selectedBooking.plan === 'hourly' ? 'Booking Date' : 'Start Date'}</span>
                   <span className="font-semibold text-soot text-sm">{selectedBooking.startDate}</span>
                 </div>
                 <div className="p-3 bg-white/60 rounded-xl border border-soot/8">
-                  <span className="text-moss block mb-1">End Date</span>
-                  <span className="font-semibold text-soot text-sm">{selectedBooking.endDate}</span>
+                  <span className="text-moss block mb-1">{selectedBooking.plan === 'hourly' ? 'Duration' : 'End Date'}</span>
+                  <span className="font-semibold text-soot text-sm">
+                    {selectedBooking.plan === 'hourly' ? `${selectedBooking.durationHours || 1} ${selectedBooking.durationHours === 1 ? 'Hour' : 'Hours'}` : selectedBooking.endDate}
+                  </span>
                 </div>
                 <div className="p-3 bg-white/60 rounded-xl border border-soot/8">
                   <span className="text-moss block mb-1">Seats Reserved</span>

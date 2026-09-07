@@ -98,6 +98,9 @@ export default function TeamBooking() {
     if (nav?.params?.plan) {
       setPlan(nav.params.plan as BookingPlan);
     }
+    if (nav?.params?.startDate) {
+      setStartDate(nav.params.startDate as string);
+    }
     if (nav?.params?.startTime) {
       setStartTime(nav.params.startTime as string);
     }
@@ -286,13 +289,13 @@ export default function TeamBooking() {
                 <span className="text-soot font-medium text-xs">{isHourly ? `Hourly Reservation (${durationHours} ${durationHours === 1 ? 'hour' : 'hours'})` : `${plan} pass`}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-moss text-xs">Date</span>
+                <span className="text-moss text-xs">{isHourly ? 'Booking Date' : 'Start Date'}</span>
                 <span className="text-soot font-medium text-xs">{startDate}</span>
               </div>
               {isHourly && (
                 <div className="flex justify-between">
                   <span className="text-moss text-xs">Time Window</span>
-                  <span className="text-soot font-medium text-xs">{startTime} – {endTime} ({durationHours} ${durationHours === 1 ? 'hour' : 'hours'})</span>
+                  <span className="text-soot font-medium text-xs">{startTime} – {endTime} ({durationHours} {durationHours === 1 ? 'hour' : 'hours'})</span>
                 </div>
               )}
               <div className="flex justify-between">
@@ -497,10 +500,26 @@ export default function TeamBooking() {
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-semibold uppercase tracking-wider text-moss flex items-center gap-1.5 whitespace-nowrap">
                     <Clock size={12} className="shrink-0" />
-                    <span>Specify Exact Booking Time</span>
+                    <span>Specify Reservation Date & Time</span>
                   </span>
                   <span className="text-xs font-bold text-soot whitespace-nowrap shrink-0">{durationHours} {durationHours === 1 ? 'Hour' : 'Hours'} (SAR {getHourlyPriceForDuration(space, durationHours)}/seat)</span>
                 </div>
+
+                {/* Booking Date Input */}
+                <div>
+                  <label className="block text-[11px] font-semibold text-moss mb-1 flex items-center gap-1">
+                    <Calendar size={12} />
+                    <span>Reservation Date</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={startDate}
+                    min={new Date().toISOString().split('T')[0]}
+                    onChange={e => setStartDate(e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl bg-white border border-soot/12 text-soot text-sm font-medium focus:outline-none focus:border-eucalyptus cursor-pointer shadow-2xs"
+                  />
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[11px] font-semibold text-moss mb-1">Start Time</label>
@@ -533,8 +552,8 @@ export default function TeamBooking() {
                 </div>
                 <div className="bg-white p-2.5 rounded-xl border border-soot/8 flex items-center justify-between text-xs">
                   <div>
-                    <span className="text-moss block text-[10px] uppercase font-semibold">Selected Window</span>
-                    <span className="font-semibold text-soot">{startTime} – {endTime}</span>
+                    <span className="text-moss block text-[10px] uppercase font-semibold">Selected Schedule</span>
+                    <span className="font-semibold text-soot">{startDate} · {startTime} – {endTime}</span>
                   </div>
                   <div className="text-right">
                     <span className="text-moss block text-[10px] uppercase font-semibold">Calculated Duration</span>
@@ -657,8 +676,9 @@ export default function TeamBooking() {
 
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1.5">
-                Start Date
+              <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1.5 flex items-center gap-1.5">
+                <Calendar size={13} />
+                <span>{isHourly ? 'Booking Date' : 'Start Date'}</span>
               </label>
               <input
                 type="date"
@@ -712,8 +732,8 @@ export default function TeamBooking() {
 
                 <div className="bg-white rounded-2xl p-4 border border-soot/8 flex items-center justify-between text-xs">
                   <div>
-                    <span className="text-moss block text-[10px] uppercase font-semibold">Scheduled Time Window</span>
-                    <span className="font-semibold text-soot text-sm">{startTime} – {endTime}</span>
+                    <span className="text-moss block text-[10px] uppercase font-semibold">Scheduled Date & Time</span>
+                    <span className="font-semibold text-soot text-sm">{startDate} · {startTime} – {endTime}</span>
                   </div>
                   <div className="text-right">
                     <span className="text-moss block text-[10px] uppercase font-semibold">Total Duration</span>
@@ -776,7 +796,7 @@ export default function TeamBooking() {
                   <span className="text-soot font-medium">{isHourly ? `Hourly Reservation (${durationHours} ${durationHours === 1 ? 'hour' : 'hours'})` : `${plan} pass`}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-moss">Date</span>
+                  <span className="text-moss">{isHourly ? 'Booking Date' : 'Start Date'}</span>
                   <span className="text-soot font-medium">{startDate}</span>
                 </div>
                 {isHourly && (
