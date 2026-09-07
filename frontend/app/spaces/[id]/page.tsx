@@ -34,7 +34,14 @@ import {
   isOfficeSpace,
   getAllowedPlansForSpace,
   getSpaceTypeLabel,
-  getSpaceCategory
+  getSpaceCategory,
+  START_TIMES,
+  END_TIMES,
+  calculateDurationHours,
+  getAvailableEndTimes,
+  formatHourlyTimeRange,
+  calculateEndTime,
+  timeStringToMinutes
 } from '@/types/types';
 import Modal from '@/components/ui/Modal';
 import Badge from '@/components/ui/Badge';
@@ -52,7 +59,8 @@ export default function SpaceDetails() {
 
   const [imgIndex, setImgIndex] = useState(0);
   const [selectedPlan, setSelectedPlan] = useState<BookingPlan>(defaultPlan);
-  const [durationHours, setDurationHours] = useState(2);
+  const [startTime, setStartTime] = useState<string>('09:00 AM');
+  const [endTime, setEndTime] = useState<string>('05:00 PM');
   const [durationMonths, setDurationMonths] = useState(1);
   const [waitlistModal, setWaitlistModal] = useState(false);
   const [waitlistDone, setWaitlistDone] = useState(false);
@@ -60,6 +68,23 @@ export default function SpaceDetails() {
   const [smsAlerts, setSmsAlerts] = useState(true);
   const [emailAlerts, setEmailAlerts] = useState(true);
   const [whatsappAlerts, setWhatsappAlerts] = useState(false);
+
+  const durationHours = calculateDurationHours(startTime, endTime);
+
+  const handleStartTimeChange = (newStart: string) => {
+    setStartTime(newStart);
+    const startMin = timeStringToMinutes(newStart);
+    const endMin = timeStringToMinutes(endTime);
+    if (endMin <= startMin) {
+      // Auto-set end time to start + 1 hour or next available
+      const nextEnd = calculateEndTime(newStart, 1);
+      setEndTime(nextEnd);
+    }
+  };
+
+  const handleEndTimeChange = (newEnd: string) => {
+    setEndTime(newEnd);
+  };
 
   useEffect(() => {
     setImgIndex(0);
@@ -98,7 +123,14 @@ export default function SpaceDetails() {
 
   const handleBook = () => {
     if (!currentUser) { navigate('login'); return; }
-    const params = { spaceId: space.id, plan: selectedPlan, durationHours, durationMonths };
+    const params = {
+      spaceId: space.id,
+      plan: selectedPlan,
+      startTime: selectedPlan === 'hourly' ? startTime : undefined,
+      endTime: selectedPlan === 'hourly' ? endTime : undefined,
+      durationHours: selectedPlan === 'hourly' ? durationHours : undefined,
+      durationMonths,
+    };
     if (currentUser.role === 'organization') {
       navigate('team-booking', params);
     } else {
@@ -120,12 +152,12 @@ export default function SpaceDetails() {
   const currentPlanInfo = getEffectiveSpacePrice(currentUser, space, selectedPlan, undefined, durationHours, durationMonths);
   const planPrice = currentPlanInfo.effectivePrice;
   const planLabel = selectedPlan === 'hourly'
-    ? `for ${durationHours} hour${durationHours > 1 ? 's' : ''}`
+    ? durationHours > 1 ? `for ${durationHours} hours` : '/ hour'
     : selectedPlan === 'monthly'
-    ? `for ${durationMonths} month${durationMonths > 1 ? 's' : ''}`
+    ? durationMonths > 1 ? `for ${durationMonths} months` : '/ month'
     : selectedPlan === 'daily'
-    ? '/day'
-    : '/year';
+    ? '/ day'
+    : '/ year';
 
   const hoursDisplay = (space as any).openHours || (space as any).hours || 'Sun–Thu: 8am–10pm | Fri: 2pm–10pm';
   const phoneDisplay = space.phone || '+966 11 234 5678';
@@ -336,11 +368,11 @@ export default function SpaceDetails() {
                 </span>
 
                 <div className="space-y-2">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-semibold text-soot tracking-tight">
+                  <div className="flex items-baseline gap-2 flex-wrap">
+                    <span className="text-3xl font-semibold text-soot tracking-tight whitespace-nowrap">
                       {currentPlanInfo.isCovered ? 'SAR 0' : `SAR ${currentPlanInfo.effectivePrice.toLocaleString()}`}
                     </span>
-                    <span className="text-sm font-medium text-moss">{planLabel}</span>
+                    <span className="text-sm font-medium text-moss whitespace-nowrap">{planLabel}</span>
                   </div>
 
                   {currentPlanInfo.isCovered ? (
@@ -359,11 +391,11 @@ export default function SpaceDetails() {
               {/* Plan Choice Selectors */}
               <div className="mb-6 space-y-4">
                 <div>
-                  <div className="flex items-center justify-between mb-2.5">
-                    <label className="text-xs font-semibold uppercase tracking-wider text-moss">
+                  <div className="flex items-center justify-between mb-2.5 gap-2">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-moss whitespace-nowrap">
                       Select Booking Plan
                     </label>
-                    <span className="text-[10px] font-semibold text-soot bg-[#E5ECE9] px-2 py-0.5 rounded-full">
+                    <span className="text-[10px] font-semibold text-soot bg-[#E5ECE9] px-2.5 py-0.5 rounded-full whitespace-nowrap">
                       {isHourlyAllowed(space) ? 'Hourly • Daily • Monthly • Yearly' : 'Daily • Monthly • Yearly'}
                     </span>
                   </div>
@@ -441,38 +473,60 @@ export default function SpaceDetails() {
 
                 {/* Hourly Duration Selector (Only for Halls & Theaters) */}
                 {selectedPlan === 'hourly' && isHourlyAllowed(space) && (
-                  <div className="p-3.5 rounded-2xl bg-plaster-dark/40 border border-soot/10 space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <label className="text-[11px] font-semibold uppercase tracking-wider text-moss flex items-center gap-1.5">
-                        <Clock size={12} />
-                        <span>Select Duration in Hours</span>
+                  <div className="p-4 rounded-2xl bg-plaster-dark/40 border border-soot/10 space-y-3.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <label className="text-[11px] font-semibold uppercase tracking-wider text-moss flex items-center gap-1.5 whitespace-nowrap">
+                        <Clock size={12} className="shrink-0" />
+                        <span>Specify Exact Booking Time</span>
                       </label>
-                      <span className="text-xs font-bold text-soot bg-white px-2.5 py-0.5 rounded-full border border-soot/10 shadow-2xs">
-                        {durationHours} Hours (SAR {getHourlyPriceForDuration(space, durationHours).toLocaleString()})
+                      <span className="text-xs font-bold text-soot bg-white px-2.5 py-1 rounded-full border border-soot/10 shadow-2xs whitespace-nowrap shrink-0">
+                        {durationHours} {durationHours === 1 ? 'Hour' : 'Hours'}
                       </span>
                     </div>
-                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                      {[1, 2, 3, 4, 6, 8].map(h => {
-                        const tierPrice = getHourlyPriceForDuration(space, h);
-                        const isSelected = durationHours === h;
-                        return (
-                          <button
-                            key={h}
-                            type="button"
-                            onClick={() => setDurationHours(h)}
-                            className={`py-2 px-1 rounded-xl text-xs font-medium border text-center transition-all cursor-pointer ${
-                              isSelected
-                                ? 'bg-soot text-plaster border-soot shadow-2xs font-semibold ring-1 ring-soot'
-                                : 'bg-white border-soot/10 text-moss hover:text-soot hover:border-soot/30'
-                            }`}
-                          >
-                            <div className="font-bold">{h} Hour{h > 1 ? 's' : ''}</div>
-                            <div className={`text-[10px] mt-0.5 ${isSelected ? 'text-plaster/80' : 'text-moss'}`}>
-                              SAR {tierPrice.toLocaleString()}
-                            </div>
-                          </button>
-                        );
-                      })}
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-moss mb-1">Start Time</label>
+                        <select
+                          value={startTime}
+                          onChange={(e) => handleStartTimeChange(e.target.value)}
+                          className="w-full px-3 py-2.5 rounded-xl bg-white border border-soot/12 text-soot text-xs font-medium focus:outline-none focus:border-eucalyptus cursor-pointer shadow-2xs"
+                        >
+                          {START_TIMES.map((t) => (
+                            <option key={t} value={t}>
+                              {t}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-semibold text-moss mb-1">End Time</label>
+                        <select
+                          value={endTime}
+                          onChange={(e) => handleEndTimeChange(e.target.value)}
+                          className="w-full px-3 py-2.5 rounded-xl bg-white border border-soot/12 text-soot text-xs font-medium focus:outline-none focus:border-eucalyptus cursor-pointer shadow-2xs"
+                        >
+                          {getAvailableEndTimes(startTime).map((t) => (
+                            <option key={t} value={t}>
+                              {t}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="bg-white p-3 rounded-xl border border-soot/8 flex items-center justify-between text-xs">
+                      <div>
+                        <span className="text-moss block text-[10px] uppercase font-semibold">Time Window</span>
+                        <span className="font-semibold text-soot">{startTime} – {endTime}</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-moss block text-[10px] uppercase font-semibold">Calculated Total</span>
+                        <span className="font-bold text-soot">
+                          {currentPlanInfo.isCovered ? 'Included in Pass' : `SAR ${getHourlyPriceForDuration(space, durationHours).toLocaleString()}`}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -570,7 +624,9 @@ export default function SpaceDetails() {
                           type: space.type,
                           plan: selectedPlan,
                           durationHours: selectedPlan === 'hourly' ? durationHours : undefined,
-                          startTime: selectedPlan === 'hourly' ? '09:00 AM' : undefined,
+                          durationMonths: selectedPlan === 'monthly' ? durationMonths : undefined,
+                          startTime: selectedPlan === 'hourly' ? startTime : undefined,
+                          endTime: selectedPlan === 'hourly' ? endTime : undefined,
                           startDate: today,
                           endDate: today,
                           seats: 1,
