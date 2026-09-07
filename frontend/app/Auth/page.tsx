@@ -954,10 +954,10 @@ export function ChooseAccountType() {
 }
 
 export function ForgotPasswordScreen() {
-  const { navigate } = useApp();
+  const { navigate, requestForgotPasswordOtp } = useApp();
   const [email, setEmail] = useState('');
-  const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -965,12 +965,17 @@ export function ForgotPasswordScreen() {
       setError('Please enter your email address.');
       return;
     }
-    if (!/\S+@\S+\.\S+/.test(email)) {
+    if (!/\S+@\S+\.\S+/.test(email.trim())) {
       setError('Please enter a valid email address.');
       return;
     }
     setError('');
-    setSubmitted(true);
+    setLoading(true);
+    const res = requestForgotPasswordOtp(email.trim());
+    if (!res.success) {
+      setError(res.error || 'No account found with this email address.');
+      setLoading(false);
+    }
   };
 
   return (
@@ -993,73 +998,62 @@ export function ForgotPasswordScreen() {
         {/* Center Form */}
         <div className="w-full max-w-md mx-auto my-auto py-8">
           <div className="mb-7">
-            {!submitted ? (
-              <>
-                <h1 className="text-3xl sm:text-4xl font-normal font-serif-display text-soot tracking-tight mb-2">
-                  Forgot your password?
-                </h1>
-                <p className="text-moss text-xs sm:text-sm leading-relaxed">
-                  Enter your registered email and we&apos;ll send you a password reset link.
-                </p>
-              </>
-            ) : (
-              <div className="text-center sm:text-left">
-                <div className="w-12 h-12 rounded-2xl bg-eucalyptus/25 border border-eucalyptus/40 flex items-center justify-center mb-4">
-                  <Check size={22} className="text-soot" />
-                </div>
-                <h1 className="text-3xl font-normal font-serif-display text-soot tracking-tight mb-2">
-                  Check your email
-                </h1>
-                <p className="text-moss text-xs sm:text-sm leading-relaxed">
-                  If an account exists for <span className="font-semibold text-soot">{email}</span>, you will receive a reset instructions link shortly.
-                </p>
-              </div>
-            )}
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-eucalyptus/20 border border-eucalyptus/40 text-soot text-xs font-semibold mb-3.5">
+              <ShieldCheck size={14} className="text-emerald-800 shrink-0" />
+              <span>Password Recovery</span>
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-normal font-serif-display text-soot tracking-tight mb-2">
+              Forgot your password?
+            </h1>
+            <p className="text-moss text-xs sm:text-sm leading-relaxed">
+              Enter your registered account email and we&apos;ll send a 6-digit one-time verification code to reset your password.
+            </p>
           </div>
 
-          {!submitted ? (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {error && (
-                <div className="bg-red-500/10 border border-red-500/20 text-red-700 text-xs sm:text-sm font-medium rounded-xl px-4 py-3">
-                  {error}
-                </div>
-              )}
-
-              <div>
-                <label className="block text-xs font-semibold text-soot mb-1.5 uppercase tracking-wider">
-                  Email Address
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-moss">
-                    <Mail size={16} />
-                  </div>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all"
-                  />
-                </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/20 text-red-700 text-xs sm:text-sm font-medium rounded-xl px-4 py-3">
+                {error}
               </div>
+            )}
 
-              <button
-                type="submit"
-                className="btn-primary w-full py-3.5 mt-2"
-              >
-                <span>Send Reset Link</span>
-                <ArrowRight size={16} />
-              </button>
-            </form>
-          ) : (
+            <div>
+              <label className="block text-xs font-semibold text-soot mb-1.5 uppercase tracking-wider">
+                Email Address
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-moss">
+                  <Mail size={16} />
+                </div>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (error) setError('');
+                  }}
+                  placeholder="you@example.com"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all"
+                  required
+                />
+              </div>
+            </div>
+
             <button
-              type="button"
-              onClick={() => navigate('login')}
-              className="btn-primary w-full py-3.5 mt-2"
+              type="submit"
+              disabled={loading}
+              className="btn-primary w-full py-3.5 mt-2 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
-              <span>Return to Sign In</span>
+              {loading ? (
+                <span>Sending code...</span>
+              ) : (
+                <>
+                  <span>Send Verification Code</span>
+                  <ArrowRight size={16} />
+                </>
+              )}
             </button>
-          )}
+          </form>
 
           <p className="text-center text-xs sm:text-sm text-moss mt-6 pt-4 border-t border-soot/10">
             Remembered your password?{' '}
@@ -1081,7 +1075,7 @@ export function ForgotPasswordScreen() {
 
       {/* Right Visual Image */}
       <AuthVisualBanner
-        quote="Account recovery is seamless and protected by industry-standard encryption."
+        quote="Account recovery is seamless and protected by two-factor verification across the network."
         author="Security Operations"
         role="Coworking Pass Platform"
       />
@@ -1166,13 +1160,6 @@ export function OtpVerificationScreen() {
     inputRefs.current[focusIndex]?.focus();
   };
 
-  const handleAutoFillDemo = () => {
-    const demo = ['1', '2', '3', '4', '5', '6'];
-    setDigits(demo);
-    setError('');
-    inputRefs.current[5]?.focus();
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const code = digits.join('');
@@ -1203,6 +1190,7 @@ export function OtpVerificationScreen() {
 
   const recipient = otpSession?.targetEmailOrPhone || 'your registered contact';
   const isSignup = otpSession?.mode === 'signup';
+  const isForgotPassword = otpSession?.mode === 'forgot-password';
 
   return (
     <div className="min-h-screen w-full flex bg-plaster text-soot">
@@ -1217,7 +1205,7 @@ export function OtpVerificationScreen() {
             className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-soot/5 hover:bg-soot/10 border border-soot/10 text-xs font-semibold text-soot transition-all duration-200 cursor-pointer group"
           >
             <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />
-            <span>{isSignup ? 'Back to Sign Up' : 'Back to Sign In'}</span>
+            <span>{isSignup ? 'Back to Sign Up' : isForgotPassword ? 'Back to Forgot Password' : 'Back to Sign In'}</span>
           </button>
         </div>
 
@@ -1226,30 +1214,15 @@ export function OtpVerificationScreen() {
           <div className="mb-7">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-eucalyptus/20 border border-eucalyptus/40 text-soot text-xs font-semibold mb-3.5">
               <ShieldCheck size={14} className="text-emerald-800 shrink-0" />
-              <span>Two-Factor Security Verification</span>
+              <span>{isForgotPassword ? 'Password Recovery Verification' : 'Two-Factor Security Verification'}</span>
             </div>
             <h1 className="text-3xl sm:text-4xl font-normal font-serif-display text-soot tracking-tight mb-2">
               Enter verification code
             </h1>
             <p className="text-moss text-xs sm:text-sm leading-relaxed">
               We&apos;ve sent a 6-digit one-time code to{' '}
-              <span className="font-semibold text-soot">{recipient}</span>. Enter the code below to complete your {isSignup ? 'account registration' : 'sign in'}.
+              <span className="font-semibold text-soot">{recipient}</span>. Enter the code below to {isSignup ? 'complete your account registration' : isForgotPassword ? 'verify your identity and reset your password' : 'complete your sign in'}.
             </p>
-          </div>
-
-          {/* Demo Hint Banner */}
-          <div className="mb-6 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-900 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <Sparkles size={14} className="text-amber-700 shrink-0" />
-              <span>Demo code: <strong className="font-mono font-bold tracking-wider">123456</strong></span>
-            </div>
-            <button
-              type="button"
-              onClick={handleAutoFillDemo}
-              className="text-[11px] font-bold text-amber-900 bg-amber-500/20 hover:bg-amber-500/30 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
-            >
-              Auto-fill Code
-            </button>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -1354,11 +1327,192 @@ export function OtpVerificationScreen() {
   );
 }
 
+export function ResetPasswordScreen() {
+  const { navigate, resetPassword, pendingResetUser } = useApp();
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!password) {
+      setError('Please enter a new password.');
+      return;
+    }
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters long.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('Passwords do not match. Please verify and try again.');
+      return;
+    }
+
+    setError('');
+    setLoading(true);
+
+    setTimeout(() => {
+      const res = resetPassword(password);
+      if (!res.success) {
+        setError(res.error || 'Failed to update password.');
+        setLoading(false);
+      }
+    }, 400);
+  };
+
+  const userEmail = pendingResetUser?.email || pendingResetUser?.username || 'your account';
+
+  return (
+    <div className="min-h-screen w-full flex bg-plaster text-soot">
+      {/* Left Form Column */}
+      <div className="w-full lg:w-1/2 flex flex-col justify-between p-6 sm:p-10 lg:p-14 min-h-screen">
+        {/* Top Header */}
+        <div className="flex items-center justify-between w-full max-w-md mx-auto">
+          <Logo onClick={() => navigate('landing')} />
+          <button
+            type="button"
+            onClick={() => navigate('login')}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-soot/5 hover:bg-soot/10 border border-soot/10 text-xs font-semibold text-soot transition-all duration-200 cursor-pointer group"
+          >
+            <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />
+            <span>Back to Sign in</span>
+          </button>
+        </div>
+
+        {/* Center Form */}
+        <div className="w-full max-w-md mx-auto my-auto py-8">
+          <div className="mb-7">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-eucalyptus/20 border border-eucalyptus/40 text-soot text-xs font-semibold mb-3.5">
+              <Lock size={14} className="text-emerald-800 shrink-0" />
+              <span>Identity Verified</span>
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-normal font-serif-display text-soot tracking-tight mb-2">
+              Set new password
+            </h1>
+            <p className="text-moss text-xs sm:text-sm leading-relaxed">
+              Create a new secure password for <span className="font-semibold text-soot">{userEmail}</span>.
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/20 text-red-700 text-xs sm:text-sm font-medium rounded-xl px-4 py-3">
+                {error}
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs font-semibold text-soot mb-1.5 uppercase tracking-wider">
+                New Password
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-moss">
+                  <Lock size={16} />
+                </div>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (error) setError('');
+                  }}
+                  placeholder="At least 6 characters"
+                  className="w-full pl-10 pr-11 py-3 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-moss hover:text-soot cursor-pointer"
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-soot mb-1.5 uppercase tracking-wider">
+                Confirm New Password
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-moss">
+                  <Lock size={16} />
+                </div>
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={(e) => {
+                    setConfirmPassword(e.target.value);
+                    if (error) setError('');
+                  }}
+                  placeholder="Repeat new password"
+                  className="w-full pl-10 pr-11 py-3 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-moss hover:text-soot cursor-pointer"
+                >
+                  {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading || !password || !confirmPassword}
+              className="btn-primary w-full py-3.5 mt-2 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            >
+              {loading ? (
+                <span>Saving new password...</span>
+              ) : (
+                <>
+                  <span>Save Password & Sign In</span>
+                  <CheckCircle2 size={16} />
+                </>
+              )}
+            </button>
+          </form>
+
+          <p className="text-center text-xs sm:text-sm text-moss mt-6 pt-4 border-t border-soot/10">
+            Cancel and return to{' '}
+            <button
+              type="button"
+              onClick={() => navigate('login')}
+              className="text-soot font-bold hover:underline cursor-pointer"
+            >
+              Sign in
+            </button>
+          </p>
+        </div>
+
+        {/* Micro Footer */}
+        <div className="w-full max-w-md mx-auto text-center text-[11px] text-moss">
+          &copy; 2026 Coworking Pass Inc. All rights reserved.
+        </div>
+      </div>
+
+      {/* Right Visual Image */}
+      <AuthVisualBanner
+        quote="A strong and updated password keeps your workspaces, teams, and billing secure across Saudi Arabia."
+        author="Account Security"
+        role="Coworking Pass Platform"
+        tag="Secure Password Reset"
+      />
+    </div>
+  );
+}
+
 export default function AuthPage() {
   const { nav } = useApp();
   if (nav.screen === 'signup') return <SignUpScreen />;
   if (nav.screen === 'choose-type') return <ChooseAccountType />;
   if (nav.screen === 'forgot-password') return <ForgotPasswordScreen />;
   if (nav.screen === 'otp-verify') return <OtpVerificationScreen />;
+  if (nav.screen === 'reset-password') return <ResetPasswordScreen />;
   return <LoginScreen />;
 }

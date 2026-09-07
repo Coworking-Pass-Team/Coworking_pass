@@ -821,6 +821,7 @@ export type Screen =
   | 'choose-type'
   | 'forgot-password'
   | 'otp-verify'
+  | 'reset-password'
   | 'ind-dashboard'
   | 'booking-flow'
   | 'booking-confirm'
@@ -860,10 +861,9 @@ export type Screen =
 export interface OtpSession {
   user: User;
   targetEmailOrPhone: string;
-  mode: 'login' | 'signup';
+  mode: 'login' | 'signup' | 'forgot-password';
   role?: UserRole;
   extraData?: Partial<User>;
-  demoCode?: string;
   destinationScreen?: Screen;
   destinationParams?: Record<string, any>;
 }
