@@ -16,6 +16,8 @@ interface AppContextType {
   login: (email: string, password: string) => { success: boolean; error?: string; requireOtp?: boolean };
   signup: (name: string, email: string, password: string, phone: string) => User;
   requestSignupOtp: (newUser: User, role: UserRole, extraData?: Partial<User>) => void;
+  requestForgotPasswordOtp: (email: string) => { success: boolean; error?: string };
+  resetPassword: (newPassword: string) => { success: boolean; error?: string };
   completeSignup: (role: UserRole, extraData?: Partial<User>) => void;
   verifyOtp: (code: string) => { success: boolean; error?: string };
   resendOtp: () => void;
@@ -24,6 +26,7 @@ interface AppContextType {
   logout: () => void;
   setPendingUser: (user: Partial<User>) => void;
   pendingUser: Partial<User> | null;
+  pendingResetUser: User | null;
   updateCurrentUser: (updates: Partial<User>) => void;
 
   // Spaces
@@ -102,6 +105,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [history, setHistory] = useState<NavState[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [pendingUser, setPendingUser] = useState<Partial<User> | null>(null);
+  const [pendingResetUser, setPendingResetUser] = useState<User | null>(null);
   const [otpSession, setOtpSession] = useState<OtpSession | null>(null);
   const [spaces, setSpaces] = useState<Space[]>(INITIAL_SPACES);
   const [bookings, setBookings] = useState<Booking[]>(INITIAL_BOOKINGS);
@@ -302,7 +306,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       targetEmailOrPhone: user.email || email,
       mode: 'login',
       role: user.role,
-      demoCode: '123456',
     };
     setOtpSession(session);
     navigate('otp-verify');
@@ -343,11 +346,35 @@ export function AppProvider({ children }: { children: ReactNode }) {
       mode: 'signup',
       role,
       extraData,
-      demoCode: '123456',
     };
     setOtpSession(session);
     navigate('otp-verify');
     showToast(`Verification code sent to ${newUser.email || newUser.phone}`, 'info');
+  };
+
+  const requestForgotPasswordOtp = (email: string) => {
+    const cleanEmail = email.trim().toLowerCase();
+    let user = users.find(u => u.email.toLowerCase() === cleanEmail || u.username?.toLowerCase() === cleanEmail);
+    if (!user) {
+      user = INITIAL_USERS.find(u => u.email.toLowerCase() === cleanEmail || u.username?.toLowerCase() === cleanEmail);
+    }
+    if (!user) {
+      return { success: false, error: 'No account found with this email address. Please check and try again.' };
+    }
+    if (user.isBlocked) {
+      return { success: false, error: 'This account has been suspended. Please contact support.' };
+    }
+
+    const session: OtpSession = {
+      user,
+      targetEmailOrPhone: user.email || email,
+      mode: 'forgot-password',
+      role: user.role,
+    };
+    setOtpSession(session);
+    navigate('otp-verify');
+    showToast(`Verification code sent to ${user.email}`, 'info');
+    return { success: true };
   };
 
   const verifyOtp = (code: string) => {
@@ -371,6 +398,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
       else if (user.role === 'provider') navigate('provider-dashboard');
       else navigate('ind-dashboard');
       showToast(`Welcome back, ${user.name}!`, 'success');
+      return { success: true };
+    }
+
+    if (otpSession.mode === 'forgot-password') {
+      const user = otpSession.user;
+      setPendingResetUser(user);
+      setOtpSession(null);
+      navigate('reset-password');
+      showToast('Identity verified. Please set your new password.', 'success');
       return { success: true };
     }
 
@@ -399,6 +435,31 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return { success: true };
   };
 
+  const resetPassword = (newPassword: string) => {
+    if (!pendingResetUser) {
+      return { success: false, error: 'No active password reset session. Please request a verification code again.' };
+    }
+    if (!newPassword || newPassword.length < 6) {
+      return { success: false, error: 'Password must be at least 6 characters long.' };
+    }
+    const updatedUser: User = {
+      ...pendingResetUser,
+      password: newPassword,
+    };
+    const updatedUsers = users.some(u => u.id === updatedUser.id)
+      ? users.map(u => u.id === updatedUser.id ? updatedUser : u)
+      : [...users, updatedUser];
+
+    setUsers(updatedUsers);
+    setPendingResetUser(null);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cp_users', JSON.stringify(updatedUsers));
+    }
+    navigate('login');
+    showToast('Password updated successfully! Please sign in with your new password.', 'success');
+    return { success: true };
+  };
+
   const resendOtp = () => {
     if (!otpSession) return;
     showToast(`New verification code sent to ${otpSession.targetEmailOrPhone}`, 'info');
@@ -407,7 +468,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const cancelOtp = () => {
     const prevMode = otpSession?.mode || 'login';
     setOtpSession(null);
-    navigate(prevMode === 'signup' ? 'signup' : 'login');
+    if (prevMode === 'signup') navigate('signup');
+    else if (prevMode === 'forgot-password') navigate('forgot-password');
+    else navigate('login');
   };
 
   const completeSignup = (role: UserRole, extraData?: Partial<User>) => {
@@ -1110,7 +1173,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       cart, addToCart, removeFromCart, updateCartItemSeats, updateCartItem, clearCart, checkoutCart,
       applyLoyaltyDiscount,
       toast, showToast, updateCurrentUser, completeSignup,
-      otpSession, startOtpVerification, requestSignupOtp, verifyOtp, resendOtp, cancelOtp,
+      otpSession, startOtpVerification, requestSignupOtp, requestForgotPasswordOtp, resetPassword, pendingResetUser, verifyOtp, resendOtp, cancelOtp,
     }}>
       {children}
     </AppContext.Provider>
