@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Eye,
   EyeOff,
@@ -17,7 +17,9 @@ import {
   Phone,
   Briefcase,
   FileText,
-  Users
+  Users,
+  ShieldCheck,
+  Clock
 } from 'lucide-react';
 import { useApp } from '@/app/store';
 import LogoImage from '@/components/layout/logo';
@@ -84,13 +86,23 @@ export function LoginScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!email) { setError('Please enter your email address.'); return; }
-    if (!password) { setError('Please enter your password.'); return; }
+    const errs: Record<string, string> = {};
+    if (!email || !email.trim()) errs.email = 'Email address is required.';
+    if (!password) errs.password = 'Password is required.';
+
+    if (Object.keys(errs).length > 0) {
+      setFieldErrors(errs);
+      setError('Please fill in all required fields highlighted in red.');
+      return;
+    }
+    setFieldErrors({});
+
     setLoading(true);
     setTimeout(() => {
       const result = login(email, password);
@@ -141,7 +153,7 @@ export function LoginScreen() {
             {/* Email */}
             <div>
               <label className="block text-xs font-semibold text-soot mb-1.5 uppercase tracking-wider">
-                Email Address
+                Email Address <span className="text-rose-600">*</span>
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-moss">
@@ -150,18 +162,24 @@ export function LoginScreen() {
                 <input
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (fieldErrors.email) setFieldErrors((errs) => ({ ...errs, email: '' }));
+                  }}
                   placeholder="name@company.com"
-                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all"
+                  className={`w-full pl-10 pr-4 py-3 rounded-xl bg-plaster-surface border ${
+                    fieldErrors.email ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-soot/15 focus-visible:ring-2 focus-visible:ring-eucalyptus'
+                  } text-soot placeholder:text-moss/50 text-sm shadow-xs transition-all`}
                 />
               </div>
+              {fieldErrors.email && <p className="text-xs text-rose-600 font-medium mt-1">* {fieldErrors.email}</p>}
             </div>
 
             {/* Password */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="block text-xs font-semibold text-soot uppercase tracking-wider">
-                  Password
+                  Password <span className="text-rose-600">*</span>
                 </label>
                 <button
                   type="button"
@@ -178,9 +196,14 @@ export function LoginScreen() {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (fieldErrors.password) setFieldErrors((errs) => ({ ...errs, password: '' }));
+                  }}
                   placeholder="••••••••"
-                  className="w-full pl-10 pr-11 py-3 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all"
+                  className={`w-full pl-10 pr-11 py-3 rounded-xl bg-plaster-surface border ${
+                    fieldErrors.password ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-soot/15 focus-visible:ring-2 focus-visible:ring-eucalyptus'
+                  } text-soot placeholder:text-moss/50 text-sm shadow-xs transition-all`}
                 />
                 <button
                   type="button"
@@ -191,6 +214,7 @@ export function LoginScreen() {
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
+              {fieldErrors.password && <p className="text-xs text-rose-600 font-medium mt-1">* {fieldErrors.password}</p>}
             </div>
 
             {/* Submit Button */}
@@ -239,7 +263,7 @@ export function LoginScreen() {
 }
 
 export function SignUpScreen() {
-  const { signup, completeSignup, setPendingUser, navigate } = useApp();
+  const { signup, requestSignupOtp, setPendingUser, navigate } = useApp();
 
   const [step, setStep] = useState<1 | 2>(1);
   const [role, setRole] = useState<'individual' | 'organization' | 'provider'>('individual');
@@ -250,6 +274,7 @@ export function SignUpScreen() {
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const [orgName, setOrgName] = useState('');
   const [orgSize, setOrgSize] = useState('');
@@ -273,6 +298,7 @@ export function SignUpScreen() {
     if (!password) e.password = 'Password is required.';
     else if (password.length < 6) e.password = 'Password must be at least 6 characters.';
     if (password !== confirm) e.confirm = 'Passwords do not match.';
+    if (!agreedToTerms) e.agreedToTerms = 'You must agree to the Terms of Service and Privacy Policy.';
 
     if (role === 'organization') {
       if (!orgName.trim()) e.orgName = 'Organization name is required.';
@@ -292,11 +318,11 @@ export function SignUpScreen() {
     setPendingUser(newUser);
 
     if (role === 'organization') {
-      (completeSignup as (r: string, d?: unknown) => void)(role, { orgName, orgSize: parseInt(orgSize, 10) || 10, industry });
+      requestSignupOtp(newUser, role, { orgName, orgSize: parseInt(orgSize, 10) || 10, industry });
     } else if (role === 'provider') {
-      (completeSignup as (r: string, d?: unknown) => void)(role, { businessName, crNumber });
+      requestSignupOtp(newUser, role, { businessName, crNumber });
     } else {
-      (completeSignup as (r: string) => void)(role);
+      requestSignupOtp(newUser, role);
     }
   };
 
@@ -411,7 +437,9 @@ export function SignUpScreen() {
               {/* Row 1: Name & Phone */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">Full Name *</label>
+                  <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">
+                    Full Name <span className="text-rose-600">*</span>
+                  </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-moss">
                       <UserIcon size={15} />
@@ -421,14 +449,18 @@ export function SignUpScreen() {
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder="Ahmed Al-Mansoori"
-                      className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all"
+                      className={`w-full pl-9 pr-3 py-2.5 rounded-xl bg-plaster-surface border ${
+                        errors.name ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-soot/15 focus-visible:ring-2 focus-visible:ring-eucalyptus'
+                      } text-soot placeholder:text-moss/50 text-sm shadow-xs transition-all`}
                     />
                   </div>
-                  {errors.name && <p className="text-red-500 text-xs mt-0.5 font-medium">{errors.name}</p>}
+                  {errors.name && <p className="text-rose-600 text-xs mt-0.5 font-medium">* {errors.name}</p>}
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">Phone Number *</label>
+                  <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">
+                    Phone Number <span className="text-rose-600">*</span>
+                  </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-moss">
                       <Phone size={15} />
@@ -438,16 +470,20 @@ export function SignUpScreen() {
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       placeholder="+966 55 123 4567"
-                      className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all"
+                      className={`w-full pl-9 pr-3 py-2.5 rounded-xl bg-plaster-surface border ${
+                        errors.phone ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-soot/15 focus-visible:ring-2 focus-visible:ring-eucalyptus'
+                      } text-soot placeholder:text-moss/50 text-sm shadow-xs transition-all`}
                     />
                   </div>
-                  {errors.phone && <p className="text-red-500 text-xs mt-0.5 font-medium">{errors.phone}</p>}
+                  {errors.phone && <p className="text-rose-600 text-xs mt-0.5 font-medium">* {errors.phone}</p>}
                 </div>
               </div>
 
               {/* Email */}
               <div>
-                <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">Email Address *</label>
+                <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">
+                  Email Address <span className="text-rose-600">*</span>
+                </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-moss">
                     <Mail size={15} />
@@ -457,10 +493,12 @@ export function SignUpScreen() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@example.com"
-                    className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all"
+                    className={`w-full pl-9 pr-3 py-2.5 rounded-xl bg-plaster-surface border ${
+                      errors.email ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-soot/15 focus-visible:ring-2 focus-visible:ring-eucalyptus'
+                    } text-soot placeholder:text-moss/50 text-sm shadow-xs transition-all`}
                   />
                 </div>
-                {errors.email && <p className="text-red-500 text-xs mt-0.5 font-medium">{errors.email}</p>}
+                {errors.email && <p className="text-rose-600 text-xs mt-0.5 font-medium">* {errors.email}</p>}
               </div>
 
               {/* Organization Fields */}
@@ -608,6 +646,55 @@ export function SignUpScreen() {
                 </div>
               </div>
 
+              {/* Terms and Policies Agreement Checkbox */}
+              <div className="pt-2">
+                <label className="flex items-start gap-2.5 cursor-pointer text-xs text-moss select-none">
+                  <input
+                    type="checkbox"
+                    checked={agreedToTerms}
+                    onChange={(e) => {
+                      setAgreedToTerms(e.target.checked);
+                      if (errors.agreedToTerms) {
+                        setErrors((prev) => {
+                          const copy = { ...prev };
+                          delete copy.agreedToTerms;
+                          return copy;
+                        });
+                      }
+                    }}
+                    className="mt-0.5 h-4 w-4 rounded border-soot/20 text-soot focus:ring-eucalyptus accent-soot cursor-pointer shrink-0"
+                  />
+                  <span className="leading-relaxed">
+                    I agree to the{' '}
+                    <button
+                      type="button"
+                      onClick={(evt) => {
+                        evt.preventDefault();
+                        navigate('terms-of-service');
+                      }}
+                      className="text-soot font-bold underline hover:text-emerald-800 cursor-pointer"
+                    >
+                      Terms of Service
+                    </button>{' '}
+                    and{' '}
+                    <button
+                      type="button"
+                      onClick={(evt) => {
+                        evt.preventDefault();
+                        navigate('privacy-policy');
+                      }}
+                      className="text-soot font-bold underline hover:text-emerald-800 cursor-pointer"
+                    >
+                      Privacy Policy
+                    </button>{' '}
+                    <span className="text-rose-600">*</span>
+                  </span>
+                </label>
+                {errors.agreedToTerms && (
+                  <p className="text-rose-600 text-xs mt-1 font-medium">* {errors.agreedToTerms}</p>
+                )}
+              </div>
+
               <button
                 type="submit"
                 className="btn-primary w-full py-3.5 mt-3"
@@ -647,7 +734,7 @@ export function SignUpScreen() {
 }
 
 export function ChooseAccountType() {
-  const { navigate, completeSignup, pendingUser, setPendingUser } = useApp();
+  const { navigate, requestSignupOtp, pendingUser, setPendingUser } = useApp();
   const [selected, setSelected] = useState<'individual' | 'organization' | 'provider' | null>(null);
   const [orgName, setOrgName] = useState('');
   const [orgSize, setOrgSize] = useState('');
@@ -660,27 +747,27 @@ export function ChooseAccountType() {
     if (selected === 'organization' && !orgName.trim()) return;
     if (selected === 'provider' && !businessName.trim()) return;
 
-    if (!pendingUser) {
-      const tempUser = {
-        id: `user-${Date.now()}`,
-        name: 'New Member',
-        email: 'member@coworkingpass.sa',
-        password: 'password',
-        role: selected,
-        phone: '+966 50 123 4567',
-        avatar: '',
-        isBlocked: false,
-        joinDate: new Date().toISOString().split('T')[0],
-      };
-      setPendingUser(tempUser);
-    }
+    const targetUser = pendingUser || {
+      id: `user-${Date.now()}`,
+      name: 'New Member',
+      username: `user_${Date.now().toString().slice(-4)}`,
+      email: 'member@coworkingpass.sa',
+      password: 'password',
+      role: selected,
+      phone: '+966 50 123 4567',
+      avatar: '',
+      isBlocked: false,
+      joinDate: new Date().toISOString().split('T')[0],
+      loyaltyPoints: 0,
+    };
+    if (!pendingUser) setPendingUser(targetUser);
 
     if (selected === 'organization') {
-      (completeSignup as (r: string, d?: unknown) => void)(selected, { orgName, orgSize: parseInt(orgSize, 10) || 10, industry: industry || 'Technology' });
+      requestSignupOtp(targetUser as any, selected, { orgName, orgSize: parseInt(orgSize, 10) || 10, industry: industry || 'Technology' });
     } else if (selected === 'provider') {
-      (completeSignup as (r: string, d?: unknown) => void)(selected, { businessName, crNumber });
+      requestSignupOtp(targetUser as any, selected, { businessName, crNumber });
     } else {
-      (completeSignup as (r: string) => void)(selected);
+      requestSignupOtp(targetUser as any, selected);
     }
   };
 
@@ -867,10 +954,10 @@ export function ChooseAccountType() {
 }
 
 export function ForgotPasswordScreen() {
-  const { navigate } = useApp();
+  const { navigate, requestForgotPasswordOtp } = useApp();
   const [email, setEmail] = useState('');
-  const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -878,12 +965,17 @@ export function ForgotPasswordScreen() {
       setError('Please enter your email address.');
       return;
     }
-    if (!/\S+@\S+\.\S+/.test(email)) {
+    if (!/\S+@\S+\.\S+/.test(email.trim())) {
       setError('Please enter a valid email address.');
       return;
     }
     setError('');
-    setSubmitted(true);
+    setLoading(true);
+    const res = requestForgotPasswordOtp(email.trim());
+    if (!res.success) {
+      setError(res.error || 'No account found with this email address.');
+      setLoading(false);
+    }
   };
 
   return (
@@ -906,73 +998,62 @@ export function ForgotPasswordScreen() {
         {/* Center Form */}
         <div className="w-full max-w-md mx-auto my-auto py-8">
           <div className="mb-7">
-            {!submitted ? (
-              <>
-                <h1 className="text-3xl sm:text-4xl font-normal font-serif-display text-soot tracking-tight mb-2">
-                  Forgot your password?
-                </h1>
-                <p className="text-moss text-xs sm:text-sm leading-relaxed">
-                  Enter your registered email and we&apos;ll send you a password reset link.
-                </p>
-              </>
-            ) : (
-              <div className="text-center sm:text-left">
-                <div className="w-12 h-12 rounded-2xl bg-eucalyptus/25 border border-eucalyptus/40 flex items-center justify-center mb-4">
-                  <Check size={22} className="text-soot" />
-                </div>
-                <h1 className="text-3xl font-normal font-serif-display text-soot tracking-tight mb-2">
-                  Check your email
-                </h1>
-                <p className="text-moss text-xs sm:text-sm leading-relaxed">
-                  If an account exists for <span className="font-semibold text-soot">{email}</span>, you will receive a reset instructions link shortly.
-                </p>
-              </div>
-            )}
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-eucalyptus/20 border border-eucalyptus/40 text-soot text-xs font-semibold mb-3.5">
+              <ShieldCheck size={14} className="text-emerald-800 shrink-0" />
+              <span>Password Recovery</span>
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-normal font-serif-display text-soot tracking-tight mb-2">
+              Forgot your password?
+            </h1>
+            <p className="text-moss text-xs sm:text-sm leading-relaxed">
+              Enter your registered account email and we&apos;ll send a 6-digit one-time verification code to reset your password.
+            </p>
           </div>
 
-          {!submitted ? (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {error && (
-                <div className="bg-red-500/10 border border-red-500/20 text-red-700 text-xs sm:text-sm font-medium rounded-xl px-4 py-3">
-                  {error}
-                </div>
-              )}
-
-              <div>
-                <label className="block text-xs font-semibold text-soot mb-1.5 uppercase tracking-wider">
-                  Email Address
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-moss">
-                    <Mail size={16} />
-                  </div>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all"
-                  />
-                </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/20 text-red-700 text-xs sm:text-sm font-medium rounded-xl px-4 py-3">
+                {error}
               </div>
+            )}
 
-              <button
-                type="submit"
-                className="btn-primary w-full py-3.5 mt-2"
-              >
-                <span>Send Reset Link</span>
-                <ArrowRight size={16} />
-              </button>
-            </form>
-          ) : (
+            <div>
+              <label className="block text-xs font-semibold text-soot mb-1.5 uppercase tracking-wider">
+                Email Address
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-moss">
+                  <Mail size={16} />
+                </div>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (error) setError('');
+                  }}
+                  placeholder="you@example.com"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all"
+                  required
+                />
+              </div>
+            </div>
+
             <button
-              type="button"
-              onClick={() => navigate('login')}
-              className="btn-primary w-full py-3.5 mt-2"
+              type="submit"
+              disabled={loading}
+              className="btn-primary w-full py-3.5 mt-2 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
-              <span>Return to Sign In</span>
+              {loading ? (
+                <span>Sending code...</span>
+              ) : (
+                <>
+                  <span>Send Verification Code</span>
+                  <ArrowRight size={16} />
+                </>
+              )}
             </button>
-          )}
+          </form>
 
           <p className="text-center text-xs sm:text-sm text-moss mt-6 pt-4 border-t border-soot/10">
             Remembered your password?{' '}
@@ -994,9 +1075,433 @@ export function ForgotPasswordScreen() {
 
       {/* Right Visual Image */}
       <AuthVisualBanner
-        quote="Account recovery is seamless and protected by industry-standard encryption."
+        quote="Account recovery is seamless and protected by two-factor verification across the network."
         author="Security Operations"
         role="Coworking Pass Platform"
+      />
+    </div>
+  );
+}
+
+export function OtpVerificationScreen() {
+  const { otpSession, verifyOtp, resendOtp, cancelOtp, navigate } = useApp();
+  const [digits, setDigits] = useState<string[]>(['', '', '', '', '', '']);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [countdown, setCountdown] = useState(60);
+  const [canResend, setCanResend] = useState(false);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Focus first input on mount
+  useEffect(() => {
+    inputRefs.current[0]?.focus();
+  }, []);
+
+  // Timer countdown
+  useEffect(() => {
+    if (countdown <= 0) {
+      setCanResend(true);
+      return;
+    }
+    const timer = setInterval(() => {
+      setCountdown((prev) => prev - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [countdown]);
+
+  const handleDigitChange = (index: number, value: string) => {
+    const cleaned = value.replace(/\D/g, '');
+    if (!cleaned) {
+      const nextDigits = [...digits];
+      nextDigits[index] = '';
+      setDigits(nextDigits);
+      return;
+    }
+
+    const lastChar = cleaned[cleaned.length - 1];
+    const nextDigits = [...digits];
+    nextDigits[index] = lastChar;
+    setDigits(nextDigits);
+    setError('');
+
+    if (index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace') {
+      if (!digits[index] && index > 0) {
+        const nextDigits = [...digits];
+        nextDigits[index - 1] = '';
+        setDigits(nextDigits);
+        inputRefs.current[index - 1]?.focus();
+      }
+    } else if (e.key === 'ArrowLeft' && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    } else if (e.key === 'ArrowRight' && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pasteData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (!pasteData) return;
+
+    const nextDigits = [...digits];
+    for (let i = 0; i < 6; i++) {
+      nextDigits[i] = pasteData[i] || '';
+    }
+    setDigits(nextDigits);
+    setError('');
+
+    const focusIndex = Math.min(pasteData.length, 5);
+    inputRefs.current[focusIndex]?.focus();
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const code = digits.join('');
+    if (code.length < 6) {
+      setError('Please enter all 6 digits of the verification code.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    setTimeout(() => {
+      const res = verifyOtp(code);
+      if (!res.success) {
+        setError(res.error || 'Invalid verification code. Please try again.');
+        setLoading(false);
+      }
+    }, 600);
+  };
+
+  const handleResend = () => {
+    if (!canResend) return;
+    resendOtp();
+    setCountdown(60);
+    setCanResend(false);
+    setError('');
+  };
+
+  const recipient = otpSession?.targetEmailOrPhone || 'your registered contact';
+  const isSignup = otpSession?.mode === 'signup';
+  const isForgotPassword = otpSession?.mode === 'forgot-password';
+
+  return (
+    <div className="min-h-screen w-full flex bg-plaster text-soot">
+      {/* Left Form Column */}
+      <div className="w-full lg:w-1/2 flex flex-col justify-between p-6 sm:p-10 lg:p-14 min-h-screen">
+        {/* Top Header */}
+        <div className="flex items-center justify-between w-full max-w-md mx-auto">
+          <Logo onClick={() => navigate('landing')} />
+          <button
+            type="button"
+            onClick={cancelOtp}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-soot/5 hover:bg-soot/10 border border-soot/10 text-xs font-semibold text-soot transition-all duration-200 cursor-pointer group"
+          >
+            <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />
+            <span>{isSignup ? 'Back to Sign Up' : isForgotPassword ? 'Back to Forgot Password' : 'Back to Sign In'}</span>
+          </button>
+        </div>
+
+        {/* Center Content */}
+        <div className="w-full max-w-md mx-auto my-auto py-8">
+          <div className="mb-7">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-eucalyptus/20 border border-eucalyptus/40 text-soot text-xs font-semibold mb-3.5">
+              <ShieldCheck size={14} className="text-emerald-800 shrink-0" />
+              <span>{isForgotPassword ? 'Password Recovery Verification' : 'Two-Factor Security Verification'}</span>
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-normal font-serif-display text-soot tracking-tight mb-2">
+              Enter verification code
+            </h1>
+            <p className="text-moss text-xs sm:text-sm leading-relaxed">
+              We&apos;ve sent a 6-digit one-time code to{' '}
+              <span className="font-semibold text-soot">{recipient}</span>. Enter the code below to {isSignup ? 'complete your account registration' : isForgotPassword ? 'verify your identity and reset your password' : 'complete your sign in'}.
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/20 text-red-700 text-xs sm:text-sm font-medium rounded-xl px-4 py-3">
+                {error}
+              </div>
+            )}
+
+            {/* 6 Digit Input Boxes */}
+            <div>
+              <label className="block text-xs font-semibold text-soot mb-2.5 uppercase tracking-wider text-center">
+                6-Digit Security Code
+              </label>
+              <div className="flex items-center justify-center gap-2 sm:gap-3">
+                {digits.map((digit, idx) => (
+                  <input
+                    key={idx}
+                    ref={(el) => { inputRefs.current[idx] = el; }}
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={1}
+                    value={digit}
+                    onChange={(e) => handleDigitChange(idx, e.target.value)}
+                    onKeyDown={(e) => handleKeyDown(idx, e)}
+                    onPaste={handlePaste}
+                    className={`w-11 h-14 sm:w-13 sm:h-16 text-center text-xl sm:text-2xl font-bold font-mono rounded-2xl bg-plaster-surface border ${
+                      digit
+                        ? 'border-eucalyptus bg-white ring-2 ring-eucalyptus/20 text-soot'
+                        : 'border-soot/15 text-soot focus:border-eucalyptus focus:ring-2 focus:ring-eucalyptus'
+                    } shadow-xs transition-all outline-none`}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading || digits.join('').length < 6}
+              className="btn-primary w-full py-3.5 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            >
+              {loading ? (
+                <span>Verifying code...</span>
+              ) : (
+                <>
+                  <span>Verify & Continue</span>
+                  <CheckCircle2 size={16} />
+                </>
+              )}
+            </button>
+          </form>
+
+          {/* Resend & Timer */}
+          <div className="mt-6 text-center text-xs text-moss space-y-2">
+            <div>
+              {!canResend ? (
+                <span className="flex items-center justify-center gap-1.5 font-medium">
+                  <Clock size={13} className="text-moss" />
+                  <span>Resend code in {Math.floor(countdown / 60)}:{countdown % 60 < 10 ? `0${countdown % 60}` : countdown % 60}</span>
+                </span>
+              ) : (
+                <span>
+                  Didn&apos;t receive the code?{' '}
+                  <button
+                    type="button"
+                    onClick={handleResend}
+                    className="text-soot font-bold hover:underline cursor-pointer"
+                  >
+                    Resend Code
+                  </button>
+                </span>
+              )}
+            </div>
+
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={cancelOtp}
+                className="text-moss hover:text-soot underline transition-colors cursor-pointer text-[11px]"
+              >
+                Use a different account or return
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Micro Footer */}
+        <div className="w-full max-w-md mx-auto text-center text-[11px] text-moss">
+          &copy; 2026 Coworking Pass Inc. All rights reserved.
+        </div>
+      </div>
+
+      {/* Right Visual Image */}
+      <AuthVisualBanner
+        quote="Multi-factor authentication guarantees trusted and authenticated identity verification across all spaces in Saudi Arabia."
+        author="Security Operations"
+        role="Coworking Pass Platform"
+        tag="Two-Factor Verified Access"
+      />
+    </div>
+  );
+}
+
+export function ResetPasswordScreen() {
+  const { navigate, resetPassword, pendingResetUser } = useApp();
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!password) {
+      setError('Please enter a new password.');
+      return;
+    }
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters long.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('Passwords do not match. Please verify and try again.');
+      return;
+    }
+
+    setError('');
+    setLoading(true);
+
+    setTimeout(() => {
+      const res = resetPassword(password);
+      if (!res.success) {
+        setError(res.error || 'Failed to update password.');
+        setLoading(false);
+      }
+    }, 400);
+  };
+
+  const userEmail = pendingResetUser?.email || pendingResetUser?.username || 'your account';
+
+  return (
+    <div className="min-h-screen w-full flex bg-plaster text-soot">
+      {/* Left Form Column */}
+      <div className="w-full lg:w-1/2 flex flex-col justify-between p-6 sm:p-10 lg:p-14 min-h-screen">
+        {/* Top Header */}
+        <div className="flex items-center justify-between w-full max-w-md mx-auto">
+          <Logo onClick={() => navigate('landing')} />
+          <button
+            type="button"
+            onClick={() => navigate('login')}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-soot/5 hover:bg-soot/10 border border-soot/10 text-xs font-semibold text-soot transition-all duration-200 cursor-pointer group"
+          >
+            <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />
+            <span>Back to Sign in</span>
+          </button>
+        </div>
+
+        {/* Center Form */}
+        <div className="w-full max-w-md mx-auto my-auto py-8">
+          <div className="mb-7">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-eucalyptus/20 border border-eucalyptus/40 text-soot text-xs font-semibold mb-3.5">
+              <Lock size={14} className="text-emerald-800 shrink-0" />
+              <span>Identity Verified</span>
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-normal font-serif-display text-soot tracking-tight mb-2">
+              Set new password
+            </h1>
+            <p className="text-moss text-xs sm:text-sm leading-relaxed">
+              Create a new secure password for <span className="font-semibold text-soot">{userEmail}</span>.
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/20 text-red-700 text-xs sm:text-sm font-medium rounded-xl px-4 py-3">
+                {error}
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs font-semibold text-soot mb-1.5 uppercase tracking-wider">
+                New Password
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-moss">
+                  <Lock size={16} />
+                </div>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (error) setError('');
+                  }}
+                  placeholder="At least 6 characters"
+                  className="w-full pl-10 pr-11 py-3 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-moss hover:text-soot cursor-pointer"
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-soot mb-1.5 uppercase tracking-wider">
+                Confirm New Password
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-moss">
+                  <Lock size={16} />
+                </div>
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={(e) => {
+                    setConfirmPassword(e.target.value);
+                    if (error) setError('');
+                  }}
+                  placeholder="Repeat new password"
+                  className="w-full pl-10 pr-11 py-3 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-moss hover:text-soot cursor-pointer"
+                >
+                  {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading || !password || !confirmPassword}
+              className="btn-primary w-full py-3.5 mt-2 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            >
+              {loading ? (
+                <span>Saving new password...</span>
+              ) : (
+                <>
+                  <span>Save Password & Sign In</span>
+                  <CheckCircle2 size={16} />
+                </>
+              )}
+            </button>
+          </form>
+
+          <p className="text-center text-xs sm:text-sm text-moss mt-6 pt-4 border-t border-soot/10">
+            Cancel and return to{' '}
+            <button
+              type="button"
+              onClick={() => navigate('login')}
+              className="text-soot font-bold hover:underline cursor-pointer"
+            >
+              Sign in
+            </button>
+          </p>
+        </div>
+
+        {/* Micro Footer */}
+        <div className="w-full max-w-md mx-auto text-center text-[11px] text-moss">
+          &copy; 2026 Coworking Pass Inc. All rights reserved.
+        </div>
+      </div>
+
+      {/* Right Visual Image */}
+      <AuthVisualBanner
+        quote="A strong and updated password keeps your workspaces, teams, and billing secure across Saudi Arabia."
+        author="Account Security"
+        role="Coworking Pass Platform"
+        tag="Secure Password Reset"
       />
     </div>
   );
@@ -1007,5 +1512,7 @@ export default function AuthPage() {
   if (nav.screen === 'signup') return <SignUpScreen />;
   if (nav.screen === 'choose-type') return <ChooseAccountType />;
   if (nav.screen === 'forgot-password') return <ForgotPasswordScreen />;
+  if (nav.screen === 'otp-verify') return <OtpVerificationScreen />;
+  if (nav.screen === 'reset-password') return <ResetPasswordScreen />;
   return <LoginScreen />;
 }

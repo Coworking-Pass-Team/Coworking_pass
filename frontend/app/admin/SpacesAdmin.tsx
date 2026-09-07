@@ -18,9 +18,13 @@ import {
   Upload,
   Presentation,
   Clapperboard,
+  Sparkles,
+  CheckCircle2,
+  XCircle,
+  MessageSquare,
 } from 'lucide-react';
 import { useApp } from '@/app/store';
-import { Space, SpaceBookingPackage, SpaceCategory, ALL_SPACE_TYPES, isHourlyOnlySpace, isOfficeSpace, isHourlyAllowed, getSpaceCategory } from '@/types/types';
+import { Space, SpaceBookingPackage, SpaceCategory, ALL_SPACE_TYPES, isHourlyOnlySpace, isOfficeSpace, isHourlyAllowed, getSpaceCategory, AmenityRequest } from '@/types/types';
 
 const AMENITY_OPTIONS = [
   'WiFi',
@@ -88,10 +92,13 @@ const emptyForm = (): Partial<Space> => ({
 });
 
 export default function SpacesAdmin() {
-  const { spaces, addSpace, updateSpace, toggleSpaceVisibility, deleteSpace, navigate } = useApp();
+  const { spaces, addSpace, updateSpace, toggleSpaceVisibility, deleteSpace, navigate, amenityRequests, approveAmenityRequest, rejectAmenityRequest, getApprovedAmenities } = useApp();
   const [query, setQuery] = useState('');
   const [filterCity, setFilterCity] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<'all' | SpaceCategory>('all');
+  const [categoryFilter, setCategoryFilter] = useState<'all' | SpaceCategory | 'amenity-requests'>('all');
+  const [amenityStatusFilter, setAmenityStatusFilter] = useState<'ALL' | 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED'>('ALL');
+  const [rejectingReq, setRejectingReq] = useState<AmenityRequest | null>(null);
+  const [rejectionReasonInput, setRejectionReasonInput] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -106,6 +113,7 @@ export default function SpacesAdmin() {
   const [editingSpace, setEditingSpace] = useState<Space | null>(null);
   const [spaceToDelete, setSpaceToDelete] = useState<Space | null>(null);
   const [form, setForm] = useState<Partial<Space>>(emptyForm());
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -221,7 +229,17 @@ export default function SpacesAdmin() {
   };
 
   const handleSave = () => {
-    if (!form.name || !form.city || !form.address) return;
+    const errs: Record<string, string> = {};
+    if (!form.name || !form.name.trim()) errs.name = 'Workspace name is required.';
+    if (!form.city || !form.city.trim()) errs.city = 'City selection is required.';
+    if (!form.address || !form.address.trim()) errs.address = 'Full address is required.';
+
+    if (Object.keys(errs).length > 0) {
+      setFormErrors(errs);
+      return;
+    }
+    setFormErrors({});
+
     if (editingSpace) {
       updateSpace(editingSpace.id, form as Space);
     } else {
@@ -459,20 +477,27 @@ export default function SpacesAdmin() {
         ))}
       </div>
 
-      {/* Category Tabs: All, Offices, Halls, Theaters */}
+      {/* Category Tabs & Amenity Requests */}
       <div className="flex flex-wrap gap-2.5">
         {[
           { id: 'all' as const, label: 'All Spaces', count: spaces.length, icon: Building2 },
           { id: 'office' as const, label: 'Offices', count: spaces.filter((s) => getSpaceCategory(s) === 'office').length, icon: Building2 },
           { id: 'hall' as const, label: 'Halls', count: spaces.filter((s) => getSpaceCategory(s) === 'hall').length, icon: Presentation },
           { id: 'theater' as const, label: 'Theaters', count: spaces.filter((s) => getSpaceCategory(s) === 'theater').length, icon: Clapperboard },
+          {
+            id: 'amenity-requests' as const,
+            label: 'Amenity Requests',
+            count: amenityRequests.length,
+            icon: Sparkles,
+            pendingCount: amenityRequests.filter((r) => r.status === 'PENDING_APPROVAL').length,
+          },
         ].map((tab) => {
           const isSelected = categoryFilter === tab.id;
           return (
             <button
               key={tab.id}
               type="button"
-              onClick={() => setCategoryFilter(tab.id)}
+              onClick={() => setCategoryFilter(tab.id as any)}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
                 isSelected
                   ? 'bg-soot text-plaster shadow-xs'
@@ -488,6 +513,11 @@ export default function SpacesAdmin() {
               >
                 {tab.count}
               </span>
+              {tab.pendingCount ? (
+                <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-500 text-white animate-pulse">
+                  {tab.pendingCount} Pending
+                </span>
+              ) : null}
             </button>
           );
         })}
@@ -559,136 +589,274 @@ export default function SpacesAdmin() {
         </div>
       </div>
 
-      {/* Table Layout */}
-      <div className="bg-plaster-surface rounded-3xl border border-soot/10 overflow-hidden shadow-2xs relative z-10">
-        <div className="hidden md:grid grid-cols-12 gap-6 px-6 py-4 border-b border-soot/10 text-xs font-semibold uppercase tracking-wider text-moss bg-plaster-dark/40 items-center">
-          <div className="col-span-5">Space Name</div>
-          <div className="col-span-2">City</div>
-          <div className="col-span-2">Capacity</div>
-          <div className="col-span-2">Price Rate</div>
-          <div className="col-span-1 text-right">Actions</div>
-        </div>
+      {/* Main Content Area */}
+      {categoryFilter === 'amenity-requests' ? (
+        <div className="space-y-6">
+          {/* Amenity Requests Header Card */}
+          <div className="bg-plaster-surface rounded-3xl border border-soot/12 p-6 shadow-2xs">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="max-w-xl">
+                <h2 className="text-xl font-serif-display font-medium text-soot flex items-center gap-2">
+                  <Sparkles size={20} className="text-amber-600 shrink-0" />
+                  <span>Custom Amenity Requests</span>
+                </h2>
+                <p className="text-xs text-moss mt-1 leading-relaxed">
+                  Review custom amenities requested by Workspace Providers. Approving an amenity adds it to the global platform catalog for all providers.
+                </p>
+              </div>
 
-        <div className="divide-y divide-soot/8">
-          {filtered.map((space) => {
-            const cat = getSpaceCategory(space);
-            const occupancyRatio =
-              space.totalCapacity > 0 ? (space.availableCapacity / space.totalCapacity) * 100 : 0;
+              {/* Status Filter Chips Pills Bar */}
+              <div className="inline-flex items-center gap-1 bg-plaster-dark/40 p-1.5 rounded-2xl border border-soot/10 shrink-0 self-start lg:self-auto overflow-x-auto max-w-full">
+                {(['ALL', 'PENDING_APPROVAL', 'APPROVED', 'REJECTED'] as const).map((status) => {
+                  const active = amenityStatusFilter === status;
+                  const label =
+                    status === 'ALL'
+                      ? 'All Requests'
+                      : status === 'PENDING_APPROVAL'
+                      ? 'Pending'
+                      : status === 'APPROVED'
+                      ? 'Approved'
+                      : 'Rejected';
+                  return (
+                    <button
+                      key={status}
+                      type="button"
+                      onClick={() => setAmenityStatusFilter(status)}
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                        active
+                          ? 'bg-soot text-plaster shadow-xs font-medium'
+                          : 'text-moss hover:text-soot hover:bg-plaster-dark/60'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
 
-            return (
-              <div
-                key={space.id}
-                onClick={() => navigate('space-details', { spaceId: space.id })}
-                className="px-6 py-4 hover:bg-plaster-dark/30 transition-colors flex flex-col md:grid md:grid-cols-12 md:gap-6 md:items-center cursor-pointer group"
-              >
-                {/* Space Name & Thumbnail */}
-                <div className="col-span-5 flex items-center gap-3.5 min-w-0">
-                  <img
-                    src={space.images[0]}
-                    alt={space.name}
-                    className="w-11 h-11 rounded-xl object-cover border border-soot/10 shrink-0 shadow-2xs group-hover:scale-105 transition-transform"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-soot group-hover:text-emerald-900 transition-colors truncate">
-                        {space.name}
+          {/* Requests Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {(amenityRequests || [])
+              .filter((r) => amenityStatusFilter === 'ALL' || r.status === amenityStatusFilter)
+              .map((req) => (
+                <div
+                  key={req.id}
+                  className="bg-plaster-surface rounded-3xl border border-soot/12 p-5 shadow-2xs flex flex-col justify-between space-y-4 hover:border-soot/25 transition-all"
+                >
+                  <div className="space-y-2.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <div className="p-2 rounded-xl bg-eucalyptus/20 text-soot">
+                          <Sparkles size={16} />
+                        </div>
+                        <h3 className="text-base font-semibold text-soot font-serif-display">
+                          {req.amenityName}
+                        </h3>
+                      </div>
+                      <span
+                        className={`text-[10px] uppercase font-bold px-2.5 py-1 rounded-full border ${
+                          req.status === 'APPROVED'
+                            ? 'bg-emerald-500/10 text-emerald-800 border-emerald-500/30'
+                            : req.status === 'REJECTED'
+                            ? 'bg-rose-500/10 text-rose-800 border-rose-500/30'
+                            : 'bg-amber-500/10 text-amber-800 border-amber-500/30 animate-pulse'
+                        }`}
+                      >
+                        {req.status === 'APPROVED' ? 'Approved' : req.status === 'REJECTED' ? 'Rejected' : 'Pending Review'}
                       </span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-soot/8 text-soot border border-soot/10 shrink-0 capitalize">
-                        {cat}
-                      </span>
-                      {!space.isVisible && (
-                        <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-red-500/10 text-red-700 shrink-0">
-                          Hidden
-                        </span>
+                    </div>
+
+                    <div className="text-xs text-moss space-y-1 bg-plaster-dark/30 p-3 rounded-2xl border border-soot/8">
+                      <div>
+                        <span className="font-semibold text-soot">Provider:</span> {req.providerName}
+                      </div>
+                      {req.spaceName && (
+                        <div>
+                          <span className="font-semibold text-soot">Workspace:</span> {req.spaceName}
+                        </div>
+                      )}
+                      <div>
+                        <span className="font-semibold text-soot">Submitted:</span> {new Date(req.createdAt).toLocaleDateString()}
+                      </div>
+                      {req.rejectionReason && (
+                        <div className="text-rose-700 pt-1 font-medium border-t border-soot/10 mt-1">
+                          Reason: {req.rejectionReason}
+                        </div>
                       )}
                     </div>
-                    <div className="flex items-center gap-1.5 text-xs text-moss mt-1 font-medium">
-                      <span className="flex items-center gap-1 text-soot">
-                        <Star size={12} className="fill-amber-400 text-amber-400" />
-                        {space.rating}
-                      </span>
-                      <span>·</span>
-                      <span className="capitalize">{space.type.replace('-', ' ')}</span>
+                  </div>
+
+                  {/* Actions for Pending Requests */}
+                  {req.status === 'PENDING_APPROVAL' ? (
+                    <div className="flex items-center gap-2 pt-2 border-t border-soot/10">
+                      <button
+                        type="button"
+                        onClick={() => approveAmenityRequest(req.id)}
+                        className="flex-1 px-3 py-2 rounded-xl bg-emerald-800 text-white hover:bg-emerald-900 text-xs font-semibold cursor-pointer transition-all flex items-center justify-center gap-1.5 shadow-2xs"
+                      >
+                        <CheckCircle2 size={15} />
+                        <span>Accept & Catalog</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setRejectingReq(req)}
+                        className="px-3 py-2 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100 text-xs font-semibold cursor-pointer transition-all flex items-center justify-center gap-1.5"
+                      >
+                        <XCircle size={15} />
+                        <span>Reject</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="text-[11px] text-moss text-right font-medium italic pt-2 border-t border-soot/10">
+                      Decision logged
+                    </div>
+                  )}
+                </div>
+              ))}
+          </div>
+
+          {(amenityRequests || []).filter((r) => amenityStatusFilter === 'ALL' || r.status === amenityStatusFilter).length === 0 && (
+            <div className="py-16 text-center text-moss bg-plaster-surface rounded-3xl border border-soot/10">
+              <Sparkles size={36} className="mx-auto mb-2 text-moss/50" />
+              <div className="text-base font-medium text-soot">No custom amenity requests found</div>
+              <p className="text-xs text-moss mt-1">Check back later when providers submit new amenity requests.</p>
+            </div>
+          )}
+        </div>
+      ) : (
+        /* Table Layout for Workspaces */
+        <div className="bg-plaster-surface rounded-3xl border border-soot/10 overflow-hidden shadow-2xs relative z-10">
+          <div className="hidden md:grid grid-cols-12 gap-6 px-6 py-4 border-b border-soot/10 text-xs font-semibold uppercase tracking-wider text-moss bg-plaster-dark/40 items-center">
+            <div className="col-span-5">Space Name</div>
+            <div className="col-span-2">City</div>
+            <div className="col-span-2">Capacity</div>
+            <div className="col-span-2">Price Rate</div>
+            <div className="col-span-1 text-right">Actions</div>
+          </div>
+
+          <div className="divide-y divide-soot/8">
+            {filtered.map((space) => {
+              const cat = getSpaceCategory(space);
+              const occupancyRatio =
+                space.totalCapacity > 0 ? (space.availableCapacity / space.totalCapacity) * 100 : 0;
+
+              return (
+                <div
+                  key={space.id}
+                  onClick={() => navigate('space-details', { spaceId: space.id })}
+                  className="px-6 py-4 hover:bg-plaster-dark/30 transition-colors flex flex-col md:grid md:grid-cols-12 md:gap-6 md:items-center cursor-pointer group"
+                >
+                  {/* Space Name & Thumbnail */}
+                  <div className="col-span-5 flex items-center gap-3.5 min-w-0">
+                    <img
+                      src={space.images[0]}
+                      alt={space.name}
+                      className="w-11 h-11 rounded-xl object-cover border border-soot/10 shrink-0 shadow-2xs group-hover:scale-105 transition-transform"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-soot group-hover:text-emerald-900 transition-colors truncate">
+                          {space.name}
+                        </span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-soot/8 text-soot border border-soot/10 shrink-0 capitalize">
+                          {cat}
+                        </span>
+                        {!space.isVisible && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-red-500/10 text-red-700 shrink-0">
+                            Hidden
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1.5 text-xs text-moss mt-1 font-medium">
+                        <span className="flex items-center gap-1 text-soot">
+                          <Star size={12} className="fill-amber-400 text-amber-400" />
+                          {space.rating}
+                        </span>
+                        <span>·</span>
+                        <span className="capitalize">{space.type.replace('-', ' ')}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* City */}
-                <div className="col-span-2 mt-2 md:mt-0 text-sm text-soot font-medium flex items-center gap-1.5">
-                  <MapPin size={14} className="text-moss shrink-0" />
-                  <span className="truncate">{space.city}</span>
-                </div>
+                  {/* City */}
+                  <div className="col-span-2 mt-2 md:mt-0 text-sm text-soot font-medium flex items-center gap-1.5">
+                    <MapPin size={14} className="text-moss shrink-0" />
+                    <span className="truncate">{space.city}</span>
+                  </div>
 
-                {/* Capacity */}
-                <div className="col-span-2 mt-3 md:mt-0 flex flex-col justify-center">
-                  <div className="flex items-center gap-1 text-xs text-moss mb-1.5 font-medium">
-                    <span className="font-semibold text-soot text-sm leading-none">
-                      {space.availableCapacity}
+                  {/* Capacity */}
+                  <div className="col-span-2 mt-3 md:mt-0 flex flex-col justify-center">
+                    <div className="flex items-center gap-1 text-xs text-moss mb-1.5 font-medium">
+                      <span className="font-semibold text-soot text-sm leading-none">
+                        {space.availableCapacity}
+                      </span>
+                      <span>/ {space.totalCapacity}</span>
+                    </div>
+                    <div className="w-full max-w-[120px] h-2 bg-soot/10 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${
+                          space.availableCapacity === 0
+                            ? 'bg-red-500'
+                            : space.availableCapacity <= 5
+                            ? 'bg-amber-500'
+                            : 'bg-[#40534C]'
+                        }`}
+                        style={{ width: `${Math.min(100, Math.max(0, occupancyRatio))}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Space Price */}
+                  <div className="col-span-2 mt-3 md:mt-0 text-sm font-semibold text-soot">
+                    SAR {isHourlyOnlySpace(space.type) ? (space.pricing?.hourly || 150).toLocaleString() : space.pricing?.daily?.toLocaleString()}
+                    <span className="text-xs text-moss font-normal ml-1">
+                      {isHourlyOnlySpace(space.type) ? '/ hour' : '/ day'}
                     </span>
-                    <span>/ {space.totalCapacity}</span>
                   </div>
-                  <div className="w-full max-w-[120px] h-2 bg-soot/10 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all ${
-                        space.availableCapacity === 0
-                          ? 'bg-red-500'
-                          : space.availableCapacity <= 5
-                          ? 'bg-amber-500'
-                          : 'bg-[#40534C]'
-                      }`}
-                      style={{ width: `${Math.min(100, Math.max(0, occupancyRatio))}%` }}
-                    />
+
+                  {/* Actions */}
+                  <div className="col-span-1 mt-4 md:mt-0 flex items-center justify-end gap-1">
+                    <button
+                      type="button"
+                      onClick={(e) => openEdit(e, space)}
+                      className="p-2 rounded-xl text-moss hover:text-soot hover:bg-plaster-surface border border-transparent hover:border-soot/10 transition-all cursor-pointer"
+                      title="Edit Space"
+                    >
+                      <Pencil size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => handleToggleVisibility(e, space.id)}
+                      className="p-2 rounded-xl text-moss hover:text-soot hover:bg-plaster-surface border border-transparent hover:border-soot/10 transition-all cursor-pointer"
+                      title={space.isVisible ? 'Hide Space' : 'Make Visible'}
+                    >
+                      {space.isVisible ? <EyeOff size={15} /> : <Eye size={15} />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => handleDelete(e, space)}
+                      className="p-2 rounded-xl text-moss hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-100 transition-all cursor-pointer"
+                      title="Delete Space"
+                    >
+                      <Trash2 size={15} />
+                    </button>
                   </div>
                 </div>
-
-                {/* Space Price */}
-                <div className="col-span-2 mt-3 md:mt-0 text-sm font-semibold text-soot">
-                  SAR {isHourlyOnlySpace(space.type) ? (space.pricing?.hourly || 150).toLocaleString() : space.pricing?.daily?.toLocaleString()}
-                  <span className="text-xs text-moss font-normal ml-1">
-                    {isHourlyOnlySpace(space.type) ? '/ hour' : '/ day'}
-                  </span>
-                </div>
-
-                {/* Actions */}
-                <div className="col-span-1 mt-4 md:mt-0 flex items-center justify-end gap-1">
-                  <button
-                    type="button"
-                    onClick={(e) => openEdit(e, space)}
-                    className="p-2 rounded-xl text-moss hover:text-soot hover:bg-plaster-surface border border-transparent hover:border-soot/10 transition-all cursor-pointer"
-                    title="Edit Space"
-                  >
-                    <Pencil size={15} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => handleToggleVisibility(e, space.id)}
-                    className="p-2 rounded-xl text-moss hover:text-soot hover:bg-plaster-surface border border-transparent hover:border-soot/10 transition-all cursor-pointer"
-                    title={space.isVisible ? 'Hide Space' : 'Make Visible'}
-                  >
-                    {space.isVisible ? <EyeOff size={15} /> : <Eye size={15} />}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => handleDelete(e, space)}
-                    className="p-2 rounded-xl text-moss hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-100 transition-all cursor-pointer"
-                    title="Delete Space"
-                  >
-                    <Trash2 size={15} />
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {filtered.length === 0 && (
-          <div className="py-20 text-center text-moss">
-            <Building2 size={40} className="mx-auto mb-3 text-moss/50" />
-            <div className="text-base font-medium text-soot">No spaces found</div>
-            <p className="text-xs text-moss mt-1">Try changing your search terms or filter criteria.</p>
+              );
+            })}
           </div>
-        )}
-      </div>
+
+          {filtered.length === 0 && (
+            <div className="py-20 text-center text-moss">
+              <Building2 size={40} className="mx-auto mb-3 text-moss/50" />
+              <div className="text-base font-medium text-soot">No spaces found</div>
+              <p className="text-xs text-moss mt-1">Try changing your search terms or filter criteria.</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Add / Edit Workspace Modal */}
       {editModal && (
@@ -723,6 +891,13 @@ export default function SpacesAdmin() {
                 </div>
               )}
 
+              {Object.keys(formErrors).length > 0 && (
+                <div className="bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold rounded-2xl p-3.5 flex items-center gap-2">
+                  <AlertCircle size={16} className="text-rose-600 shrink-0" />
+                  <span>Please complete all required fields highlighted in red below.</span>
+                </div>
+              )}
+
               <div className="space-y-4">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-moss block border-b border-soot/10 pb-1.5">
                   General Details
@@ -730,23 +905,35 @@ export default function SpacesAdmin() {
 
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-soot mb-1.5">Space Name *</label>
+                    <label className="block text-xs font-semibold text-soot mb-1.5">
+                      Space Name <span className="text-rose-600">*</span>
+                    </label>
                     <input
                       type="text"
                       value={form.name || ''}
-                      onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+                      onChange={(e) => {
+                        setForm((p) => ({ ...p, name: e.target.value }));
+                        if (formErrors.name) setFormErrors((errs) => ({ ...errs, name: '' }));
+                      }}
                       placeholder="e.g. Olaya Hub"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-soot/15 bg-white text-soot text-sm placeholder:text-moss/60 outline-none focus:border-soot transition-all shadow-2xs"
+                      className={`w-full px-3.5 py-2.5 rounded-xl border bg-white text-soot text-sm placeholder:text-moss/60 outline-none transition-all shadow-2xs ${
+                        formErrors.name ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-soot/15 focus:border-soot'
+                      }`}
                     />
+                    {formErrors.name && <p className="text-xs text-rose-600 font-medium mt-1">* {formErrors.name}</p>}
                   </div>
 
                   {/* Custom Styled City Dropdown */}
                   <div className="relative" ref={modalCityRef}>
-                    <label className="block text-xs font-semibold text-soot mb-1.5">City *</label>
+                    <label className="block text-xs font-semibold text-soot mb-1.5">
+                      City <span className="text-rose-600">*</span>
+                    </label>
                     <button
                       type="button"
                       onClick={() => setModalCityOpen(!modalCityOpen)}
-                      className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border border-soot/12 bg-white text-soot text-sm font-medium text-left transition-all duration-200 cursor-pointer focus:outline-none shadow-2xs"
+                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border bg-white text-soot text-sm font-medium text-left transition-all duration-200 cursor-pointer focus:outline-none shadow-2xs ${
+                        formErrors.city ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-soot/12'
+                      }`}
                     >
                       <span className="truncate">{form.city || 'Select City'}</span>
                       <ChevronDown
@@ -756,6 +943,7 @@ export default function SpacesAdmin() {
                         }`}
                       />
                     </button>
+                    {formErrors.city && <p className="text-xs text-rose-600 font-medium mt-1">* {formErrors.city}</p>}
 
                     {modalCityOpen && (
                       <div className="absolute top-full left-0 right-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100 max-h-52 overflow-y-auto">
@@ -768,6 +956,7 @@ export default function SpacesAdmin() {
                                 type="button"
                                 onClick={() => {
                                   setForm((p) => ({ ...p, city: c }));
+                                  if (formErrors.city) setFormErrors((errs) => ({ ...errs, city: '' }));
                                   setModalCityOpen(false);
                                 }}
                                 className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-sm font-medium transition-colors text-left cursor-pointer ${
@@ -787,14 +976,22 @@ export default function SpacesAdmin() {
                   </div>
 
                   <div className="sm:col-span-2">
-                    <label className="block text-xs font-semibold text-soot mb-1.5">Full Address *</label>
+                    <label className="block text-xs font-semibold text-soot mb-1.5">
+                      Full Address <span className="text-rose-600">*</span>
+                    </label>
                     <input
                       type="text"
                       value={form.address || ''}
-                      onChange={(e) => setForm((p) => ({ ...p, address: e.target.value }))}
+                      onChange={(e) => {
+                        setForm((p) => ({ ...p, address: e.target.value }));
+                        if (formErrors.address) setFormErrors((errs) => ({ ...errs, address: '' }));
+                      }}
                       placeholder="District, Street Name, Building Number"
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-soot/15 bg-white text-soot text-sm placeholder:text-moss/60 outline-none focus:border-soot transition-all shadow-2xs"
+                      className={`w-full px-3.5 py-2.5 rounded-xl border bg-white text-soot text-sm placeholder:text-moss/60 outline-none transition-all shadow-2xs ${
+                        formErrors.address ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-soot/15 focus:border-soot'
+                      }`}
                     />
+                    {formErrors.address && <p className="text-xs text-rose-600 font-medium mt-1">* {formErrors.address}</p>}
                   </div>
 
                   {/* Description */}
@@ -1297,6 +1494,68 @@ export default function SpacesAdmin() {
                 className="btn-danger flex-1"
               >
                 Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reject Amenity Request Modal */}
+      {rejectingReq && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div
+            className="fixed inset-0 bg-soot/70 backdrop-blur-sm"
+            onClick={() => setRejectingReq(null)}
+          />
+          <div className="relative w-full max-w-md bg-plaster-surface rounded-3xl shadow-2xl border border-soot/15 p-6 space-y-4 z-10">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-serif-display font-medium text-soot">
+                Reject Custom Amenity
+              </h3>
+              <button
+                type="button"
+                onClick={() => setRejectingReq(null)}
+                className="p-1 rounded-full text-moss hover:text-soot cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <p className="text-xs text-moss">
+              You are declining the amenity request for <strong className="text-soot">{rejectingReq.amenityName}</strong> submitted by {rejectingReq.providerName}.
+            </p>
+
+            <div>
+              <label className="text-xs font-semibold text-soot block mb-1.5">
+                Rejection Reason (Notification sent to Provider)
+              </label>
+              <textarea
+                value={rejectionReasonInput}
+                onChange={(e) => setRejectionReasonInput(e.target.value)}
+                placeholder="Explain why this amenity was declined (e.g. Non-standard naming or safety concern)..."
+                rows={3}
+                className="w-full px-3 py-2 rounded-xl border border-soot/15 bg-plaster-dark/30 text-soot text-xs placeholder:text-moss/70 outline-none focus:border-eucalyptus focus:bg-plaster-surface transition-all"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setRejectingReq(null)}
+                className="px-4 py-2 rounded-xl bg-plaster-dark/40 text-soot hover:bg-plaster-dark/70 text-xs font-semibold cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  rejectAmenityRequest(rejectingReq.id, rejectionReasonInput);
+                  setRejectingReq(null);
+                  setRejectionReasonInput('');
+                }}
+                className="px-4 py-2 rounded-xl bg-rose-600 text-white hover:bg-rose-700 text-xs font-semibold cursor-pointer shadow-2xs"
+              >
+                Decline Request
               </button>
             </div>
           </div>

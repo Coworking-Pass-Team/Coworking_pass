@@ -197,7 +197,7 @@ export default function AdminDashboard() {
                     />
                     <div className="min-w-0">
                       <div className="text-sm font-semibold text-soot truncate">{b.spaceName}</div>
-                      <div className="text-xs text-moss truncate mt-0.5">{b.spaceCity} · {b.plan}</div>
+                      <div className="text-xs text-moss truncate mt-0.5">{b.spaceCity} · <span className="capitalize">{b.plan === 'hourly' ? `Hourly (${b.durationHours || 1} ${b.durationHours === 1 ? 'hr' : 'hrs'})` : b.plan}</span></div>
                     </div>
                   </div>
 

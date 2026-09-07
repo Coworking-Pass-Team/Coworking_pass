@@ -35,18 +35,18 @@ import {
   isOfficeSpace,
   getAllowedPlansForSpace,
   getSpaceTypeLabel,
-  getSpaceCategory
+  getSpaceCategory,
+  START_TIMES,
+  END_TIMES,
+  calculateDurationHours,
+  getAvailableEndTimes,
+  formatHourlyTimeRange,
+  timeStringToMinutes
 } from '@/types/types';
 
 const STEPS = ['Plan', 'Details', 'Review', 'Confirm'];
 
 const DURATION_OPTIONS = [1, 2, 3, 4, 6, 8];
-
-const START_TIMES = [
-  '07:00 AM', '08:00 AM', '09:00 AM', '10:00 AM', '11:00 AM',
-  '12:00 PM', '01:00 PM', '02:00 PM', '03:00 PM', '04:00 PM',
-  '05:00 PM', '06:00 PM', '07:00 PM', '08:00 PM', '09:00 PM',
-];
 
 function StepIndicator({ current }: { current: number }) {
   return (
@@ -101,35 +101,33 @@ export default function BookingFlow() {
   const defaultInitialPlan: BookingPlan = isOffice
     ? 'daily'
     : (nav?.params?.plan as BookingPlan) || (isHourlySpace ? 'hourly' : 'daily');
-  const initialDuration = (nav?.params?.durationHours as number) || 2;
   const initialMonths = (nav?.params?.durationMonths as number) || 1;
+  const initialStartTime = (nav?.params?.startTime as string) || '09:00 AM';
+  const initialEndTime = (nav?.params?.endTime as string) || (nav?.params?.durationHours ? calculateEndTime(initialStartTime, nav.params.durationHours as number) : '05:00 PM');
 
   const [step, setStep] = useState(0); 
   const [plan, setPlan] = useState<BookingPlan>(defaultInitialPlan);
   const [deskType, setDeskType] = useState<BookingType>(space?.type || 'hot-desk');
   
-  // Duration State
-  const [durationHours, setDurationHours] = useState<number>(initialDuration);
+  // Duration & Exact Time State
   const [durationMonths, setDurationMonths] = useState<number>(initialMonths);
-  const [startTime, setStartTime] = useState('10:00 AM');
-  
-  const [startTimeOpen, setStartTimeOpen] = useState(false);
-  const [durationOpen, setDurationOpen] = useState(false);
-  const startTimeRef = useRef<HTMLDivElement>(null);
-  const durationRef = useRef<HTMLDivElement>(null);
+  const [startTime, setStartTime] = useState<string>(initialStartTime);
+  const [endTime, setEndTime] = useState<string>(initialEndTime);
 
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (startTimeRef.current && !startTimeRef.current.contains(event.target as Node)) {
-        setStartTimeOpen(false);
-      }
-      if (durationRef.current && !durationRef.current.contains(event.target as Node)) {
-        setDurationOpen(false);
-      }
+  const durationHours = calculateDurationHours(startTime, endTime);
+
+  const handleStartTimeChange = (newStart: string) => {
+    setStartTime(newStart);
+    const startMin = timeStringToMinutes(newStart);
+    const endMin = timeStringToMinutes(endTime);
+    if (endMin <= startMin) {
+      setEndTime(calculateEndTime(newStart, 1));
     }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  };
+
+  const handleEndTimeChange = (newEnd: string) => {
+    setEndTime(newEnd);
+  };
   
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [seats, setSeats] = useState(1);
@@ -143,8 +141,16 @@ export default function BookingFlow() {
     if (nav?.params?.plan) {
       setPlan(nav.params.plan as BookingPlan);
     }
-    if (nav?.params?.durationHours) {
-      setDurationHours(nav.params.durationHours as number);
+    if (nav?.params?.startDate) {
+      setStartDate(nav.params.startDate as string);
+    }
+    if (nav?.params?.startTime) {
+      setStartTime(nav.params.startTime as string);
+    }
+    if (nav?.params?.endTime) {
+      setEndTime(nav.params.endTime as string);
+    } else if (nav?.params?.durationHours && nav?.params?.startTime) {
+      setEndTime(calculateEndTime(nav.params.startTime as string, nav.params.durationHours as number));
     }
     if (nav?.params?.durationMonths) {
       setDurationMonths(nav.params.durationMonths as number);
@@ -152,12 +158,11 @@ export default function BookingFlow() {
     if (nav?.params?.deskType) {
       setDeskType(nav.params.deskType as BookingType);
     }
-  }, [nav?.params?.spaceId, nav?.params?.plan, nav?.params?.durationHours, nav?.params?.durationMonths, nav?.params?.deskType]);
+  }, [nav?.params?.spaceId, nav?.params?.plan, nav?.params?.startTime, nav?.params?.endTime, nav?.params?.durationHours, nav?.params?.durationMonths, nav?.params?.deskType]);
 
   if (!space || !currentUser) return null;
 
   const isHourly = isHourlySpace && plan === 'hourly';
-  const endTime = isHourly ? calculateEndTime(startTime, durationHours) : '';
 
   const endDate = isHourly || plan === 'daily'
     ? startDate
@@ -172,11 +177,11 @@ export default function BookingFlow() {
   const multiplier = space.loyaltyPointsMultiplier || 1;
   const earnedPoints = Math.floor(rawTotalPrice / 100) * 10 * multiplier;
   const availablePoints = currentUser?.loyaltyPoints || 0;
-  const maxRedeemablePoints = Math.min(
-    Math.floor(availablePoints / 100) * 100,
-    Math.floor(rawTotalPrice / 5) * 100
-  );
-  const pointsDiscount = useLoyaltyPoints && maxRedeemablePoints > 0 ? (maxRedeemablePoints / 100) * 5 : 0;
+  const usableUserPoints = Math.floor(availablePoints / 100) * 100;
+  const pointsNeededToCover = Math.max(100, Math.ceil(rawTotalPrice / 25) * 100);
+  const maxRedeemablePoints = Math.min(usableUserPoints, pointsNeededToCover);
+  const rawPointsDiscount = useLoyaltyPoints && maxRedeemablePoints > 0 ? (maxRedeemablePoints / 100) * 25 : 0;
+  const pointsDiscount = Math.min(rawTotalPrice, rawPointsDiscount);
   const totalPrice = Math.max(0, rawTotalPrice - pointsDiscount);
 
   const priceLabel = isHourly
@@ -273,7 +278,7 @@ export default function BookingFlow() {
   // Confirmation screen
   if (step === 3 && confirmedBooking) {
     const durationSummaryText = isHourly
-      ? `Hourly Reservation (${durationHours} hrs · ${startTime} – ${endTime})`
+      ? `Hourly Reservation (${startTime} – ${endTime} · ${durationHours} ${durationHours === 1 ? 'hour' : 'hours'})`
       : plan === 'monthly'
       ? `Monthly Pass (${durationMonths} Month${durationMonths > 1 ? 's' : ''})`
       : plan === 'daily'
@@ -309,9 +314,9 @@ export default function BookingFlow() {
               <Row label="Space Category" value={getSpaceCategory(space).toUpperCase()} />
               <Row label="Workspace Type" value={deskType.replace('-', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())} />
               <Row label="Plan / Duration" value={durationSummaryText} />
-              <Row label="Start Date" value={startDate} />
+              <Row label={isHourly ? "Booking Date" : "Start Date"} value={startDate} />
               {isHourly ? (
-                <Row label="Time Window" value={`${startTime} – ${endTime}`} />
+                <Row label="Time Window" value={`${startTime} – ${endTime} (${durationHours} ${durationHours === 1 ? 'hour' : 'hours'})`} />
               ) : (
                 <Row label="End Date" value={endDate} />
               )}
@@ -530,42 +535,78 @@ export default function BookingFlow() {
             </div>
           )}
 
-          {/* Hourly Duration Selector for Halls, Theaters, and Hourly Plan */}
+          {/* Hourly Exact Time Range Selector for Halls, Theaters, and Hourly Plan */}
           {isHourly && (
             <div className="p-5 rounded-2xl bg-[#F9F8F5] border border-soot/8 space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2">
                 <div>
                   <h4 className="text-xs font-semibold uppercase tracking-wider text-moss flex items-center gap-1.5">
                     <Clock size={13} />
-                    <span>Select Duration in Hours</span>
+                    <span>Specify Reservation Date & Time</span>
                   </h4>
-                  <p className="text-xs text-moss mt-0.5">Price dynamically updates based on space rates</p>
+                  <p className="text-xs text-moss mt-0.5">Select your booking date, start time, and end time</p>
                 </div>
-                <div className="text-sm font-bold text-soot">
+                <div className="text-sm font-bold text-soot whitespace-nowrap shrink-0 text-right">
                   {durationHours} {durationHours === 1 ? 'Hour' : 'Hours'} · SAR {getHourlyPriceForDuration(space, durationHours)}
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                {DURATION_OPTIONS.map(hours => {
-                  const isActive = durationHours === hours;
-                  const tierPrice = getHourlyPriceForDuration(space, hours);
-                  return (
-                    <button
-                      key={hours}
-                      type="button"
-                      onClick={() => setDurationHours(hours)}
-                      className={`py-3 px-2 rounded-xl text-center border transition-all cursor-pointer ${
-                        isActive
-                          ? 'bg-[#DDE6DF] text-soot border-soot/20 shadow-xs font-semibold ring-2 ring-soot/10'
-                          : 'bg-white border-soot/10 text-moss hover:text-soot hover:border-soot/20'
-                      }`}
-                    >
-                      <div className="text-xs font-semibold">{hours} {hours === 1 ? 'Hour' : 'Hours'}</div>
-                      <div className="text-[11px] font-bold text-soot mt-0.5">SAR {tierPrice}</div>
-                    </button>
-                  );
-                })}
+              {/* Booking Date Input */}
+              <div>
+                <label className="block text-[11px] font-semibold text-moss mb-1 flex items-center gap-1">
+                  <Calendar size={12} />
+                  <span>Reservation Date</span>
+                </label>
+                <input
+                  type="date"
+                  value={startDate}
+                  min={new Date().toISOString().split('T')[0]}
+                  onChange={e => setStartDate(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-soot/12 text-soot text-sm font-medium focus:outline-none focus:border-eucalyptus cursor-pointer shadow-2xs"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-semibold text-moss mb-1">Start Time</label>
+                  <select
+                    value={startTime}
+                    onChange={(e) => handleStartTimeChange(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-soot/12 text-soot text-sm font-medium focus:outline-none focus:border-eucalyptus cursor-pointer shadow-2xs"
+                  >
+                    {START_TIMES.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-moss mb-1">End Time</label>
+                  <select
+                    value={endTime}
+                    onChange={(e) => handleEndTimeChange(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-soot/12 text-soot text-sm font-medium focus:outline-none focus:border-eucalyptus cursor-pointer shadow-2xs"
+                  >
+                    {getAvailableEndTimes(startTime).map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="bg-white p-3 rounded-xl border border-soot/8 flex items-center justify-between text-xs">
+                <div>
+                  <span className="text-moss block text-[10px] uppercase font-semibold">Selected Schedule</span>
+                  <span className="font-semibold text-soot">{startDate} · {startTime} – {endTime}</span>
+                </div>
+                <div className="text-right">
+                  <span className="text-moss block text-[10px] uppercase font-semibold">Total Duration</span>
+                  <span className="font-bold text-soot">{durationHours} {durationHours === 1 ? 'Hour' : 'Hours'}</span>
+                </div>
               </div>
             </div>
           )}
@@ -593,8 +634,9 @@ export default function BookingFlow() {
           <div className="space-y-6">
             {/* Booking Date */}
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-2">
-                Start Date
+              <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-2 flex items-center gap-1.5">
+                <Calendar size={13} />
+                <span>{isHourly ? 'Booking Date' : 'Start Date'}</span>
               </label>
               <input
                 type="date"
@@ -605,118 +647,55 @@ export default function BookingFlow() {
               />
             </div>
 
-            {/* Hourly Start Time & Duration Controls */}
+            {/* Hourly Start Time & End Time Controls */}
             {isHourly && (
               <div className="space-y-4 p-5 rounded-2xl bg-[#F9F8F5] border border-soot/8">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="relative" ref={startTimeRef}>
+                  <div>
                     <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-2 flex items-center gap-1.5">
                       <Clock size={13} />
                       <span>Start Time</span>
                     </label>
-                    <button
-                      type="button"
-                      onClick={() => setStartTimeOpen(!startTimeOpen)}
-                      className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white border border-soot/12 text-soot text-sm font-medium text-left transition-all duration-200 cursor-pointer focus:outline-none shadow-2xs"
+                    <select
+                      value={startTime}
+                      onChange={(e) => handleStartTimeChange(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-soot/12 text-soot text-sm font-medium focus:outline-none focus:border-eucalyptus cursor-pointer shadow-2xs"
                     >
-                      <span className="truncate">{startTime}</span>
-                      <ChevronDown
-                        size={15}
-                        className={`text-moss shrink-0 transition-transform duration-200 ${
-                          startTimeOpen ? 'rotate-180 text-soot' : ''
-                        }`}
-                      />
-                    </button>
-
-                    {startTimeOpen && (
-                      <div className="absolute top-full left-0 right-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100 max-h-52 overflow-y-auto">
-                        <div className="space-y-0.5">
-                          {START_TIMES.map((t) => {
-                            const isSelected = startTime === t;
-                            return (
-                              <button
-                                key={t}
-                                type="button"
-                                onClick={() => {
-                                  setStartTime(t);
-                                  setStartTimeOpen(false);
-                                }}
-                                className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-sm font-medium transition-colors text-left cursor-pointer ${
-                                  isSelected
-                                    ? 'bg-soot text-plaster font-semibold'
-                                    : 'text-soot hover:bg-plaster-dark/60'
-                                }`}
-                              >
-                                <span>{t}</span>
-                                {isSelected && <Check size={14} className="text-eucalyptus" />}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
+                      {START_TIMES.map((t) => (
+                        <option key={t} value={t}>
+                          {t}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
-                  <div className="relative" ref={durationRef}>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-2">
-                      Duration (Hours)
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-2 flex items-center gap-1.5">
+                      <Clock size={13} />
+                      <span>End Time</span>
                     </label>
-                    <button
-                      type="button"
-                      onClick={() => setDurationOpen(!durationOpen)}
-                      className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white border border-soot/12 text-soot text-sm font-medium text-left transition-all duration-200 cursor-pointer focus:outline-none shadow-2xs"
+                    <select
+                      value={endTime}
+                      onChange={(e) => handleEndTimeChange(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-soot/12 text-soot text-sm font-medium focus:outline-none focus:border-eucalyptus cursor-pointer shadow-2xs"
                     >
-                      <span className="truncate">
-                        {durationHours} {durationHours === 1 ? 'Hour' : 'Hours'} — SAR {getHourlyPriceForDuration(space, durationHours)}
-                      </span>
-                      <ChevronDown
-                        size={15}
-                        className={`text-moss shrink-0 transition-transform duration-200 ${
-                          durationOpen ? 'rotate-180 text-soot' : ''
-                        }`}
-                      />
-                    </button>
-
-                    {durationOpen && (
-                      <div className="absolute top-full left-0 right-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100 max-h-52 overflow-y-auto">
-                        <div className="space-y-0.5">
-                          {DURATION_OPTIONS.map((h) => {
-                            const isSelected = durationHours === h;
-                            return (
-                              <button
-                                key={h}
-                                type="button"
-                                onClick={() => {
-                                  setDurationHours(h);
-                                  setDurationOpen(false);
-                                }}
-                                className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-sm font-medium transition-colors text-left cursor-pointer ${
-                                  isSelected
-                                    ? 'bg-soot text-plaster font-semibold'
-                                    : 'text-soot hover:bg-plaster-dark/60'
-                                }`}
-                              >
-                                <span>
-                                  {h} {h === 1 ? 'Hour' : 'Hours'} — SAR {getHourlyPriceForDuration(space, h)}
-                                </span>
-                                {isSelected && <Check size={14} className="text-eucalyptus" />}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
+                      {getAvailableEndTimes(startTime).map((t) => (
+                        <option key={t} value={t}>
+                          {t}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 
                 <div className="bg-white p-3 rounded-xl border border-soot/8 flex items-center justify-between text-xs">
                   <div>
-                    <span className="text-moss block text-[10px] uppercase font-semibold">Scheduled Time Window</span>
-                    <span className="font-semibold text-soot">{startTime} → {endTime}</span>
+                    <span className="text-moss block text-[10px] uppercase font-semibold">Scheduled Date & Time</span>
+                    <span className="font-semibold text-soot">{startDate} · {startTime} – {endTime}</span>
                   </div>
                   <div className="text-right">
                     <span className="text-moss block text-[10px] uppercase font-semibold">Rate Calculation</span>
-                    <span className="font-bold text-soot">SAR {getHourlyPriceForDuration(space, durationHours)} / seat</span>
+                    <span className="font-bold text-soot">SAR {getHourlyPriceForDuration(space, durationHours)} / seat ({durationHours} {durationHours === 1 ? 'hour' : 'hours'})</span>
                   </div>
                 </div>
               </div>
@@ -787,7 +766,7 @@ export default function BookingFlow() {
               </div>
             </div>
 
-            {/* Notes */}
+            {/* Special Requests */}
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-2">
                 Special Requests or Notes (Optional)
@@ -795,45 +774,25 @@ export default function BookingFlow() {
               <textarea
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
-                placeholder="Any special setup or desk requirements..."
-                rows={2}
-                className="w-full px-4 py-3 rounded-2xl border border-soot/10 bg-[#F9F8F5] text-soot text-sm outline-none focus:border-eucalyptus focus:bg-white resize-none font-normal"
+                placeholder="e.g., quiet zone preferred, monitor needed..."
+                rows={3}
+                className="w-full px-4 py-3 rounded-2xl border border-soot/10 bg-[#F9F8F5] text-soot text-sm outline-none focus:border-eucalyptus focus:bg-white resize-none"
               />
-            </div>
-
-            {/* Live Pricing Summary Box in Step 1 */}
-            <div className="p-4 rounded-2xl bg-plaster-dark/40 border border-soot/10 flex items-center justify-between">
-              <div>
-                <span className="text-xs font-semibold text-soot block">Calculated Total</span>
-                <span className="text-[11px] text-moss">
-                  {seats} {seats > 1 ? 'seats' : 'seat'} × SAR {planInfo.originalPrice.toLocaleString()} {priceLabel}
-                </span>
-              </div>
-              <div className="text-right">
-                <span className="text-xl font-bold text-soot">
-                  SAR {(planInfo.originalPrice * seats).toLocaleString()}
-                </span>
-                {planInfo.isCovered ? (
-                  <span className="text-[10px] text-emerald-800 font-semibold block">Included with Pass</span>
-                ) : (
-                  <span className="text-[10px] text-moss block">VAT included</span>
-                )}
-              </div>
             </div>
           </div>
 
-          <div className="flex gap-4 pt-2">
+          <div className="flex gap-3 pt-2">
             <button
               onClick={back}
-              className="flex-1 py-3.5 px-6 rounded-full border border-soot/15 text-soot font-medium text-sm hover:bg-soot/5 transition-all bg-white cursor-pointer"
+              className="py-3.5 px-6 rounded-full border border-soot/15 text-soot font-medium text-sm hover:bg-soot/5 transition-all bg-white cursor-pointer"
             >
               Back
             </button>
             <button
               onClick={next}
-              className="flex-1 py-3.5 px-6 rounded-full bg-[#DDE6DF] text-soot font-medium text-sm hover:bg-[#D0DDD3] transition-all flex items-center justify-center gap-2 shadow-xs border border-soot/8 cursor-pointer"
+              className="flex-1 py-3.5 px-6 rounded-full bg-[#DDE6DF] text-soot hover:bg-[#D0DDD3] font-medium text-sm transition-all flex items-center justify-center gap-2 shadow-xs border border-soot/8 cursor-pointer"
             >
-              <span>Proceed to Review & Payment</span>
+              <span>Review Booking & Price</span>
               <ChevronRight size={16} />
             </button>
           </div>
@@ -857,9 +816,9 @@ export default function BookingFlow() {
               <Row label="Location" value={`${space.address}, ${space.city}`} />
               <Row label="Desk Type" value={deskType.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())} />
               <Row label="Plan / Mode" value={isHourly ? `Hourly Reservation (${durationHours} hours)` : `${plan.charAt(0).toUpperCase() + plan.slice(1)} Pass`} />
-              <Row label="Date" value={startDate} />
+              <Row label={isHourly ? "Booking Date" : "Start Date"} value={startDate} />
               {isHourly ? (
-                <Row label="Time Window" value={`${startTime} – ${endTime} (${durationHours} hrs)`} />
+                <Row label="Time Window" value={`${startTime} – ${endTime} (${durationHours} ${durationHours === 1 ? 'hour' : 'hours'})`} />
               ) : plan !== 'daily' ? (
                 <Row label="End Date" value={endDate} />
               ) : null}
@@ -876,7 +835,7 @@ export default function BookingFlow() {
                     <div className="text-[11px] text-moss">Balance: {availablePoints} points</div>
                   </div>
                 </div>
-                {availablePoints >= 100 && rawTotalPrice > 0 && maxRedeemablePoints > 0 && (
+                {availablePoints >= 100 && maxRedeemablePoints >= 100 && (
                   <label className="flex items-center gap-2 text-xs font-semibold text-soot cursor-pointer bg-white/80 px-3 py-1.5 rounded-xl border border-amber-500/30 hover:bg-white transition-colors">
                     <input
                       type="checkbox"
@@ -884,13 +843,16 @@ export default function BookingFlow() {
                       onChange={(e) => setUseLoyaltyPoints(e.target.checked)}
                       className="rounded border-soot/20 text-eucalyptus focus:ring-eucalyptus cursor-pointer"
                     />
-                    <span>Use {maxRedeemablePoints} pts (-SAR {(maxRedeemablePoints / 100) * 5})</span>
+                    <span>Use {maxRedeemablePoints} pts (-SAR {(maxRedeemablePoints / 100) * 25})</span>
                   </label>
                 )}
               </div>
               {earnedPoints > 0 && (
                 <div className="text-[11px] font-medium text-amber-900 bg-amber-500/15 px-3 py-1.5 rounded-xl border border-amber-500/30 flex items-center justify-between">
-                  <span>🎉 You will earn <strong>+{earnedPoints} loyalty points</strong> upon booking completion!</span>
+                  <span className="flex items-center gap-1.5">
+                    <Sparkles size={13} className="text-amber-600 shrink-0 animate-pulse" />
+                    <span>You will earn <strong>+{earnedPoints} loyalty points</strong> upon booking completion!</span>
+                  </span>
                   {multiplier > 1 && (
                     <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-600 text-white px-2 py-0.5 rounded-full ml-2">
                       {multiplier}× Points
@@ -910,7 +872,7 @@ export default function BookingFlow() {
               </div>
 
               <Row
-                label={`Rate per Seat (${isHourly ? `${durationHours}h Hourly` : plan === 'monthly' ? `${durationMonths} Mo Monthly` : `${plan} pass`})`}
+                label={`Rate per Seat (${isHourly ? `${startTime} – ${endTime} (${durationHours}h)` : plan === 'monthly' ? `${durationMonths} Mo Monthly` : `${plan} pass`})`}
                 value={`SAR ${planInfo.originalPrice.toLocaleString()}${planInfo.isCovered ? ' (Included with Pass)' : ''}`}
               />
               <Row

@@ -49,7 +49,7 @@ const CITIES = ['Riyadh', 'Jeddah', 'Dammam', 'Khobar', 'Madinah', 'Makkah', 'Ab
 const TYPES = ALL_SPACE_TYPES;
 
 export default function ProviderMySpaces() {
-  const { currentUser, spaces, addSpace, updateSpace, toggleSpaceVisibility, deleteSpace } = useApp();
+  const { currentUser, spaces, addSpace, updateSpace, toggleSpaceVisibility, deleteSpace, amenityRequests, requestCustomAmenity, getApprovedAmenities } = useApp();
   const [query, setQuery] = useState('');
   const [filterCity, setFilterCity] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<'all' | SpaceCategory>('all');
@@ -61,6 +61,7 @@ export default function ProviderMySpaces() {
   const [editingSpace, setEditingSpace] = useState<Space | null>(null);
   const [spaceToDelete, setSpaceToDelete] = useState<Space | null>(null);
   const [form, setForm] = useState<Partial<Space>>({});
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState(false);
 
   const [modalCityOpen, setModalCityOpen] = useState(false);
@@ -102,6 +103,7 @@ export default function ProviderMySpaces() {
 
   const openAdd = () => {
     setEditingSpace(null);
+    setFormErrors({});
     setForm({
       name: '',
       city: 'Riyadh',
@@ -149,13 +151,24 @@ export default function ProviderMySpaces() {
   const openEdit = (e: React.MouseEvent, space: Space) => {
     e.stopPropagation();
     setEditingSpace(space);
+    setFormErrors({});
     setForm({ ...space });
     setEditModal(true);
     setSaved(false);
   };
 
   const handleSave = () => {
-    if (!form.name || !form.city || !form.address) return;
+    const errs: Record<string, string> = {};
+    if (!form.name || !form.name.trim()) errs.name = 'Workspace name is required.';
+    if (!form.city || !form.city.trim()) errs.city = 'City selection is required.';
+    if (!form.address || !form.address.trim()) errs.address = 'Address / Location is required.';
+
+    if (Object.keys(errs).length > 0) {
+      setFormErrors(errs);
+      return;
+    }
+    setFormErrors({});
+
     if (editingSpace) {
       updateSpace(editingSpace.id, form as Space);
     } else {
@@ -204,22 +217,21 @@ export default function ProviderMySpaces() {
   const handleAddCustomAmenity = () => {
     const trimmed = customAmenityInput.trim();
     if (!trimmed) return;
-    const current = form.amenities || [];
-    const exists = current.some((a) => a.toLowerCase() === trimmed.toLowerCase());
-    if (!exists) {
-      setForm((prev) => ({
-        ...prev,
-        amenities: [...(prev.amenities || []), trimmed],
-      }));
-    } else {
-      // If it exists but isn't selected, select it
-      if (!current.includes(trimmed)) {
-        const match = current.find((a) => a.toLowerCase() === trimmed.toLowerCase()) || trimmed;
+    const approvedList = getApprovedAmenities();
+    const isApproved = approvedList.some((a) => a.toLowerCase() === trimmed.toLowerCase());
+
+    if (isApproved) {
+      const match = approvedList.find((a) => a.toLowerCase() === trimmed.toLowerCase()) || trimmed;
+      const current = form.amenities || [];
+      if (!current.includes(match)) {
         setForm((prev) => ({
           ...prev,
           amenities: [...(prev.amenities || []), match],
         }));
       }
+    } else {
+      // Send custom amenity request to Admin for approval
+      requestCustomAmenity(trimmed, editingSpace?.id, form.name || 'Workspace');
     }
     setCustomAmenityInput('');
   };
@@ -690,28 +702,43 @@ export default function ProviderMySpaces() {
           </div>
         ) : (
           <div className="space-y-6 text-sm text-soot">
+            {Object.keys(formErrors).length > 0 && (
+              <div className="bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold rounded-2xl p-3.5 flex items-center gap-2">
+                <AlertCircle size={16} className="text-rose-600 shrink-0" />
+                <span>Please complete all required fields highlighted in red below.</span>
+              </div>
+            )}
+
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">
-                  Workspace Name *
+                  Workspace Name <span className="text-rose-600">*</span>
                 </label>
                 <input
                   value={form.name || ''}
-                  onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+                  onChange={(e) => {
+                    setForm((p) => ({ ...p, name: e.target.value }));
+                    if (formErrors.name) setFormErrors((errs) => ({ ...errs, name: '' }));
+                  }}
                   placeholder="e.g. The Hub Olaya"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-eucalyptus"
+                  className={`w-full px-3.5 py-2.5 rounded-xl border bg-white text-soot text-sm outline-none transition-all ${
+                    formErrors.name ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-soot/12 focus:border-eucalyptus'
+                  }`}
                 />
+                {formErrors.name && <p className="text-xs text-rose-600 font-medium mt-1">* {formErrors.name}</p>}
               </div>
 
               {/* City Custom Dropdown */}
               <div className="relative" ref={modalCityRef}>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">
-                  City *
+                  City <span className="text-rose-600">*</span>
                 </label>
                 <button
                   type="button"
                   onClick={() => setModalCityOpen(!modalCityOpen)}
-                  className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white border border-soot/12 text-soot text-sm font-medium text-left transition-all duration-200 cursor-pointer focus:outline-none"
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white border text-soot text-sm font-medium text-left transition-all duration-200 cursor-pointer focus:outline-none ${
+                    formErrors.city ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-soot/12'
+                  }`}
                 >
                   <span className="truncate">{form.city || 'Select City'}</span>
                   <ChevronDown
@@ -721,6 +748,7 @@ export default function ProviderMySpaces() {
                     }`}
                   />
                 </button>
+                {formErrors.city && <p className="text-xs text-rose-600 font-medium mt-1">* {formErrors.city}</p>}
 
                 {modalCityOpen && (
                   <div className="absolute top-full left-0 right-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100 max-h-52 overflow-y-auto">
@@ -733,6 +761,7 @@ export default function ProviderMySpaces() {
                             type="button"
                             onClick={() => {
                               setForm((p) => ({ ...p, city: c }));
+                              if (formErrors.city) setFormErrors((errs) => ({ ...errs, city: '' }));
                               setModalCityOpen(false);
                             }}
                             className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-sm font-medium transition-colors text-left cursor-pointer ${
@@ -754,14 +783,20 @@ export default function ProviderMySpaces() {
 
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">
-                Address / Location *
+                Address / Location <span className="text-rose-600">*</span>
               </label>
               <input
                 value={form.address || ''}
-                onChange={(e) => setForm((p) => ({ ...p, address: e.target.value }))}
+                onChange={(e) => {
+                  setForm((p) => ({ ...p, address: e.target.value }));
+                  if (formErrors.address) setFormErrors((errs) => ({ ...errs, address: '' }));
+                }}
                 placeholder="District, Street Name, City"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-eucalyptus"
+                className={`w-full px-3.5 py-2.5 rounded-xl border bg-white text-soot text-sm outline-none transition-all ${
+                  formErrors.address ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-soot/12 focus:border-eucalyptus'
+                }`}
               />
+              {formErrors.address && <p className="text-xs text-rose-600 font-medium mt-1">* {formErrors.address}</p>}
             </div>
 
             <div>
@@ -1013,9 +1048,12 @@ export default function ProviderMySpaces() {
 
             {/* Amenities Section */}
             <div className="space-y-3 pt-2">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-moss block border-b border-soot/10 pb-1.5">
-                Available Amenities
-              </span>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-moss block border-b border-soot/10 pb-1.5">
+                  Available Amenities
+                </span>
+                <span className="text-[11px] text-moss">Custom amenities require Admin approval</span>
+              </div>
 
               {/* Custom Amenity Input */}
               <div className="flex items-center gap-2">
@@ -1029,7 +1067,7 @@ export default function ProviderMySpaces() {
                       handleAddCustomAmenity();
                     }
                   }}
-                  placeholder="Add custom amenity..."
+                  placeholder="Request custom amenity (e.g. 3D Printer, Pod)..."
                   className="flex-1 px-3.5 py-2 rounded-xl border border-soot/12 bg-plaster-dark/30 text-soot text-xs placeholder:text-moss/70 outline-none focus:border-eucalyptus focus:bg-plaster-surface transition-all"
                 />
                 <button
@@ -1038,59 +1076,58 @@ export default function ProviderMySpaces() {
                   className="px-3.5 py-2 rounded-xl bg-soot text-plaster hover:bg-soot/90 text-xs font-semibold cursor-pointer transition-all shrink-0 flex items-center gap-1 shadow-2xs"
                 >
                   <Plus size={14} />
-                  <span>Add</span>
+                  <span>{getApprovedAmenities().some(a => a.toLowerCase() === customAmenityInput.trim().toLowerCase()) ? 'Add' : 'Request Admin'}</span>
                 </button>
               </div>
 
+              {/* All Platform & Approved Amenities Chips */}
               <div className="flex flex-wrap gap-2 pt-1">
-                {/* Preset AMENITY_OPTIONS Chips */}
-                {AMENITY_OPTIONS.map((a) => {
+                {getApprovedAmenities().map((a) => {
                   const sel = form.amenities?.includes(a);
                   return (
                     <button
                       key={a}
                       type="button"
                       onClick={() => toggleAmenity(a)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
-                        sel ? 'bg-soot text-plaster font-semibold' : 'bg-plaster-dark/40 text-soot hover:bg-plaster-dark/70'
+                      className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${
+                        sel ? 'bg-soot text-plaster font-semibold shadow-xs' : 'bg-plaster-dark/40 text-soot hover:bg-plaster-dark/70'
                       }`}
                     >
-                      {a}
+                      <span>{a}</span>
+                      {sel && <Check size={12} className="text-emerald-400" />}
                     </button>
                   );
                 })}
-
-                {/* Custom Added Amenities Chips */}
-                {(form.amenities || [])
-                  .filter((a) => !AMENITY_OPTIONS.includes(a))
-                  .map((a) => {
-                    const sel = form.amenities?.includes(a);
-                    return (
-                      <div
-                        key={a}
-                        onClick={() => toggleAmenity(a)}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
-                          sel
-                            ? 'bg-soot text-plaster font-semibold'
-                            : 'bg-plaster-dark/40 text-soot hover:bg-plaster-dark/70'
-                        }`}
-                      >
-                        <span>{a}</span>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleRemoveCustomAmenity(a);
-                          }}
-                          className="p-0.5 hover:bg-white/20 rounded-md transition-colors"
-                          title="Remove custom amenity"
-                        >
-                          <X size={13} className={sel ? 'text-plaster/80 hover:text-white' : 'text-soot/70 hover:text-soot'} />
-                        </button>
-                      </div>
-                    );
-                  })}
               </div>
+
+              {/* Provider's Custom Amenity Requests Status */}
+              {amenityRequests && amenityRequests.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-soot/10">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-moss block mb-2">
+                    My Amenity Requests & Status
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {amenityRequests.map((req) => (
+                      <div
+                        key={req.id}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border ${
+                          req.status === 'APPROVED'
+                            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-800'
+                            : req.status === 'REJECTED'
+                            ? 'bg-rose-500/10 border-rose-500/30 text-rose-800'
+                            : 'bg-amber-500/10 border-amber-500/30 text-amber-800'
+                        }`}
+                        title={req.status === 'REJECTED' ? `Reason: ${req.rejectionReason || 'Declined by Admin'}` : ''}
+                      >
+                        <span className="font-semibold">{req.amenityName}</span>
+                        <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded-md bg-white/60">
+                          {req.status === 'APPROVED' ? 'Approved' : req.status === 'REJECTED' ? 'Rejected' : 'Pending Admin'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

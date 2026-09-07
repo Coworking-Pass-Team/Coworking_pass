@@ -17,9 +17,11 @@ import {
   Eye,
   CreditCard,
   Building2,
+  Zap,
+  Wallet,
 } from 'lucide-react';
 import { useApp } from '@/app/store';
-import { Booking, BookingStatus, getHourlyPriceForDuration, getBookingPrice } from '@/types/types';
+import { Booking, BookingStatus, getHourlyPriceForDuration, getBookingPrice, isCancellationRefundEligible } from '@/types/types';
 import Modal from '@/components/ui/Modal';
 
 export default function MyBookings() {
@@ -28,6 +30,7 @@ export default function MyBookings() {
   const [query, setQuery] = useState('');
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [cancelModal, setCancelModal] = useState<Booking | null>(null);
+  const [refundMethod, setRefundMethod] = useState<'wallet' | 'card'>('wallet');
 
   if (!currentUser) return null;
 
@@ -58,12 +61,11 @@ export default function MyBookings() {
 
   const handleCancelConfirm = () => {
     if (!cancelModal) return;
-    cancelBooking(cancelModal.id);
+    cancelBooking(cancelModal.id, refundMethod);
     setCancelModal(null);
     if (selectedBooking && selectedBooking.id === cancelModal.id) {
       setSelectedBooking(null);
     }
-    showToast('Booking cancelled successfully.', 'info');
   };
 
   return (
@@ -225,10 +227,15 @@ export default function MyBookings() {
                 {/* Plan & Seats */}
                 <div className="col-span-2 mt-2 lg:mt-0 text-xs font-semibold text-soot capitalize">
                   {b.plan === 'hourly'
-                    ? `${b.durationHours || 1}h Hourly`
+                    ? `Hourly (${b.durationHours || 1} ${b.durationHours === 1 ? 'hr' : 'hrs'})`
                     : b.plan === 'monthly'
                     ? `${b.durationMonths || 1}mo Monthly`
                     : `${b.plan} pass`}
+                  {b.plan === 'hourly' && (b.startTime || b.endTime) && (
+                    <span className="block text-[10px] font-medium text-moss normal-case">
+                      {b.startTime} – {b.endTime}
+                    </span>
+                  )}
                   <span className="block text-[11px] font-normal text-moss">
                     {b.seats} seat{b.seats > 1 ? 's' : ''}
                   </span>
@@ -252,19 +259,26 @@ export default function MyBookings() {
                   >
                     <Eye size={15} />
                   </button>
-                  {b.status === 'active' && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setCancelModal(b);
-                      }}
-                      className="p-2 rounded-xl text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-all cursor-pointer"
-                      title="Cancel Reservation"
-                    >
-                      <X size={15} />
-                    </button>
-                  )}
+                  {b.status === 'active' && (() => {
+                    const { eligible, requiredHours } = isCancellationRefundEligible(b.startDate, b.startTime, currentUser?.role);
+                    return (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCancelModal(b);
+                        }}
+                        className="p-2 rounded-xl text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-all cursor-pointer"
+                        title={
+                          eligible
+                            ? 'Cancel Reservation (Eligible for Full Refund)'
+                            : `Cancel Reservation (Non-refundable: within ${requiredHours}h of start)`
+                        }
+                      >
+                        <X size={15} />
+                      </button>
+                    );
+                  })()}
                 </div>
               </div>
             ))}
@@ -328,23 +342,23 @@ export default function MyBookings() {
                   <span className="text-moss block mb-1">Plan / Duration</span>
                   <span className="font-semibold text-soot text-xs capitalize">
                     {selectedBooking.plan === 'hourly'
-                      ? `${selectedBooking.durationHours || 1}h Hourly`
+                      ? `Hourly (${selectedBooking.durationHours || 1} ${selectedBooking.durationHours === 1 ? 'Hour' : 'Hours'})`
                       : selectedBooking.plan === 'monthly'
                       ? `${selectedBooking.durationMonths || 1} Months`
                       : `${selectedBooking.plan} Pass`}
                   </span>
                 </div>
                 <div className="p-3 bg-white/60 rounded-xl border border-soot/8">
-                  <span className="text-moss block mb-1">Start Date</span>
+                  <span className="text-moss block mb-1">Date</span>
                   <span className="font-semibold text-soot text-xs">{selectedBooking.startDate}</span>
                 </div>
                 <div className="p-3 bg-white/60 rounded-xl border border-soot/8">
                   <span className="text-moss block mb-1">
-                    {selectedBooking.startTime ? 'Time Window' : 'End Date'}
+                    {selectedBooking.plan === 'hourly' ? 'Time Window' : 'End Date'}
                   </span>
                   <span className="font-semibold text-soot text-xs">
-                    {selectedBooking.startTime
-                      ? `${selectedBooking.startTime} – ${selectedBooking.endTime}`
+                    {selectedBooking.plan === 'hourly'
+                      ? `${selectedBooking.startTime || '09:00 AM'} – ${selectedBooking.endTime || '05:00 PM'}`
                       : selectedBooking.endDate}
                   </span>
                 </div>
@@ -401,31 +415,98 @@ export default function MyBookings() {
       )}
 
       {/* Cancel Confirmation Modal */}
-      {cancelModal && (
-        <Modal
-          open={!!cancelModal}
-          onClose={() => setCancelModal(null)}
-          title="Cancel Reservation"
-          size="sm"
-          footer={
-            <>
-              <button type="button" onClick={() => setCancelModal(null)} className="btn-secondary">
-                Keep Booking
-              </button>
-              <button type="button" onClick={handleCancelConfirm} className="btn-danger">
-                Confirm Cancel
-              </button>
-            </>
-          }
-        >
-          <div className="text-sm text-soot space-y-2 py-2">
-            <p>
-              Are you sure you want to cancel your reservation for <span className="font-semibold">{cancelModal.spaceName}</span>?
-            </p>
-            <p className="text-xs text-moss">The reserved desk capacity will be released back to the workspace catalog.</p>
-          </div>
-        </Modal>
-      )}
+      {cancelModal && (() => {
+        const { eligible, requiredHours } = isCancellationRefundEligible(cancelModal.startDate, cancelModal.startTime, currentUser.role);
+        const bookingPrice = getBookingPrice(cancelModal, spaces);
+
+        return (
+          <Modal
+            open={!!cancelModal}
+            onClose={() => setCancelModal(null)}
+            title="Cancel Reservation"
+            size="sm"
+            footer={
+              <>
+                <button type="button" onClick={() => setCancelModal(null)} className="btn-secondary">
+                  Keep Booking
+                </button>
+                <button type="button" onClick={handleCancelConfirm} className="btn-danger">
+                  Confirm Cancel
+                </button>
+              </>
+            }
+          >
+            <div className="text-sm text-soot space-y-3 py-2">
+              <p>
+                Are you sure you want to cancel your reservation for <span className="font-semibold">{cancelModal.spaceName}</span>?
+              </p>
+
+              {/* Legal Refund Status Banner */}
+              {eligible ? (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs text-emerald-900 space-y-1">
+                  <div className="font-semibold flex items-center gap-1.5 text-emerald-950">
+                    <Check size={14} className="text-emerald-700" />
+                    <span>Eligible for Full Refund (SAR {bookingPrice.toLocaleString()})</span>
+                  </div>
+                  <p className="text-emerald-800 text-[11px]">
+                    Cancelled at least {requiredHours} hours before start time as per Legal Terms.
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-rose-50 border border-rose-200 rounded-xl p-3 text-xs text-rose-900 space-y-1">
+                  <div className="font-semibold flex items-center gap-1.5 text-rose-950">
+                    <AlertCircle size={14} className="text-rose-700" />
+                    <span>Non-Refundable Cancellation</span>
+                  </div>
+                  <p className="text-rose-800 text-[11px]">
+                    Per Legal Terms (Section 5), cancellations within {requiredHours} hours of start time are non-refundable. Desk capacity will still be released.
+                  </p>
+                </div>
+              )}
+
+              {/* Refund Destination Selection if Eligible */}
+              {eligible && (
+                <div className="space-y-2 pt-1 border-t border-soot/8">
+                  <label className="text-xs font-semibold text-soot block">Choose Refund Destination:</label>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setRefundMethod('wallet')}
+                      className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
+                        refundMethod === 'wallet'
+                          ? 'border-emerald-600 bg-emerald-50/50 text-emerald-950 ring-1 ring-emerald-600'
+                          : 'border-soot/12 bg-white text-soot hover:bg-plaster-dark/20'
+                      }`}
+                    >
+                      <span className="font-semibold text-[11px] flex items-center gap-1.5">
+                        <Zap size={13} className="text-amber-600 shrink-0" />
+                        <span>Instant Wallet</span>
+                      </span>
+                      <span className="text-[10px] text-moss mt-1">Available immediately</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setRefundMethod('card')}
+                      className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
+                        refundMethod === 'card'
+                          ? 'border-emerald-600 bg-emerald-50/50 text-emerald-950 ring-1 ring-emerald-600'
+                          : 'border-soot/12 bg-white text-soot hover:bg-plaster-dark/20'
+                      }`}
+                    >
+                      <span className="font-semibold text-[11px] flex items-center gap-1.5">
+                        <CreditCard size={13} className="text-soot shrink-0" />
+                        <span>Original Card</span>
+                      </span>
+                      <span className="text-[10px] text-moss mt-1">5-14 business days</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </Modal>
+        );
+      })()}
     </div>
   );
 }

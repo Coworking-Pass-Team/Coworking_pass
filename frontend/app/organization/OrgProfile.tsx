@@ -66,12 +66,14 @@ export default function OrgProfile() {
   ]);
   const [addEmpModal, setAddEmpModal] = useState(false);
   const [newEmp, setNewEmp] = useState({ name: '', email: '', department: '' });
+  const [empErrors, setEmpErrors] = useState<Record<string, string>>({});
 
   // Password Security Form State
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordSaved, setPasswordSaved] = useState(false);
+  const [passwordErrors, setPasswordErrors] = useState<Record<string, string>>({});
 
   // Notifications & Privacy Settings
   const [notifications, setNotifications] = useState({
@@ -158,10 +160,13 @@ export default function OrgProfile() {
 
   const handleAddEmployee = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newEmp.name.trim() || !newEmp.email.trim()) {
-      showToast('Please provide employee name and corporate email', 'error');
-      return;
-    }
+    const eErrs: Record<string, string> = {};
+    if (!newEmp.name.trim()) eErrs.name = 'Employee name is required';
+    if (!newEmp.email.trim()) eErrs.email = 'Corporate email is required';
+
+    setEmpErrors(eErrs);
+    if (Object.keys(eErrs).length > 0) return;
+
     const emp: Employee = {
       id: `emp-${Date.now()}`,
       name: newEmp.name.trim(),
@@ -172,6 +177,7 @@ export default function OrgProfile() {
     setEmployees(updated);
     updateCurrentUser({ employees: updated });
     setNewEmp({ name: '', email: '', department: '' });
+    setEmpErrors({});
     setAddEmpModal(false);
     showToast(`${emp.name} added to team roster!`, 'success');
   };
@@ -185,23 +191,21 @@ export default function OrgProfile() {
 
   const handlePasswordChangeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentPassword) {
-      showToast('Please enter current security password', 'error');
-      return;
-    }
-    if (newPassword.length < 6) {
-      showToast('New password must be at least 6 characters', 'error');
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      showToast('New passwords do not match', 'error');
-      return;
-    }
+    const pErrs: Record<string, string> = {};
+    if (!currentPassword) pErrs.current = 'Current password is required';
+    if (!newPassword) pErrs.new = 'New password is required';
+    else if (newPassword.length < 6) pErrs.new = 'New password must be at least 6 characters';
+    if (!confirmPassword) pErrs.confirm = 'Please confirm new password';
+    else if (newPassword && newPassword !== confirmPassword) pErrs.confirm = 'New passwords do not match';
+
+    setPasswordErrors(pErrs);
+    if (Object.keys(pErrs).length > 0) return;
 
     setPasswordSaved(true);
     setCurrentPassword('');
     setNewPassword('');
     setConfirmPassword('');
+    setPasswordErrors({});
     showToast('Organization security password updated!', 'success');
     setTimeout(() => setPasswordSaved(false), 3000);
   };
@@ -583,36 +587,72 @@ export default function OrgProfile() {
 
             <form onSubmit={handlePasswordChangeSubmit} className="space-y-4 max-w-lg">
               <div>
-                <label className="block text-xs font-medium text-soot mb-1.5">Current Administrator Password</label>
+                <label className="block text-xs font-medium text-soot mb-1.5">
+                  Current Administrator Password <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="password"
                   value={currentPassword}
-                  onChange={e => setCurrentPassword(e.target.value)}
+                  onChange={e => {
+                    setCurrentPassword(e.target.value);
+                    if (passwordErrors.current) setPasswordErrors(p => ({ ...p, current: '' }));
+                  }}
                   placeholder="••••••••"
-                  className="w-full px-4 py-2.5 rounded-2xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs font-normal"
+                  className={`w-full px-4 py-2.5 rounded-2xl border ${
+                    passwordErrors.current ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/20' : 'border-soot/12 bg-white'
+                  } text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs font-normal`}
                 />
+                {passwordErrors.current && (
+                  <p className="text-rose-600 text-xs mt-1 font-medium flex items-center gap-1">
+                    <span>*</span> {passwordErrors.current}
+                  </p>
+                )}
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-soot mb-1.5">New Administrator Password</label>
+                <label className="block text-xs font-medium text-soot mb-1.5">
+                  New Administrator Password <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="password"
                   value={newPassword}
-                  onChange={e => setNewPassword(e.target.value)}
+                  onChange={e => {
+                    setNewPassword(e.target.value);
+                    if (passwordErrors.new) setPasswordErrors(p => ({ ...p, new: '' }));
+                  }}
                   placeholder="••••••••"
-                  className="w-full px-4 py-2.5 rounded-2xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs font-normal"
+                  className={`w-full px-4 py-2.5 rounded-2xl border ${
+                    passwordErrors.new ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/20' : 'border-soot/12 bg-white'
+                  } text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs font-normal`}
                 />
+                {passwordErrors.new && (
+                  <p className="text-rose-600 text-xs mt-1 font-medium flex items-center gap-1">
+                    <span>*</span> {passwordErrors.new}
+                  </p>
+                )}
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-soot mb-1.5">Confirm New Password</label>
+                <label className="block text-xs font-medium text-soot mb-1.5">
+                  Confirm New Password <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="password"
                   value={confirmPassword}
-                  onChange={e => setConfirmPassword(e.target.value)}
+                  onChange={e => {
+                    setConfirmPassword(e.target.value);
+                    if (passwordErrors.confirm) setPasswordErrors(p => ({ ...p, confirm: '' }));
+                  }}
                   placeholder="••••••••"
-                  className="w-full px-4 py-2.5 rounded-2xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs font-normal"
+                  className={`w-full px-4 py-2.5 rounded-2xl border ${
+                    passwordErrors.confirm ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/20' : 'border-soot/12 bg-white'
+                  } text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs font-normal`}
                 />
+                {passwordErrors.confirm && (
+                  <p className="text-rose-600 text-xs mt-1 font-medium flex items-center gap-1">
+                    <span>*</span> {passwordErrors.confirm}
+                  </p>
+                )}
               </div>
 
               <div className="pt-2">
@@ -918,25 +958,49 @@ export default function OrgProfile() {
       >
         <form onSubmit={handleAddEmployee} className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-soot mb-1.5">Full Name</label>
+            <label className="block text-xs font-medium text-soot mb-1.5">
+              Full Name <span className="text-red-500">*</span>
+            </label>
             <input
               type="text"
               value={newEmp.name}
-              onChange={e => setNewEmp(p => ({ ...p, name: e.target.value }))}
+              onChange={e => {
+                setNewEmp(p => ({ ...p, name: e.target.value }));
+                if (empErrors.name) setEmpErrors(p => ({ ...p, name: '' }));
+              }}
               placeholder="e.g. Sara Al-Ghamdi"
-              className="w-full px-4 py-2.5 rounded-2xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-soot"
+              className={`w-full px-4 py-2.5 rounded-2xl border ${
+                empErrors.name ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/20' : 'border-soot/12 bg-white'
+              } text-soot text-sm outline-none focus:border-soot`}
             />
+            {empErrors.name && (
+              <p className="text-rose-600 text-xs mt-1 font-medium flex items-center gap-1">
+                <span>*</span> {empErrors.name}
+              </p>
+            )}
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-soot mb-1.5">Corporate Email</label>
+            <label className="block text-xs font-medium text-soot mb-1.5">
+              Corporate Email <span className="text-red-500">*</span>
+            </label>
             <input
               type="email"
               value={newEmp.email}
-              onChange={e => setNewEmp(p => ({ ...p, email: e.target.value }))}
+              onChange={e => {
+                setNewEmp(p => ({ ...p, email: e.target.value }));
+                if (empErrors.email) setEmpErrors(p => ({ ...p, email: '' }));
+              }}
               placeholder="sara@sauditech.sa"
-              className="w-full px-4 py-2.5 rounded-2xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-soot"
+              className={`w-full px-4 py-2.5 rounded-2xl border ${
+                empErrors.email ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/20' : 'border-soot/12 bg-white'
+              } text-soot text-sm outline-none focus:border-soot`}
             />
+            {empErrors.email && (
+              <p className="text-rose-600 text-xs mt-1 font-medium flex items-center gap-1">
+                <span>*</span> {empErrors.email}
+              </p>
+            )}
           </div>
 
           <div>

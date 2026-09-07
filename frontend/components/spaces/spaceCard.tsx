@@ -22,11 +22,14 @@ export default function SpaceCard({ space, onSelect }: SpaceCardProps) {
 
   const planInfo = getEffectiveSpacePrice(currentUser, space, userPlan);
 
-  const availability = space.availableCapacity === 0
-    ? { label: 'Fully Booked', variant: 'danger' as const }
-    : space.availableCapacity <= 5
-    ? { label: 'Limited', variant: 'warning' as const }
-    : { label: 'Available', variant: 'eucalyptus' as const };
+  const isAlmostFull = space.availableCapacity > 0 && space.availableCapacity <= 5;
+  const isFullyBooked = space.availableCapacity === 0;
+
+  const availability = isFullyBooked
+    ? { label: 'Fully Booked', badgeClass: 'bg-rose-100/90 text-rose-800 border-rose-200/90 backdrop-blur-md font-semibold' }
+    : isAlmostFull
+    ? { label: space.availableCapacity <= 3 ? `Only ${space.availableCapacity} Left!` : 'Almost Full', badgeClass: 'bg-amber-100/90 text-amber-900 border-amber-200/90 backdrop-blur-md font-semibold' }
+    : { label: 'Available', badgeClass: 'bg-emerald-100/90 text-emerald-900 border-emerald-200/90 backdrop-blur-md font-semibold' };
 
   return (
     <div
@@ -43,11 +46,11 @@ export default function SpaceCard({ space, onSelect }: SpaceCardProps) {
         <div className="absolute inset-0 bg-gradient-to-t from-soot/60 via-transparent to-black/10" />
 
         {/* Top-left Status and Classification Badges */}
-        <div className="absolute top-3.5 left-3.5 flex items-center gap-1.5 flex-wrap max-w-[80%]">
-          <Badge variant={availability.variant} className="shadow-xs text-xs font-semibold px-2.5 py-1 bg-white/95 backdrop-blur-md">
+        <div className="absolute top-3.5 left-3.5 flex items-center gap-1.5 flex-wrap max-w-[85%]">
+          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs border shadow-sm backdrop-blur-md ${availability.badgeClass}`}>
             {availability.label}
-          </Badge>
-          <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-soot/85 text-white backdrop-blur-md shadow-xs capitalize tracking-wide">
+          </span>
+          <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-soot/85 text-white backdrop-blur-md shadow-xs capitalize tracking-wide border border-white/10">
             {space.type.replace('-', ' ')}
           </span>
         </div>
