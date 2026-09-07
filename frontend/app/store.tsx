@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, Space, Booking, Screen, NavState, UserRole, BookingType, PaymentCard, Notification, CartItem, AmenityRequest, AmenityRequestStatus, calculateEndDate } from '@/types/types';
+import { User, Space, Booking, Screen, NavState, UserRole, BookingType, PaymentCard, Notification, CartItem, AmenityRequest, AmenityRequestStatus, calculateEndDate, isCancellationRefundEligible, getBookingPrice } from '@/types/types';
 import { INITIAL_SPACES, INITIAL_USERS, INITIAL_BOOKINGS, INITIAL_NOTIFICATIONS } from '@/data/data';
 
 interface AppContextType {
@@ -32,7 +32,7 @@ interface AppContextType {
   // Bookings
   bookings: Booking[];
   addBooking: (booking: Omit<Booking, 'id' | 'createdAt'>) => Booking;
-  cancelBooking: (id: string) => void;
+  cancelBooking: (id: string, refundMethod?: 'wallet' | 'card') => void;
   updateBookingStatus: (id: string, status: Booking['status']) => void;
 
   // Amenity Requests (Provider -> Admin)
@@ -435,15 +435,56 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return newBooking;
   };
 
-  const cancelBooking = (id: string) => {
-    const booking = bookings.find(b => b.id === id);
-    if (booking) {
-      setBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'cancelled' } : b));
-      setSpaces(prev => prev.map(s =>
+  const cancelBooking = (id: string, refundMethod: 'wallet' | 'card' = 'wallet') => {
+    const booking = bookings.find((b) => b.id === id);
+    if (!booking) return;
+
+    setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, status: 'cancelled' } : b)));
+    setSpaces((prev) =>
+      prev.map((s) =>
         s.id === booking.spaceId
           ? { ...s, availableCapacity: Math.min(s.totalCapacity, s.availableCapacity + booking.seats) }
           : s
-      ));
+      )
+    );
+
+    const price = getBookingPrice(booking, spaces);
+    const userRole = currentUser?.id === booking.userId ? currentUser?.role : 'individual';
+    const { eligible, requiredHours } = isCancellationRefundEligible(booking.startDate, booking.startTime, userRole);
+
+    if (currentUser && currentUser.id === booking.userId) {
+      let updatedUser = { ...currentUser };
+      let msg = '';
+
+      if (eligible) {
+        if (refundMethod === 'wallet') {
+          const currentWallet = currentUser.walletBalance || 0;
+          updatedUser = { ...currentUser, walletBalance: currentWallet + price };
+          msg = `Booking cancelled. SAR ${price.toLocaleString()} refunded to your wallet balance.`;
+        } else {
+          msg = `Booking cancelled. Refund of SAR ${price.toLocaleString()} initiated to original card (5-14 business days).`;
+        }
+      } else {
+        msg = `Booking cancelled. As per Legal Policy, cancellations within ${requiredHours}h of start time are non-refundable.`;
+      }
+
+      setCurrentUser(updatedUser);
+      const updatedUsers = users.map((u) => (u.id === updatedUser.id ? updatedUser : u));
+      setUsers(updatedUsers);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('cp_currentUser', JSON.stringify(updatedUser));
+        localStorage.setItem('cp_users', JSON.stringify(updatedUsers));
+      }
+
+      addNotification({
+        userId: currentUser.id,
+        title: 'Booking Cancelled',
+        message: msg,
+        type: 'cancelled',
+      });
+
+      showToast(msg, eligible ? 'info' : 'error');
+    } else {
       showToast('Booking cancelled successfully.', 'info');
     }
   };
@@ -741,7 +782,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!currentUser) return { discount: 0, safePoints: 0 };
     const availablePoints = currentUser.loyaltyPoints || 0;
     const safePoints = Math.max(0, Math.min(Math.floor(pointsToUse / 100) * 100, availablePoints));
-    const discount = (safePoints / 100) * 5; // كل 100 نقطة = 5 ريالات
+    const discount = (safePoints / 100) * 25; // كل 100 نقطة = 25 ريالاً
     return { discount, safePoints };
   };
 
@@ -751,11 +792,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     const rawTotal = cart.reduce((sum, item) => sum + item.itemTotal, 0);
     const userPoints = currentUser.loyaltyPoints || 0;
+    const usableUserPoints = Math.floor(userPoints / 100) * 100;
+    const pointsNeeded = Math.max(100, Math.ceil(rawTotal / 25) * 100);
     const safePointsToUse = Math.max(
       0,
-      Math.min(Math.floor(pointsToUse / 100) * 100, userPoints, Math.floor(rawTotal / 5) * 100)
+      Math.min(Math.floor(pointsToUse / 100) * 100, usableUserPoints, pointsNeeded)
     );
-    const pointsDiscount = (safePointsToUse / 100) * 5;
+    const rawDiscount = (safePointsToUse / 100) * 25;
+    const pointsDiscount = Math.min(rawTotal, rawDiscount);
     const discountRatio = rawTotal > 0 ? pointsDiscount / rawTotal : 0;
 
     const newBookings: Booking[] = [];

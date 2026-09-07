@@ -132,11 +132,11 @@ export default function TeamBooking() {
   const multiplier = space.loyaltyPointsMultiplier || 1;
   const earnedPoints = Math.floor(rawTotalPrice / 100) * 10 * multiplier;
   const availablePoints = currentUser.loyaltyPoints || 0;
-  const maxRedeemablePoints = Math.min(
-    Math.floor(availablePoints / 100) * 100,
-    Math.floor(rawTotalPrice / 5) * 100
-  );
-  const pointsDiscount = useLoyaltyPoints && maxRedeemablePoints > 0 ? (maxRedeemablePoints / 100) * 5 : 0;
+  const usableUserPoints = Math.floor(availablePoints / 100) * 100;
+  const pointsNeededToCover = Math.max(100, Math.ceil(rawTotalPrice / 25) * 100);
+  const maxRedeemablePoints = Math.min(usableUserPoints, pointsNeededToCover);
+  const rawPointsDiscount = useLoyaltyPoints && maxRedeemablePoints > 0 ? (maxRedeemablePoints / 100) * 25 : 0;
+  const pointsDiscount = Math.min(rawTotalPrice, rawPointsDiscount);
   const finalPayablePrice = Math.max(0, rawTotalPrice - pointsDiscount);
 
   const planLabel = isHourly
@@ -808,12 +808,12 @@ export default function TeamBooking() {
                   <div>
                     <div className="text-sm font-semibold text-soot">Loyalty Points Rewards</div>
                     <div className="text-xs text-moss mt-0.5">
-                      You have <strong className="text-soot">{availablePoints}</strong> points. (100 pts = SAR 5 discount)
+                      You have <strong className="text-soot">{availablePoints}</strong> points. (100 pts = SAR 25 discount)
                     </div>
                   </div>
                 </div>
 
-                {maxRedeemablePoints >= 100 && (
+                {availablePoints >= 100 && maxRedeemablePoints >= 100 && (
                   <label className="flex items-center gap-2 cursor-pointer select-none">
                     <input
                       type="checkbox"
@@ -822,7 +822,7 @@ export default function TeamBooking() {
                       className="w-4 h-4 rounded accent-soot cursor-pointer"
                     />
                     <span className="text-xs font-semibold text-soot">
-                      Use {maxRedeemablePoints} pts (-SAR {(maxRedeemablePoints / 100) * 5})
+                      Use {maxRedeemablePoints} pts (-SAR {(maxRedeemablePoints / 100) * 25})
                     </span>
                   </label>
                 )}

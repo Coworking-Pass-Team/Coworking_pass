@@ -174,11 +174,11 @@ export default function BookingFlow() {
   const multiplier = space.loyaltyPointsMultiplier || 1;
   const earnedPoints = Math.floor(rawTotalPrice / 100) * 10 * multiplier;
   const availablePoints = currentUser?.loyaltyPoints || 0;
-  const maxRedeemablePoints = Math.min(
-    Math.floor(availablePoints / 100) * 100,
-    Math.floor(rawTotalPrice / 5) * 100
-  );
-  const pointsDiscount = useLoyaltyPoints && maxRedeemablePoints > 0 ? (maxRedeemablePoints / 100) * 5 : 0;
+  const usableUserPoints = Math.floor(availablePoints / 100) * 100;
+  const pointsNeededToCover = Math.max(100, Math.ceil(rawTotalPrice / 25) * 100);
+  const maxRedeemablePoints = Math.min(usableUserPoints, pointsNeededToCover);
+  const rawPointsDiscount = useLoyaltyPoints && maxRedeemablePoints > 0 ? (maxRedeemablePoints / 100) * 25 : 0;
+  const pointsDiscount = Math.min(rawTotalPrice, rawPointsDiscount);
   const totalPrice = Math.max(0, rawTotalPrice - pointsDiscount);
 
   const priceLabel = isHourly
@@ -816,7 +816,7 @@ export default function BookingFlow() {
                     <div className="text-[11px] text-moss">Balance: {availablePoints} points</div>
                   </div>
                 </div>
-                {availablePoints >= 100 && rawTotalPrice > 0 && maxRedeemablePoints > 0 && (
+                {availablePoints >= 100 && maxRedeemablePoints >= 100 && (
                   <label className="flex items-center gap-2 text-xs font-semibold text-soot cursor-pointer bg-white/80 px-3 py-1.5 rounded-xl border border-amber-500/30 hover:bg-white transition-colors">
                     <input
                       type="checkbox"
@@ -824,7 +824,7 @@ export default function BookingFlow() {
                       onChange={(e) => setUseLoyaltyPoints(e.target.checked)}
                       className="rounded border-soot/20 text-eucalyptus focus:ring-eucalyptus cursor-pointer"
                     />
-                    <span>Use {maxRedeemablePoints} pts (-SAR {(maxRedeemablePoints / 100) * 5})</span>
+                    <span>Use {maxRedeemablePoints} pts (-SAR {(maxRedeemablePoints / 100) * 25})</span>
                   </label>
                 )}
               </div>

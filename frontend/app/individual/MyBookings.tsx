@@ -19,7 +19,7 @@ import {
   Building2,
 } from 'lucide-react';
 import { useApp } from '@/app/store';
-import { Booking, BookingStatus, getHourlyPriceForDuration, getBookingPrice } from '@/types/types';
+import { Booking, BookingStatus, getHourlyPriceForDuration, getBookingPrice, isCancellationRefundEligible } from '@/types/types';
 import Modal from '@/components/ui/Modal';
 
 export default function MyBookings() {
@@ -28,6 +28,7 @@ export default function MyBookings() {
   const [query, setQuery] = useState('');
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [cancelModal, setCancelModal] = useState<Booking | null>(null);
+  const [refundMethod, setRefundMethod] = useState<'wallet' | 'card'>('wallet');
 
   if (!currentUser) return null;
 
@@ -58,12 +59,11 @@ export default function MyBookings() {
 
   const handleCancelConfirm = () => {
     if (!cancelModal) return;
-    cancelBooking(cancelModal.id);
+    cancelBooking(cancelModal.id, refundMethod);
     setCancelModal(null);
     if (selectedBooking && selectedBooking.id === cancelModal.id) {
       setSelectedBooking(null);
     }
-    showToast('Booking cancelled successfully.', 'info');
   };
 
   return (
@@ -406,31 +406,96 @@ export default function MyBookings() {
       )}
 
       {/* Cancel Confirmation Modal */}
-      {cancelModal && (
-        <Modal
-          open={!!cancelModal}
-          onClose={() => setCancelModal(null)}
-          title="Cancel Reservation"
-          size="sm"
-          footer={
-            <>
-              <button type="button" onClick={() => setCancelModal(null)} className="btn-secondary">
-                Keep Booking
-              </button>
-              <button type="button" onClick={handleCancelConfirm} className="btn-danger">
-                Confirm Cancel
-              </button>
-            </>
-          }
-        >
-          <div className="text-sm text-soot space-y-2 py-2">
-            <p>
-              Are you sure you want to cancel your reservation for <span className="font-semibold">{cancelModal.spaceName}</span>?
-            </p>
-            <p className="text-xs text-moss">The reserved desk capacity will be released back to the workspace catalog.</p>
-          </div>
-        </Modal>
-      )}
+      {cancelModal && (() => {
+        const { eligible, requiredHours } = isCancellationRefundEligible(cancelModal.startDate, cancelModal.startTime, currentUser.role);
+        const bookingPrice = getBookingPrice(cancelModal, spaces);
+
+        return (
+          <Modal
+            open={!!cancelModal}
+            onClose={() => setCancelModal(null)}
+            title="Cancel Reservation"
+            size="sm"
+            footer={
+              <>
+                <button type="button" onClick={() => setCancelModal(null)} className="btn-secondary">
+                  Keep Booking
+                </button>
+                <button type="button" onClick={handleCancelConfirm} className="btn-danger">
+                  Confirm Cancel
+                </button>
+              </>
+            }
+          >
+            <div className="text-sm text-soot space-y-3 py-2">
+              <p>
+                Are you sure you want to cancel your reservation for <span className="font-semibold">{cancelModal.spaceName}</span>?
+              </p>
+
+              {/* Legal Refund Status Banner */}
+              {eligible ? (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs text-emerald-900 space-y-1">
+                  <div className="font-semibold flex items-center gap-1.5 text-emerald-950">
+                    <Check size={14} className="text-emerald-700" />
+                    <span>Eligible for Full Refund (SAR {bookingPrice.toLocaleString()})</span>
+                  </div>
+                  <p className="text-emerald-800 text-[11px]">
+                    Cancelled at least {requiredHours} hours before start time as per Legal Terms.
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-rose-50 border border-rose-200 rounded-xl p-3 text-xs text-rose-900 space-y-1">
+                  <div className="font-semibold flex items-center gap-1.5 text-rose-950">
+                    <AlertCircle size={14} className="text-rose-700" />
+                    <span>Non-Refundable Cancellation</span>
+                  </div>
+                  <p className="text-rose-800 text-[11px]">
+                    Per Legal Terms (Section 5), cancellations within {requiredHours} hours of start time are non-refundable. Desk capacity will still be released.
+                  </p>
+                </div>
+              )}
+
+              {/* Refund Destination Selection if Eligible */}
+              {eligible && (
+                <div className="space-y-2 pt-1 border-t border-soot/8">
+                  <label className="text-xs font-semibold text-soot block">Choose Refund Destination:</label>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setRefundMethod('wallet')}
+                      className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
+                        refundMethod === 'wallet'
+                          ? 'border-emerald-600 bg-emerald-50/50 text-emerald-950 ring-1 ring-emerald-600'
+                          : 'border-soot/12 bg-white text-soot hover:bg-plaster-dark/20'
+                      }`}
+                    >
+                      <span className="font-semibold text-[11px] flex items-center gap-1">
+                        ⚡ Instant Wallet
+                      </span>
+                      <span className="text-[10px] text-moss mt-1">Available immediately</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setRefundMethod('card')}
+                      className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
+                        refundMethod === 'card'
+                          ? 'border-emerald-600 bg-emerald-50/50 text-emerald-950 ring-1 ring-emerald-600'
+                          : 'border-soot/12 bg-white text-soot hover:bg-plaster-dark/20'
+                      }`}
+                    >
+                      <span className="font-semibold text-[11px] flex items-center gap-1">
+                        💳 Original Card
+                      </span>
+                      <span className="text-[10px] text-moss mt-1">5-14 business days</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </Modal>
+        );
+      })()}
     </div>
   );
 }
