@@ -65,6 +65,7 @@ interface AppContextType {
   autobooking: Record<string, boolean>;
   autobookingCard: Record<string, string>;
   joinWaitlist: (spaceId: string) => void;
+  leaveWaitlist: (spaceId: string) => void;
   enableAutoBooking: (spaceId: string, cardId: string) => void;
   disableAutoBooking: (spaceId: string) => void;
 
@@ -580,35 +581,56 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const joinWaitlist = (spaceId: string) => {
-    setWaitlist(prev => ({ ...prev, [spaceId]: true }));
+    const userId = currentUser?.id || 'user-1';
+    const key = `${userId}_${spaceId}`;
+    setWaitlist(prev => ({ ...prev, [key]: true }));
     const space = spaces.find(s => s.id === spaceId);
     addNotification({
-      userId: currentUser?.id || 'user-1',
+      userId,
       title: 'Joined Waitlist',
       message: `You joined the waitlist for ${space?.name || 'the workspace'}. We'll notify you as soon as a spot opens!`,
       type: 'info',
     });
-    showToast('You have joined the waitlist! We\'ll notify you when a spot opens.');
+    showToast('You have joined the priority waitlist! We\'ll notify you when a spot opens.');
+  };
+
+  const leaveWaitlist = (spaceId: string) => {
+    const userId = currentUser?.id || 'user-1';
+    const key = `${userId}_${spaceId}`;
+    setWaitlist(prev => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+    showToast('You have left the priority waitlist.', 'info');
   };
 
   const enableAutoBooking = (spaceId: string, cardId: string) => {
-    setAutobooking(prev => ({ ...prev, [spaceId]: true }));
-    setAutobookingCard(prev => ({ ...prev, [spaceId]: cardId }));
+    const userId = currentUser?.id || 'user-1';
+    const key = `${userId}_${spaceId}`;
+    setAutobooking(prev => ({ ...prev, [key]: true }));
+    setAutobookingCard(prev => ({ ...prev, [key]: cardId }));
     const space = spaces.find(s => s.id === spaceId);
     addNotification({
-      userId: currentUser?.id || 'user-1',
+      userId,
       title: 'Auto-Booking Activated',
       message: `Auto-Booking enabled for ${space?.name || 'workspace'}. We'll automatically book and notify you when a desk opens.`,
       type: 'info',
     });
-    showToast('Auto-Booking enabled! We\'ll charge your selected card and book automatically when a spot opens.', 'success');
+    showToast('Auto-Booking enabled! We\'ll charge your saved card and reserve automatically when a spot opens.', 'success');
   };
 
   const disableAutoBooking = (spaceId: string) => {
-    setAutobooking(prev => ({ ...prev, [spaceId]: false }));
+    const userId = currentUser?.id || 'user-1';
+    const key = `${userId}_${spaceId}`;
+    setAutobooking(prev => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
     setAutobookingCard(prev => {
       const next = { ...prev };
-      delete next[spaceId];
+      delete next[key];
       return next;
     });
     showToast('Auto-Booking disabled.', 'info');
@@ -894,7 +916,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       unreadNotificationsCount: userNotifications.filter(n => !n.read).length,
       markNotificationRead, toggleNotificationRead, markAllNotificationsRead, deleteNotification, clearAllNotifications, addNotification, generateFakeNotification,
       users, blockUser, unblockUser, changeUserRole,
-      waitlist, autobooking, autobookingCard, joinWaitlist, enableAutoBooking, disableAutoBooking,
+      waitlist, autobooking, autobookingCard, joinWaitlist, leaveWaitlist, enableAutoBooking, disableAutoBooking,
       addPaymentCard,
       cart, addToCart, removeFromCart, updateCartItemSeats, clearCart, checkoutCart,
       applyLoyaltyDiscount,
