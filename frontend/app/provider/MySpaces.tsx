@@ -49,7 +49,7 @@ const CITIES = ['Riyadh', 'Jeddah', 'Dammam', 'Khobar', 'Madinah', 'Makkah', 'Ab
 const TYPES = ALL_SPACE_TYPES;
 
 export default function ProviderMySpaces() {
-  const { currentUser, spaces, addSpace, updateSpace, toggleSpaceVisibility, deleteSpace } = useApp();
+  const { currentUser, spaces, addSpace, updateSpace, toggleSpaceVisibility, deleteSpace, amenityRequests, requestCustomAmenity, getApprovedAmenities } = useApp();
   const [query, setQuery] = useState('');
   const [filterCity, setFilterCity] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<'all' | SpaceCategory>('all');
@@ -204,22 +204,21 @@ export default function ProviderMySpaces() {
   const handleAddCustomAmenity = () => {
     const trimmed = customAmenityInput.trim();
     if (!trimmed) return;
-    const current = form.amenities || [];
-    const exists = current.some((a) => a.toLowerCase() === trimmed.toLowerCase());
-    if (!exists) {
-      setForm((prev) => ({
-        ...prev,
-        amenities: [...(prev.amenities || []), trimmed],
-      }));
-    } else {
-      // If it exists but isn't selected, select it
-      if (!current.includes(trimmed)) {
-        const match = current.find((a) => a.toLowerCase() === trimmed.toLowerCase()) || trimmed;
+    const approvedList = getApprovedAmenities();
+    const isApproved = approvedList.some((a) => a.toLowerCase() === trimmed.toLowerCase());
+
+    if (isApproved) {
+      const match = approvedList.find((a) => a.toLowerCase() === trimmed.toLowerCase()) || trimmed;
+      const current = form.amenities || [];
+      if (!current.includes(match)) {
         setForm((prev) => ({
           ...prev,
           amenities: [...(prev.amenities || []), match],
         }));
       }
+    } else {
+      // Send custom amenity request to Admin for approval
+      requestCustomAmenity(trimmed, editingSpace?.id, form.name || 'Workspace');
     }
     setCustomAmenityInput('');
   };
@@ -1013,9 +1012,12 @@ export default function ProviderMySpaces() {
 
             {/* Amenities Section */}
             <div className="space-y-3 pt-2">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-moss block border-b border-soot/10 pb-1.5">
-                Available Amenities
-              </span>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-moss block border-b border-soot/10 pb-1.5">
+                  Available Amenities
+                </span>
+                <span className="text-[11px] text-moss">Custom amenities require Admin approval</span>
+              </div>
 
               {/* Custom Amenity Input */}
               <div className="flex items-center gap-2">
@@ -1029,7 +1031,7 @@ export default function ProviderMySpaces() {
                       handleAddCustomAmenity();
                     }
                   }}
-                  placeholder="Add custom amenity..."
+                  placeholder="Request custom amenity (e.g. 3D Printer, Pod)..."
                   className="flex-1 px-3.5 py-2 rounded-xl border border-soot/12 bg-plaster-dark/30 text-soot text-xs placeholder:text-moss/70 outline-none focus:border-eucalyptus focus:bg-plaster-surface transition-all"
                 />
                 <button
@@ -1038,59 +1040,58 @@ export default function ProviderMySpaces() {
                   className="px-3.5 py-2 rounded-xl bg-soot text-plaster hover:bg-soot/90 text-xs font-semibold cursor-pointer transition-all shrink-0 flex items-center gap-1 shadow-2xs"
                 >
                   <Plus size={14} />
-                  <span>Add</span>
+                  <span>{getApprovedAmenities().some(a => a.toLowerCase() === customAmenityInput.trim().toLowerCase()) ? 'Add' : 'Request Admin'}</span>
                 </button>
               </div>
 
+              {/* All Platform & Approved Amenities Chips */}
               <div className="flex flex-wrap gap-2 pt-1">
-                {/* Preset AMENITY_OPTIONS Chips */}
-                {AMENITY_OPTIONS.map((a) => {
+                {getApprovedAmenities().map((a) => {
                   const sel = form.amenities?.includes(a);
                   return (
                     <button
                       key={a}
                       type="button"
                       onClick={() => toggleAmenity(a)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
-                        sel ? 'bg-soot text-plaster font-semibold' : 'bg-plaster-dark/40 text-soot hover:bg-plaster-dark/70'
+                      className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${
+                        sel ? 'bg-soot text-plaster font-semibold shadow-xs' : 'bg-plaster-dark/40 text-soot hover:bg-plaster-dark/70'
                       }`}
                     >
-                      {a}
+                      <span>{a}</span>
+                      {sel && <Check size={12} className="text-emerald-400" />}
                     </button>
                   );
                 })}
-
-                {/* Custom Added Amenities Chips */}
-                {(form.amenities || [])
-                  .filter((a) => !AMENITY_OPTIONS.includes(a))
-                  .map((a) => {
-                    const sel = form.amenities?.includes(a);
-                    return (
-                      <div
-                        key={a}
-                        onClick={() => toggleAmenity(a)}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
-                          sel
-                            ? 'bg-soot text-plaster font-semibold'
-                            : 'bg-plaster-dark/40 text-soot hover:bg-plaster-dark/70'
-                        }`}
-                      >
-                        <span>{a}</span>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleRemoveCustomAmenity(a);
-                          }}
-                          className="p-0.5 hover:bg-white/20 rounded-md transition-colors"
-                          title="Remove custom amenity"
-                        >
-                          <X size={13} className={sel ? 'text-plaster/80 hover:text-white' : 'text-soot/70 hover:text-soot'} />
-                        </button>
-                      </div>
-                    );
-                  })}
               </div>
+
+              {/* Provider's Custom Amenity Requests Status */}
+              {amenityRequests && amenityRequests.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-soot/10">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-moss block mb-2">
+                    My Amenity Requests & Status
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {amenityRequests.map((req) => (
+                      <div
+                        key={req.id}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border ${
+                          req.status === 'APPROVED'
+                            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-800'
+                            : req.status === 'REJECTED'
+                            ? 'bg-rose-500/10 border-rose-500/30 text-rose-800'
+                            : 'bg-amber-500/10 border-amber-500/30 text-amber-800'
+                        }`}
+                        title={req.status === 'REJECTED' ? `Reason: ${req.rejectionReason || 'Declined by Admin'}` : ''}
+                      >
+                        <span className="font-semibold">{req.amenityName}</span>
+                        <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded-md bg-white/60">
+                          {req.status === 'APPROVED' ? 'Approved' : req.status === 'REJECTED' ? 'Rejected' : 'Pending Admin'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
