@@ -61,6 +61,7 @@ export default function ProviderMySpaces() {
   const [editingSpace, setEditingSpace] = useState<Space | null>(null);
   const [spaceToDelete, setSpaceToDelete] = useState<Space | null>(null);
   const [form, setForm] = useState<Partial<Space>>({});
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState(false);
 
   const [modalCityOpen, setModalCityOpen] = useState(false);
@@ -102,6 +103,7 @@ export default function ProviderMySpaces() {
 
   const openAdd = () => {
     setEditingSpace(null);
+    setFormErrors({});
     setForm({
       name: '',
       city: 'Riyadh',
@@ -149,13 +151,24 @@ export default function ProviderMySpaces() {
   const openEdit = (e: React.MouseEvent, space: Space) => {
     e.stopPropagation();
     setEditingSpace(space);
+    setFormErrors({});
     setForm({ ...space });
     setEditModal(true);
     setSaved(false);
   };
 
   const handleSave = () => {
-    if (!form.name || !form.city || !form.address) return;
+    const errs: Record<string, string> = {};
+    if (!form.name || !form.name.trim()) errs.name = 'Workspace name is required.';
+    if (!form.city || !form.city.trim()) errs.city = 'City selection is required.';
+    if (!form.address || !form.address.trim()) errs.address = 'Address / Location is required.';
+
+    if (Object.keys(errs).length > 0) {
+      setFormErrors(errs);
+      return;
+    }
+    setFormErrors({});
+
     if (editingSpace) {
       updateSpace(editingSpace.id, form as Space);
     } else {
@@ -689,28 +702,43 @@ export default function ProviderMySpaces() {
           </div>
         ) : (
           <div className="space-y-6 text-sm text-soot">
+            {Object.keys(formErrors).length > 0 && (
+              <div className="bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold rounded-2xl p-3.5 flex items-center gap-2">
+                <AlertCircle size={16} className="text-rose-600 shrink-0" />
+                <span>Please complete all required fields highlighted in red below.</span>
+              </div>
+            )}
+
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">
-                  Workspace Name *
+                  Workspace Name <span className="text-rose-600">*</span>
                 </label>
                 <input
                   value={form.name || ''}
-                  onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+                  onChange={(e) => {
+                    setForm((p) => ({ ...p, name: e.target.value }));
+                    if (formErrors.name) setFormErrors((errs) => ({ ...errs, name: '' }));
+                  }}
                   placeholder="e.g. The Hub Olaya"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-eucalyptus"
+                  className={`w-full px-3.5 py-2.5 rounded-xl border bg-white text-soot text-sm outline-none transition-all ${
+                    formErrors.name ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-soot/12 focus:border-eucalyptus'
+                  }`}
                 />
+                {formErrors.name && <p className="text-xs text-rose-600 font-medium mt-1">* {formErrors.name}</p>}
               </div>
 
               {/* City Custom Dropdown */}
               <div className="relative" ref={modalCityRef}>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">
-                  City *
+                  City <span className="text-rose-600">*</span>
                 </label>
                 <button
                   type="button"
                   onClick={() => setModalCityOpen(!modalCityOpen)}
-                  className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white border border-soot/12 text-soot text-sm font-medium text-left transition-all duration-200 cursor-pointer focus:outline-none"
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white border text-soot text-sm font-medium text-left transition-all duration-200 cursor-pointer focus:outline-none ${
+                    formErrors.city ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-soot/12'
+                  }`}
                 >
                   <span className="truncate">{form.city || 'Select City'}</span>
                   <ChevronDown
@@ -720,6 +748,7 @@ export default function ProviderMySpaces() {
                     }`}
                   />
                 </button>
+                {formErrors.city && <p className="text-xs text-rose-600 font-medium mt-1">* {formErrors.city}</p>}
 
                 {modalCityOpen && (
                   <div className="absolute top-full left-0 right-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100 max-h-52 overflow-y-auto">
@@ -732,6 +761,7 @@ export default function ProviderMySpaces() {
                             type="button"
                             onClick={() => {
                               setForm((p) => ({ ...p, city: c }));
+                              if (formErrors.city) setFormErrors((errs) => ({ ...errs, city: '' }));
                               setModalCityOpen(false);
                             }}
                             className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-sm font-medium transition-colors text-left cursor-pointer ${
@@ -753,14 +783,20 @@ export default function ProviderMySpaces() {
 
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">
-                Address / Location *
+                Address / Location <span className="text-rose-600">*</span>
               </label>
               <input
                 value={form.address || ''}
-                onChange={(e) => setForm((p) => ({ ...p, address: e.target.value }))}
+                onChange={(e) => {
+                  setForm((p) => ({ ...p, address: e.target.value }));
+                  if (formErrors.address) setFormErrors((errs) => ({ ...errs, address: '' }));
+                }}
                 placeholder="District, Street Name, City"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-eucalyptus"
+                className={`w-full px-3.5 py-2.5 rounded-xl border bg-white text-soot text-sm outline-none transition-all ${
+                  formErrors.address ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-soot/12 focus:border-eucalyptus'
+                }`}
               />
+              {formErrors.address && <p className="text-xs text-rose-600 font-medium mt-1">* {formErrors.address}</p>}
             </div>
 
             <div>

@@ -84,13 +84,23 @@ export function LoginScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (!email) { setError('Please enter your email address.'); return; }
-    if (!password) { setError('Please enter your password.'); return; }
+    const errs: Record<string, string> = {};
+    if (!email || !email.trim()) errs.email = 'Email address is required.';
+    if (!password) errs.password = 'Password is required.';
+
+    if (Object.keys(errs).length > 0) {
+      setFieldErrors(errs);
+      setError('Please fill in all required fields highlighted in red.');
+      return;
+    }
+    setFieldErrors({});
+
     setLoading(true);
     setTimeout(() => {
       const result = login(email, password);
@@ -141,7 +151,7 @@ export function LoginScreen() {
             {/* Email */}
             <div>
               <label className="block text-xs font-semibold text-soot mb-1.5 uppercase tracking-wider">
-                Email Address
+                Email Address <span className="text-rose-600">*</span>
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-moss">
@@ -150,18 +160,24 @@ export function LoginScreen() {
                 <input
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (fieldErrors.email) setFieldErrors((errs) => ({ ...errs, email: '' }));
+                  }}
                   placeholder="name@company.com"
-                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all"
+                  className={`w-full pl-10 pr-4 py-3 rounded-xl bg-plaster-surface border ${
+                    fieldErrors.email ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-soot/15 focus-visible:ring-2 focus-visible:ring-eucalyptus'
+                  } text-soot placeholder:text-moss/50 text-sm shadow-xs transition-all`}
                 />
               </div>
+              {fieldErrors.email && <p className="text-xs text-rose-600 font-medium mt-1">* {fieldErrors.email}</p>}
             </div>
 
             {/* Password */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="block text-xs font-semibold text-soot uppercase tracking-wider">
-                  Password
+                  Password <span className="text-rose-600">*</span>
                 </label>
                 <button
                   type="button"
@@ -178,9 +194,14 @@ export function LoginScreen() {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (fieldErrors.password) setFieldErrors((errs) => ({ ...errs, password: '' }));
+                  }}
                   placeholder="••••••••"
-                  className="w-full pl-10 pr-11 py-3 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all"
+                  className={`w-full pl-10 pr-11 py-3 rounded-xl bg-plaster-surface border ${
+                    fieldErrors.password ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-soot/15 focus-visible:ring-2 focus-visible:ring-eucalyptus'
+                  } text-soot placeholder:text-moss/50 text-sm shadow-xs transition-all`}
                 />
                 <button
                   type="button"
@@ -191,6 +212,7 @@ export function LoginScreen() {
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
+              {fieldErrors.password && <p className="text-xs text-rose-600 font-medium mt-1">* {fieldErrors.password}</p>}
             </div>
 
             {/* Submit Button */}
@@ -411,7 +433,9 @@ export function SignUpScreen() {
               {/* Row 1: Name & Phone */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">Full Name *</label>
+                  <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">
+                    Full Name <span className="text-rose-600">*</span>
+                  </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-moss">
                       <UserIcon size={15} />
@@ -421,14 +445,18 @@ export function SignUpScreen() {
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder="Ahmed Al-Mansoori"
-                      className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all"
+                      className={`w-full pl-9 pr-3 py-2.5 rounded-xl bg-plaster-surface border ${
+                        errors.name ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-soot/15 focus-visible:ring-2 focus-visible:ring-eucalyptus'
+                      } text-soot placeholder:text-moss/50 text-sm shadow-xs transition-all`}
                     />
                   </div>
-                  {errors.name && <p className="text-red-500 text-xs mt-0.5 font-medium">{errors.name}</p>}
+                  {errors.name && <p className="text-rose-600 text-xs mt-0.5 font-medium">* {errors.name}</p>}
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">Phone Number *</label>
+                  <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">
+                    Phone Number <span className="text-rose-600">*</span>
+                  </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-moss">
                       <Phone size={15} />
@@ -438,16 +466,20 @@ export function SignUpScreen() {
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       placeholder="+966 55 123 4567"
-                      className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all"
+                      className={`w-full pl-9 pr-3 py-2.5 rounded-xl bg-plaster-surface border ${
+                        errors.phone ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-soot/15 focus-visible:ring-2 focus-visible:ring-eucalyptus'
+                      } text-soot placeholder:text-moss/50 text-sm shadow-xs transition-all`}
                     />
                   </div>
-                  {errors.phone && <p className="text-red-500 text-xs mt-0.5 font-medium">{errors.phone}</p>}
+                  {errors.phone && <p className="text-rose-600 text-xs mt-0.5 font-medium">* {errors.phone}</p>}
                 </div>
               </div>
 
               {/* Email */}
               <div>
-                <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">Email Address *</label>
+                <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">
+                  Email Address <span className="text-rose-600">*</span>
+                </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-moss">
                     <Mail size={15} />
@@ -457,10 +489,12 @@ export function SignUpScreen() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@example.com"
-                    className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all"
+                    className={`w-full pl-9 pr-3 py-2.5 rounded-xl bg-plaster-surface border ${
+                      errors.email ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-soot/15 focus-visible:ring-2 focus-visible:ring-eucalyptus'
+                    } text-soot placeholder:text-moss/50 text-sm shadow-xs transition-all`}
                   />
                 </div>
-                {errors.email && <p className="text-red-500 text-xs mt-0.5 font-medium">{errors.email}</p>}
+                {errors.email && <p className="text-rose-600 text-xs mt-0.5 font-medium">* {errors.email}</p>}
               </div>
 
               {/* Organization Fields */}
