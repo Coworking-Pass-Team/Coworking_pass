@@ -41,6 +41,7 @@ import {
   getAvailableEndTimes,
   formatHourlyTimeRange,
   calculateEndTime,
+  calculateEndDate,
   timeStringToMinutes
 } from '@/types/types';
 import Modal from '@/components/ui/Modal';
@@ -59,6 +60,7 @@ export default function SpaceDetails() {
 
   const [imgIndex, setImgIndex] = useState(0);
   const [selectedPlan, setSelectedPlan] = useState<BookingPlan>(defaultPlan);
+  const [bookingDate, setBookingDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
   const [startTime, setStartTime] = useState<string>('09:00 AM');
   const [endTime, setEndTime] = useState<string>('05:00 PM');
   const [durationMonths, setDurationMonths] = useState(1);
@@ -126,6 +128,7 @@ export default function SpaceDetails() {
     const params = {
       spaceId: space.id,
       plan: selectedPlan,
+      startDate: bookingDate,
       startTime: selectedPlan === 'hourly' ? startTime : undefined,
       endTime: selectedPlan === 'hourly' ? endTime : undefined,
       durationHours: selectedPlan === 'hourly' ? durationHours : undefined,
@@ -471,17 +474,32 @@ export default function SpaceDetails() {
                   </div>
                 )}
 
-                {/* Hourly Duration Selector (Only for Halls & Theaters) */}
+                {/* Hourly Date & Exact Time Range Selector (Only for Halls & Theaters) */}
                 {selectedPlan === 'hourly' && isHourlyAllowed(space) && (
                   <div className="p-4 rounded-2xl bg-plaster-dark/40 border border-soot/10 space-y-3.5">
                     <div className="flex items-center justify-between gap-2">
                       <label className="text-[11px] font-semibold uppercase tracking-wider text-moss flex items-center gap-1.5 whitespace-nowrap">
                         <Clock size={12} className="shrink-0" />
-                        <span>Specify Exact Booking Time</span>
+                        <span>Specify Date & Exact Time</span>
                       </label>
                       <span className="text-xs font-bold text-soot bg-white px-2.5 py-1 rounded-full border border-soot/10 shadow-2xs whitespace-nowrap shrink-0">
                         {durationHours} {durationHours === 1 ? 'Hour' : 'Hours'}
                       </span>
+                    </div>
+
+                    {/* Booking Date Input */}
+                    <div>
+                      <label className="block text-[11px] font-semibold text-moss mb-1 flex items-center gap-1">
+                        <Calendar size={11} />
+                        <span>Booking Date</span>
+                      </label>
+                      <input
+                        type="date"
+                        value={bookingDate}
+                        min={new Date().toISOString().split('T')[0]}
+                        onChange={(e) => setBookingDate(e.target.value)}
+                        className="w-full px-3 py-2.5 rounded-xl bg-white border border-soot/12 text-soot text-xs font-medium focus:outline-none focus:border-eucalyptus cursor-pointer shadow-2xs"
+                      />
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -518,8 +536,8 @@ export default function SpaceDetails() {
 
                     <div className="bg-white p-3 rounded-xl border border-soot/8 flex items-center justify-between text-xs">
                       <div>
-                        <span className="text-moss block text-[10px] uppercase font-semibold">Time Window</span>
-                        <span className="font-semibold text-soot">{startTime} – {endTime}</span>
+                        <span className="text-moss block text-[10px] uppercase font-semibold">Scheduled Date & Time</span>
+                        <span className="font-semibold text-soot">{bookingDate} · {startTime} – {endTime}</span>
                       </div>
                       <div className="text-right">
                         <span className="text-moss block text-[10px] uppercase font-semibold">Calculated Total</span>
@@ -614,7 +632,7 @@ export default function SpaceDetails() {
                     <button
                       type="button"
                       onClick={() => {
-                        const today = new Date().toISOString().split('T')[0];
+                        const targetDate = bookingDate || new Date().toISOString().split('T')[0];
                         addToCart({
                           spaceId: space.id,
                           spaceName: space.name,
@@ -627,8 +645,8 @@ export default function SpaceDetails() {
                           durationMonths: selectedPlan === 'monthly' ? durationMonths : undefined,
                           startTime: selectedPlan === 'hourly' ? startTime : undefined,
                           endTime: selectedPlan === 'hourly' ? endTime : undefined,
-                          startDate: today,
-                          endDate: today,
+                          startDate: targetDate,
+                          endDate: selectedPlan === 'hourly' || selectedPlan === 'daily' ? targetDate : calculateEndDate(targetDate, selectedPlan, durationMonths),
                           seats: 1,
                           pricePerSeat: planPrice,
                           itemTotal: planPrice,

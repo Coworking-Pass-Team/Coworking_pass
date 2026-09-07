@@ -141,6 +141,9 @@ export default function BookingFlow() {
     if (nav?.params?.plan) {
       setPlan(nav.params.plan as BookingPlan);
     }
+    if (nav?.params?.startDate) {
+      setStartDate(nav.params.startDate as string);
+    }
     if (nav?.params?.startTime) {
       setStartTime(nav.params.startTime as string);
     }
@@ -311,7 +314,7 @@ export default function BookingFlow() {
               <Row label="Space Category" value={getSpaceCategory(space).toUpperCase()} />
               <Row label="Workspace Type" value={deskType.replace('-', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())} />
               <Row label="Plan / Duration" value={durationSummaryText} />
-              <Row label="Start Date" value={startDate} />
+              <Row label={isHourly ? "Booking Date" : "Start Date"} value={startDate} />
               {isHourly ? (
                 <Row label="Time Window" value={`${startTime} – ${endTime} (${durationHours} ${durationHours === 1 ? 'hour' : 'hours'})`} />
               ) : (
@@ -539,13 +542,28 @@ export default function BookingFlow() {
                 <div>
                   <h4 className="text-xs font-semibold uppercase tracking-wider text-moss flex items-center gap-1.5">
                     <Clock size={13} />
-                    <span>Specify Exact Booking Time</span>
+                    <span>Specify Reservation Date & Time</span>
                   </h4>
-                  <p className="text-xs text-moss mt-0.5">Select your start and end time (duration calculated automatically)</p>
+                  <p className="text-xs text-moss mt-0.5">Select your booking date, start time, and end time</p>
                 </div>
                 <div className="text-sm font-bold text-soot whitespace-nowrap shrink-0 text-right">
                   {durationHours} {durationHours === 1 ? 'Hour' : 'Hours'} · SAR {getHourlyPriceForDuration(space, durationHours)}
                 </div>
+              </div>
+
+              {/* Booking Date Input */}
+              <div>
+                <label className="block text-[11px] font-semibold text-moss mb-1 flex items-center gap-1">
+                  <Calendar size={12} />
+                  <span>Reservation Date</span>
+                </label>
+                <input
+                  type="date"
+                  value={startDate}
+                  min={new Date().toISOString().split('T')[0]}
+                  onChange={e => setStartDate(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-soot/12 text-soot text-sm font-medium focus:outline-none focus:border-eucalyptus cursor-pointer shadow-2xs"
+                />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -582,8 +600,8 @@ export default function BookingFlow() {
 
               <div className="bg-white p-3 rounded-xl border border-soot/8 flex items-center justify-between text-xs">
                 <div>
-                  <span className="text-moss block text-[10px] uppercase font-semibold">Selected Time Window</span>
-                  <span className="font-semibold text-soot">{startTime} – {endTime}</span>
+                  <span className="text-moss block text-[10px] uppercase font-semibold">Selected Schedule</span>
+                  <span className="font-semibold text-soot">{startDate} · {startTime} – {endTime}</span>
                 </div>
                 <div className="text-right">
                   <span className="text-moss block text-[10px] uppercase font-semibold">Total Duration</span>
@@ -616,8 +634,9 @@ export default function BookingFlow() {
           <div className="space-y-6">
             {/* Booking Date */}
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-2">
-                Start Date
+              <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-2 flex items-center gap-1.5">
+                <Calendar size={13} />
+                <span>{isHourly ? 'Booking Date' : 'Start Date'}</span>
               </label>
               <input
                 type="date"
@@ -671,8 +690,8 @@ export default function BookingFlow() {
 
                 <div className="bg-white p-3 rounded-xl border border-soot/8 flex items-center justify-between text-xs">
                   <div>
-                    <span className="text-moss block text-[10px] uppercase font-semibold">Scheduled Time Window</span>
-                    <span className="font-semibold text-soot">{startTime} – {endTime}</span>
+                    <span className="text-moss block text-[10px] uppercase font-semibold">Scheduled Date & Time</span>
+                    <span className="font-semibold text-soot">{startDate} · {startTime} – {endTime}</span>
                   </div>
                   <div className="text-right">
                     <span className="text-moss block text-[10px] uppercase font-semibold">Rate Calculation</span>
@@ -797,7 +816,7 @@ export default function BookingFlow() {
               <Row label="Location" value={`${space.address}, ${space.city}`} />
               <Row label="Desk Type" value={deskType.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())} />
               <Row label="Plan / Mode" value={isHourly ? `Hourly Reservation (${durationHours} hours)` : `${plan.charAt(0).toUpperCase() + plan.slice(1)} Pass`} />
-              <Row label="Date" value={startDate} />
+              <Row label={isHourly ? "Booking Date" : "Start Date"} value={startDate} />
               {isHourly ? (
                 <Row label="Time Window" value={`${startTime} – ${endTime} (${durationHours} ${durationHours === 1 ? 'hour' : 'hours'})`} />
               ) : plan !== 'daily' ? (
