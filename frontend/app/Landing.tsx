@@ -89,9 +89,8 @@ export default function Landing() {
                 </div>
                 <ChevronDown
                   size={16}
-                  className={`text-moss transition-transform duration-200 shrink-0 ${
-                    dropdownOpen ? 'rotate-180 text-soot' : ''
-                  }`}
+                  className={`text-moss transition-transform duration-200 shrink-0 ${dropdownOpen ? 'rotate-180 text-soot' : ''
+                    }`}
                 />
               </button>
 
@@ -108,11 +107,10 @@ export default function Landing() {
                             setSearchCity(city === 'All Cities' ? '' : city);
                             setDropdownOpen(false);
                           }}
-                          className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors duration-150 text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus ${
-                            isSelected
+                          className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors duration-150 text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus ${isSelected
                               ? 'bg-soot text-plaster font-semibold'
                               : 'text-soot hover:bg-plaster-dark/70 hover:text-soot'
-                          }`}
+                            }`}
                         >
                           <div className="flex items-center gap-2.5">
                             <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-eucalyptus' : 'bg-transparent'}`} />
@@ -329,7 +327,7 @@ export default function Landing() {
                   <span className="text-moss font-normal text-xs">({space.reviewCount} reviews)</span>
                 </div>
                 <Badge variant={space.availableCapacity === 0 ? 'danger' : space.availableCapacity <= 5 ? 'warning' : 'eucalyptus'}>
-                  {space.availableCapacity === 0 ? 'Fully Booked' : space.availableCapacity <= 5 ? 'Limited Seats' : 'Available'}
+                  {space.availableCapacity === 0 ? 'Fully Booked' : space.availableCapacity <= 5 ? 'Almost Full' : 'Available'}
                 </Badge>
               </div>
             </div>
@@ -588,7 +586,7 @@ export default function Landing() {
               Join thousands of professionals working smarter across Saudi Arabia.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 relative z-20">
               <button
                 type="button"
                 onClick={() => navigate('signup')}
@@ -599,7 +597,7 @@ export default function Landing() {
               <button
                 type="button"
                 onClick={() => navigate('browse')}
-                className="btn-secondary w-full sm:w-auto px-8 py-3.5 border-white/20 text-plaster hover:bg-white/10"
+                className="btn-secondary !bg-plaster !text-soot hover:!bg-plaster w-full sm:w-auto px-8 py-3.5 inline-flex items-center justify-center"
               >
                 Browse spaces
               </button>

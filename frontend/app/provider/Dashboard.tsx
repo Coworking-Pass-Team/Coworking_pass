@@ -202,7 +202,7 @@ export default function ProviderDashboard() {
                       {b.spaceName}
                     </div>
                     <div className="text-xs text-moss mt-0.5 truncate">
-                      {b.seats} seat{b.seats > 1 ? 's' : ''} · <span className="capitalize">{b.plan}</span>
+                      {b.seats} seat{b.seats > 1 ? 's' : ''} · <span className="capitalize">{b.plan === 'hourly' ? `Hourly (${b.durationHours || 1} ${b.durationHours === 1 ? 'hr' : 'hrs'})` : b.plan}</span>
                     </div>
                   </div>
                   <div className="text-right shrink-0">

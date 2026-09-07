@@ -176,11 +176,11 @@ export default function OrgDashboard() {
                         <MapPin size={12} className="shrink-0" />
                         <span className="truncate">{b.spaceCity}</span>
                         <span>•</span>
-                        <span className="truncate">{b.startDate} {b.endDate && b.endDate !== b.startDate ? `→ ${b.endDate}` : ''}</span>
+                        <span className="truncate">{b.startDate} {b.plan === 'hourly' && b.startTime ? `(${b.startTime} – ${b.endTime || ''})` : (b.endDate && b.endDate !== b.startDate ? `→ ${b.endDate}` : '')}</span>
                       </div>
                       <div className="mt-1.5 flex items-center gap-2 flex-wrap">
                         <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-500/15 text-emerald-800 border border-emerald-500/30 uppercase tracking-wider">
-                          {b.plan === 'hourly' ? `${b.durationHours || 1}h Hourly` : `${b.plan} pass`} • {b.seats} seat{b.seats > 1 ? 's' : ''}
+                          {b.plan === 'hourly' ? `Hourly (${b.durationHours || 1} ${b.durationHours === 1 ? 'hr' : 'hrs'})` : `${b.plan} pass`} • {b.seats} seat{b.seats > 1 ? 's' : ''}
                         </span>
                         {b.employees && b.employees.length > 0 && (
                           <span className="text-[10px] text-moss bg-soot/5 px-2 py-0.5 rounded-full border border-soot/8 font-medium">

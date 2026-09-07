@@ -48,6 +48,8 @@ export default function AdminSettings() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordSaved, setPasswordSaved] = useState(false);
+  const [passwordErrors, setPasswordErrors] = useState<Record<string, string>>({});
+  const [editErrors, setEditErrors] = useState<Record<string, string>>({});
 
   // Logout Modal State
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -90,10 +92,11 @@ export default function AdminSettings() {
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editName.trim()) {
-      showToast('Admin name is required', 'error');
+      setEditErrors({ name: 'Full Administrator Name is required' });
       return;
     }
 
+    setEditErrors({});
     setIsSaving(true);
     setTimeout(() => {
       updateCurrentUser({
@@ -109,23 +112,21 @@ export default function AdminSettings() {
 
   const handlePasswordChangeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentPassword) {
-      showToast('Please enter your current password', 'error');
-      return;
-    }
-    if (newPassword.length < 6) {
-      showToast('New password must be at least 6 characters', 'error');
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      showToast('New passwords do not match', 'error');
-      return;
-    }
+    const pErrs: Record<string, string> = {};
+    if (!currentPassword) pErrs.current = 'Current password is required';
+    if (!newPassword) pErrs.new = 'New password is required';
+    else if (newPassword.length < 6) pErrs.new = 'New password must be at least 6 characters';
+    if (!confirmPassword) pErrs.confirm = 'Please confirm new password';
+    else if (newPassword && newPassword !== confirmPassword) pErrs.confirm = 'New passwords do not match';
+
+    setPasswordErrors(pErrs);
+    if (Object.keys(pErrs).length > 0) return;
 
     setPasswordSaved(true);
     setCurrentPassword('');
     setNewPassword('');
     setConfirmPassword('');
+    setPasswordErrors({});
     showToast('Admin security password updated successfully!', 'success');
     setTimeout(() => setPasswordSaved(false), 3000);
   };
@@ -319,41 +320,71 @@ export default function AdminSettings() {
             <form onSubmit={handlePasswordChangeSubmit} className="space-y-4 max-w-lg">
               <div>
                 <label className="block text-xs font-medium uppercase tracking-wider text-moss mb-1.5">
-                  Current Password
+                  Current Password <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="password"
                   value={currentPassword}
-                  onChange={e => setCurrentPassword(e.target.value)}
+                  onChange={e => {
+                    setCurrentPassword(e.target.value);
+                    if (passwordErrors.current) setPasswordErrors(p => ({ ...p, current: '' }));
+                  }}
                   placeholder="••••••••"
-                  className="w-full px-4 py-3 rounded-2xl border border-soot/12 bg-white text-sm text-soot outline-none focus:border-eucalyptus font-normal"
+                  className={`w-full px-4 py-3 rounded-2xl border ${
+                    passwordErrors.current ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/20' : 'border-soot/12 bg-white'
+                  } text-sm text-soot outline-none focus:border-eucalyptus font-normal`}
                 />
+                {passwordErrors.current && (
+                  <p className="text-rose-600 text-xs mt-1 font-medium flex items-center gap-1">
+                    <span>*</span> {passwordErrors.current}
+                  </p>
+                )}
               </div>
 
               <div>
                 <label className="block text-xs font-medium uppercase tracking-wider text-moss mb-1.5">
-                  New Admin Password
+                  New Admin Password <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="password"
                   value={newPassword}
-                  onChange={e => setNewPassword(e.target.value)}
+                  onChange={e => {
+                    setNewPassword(e.target.value);
+                    if (passwordErrors.new) setPasswordErrors(p => ({ ...p, new: '' }));
+                  }}
                   placeholder="At least 6 characters"
-                  className="w-full px-4 py-3 rounded-2xl border border-soot/12 bg-white text-sm text-soot outline-none focus:border-eucalyptus font-normal"
+                  className={`w-full px-4 py-3 rounded-2xl border ${
+                    passwordErrors.new ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/20' : 'border-soot/12 bg-white'
+                  } text-sm text-soot outline-none focus:border-eucalyptus font-normal`}
                 />
+                {passwordErrors.new && (
+                  <p className="text-rose-600 text-xs mt-1 font-medium flex items-center gap-1">
+                    <span>*</span> {passwordErrors.new}
+                  </p>
+                )}
               </div>
 
               <div>
                 <label className="block text-xs font-medium uppercase tracking-wider text-moss mb-1.5">
-                  Confirm New Password
+                  Confirm New Password <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="password"
                   value={confirmPassword}
-                  onChange={e => setConfirmPassword(e.target.value)}
+                  onChange={e => {
+                    setConfirmPassword(e.target.value);
+                    if (passwordErrors.confirm) setPasswordErrors(p => ({ ...p, confirm: '' }));
+                  }}
                   placeholder="Re-enter new password"
-                  className="w-full px-4 py-3 rounded-2xl border border-soot/12 bg-white text-sm text-soot outline-none focus:border-eucalyptus font-normal"
+                  className={`w-full px-4 py-3 rounded-2xl border ${
+                    passwordErrors.confirm ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/20' : 'border-soot/12 bg-white'
+                  } text-sm text-soot outline-none focus:border-eucalyptus font-normal`}
                 />
+                {passwordErrors.confirm && (
+                  <p className="text-rose-600 text-xs mt-1 font-medium flex items-center gap-1">
+                    <span>*</span> {passwordErrors.confirm}
+                  </p>
+                )}
               </div>
 
               <div className="pt-2">
@@ -526,14 +557,24 @@ export default function AdminSettings() {
 
           <div>
             <label className="block text-xs font-medium uppercase tracking-wider text-moss mb-1.5">
-              Full Administrator Name *
+              Full Administrator Name <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               value={editName}
-              onChange={e => setEditName(e.target.value)}
-              className="w-full px-4 py-3 rounded-2xl border border-soot/12 bg-white text-sm text-soot outline-none focus:border-eucalyptus font-normal"
+              onChange={e => {
+                setEditName(e.target.value);
+                if (editErrors.name) setEditErrors(p => ({ ...p, name: '' }));
+              }}
+              className={`w-full px-4 py-3 rounded-2xl border ${
+                editErrors.name ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/20' : 'border-soot/12 bg-white'
+              } text-sm text-soot outline-none focus:border-eucalyptus font-normal`}
             />
+            {editErrors.name && (
+              <p className="text-rose-600 text-xs mt-1 font-medium flex items-center gap-1">
+                <span>*</span> {editErrors.name}
+              </p>
+            )}
           </div>
 
           <div>

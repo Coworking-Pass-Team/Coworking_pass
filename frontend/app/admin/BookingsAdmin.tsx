@@ -336,11 +336,16 @@ export default function BookingsAdmin() {
               <div className="col-span-1 mt-2 lg:mt-0">
                 <div className="text-xs font-semibold text-soot capitalize">
                   {b.plan === 'hourly'
-                    ? `${b.durationHours || 1}h Hourly`
+                    ? `Hourly (${b.durationHours || 1} ${b.durationHours === 1 ? 'hr' : 'hrs'})`
                     : b.plan === 'monthly'
                     ? `${b.durationMonths || 1}mo Monthly`
                     : `${b.plan} pass`}
                 </div>
+                {b.plan === 'hourly' && (b.startTime || b.endTime) && (
+                  <div className="text-[10px] text-moss font-medium">
+                    {b.startTime} – {b.endTime}
+                  </div>
+                )}
                 <div className="flex items-center gap-1 text-[11px] text-moss mt-0.5">
                   <Users size={11} />
                   <span>{b.seats} seat{b.seats > 1 ? 's' : ''}</span>
@@ -447,16 +452,21 @@ export default function BookingsAdmin() {
                   {
                     label: 'Booking Plan',
                     value: selectedBooking.plan === 'hourly'
-                      ? `HOURLY RESERVATION (${selectedBooking.durationHours || 1} HOURS)`
+                      ? `HOURLY RESERVATION (${selectedBooking.durationHours || 1} ${selectedBooking.durationHours === 1 ? 'HOUR' : 'HOURS'})`
                       : selectedBooking.plan === 'monthly'
                       ? `MONTHLY PASS (${selectedBooking.durationMonths || 1} MONTH${(selectedBooking.durationMonths || 1) > 1 ? 'S' : ''})`
                       : `${selectedBooking.plan.toUpperCase()} PASS`,
                     icon: CreditCard,
                   },
                   { label: 'Reserved Seats', value: `${selectedBooking.seats} seat(s)`, icon: Users },
-                  { label: 'Start Date', value: selectedBooking.startDate, icon: Calendar },
-                  ...(selectedBooking.startTime ? [{ label: 'Time Window', value: `${selectedBooking.startTime} – ${selectedBooking.endTime || ''}`, icon: Clock }] : []),
-                  ...(selectedBooking.durationHours ? [{ label: 'Duration', value: `${selectedBooking.durationHours} Hours`, icon: Clock }] : []),
+                  { label: selectedBooking.plan === 'hourly' ? 'Booking Date' : 'Start Date', value: selectedBooking.startDate, icon: Calendar },
+                  ...(selectedBooking.plan === 'hourly'
+                    ? [{
+                        label: 'Time Window',
+                        value: `${selectedBooking.startTime || '09:00 AM'} – ${selectedBooking.endTime || '05:00 PM'} (${selectedBooking.durationHours || 1} ${selectedBooking.durationHours === 1 ? 'hour' : 'hours'})`,
+                        icon: Clock,
+                      }]
+                    : []),
                   ...(selectedBooking.durationMonths && selectedBooking.durationMonths > 1 ? [{ label: 'Duration (Months)', value: `${selectedBooking.durationMonths} Months`, icon: Calendar }] : []),
                   ...(selectedBooking.plan !== 'hourly' && selectedBooking.endDate !== selectedBooking.startDate ? [{ label: 'End Date', value: selectedBooking.endDate, icon: Calendar }] : []),
                   { label: 'Total Amount Paid', value: `SAR ${getBookingPrice(selectedBooking, spaces).toLocaleString()}`, icon: DollarSign },
