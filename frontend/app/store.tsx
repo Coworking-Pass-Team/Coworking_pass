@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, Space, Booking, Screen, NavState, UserRole, BookingType, PaymentCard, Notification, CartItem } from '@/types/types';
+import { User, Space, Booking, Screen, NavState, UserRole, BookingType, PaymentCard, Notification, CartItem, AmenityRequest, AmenityRequestStatus } from '@/types/types';
 import { INITIAL_SPACES, INITIAL_USERS, INITIAL_BOOKINGS, INITIAL_NOTIFICATIONS } from '@/data/data';
 
 interface AppContextType {
@@ -34,6 +34,14 @@ interface AppContextType {
   addBooking: (booking: Omit<Booking, 'id' | 'createdAt'>) => Booking;
   cancelBooking: (id: string) => void;
   updateBookingStatus: (id: string, status: Booking['status']) => void;
+
+  // Amenity Requests (Provider -> Admin)
+  amenityRequests: AmenityRequest[];
+  approvedCustomAmenities: string[];
+  requestCustomAmenity: (amenityName: string, spaceId?: string, spaceName?: string) => { success: boolean; message: string; request?: AmenityRequest };
+  approveAmenityRequest: (requestId: string) => void;
+  rejectAmenityRequest: (requestId: string, reason?: string) => void;
+  getApprovedAmenities: () => string[];
 
   // Notifications
   notifications: Notification[];
@@ -96,6 +104,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [toast, setToast] = useState<AppContextType['toast']>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [amenityRequests, setAmenityRequests] = useState<AmenityRequest[]>([
+    {
+      id: 'req-1',
+      amenityName: '3D Printing Studio',
+      providerId: 'user-p1',
+      providerName: 'DeskFlow Workspace Co.',
+      spaceId: 'space-1',
+      spaceName: 'HubSpot Innovation Center',
+      status: 'PENDING_APPROVAL',
+      createdAt: '2026-09-06T10:00:00Z',
+    },
+    {
+      id: 'req-2',
+      amenityName: 'Podcast Recording Studio',
+      providerId: 'user-p1',
+      providerName: 'DeskFlow Workspace Co.',
+      spaceId: 'space-2',
+      spaceName: 'Creative Hive Riyadh',
+      status: 'APPROVED',
+      createdAt: '2026-09-05T14:30:00Z',
+    },
+  ]);
+  const [approvedCustomAmenities, setApprovedCustomAmenities] = useState<string[]>(['Podcast Recording Studio']);
 
   const sanitizeBookings = (list: Booking[]): Booking[] => {
     const seen = new Set<string>();
@@ -201,6 +232,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const savedCart = localStorage.getItem('cp_cart');
       if (savedCart) {
         setCart(JSON.parse(savedCart));
+      }
+
+      const savedAmenityReqs = localStorage.getItem('cp_amenity_requests');
+      if (savedAmenityReqs) {
+        try {
+          setAmenityRequests(JSON.parse(savedAmenityReqs));
+        } catch (e) {
+          // Keep default state
+        }
+      }
+
+      const savedApprovedAmenities = localStorage.getItem('cp_approved_amenities');
+      if (savedApprovedAmenities) {
+        try {
+          setApprovedCustomAmenities(JSON.parse(savedApprovedAmenities));
+        } catch (e) {
+          // Keep default state
+        }
       }
     } catch (e) {
       console.error('Failed to load storage state:', e);
@@ -698,12 +747,149 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return newBookings;
   };
 
+  const DEFAULT_PLATFORM_AMENITIES = [
+    'High-Speed WiFi',
+    'Parking',
+    'Coffee & Tea',
+    'Printing',
+    'Meeting Rooms',
+    'Phone Booths',
+    'Reception',
+    '24/7 Access',
+    'Accessibility',
+    'Prayer Room',
+    'Locker',
+    'Gym Access',
+    'Rooftop',
+    'Event Space',
+    '4K Projector',
+    'Surround Sound',
+    'Stage Lighting',
+  ];
+
+  const getApprovedAmenities = (): string[] => {
+    const combined = new Set([...DEFAULT_PLATFORM_AMENITIES, ...approvedCustomAmenities]);
+    return Array.from(combined);
+  };
+
+  const requestCustomAmenity = (amenityName: string, spaceId?: string, spaceName?: string) => {
+    const trimmed = amenityName.trim();
+    if (!trimmed) {
+      return { success: false, message: 'Amenity name cannot be empty.' };
+    }
+
+    const allApproved = getApprovedAmenities();
+    if (allApproved.some(a => a.toLowerCase() === trimmed.toLowerCase())) {
+      return { success: false, message: `"${trimmed}" is already an available amenity.` };
+    }
+
+    const existingReq = amenityRequests.find(
+      r => r.amenityName.toLowerCase() === trimmed.toLowerCase() && r.status === 'PENDING_APPROVAL'
+    );
+    if (existingReq) {
+      return { success: false, message: `A request for "${trimmed}" is already pending admin approval.` };
+    }
+
+    const newReq: AmenityRequest = {
+      id: `req-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      amenityName: trimmed,
+      providerId: currentUser?.id || 'user-p1',
+      providerName: currentUser?.name || 'Workspace Provider',
+      spaceId,
+      spaceName,
+      status: 'PENDING_APPROVAL',
+      createdAt: new Date().toISOString(),
+    };
+
+    const updated = [newReq, ...amenityRequests];
+    setAmenityRequests(updated);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cp_amenity_requests', JSON.stringify(updated));
+    }
+
+    // Notify Admin
+    addNotification({
+      userId: 'admin',
+      title: 'New Custom Amenity Request',
+      message: `${currentUser?.name || 'Provider'} requested custom amenity "${trimmed}"${spaceName ? ` for ${spaceName}` : ''}.`,
+      type: 'system',
+    });
+
+    showToast(`Amenity request for "${trimmed}" submitted to Admin for approval.`, 'info');
+    return { success: true, message: 'Request submitted successfully!', request: newReq };
+  };
+
+  const approveAmenityRequest = (requestId: string) => {
+    const req = amenityRequests.find(r => r.id === requestId);
+    if (!req) return;
+
+    const updatedReqs = amenityRequests.map(r =>
+      r.id === requestId ? { ...r, status: 'APPROVED' as AmenityRequestStatus } : r
+    );
+    setAmenityRequests(updatedReqs);
+
+    const existsInApproved = approvedCustomAmenities.some(
+      a => a.toLowerCase() === req.amenityName.toLowerCase()
+    );
+    const newApproved = existsInApproved ? approvedCustomAmenities : [...approvedCustomAmenities, req.amenityName];
+    setApprovedCustomAmenities(newApproved);
+
+    if (req.spaceId) {
+      const targetSpace = spaces.find(s => s.id === req.spaceId);
+      if (targetSpace && !targetSpace.amenities.includes(req.amenityName)) {
+        updateSpace(targetSpace.id, {
+          amenities: [...targetSpace.amenities, req.amenityName],
+        });
+      }
+    }
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cp_amenity_requests', JSON.stringify(updatedReqs));
+      localStorage.setItem('cp_approved_amenities', JSON.stringify(newApproved));
+    }
+
+    addNotification({
+      userId: req.providerId,
+      title: 'Amenity Request Approved',
+      message: `Your custom amenity request "${req.amenityName}" has been approved by the Admin and added to the platform catalog!`,
+      type: 'system',
+    });
+
+    showToast(`Approved custom amenity "${req.amenityName}".`, 'success');
+  };
+
+  const rejectAmenityRequest = (requestId: string, reason?: string) => {
+    const req = amenityRequests.find(r => r.id === requestId);
+    if (!req) return;
+
+    const updatedReqs = amenityRequests.map(r =>
+      r.id === requestId
+        ? { ...r, status: 'REJECTED' as AmenityRequestStatus, rejectionReason: reason || 'Does not meet catalog guidelines.' }
+        : r
+    );
+    setAmenityRequests(updatedReqs);
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cp_amenity_requests', JSON.stringify(updatedReqs));
+    }
+
+    addNotification({
+      userId: req.providerId,
+      title: 'Amenity Request Rejected',
+      message: `Your custom amenity request "${req.amenityName}" was rejected by the Admin.${reason ? ` Reason: ${reason}` : ''}`,
+      type: 'system',
+    });
+
+    showToast(`Rejected custom amenity request "${req.amenityName}".`, 'error');
+  };
+
   return (
     <AppContext.Provider value={{
       nav, navigate, goBack,
       currentUser, login, signup, logout, setPendingUser, pendingUser,
       spaces, favorites, toggleFavorite, addSpace, updateSpace, toggleSpaceVisibility, deleteSpace,
       bookings, addBooking, cancelBooking, updateBookingStatus,
+      amenityRequests, approvedCustomAmenities, requestCustomAmenity, approveAmenityRequest, rejectAmenityRequest, getApprovedAmenities,
       notifications: userNotifications,
       unreadNotificationsCount: userNotifications.filter(n => !n.read).length,
       markNotificationRead, toggleNotificationRead, markAllNotificationsRead, deleteNotification, clearAllNotifications, addNotification, generateFakeNotification,

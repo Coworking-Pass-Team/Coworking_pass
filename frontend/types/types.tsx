@@ -630,6 +630,21 @@ export interface Booking {
   notes?: string;
 }
 
+export type AmenityRequestStatus = 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
+
+export interface AmenityRequest {
+  id: string;
+  amenityName: string;
+  providerId: string;
+  providerName: string;
+  spaceId?: string;
+  spaceName?: string;
+  status: AmenityRequestStatus;
+  createdAt: string;
+  rejectionReason?: string;
+}
+
+
 export interface CartItem {
   id: string;
   spaceId: string;
