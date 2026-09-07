@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Eye,
   EyeOff,
@@ -17,7 +17,9 @@ import {
   Phone,
   Briefcase,
   FileText,
-  Users
+  Users,
+  ShieldCheck,
+  Clock
 } from 'lucide-react';
 import { useApp } from '@/app/store';
 import LogoImage from '@/components/layout/logo';
@@ -261,7 +263,7 @@ export function LoginScreen() {
 }
 
 export function SignUpScreen() {
-  const { signup, completeSignup, setPendingUser, navigate } = useApp();
+  const { signup, requestSignupOtp, setPendingUser, navigate } = useApp();
 
   const [step, setStep] = useState<1 | 2>(1);
   const [role, setRole] = useState<'individual' | 'organization' | 'provider'>('individual');
@@ -316,11 +318,11 @@ export function SignUpScreen() {
     setPendingUser(newUser);
 
     if (role === 'organization') {
-      (completeSignup as (r: string, d?: unknown) => void)(role, { orgName, orgSize: parseInt(orgSize, 10) || 10, industry });
+      requestSignupOtp(newUser, role, { orgName, orgSize: parseInt(orgSize, 10) || 10, industry });
     } else if (role === 'provider') {
-      (completeSignup as (r: string, d?: unknown) => void)(role, { businessName, crNumber });
+      requestSignupOtp(newUser, role, { businessName, crNumber });
     } else {
-      (completeSignup as (r: string) => void)(role);
+      requestSignupOtp(newUser, role);
     }
   };
 
@@ -732,7 +734,7 @@ export function SignUpScreen() {
 }
 
 export function ChooseAccountType() {
-  const { navigate, completeSignup, pendingUser, setPendingUser } = useApp();
+  const { navigate, requestSignupOtp, pendingUser, setPendingUser } = useApp();
   const [selected, setSelected] = useState<'individual' | 'organization' | 'provider' | null>(null);
   const [orgName, setOrgName] = useState('');
   const [orgSize, setOrgSize] = useState('');
@@ -745,27 +747,27 @@ export function ChooseAccountType() {
     if (selected === 'organization' && !orgName.trim()) return;
     if (selected === 'provider' && !businessName.trim()) return;
 
-    if (!pendingUser) {
-      const tempUser = {
-        id: `user-${Date.now()}`,
-        name: 'New Member',
-        email: 'member@coworkingpass.sa',
-        password: 'password',
-        role: selected,
-        phone: '+966 50 123 4567',
-        avatar: '',
-        isBlocked: false,
-        joinDate: new Date().toISOString().split('T')[0],
-      };
-      setPendingUser(tempUser);
-    }
+    const targetUser = pendingUser || {
+      id: `user-${Date.now()}`,
+      name: 'New Member',
+      username: `user_${Date.now().toString().slice(-4)}`,
+      email: 'member@coworkingpass.sa',
+      password: 'password',
+      role: selected,
+      phone: '+966 50 123 4567',
+      avatar: '',
+      isBlocked: false,
+      joinDate: new Date().toISOString().split('T')[0],
+      loyaltyPoints: 0,
+    };
+    if (!pendingUser) setPendingUser(targetUser);
 
     if (selected === 'organization') {
-      (completeSignup as (r: string, d?: unknown) => void)(selected, { orgName, orgSize: parseInt(orgSize, 10) || 10, industry: industry || 'Technology' });
+      requestSignupOtp(targetUser as any, selected, { orgName, orgSize: parseInt(orgSize, 10) || 10, industry: industry || 'Technology' });
     } else if (selected === 'provider') {
-      (completeSignup as (r: string, d?: unknown) => void)(selected, { businessName, crNumber });
+      requestSignupOtp(targetUser as any, selected, { businessName, crNumber });
     } else {
-      (completeSignup as (r: string) => void)(selected);
+      requestSignupOtp(targetUser as any, selected);
     }
   };
 
@@ -1087,10 +1089,276 @@ export function ForgotPasswordScreen() {
   );
 }
 
+export function OtpVerificationScreen() {
+  const { otpSession, verifyOtp, resendOtp, cancelOtp, navigate } = useApp();
+  const [digits, setDigits] = useState<string[]>(['', '', '', '', '', '']);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [countdown, setCountdown] = useState(60);
+  const [canResend, setCanResend] = useState(false);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Focus first input on mount
+  useEffect(() => {
+    inputRefs.current[0]?.focus();
+  }, []);
+
+  // Timer countdown
+  useEffect(() => {
+    if (countdown <= 0) {
+      setCanResend(true);
+      return;
+    }
+    const timer = setInterval(() => {
+      setCountdown((prev) => prev - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [countdown]);
+
+  const handleDigitChange = (index: number, value: string) => {
+    const cleaned = value.replace(/\D/g, '');
+    if (!cleaned) {
+      const nextDigits = [...digits];
+      nextDigits[index] = '';
+      setDigits(nextDigits);
+      return;
+    }
+
+    const lastChar = cleaned[cleaned.length - 1];
+    const nextDigits = [...digits];
+    nextDigits[index] = lastChar;
+    setDigits(nextDigits);
+    setError('');
+
+    if (index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace') {
+      if (!digits[index] && index > 0) {
+        const nextDigits = [...digits];
+        nextDigits[index - 1] = '';
+        setDigits(nextDigits);
+        inputRefs.current[index - 1]?.focus();
+      }
+    } else if (e.key === 'ArrowLeft' && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    } else if (e.key === 'ArrowRight' && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pasteData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (!pasteData) return;
+
+    const nextDigits = [...digits];
+    for (let i = 0; i < 6; i++) {
+      nextDigits[i] = pasteData[i] || '';
+    }
+    setDigits(nextDigits);
+    setError('');
+
+    const focusIndex = Math.min(pasteData.length, 5);
+    inputRefs.current[focusIndex]?.focus();
+  };
+
+  const handleAutoFillDemo = () => {
+    const demo = ['1', '2', '3', '4', '5', '6'];
+    setDigits(demo);
+    setError('');
+    inputRefs.current[5]?.focus();
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const code = digits.join('');
+    if (code.length < 6) {
+      setError('Please enter all 6 digits of the verification code.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    setTimeout(() => {
+      const res = verifyOtp(code);
+      if (!res.success) {
+        setError(res.error || 'Invalid verification code. Please try again.');
+        setLoading(false);
+      }
+    }, 600);
+  };
+
+  const handleResend = () => {
+    if (!canResend) return;
+    resendOtp();
+    setCountdown(60);
+    setCanResend(false);
+    setError('');
+  };
+
+  const recipient = otpSession?.targetEmailOrPhone || 'your registered contact';
+  const isSignup = otpSession?.mode === 'signup';
+
+  return (
+    <div className="min-h-screen w-full flex bg-plaster text-soot">
+      {/* Left Form Column */}
+      <div className="w-full lg:w-1/2 flex flex-col justify-between p-6 sm:p-10 lg:p-14 min-h-screen">
+        {/* Top Header */}
+        <div className="flex items-center justify-between w-full max-w-md mx-auto">
+          <Logo onClick={() => navigate('landing')} />
+          <button
+            type="button"
+            onClick={cancelOtp}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-soot/5 hover:bg-soot/10 border border-soot/10 text-xs font-semibold text-soot transition-all duration-200 cursor-pointer group"
+          >
+            <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />
+            <span>{isSignup ? 'Back to Sign Up' : 'Back to Sign In'}</span>
+          </button>
+        </div>
+
+        {/* Center Content */}
+        <div className="w-full max-w-md mx-auto my-auto py-8">
+          <div className="mb-7">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-eucalyptus/20 border border-eucalyptus/40 text-soot text-xs font-semibold mb-3.5">
+              <ShieldCheck size={14} className="text-emerald-800 shrink-0" />
+              <span>Two-Factor Security Verification</span>
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-normal font-serif-display text-soot tracking-tight mb-2">
+              Enter verification code
+            </h1>
+            <p className="text-moss text-xs sm:text-sm leading-relaxed">
+              We&apos;ve sent a 6-digit one-time code to{' '}
+              <span className="font-semibold text-soot">{recipient}</span>. Enter the code below to complete your {isSignup ? 'account registration' : 'sign in'}.
+            </p>
+          </div>
+
+          {/* Demo Hint Banner */}
+          <div className="mb-6 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-900 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Sparkles size={14} className="text-amber-700 shrink-0" />
+              <span>Demo code: <strong className="font-mono font-bold tracking-wider">123456</strong></span>
+            </div>
+            <button
+              type="button"
+              onClick={handleAutoFillDemo}
+              className="text-[11px] font-bold text-amber-900 bg-amber-500/20 hover:bg-amber-500/30 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+            >
+              Auto-fill Code
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/20 text-red-700 text-xs sm:text-sm font-medium rounded-xl px-4 py-3">
+                {error}
+              </div>
+            )}
+
+            {/* 6 Digit Input Boxes */}
+            <div>
+              <label className="block text-xs font-semibold text-soot mb-2.5 uppercase tracking-wider text-center">
+                6-Digit Security Code
+              </label>
+              <div className="flex items-center justify-center gap-2 sm:gap-3">
+                {digits.map((digit, idx) => (
+                  <input
+                    key={idx}
+                    ref={(el) => { inputRefs.current[idx] = el; }}
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={1}
+                    value={digit}
+                    onChange={(e) => handleDigitChange(idx, e.target.value)}
+                    onKeyDown={(e) => handleKeyDown(idx, e)}
+                    onPaste={handlePaste}
+                    className={`w-11 h-14 sm:w-13 sm:h-16 text-center text-xl sm:text-2xl font-bold font-mono rounded-2xl bg-plaster-surface border ${
+                      digit
+                        ? 'border-eucalyptus bg-white ring-2 ring-eucalyptus/20 text-soot'
+                        : 'border-soot/15 text-soot focus:border-eucalyptus focus:ring-2 focus:ring-eucalyptus'
+                    } shadow-xs transition-all outline-none`}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading || digits.join('').length < 6}
+              className="btn-primary w-full py-3.5 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            >
+              {loading ? (
+                <span>Verifying code...</span>
+              ) : (
+                <>
+                  <span>Verify & Continue</span>
+                  <CheckCircle2 size={16} />
+                </>
+              )}
+            </button>
+          </form>
+
+          {/* Resend & Timer */}
+          <div className="mt-6 text-center text-xs text-moss space-y-2">
+            <div>
+              {!canResend ? (
+                <span className="flex items-center justify-center gap-1.5 font-medium">
+                  <Clock size={13} className="text-moss" />
+                  <span>Resend code in {Math.floor(countdown / 60)}:{countdown % 60 < 10 ? `0${countdown % 60}` : countdown % 60}</span>
+                </span>
+              ) : (
+                <span>
+                  Didn&apos;t receive the code?{' '}
+                  <button
+                    type="button"
+                    onClick={handleResend}
+                    className="text-soot font-bold hover:underline cursor-pointer"
+                  >
+                    Resend Code
+                  </button>
+                </span>
+              )}
+            </div>
+
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={cancelOtp}
+                className="text-moss hover:text-soot underline transition-colors cursor-pointer text-[11px]"
+              >
+                Use a different account or return
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Micro Footer */}
+        <div className="w-full max-w-md mx-auto text-center text-[11px] text-moss">
+          &copy; 2026 Coworking Pass Inc. All rights reserved.
+        </div>
+      </div>
+
+      {/* Right Visual Image */}
+      <AuthVisualBanner
+        quote="Multi-factor authentication guarantees trusted and authenticated identity verification across all spaces in Saudi Arabia."
+        author="Security Operations"
+        role="Coworking Pass Platform"
+        tag="Two-Factor Verified Access"
+      />
+    </div>
+  );
+}
+
 export default function AuthPage() {
   const { nav } = useApp();
   if (nav.screen === 'signup') return <SignUpScreen />;
   if (nav.screen === 'choose-type') return <ChooseAccountType />;
   if (nav.screen === 'forgot-password') return <ForgotPasswordScreen />;
+  if (nav.screen === 'otp-verify') return <OtpVerificationScreen />;
   return <LoginScreen />;
 }

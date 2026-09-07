@@ -21,7 +21,7 @@ import Browse from '@/app/spaces/page';
 import SpaceDetails from '@/app/spaces/[id]/page';
 import Pricing from './Pricing';
 import Contact from './contact';
-import { LoginScreen, SignUpScreen, ChooseAccountType, ForgotPasswordScreen } from '@/app/Auth/page';
+import { LoginScreen, SignUpScreen, ChooseAccountType, ForgotPasswordScreen, OtpVerificationScreen } from '@/app/Auth/page';
 import Notifications from '@/Notifications';
 
 // Individual screens
@@ -476,7 +476,7 @@ export function Router() {
 
     return (
       <div className="min-h-screen flex flex-col bg-plaster">
-        {screen !== 'login' && screen !== 'signup' && screen !== 'choose-type' && screen !== 'forgot-password' && <Navbar />}
+        {screen !== 'login' && screen !== 'signup' && screen !== 'choose-type' && screen !== 'forgot-password' && screen !== 'otp-verify' && <Navbar />}
         <div className="flex-1">
           {screen === 'browse' && <Browse />}
           {screen === 'space-details' && <SpaceDetails />}
@@ -487,8 +487,9 @@ export function Router() {
           {screen === 'signup' && <SignUpScreen />}
           {screen === 'choose-type' && <ChooseAccountType />}
           {screen === 'forgot-password' && <ForgotPasswordScreen />}
+          {screen === 'otp-verify' && <OtpVerificationScreen />}
         </div>
-        {screen !== 'login' && screen !== 'signup' && screen !== 'choose-type' && screen !== 'forgot-password' && <Footer />}
+        {screen !== 'login' && screen !== 'signup' && screen !== 'choose-type' && screen !== 'forgot-password' && screen !== 'otp-verify' && <Footer />}
       </div>
     );
   }
