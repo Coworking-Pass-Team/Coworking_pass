@@ -849,7 +849,10 @@ export default function BookingFlow() {
               </div>
               {earnedPoints > 0 && (
                 <div className="text-[11px] font-medium text-amber-900 bg-amber-500/15 px-3 py-1.5 rounded-xl border border-amber-500/30 flex items-center justify-between">
-                  <span>🎉 You will earn <strong>+{earnedPoints} loyalty points</strong> upon booking completion!</span>
+                  <span className="flex items-center gap-1.5">
+                    <Sparkles size={13} className="text-amber-600 shrink-0 animate-pulse" />
+                    <span>You will earn <strong>+{earnedPoints} loyalty points</strong> upon booking completion!</span>
+                  </span>
                   {multiplier > 1 && (
                     <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-600 text-white px-2 py-0.5 rounded-full ml-2">
                       {multiplier}× Points

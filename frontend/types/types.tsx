@@ -272,6 +272,45 @@ export interface User {
   walletBalance?: number;
 }
 
+export function parseBookingDateTime(startDate?: string, startTime?: string): Date | null {
+  if (!startDate) return null;
+
+  let hours = 8;
+  let minutes = 0;
+
+  if (startTime) {
+    const isPM = /PM/i.test(startTime);
+    const isAM = /AM/i.test(startTime);
+    const cleanTime = startTime.replace(/(AM|PM|\s)/gi, '').trim();
+    const parts = cleanTime.split(':');
+    if (parts.length >= 1) {
+      let h = parseInt(parts[0], 10);
+      if (!isNaN(h)) {
+        if (isPM && h < 12) h += 12;
+        if (isAM && h === 12) h = 0;
+        hours = h;
+      }
+    }
+    if (parts.length >= 2) {
+      const m = parseInt(parts[1], 10);
+      if (!isNaN(m)) minutes = m;
+    }
+  }
+
+  const dateParts = startDate.split('-').map((p) => parseInt(p, 10));
+  if (dateParts.length === 3 && !dateParts.some(isNaN)) {
+    return new Date(dateParts[0], dateParts[1] - 1, dateParts[2], hours, minutes, 0);
+  }
+
+  const d = new Date(startDate);
+  if (!isNaN(d.getTime())) {
+    d.setHours(hours, minutes, 0, 0);
+    return d;
+  }
+
+  return null;
+}
+
 /**
  * Check if a booking is eligible for a full refund upon cancellation.
  * Individual (B2C) members must cancel 6+ hours in advance.
@@ -285,11 +324,11 @@ export function isCancellationRefundEligible(
   const requiredHours = role === 'organization' ? 24 : 6;
   if (!startDate) return { eligible: true, hoursRemaining: 999, requiredHours };
 
-  const bookingTimeStr = startTime ? `${startDate}T${startTime}:00` : `${startDate}T08:00:00`;
-  const bookingTime = new Date(bookingTimeStr).getTime();
-  const now = new Date().getTime();
+  const bookingDate = parseBookingDateTime(startDate, startTime);
+  if (!bookingDate) return { eligible: false, hoursRemaining: 0, requiredHours };
 
-  if (isNaN(bookingTime)) return { eligible: true, hoursRemaining: 999, requiredHours };
+  const bookingTime = bookingDate.getTime();
+  const now = new Date().getTime();
 
   const hoursRemaining = (bookingTime - now) / (1000 * 60 * 60);
   const eligible = hoursRemaining >= requiredHours;

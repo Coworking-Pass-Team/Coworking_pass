@@ -17,7 +17,9 @@ import {
   CreditCard,
   Building2,
   Plus,
-  AlertCircle
+  AlertCircle,
+  Zap,
+  Wallet
 } from 'lucide-react';
 import { useApp } from '@/app/store';
 import { Booking, BookingStatus, Employee, getHourlyPriceForDuration, getBookingPrice, isCancellationRefundEligible } from '@/types/types';
@@ -304,19 +306,26 @@ export default function TeamBookings() {
                   >
                     <Eye size={15} />
                   </button>
-                  {b.status === 'active' && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setCancelModal(b);
-                      }}
-                      className="p-2 rounded-xl text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-all cursor-pointer"
-                      title="Cancel Reservation"
-                    >
-                      <X size={15} />
-                    </button>
-                  )}
+                  {b.status === 'active' && (() => {
+                    const { eligible, requiredHours } = isCancellationRefundEligible(b.startDate, b.startTime, 'organization');
+                    return (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCancelModal(b);
+                        }}
+                        className="p-2 rounded-xl text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-all cursor-pointer"
+                        title={
+                          eligible
+                            ? 'Cancel Reservation (Eligible for Full Refund)'
+                            : `Cancel Reservation (Non-refundable: within ${requiredHours}h of start)`
+                        }
+                      >
+                        <X size={15} />
+                      </button>
+                    );
+                  })()}
                 </div>
               </div>
             ))}
@@ -516,8 +525,9 @@ export default function TeamBookings() {
                           : 'border-soot/12 bg-white text-soot hover:bg-plaster-dark/20'
                       }`}
                     >
-                      <span className="font-semibold text-[11px] flex items-center gap-1">
-                        ⚡ Instant Wallet
+                      <span className="font-semibold text-[11px] flex items-center gap-1.5">
+                        <Zap size={13} className="text-amber-600 shrink-0" />
+                        <span>Instant Wallet</span>
                       </span>
                       <span className="text-[10px] text-moss mt-1">Available immediately</span>
                     </button>
@@ -531,8 +541,9 @@ export default function TeamBookings() {
                           : 'border-soot/12 bg-white text-soot hover:bg-plaster-dark/20'
                       }`}
                     >
-                      <span className="font-semibold text-[11px] flex items-center gap-1">
-                        💳 Original Card
+                      <span className="font-semibold text-[11px] flex items-center gap-1.5">
+                        <CreditCard size={13} className="text-soot shrink-0" />
+                        <span>Original Card</span>
                       </span>
                       <span className="text-[10px] text-moss mt-1">5-14 business days</span>
                     </button>
