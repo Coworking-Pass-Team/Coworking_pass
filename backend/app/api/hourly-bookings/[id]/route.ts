@@ -65,15 +65,48 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params
+
+    // 1. جلب الحجز مع بيانات المستخدم
+    const booking = await prisma.hourlyBooking.findUnique({
+      where: { id },
+      include: { user: true }
+    })
+
+    if (!booking) {
+      return NextResponse.json(
+        { error: 'الحجز غير موجود' },
+        { status: 404 }
+      )
+    }
+
+    // 2. التحقق من سياسة الإلغاء بناءً على دور المستخدم
+    const now = new Date()
+    const bookingTime = new Date(booking.startDate)  // ← الفرق: startDate
+    const hoursDiff = (bookingTime.getTime() - now.getTime()) / (1000 * 60 * 60)
+
+    // 6 ساعات للأفراد، 24 ساعة للمؤسسات
+    const requiredHours = booking.user.role === 'B2C' ? 6 : 24
+
+    if (hoursDiff < requiredHours) {
+      return NextResponse.json(
+        { 
+          error: `لا يمكن الإلغاء. يجب الإلغاء قبل ${requiredHours} ساعة على الأقل من موعد الحجز` 
+        },
+        { status: 400 }
+      )
+    }
+
+    // 3. إلغاء الحجز
     await prisma.hourlyBooking.delete({
       where: { id }
     })
+
     return NextResponse.json(
       { message: 'تم إلغاء الحجز بنجاح' },
       { status: 200 }
     )
   } catch (error) {
-    console.error('❌ Error deleting booking:', error)
+    console.error('❌ Error:', error)
     return NextResponse.json(
       { error: 'حدث خطأ في الإلغاء' },
       { status: 500 }
