@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
 // GET /api/ticket-replies — عرض كل الردود
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const user = getTokenFromRequest(request);
+if (!user) return unauthorizedResponse();
     const replies = await prisma.ticketReply.findMany({
       include: { ticket: true, user: true },
     });
@@ -17,6 +20,8 @@ export async function GET() {
 // POST /api/ticket-replies — إضافة رد على تذكرة
 export async function POST(request: Request) {
   try {
+    const user = getTokenFromRequest(request);
+if (!user) return unauthorizedResponse();
     const { ticketId, userId, message } = await request.json();
 
     if (!ticketId || !userId || !message) {

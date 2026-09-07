@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = getTokenFromRequest(request);
+    if (!user) return unauthorizedResponse();
+
     const { id } = await params
     const subscription = await prisma.subscription.findUnique({
       where: { id },
@@ -37,6 +41,9 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = getTokenFromRequest(request);
+    if (!user) return unauthorizedResponse();
+
     const { id } = await params
     const body = await request.json()
     const subscription = await prisma.subscription.update({
@@ -62,6 +69,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = getTokenFromRequest(request);
+    if (!user) return unauthorizedResponse();
+
     const { id } = await params
 
     // 1. جلب الاشتراك مع بيانات المستخدم
@@ -79,10 +89,9 @@ export async function DELETE(
 
     // 2. التحقق من سياسة الإلغاء بناءً على دور المستخدم
     const now = new Date()
-    const startTime = new Date(subscription.startDate)  // ← الفرق: startDate
+    const startTime = new Date(subscription.startDate)
     const hoursDiff = (startTime.getTime() - now.getTime()) / (1000 * 60 * 60)
 
-    // 6 ساعات للأفراد، 24 ساعة للمؤسسات
     const requiredHours = subscription.user.role === 'B2C' ? 6 : 24
 
     if (hoursDiff < requiredHours) {

@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
 const VALID_TYPES = ["DESK", "MEETING_ROOM", "THEATER"];
 
 // GET /api/workspace-sections — عرض كل الأقسام
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const user = getTokenFromRequest(request);
+if (!user) return unauthorizedResponse();
     const sections = await prisma.workspaceSection.findMany({
       include: { workspace: true },
     });
@@ -19,6 +22,8 @@ export async function GET() {
 // POST /api/workspace-sections — إضافة قسم جديد لمساحة عمل
 export async function POST(request: Request) {
   try {
+    const user = getTokenFromRequest(request);
+if (!user) return unauthorizedResponse();
     const { workspaceId, type, name, capacity, dailyRate, monthlyRate, yearlyRate } =
       await request.json();
 

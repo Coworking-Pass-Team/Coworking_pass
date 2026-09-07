@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
 // GET: جلب جميع طلبات الانتظار
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const user = getTokenFromRequest(request);
+if (!user) return unauthorizedResponse();
     const waitlist = await prisma.directBooking.findMany({
       where: { status: 'WAITLISTED' },
       include: {
@@ -25,6 +28,8 @@ export async function GET() {
 // POST: إضافة مستخدم لقائمة الانتظار
 export async function POST(request: NextRequest) {
   try {
+    const user = getTokenFromRequest(request);
+if (!user) return unauthorizedResponse();
     const body = await request.json()
     const { userId, workspaceId, sectionId, durationType, bookingDate } = body
 
