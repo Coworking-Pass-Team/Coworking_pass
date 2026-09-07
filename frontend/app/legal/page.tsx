@@ -14,7 +14,9 @@ import {
   AlertCircle,
   Building2,
   Clock,
-  ArrowRight
+  ArrowRight,
+  Zap,
+  Wallet
 } from 'lucide-react';
 import { useApp } from '@/app/store';
 
@@ -147,9 +149,15 @@ export default function LegalPage() {
                 <RefreshCw size={14} className="text-emerald-700" />
                 <span>Refund Destination Options</span>
               </h4>
-              <ul className="list-disc list-inside space-y-1 text-emerald-900 text-[11px] pl-1">
-                <li><strong>⚡ Instant Wallet Refund:</strong> Funds deposited immediately to your account wallet for instant rebooking.</li>
-                <li><strong>💳 Original Bank Card Refund:</strong> Processed to Mada / Visa / Mastercard within <strong>5 to 14 business days</strong>.</li>
+              <ul className="space-y-1.5 text-emerald-900 text-[11px]">
+                <li className="flex items-center gap-1.5">
+                  <Zap size={12} className="text-amber-600 shrink-0" />
+                  <span><strong>Instant Wallet Refund:</strong> Funds deposited immediately to your account wallet for instant rebooking.</span>
+                </li>
+                <li className="flex items-center gap-1.5">
+                  <CreditCard size={12} className="text-emerald-800 shrink-0" />
+                  <span><strong>Original Bank Card Refund:</strong> Processed to Mada / Visa / Mastercard within <strong>5 to 14 business days</strong>.</span>
+                </li>
               </ul>
             </div>
           </div>
