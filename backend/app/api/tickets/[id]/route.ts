@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
 const VALID_STATUSES = ["OPEN", "IN_PROGRESS", "CLOSED"];
 
@@ -9,6 +10,8 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = getTokenFromRequest(request);
+if (!user) return unauthorizedResponse();
     const { id } = await params;
     const data = await request.json();
 
@@ -40,6 +43,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = getTokenFromRequest(request);
+if (!user) return unauthorizedResponse();
     const { id } = await params;
     await prisma.ticket.delete({ where: { id } });
     return NextResponse.json({ message: "تم حذف التذكرة بنجاح" });

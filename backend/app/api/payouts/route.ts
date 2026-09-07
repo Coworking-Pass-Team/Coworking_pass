@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const user = getTokenFromRequest(request);
+if (!user) return unauthorizedResponse();
     const payouts = await prisma.payout.findMany({
       include: {
         partner: true
@@ -21,6 +24,8 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const user = getTokenFromRequest(request);
+if (!user) return unauthorizedResponse();
     const body = await request.json()
     const { partnerId, billingMonth, totalVisitsReceived, amountDue, status = 'PENDING' } = body
 

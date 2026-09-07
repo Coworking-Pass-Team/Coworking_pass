@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
 // GET: جلب خطة معينة
 export async function GET(
@@ -7,6 +8,8 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }  
 ) {
   try {
+    const user = getTokenFromRequest(request);
+if (!user) return unauthorizedResponse();
     const { id } = await params  
 
     const plan = await prisma.membershipPlan.findUnique({
@@ -36,6 +39,8 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }  
 ) {
   try {
+    const user = getTokenFromRequest(request);
+if (!user) return unauthorizedResponse();
     const { id } = await params  
     const body = await request.json()
 

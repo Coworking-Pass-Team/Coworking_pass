@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
 // GET /api/tickets — عرض كل التذاكر
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const user = getTokenFromRequest(request);
+if (!user) return unauthorizedResponse();
     const tickets = await prisma.ticket.findMany({
       include: { company: true, user: true, replies: true },
     });
@@ -17,6 +20,8 @@ export async function GET() {
 // POST /api/tickets — إنشاء تذكرة جديدة
 export async function POST(request: Request) {
   try {
+    const user = getTokenFromRequest(request);
+if (!user) return unauthorizedResponse();
     const { companyId, userId, subject } = await request.json();
 
     if (!companyId || !userId || !subject) {

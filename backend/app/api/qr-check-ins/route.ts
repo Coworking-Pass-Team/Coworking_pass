@@ -1,13 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import crypto from 'crypto'
+import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
+
 
 function generateQRHash() {
   return crypto.randomBytes(16).toString('hex')
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const user = getTokenFromRequest(request);
+if (!user) return unauthorizedResponse();
     const checkIns = await prisma.qrCheckIn.findMany({
       include: {
         user: { select: { name: true, email: true } },
@@ -28,6 +32,8 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const user = getTokenFromRequest(request);
+if (!user) return unauthorizedResponse();
     const body = await request.json()
     const { userId, workspaceId, sectionId, status = 'VALID' } = body
 
