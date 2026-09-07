@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // 1. إنشاء سجل QR Check-in
     const checkIn = await prisma.qrCheckIn.create({
       data: {
         userId,
@@ -53,6 +54,52 @@ export async function POST(request: NextRequest) {
         section: true
       }
     })
+
+    // ✅ 2. منح نقاط ولاء عند مسح QR
+    try {
+      // البحث عن حجز نشط للمستخدم في هذا القسم
+      const activeBooking = await prisma.directBooking.findFirst({
+        where: {
+          userId: userId,
+          sectionId: sectionId,
+          status: 'CONFIRMED',
+          bookingDate: { lte: new Date() }
+        }
+      })
+
+      // إذا كان هناك حجز نشط، نمنح نقاط
+      if (activeBooking) {
+        const pointsToEarn = 10 // 10 نقاط لكل حجز
+
+        await prisma.pointsTransaction.create({
+          data: {
+            userId: userId,
+            type: 'EARNED',
+            points: pointsToEarn,
+            description: `نقاط من حجز ${activeBooking.durationType} في ${activeBooking.workspaceId}`,
+            referenceId: activeBooking.id
+          }
+        })
+
+        // تحديث رصيد النقاط
+        const loyaltyPoints = await prisma.loyaltyPoint.findUnique({
+          where: { userId }
+        })
+
+        if (loyaltyPoints) {
+          await prisma.loyaltyPoint.update({
+            where: { userId },
+            data: {
+              totalEarned: { increment: pointsToEarn },
+              availableBalance: { increment: pointsToEarn }
+            }
+          })
+        }
+      }
+    } catch (pointsError) {
+      // نطبع الخطأ بس ما نوقف الـ API
+      console.error('❌ Error earning loyalty points:', pointsError)
+    }
 
     return NextResponse.json(checkIn, { status: 201 })
   } catch (error) {
