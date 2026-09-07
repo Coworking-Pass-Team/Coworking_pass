@@ -225,10 +225,15 @@ export default function MyBookings() {
                 {/* Plan & Seats */}
                 <div className="col-span-2 mt-2 lg:mt-0 text-xs font-semibold text-soot capitalize">
                   {b.plan === 'hourly'
-                    ? `${b.durationHours || 1}h Hourly`
+                    ? `Hourly (${b.durationHours || 1} ${b.durationHours === 1 ? 'hr' : 'hrs'})`
                     : b.plan === 'monthly'
                     ? `${b.durationMonths || 1}mo Monthly`
                     : `${b.plan} pass`}
+                  {b.plan === 'hourly' && (b.startTime || b.endTime) && (
+                    <span className="block text-[10px] font-medium text-moss normal-case">
+                      {b.startTime} – {b.endTime}
+                    </span>
+                  )}
                   <span className="block text-[11px] font-normal text-moss">
                     {b.seats} seat{b.seats > 1 ? 's' : ''}
                   </span>
@@ -328,23 +333,23 @@ export default function MyBookings() {
                   <span className="text-moss block mb-1">Plan / Duration</span>
                   <span className="font-semibold text-soot text-xs capitalize">
                     {selectedBooking.plan === 'hourly'
-                      ? `${selectedBooking.durationHours || 1}h Hourly`
+                      ? `Hourly (${selectedBooking.durationHours || 1} ${selectedBooking.durationHours === 1 ? 'Hour' : 'Hours'})`
                       : selectedBooking.plan === 'monthly'
                       ? `${selectedBooking.durationMonths || 1} Months`
                       : `${selectedBooking.plan} Pass`}
                   </span>
                 </div>
                 <div className="p-3 bg-white/60 rounded-xl border border-soot/8">
-                  <span className="text-moss block mb-1">Start Date</span>
+                  <span className="text-moss block mb-1">Date</span>
                   <span className="font-semibold text-soot text-xs">{selectedBooking.startDate}</span>
                 </div>
                 <div className="p-3 bg-white/60 rounded-xl border border-soot/8">
                   <span className="text-moss block mb-1">
-                    {selectedBooking.startTime ? 'Time Window' : 'End Date'}
+                    {selectedBooking.plan === 'hourly' ? 'Time Window' : 'End Date'}
                   </span>
                   <span className="font-semibold text-soot text-xs">
-                    {selectedBooking.startTime
-                      ? `${selectedBooking.startTime} – ${selectedBooking.endTime}`
+                    {selectedBooking.plan === 'hourly'
+                      ? `${selectedBooking.startTime || '09:00 AM'} – ${selectedBooking.endTime || '05:00 PM'}`
                       : selectedBooking.endDate}
                   </span>
                 </div>

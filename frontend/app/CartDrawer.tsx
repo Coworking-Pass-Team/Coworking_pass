@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
-import { ShoppingBag, X, Trash2, Plus, Minus, CreditCard, MapPin } from 'lucide-react';
+import { ShoppingBag, X, Trash2, Plus, Minus, CreditCard, MapPin, Clock } from 'lucide-react';
 import { useApp } from '@/app/store';
+import { formatHourlyTimeRange } from '@/types/types';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -125,14 +126,24 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                   <div>
                     <span className="text-moss block">Pass Plan</span>
                     <span className="font-semibold text-soot capitalize">
-                      {item.plan === 'hourly' ? `${item.durationHours || 1}h Hourly` : `${item.plan} pass`}
+                      {item.plan === 'hourly' ? `Hourly (${item.durationHours || 1} hrs)` : `${item.plan} pass`}
                     </span>
                   </div>
                   <div>
-                    <span className="text-moss block">Booking Dates</span>
+                    <span className="text-moss block">{item.plan === 'hourly' ? 'Date & Time' : 'Booking Dates'}</span>
                     <span className="font-semibold text-soot truncate block">
-                      {item.startDate} {item.endDate && item.endDate !== item.startDate ? `→ ${item.endDate}` : ''}
+                      {item.startDate}
                     </span>
+                    {item.plan === 'hourly' && (
+                      <span className="text-[10px] text-moss block font-medium">
+                        {formatHourlyTimeRange(item.startTime, item.endTime, item.durationHours)}
+                      </span>
+                    )}
+                    {item.plan !== 'hourly' && item.endDate && item.endDate !== item.startDate && (
+                      <span className="text-[10px] text-moss block">
+                        → {item.endDate}
+                      </span>
+                    )}
                   </div>
                 </div>
 

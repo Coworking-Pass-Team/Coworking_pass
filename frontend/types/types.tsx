@@ -342,6 +342,119 @@ export function getMonthlyPriceForDuration(space: Space, durationMonths: number 
 }
 
 /**
+ * Standard Available Time Slots for Hourly Bookings (7:00 AM – 11:00 PM)
+ */
+export const START_TIMES = [
+  '07:00 AM',
+  '08:00 AM',
+  '09:00 AM',
+  '10:00 AM',
+  '11:00 AM',
+  '12:00 PM',
+  '01:00 PM',
+  '02:00 PM',
+  '03:00 PM',
+  '04:00 PM',
+  '05:00 PM',
+  '06:00 PM',
+  '07:00 PM',
+  '08:00 PM',
+  '09:00 PM',
+  '10:00 PM',
+];
+
+export const END_TIMES = [
+  '08:00 AM',
+  '09:00 AM',
+  '10:00 AM',
+  '11:00 AM',
+  '12:00 PM',
+  '01:00 PM',
+  '02:00 PM',
+  '03:00 PM',
+  '04:00 PM',
+  '05:00 PM',
+  '06:00 PM',
+  '07:00 PM',
+  '08:00 PM',
+  '09:00 PM',
+  '10:00 PM',
+  '11:00 PM',
+];
+
+/**
+ * Converts a time string (e.g. "09:00 AM", "9:00 AM", "14:30") to minutes from midnight.
+ */
+export function timeStringToMinutes(timeStr: string): number {
+  if (!timeStr) return 0;
+  const cleanStr = timeStr.trim().toUpperCase();
+  const isPM = cleanStr.includes('PM');
+  const isAM = cleanStr.includes('AM');
+  const timeOnly = cleanStr.replace(/[^\d:]/g, '');
+  const parts = timeOnly.split(':');
+  let h = parseInt(parts[0], 10) || 0;
+  const m = parts.length > 1 ? parseInt(parts[1], 10) || 0 : 0;
+  if (isPM && h < 12) h += 12;
+  if (isAM && h === 12) h = 0;
+  return h * 60 + m;
+}
+
+/**
+ * Calculates the exact duration in hours from start time and end time strings.
+ * Example: Start 9:00 AM, End 5:00 PM -> returns 8.
+ */
+export function calculateDurationHours(startTimeStr: string, endTimeStr: string): number {
+  if (!startTimeStr || !endTimeStr) return 1;
+  const startMin = timeStringToMinutes(startTimeStr);
+  const endMin = timeStringToMinutes(endTimeStr);
+  if (endMin <= startMin) return 1;
+  const diffHours = (endMin - startMin) / 60;
+  return Math.max(1, Math.round(diffHours * 10) / 10);
+}
+
+/**
+ * Returns available end times that are strictly after the selected start time.
+ */
+export function getAvailableEndTimes(startTimeStr: string): string[] {
+  const startMin = timeStringToMinutes(startTimeStr || '09:00 AM');
+  const filtered = END_TIMES.filter((t) => timeStringToMinutes(t) > startMin);
+  return filtered.length > 0 ? filtered : [END_TIMES[END_TIMES.length - 1]];
+}
+
+/**
+ * Formats an hourly time range consistently across all views (e.g., "9:00 AM – 5:00 PM (8 hours)").
+ */
+export function formatHourlyTimeRange(startTime?: string, endTime?: string, durationHours?: number): string {
+  const start = startTime || '09:00 AM';
+  const end = endTime || calculateEndTime(start, durationHours || 1);
+  const duration = durationHours || calculateDurationHours(start, end);
+  return `${start} – ${end} (${duration} ${duration === 1 ? 'hour' : 'hours'})`;
+}
+
+/**
+ * Formats a booking duration string for cards, modals, and tables.
+ */
+export function formatBookingTimeDisplay(booking: {
+  plan?: BookingPlan | string;
+  startTime?: string;
+  endTime?: string;
+  durationHours?: number;
+  durationMonths?: number;
+}): string {
+  if (booking.plan === 'hourly') {
+    return formatHourlyTimeRange(booking.startTime, booking.endTime, booking.durationHours);
+  }
+  if (booking.plan === 'monthly') {
+    const m = booking.durationMonths || 1;
+    return `${m} ${m === 1 ? 'Month' : 'Months'}`;
+  }
+  if (booking.plan === 'yearly') {
+    return '1 Year';
+  }
+  return '1 Day';
+}
+
+/**
  * Automatically calculate the end time string (e.g. "12:00 PM") given a start time and duration hours.
  */
 export function calculateEndTime(startTimeStr: string, durationHours: number = 1): string {
@@ -373,23 +486,6 @@ export function calculateEndTime(startTimeStr: string, durationHours: number = 1
   const displayMinutes = String(endMinutes).padStart(2, '0');
 
   return `${String(displayHours).padStart(2, '0')}:${displayMinutes} ${period}`;
-}
-
-/**
- * Converts a time string (e.g. "09:00 AM", "14:30") to minutes from midnight.
- */
-export function timeStringToMinutes(timeStr: string): number {
-  if (!timeStr) return 0;
-  const cleanStr = timeStr.trim().toUpperCase();
-  const isPM = cleanStr.includes('PM');
-  const isAM = cleanStr.includes('AM');
-  const timeOnly = cleanStr.replace(/[^\d:]/g, '');
-  const parts = timeOnly.split(':');
-  let h = parseInt(parts[0], 10) || 0;
-  const m = parts.length > 1 ? parseInt(parts[1], 10) || 0 : 0;
-  if (isPM && h < 12) h += 12;
-  if (isAM && h === 12) h = 0;
-  return h * 60 + m;
 }
 
 /**
