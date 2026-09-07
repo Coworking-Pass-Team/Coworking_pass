@@ -112,10 +112,10 @@ export default function SpaceDetails() {
   };
 
   const availabilityInfo = isFullyBooked
-    ? { label: 'Fully Booked', color: 'text-red-700 bg-red-500/10 border-red-500/20' }
+    ? { label: 'Fully Booked', color: 'text-rose-800 bg-rose-100/90 border-rose-200/90 backdrop-blur-md font-semibold' }
     : space.availableCapacity <= 5
-    ? { label: `${space.availableCapacity} spots left`, color: 'text-amber-800 bg-amber-500/15 border-amber-500/25' }
-    : { label: `${space.availableCapacity} spots available`, color: 'text-soot bg-eucalyptus/25 border-eucalyptus/30' };
+    ? { label: space.availableCapacity <= 3 ? `Only ${space.availableCapacity} spots left!` : 'Almost Full', color: 'text-amber-900 bg-amber-100/90 border-amber-200/90 backdrop-blur-md font-semibold' }
+    : { label: `${space.availableCapacity} spots available`, color: 'text-emerald-900 bg-emerald-100/90 border-emerald-200/90 backdrop-blur-md font-semibold' };
 
   const currentPlanInfo = getEffectiveSpacePrice(currentUser, space, selectedPlan, undefined, durationHours, durationMonths);
   const planPrice = currentPlanInfo.effectivePrice;

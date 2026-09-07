@@ -327,7 +327,7 @@ export default function Landing() {
                   <span className="text-moss font-normal text-xs">({space.reviewCount} reviews)</span>
                 </div>
                 <Badge variant={space.availableCapacity === 0 ? 'danger' : space.availableCapacity <= 5 ? 'warning' : 'eucalyptus'}>
-                  {space.availableCapacity === 0 ? 'Fully Booked' : space.availableCapacity <= 5 ? 'Limited Seats' : 'Available'}
+                  {space.availableCapacity === 0 ? 'Fully Booked' : space.availableCapacity <= 5 ? 'Almost Full' : 'Available'}
                 </Badge>
               </div>
             </div>

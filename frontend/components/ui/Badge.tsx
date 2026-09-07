@@ -12,13 +12,13 @@ export const Badge: React.FC<BadgeProps> = ({
   className = '',
 }) => {
   const styles = {
-    eucalyptus: 'bg-eucalyptus/20 text-soot border-eucalyptus/30 font-semibold',
-    soot: 'bg-[#DDE6DF] text-soot border border-soot/6 font-semibold',
-    mist: 'bg-mist-light text-soot border-mist font-medium',
-    success: 'bg-emerald-50 text-emerald-800 border-emerald-300 font-semibold',
-    warning: 'bg-amber-50 text-amber-900 border-amber-300 font-semibold',
-    danger: 'bg-[#DDE6DF] text-soot border border-soot/6 font-semibold',
-    info: 'bg-mist/30 text-soot border-mist font-semibold',
+    eucalyptus: 'bg-emerald-100/90 text-emerald-900 border-emerald-200/90 backdrop-blur-md font-semibold shadow-2xs',
+    soot: 'bg-soot/10 text-soot border-soot/20 backdrop-blur-md font-semibold shadow-2xs',
+    mist: 'bg-mist-light/90 text-soot border-mist/50 backdrop-blur-md font-medium',
+    success: 'bg-emerald-100/90 text-emerald-900 border-emerald-200/90 backdrop-blur-md font-semibold shadow-2xs',
+    warning: 'bg-amber-100/90 text-amber-900 border-amber-200/90 backdrop-blur-md font-semibold shadow-2xs',
+    danger: 'bg-rose-100/90 text-rose-800 border-rose-200/90 backdrop-blur-md font-semibold shadow-2xs',
+    info: 'bg-sky-100/90 text-sky-900 border-sky-200/90 backdrop-blur-md font-semibold shadow-2xs',
   };
 
   return (
