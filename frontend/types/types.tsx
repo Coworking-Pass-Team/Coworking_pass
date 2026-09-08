@@ -1025,4 +1025,32 @@ export interface WorkspaceApi {
   partner?: Partner;
   sections?: any[];
 }
+export interface HourlyBookingApi {
+  id: string;
+  userId: string;
+  sectionId: string;
+  packageId: string;
+  startDate: string;
+  endDate: string;
+  hoursUsed: number;
+  status: string;
+  createdAt?: string;
+  updatedAt?: string;
+  user?: { name: string; email: string };
+  section?: any;
+  package?: any;
+}
+
+export interface PayoutApi {
+  id: string;
+  partnerId: string;
+  billingMonth: string;
+  totalVisitsReceived: number;
+  amountDue: number;
+  status: string;
+  paidAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  partner?: Partner;
+}
 
