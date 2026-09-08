@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, Space, Booking, Screen, NavState, UserRole, BookingType, PaymentCard, Notification, CartItem, AmenityRequest, AmenityRequestStatus, calculateEndDate, isCancellationRefundEligible, getBookingPrice, OtpSession, SupportTicket, TicketStatus } from '@/types/types';
 import { INITIAL_SPACES, INITIAL_USERS, INITIAL_BOOKINGS, INITIAL_NOTIFICATIONS, INITIAL_SUPPORT_TICKETS } from '@/data/data';
+import { registerUserApi, verifyEmailApi, loginUserApi, verifyLoginApi, mapRoleToFrontend } from '@/services/authApi';
 
 interface AppContextType {
   // Navigation
@@ -19,14 +20,14 @@ interface AppContextType {
   // Auth & 2FA OTP
   currentUser: User | null;
   otpSession: OtpSession | null;
-  login: (email: string, password: string) => { success: boolean; error?: string; requireOtp?: boolean };
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string; requireOtp?: boolean }>;
   signup: (name: string, email: string, password: string, phone: string) => User;
-  requestSignupOtp: (newUser: User, role: UserRole, extraData?: Partial<User>) => void;
+  requestSignupOtp: (newUser: User, role: UserRole, extraData?: Partial<User>) => Promise<{ success: boolean; error?: string; message?: string }>;
   requestForgotPasswordOtp: (email: string) => { success: boolean; error?: string };
   resetPassword: (newPassword: string) => { success: boolean; error?: string };
   completeSignup: (role: UserRole, extraData?: Partial<User>) => void;
-  verifyOtp: (code: string) => { success: boolean; error?: string };
-  resendOtp: () => void;
+  verifyOtp: (code: string) => Promise<{ success: boolean; error?: string }>;
+  resendOtp: () => Promise<void>;
   cancelOtp: () => void;
   startOtpVerification: (session: OtpSession) => void;
   logout: () => void;
@@ -318,13 +319,50 @@ export function AppProvider({ children }: { children: ReactNode }) {
     navigate('otp-verify');
   };
 
-  const login = (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string; requireOtp?: boolean }> => {
+    // 1. Attempt login with backend API: POST http://localhost:3000/api/auth/login
+    const apiRes = await loginUserApi({ email, password });
+    if (apiRes.success && apiRes.userId) {
+      let user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+      if (!user) {
+        user = {
+          id: apiRes.userId,
+          name: email.split('@')[0],
+          email,
+          password,
+          role: 'individual',
+          phone: '',
+          avatar: '',
+          isBlocked: false,
+          joinDate: new Date().toISOString().split('T')[0],
+          loyaltyPoints: 0,
+        };
+      }
+      const session: OtpSession = {
+        user,
+        targetEmailOrPhone: email,
+        mode: 'login',
+        role: user.role,
+        userId: apiRes.userId,
+        backendSynced: true,
+      };
+      setOtpSession(session);
+      navigate('otp-verify');
+      showToast(apiRes.message || `Verification code sent to ${email}`, 'info');
+      return { success: true, requireOtp: true };
+    }
+
+    // 2. Fallback to local stored user / mock authentication
     let user = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
     if (!user) {
       user = INITIAL_USERS.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
     }
-    if (!user) return { success: false, error: 'Invalid email or password. Please try again.' };
-    if (user.isBlocked) return { success: false, error: 'Your account has been suspended. Please contact support.' };
+    if (!user) {
+      return { success: false, error: apiRes.error || 'Invalid email or password. Please try again.' };
+    }
+    if (user.isBlocked) {
+      return { success: false, error: 'Your account has been suspended. Please contact support.' };
+    }
 
     const session: OtpSession = {
       user,
@@ -364,17 +402,33 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return newUser;
   };
 
-  const requestSignupOtp = (newUser: User, role: UserRole, extraData?: Partial<User>) => {
+  const requestSignupOtp = async (newUser: User, role: UserRole, extraData?: Partial<User>): Promise<{ success: boolean; error?: string; message?: string }> => {
+    // 1. Call Backend API: POST http://localhost:3000/api/auth/register
+    const apiRes = await registerUserApi({
+      name: newUser.name,
+      email: newUser.email,
+      password: newUser.password,
+      role: role || newUser.role || 'individual',
+    });
+
+    if (!apiRes.success && apiRes.error && !apiRes.error.includes('Network connection issue')) {
+      showToast(apiRes.error, 'error');
+      return { success: false, error: apiRes.error };
+    }
+
     const session: OtpSession = {
       user: newUser,
       targetEmailOrPhone: newUser.email || newUser.phone,
       mode: 'signup',
       role,
       extraData,
+      userId: apiRes.userId,
+      backendSynced: Boolean(apiRes.userId),
     };
     setOtpSession(session);
     navigate('otp-verify');
-    showToast(`Verification code sent to ${newUser.email || newUser.phone}`, 'info');
+    showToast(apiRes.message || `Verification code sent to ${newUser.email || newUser.phone}`, 'info');
+    return { success: true, message: apiRes.message };
   };
 
   const requestForgotPasswordOtp = (email: string) => {
@@ -402,7 +456,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return { success: true };
   };
 
-  const verifyOtp = (code: string) => {
+  const verifyOtp = async (code: string): Promise<{ success: boolean; error?: string }> => {
     if (!otpSession) {
       return { success: false, error: 'No active verification session. Please sign in again.' };
     }
@@ -412,7 +466,35 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
 
     if (otpSession.mode === 'login') {
-      const user = otpSession.user;
+      let user = otpSession.user;
+      if (otpSession.userId) {
+        // Backend Login OTP Verification: POST http://localhost:3000/api/auth/verify-login
+        const apiRes = await verifyLoginApi({ userId: otpSession.userId, code: cleanCode });
+        if (!apiRes.success) {
+          return { success: false, error: apiRes.error || 'Invalid verification code. Please try again.' };
+        }
+        if (apiRes.token && typeof window !== 'undefined') {
+          localStorage.setItem('cp_token', apiRes.token);
+        }
+        if (apiRes.user) {
+          const userRole = mapRoleToFrontend(apiRes.user.role);
+          user = {
+            ...user,
+            id: apiRes.user.id || user.id,
+            name: apiRes.user.name || user.name,
+            email: apiRes.user.email || user.email,
+            role: userRole,
+          };
+          const updatedUsers = users.some(u => u.id === user.id || u.email.toLowerCase() === user.email.toLowerCase())
+            ? users.map(u => (u.id === user.id || u.email.toLowerCase() === user.email.toLowerCase()) ? user : u)
+            : [...users, user];
+          setUsers(updatedUsers);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('cp_users', JSON.stringify(updatedUsers));
+          }
+        }
+      }
+
       setCurrentUser(user);
       if (typeof window !== 'undefined') {
         localStorage.setItem('cp_currentUser', JSON.stringify(user));
@@ -436,14 +518,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
 
     // signup mode
+    if (otpSession.userId) {
+      // Backend Email OTP Verification: POST http://localhost:3000/api/auth/verify-email
+      const apiRes = await verifyEmailApi({ userId: otpSession.userId, code: cleanCode });
+      if (!apiRes.success) {
+        return { success: false, error: apiRes.error || 'Invalid verification code. Please try again.' };
+      }
+    }
+
     const updated: User = {
       ...otpSession.user,
+      id: otpSession.userId || otpSession.user.id,
       role: otpSession.role || 'individual',
       avatar: otpSession.user.avatar || '',
       ...(otpSession.extraData || {}),
     };
-    const updatedUsers = users.some(u => u.id === updated.id)
-      ? users.map(u => u.id === updated.id ? updated : u)
+    const updatedUsers = users.some(u => u.id === updated.id || u.email.toLowerCase() === updated.email.toLowerCase())
+      ? users.map(u => (u.id === updated.id || u.email.toLowerCase() === updated.email.toLowerCase()) ? updated : u)
       : [...users, updated];
     setUsers(updatedUsers);
     setCurrentUser(updated);
@@ -458,6 +549,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
     else navigate('ind-dashboard');
     showToast(`Account verified! Welcome to Coworking Pass, ${updated.name}!`, 'success');
     return { success: true };
+  };
+
+  const resendOtp = async () => {
+    if (!otpSession) return;
+    if (otpSession.mode === 'signup' && otpSession.user) {
+      const apiRes = await registerUserApi({
+        name: otpSession.user.name,
+        email: otpSession.user.email,
+        password: otpSession.user.password,
+        role: otpSession.role || otpSession.user.role || 'individual',
+      });
+      if (apiRes.userId) {
+        setOtpSession(prev => prev ? { ...prev, userId: apiRes.userId } : null);
+      }
+    } else if (otpSession.mode === 'login' && otpSession.user) {
+      const apiRes = await loginUserApi({
+        email: otpSession.user.email,
+        password: otpSession.user.password,
+      });
+      if (apiRes.userId) {
+        setOtpSession(prev => prev ? { ...prev, userId: apiRes.userId } : null);
+      }
+    }
+    showToast(`New verification code sent to ${otpSession.targetEmailOrPhone}`, 'info');
   };
 
   const resetPassword = (newPassword: string) => {
@@ -483,11 +598,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     navigate('login');
     showToast('Password updated successfully! Please sign in with your new password.', 'success');
     return { success: true };
-  };
-
-  const resendOtp = () => {
-    if (!otpSession) return;
-    showToast(`New verification code sent to ${otpSession.targetEmailOrPhone}`, 'info');
   };
 
   const cancelOtp = () => {
