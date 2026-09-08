@@ -45,7 +45,7 @@ interface AppContextType {
   navigate: (screen: Screen, params?: Record<string, any>) => void;
   goBack: () => void;
 
-  // Partners / Providers (GET, POST, PUT http://localhost:3000/api/partners)
+  // Partners / Providers (GET, POST, PUT http://localhost:3001/api/partners)
   partners: Partner[];
   fetchPartners: () => Promise<Partner[]>;
   createPartner: (partnerData: {
@@ -507,7 +507,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string; requireOtp?: boolean }> => {
-    // 1. Attempt login with backend API: POST http://localhost:3000/api/auth/login
+    // 1. Attempt login with backend API: POST http://localhost:3001/api/auth/login
     const apiRes = await loginUserApi({ email, password });
     if (apiRes.success && apiRes.userId) {
       let user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
@@ -590,7 +590,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const requestSignupOtp = async (newUser: User, role: UserRole, extraData?: Partial<User>): Promise<{ success: boolean; error?: string; message?: string }> => {
-    // 1. Call Backend API: POST http://localhost:3000/api/auth/register
+    // 1. Call Backend API: POST http://localhost:3001/api/auth/register
     const apiRes = await registerUserApi({
       name: newUser.name,
       email: newUser.email,
@@ -655,7 +655,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (otpSession.mode === 'login') {
       let user = otpSession.user;
       if (otpSession.userId) {
-        // Backend Login OTP Verification: POST http://localhost:3000/api/auth/verify-login
+        // Backend Login OTP Verification: POST http://localhost:3001/api/auth/verify-login
         const apiRes = await verifyLoginApi({ userId: otpSession.userId, code: cleanCode });
         if (!apiRes.success) {
           return { success: false, error: apiRes.error || 'Invalid verification code. Please try again.' };
@@ -706,7 +706,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     // signup mode
     if (otpSession.userId) {
-      // Backend Email OTP Verification: POST http://localhost:3000/api/auth/verify-email
+      // Backend Email OTP Verification: POST http://localhost:3001/api/auth/verify-email
       const apiRes = await verifyEmailApi({ userId: otpSession.userId, code: cleanCode });
       if (!apiRes.success) {
         return { success: false, error: apiRes.error || 'Invalid verification code. Please try again.' };
