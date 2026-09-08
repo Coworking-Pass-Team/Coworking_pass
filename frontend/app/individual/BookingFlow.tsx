@@ -19,6 +19,7 @@ import {
   ShoppingBag
 } from 'lucide-react';
 import { useApp } from '@/app/store';
+import { createDirectBookingApi, createPaymentApi } from '@/services/authApi';
 import {
   BookingPlan,
   BookingType,
@@ -268,6 +269,32 @@ export default function BookingFlow() {
         status: 'active',
         notes,
       });
+
+      // Synchronize direct booking (daily, monthly, yearly) with backend API
+      if (plan !== 'hourly') {
+        const durationType = plan === 'monthly' ? 'MONTHLY' : plan === 'yearly' ? 'YEARLY' : 'DAILY';
+        createDirectBookingApi({
+          userId: currentUser.id,
+          workspaceId: space.id,
+          sectionId: (space as any).sectionId || `sec-${space.id}`,
+          durationType,
+          bookingDate: new Date(startDate).toISOString(),
+          status: 'CONFIRMED',
+        }).catch((err) => console.warn('[Direct Booking API Sync]', err));
+      }
+
+      // Record payment transaction
+      if (totalPrice > 0) {
+        createPaymentApi({
+          userId: currentUser.id,
+          amount: totalPrice,
+          method: 'MADA',
+          paymentFor: isHourly ? 'HOURLY_BOOKING' : 'DIRECT_BOOKING',
+          referenceId: booking.id,
+          status: 'SUCCESS',
+        }).catch((err) => console.warn('[Payment Record Sync]', err));
+      }
+
       setConfirmedBooking(booking);
       setStep(3);
       setLoading(false);
