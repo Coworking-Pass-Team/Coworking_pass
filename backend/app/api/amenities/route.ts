@@ -15,6 +15,36 @@ if (!user) return unauthorizedResponse();
   }
 }
 
+
+/**
+ * @swagger
+ * /api/amenities:
+ *   post:
+ *     summary: اقتراح مرفق جديد
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name]
+ *             properties:
+ *               name:
+ *                 type: string
+ *               icon:
+ *                 type: string
+ *               isDefault:
+ *                 type: boolean
+ *                 description: true = يوافق تلقائياً، false = يحتاج موافقة
+ *               requestedBy:
+ *                 type: string
+ *                 description: مطلوب فقط لو isDefault = false
+ *     responses:
+ *       201:
+ *         description: تم إضافة المرفق بنجاح
+ */
 // POST /api/amenities — اقتراح مرفق جديد
 export async function POST(request: Request) {
   try {

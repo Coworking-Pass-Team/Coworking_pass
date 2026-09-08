@@ -19,6 +19,41 @@ if (!user) return unauthorizedResponse();
   }
 }
 
+
+/**
+ * @swagger
+ * /api/workspace-sections:
+ *   post:
+ *     summary: إضافة قسم جديد لمساحة عمل
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [workspaceId, type, name, capacity]
+ *             properties:
+ *               workspaceId:
+ *                 type: string
+ *               type:
+ *                 type: string
+ *                 enum: [DESK, MEETING_ROOM, THEATER]
+ *               name:
+ *                 type: string
+ *               capacity:
+ *                 type: integer
+ *               dailyRate:
+ *                 type: number
+ *               monthlyRate:
+ *                 type: number
+ *               yearlyRate:
+ *                 type: number
+ *     responses:
+ *       201:
+ *         description: تم إنشاء القسم بنجاح
+ */
 // POST /api/workspace-sections — إضافة قسم جديد لمساحة عمل
 export async function POST(request: Request) {
   try {

@@ -23,6 +23,37 @@ if (!user) return unauthorizedResponse();
   }
 }
 
+/**
+ * @swagger
+ * /api/notifications:
+ *   post:
+ *     summary: إنشاء إشعار
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [userId, type, title, message, channel]
+ *             properties:
+ *               userId:
+ *                 type: string
+ *               type:
+ *                 type: string
+ *               title:
+ *                 type: string
+ *               message:
+ *                 type: string
+ *               channel:
+ *                 type: string
+ *                 enum: [EMAIL, IN_APP, BOTH]
+ *     responses:
+ *       201:
+ *         description: تم إنشاء الإشعار
+ */
+
 export async function POST(request: NextRequest) {
   try {
     const user = getTokenFromRequest(request);

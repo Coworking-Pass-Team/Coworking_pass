@@ -33,6 +33,34 @@ if (!user) return unauthorizedResponse();
   }
 }
 
+
+/**
+ * @swagger
+ * /api/membership-plans/{id}:
+ *   put:
+ *     summary: تعديل خطة
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               price:
+ *                 type: number
+ *     responses:
+ *       200:
+ *         description: تم تعديل الخطة
+ */
+
 // PUT: تحديث خطة
 export async function PUT(
   request: NextRequest,
