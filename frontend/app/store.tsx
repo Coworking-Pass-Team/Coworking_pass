@@ -29,6 +29,11 @@ interface AppContextType {
   pendingResetUser: User | null;
   updateCurrentUser: (updates: Partial<User>) => void;
 
+  // Location & Geolocation
+  userLocation: { lat: number; lng: number } | null;
+  locationStatus: 'idle' | 'loading' | 'granted' | 'denied' | 'unsupported';
+  requestUserLocation: () => Promise<{ lat: number; lng: number } | null>;
+
   // Spaces
   spaces: Space[];
   favorites: string[];
@@ -108,6 +113,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [pendingResetUser, setPendingResetUser] = useState<User | null>(null);
   const [otpSession, setOtpSession] = useState<OtpSession | null>(null);
   const [spaces, setSpaces] = useState<Space[]>(INITIAL_SPACES);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationStatus, setLocationStatus] = useState<'idle' | 'loading' | 'granted' | 'denied' | 'unsupported'>('idle');
   const [bookings, setBookings] = useState<Booking[]>(INITIAL_BOOKINGS);
   const [users, setUsers] = useState<User[]>(INITIAL_USERS);
   const [favorites, setFavorites] = useState<string[]>(['space-1', 'space-3']);
@@ -524,8 +531,64 @@ export function AppProvider({ children }: { children: ReactNode }) {
     );
   };
 
+  const requestUserLocation = async (): Promise<{ lat: number; lng: number } | null> => {
+    if (typeof window === 'undefined' || !navigator?.geolocation) {
+      setLocationStatus('unsupported');
+      showToast('Geolocation is not supported by your browser.', 'error');
+      return null;
+    }
+
+    if (userLocation) {
+      return userLocation;
+    }
+
+    setLocationStatus('loading');
+    return new Promise(resolve => {
+      navigator.geolocation.getCurrentPosition(
+        position => {
+          const coords = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          };
+          setUserLocation(coords);
+          setLocationStatus('granted');
+          resolve(coords);
+        },
+        error => {
+          console.warn('Geolocation error:', error);
+          setLocationStatus('denied');
+          if (error.code === 1) { // PERMISSION_DENIED
+            showToast('Location permission was denied. Workspaces will be sorted without distance.', 'info');
+          } else {
+            showToast('Unable to determine your current location.', 'info');
+          }
+          resolve(null);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+      );
+    });
+  };
+
   const addSpace = (space: Omit<Space, 'id'>) => {
-    const newSpace: Space = { ...space, id: `space-${Date.now()}` };
+    const defaultCoordsByCity: Record<string, { lat: number; lng: number }> = {
+      Riyadh: { lat: 24.7136, lng: 46.6753 },
+      Jeddah: { lat: 21.5433, lng: 39.1728 },
+      Dammam: { lat: 26.4207, lng: 50.0888 },
+      Khobar: { lat: 26.2810, lng: 50.2080 },
+      Madinah: { lat: 24.4672, lng: 39.6111 },
+      Makkah: { lat: 21.3891, lng: 39.8579 },
+    };
+    const cityCoords = defaultCoordsByCity[space.city] || { lat: 24.7136, lng: 46.6753 };
+    const lat = space.latitude ?? space.coordinates?.lat ?? cityCoords.lat;
+    const lng = space.longitude ?? space.coordinates?.lng ?? cityCoords.lng;
+
+    const newSpace: Space = {
+      ...space,
+      id: `space-${Date.now()}`,
+      latitude: lat,
+      longitude: lng,
+      coordinates: { lat, lng },
+    };
     setSpaces(prev => [...prev, newSpace]);
     showToast('Space added successfully.');
   };
@@ -1161,6 +1224,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     <AppContext.Provider value={{
       nav, navigate, goBack,
       currentUser, login, signup, logout, setPendingUser, pendingUser,
+      userLocation, locationStatus, requestUserLocation,
       spaces, favorites, toggleFavorite, addSpace, updateSpace, toggleSpaceVisibility, deleteSpace,
       bookings, addBooking, cancelBooking, updateBookingStatus,
       amenityRequests, approvedCustomAmenities, requestCustomAmenity, approveAmenityRequest, rejectAmenityRequest, getApprovedAmenities,
