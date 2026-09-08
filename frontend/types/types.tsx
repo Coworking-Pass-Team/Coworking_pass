@@ -988,6 +988,9 @@ export interface OtpSession {
   extraData?: Partial<User>;
   destinationScreen?: Screen;
   destinationParams?: Record<string, any>;
+  userId?: string;
+  token?: string;
+  backendSynced?: boolean;
 }
 
 export interface NavState {

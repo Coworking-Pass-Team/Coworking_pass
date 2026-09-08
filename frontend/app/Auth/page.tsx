@@ -89,7 +89,7 @@ export function LoginScreen() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     const errs: Record<string, string> = {};
@@ -104,11 +104,11 @@ export function LoginScreen() {
     setFieldErrors({});
 
     setLoading(true);
-    setTimeout(() => {
-      const result = login(email, password);
-      if (!result.success) setError(result.error || 'Login failed.');
+    const result = await login(email, password);
+    if (!result.success) {
+      setError(result.error || 'Login failed.');
       setLoading(false);
-    }, 600);
+    }
   };
 
   return (
@@ -283,6 +283,7 @@ export function SignUpScreen() {
   const [crNumber, setCrNumber] = useState('');
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(false);
 
   const handleSelectRoleAndNext = (selectedRole: 'individual' | 'organization' | 'provider') => {
     setRole(selectedRole);
@@ -308,21 +309,28 @@ export function SignUpScreen() {
     return e;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const errs = validateStep2();
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
 
+    setLoading(true);
     const newUser = signup(name, email, password, phone);
     setPendingUser(newUser);
 
+    let res;
     if (role === 'organization') {
-      requestSignupOtp(newUser, role, { orgName, orgSize: parseInt(orgSize, 10) || 10, industry });
+      res = await requestSignupOtp(newUser, role, { orgName, orgSize: parseInt(orgSize, 10) || 10, industry });
     } else if (role === 'provider') {
-      requestSignupOtp(newUser, role, { businessName, crNumber });
+      res = await requestSignupOtp(newUser, role, { businessName, crNumber });
     } else {
-      requestSignupOtp(newUser, role);
+      res = await requestSignupOtp(newUser, role);
+    }
+
+    setLoading(false);
+    if (res && !res.success && res.error) {
+      setErrors({ global: res.error });
     }
   };
 
@@ -695,12 +703,25 @@ export function SignUpScreen() {
                 )}
               </div>
 
+              {errors.global && (
+                <div className="bg-red-500/10 border border-red-500/20 text-red-700 text-xs sm:text-sm font-medium rounded-xl px-4 py-3 mt-2">
+                  {errors.global}
+                </div>
+              )}
+
               <button
                 type="submit"
-                className="btn-primary w-full py-3.5 mt-3"
+                disabled={loading}
+                className="btn-primary w-full py-3.5 mt-3 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <span>Complete Registration & Sign In</span>
-                <ArrowRight size={16} />
+                {loading ? (
+                  <span>Registering account...</span>
+                ) : (
+                  <>
+                    <span>Complete Registration & Sign In</span>
+                    <ArrowRight size={16} />
+                  </>
+                )}
               </button>
             </form>
           )}
@@ -742,7 +763,7 @@ export function ChooseAccountType() {
   const [businessName, setBusinessName] = useState('');
   const [crNumber, setCrNumber] = useState('');
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (!selected) return;
     if (selected === 'organization' && !orgName.trim()) return;
     if (selected === 'provider' && !businessName.trim()) return;
@@ -763,11 +784,11 @@ export function ChooseAccountType() {
     if (!pendingUser) setPendingUser(targetUser);
 
     if (selected === 'organization') {
-      requestSignupOtp(targetUser as any, selected, { orgName, orgSize: parseInt(orgSize, 10) || 10, industry: industry || 'Technology' });
+      await requestSignupOtp(targetUser as any, selected, { orgName, orgSize: parseInt(orgSize, 10) || 10, industry: industry || 'Technology' });
     } else if (selected === 'provider') {
-      requestSignupOtp(targetUser as any, selected, { businessName, crNumber });
+      await requestSignupOtp(targetUser as any, selected, { businessName, crNumber });
     } else {
-      requestSignupOtp(targetUser as any, selected);
+      await requestSignupOtp(targetUser as any, selected);
     }
   };
 
@@ -1160,7 +1181,7 @@ export function OtpVerificationScreen() {
     inputRefs.current[focusIndex]?.focus();
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const code = digits.join('');
     if (code.length < 6) {
@@ -1171,13 +1192,11 @@ export function OtpVerificationScreen() {
     setLoading(true);
     setError('');
 
-    setTimeout(() => {
-      const res = verifyOtp(code);
-      if (!res.success) {
-        setError(res.error || 'Invalid verification code. Please try again.');
-        setLoading(false);
-      }
-    }, 600);
+    const res = await verifyOtp(code);
+    if (!res.success) {
+      setError(res.error || 'Invalid verification code. Please try again.');
+      setLoading(false);
+    }
   };
 
   const handleResend = () => {
