@@ -24,6 +24,37 @@ if (!user) return unauthorizedResponse();
   }
 }
 
+
+/**
+ * @swagger
+ * /api/hourly-bookings:
+ *   post:
+ *     summary: إنشاء حجز ساعي
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [userId, sectionId, packageId, startDate, endDate]
+ *             properties:
+ *               userId:
+ *                 type: string
+ *               sectionId:
+ *                 type: string
+ *               packageId:
+ *                 type: string
+ *               startDate:
+ *                 type: string
+ *               endDate:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: تم إنشاء الحجز الساعي
+ */
+
 export async function POST(request: NextRequest) {
   try {
     const user = getTokenFromRequest(request);

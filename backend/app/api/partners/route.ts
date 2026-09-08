@@ -16,6 +16,34 @@ if (!user) return unauthorizedResponse();
   }
 }
 
+
+/**
+ * @swagger
+ * /api/partners:
+ *   post:
+ *     summary: إضافة شريك جديد
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [brandName, contactEmail, taxNumber, revenueSharePercentage]
+ *             properties:
+ *               brandName:
+ *                 type: string
+ *               contactEmail:
+ *                 type: string
+ *               taxNumber:
+ *                 type: string
+ *               revenueSharePercentage:
+ *                 type: number
+ *     responses:
+ *       201:
+ *         description: تم إنشاء الشريك بنجاح
+ */
 // POST /api/partners — إضافة شريك جديد
 export async function POST(request: Request) {
   try {

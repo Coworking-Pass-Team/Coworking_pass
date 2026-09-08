@@ -2,6 +2,29 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 
+
+
+/**
+ * @swagger
+ * /api/auth/verify-email:
+ *   post:
+ *     summary: تفعيل الحساب بالكود
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [userId, code]
+ *             properties:
+ *               userId:
+ *                 type: string
+ *               code:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: تم تفعيل الحساب
+ */
 export async function POST(request: Request) {
   try {
     const { userId, code } = await request.json();
