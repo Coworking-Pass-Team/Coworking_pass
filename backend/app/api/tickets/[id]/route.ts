@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
-// PUT /api/companies/[id] — تعديل شركة
+const VALID_STATUSES = ["OPEN", "IN_PROGRESS", "CLOSED"];
+
+// PUT /api/tickets/[id] — تعديل حالة التذكرة
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -13,22 +15,29 @@ if (!user) return unauthorizedResponse();
     const { id } = await params;
     const data = await request.json();
 
-    const company = await prisma.company.update({
+    if (data.status && !VALID_STATUSES.includes(data.status)) {
+      return NextResponse.json(
+        { error: `status يجب أن يكون: ${VALID_STATUSES.join(", ")}` },
+        { status: 400 }
+      );
+    }
+
+    const ticket = await prisma.ticket.update({
       where: { id },
       data,
     });
 
-    return NextResponse.json({ message: "تم تعديل الشركة بنجاح", company });
+    return NextResponse.json({ message: "تم تعديل التذكرة بنجاح", ticket });
   } catch (error) {
     console.error(error);
     return NextResponse.json(
-      { error: "الشركة غير موجودة أو حدث خطأ" },
+      { error: "التذكرة غير موجودة أو حدث خطأ" },
       { status: 404 }
     );
   }
 }
 
-// DELETE /api/companies/[id] — حذف شركة
+// DELETE /api/tickets/[id] — حذف تذكرة
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -37,14 +46,12 @@ export async function DELETE(
     const user = getTokenFromRequest(request);
 if (!user) return unauthorizedResponse();
     const { id } = await params;
-
-    await prisma.company.delete({ where: { id } });
-
-    return NextResponse.json({ message: "تم حذف الشركة بنجاح" });
+    await prisma.ticket.delete({ where: { id } });
+    return NextResponse.json({ message: "تم حذف التذكرة بنجاح" });
   } catch (error) {
     console.error(error);
     return NextResponse.json(
-      { error: "الشركة غير موجودة أو حدث خطأ" },
+      { error: "التذكرة غير موجودة أو حدث خطأ" },
       { status: 404 }
     );
   }
