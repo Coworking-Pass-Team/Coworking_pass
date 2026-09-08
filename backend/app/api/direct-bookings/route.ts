@@ -46,6 +46,39 @@ export async function GET(request: Request) {
   }
 }
 
+
+/**
+ * @swagger
+ * /api/direct-bookings:
+ *   post:
+ *     summary: إنشاء حجز مباشر
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [userId, workspaceId, sectionId, durationType, bookingDate]
+ *             properties:
+ *               userId:
+ *                 type: string
+ *               workspaceId:
+ *                 type: string
+ *               sectionId:
+ *                 type: string
+ *               durationType:
+ *                 type: string
+ *                 enum: [DAILY, MONTHLY, YEARLY]
+ *               bookingDate:
+ *                 type: string
+ *                 example: "2026-09-05"
+ *     responses:
+ *       201:
+ *         description: تم إنشاء الحجز (أو تسجيله بالطابور لو المساحة ممتلئة)
+ */
+
 export async function POST(request: NextRequest) {
   try {
     const user = getTokenFromRequest(request);

@@ -2,6 +2,35 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
+
+
+
+/**
+ * @swagger
+ * /api/workspaces/{id}:
+ *   put:
+ *     summary: تعديل مساحة عمل
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               dailyRate:
+ *                 type: number
+ *     responses:
+ *       200:
+ *         description: تم تعديل المساحة
+ */
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

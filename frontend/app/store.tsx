@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, Space, Booking, Screen, NavState, UserRole, BookingType, PaymentCard, Notification, CartItem, AmenityRequest, AmenityRequestStatus, calculateEndDate, isCancellationRefundEligible, getBookingPrice, OtpSession, SupportTicket, TicketStatus, Partner } from '@/types/types';
+import { User, Space, Booking, Screen, NavState, UserRole, BookingType, PaymentCard, Notification, CartItem, AmenityRequest, AmenityRequestStatus, calculateEndDate, isCancellationRefundEligible, getBookingPrice, OtpSession, SupportTicket, TicketStatus, Partner, WorkspaceApi, HourlyBookingApi, PayoutApi } from '@/types/types';
 import { INITIAL_SPACES, INITIAL_USERS, INITIAL_BOOKINGS, INITIAL_NOTIFICATIONS, INITIAL_SUPPORT_TICKETS } from '@/data/data';
 import { registerUserApi, verifyEmailApi, loginUserApi, verifyLoginApi, mapRoleToFrontend } from '@/services/authApi';
 
@@ -39,6 +39,102 @@ async function fetchPartnersFromApi(token?: string): Promise<Partner[]> {
   }
 }
 
+async function fetchWorkspacesFromApi(token?: string): Promise<WorkspaceApi[]> {
+  try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    } else if (typeof window !== 'undefined') {
+      const storedToken = localStorage.getItem('token') || localStorage.getItem('jwt');
+      if (storedToken) {
+        headers['Authorization'] = `Bearer ${storedToken}`;
+      }
+    }
+
+    const response = await fetch(`${API_BASE_URL}/workspaces`, {
+      method: 'GET',
+      headers,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Failed to fetch workspaces (Status: ${response.status})`);
+    }
+
+    const data = await response.json();
+    return data as WorkspaceApi[];
+  } catch (error: any) {
+    console.error('Error fetching workspaces from GET /api/workspaces:', error);
+    throw error;
+  }
+}
+
+async function fetchHourlyBookingsFromApi(token?: string): Promise<HourlyBookingApi[]> {
+  try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    } else if (typeof window !== 'undefined') {
+      const storedToken = localStorage.getItem('token') || localStorage.getItem('jwt');
+      if (storedToken) {
+        headers['Authorization'] = `Bearer ${storedToken}`;
+      }
+    }
+
+    const response = await fetch(`${API_BASE_URL}/hourly-bookings`, {
+      method: 'GET',
+      headers,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Failed to fetch hourly bookings (Status: ${response.status})`);
+    }
+
+    const data = await response.json();
+    return data as HourlyBookingApi[];
+  } catch (error: any) {
+    console.error('Error fetching hourly bookings from GET /api/hourly-bookings:', error);
+    throw error;
+  }
+}
+
+async function fetchPayoutsFromApi(token?: string): Promise<PayoutApi[]> {
+  try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    } else if (typeof window !== 'undefined') {
+      const storedToken = localStorage.getItem('token') || localStorage.getItem('jwt');
+      if (storedToken) {
+        headers['Authorization'] = `Bearer ${storedToken}`;
+      }
+    }
+
+    const response = await fetch(`${API_BASE_URL}/payouts`, {
+      method: 'GET',
+      headers,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Failed to fetch payouts (Status: ${response.status})`);
+    }
+
+    const data = await response.json();
+    return data as PayoutApi[];
+  } catch (error: any) {
+    console.error('Error fetching payouts from GET /api/payouts:', error);
+    throw error;
+  }
+}
+
 interface AppContextType {
   // Navigation
   nav: NavState;
@@ -64,6 +160,84 @@ interface AppContextType {
     }>
   ) => Promise<{ success: boolean; partner?: Partner; error?: string }>;
   deletePartner: (partnerId: string) => Promise<{ success: boolean; error?: string }>;
+
+  // Workspaces API (GET, POST, PUT, DELETE http://localhost:3001/api/workspaces)
+  workspacesApi: WorkspaceApi[];
+  fetchWorkspaces: () => Promise<WorkspaceApi[]>;
+  createWorkspace: (workspaceData: {
+    partnerId: string;
+    name: string;
+    city: string;
+    locationMapUrl?: string;
+    dailyRate?: number;
+    monthlyRate?: number;
+    yearlyRate?: number;
+    passVisitValue: number;
+    totalCapacity: number;
+  }) => Promise<{ success: boolean; workspace?: WorkspaceApi; error?: string }>;
+  updateWorkspace: (
+    workspaceId: string,
+    updates: Partial<{
+      partnerId: string;
+      name: string;
+      city: string;
+      locationMapUrl: string;
+      dailyRate: number;
+      monthlyRate: number;
+      yearlyRate: number;
+      passVisitValue: number;
+      totalCapacity: number;
+    }>
+  ) => Promise<{ success: boolean; workspace?: WorkspaceApi; error?: string }>;
+  deleteWorkspace: (workspaceId: string) => Promise<{ success: boolean; error?: string }>;
+
+  // Hourly Bookings API (GET, POST, PUT, DELETE http://localhost:3001/api/hourly-bookings)
+  hourlyBookingsApi: HourlyBookingApi[];
+  fetchHourlyBookings: () => Promise<HourlyBookingApi[]>;
+  createHourlyBooking: (bookingData: {
+    userId: string;
+    sectionId: string;
+    packageId: string;
+    startDate: string;
+    endDate: string;
+    status?: string;
+  }) => Promise<{ success: boolean; booking?: HourlyBookingApi; error?: string }>;
+  updateHourlyBooking: (
+    bookingId: string,
+    updates: Partial<{
+      userId: string;
+      sectionId: string;
+      packageId: string;
+      startDate: string;
+      endDate: string;
+      hoursUsed: number;
+      status: string;
+    }>
+  ) => Promise<{ success: boolean; booking?: HourlyBookingApi; error?: string }>;
+  deleteHourlyBooking: (bookingId: string) => Promise<{ success: boolean; error?: string }>;
+
+  // Payouts API (GET, POST, PUT, DELETE http://localhost:3001/api/payouts)
+  payoutsApi: PayoutApi[];
+  fetchPayouts: () => Promise<PayoutApi[]>;
+  createPayout: (payoutData: {
+    partnerId: string;
+    billingMonth: string;
+    totalVisitsReceived: number;
+    amountDue: number;
+    status?: string;
+  }) => Promise<{ success: boolean; payout?: PayoutApi; error?: string }>;
+  updatePayout: (
+    payoutId: string,
+    updates: Partial<{
+      partnerId: string;
+      billingMonth: string;
+      totalVisitsReceived: number;
+      amountDue: number;
+      status: string;
+      paidAt: string;
+    }>
+  ) => Promise<{ success: boolean; payout?: PayoutApi; error?: string }>;
+  deletePayout: (payoutId: string) => Promise<{ success: boolean; error?: string }>;
 
   // Support Tickets & Inquiries
   supportTickets: SupportTicket[];
@@ -210,6 +384,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [approvedCustomAmenities, setApprovedCustomAmenities] = useState<string[]>(['Podcast Recording Studio']);
   const [supportTickets, setSupportTickets] = useState<SupportTicket[]>(INITIAL_SUPPORT_TICKETS);
   const [partners, setPartners] = useState<Partner[]>([]);
+  const [workspacesApi, setWorkspacesApi] = useState<WorkspaceApi[]>([]);
+  const [hourlyBookingsApi, setHourlyBookingsApi] = useState<HourlyBookingApi[]>([]);
+  const [payoutsApi, setPayoutsApi] = useState<PayoutApi[]>([]);
 
   const fetchPartners = async (): Promise<Partner[]> => {
     try {
@@ -221,6 +398,408 @@ export function AppProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       console.error('Failed to fetch partners from /api/partners:', err);
       return partners;
+    }
+  };
+
+  const fetchHourlyBookings = async (): Promise<HourlyBookingApi[]> => {
+    try {
+      const data = await fetchHourlyBookingsFromApi();
+      if (Array.isArray(data) && data.length > 0) {
+        setHourlyBookingsApi(data);
+      }
+      return data;
+    } catch (err) {
+      console.error('Failed to fetch hourly bookings from /api/hourly-bookings:', err);
+      return hourlyBookingsApi;
+    }
+  };
+
+  const createHourlyBooking = async (bookingData: {
+    userId: string;
+    sectionId: string;
+    packageId: string;
+    startDate: string;
+    endDate: string;
+    status?: string;
+  }): Promise<{ success: boolean; booking?: HourlyBookingApi; error?: string }> => {
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (typeof window !== 'undefined') {
+        const storedToken = localStorage.getItem('token') || localStorage.getItem('jwt');
+        if (storedToken) {
+          headers['Authorization'] = `Bearer ${storedToken}`;
+        }
+      }
+
+      const response = await fetch(`${API_BASE_URL}/hourly-bookings`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(bookingData),
+      });
+
+      const resData = await response.json();
+      if (!response.ok) {
+        throw new Error(resData.error || 'Failed to create hourly booking');
+      }
+
+      const newBooking: HourlyBookingApi = resData.booking || resData;
+      setHourlyBookingsApi((prev) => [newBooking, ...prev]);
+      showToast(`Hourly booking created successfully`, 'success');
+      return { success: true, booking: newBooking };
+    } catch (err: any) {
+      console.error('Error creating hourly booking via POST /api/hourly-bookings:', err);
+      showToast(err.message || 'Failed to create hourly booking', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const updateHourlyBooking = async (
+    bookingId: string,
+    updates: Partial<{
+      userId: string;
+      sectionId: string;
+      packageId: string;
+      startDate: string;
+      endDate: string;
+      hoursUsed: number;
+      status: string;
+    }>
+  ): Promise<{ success: boolean; booking?: HourlyBookingApi; error?: string }> => {
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (typeof window !== 'undefined') {
+        const storedToken = localStorage.getItem('token') || localStorage.getItem('jwt');
+        if (storedToken) {
+          headers['Authorization'] = `Bearer ${storedToken}`;
+        }
+      }
+
+      const response = await fetch(`${API_BASE_URL}/hourly-bookings/${bookingId}`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(updates),
+      });
+
+      const resData = await response.json();
+      if (!response.ok) {
+        throw new Error(resData.error || 'Failed to update hourly booking');
+      }
+
+      const updatedBooking: HourlyBookingApi = resData.booking || resData;
+      setHourlyBookingsApi((prev) =>
+        prev.map((b) => (b.id === bookingId ? { ...b, ...updatedBooking } : b))
+      );
+      showToast(`Hourly booking updated successfully`, 'success');
+      return { success: true, booking: updatedBooking };
+    } catch (err: any) {
+      console.error(`Error updating hourly booking via PUT /api/hourly-bookings/${bookingId}:`, err);
+      showToast(err.message || 'Failed to update hourly booking', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const deleteHourlyBooking = async (bookingId: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (typeof window !== 'undefined') {
+        const storedToken = localStorage.getItem('token') || localStorage.getItem('jwt');
+        if (storedToken) {
+          headers['Authorization'] = `Bearer ${storedToken}`;
+        }
+      }
+
+      const response = await fetch(`${API_BASE_URL}/hourly-bookings/${bookingId}`, {
+        method: 'DELETE',
+        headers,
+      });
+
+      const resData = await response.json();
+      if (!response.ok) {
+        throw new Error(resData.error || 'Failed to delete hourly booking');
+      }
+
+      setHourlyBookingsApi((prev) => prev.filter((b) => b.id !== bookingId));
+      showToast(`Hourly booking cancelled successfully`, 'success');
+      return { success: true };
+    } catch (err: any) {
+      console.error(`Error deleting hourly booking via DELETE /api/hourly-bookings/${bookingId}:`, err);
+      showToast(err.message || 'Failed to delete hourly booking', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const fetchPayouts = async (): Promise<PayoutApi[]> => {
+    try {
+      const data = await fetchPayoutsFromApi();
+      if (Array.isArray(data) && data.length > 0) {
+        setPayoutsApi(data);
+      }
+      return data;
+    } catch (err) {
+      console.error('Failed to fetch payouts from /api/payouts:', err);
+      return payoutsApi;
+    }
+  };
+
+  const createPayout = async (payoutData: {
+    partnerId: string;
+    billingMonth: string;
+    totalVisitsReceived: number;
+    amountDue: number;
+    status?: string;
+  }): Promise<{ success: boolean; payout?: PayoutApi; error?: string }> => {
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (typeof window !== 'undefined') {
+        const storedToken = localStorage.getItem('token') || localStorage.getItem('jwt');
+        if (storedToken) {
+          headers['Authorization'] = `Bearer ${storedToken}`;
+        }
+      }
+
+      const response = await fetch(`${API_BASE_URL}/payouts`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payoutData),
+      });
+
+      const resData = await response.json();
+      if (!response.ok) {
+        throw new Error(resData.error || 'Failed to create payout');
+      }
+
+      const newPayout: PayoutApi = resData.payout || resData;
+      setPayoutsApi((prev) => [newPayout, ...prev]);
+      showToast(`Payout created successfully`, 'success');
+      return { success: true, payout: newPayout };
+    } catch (err: any) {
+      console.error('Error creating payout via POST /api/payouts:', err);
+      showToast(err.message || 'Failed to create payout', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const updatePayout = async (
+    payoutId: string,
+    updates: Partial<{
+      partnerId: string;
+      billingMonth: string;
+      totalVisitsReceived: number;
+      amountDue: number;
+      status: string;
+      paidAt: string;
+    }>
+  ): Promise<{ success: boolean; payout?: PayoutApi; error?: string }> => {
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (typeof window !== 'undefined') {
+        const storedToken = localStorage.getItem('token') || localStorage.getItem('jwt');
+        if (storedToken) {
+          headers['Authorization'] = `Bearer ${storedToken}`;
+        }
+      }
+
+      const response = await fetch(`${API_BASE_URL}/payouts/${payoutId}`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(updates),
+      });
+
+      const resData = await response.json();
+      if (!response.ok) {
+        throw new Error(resData.error || 'Failed to update payout');
+      }
+
+      const updatedPayout: PayoutApi = resData.payout || resData;
+      setPayoutsApi((prev) =>
+        prev.map((p) => (p.id === payoutId ? { ...p, ...updatedPayout } : p))
+      );
+      showToast(`Payout updated successfully`, 'success');
+      return { success: true, payout: updatedPayout };
+    } catch (err: any) {
+      console.error(`Error updating payout via PUT /api/payouts/${payoutId}:`, err);
+      showToast(err.message || 'Failed to update payout', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const deletePayout = async (payoutId: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (typeof window !== 'undefined') {
+        const storedToken = localStorage.getItem('token') || localStorage.getItem('jwt');
+        if (storedToken) {
+          headers['Authorization'] = `Bearer ${storedToken}`;
+        }
+      }
+
+      const response = await fetch(`${API_BASE_URL}/payouts/${payoutId}`, {
+        method: 'DELETE',
+        headers,
+      });
+
+      const resData = await response.json();
+      if (!response.ok) {
+        throw new Error(resData.error || 'Failed to delete payout');
+      }
+
+      setPayoutsApi((prev) => prev.filter((p) => p.id !== payoutId));
+      showToast(`Payout deleted successfully`, 'success');
+      return { success: true };
+    } catch (err: any) {
+      console.error(`Error deleting payout via DELETE /api/payouts/${payoutId}:`, err);
+      showToast(err.message || 'Failed to delete payout', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const fetchWorkspaces = async (): Promise<WorkspaceApi[]> => {
+    try {
+      const data = await fetchWorkspacesFromApi();
+      if (Array.isArray(data) && data.length > 0) {
+        setWorkspacesApi(data);
+      }
+      return data;
+    } catch (err) {
+      console.error('Failed to fetch workspaces from /api/workspaces:', err);
+      return workspacesApi;
+    }
+  };
+
+  const createWorkspace = async (workspaceData: {
+    partnerId: string;
+    name: string;
+    city: string;
+    locationMapUrl?: string;
+    dailyRate?: number;
+    monthlyRate?: number;
+    yearlyRate?: number;
+    passVisitValue: number;
+    totalCapacity: number;
+  }): Promise<{ success: boolean; workspace?: WorkspaceApi; error?: string }> => {
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (typeof window !== 'undefined') {
+        const storedToken = localStorage.getItem('token') || localStorage.getItem('jwt');
+        if (storedToken) {
+          headers['Authorization'] = `Bearer ${storedToken}`;
+        }
+      }
+
+      const response = await fetch(`${API_BASE_URL}/workspaces`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(workspaceData),
+      });
+
+      const resData = await response.json();
+      if (!response.ok) {
+        throw new Error(resData.error || 'Failed to create workspace');
+      }
+
+      const newWorkspace: WorkspaceApi = resData.workspace || resData;
+      setWorkspacesApi((prev) => [newWorkspace, ...prev]);
+      showToast(`Workspace ${workspaceData.name} created successfully`, 'success');
+      return { success: true, workspace: newWorkspace };
+    } catch (err: any) {
+      console.error('Error creating workspace via POST /api/workspaces:', err);
+      showToast(err.message || 'Failed to create workspace', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const updateWorkspace = async (
+    workspaceId: string,
+    updates: Partial<{
+      partnerId: string;
+      name: string;
+      city: string;
+      locationMapUrl: string;
+      dailyRate: number;
+      monthlyRate: number;
+      yearlyRate: number;
+      passVisitValue: number;
+      totalCapacity: number;
+    }>
+  ): Promise<{ success: boolean; workspace?: WorkspaceApi; error?: string }> => {
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (typeof window !== 'undefined') {
+        const storedToken = localStorage.getItem('token') || localStorage.getItem('jwt');
+        if (storedToken) {
+          headers['Authorization'] = `Bearer ${storedToken}`;
+        }
+      }
+
+      const response = await fetch(`${API_BASE_URL}/workspaces/${workspaceId}`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(updates),
+      });
+
+      const resData = await response.json();
+      if (!response.ok) {
+        throw new Error(resData.error || 'Failed to update workspace');
+      }
+
+      const updatedWorkspace: WorkspaceApi = resData.workspace || resData;
+      setWorkspacesApi((prev) =>
+        prev.map((w) => (w.id === workspaceId ? { ...w, ...updatedWorkspace } : w))
+      );
+      showToast(`Workspace updated successfully`, 'success');
+      return { success: true, workspace: updatedWorkspace };
+    } catch (err: any) {
+      console.error(`Error updating workspace via PUT /api/workspaces/${workspaceId}:`, err);
+      showToast(err.message || 'Failed to update workspace', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const deleteWorkspace = async (workspaceId: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (typeof window !== 'undefined') {
+        const storedToken = localStorage.getItem('token') || localStorage.getItem('jwt');
+        if (storedToken) {
+          headers['Authorization'] = `Bearer ${storedToken}`;
+        }
+      }
+
+      const response = await fetch(`${API_BASE_URL}/workspaces/${workspaceId}`, {
+        method: 'DELETE',
+        headers,
+      });
+
+      const resData = await response.json();
+      if (!response.ok) {
+        throw new Error(resData.error || 'Failed to delete workspace');
+      }
+
+      setWorkspacesApi((prev) => prev.filter((w) => w.id !== workspaceId));
+      showToast(`Workspace deleted successfully`, 'success');
+      return { success: true };
+    } catch (err: any) {
+      console.error(`Error deleting workspace via DELETE /api/workspaces/${workspaceId}:`, err);
+      showToast(err.message || 'Failed to delete workspace', 'error');
+      return { success: false, error: err.message };
     }
   };
 
@@ -341,6 +920,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     fetchPartners().catch(() => {});
+    fetchWorkspaces().catch(() => {});
+    fetchHourlyBookings().catch(() => {});
+    fetchPayouts().catch(() => {});
   }, []);
 
   const sanitizeBookings = (list: Booking[]): Booking[] => {
@@ -1604,6 +2186,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     <AppContext.Provider value={{
       nav, navigate, goBack,
       partners, fetchPartners, createPartner, updatePartner, deletePartner,
+      workspacesApi, fetchWorkspaces, createWorkspace, updateWorkspace, deleteWorkspace,
+      hourlyBookingsApi, fetchHourlyBookings, createHourlyBooking, updateHourlyBooking, deleteHourlyBooking,
+      payoutsApi, fetchPayouts, createPayout, updatePayout, deletePayout,
       currentUser, login, signup, logout, setPendingUser, pendingUser,
       userLocation, locationStatus, requestUserLocation,
       spaces, favorites, toggleFavorite, addSpace, updateSpace, toggleSpaceVisibility, deleteSpace,
