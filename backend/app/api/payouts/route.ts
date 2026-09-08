@@ -21,6 +21,34 @@ if (!user) return unauthorizedResponse();
     )
   }
 }
+/**
+ * @swagger
+ * /api/payouts:
+ *   post:
+ *     summary: إنشاء تسوية مالية
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [partnerId, billingMonth, totalVisitsReceived, amountDue]
+ *             properties:
+ *               partnerId:
+ *                 type: string
+ *               billingMonth:
+ *                 type: string
+ *                 example: "2026-09"
+ *               totalVisitsReceived:
+ *                 type: integer
+ *               amountDue:
+ *                 type: number
+ *     responses:
+ *       201:
+ *         description: تم إنشاء التسوية
+ */
 
 export async function POST(request: NextRequest) {
   try {

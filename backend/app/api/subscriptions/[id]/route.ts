@@ -36,6 +36,34 @@ export async function GET(
   }
 }
 
+/**
+ * @swagger
+ * /api/subscriptions/{id}:
+ *   put:
+ *     summary: تعديل اشتراك
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [ACTIVE, CANCELLED, EXPIRED]
+ *     responses:
+ *       200:
+ *         description: تم تعديل الاشتراك
+ */
+
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -63,6 +91,26 @@ export async function PUT(
     )
   }
 }
+
+/**
+ * @swagger
+ * /api/subscriptions/{id}:
+ *   delete:
+ *     summary: إلغاء اشتراك (بسياسة زمنية)
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: تم إلغاء الاشتراك
+ *       400:
+ *         description: تجاوز مهلة الإلغاء (6 ساعات للأفراد، 24 للمؤسسات)
+ */
 
 export async function DELETE(
   request: NextRequest,

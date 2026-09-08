@@ -30,6 +30,34 @@ if (!user) return unauthorizedResponse();
   }
 }
 
+
+/**
+ * @swagger
+ * /api/qr-check-ins:
+ *   post:
+ *     summary: تسجيل مسح QR
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [userId, workspaceId, sectionId, qrCodeHash]
+ *             properties:
+ *               userId:
+ *                 type: string
+ *               workspaceId:
+ *                 type: string
+ *               sectionId:
+ *                 type: string
+ *               qrCodeHash:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: تم تسجيل المسح
+ */
 export async function POST(request: NextRequest) {
   try {
     const user = getTokenFromRequest(request);

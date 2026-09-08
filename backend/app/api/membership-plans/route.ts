@@ -17,6 +17,36 @@ if (!user) return unauthorizedResponse();
   }
 }
 
+
+/**
+ * @swagger
+ * /api/membership-plans:
+ *   post:
+ *     summary: إضافة خطة عضوية جديدة
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [planName, type, totalVisitsAllowed, price]
+ *             properties:
+ *               planName:
+ *                 type: string
+ *               type:
+ *                 type: string
+ *                 enum: [B2C, B2B]
+ *               totalVisitsAllowed:
+ *                 type: integer
+ *               price:
+ *                 type: number
+ *     responses:
+ *       201:
+ *         description: تم إنشاء الخطة بنجاح
+ */
+
 export async function POST(request: NextRequest) {
   try {
     const user = getTokenFromRequest(request);

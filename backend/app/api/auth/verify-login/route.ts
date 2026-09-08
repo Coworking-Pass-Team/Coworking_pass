@@ -3,6 +3,28 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { prisma } from "@/lib/prisma";
 
+/**
+ * @swagger
+ * /api/auth/verify-login:
+ *   post:
+ *     summary: تأكيد الدخول (يرجع Token)
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [userId, code]
+ *             properties:
+ *               userId:
+ *                 type: string
+ *               code:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: تم تسجيل الدخول، يرجع token
+ */
+
 export async function POST(request: Request) {
   try {
     const { userId, code } = await request.json();
@@ -53,3 +75,4 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "حدث خطأ في السيرفر" }, { status: 500 });
   }
 }
+

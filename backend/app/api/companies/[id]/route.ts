@@ -2,6 +2,33 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
+
+/**
+ * @swagger
+ * /api/companies/{id}:
+ *   put:
+ *     summary: تعديل شركة
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               totalPassesAllocated:
+ *                 type: integer
+ *     responses:
+ *       200:
+ *         description: تم تعديل الشركة
+ */
 // PUT /api/companies/[id] — تعديل شركة
 export async function PUT(
   request: Request,

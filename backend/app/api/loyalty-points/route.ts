@@ -21,6 +21,28 @@ if (!user) return unauthorizedResponse();
   }
 }
 
+
+/**
+ * @swagger
+ * /api/loyalty-points:
+ *   post:
+ *     summary: إنشاء رصيد نقاط لمستخدم
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [userId]
+ *             properties:
+ *               userId:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: تم إنشاء الرصيد
+ */
 export async function POST(request: NextRequest) {
   try {
     const user = getTokenFromRequest(request);

@@ -1,6 +1,36 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
+
+
+/**
+ * @swagger
+ * /api/amenities/{id}:
+ *   put:
+ *     summary: الموافقة أو رفض مرفق
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [status]
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [APPROVED, REJECTED]
+ *     responses:
+ *       200:
+ *         description: تم تحديث حالة المرفق
+ */
 // PUT /api/amenities/[id] — الموافقة أو رفض مرفق مقترح
 export async function PUT(
   request: Request,
