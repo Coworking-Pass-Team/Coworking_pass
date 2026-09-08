@@ -38,6 +38,34 @@ export async function GET(
   }
 }
 
+
+/**
+ * @swagger
+ * /api/direct-bookings/{id}:
+ *   put:
+ *     summary: تعديل حجز مباشر
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [CONFIRMED, WAITLISTED, CANCELLED]
+ *     responses:
+ *       200:
+ *         description: تم تعديل الحجز
+ */
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

@@ -36,6 +36,35 @@ export async function GET(request: Request) {
   }
 }
 
+/**
+ * @swagger
+ * /api/subscriptions:
+ *   post:
+ *     summary: إنشاء اشتراك جديد
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [userId, planId, startDate, endDate]
+ *             properties:
+ *               userId:
+ *                 type: string
+ *               planId:
+ *                 type: string
+ *               startDate:
+ *                 type: string
+ *                 example: "2026-09-01"
+ *               endDate:
+ *                 type: string
+ *                 example: "2026-10-01"
+ *     responses:
+ *       201:
+ *         description: تم تفعيل الاشتراك بنجاح
+ */
 export async function POST(request: NextRequest) {
   try {
     const user = getTokenFromRequest(request);
