@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
 // GET /api/amenities — عرض كل المرافق
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const user = getTokenFromRequest(request);
+if (!user) return unauthorizedResponse();
     const amenities = await prisma.amenityCatalog.findMany();
     return NextResponse.json(amenities);
   } catch (error) {
@@ -15,6 +18,8 @@ export async function GET() {
 // POST /api/amenities — اقتراح مرفق جديد
 export async function POST(request: Request) {
   try {
+    const user = getTokenFromRequest(request);
+if (!user) return unauthorizedResponse();
     const { name, icon, isDefault, requestedBy } = await request.json();
 
     if (!name) {
