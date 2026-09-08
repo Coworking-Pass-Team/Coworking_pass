@@ -23,7 +23,8 @@ erDiagram
         uuid id PK
         string company_name
         uuid hr_admin_id FK
-        int total_passes_allocated
+        int total_passes_allocated "Legacy: passes"
+        float shared_wallet_balance "New: For Shared Wallet feature"
     }
 
     PARTNERS {
@@ -310,7 +311,8 @@ CREATE TABLE companies (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     company_name VARCHAR(255) NOT NULL,
     hr_admin_id UUID REFERENCES users(id),
-    total_passes_allocated INT NOT NULL DEFAULT 0
+    total_passes_allocated INT NOT NULL DEFAULT 0,
+    shared_wallet_balance DECIMAL(10,2) DEFAULT 0.0
 );
 ALTER TABLE users ADD CONSTRAINT fk_user_company FOREIGN KEY (company_id) REFERENCES companies(id);
 
