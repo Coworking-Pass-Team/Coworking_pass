@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
 // GET /api/workspaces — عرض كل مساحات العمل
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const user = getTokenFromRequest(request);
+if (!user) return unauthorizedResponse();
+
     const workspaces = await prisma.workspace.findMany({
       include: { partner: true, sections: true },
     });
@@ -20,6 +24,9 @@ export async function GET() {
 // POST /api/workspaces — إضافة مساحة عمل جديدة
 export async function POST(request: Request) {
   try {
+    const user = getTokenFromRequest(request);
+if (!user) return unauthorizedResponse();
+
     const {
       partnerId,
       name,

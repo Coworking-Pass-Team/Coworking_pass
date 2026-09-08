@@ -1,4 +1,4 @@
-# Entity Relationship Diagram (ERD) - Master Version
+﻿# Entity Relationship Diagram (ERD) - Master Version
 
 This ERD encompasses all system entities: foundational booking logic (Waitlists, Durations), the Aggregator logic (B2B, Packages, QR Check-ins, Payouts), Workspace Sections (Desks, Meeting Rooms, Theaters), Notifications & OTP, Amenities Management, and the Loyalty Points & Rules System.
 
@@ -23,7 +23,8 @@ erDiagram
         uuid id PK
         string company_name
         uuid hr_admin_id FK
-        int total_passes_allocated
+        int total_passes_allocated "Legacy: passes"
+        float shared_wallet_balance "New: For Shared Wallet feature"
     }
 
     PARTNERS {
@@ -251,6 +252,9 @@ erDiagram
     MEMBERSHIP_PLANS ||--o{ SUBSCRIPTIONS : "has subscribers"
 ```
 
+
+> 💡 **ملاحظة للفريق:** لرؤية المخطط بشكل مرئي وتفاعلي أوضح، قم بنسخ الكود الخاص بالمخطط (Mermaid) أعلاه، والصقه في موقع [Mermaid Live Editor](https://mermaid.live).
+
 ---
 
 ## 📌 تفصيل أقسام قاعدة البيانات (ERD Breakdown)
@@ -290,215 +294,3 @@ erDiagram
 - **`LOYALTY_POINTS` & `POINTS_TRANSACTIONS`**: رصيد كل مستخدم من النقاط وسجل الاكتساب والاستبدال.
 
 ---
-
-
-```sql
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
--- 1. الكيانات الأساسية (Core Entities)
-CREATE TABLE users (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name VARCHAR(255) NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    role VARCHAR(50) NOT NULL CHECK (role IN ('GUEST', 'B2C', 'HR_ADMIN', 'PARTNER_ADMIN', 'SUPER_ADMIN')),
-    company_id UUID,
-    email_verified BOOLEAN DEFAULT FALSE
-);
-
-CREATE TABLE companies (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    company_name VARCHAR(255) NOT NULL,
-    hr_admin_id UUID REFERENCES users(id),
-    total_passes_allocated INT NOT NULL DEFAULT 0
-);
-ALTER TABLE users ADD CONSTRAINT fk_user_company FOREIGN KEY (company_id) REFERENCES companies(id);
-
-CREATE TABLE partners (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    brand_name VARCHAR(255) NOT NULL,
-    contact_email VARCHAR(255) NOT NULL,
-    tax_number VARCHAR(100) NOT NULL,
-    revenue_share_percentage DECIMAL(5,2) NOT NULL
-);
-
--- 2. المساحات والمرافق (Workspace & Sections)
-CREATE TABLE workspaces (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    partner_id UUID REFERENCES partners(id) NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    city VARCHAR(100) NOT NULL,
-    location_map_url TEXT,
-    daily_rate DECIMAL(10,2),
-    monthly_rate DECIMAL(10,2),
-    yearly_rate DECIMAL(10,2),
-    pass_visit_value DECIMAL(10,2) NOT NULL,
-    total_capacity INT NOT NULL
-);
-
-CREATE TABLE workspace_sections (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    workspace_id UUID REFERENCES workspaces(id) NOT NULL,
-    type VARCHAR(50) NOT NULL CHECK (type IN ('DESK', 'MEETING_ROOM', 'THEATER')),
-    name VARCHAR(255) NOT NULL,
-    capacity INT NOT NULL,
-    daily_rate DECIMAL(10,2),
-    monthly_rate DECIMAL(10,2),
-    yearly_rate DECIMAL(10,2)
-);
-
-CREATE TABLE hourly_packages (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    section_id UUID REFERENCES workspace_sections(id) NOT NULL,
-    package_name VARCHAR(255) NOT NULL,
-    hours_amount INT NOT NULL,
-    period_type VARCHAR(50) NOT NULL CHECK (period_type IN ('PER_DAY', 'PER_MONTH')),
-    price DECIMAL(10,2) NOT NULL
-);
-
--- 3. إدارة الميزات (Amenities Management)
-CREATE TABLE amenities_catalog (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name VARCHAR(255) NOT NULL,
-    icon VARCHAR(255),
-    is_default BOOLEAN DEFAULT TRUE,
-    status VARCHAR(50) NOT NULL CHECK (status IN ('APPROVED', 'PENDING_APPROVAL', 'REJECTED')),
-    requested_by UUID REFERENCES users(id),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE workspace_amenities (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    workspace_id UUID REFERENCES workspaces(id) NOT NULL,
-    amenity_id UUID REFERENCES amenities_catalog(id) NOT NULL
-);
-
--- 4. الحجوزات والعضويات (Plans & Bookings)
-CREATE TABLE membership_plans (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    plan_name VARCHAR(255) NOT NULL,
-    type VARCHAR(50) NOT NULL CHECK (type IN ('B2C', 'B2B')),
-    total_visits_allowed INT NOT NULL,
-    price DECIMAL(10,2) NOT NULL
-);
-
-CREATE TABLE subscriptions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES users(id) NOT NULL,
-    plan_id UUID REFERENCES membership_plans(id) NOT NULL,
-    start_date DATE NOT NULL,
-    end_date DATE NOT NULL,
-    visits_used INT DEFAULT 0,
-    status VARCHAR(50) NOT NULL CHECK (status IN ('ACTIVE', 'EXPIRED', 'CANCELLED'))
-);
-
-CREATE TABLE direct_bookings (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES users(id) NOT NULL,
-    workspace_id UUID REFERENCES workspaces(id) NOT NULL,
-    section_id UUID REFERENCES workspace_sections(id) NOT NULL,
-    duration_type VARCHAR(50) NOT NULL CHECK (duration_type IN ('DAILY', 'MONTHLY', 'YEARLY')),
-    booking_date DATE NOT NULL,
-    status VARCHAR(50) NOT NULL CHECK (status IN ('CONFIRMED', 'WAITLISTED', 'CANCELLED')),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE hourly_bookings (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES users(id) NOT NULL,
-    section_id UUID REFERENCES workspace_sections(id) NOT NULL,
-    package_id UUID REFERENCES hourly_packages(id) NOT NULL,
-    start_date DATE NOT NULL,
-    end_date DATE NOT NULL,
-    hours_used DECIMAL(5,2) DEFAULT 0.0,
-    status VARCHAR(50) NOT NULL CHECK (status IN ('ACTIVE', 'EXPIRED', 'CANCELLED')),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- 5. الدفع والمالية (Financial)
-CREATE TABLE payments (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES users(id) NOT NULL,
-    amount DECIMAL(10,2) NOT NULL,
-    method VARCHAR(50) NOT NULL CHECK (method IN ('MADA', 'VISA', 'APPLE_PAY', 'SAMSUNG_PAY')),
-    gateway_transaction_id VARCHAR(255),
-    payment_for VARCHAR(50) NOT NULL CHECK (payment_for IN ('DIRECT_BOOKING', 'HOURLY_BOOKING', 'SUBSCRIPTION', 'POINTS_REDEMPTION')),
-    reference_id UUID,
-    status VARCHAR(50) NOT NULL CHECK (status IN ('SUCCESS', 'FAILED'))
-);
-
-CREATE TABLE payouts (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    partner_id UUID REFERENCES partners(id) NOT NULL,
-    billing_month VARCHAR(7) NOT NULL,
-    total_visits_received INT NOT NULL,
-    amount_due DECIMAL(10,2) NOT NULL,
-    status VARCHAR(50) NOT NULL CHECK (status IN ('PENDING', 'PAID'))
-);
-
--- 6. التحقق والأمان (Verification & Security)
-CREATE TABLE qr_check_ins (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES users(id) NOT NULL,
-    workspace_id UUID REFERENCES workspaces(id) NOT NULL,
-    section_id UUID REFERENCES workspace_sections(id) NOT NULL,
-    scanned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    qr_code_hash VARCHAR(255) NOT NULL,
-    status VARCHAR(50) NOT NULL CHECK (status IN ('VALID', 'FRAUD_ATTEMPT'))
-);
-
-CREATE TABLE otp_codes (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES users(id) NOT NULL,
-    code_hash VARCHAR(255) NOT NULL,
-    purpose VARCHAR(50) NOT NULL CHECK (purpose IN ('EMAIL_VERIFICATION', 'PASSWORD_RESET')),
-    expires_at TIMESTAMP NOT NULL,
-    is_used BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- 7. الإشعارات ونقاط الولاء (Notifications & Loyalty)
-CREATE TABLE notifications (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES users(id) NOT NULL,
-    type VARCHAR(50) NOT NULL,
-    title VARCHAR(255) NOT NULL,
-    message TEXT NOT NULL,
-    channel VARCHAR(50) NOT NULL CHECK (channel IN ('EMAIL', 'IN_APP', 'BOTH')),
-    is_read BOOLEAN DEFAULT FALSE,
-    sent_at TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE loyalty_points (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES users(id) NOT NULL UNIQUE,
-    total_earned INT DEFAULT 0,
-    total_redeemed INT DEFAULT 0,
-    available_balance INT DEFAULT 0
-);
-
-CREATE TABLE points_transactions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES users(id) NOT NULL,
-    type VARCHAR(50) NOT NULL CHECK (type IN ('EARNED', 'REDEEMED')),
-    points INT NOT NULL,
-    description VARCHAR(255),
-    reference_id UUID,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE loyalty_rules (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    rule_name VARCHAR(255) NOT NULL,
-    rule_type VARCHAR(50) NOT NULL CHECK (rule_type IN ('EARNING', 'REDEMPTION')),
-    points_value INT NOT NULL,
-    monetary_value DECIMAL(10,2) NOT NULL,
-    description TEXT,
-    status VARCHAR(50) NOT NULL CHECK (status IN ('APPROVED', 'PENDING_APPROVAL', 'REJECTED')),
-    proposed_by UUID REFERENCES users(id) NOT NULL,
-    approved_by UUID REFERENCES users(id),
-    is_active BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```

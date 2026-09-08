@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
 // GET /api/partners — عرض كل الشركاء
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const user = getTokenFromRequest(request);
+if (!user) return unauthorizedResponse();
+
     const partners = await prisma.partner.findMany();
     return NextResponse.json(partners);
   } catch (error) {
@@ -15,6 +19,8 @@ export async function GET() {
 // POST /api/partners — إضافة شريك جديد
 export async function POST(request: Request) {
   try {
+    const user = getTokenFromRequest(request);
+if (!user) return unauthorizedResponse();
     const { brandName, contactEmail, taxNumber, revenueSharePercentage } =
       await request.json();
 
