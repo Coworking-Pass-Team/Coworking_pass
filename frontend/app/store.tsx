@@ -1,14 +1,68 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, Space, Booking, Screen, NavState, UserRole, BookingType, PaymentCard, Notification, CartItem, AmenityRequest, AmenityRequestStatus, calculateEndDate, isCancellationRefundEligible, getBookingPrice, OtpSession, SupportTicket, TicketStatus } from '@/types/types';
+import { User, Space, Booking, Screen, NavState, UserRole, BookingType, PaymentCard, Notification, CartItem, AmenityRequest, AmenityRequestStatus, calculateEndDate, isCancellationRefundEligible, getBookingPrice, OtpSession, SupportTicket, TicketStatus, Partner } from '@/types/types';
 import { INITIAL_SPACES, INITIAL_USERS, INITIAL_BOOKINGS, INITIAL_NOTIFICATIONS, INITIAL_SUPPORT_TICKETS } from '@/data/data';
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+
+async function fetchPartnersFromApi(token?: string): Promise<Partner[]> {
+  try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    } else if (typeof window !== 'undefined') {
+      const storedToken = localStorage.getItem('token') || localStorage.getItem('jwt');
+      if (storedToken) {
+        headers['Authorization'] = `Bearer ${storedToken}`;
+      }
+    }
+
+    const response = await fetch(`${API_BASE_URL}/partners`, {
+      method: 'GET',
+      headers,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Failed to fetch partners (Status: ${response.status})`);
+    }
+
+    const data = await response.json();
+    return data as Partner[];
+  } catch (error: any) {
+    console.error('Error fetching partners from GET /api/partners:', error);
+    throw error;
+  }
+}
 
 interface AppContextType {
   // Navigation
   nav: NavState;
   navigate: (screen: Screen, params?: Record<string, any>) => void;
   goBack: () => void;
+
+  // Partners / Providers (GET, POST, PUT http://localhost:3000/api/partners)
+  partners: Partner[];
+  fetchPartners: () => Promise<Partner[]>;
+  createPartner: (partnerData: {
+    brandName: string;
+    contactEmail: string;
+    taxNumber: string;
+    revenueSharePercentage: number;
+  }) => Promise<{ success: boolean; partner?: Partner; error?: string }>;
+  updatePartner: (
+    partnerId: string,
+    updates: Partial<{
+      brandName: string;
+      contactEmail: string;
+      taxNumber: string;
+      revenueSharePercentage: number;
+    }>
+  ) => Promise<{ success: boolean; partner?: Partner; error?: string }>;
+  deletePartner: (partnerId: string) => Promise<{ success: boolean; error?: string }>;
 
   // Support Tickets & Inquiries
   supportTickets: SupportTicket[];
@@ -154,6 +208,139 @@ export function AppProvider({ children }: { children: ReactNode }) {
   ]);
   const [approvedCustomAmenities, setApprovedCustomAmenities] = useState<string[]>(['Podcast Recording Studio']);
   const [supportTickets, setSupportTickets] = useState<SupportTicket[]>(INITIAL_SUPPORT_TICKETS);
+  const [partners, setPartners] = useState<Partner[]>([]);
+
+  const fetchPartners = async (): Promise<Partner[]> => {
+    try {
+      const data = await fetchPartnersFromApi();
+      if (Array.isArray(data) && data.length > 0) {
+        setPartners(data);
+      }
+      return data;
+    } catch (err) {
+      console.error('Failed to fetch partners from /api/partners:', err);
+      return partners;
+    }
+  };
+
+  const createPartner = async (partnerData: {
+    brandName: string;
+    contactEmail: string;
+    taxNumber: string;
+    revenueSharePercentage: number;
+  }): Promise<{ success: boolean; partner?: Partner; error?: string }> => {
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (typeof window !== 'undefined') {
+        const storedToken = localStorage.getItem('token') || localStorage.getItem('jwt');
+        if (storedToken) {
+          headers['Authorization'] = `Bearer ${storedToken}`;
+        }
+      }
+
+      const response = await fetch(`${API_BASE_URL}/partners`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(partnerData),
+      });
+
+      const resData = await response.json();
+      if (!response.ok) {
+        throw new Error(resData.error || 'Failed to create partner');
+      }
+
+      const newPartner: Partner = resData.partner || resData;
+      setPartners((prev) => [newPartner, ...prev]);
+      showToast(`Partner ${partnerData.brandName} created successfully`, 'success');
+      return { success: true, partner: newPartner };
+    } catch (err: any) {
+      console.error('Error creating partner via POST /api/partners:', err);
+      showToast(err.message || 'Failed to create partner', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const updatePartner = async (
+    partnerId: string,
+    updates: Partial<{
+      brandName: string;
+      contactEmail: string;
+      taxNumber: string;
+      revenueSharePercentage: number;
+    }>
+  ): Promise<{ success: boolean; partner?: Partner; error?: string }> => {
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (typeof window !== 'undefined') {
+        const storedToken = localStorage.getItem('token') || localStorage.getItem('jwt');
+        if (storedToken) {
+          headers['Authorization'] = `Bearer ${storedToken}`;
+        }
+      }
+
+      const response = await fetch(`${API_BASE_URL}/partners/${partnerId}`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(updates),
+      });
+
+      const resData = await response.json();
+      if (!response.ok) {
+        throw new Error(resData.error || 'Failed to update partner');
+      }
+
+      const updatedPartner: Partner = resData.partner || resData;
+      setPartners((prev) =>
+        prev.map((p) => (p.id === partnerId ? { ...p, ...updatedPartner } : p))
+      );
+      showToast(`Partner updated successfully`, 'success');
+      return { success: true, partner: updatedPartner };
+    } catch (err: any) {
+      console.error(`Error updating partner via PUT /api/partners/${partnerId}:`, err);
+      showToast(err.message || 'Failed to update partner', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const deletePartner = async (partnerId: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (typeof window !== 'undefined') {
+        const storedToken = localStorage.getItem('token') || localStorage.getItem('jwt');
+        if (storedToken) {
+          headers['Authorization'] = `Bearer ${storedToken}`;
+        }
+      }
+
+      const response = await fetch(`${API_BASE_URL}/partners/${partnerId}`, {
+        method: 'DELETE',
+        headers,
+      });
+
+      const resData = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(resData.error || 'Failed to delete partner');
+      }
+
+      setPartners((prev) => prev.filter((p) => p.id !== partnerId));
+      showToast(`Partner deleted successfully`, 'success');
+      return { success: true };
+    } catch (err: any) {
+      console.error(`Error deleting partner via DELETE /api/partners/${partnerId}:`, err);
+      showToast(err.message || 'Failed to delete partner', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  useEffect(() => {
+    fetchPartners().catch(() => {});
+  }, []);
 
   const sanitizeBookings = (list: Booking[]): Booking[] => {
     const seen = new Set<string>();
@@ -1306,6 +1493,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   return (
     <AppContext.Provider value={{
       nav, navigate, goBack,
+      partners, fetchPartners, createPartner, updatePartner, deletePartner,
       currentUser, login, signup, logout, setPendingUser, pendingUser,
       userLocation, locationStatus, requestUserLocation,
       spaces, favorites, toggleFavorite, addSpace, updateSpace, toggleSpaceVisibility, deleteSpace,
