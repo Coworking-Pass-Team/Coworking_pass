@@ -21,7 +21,37 @@ if (!user) return unauthorizedResponse();
     )
   }
 }
-
+/**
+ * @swagger
+ * /api/payments:
+ *   post:
+ *     summary: تسجيل دفعة
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [userId, amount, method, paymentFor]
+ *             properties:
+ *               userId:
+ *                 type: string
+ *               amount:
+ *                 type: number
+ *               method:
+ *                 type: string
+ *                 enum: [MADA, VISA, APPLE_PAY, SAMSUNG_PAY]
+ *               paymentFor:
+ *                 type: string
+ *                 enum: [DIRECT_BOOKING, HOURLY_BOOKING, SUBSCRIPTION, POINTS_REDEMPTION]
+ *               referenceId:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: تم تسجيل الدفعة
+ */
 export async function POST(request: NextRequest) {
   try {
     const user = getTokenFromRequest(request);

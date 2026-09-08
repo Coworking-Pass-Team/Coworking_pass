@@ -17,6 +17,32 @@ if (!user) return unauthorizedResponse();
   }
 }
 
+
+/**
+ * @swagger
+ * /api/tickets:
+ *   post:
+ *     summary: فتح تذكرة دعم (للشركات فقط)
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [companyId, userId, subject]
+ *             properties:
+ *               companyId:
+ *                 type: string
+ *               userId:
+ *                 type: string
+ *               subject:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: تم إنشاء التذكرة
+ */
 // POST /api/tickets — إنشاء تذكرة جديدة
 export async function POST(request: Request) {
   try {

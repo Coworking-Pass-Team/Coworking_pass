@@ -7,6 +7,27 @@ function generateOtp() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
+/**
+ * @swagger
+ * /api/auth/login:
+ *   post:
+ *     summary: تسجيل الدخول (خطوة 1)
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, password]
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: تم إرسال رمز التحقق إلى الإيميل
+ */
 export async function POST(request: Request) {
   try {
     const { email, password } = await request.json();

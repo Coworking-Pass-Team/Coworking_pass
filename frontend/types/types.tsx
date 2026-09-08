@@ -1008,3 +1008,21 @@ export interface Partner {
   payouts?: any[];
   createdAt?: string;
 }
+
+export interface WorkspaceApi {
+  id: string;
+  partnerId: string;
+  name: string;
+  city: string;
+  locationMapUrl?: string;
+  dailyRate?: number;
+  monthlyRate?: number;
+  yearlyRate?: number;
+  passVisitValue: number;
+  totalCapacity: number;
+  createdAt?: string;
+  updatedAt?: string;
+  partner?: Partner;
+  sections?: any[];
+}
+

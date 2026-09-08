@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, Space, Booking, Screen, NavState, UserRole, BookingType, PaymentCard, Notification, CartItem, AmenityRequest, AmenityRequestStatus, calculateEndDate, isCancellationRefundEligible, getBookingPrice, OtpSession, SupportTicket, TicketStatus, Partner } from '@/types/types';
+import { User, Space, Booking, Screen, NavState, UserRole, BookingType, PaymentCard, Notification, CartItem, AmenityRequest, AmenityRequestStatus, calculateEndDate, isCancellationRefundEligible, getBookingPrice, OtpSession, SupportTicket, TicketStatus, Partner, WorkspaceApi } from '@/types/types';
 import { INITIAL_SPACES, INITIAL_USERS, INITIAL_BOOKINGS, INITIAL_NOTIFICATIONS, INITIAL_SUPPORT_TICKETS } from '@/data/data';
 import { registerUserApi, verifyEmailApi, loginUserApi, verifyLoginApi, mapRoleToFrontend } from '@/services/authApi';
 
@@ -39,6 +39,38 @@ async function fetchPartnersFromApi(token?: string): Promise<Partner[]> {
   }
 }
 
+async function fetchWorkspacesFromApi(token?: string): Promise<WorkspaceApi[]> {
+  try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    } else if (typeof window !== 'undefined') {
+      const storedToken = localStorage.getItem('token') || localStorage.getItem('jwt');
+      if (storedToken) {
+        headers['Authorization'] = `Bearer ${storedToken}`;
+      }
+    }
+
+    const response = await fetch(`${API_BASE_URL}/workspaces`, {
+      method: 'GET',
+      headers,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Failed to fetch workspaces (Status: ${response.status})`);
+    }
+
+    const data = await response.json();
+    return data as WorkspaceApi[];
+  } catch (error: any) {
+    console.error('Error fetching workspaces from GET /api/workspaces:', error);
+    throw error;
+  }
+}
+
 interface AppContextType {
   // Navigation
   nav: NavState;
@@ -64,6 +96,21 @@ interface AppContextType {
     }>
   ) => Promise<{ success: boolean; partner?: Partner; error?: string }>;
   deletePartner: (partnerId: string) => Promise<{ success: boolean; error?: string }>;
+
+  // Workspaces API (GET, POST http://localhost:3001/api/workspaces)
+  workspacesApi: WorkspaceApi[];
+  fetchWorkspaces: () => Promise<WorkspaceApi[]>;
+  createWorkspace: (workspaceData: {
+    partnerId: string;
+    name: string;
+    city: string;
+    locationMapUrl?: string;
+    dailyRate?: number;
+    monthlyRate?: number;
+    yearlyRate?: number;
+    passVisitValue: number;
+    totalCapacity: number;
+  }) => Promise<{ success: boolean; workspace?: WorkspaceApi; error?: string }>;
 
   // Support Tickets & Inquiries
   supportTickets: SupportTicket[];
@@ -210,6 +257,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [approvedCustomAmenities, setApprovedCustomAmenities] = useState<string[]>(['Podcast Recording Studio']);
   const [supportTickets, setSupportTickets] = useState<SupportTicket[]>(INITIAL_SUPPORT_TICKETS);
   const [partners, setPartners] = useState<Partner[]>([]);
+  const [workspacesApi, setWorkspacesApi] = useState<WorkspaceApi[]>([]);
 
   const fetchPartners = async (): Promise<Partner[]> => {
     try {
@@ -221,6 +269,63 @@ export function AppProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       console.error('Failed to fetch partners from /api/partners:', err);
       return partners;
+    }
+  };
+
+  const fetchWorkspaces = async (): Promise<WorkspaceApi[]> => {
+    try {
+      const data = await fetchWorkspacesFromApi();
+      if (Array.isArray(data) && data.length > 0) {
+        setWorkspacesApi(data);
+      }
+      return data;
+    } catch (err) {
+      console.error('Failed to fetch workspaces from /api/workspaces:', err);
+      return workspacesApi;
+    }
+  };
+
+  const createWorkspace = async (workspaceData: {
+    partnerId: string;
+    name: string;
+    city: string;
+    locationMapUrl?: string;
+    dailyRate?: number;
+    monthlyRate?: number;
+    yearlyRate?: number;
+    passVisitValue: number;
+    totalCapacity: number;
+  }): Promise<{ success: boolean; workspace?: WorkspaceApi; error?: string }> => {
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (typeof window !== 'undefined') {
+        const storedToken = localStorage.getItem('token') || localStorage.getItem('jwt');
+        if (storedToken) {
+          headers['Authorization'] = `Bearer ${storedToken}`;
+        }
+      }
+
+      const response = await fetch(`${API_BASE_URL}/workspaces`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(workspaceData),
+      });
+
+      const resData = await response.json();
+      if (!response.ok) {
+        throw new Error(resData.error || 'Failed to create workspace');
+      }
+
+      const newWorkspace: WorkspaceApi = resData.workspace || resData;
+      setWorkspacesApi((prev) => [newWorkspace, ...prev]);
+      showToast(`Workspace ${workspaceData.name} created successfully`, 'success');
+      return { success: true, workspace: newWorkspace };
+    } catch (err: any) {
+      console.error('Error creating workspace via POST /api/workspaces:', err);
+      showToast(err.message || 'Failed to create workspace', 'error');
+      return { success: false, error: err.message };
     }
   };
 
@@ -341,6 +446,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     fetchPartners().catch(() => {});
+    fetchWorkspaces().catch(() => {});
   }, []);
 
   const sanitizeBookings = (list: Booking[]): Booking[] => {
@@ -1604,6 +1710,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     <AppContext.Provider value={{
       nav, navigate, goBack,
       partners, fetchPartners, createPartner, updatePartner, deletePartner,
+      workspacesApi, fetchWorkspaces, createWorkspace,
       currentUser, login, signup, logout, setPendingUser, pendingUser,
       userLocation, locationStatus, requestUserLocation,
       spaces, favorites, toggleFavorite, addSpace, updateSpace, toggleSpaceVisibility, deleteSpace,
