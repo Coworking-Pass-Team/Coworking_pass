@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
 // PUT /api/hourly-packages/[id] — تعديل باقة
 export async function PUT(
@@ -7,6 +8,8 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = getTokenFromRequest(request);
+if (!user) return unauthorizedResponse();
     const { id } = await params;
     const data = await request.json();
 
@@ -31,6 +34,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = getTokenFromRequest(request);
+if (!user) return unauthorizedResponse();
     const { id } = await params;
     await prisma.hourlyPackage.delete({ where: { id } });
     return NextResponse.json({ message: "تم حذف الباقة بنجاح" });
