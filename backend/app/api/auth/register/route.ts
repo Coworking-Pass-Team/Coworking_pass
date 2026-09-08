@@ -3,7 +3,18 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { sendOtpEmail } from "@/lib/mailer";
 
-const VALID_ROLES = ["GUEST", "B2C"];
+const VALID_ROLES = ["GUEST", "B2C", "HR_ADMIN", "PARTNER_ADMIN", "SUPER_ADMIN"];
+
+function normalizeRole(role: string): string {
+  if (!role) return "B2C";
+  const r = role.toUpperCase().trim();
+  if (r === "INDIVIDUAL" || r === "B2C") return "B2C";
+  if (r === "ORGANIZATION" || r === "HR_ADMIN" || r === "HR") return "HR_ADMIN";
+  if (r === "PROVIDER" || r === "PARTNER_ADMIN" || r === "PARTNER") return "PARTNER_ADMIN";
+  if (r === "ADMIN" || r === "SUPER_ADMIN") return "SUPER_ADMIN";
+  if (r === "GUEST") return "GUEST";
+  return r;
+}
 
 function generateOtp() {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -17,7 +28,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "جميع الحقول مطلوبة" }, { status: 400 });
     }
 
-    if (!VALID_ROLES.includes(role)) {
+    const normalizedRole = normalizeRole(role);
+
+    if (!VALID_ROLES.includes(normalizedRole)) {
       return NextResponse.json(
         { error: `نوع الحساب غير صحيح. القيم المسموحة: ${VALID_ROLES.join(", ")}` },
         { status: 400 }
@@ -32,7 +45,7 @@ export async function POST(request: Request) {
     const passwordHash = await bcrypt.hash(password, 10);
 
     const user = await prisma.user.create({
-      data: { name, email, passwordHash, role },
+      data: { name, email, passwordHash, role: normalizedRole as any },
     });
 
     const otp = generateOtp();
