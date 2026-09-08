@@ -21,6 +21,45 @@ if (!user) return unauthorizedResponse();
   }
 }
 
+
+
+/**
+ * @swagger
+ * /api/workspaces:
+ *   post:
+ *     summary: إضافة مساحة عمل جديدة
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [partnerId, name, city, passVisitValue, totalCapacity]
+ *             properties:
+ *               partnerId:
+ *                 type: string
+ *               name:
+ *                 type: string
+ *               city:
+ *                 type: string
+ *               locationMapUrl:
+ *                 type: string
+ *               dailyRate:
+ *                 type: number
+ *               monthlyRate:
+ *                 type: number
+ *               yearlyRate:
+ *                 type: number
+ *               passVisitValue:
+ *                 type: number
+ *               totalCapacity:
+ *                 type: integer
+ *     responses:
+ *       201:
+ *         description: تم إنشاء المساحة بنجاح
+ */
 // POST /api/workspaces — إضافة مساحة عمل جديدة
 export async function POST(request: Request) {
   try {

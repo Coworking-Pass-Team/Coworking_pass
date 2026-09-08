@@ -23,6 +23,35 @@ if (!user) return unauthorizedResponse();
   }
 }
 
+/**
+ * @swagger
+ * /api/points-transactions:
+ *   post:
+ *     summary: تسجيل حركة نقاط
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [userId, type, points]
+ *             properties:
+ *               userId:
+ *                 type: string
+ *               type:
+ *                 type: string
+ *                 enum: [EARNED, REDEEMED]
+ *               points:
+ *                 type: integer
+ *               description:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: تم تسجيل الحركة (ويحدّث الرصيد تلقائياً)
+ */
+
 export async function POST(request: NextRequest) {
   try {
     const user = getTokenFromRequest(request);

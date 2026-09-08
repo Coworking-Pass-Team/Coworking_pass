@@ -17,6 +17,34 @@ if (!user) return unauthorizedResponse();
   }
 }
 
+
+/**
+ * @swagger
+ * /api/ticket-replies:
+ *   post:
+ *     summary: إضافة رد على تذكرة
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [ticketId, userId, message]
+ *             properties:
+ *               ticketId:
+ *                 type: string
+ *               userId:
+ *                 type: string
+ *               message:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: تم إضافة الرد
+ *       400:
+ *         description: التذكرة مغلقة (CLOSED)
+ */
 // POST /api/ticket-replies — إضافة رد على تذكرة
 export async function POST(request: Request) {
   try {

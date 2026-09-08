@@ -19,6 +19,41 @@ if (!user) return unauthorizedResponse();
   }
 }
 
+
+
+/**
+ * @swagger
+ * /api/hourly-packages:
+ *   post:
+ *     summary: إضافة باقة ساعات جديدة
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [sectionId, packageName, hoursAmount, periodType, price]
+ *             properties:
+ *               sectionId:
+ *                 type: string
+ *                 description: يجب أن يكون قسم نوعه MEETING_ROOM أو THEATER
+ *               packageName:
+ *                 type: string
+ *               hoursAmount:
+ *                 type: integer
+ *               periodType:
+ *                 type: string
+ *                 enum: [PER_DAY, PER_MONTH]
+ *               price:
+ *                 type: number
+ *     responses:
+ *       201:
+ *         description: تم إنشاء الباقة بنجاح
+ *       400:
+ *         description: القسم المرتبط نوعه DESK
+ */
 // POST /api/hourly-packages — إضافة باقة ساعات جديدة
 export async function POST(request: Request) {
   try {

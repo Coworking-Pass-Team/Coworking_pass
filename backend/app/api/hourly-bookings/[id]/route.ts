@@ -36,6 +36,33 @@ if (!user) return unauthorizedResponse();
   }
 }
 
+/**
+ * @swagger
+ * /api/hourly-bookings/{id}:
+ *   put:
+ *     summary: تعديل حجز ساعي
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [ACTIVE, EXPIRED, CANCELLED]
+ *     responses:
+ *       200:
+ *         description: تم تعديل الحجز
+ */
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
