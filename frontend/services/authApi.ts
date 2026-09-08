@@ -5,9 +5,7 @@
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
-  (typeof window !== 'undefined' && window.location.origin.includes('localhost')
-    ? 'http://localhost:3000'
-    : '');
+  'http://localhost:3001';
 
 export interface RegisterPayload {
   name: string;
@@ -90,7 +88,7 @@ export function mapRoleToFrontend(backendRole: string): 'individual' | 'organiza
 /**
  * Register a new account with backend OTP email verification
  * Method: POST
- * URL: http://localhost:3000/api/auth/register
+ * URL: http://localhost:3001/api/auth/register
  */
 export async function registerUserApi(payload: RegisterPayload): Promise<RegisterResponse> {
   const url = `${API_BASE_URL}/api/auth/register`;
@@ -135,7 +133,7 @@ export async function registerUserApi(payload: RegisterPayload): Promise<Registe
 /**
  * Verify OTP code for email registration
  * Method: POST
- * URL: http://localhost:3000/api/auth/verify-email
+ * URL: http://localhost:3001/api/auth/verify-email
  */
 export async function verifyEmailApi(payload: VerifyEmailPayload): Promise<VerifyEmailResponse> {
   const url = `${API_BASE_URL}/api/auth/verify-email`;
@@ -176,7 +174,7 @@ export async function verifyEmailApi(payload: VerifyEmailPayload): Promise<Verif
 /**
  * Request OTP code for user login
  * Method: POST
- * URL: http://localhost:3000/api/auth/login
+ * URL: http://localhost:3001/api/auth/login
  */
 export async function loginUserApi(payload: LoginPayload): Promise<LoginResponse> {
   const url = `${API_BASE_URL}/api/auth/login`;
@@ -218,7 +216,7 @@ export async function loginUserApi(payload: LoginPayload): Promise<LoginResponse
 /**
  * Verify OTP code for login and obtain session token
  * Method: POST
- * URL: http://localhost:3000/api/auth/verify-login
+ * URL: http://localhost:3001/api/auth/verify-login
  */
 export async function verifyLoginApi(payload: VerifyLoginPayload): Promise<VerifyLoginResponse> {
   const url = `${API_BASE_URL}/api/auth/verify-login`;
