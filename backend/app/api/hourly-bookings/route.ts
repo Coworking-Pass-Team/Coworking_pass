@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
-export async function GET() {
+
+export async function GET(request: Request) {
   try {
+    const user = getTokenFromRequest(request);
+if (!user) return unauthorizedResponse();
     const bookings = await prisma.hourlyBooking.findMany({
       include: {
         user: { select: { name: true, email: true } },
@@ -22,6 +26,8 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const user = getTokenFromRequest(request);
+if (!user) return unauthorizedResponse();
     const body = await request.json()
     const { userId, sectionId, packageId, startDate, endDate, status = 'ACTIVE' } = body  
 
