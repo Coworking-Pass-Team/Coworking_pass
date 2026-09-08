@@ -994,3 +994,14 @@ export interface NavState {
   screen: Screen;
   params: Record<string, any>;
 }
+
+export interface Partner {
+  id: string;
+  brandName: string;
+  contactEmail: string;
+  taxNumber: string;
+  revenueSharePercentage: number;
+  workspaces?: any[];
+  payouts?: any[];
+  createdAt?: string;
+}
