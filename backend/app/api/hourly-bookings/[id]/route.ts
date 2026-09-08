@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = getTokenFromRequest(request);
+if (!user) return unauthorizedResponse();
     const { id } = await params
     const booking = await prisma.hourlyBooking.findUnique({
       where: { id },
@@ -38,6 +41,8 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = getTokenFromRequest(request);
+if (!user) return unauthorizedResponse();
     const { id } = await params
     const body = await request.json()
     const booking = await prisma.hourlyBooking.update({
@@ -64,6 +69,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = getTokenFromRequest(request);
+if (!user) return unauthorizedResponse();
+
     const { id } = await params
 
     // 1. جلب الحجز مع بيانات المستخدم

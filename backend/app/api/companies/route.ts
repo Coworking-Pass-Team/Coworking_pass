@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-
+import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 // GET /api/companies — عرض كل الشركات
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const user = getTokenFromRequest(request);
+    if (!user) return unauthorizedResponse();
+
+
     const companies = await prisma.company.findMany({
       include: { hrAdmin: true, employees: true },
     });
@@ -17,6 +21,10 @@ export async function GET() {
 // POST /api/companies — إضافة شركة جديدة
 export async function POST(request: Request) {
   try {
+     const user = getTokenFromRequest(request);
+    if (!user) return unauthorizedResponse();
+
+
     const { companyName, hrAdminId, totalPassesAllocated } = await request.json();
 
     if (!companyName || !hrAdminId) {

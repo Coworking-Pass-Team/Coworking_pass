@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = getTokenFromRequest(request);
+if (!user) return unauthorizedResponse();
+
     const { id } = await params;
     const data = await request.json();
 
@@ -29,6 +33,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = getTokenFromRequest(request);
+if (!user) return unauthorizedResponse();
+
     const { id } = await params;
 
     await prisma.workspace.delete({ where: { id } });

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
 // DELETE: إزالة من قائمة الانتظار
 export async function DELETE(
@@ -7,6 +8,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = getTokenFromRequest(request);
+if (!user) return unauthorizedResponse();
     const { id } = await params
     await prisma.directBooking.delete({
       where: { id }

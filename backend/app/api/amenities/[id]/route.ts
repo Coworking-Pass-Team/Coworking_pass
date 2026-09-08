@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-
+import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 // PUT /api/amenities/[id] — الموافقة أو رفض مرفق مقترح
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = getTokenFromRequest(request);
+if (!user) return unauthorizedResponse();
     const { id } = await params;
     const { status } = await request.json();
 
@@ -38,6 +40,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = getTokenFromRequest(request);
+if (!user) return unauthorizedResponse();
     const { id } = await params;
     await prisma.amenityCatalog.delete({ where: { id } });
     return NextResponse.json({ message: "تم حذف المرفق بنجاح" });
