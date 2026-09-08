@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
 export async function POST(request: NextRequest) {
   try {
+    const user = getTokenFromRequest(request);
+if (!user) return unauthorizedResponse();
+
     const { transactionId, amount, userId } = await request.json()
 
     if (!transactionId || !amount || !userId) {
