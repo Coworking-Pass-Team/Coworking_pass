@@ -46,6 +46,9 @@ export const INITIAL_SPACES: Space[] = [
     phone: '+966 11 234 5678',
     email: 'hub@thehubriyadh.sa',
     ownerId: 'provider-1',
+    latitude: 24.6970,
+    longitude: 46.6850,
+    coordinates: { lat: 24.6970, lng: 46.6850 },
   },
   {
     id: 'space-2',
@@ -81,6 +84,9 @@ export const INITIAL_SPACES: Space[] = [
     openHours: 'Daily: 8am–9pm',
     phone: '+966 12 456 7890',
     email: 'hello@workbayjeddah.sa',
+    latitude: 21.5833,
+    longitude: 39.1167,
+    coordinates: { lat: 21.5833, lng: 39.1167 },
   },
   {
     id: 'space-3',
@@ -117,6 +123,9 @@ export const INITIAL_SPACES: Space[] = [
     phone: '+966 11 678 9012',
     email: 'members@desksociety.sa',
     ownerId: 'provider-1',
+    latitude: 24.7645,
+    longitude: 46.6341,
+    coordinates: { lat: 24.7645, lng: 46.6341 },
   },
   {
     id: 'space-4',
@@ -152,6 +161,9 @@ export const INITIAL_SPACES: Space[] = [
     openHours: 'Sun–Thu: 8am–9pm | Fri: 2pm–8pm',
     phone: '+966 13 234 5678',
     email: 'info@collectivedammam.sa',
+    latitude: 26.4485,
+    longitude: 50.1165,
+    coordinates: { lat: 26.4485, lng: 50.1165 },
   },
   {
     id: 'space-5',
@@ -187,6 +199,9 @@ export const INITIAL_SPACES: Space[] = [
     openHours: 'Sun–Thu: 7am–8pm | Sat: 9am–5pm',
     phone: '+966 13 567 8901',
     email: 'hello@oasiscowork.sa',
+    latitude: 26.2810,
+    longitude: 50.2080,
+    coordinates: { lat: 26.2810, lng: 50.2080 },
   },
   {
     id: 'space-6',
@@ -222,6 +237,9 @@ export const INITIAL_SPACES: Space[] = [
     openHours: 'Sun–Thu: 8am–10pm',
     phone: '+966 14 789 0123',
     email: 'info@madinahtechhub.sa',
+    latitude: 24.4672,
+    longitude: 39.6111,
+    coordinates: { lat: 24.4672, lng: 39.6111 },
   },
   {
     id: 'space-7',
@@ -257,6 +275,9 @@ export const INITIAL_SPACES: Space[] = [
     openHours: 'Daily: 9am–10pm',
     phone: '+966 12 901 2345',
     email: 'join@creativecolony.sa',
+    latitude: 21.5433,
+    longitude: 39.1728,
+    coordinates: { lat: 21.5433, lng: 39.1728 },
   },
   {
     id: 'space-8',
@@ -292,6 +313,9 @@ export const INITIAL_SPACES: Space[] = [
     openHours: 'Sun–Thu: 7am–8pm',
     phone: '+966 11 890 1234',
     email: 'executive@gatewaybusiness.sa',
+    latitude: 24.6800,
+    longitude: 46.6230,
+    coordinates: { lat: 24.6800, lng: 46.6230 },
   },
   {
     id: 'space-hall-1',
@@ -337,6 +361,9 @@ export const INITIAL_SPACES: Space[] = [
     phone: '+966 11 445 6789',
     email: 'events@thehubriyadh.sa',
     ownerId: 'provider-1',
+    latitude: 24.7015,
+    longitude: 46.6812,
+    coordinates: { lat: 24.7015, lng: 46.6812 },
   },
   {
     id: 'space-hall-2',
@@ -381,6 +408,9 @@ export const INITIAL_SPACES: Space[] = [
     openHours: 'Daily: 8am–10pm',
     phone: '+966 12 654 3210',
     email: 'training@horizonevents.sa',
+    latitude: 21.5582,
+    longitude: 39.1620,
+    coordinates: { lat: 21.5582, lng: 39.1620 },
   },
   {
     id: 'space-theater-1',
@@ -426,6 +456,9 @@ export const INITIAL_SPACES: Space[] = [
     phone: '+966 11 333 9988',
     email: 'theater@kafdvenue.sa',
     ownerId: 'provider-1',
+    latitude: 24.7670,
+    longitude: 46.6385,
+    coordinates: { lat: 24.7670, lng: 46.6385 },
   },
   {
     id: 'space-theater-2',
@@ -470,6 +503,9 @@ export const INITIAL_SPACES: Space[] = [
     openHours: 'Daily: 9am–11pm',
     phone: '+966 12 777 4455',
     email: 'culture@redseaview.sa',
+    latitude: 21.5510,
+    longitude: 39.1550,
+    coordinates: { lat: 21.5510, lng: 39.1550 },
   },
   {
     id: 'space-hall-4',
@@ -514,6 +550,9 @@ export const INITIAL_SPACES: Space[] = [
     openHours: 'Daily: 8am–11pm',
     phone: '+966 13 888 1234',
     email: 'khobarhall@eastvenues.sa',
+    latitude: 26.3120,
+    longitude: 50.2150,
+    coordinates: { lat: 26.3120, lng: 50.2150 },
   },
   {
     id: 'space-hall-meeting',
@@ -559,6 +598,9 @@ export const INITIAL_SPACES: Space[] = [
     phone: '+966 11 222 3344',
     email: 'meeting@faisaliahvenue.sa',
     ownerId: 'provider-1',
+    latitude: 24.6900,
+    longitude: 46.6845,
+    coordinates: { lat: 24.6900, lng: 46.6845 },
   },
   {
     id: 'space-hall-workshop',
@@ -603,6 +645,9 @@ export const INITIAL_SPACES: Space[] = [
     openHours: 'Daily: 8am–10pm',
     phone: '+966 13 444 5566',
     email: 'workshops@siliconoasis.sa',
+    latitude: 26.3050,
+    longitude: 50.1450,
+    coordinates: { lat: 26.3050, lng: 50.1450 },
   },
   {
     id: 'space-hall-event',
@@ -648,6 +693,9 @@ export const INITIAL_SPACES: Space[] = [
     phone: '+966 11 777 8899',
     email: 'events@diriyahhall.sa',
     ownerId: 'provider-1',
+    latitude: 24.7335,
+    longitude: 46.5750,
+    coordinates: { lat: 24.7335, lng: 46.5750 },
   },
   {
     id: 'space-hall-lecture',
@@ -692,6 +740,9 @@ export const INITIAL_SPACES: Space[] = [
     openHours: 'Sun–Thu: 8am–9pm',
     phone: '+966 12 555 6677',
     email: 'lectures@kauvenues.sa',
+    latitude: 21.4925,
+    longitude: 39.2450,
+    coordinates: { lat: 21.4925, lng: 39.2450 },
   },
   {
     id: 'space-theater-conference',
@@ -737,6 +788,9 @@ export const INITIAL_SPACES: Space[] = [
     phone: '+966 13 999 0011',
     email: 'theater@dammamtech.sa',
     ownerId: 'provider-1',
+    latitude: 26.4560,
+    longitude: 50.1280,
+    coordinates: { lat: 26.4560, lng: 50.1280 },
   },
   {
     id: 'space-theater-makkah',
@@ -781,6 +835,9 @@ export const INITIAL_SPACES: Space[] = [
     openHours: 'Daily: 9am–11pm',
     phone: '+966 12 333 4455',
     email: 'makkahvenue@culturaltheaters.sa',
+    latitude: 21.3891,
+    longitude: 39.8150,
+    coordinates: { lat: 21.3891, lng: 39.8150 },
   },
   {
     id: 'space-office-shared',
@@ -816,6 +873,9 @@ export const INITIAL_SPACES: Space[] = [
     openHours: 'Daily: 24/7 for members',
     phone: '+966 11 888 7766',
     email: 'info@thehiveriyadh.sa',
+    latitude: 24.7120,
+    longitude: 46.6620,
+    coordinates: { lat: 24.7120, lng: 46.6620 },
   },
 ];
 

@@ -222,6 +222,64 @@ export interface Space {
   email: string;
   ownerId?: string;
   status?: 'published' | 'draft' | 'hidden';
+  latitude?: number;
+  longitude?: number;
+  coordinates?: { lat: number; lng: number };
+}
+
+/**
+ * Haversine formula to calculate the great-circle distance between two geographic coordinates in kilometers.
+ * @param lat1 Latitude of first point in degrees
+ * @param lon1 Longitude of first point in degrees
+ * @param lat2 Latitude of second point in degrees
+ * @param lon2 Longitude of second point in degrees
+ * @returns Distance in kilometers
+ */
+export function calculateHaversineDistance(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+): number {
+  const R = 6371; // Radius of the earth in km
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+/**
+ * Formats distance with intuitive units:
+ * - If < 1 km: formatted in meters (e.g., "350 m", "850 m")
+ * - If >= 1 km: formatted in kilometers (e.g., "1.2 km", "4.8 km", "12.5 km")
+ */
+export function formatDistance(distanceInKm: number | null | undefined): string {
+  if (distanceInKm === null || distanceInKm === undefined || isNaN(distanceInKm)) return '';
+  if (distanceInKm < 1) {
+    const meters = Math.max(1, Math.round(distanceInKm * 1000));
+    return `${meters} m`;
+  }
+  return `${distanceInKm.toFixed(1)} km`;
+}
+
+/**
+ * Helper to safely extract coordinates from a Space object.
+ */
+export function getSpaceCoordinates(space?: Space | null): { lat: number; lng: number } | null {
+  if (!space) return null;
+  if (space.coordinates && typeof space.coordinates.lat === 'number' && typeof space.coordinates.lng === 'number') {
+    return space.coordinates;
+  }
+  if (typeof space.latitude === 'number' && typeof space.longitude === 'number') {
+    return { lat: space.latitude, lng: space.longitude };
+  }
+  return null;
 }
 
 export interface Employee {
