@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '@/app/store';
 import { Booking, BookingStatus, getBookingPrice } from '@/types/types';
+import { updateDirectBookingApi } from '@/services/authApi';
 
 export default function BookingsAdmin() {
   const { bookings, spaces, users, updateBookingStatus, showToast } = useApp();
@@ -83,6 +84,10 @@ export default function BookingsAdmin() {
     if (selectedBooking && selectedBooking.id === bookingId) {
       setSelectedBooking((prev) => (prev ? { ...prev, status } : null));
     }
+    const backendStatus = status === 'active' ? 'CONFIRMED' : status === 'cancelled' ? 'CANCELLED' : 'CONFIRMED';
+    updateDirectBookingApi(bookingId, { status: backendStatus }).catch((err) =>
+      console.warn('[Direct Booking PUT Sync]', err)
+    );
     showToast(`Booking status changed to ${status}`);
   };
 

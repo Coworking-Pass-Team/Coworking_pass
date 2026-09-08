@@ -23,6 +23,7 @@ import {
 import { useApp } from '@/app/store';
 import { Booking, BookingStatus, getHourlyPriceForDuration, getBookingPrice, isCancellationRefundEligible } from '@/types/types';
 import Modal from '@/components/ui/Modal';
+import { deleteDirectBookingApi } from '@/services/authApi';
 
 export default function MyBookings() {
   const { bookings, spaces, currentUser, navigate, cancelBooking, nav, showToast } = useApp();
@@ -61,9 +62,13 @@ export default function MyBookings() {
 
   const handleCancelConfirm = () => {
     if (!cancelModal) return;
-    cancelBooking(cancelModal.id, refundMethod);
+    const bookingToCancel = cancelModal;
+    cancelBooking(bookingToCancel.id, refundMethod);
+    deleteDirectBookingApi(bookingToCancel.id).catch((err) =>
+      console.warn('[Direct Booking DELETE Sync]', err)
+    );
     setCancelModal(null);
-    if (selectedBooking && selectedBooking.id === cancelModal.id) {
+    if (selectedBooking && selectedBooking.id === bookingToCancel.id) {
       setSelectedBooking(null);
     }
   };
