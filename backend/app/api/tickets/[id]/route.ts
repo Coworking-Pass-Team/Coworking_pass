@@ -4,6 +4,35 @@ import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-tok
 
 const VALID_STATUSES = ["OPEN", "IN_PROGRESS", "CLOSED"];
 
+
+
+/**
+ * @swagger
+ * /api/tickets/{id}:
+ *   put:
+ *     summary: تعديل حالة تذكرة
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [OPEN, IN_PROGRESS, CLOSED]
+ *     responses:
+ *       200:
+ *         description: تم تعديل حالة التذكرة
+ */
 // PUT /api/tickets/[id] — تعديل حالة التذكرة
 export async function PUT(
   request: Request,

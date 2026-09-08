@@ -1,16 +1,10 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function sendOtpEmail(to: string, code: string) {
-  await transporter.sendMail({
-    from: `"Coworking Pass" <${process.env.EMAIL_USER}>`,
+  await resend.emails.send({
+    from: "Coworking Pass <onboarding@resend.dev>",
     to,
     subject: "رمز التحقق - Coworking Pass",
     html: `<div dir="rtl" style="font-family: Arial, sans-serif;">

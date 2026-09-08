@@ -13,10 +13,13 @@
     "bcryptjs": "^3.0.3",
     "jsonwebtoken": "^9.0.3",
     "next": "16.3.3",
+    "next-swagger-doc": "^0.5.0",
     "node-cron": "^4.6.0",
     "nodemailer": "^9.1.1",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "resend": "^6.26.0",
+    "swagger-ui-react": "^5.32.15"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

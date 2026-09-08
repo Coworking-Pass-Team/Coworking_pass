@@ -9,6 +9,34 @@ function generateOtp() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
+
+/**
+ * @swagger
+ * /api/auth/register:
+ *   post:
+ *     summary: تسجيل حساب جديد
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name, email, password, role]
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *                 enum: [GUEST, B2C]
+ *     responses:
+ *       201:
+ *         description: تم إنشاء الحساب بنجاح
+ */
+
 export async function POST(request: Request) {
   try {
     const { name, email, password, role } = await request.json();

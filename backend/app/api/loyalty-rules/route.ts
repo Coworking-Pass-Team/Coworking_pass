@@ -22,6 +22,36 @@ if (!user) return unauthorizedResponse();
     )
   }
 }
+/**
+ * @swagger
+ * /api/loyalty-rules:
+ *   post:
+ *     summary: اقتراح قاعدة نقاط
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [ruleName, ruleType, pointsValue, monetaryValue, proposedBy]
+ *             properties:
+ *               ruleName:
+ *                 type: string
+ *               ruleType:
+ *                 type: string
+ *                 enum: [EARNING, REDEMPTION]
+ *               pointsValue:
+ *                 type: integer
+ *               monetaryValue:
+ *                 type: number
+ *               proposedBy:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: تم اقتراح القاعدة
+ */
 
 export async function POST(request: NextRequest) {
   try {
