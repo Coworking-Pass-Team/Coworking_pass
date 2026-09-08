@@ -1,14 +1,20 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, Space, Booking, Screen, NavState, UserRole, BookingType, PaymentCard, Notification, CartItem, AmenityRequest, AmenityRequestStatus, calculateEndDate, isCancellationRefundEligible, getBookingPrice, OtpSession } from '@/types/types';
-import { INITIAL_SPACES, INITIAL_USERS, INITIAL_BOOKINGS, INITIAL_NOTIFICATIONS } from '@/data/data';
+import { User, Space, Booking, Screen, NavState, UserRole, BookingType, PaymentCard, Notification, CartItem, AmenityRequest, AmenityRequestStatus, calculateEndDate, isCancellationRefundEligible, getBookingPrice, OtpSession, SupportTicket, TicketStatus } from '@/types/types';
+import { INITIAL_SPACES, INITIAL_USERS, INITIAL_BOOKINGS, INITIAL_NOTIFICATIONS, INITIAL_SUPPORT_TICKETS } from '@/data/data';
 
 interface AppContextType {
   // Navigation
   nav: NavState;
   navigate: (screen: Screen, params?: Record<string, any>) => void;
   goBack: () => void;
+
+  // Support Tickets & Inquiries
+  supportTickets: SupportTicket[];
+  addSupportTicket: (ticketData: Omit<SupportTicket, 'id' | 'ticketNumber' | 'createdAt' | 'status' | 'priority'> & { status?: TicketStatus; priority?: SupportTicket['priority'] }) => SupportTicket;
+  updateTicketStatus: (id: string, status: TicketStatus, notes?: string) => void;
+  replyToTicket: (id: string, reply: string, newStatus?: TicketStatus) => void;
 
   // Auth & 2FA OTP
   currentUser: User | null;
@@ -140,6 +146,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     },
   ]);
   const [approvedCustomAmenities, setApprovedCustomAmenities] = useState<string[]>(['Podcast Recording Studio']);
+  const [supportTickets, setSupportTickets] = useState<SupportTicket[]>(INITIAL_SUPPORT_TICKETS);
 
   const sanitizeBookings = (list: Booking[]): Booking[] => {
     const seen = new Set<string>();
@@ -263,6 +270,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
         } catch (e) {
           // Keep default state
         }
+      }
+
+      const savedTickets = localStorage.getItem('cp_support_tickets');
+      if (savedTickets) {
+        try {
+          setSupportTickets(JSON.parse(savedTickets));
+        } catch (e) {
+          setSupportTickets(INITIAL_SUPPORT_TICKETS);
+        }
+      } else {
+        localStorage.setItem('cp_support_tickets', JSON.stringify(INITIAL_SUPPORT_TICKETS));
       }
     } catch (e) {
       console.error('Failed to load storage state:', e);
@@ -1157,6 +1175,71 @@ export function AppProvider({ children }: { children: ReactNode }) {
     showToast(`Rejected custom amenity request "${req.amenityName}".`, 'error');
   };
 
+  const addSupportTicket: AppContextType['addSupportTicket'] = (ticketData) => {
+    const newTicket: SupportTicket = {
+      id: `ticket-${Date.now()}`,
+      ticketNumber: `TK-${Math.floor(1000 + Math.random() * 9000)}`,
+      status: ticketData.status || 'open',
+      priority: ticketData.priority || (ticketData.category === 'complaint' ? 'high' : ticketData.category === 'refund' ? 'medium' : 'low'),
+      createdAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      ...ticketData,
+    };
+    const updated = [newTicket, ...supportTickets];
+    setSupportTickets(updated);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cp_support_tickets', JSON.stringify(updated));
+    }
+    showToast(`Support ticket ${newTicket.ticketNumber} logged successfully`, 'success');
+    return newTicket;
+  };
+
+  const updateTicketStatus = (id: string, status: TicketStatus, notes?: string) => {
+    const updated = supportTickets.map((t) =>
+      t.id === id
+        ? {
+            ...t,
+            status,
+            adminNotes: notes !== undefined ? notes : t.adminNotes,
+            updatedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
+          }
+        : t
+    );
+    setSupportTickets(updated);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cp_support_tickets', JSON.stringify(updated));
+    }
+    showToast(`Ticket status updated to ${status}`, 'success');
+  };
+
+  const replyToTicket = (id: string, reply: string, newStatus: TicketStatus = 'resolved') => {
+    const ticket = supportTickets.find((t) => t.id === id);
+    const updated = supportTickets.map((t) =>
+      t.id === id
+        ? {
+            ...t,
+            adminReply: reply,
+            status: newStatus,
+            updatedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
+          }
+        : t
+    );
+    setSupportTickets(updated);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cp_support_tickets', JSON.stringify(updated));
+    }
+
+    if (ticket && ticket.userId) {
+      addNotification({
+        userId: ticket.userId,
+        title: `Response to Ticket ${ticket.ticketNumber}`,
+        message: `Admin Response: "${reply}"`,
+        type: 'system',
+      });
+    }
+
+    showToast(`Response sent to customer`, 'success');
+  };
+
   return (
     <AppContext.Provider value={{
       nav, navigate, goBack,
@@ -1164,6 +1247,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       spaces, favorites, toggleFavorite, addSpace, updateSpace, toggleSpaceVisibility, deleteSpace,
       bookings, addBooking, cancelBooking, updateBookingStatus,
       amenityRequests, approvedCustomAmenities, requestCustomAmenity, approveAmenityRequest, rejectAmenityRequest, getApprovedAmenities,
+      supportTickets, addSupportTicket, updateTicketStatus, replyToTicket,
       notifications: userNotifications,
       unreadNotificationsCount: userNotifications.filter(n => !n.read).length,
       markNotificationRead, toggleNotificationRead, markAllNotificationsRead, deleteNotification, clearAllNotifications, addNotification, generateFakeNotification,
