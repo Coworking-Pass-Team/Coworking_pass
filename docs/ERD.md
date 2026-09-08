@@ -1,4 +1,4 @@
-# Entity Relationship Diagram (ERD) - Master Version
+﻿# Entity Relationship Diagram (ERD) - Master Version
 
 This ERD encompasses all system entities: foundational booking logic (Waitlists, Durations), the Aggregator logic (B2B, Packages, QR Check-ins, Payouts), Workspace Sections (Desks, Meeting Rooms, Theaters), Notifications & OTP, Amenities Management, and the Loyalty Points & Rules System.
 
@@ -250,257 +250,40 @@ erDiagram
     HOURLY_PACKAGES ||--o{ HOURLY_BOOKINGS : "applied to booking"
     AMENITIES_CATALOG ||--o{ WORKSPACE_AMENITIES : "selected by workspaces"
     MEMBERSHIP_PLANS ||--o{ SUBSCRIPTIONS : "has subscribers"
-```
+```$hint
 
----
+## ًں“Œ طھظپطµظٹظ„ ط£ظ‚ط³ط§ظ… ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ (ERD Breakdown)
 
-## 📌 تفصيل أقسام قاعدة البيانات (ERD Breakdown)
+ظ„ظƒظٹ طھظƒظˆظ† ظ‡ظٹظƒظ„ط© ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ ظˆط§ط¶ط­ط© ظˆظ…ظ‚ط±ظˆط،ط© ظ„ظƒطŒ ظ‚ظ…ظ†ط§ ط¨طھظ‚ط³ظٹظ…ظ‡ط§ ط¥ظ„ظ‰ **7 ط£ظ‚ط³ط§ظ… ط±ط¦ظٹط³ظٹط©**:
 
-لكي تكون هيكلة قاعدة البيانات واضحة ومقروءة لك، قمنا بتقسيمها إلى **7 أقسام رئيسية**:
+### 1. ط§ظ„ظƒظٹط§ظ†ط§طھ ط§ظ„ط£ط³ط§ط³ظٹط© (Core Entities)
+- **`USERS`**: ظٹط®ط²ظ† ط¨ظٹط§ظ†ط§طھ ط¬ظ…ظٹط¹ ط§ظ„ظ…ط³طھط®ط¯ظ…ظٹظ† (ط²ظˆط§ط±طŒ ط£ظپط±ط§ط¯طŒ ط¥ط¯ط§ط±ظٹظٹظ†طŒ ط´ط±ظƒط§ط،) ظˆطµظ„ط§ط­ظٹط§طھظ‡ظ….
+- **`COMPANIES`**: ظ„ظ„ط´ط±ظƒط§طھ ط§ظ„ظ…ظ†ط¶ظ…ط© (B2B) ظˆطھط­ط¯ظٹط¯ ط¹ط¯ط¯ ط§ظ„ط¹ط¶ظˆظٹط§طھ ط§ظ„ظ…ط®طµطµط© ظ„ظ…ظˆط¸ظپظٹظ‡ط§.
+- **`PARTNERS`**: ط´ط±ظƒط§ط، ظ…ط³ط§ط­ط§طھ ط§ظ„ط¹ظ…ظ„ (ظ…ط«ظ„ ط²ظ…ظƒط§ظ†طŒ ط±ظٹط¬ط³) ظˆط¨ظٹط§ظ†ط§طھظ‡ظ… ط§ظ„ط¶ط±ظٹط¨ظٹط©.
 
-### 1. الكيانات الأساسية (Core Entities)
-- **`USERS`**: يخزن بيانات جميع المستخدمين (زوار، أفراد، إداريين، شركاء) وصلاحياتهم.
-- **`COMPANIES`**: للشركات المنضمة (B2B) وتحديد عدد العضويات المخصصة لموظفيها.
-- **`PARTNERS`**: شركاء مساحات العمل (مثل زمكان، ريجس) وبياناتهم الضريبية.
+### 2. ط§ظ„ظ…ط³ط§ط­ط§طھ ظˆط§ظ„ظ…ط±ط§ظپظ‚ (Workspace & Sections)
+- **`WORKSPACES`**: طھظپط§طµظٹظ„ ظƒظ„ ظپط±ط¹ ظ…ط³ط§ط­ط© ط¹ظ…ظ„ (ط§ظ„ظ…ط¯ظٹظ†ط©طŒ ط§ظ„ظ…ظˆظ‚ط¹طŒ ط§ظ„طھط³ط¹ظٹط±ط© ط§ظ„ط£ط³ط§ط³ظٹط©).
+- **`WORKSPACE_SECTIONS`**: طھظ‚ط³ظٹظ…ط§طھ ط§ظ„ظ…ط³ط§ط­ط© ظ…ظ† ط§ظ„ط¯ط§ط®ظ„ (ظ…ظƒط§طھط¨طŒ ظ‚ط§ط¹ط§طھ ط§ط¬طھظ…ط§ط¹ط§طھطŒ ظ…ط³ط§ط±ط­) ط¨ط³ط¹طھظ‡ط§ ظˆط£ط³ط¹ط§ط±ظ‡ط§ ط§ظ„ط®ط§طµط©.
+- **`HOURLY_PACKAGES`**: ط¨ط§ظ‚ط§طھ ط§ظ„ط³ط§ط¹ط§طھ ط§ظ„ظ…ط®طµطµط© ظ„ظ‚ط§ط¹ط§طھ ط§ظ„ط§ط¬طھظ…ط§ط¹ط§طھ ظˆط§ظ„ظ…ط³ط§ط±ط­ (ظ…ط«ظ„: ط¨ط§ظ‚ط© 8 ط³ط§ط¹ط§طھ/ط´ظ‡ط±).
 
-### 2. المساحات والمرافق (Workspace & Sections)
-- **`WORKSPACES`**: تفاصيل كل فرع مساحة عمل (المدينة، الموقع، التسعيرة الأساسية).
-- **`WORKSPACE_SECTIONS`**: تقسيمات المساحة من الداخل (مكاتب، قاعات اجتماعات، مسارح) بسعتها وأسعارها الخاصة.
-- **`HOURLY_PACKAGES`**: باقات الساعات المخصصة لقاعات الاجتماعات والمسارح (مثل: باقة 8 ساعات/شهر).
+### 3. ط¥ط¯ط§ط±ط© ط§ظ„ظ…ظٹط²ط§طھ (Amenities Management)
+- **`AMENITIES_CATALOG`**: ط§ظ„ظ‚ط§ظ…ظˆط³ ط§ظ„ط´ط§ظ…ظ„ ظ„ظ„ظ…ظٹط²ط§طھ (ط§ظ„ط§ظپطھط±ط§ط¶ظٹط© ظ…ظ† ط§ظ„ظ…ظ†طµط© + ط§ظ„طھظٹ ظٹظ‚طھط±ط­ظ‡ط§ ط§ظ„ط´ط±ظƒط§ط، ظˆطھظ†طھط¸ط± ط§ظ„ظ…ظˆط§ظپظ‚ط©).
+- **`WORKSPACE_AMENITIES`**: ط¬ط¯ظˆظ„ ظˆط³ظٹط· (Junction) ظٹط±ط¨ط· ط¨ظٹظ† ظƒظ„ ظ…ط³ط§ط­ط© ط¹ظ…ظ„ ظˆط§ظ„ظ…ظٹط²ط§طھ ط§ظ„ظ…طھظˆظپط±ط© ظپظٹظ‡ط§.
 
-### 3. إدارة الميزات (Amenities Management)
-- **`AMENITIES_CATALOG`**: القاموس الشامل للميزات (الافتراضية من المنصة + التي يقترحها الشركاء وتنتظر الموافقة).
-- **`WORKSPACE_AMENITIES`**: جدول وسيط (Junction) يربط بين كل مساحة عمل والميزات المتوفرة فيها.
+### 4. ط§ظ„ط­ط¬ظˆط²ط§طھ ظˆط§ظ„ط¹ط¶ظˆظٹط§طھ (Plans & Bookings)
+- **`MEMBERSHIP_PLANS` & `SUBSCRIPTIONS`**: ظ„طھط®ط²ظٹظ† ط§ظ„ط¹ط¶ظˆظٹط§طھ ط§ظ„ط´ط§ظ…ظ„ط© (Universal Pass) ظˆظ…ط¯ط© ط§ط´طھط±ط§ظƒ ط§ظ„ظ…ط³طھط®ط¯ظ… ظپظٹظ‡ط§.
+- **`DIRECT_BOOKINGS`**: ط§ظ„ط­ط¬ظˆط²ط§طھ ط§ظ„ظ…ط¨ط§ط´ط±ط© ط§ظ„ط«ط§ط¨طھط© ظ„ظ„ظ…ظƒط§طھط¨ (ط¨ط§ظ„ظٹظˆظ…طŒ ط§ظ„ط´ظ‡ط±طŒ ط§ظ„ط³ظ†ط©) ظˆظٹط´ظ…ظ„ (ط·ط§ط¨ظˆط± ط§ظ„ط§ظ†طھط¸ط§ط±).
+- **`HOURLY_BOOKINGS`**: ط­ط¬ظˆط²ط§طھ ظ‚ط§ط¹ط§طھ ط§ظ„ط§ط¬طھظ…ط§ط¹ط§طھ ظˆط§ظ„ظ…ط³ط§ط±ط­ ط§ظ„طھظٹ طھط³طھظ‡ظ„ظƒ ظ…ظ† ط±طµظٹط¯ ط³ط§ط¹ط§طھ ط§ظ„ظ…ط³طھط®ط¯ظ….
 
-### 4. الحجوزات والعضويات (Plans & Bookings)
-- **`MEMBERSHIP_PLANS` & `SUBSCRIPTIONS`**: لتخزين العضويات الشاملة (Universal Pass) ومدة اشتراك المستخدم فيها.
-- **`DIRECT_BOOKINGS`**: الحجوزات المباشرة الثابتة للمكاتب (باليوم، الشهر، السنة) ويشمل (طابور الانتظار).
-- **`HOURLY_BOOKINGS`**: حجوزات قاعات الاجتماعات والمسارح التي تستهلك من رصيد ساعات المستخدم.
+### 5. ط§ظ„ط¯ظپط¹ ظˆط§ظ„ظ…ط§ظ„ظٹط© (Financial)
+- **`PAYMENTS`**: ط¬ظ…ظٹط¹ ط¹ظ…ظ„ظٹط§طھ ط§ظ„ط¯ظپط¹ (ط§ظ„ظˆظ‡ظ…ظٹط© ط­ط§ظ„ظٹط§ظ‹ ط£ظˆ ط§ظ„ط­ظ‚ظٹظ‚ظٹط© ظ…ط³طھظ‚ط¨ظ„ط§ظ‹)طŒ ط³ظˆط§ط، ظ„ط­ط¬ط² ظ…ط¨ط§ط´ط±طŒ ط§ط´طھط±ط§ظƒطŒ ط£ظˆ ط؛ظٹط±ظ‡.
+- **`PAYOUTS`**: ط§ظ„طھط³ظˆظٹط§طھ ط§ظ„ظ…ط§ظ„ظٹط© ط§ظ„طھظٹ طھطµط±ظپظ‡ط§ ط§ظ„ظ…ظ†طµط© ط´ظ‡ط±ظٹط§ظ‹ ظ„ظƒظ„ ط´ط±ظٹظƒ ط¨ظ†ط§ط،ظ‹ ط¹ظ„ظ‰ ط§ظ„ط²ظٹط§ط±ط§طھ.
 
-### 5. الدفع والمالية (Financial)
-- **`PAYMENTS`**: جميع عمليات الدفع (الوهمية حالياً أو الحقيقية مستقبلاً)، سواء لحجز مباشر، اشتراك، أو غيره.
-- **`PAYOUTS`**: التسويات المالية التي تصرفها المنصة شهرياً لكل شريك بناءً على الزيارات.
+### 6. ط§ظ„طھط­ظ‚ظ‚ ظˆط§ظ„ط£ظ…ط§ظ† (Verification & Security)
+- **`QR_CHECK_INS`**: ط§ظ„ط³ط¬ظ„ ط§ظ„ظ„ط­ط¸ظٹ ظ„ظ…ط³ط­ ط±ظ…ظˆط² ط§ظ„ظ€ QR ط¹ظ†ط¯ ط£ط¨ظˆط§ط¨ ظ…ط³ط§ط­ط§طھ ط§ظ„ط¹ظ…ظ„ ظ„ظ„طھط­ظ‚ظ‚ ظ…ظ† ط§ظ„ط¯ط®ظˆظ„.
+- **`OTP_CODES`**: طھط®ط²ظٹظ† ط£ظƒظˆط§ط¯ ط§ظ„طھط­ظ‚ظ‚ ط§ظ„ظ…ط¤ظ‚طھط© ط§ظ„ظ…ط±ط³ظ„ط© ط¹ط¨ط± ط§ظ„ط¥ظٹظ…ظٹظ„ ظ„ظ„طھط³ط¬ظٹظ„ ظˆط§ط³طھط¹ط§ط¯ط© ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±طŒ ظ„ط¶ظ…ط§ظ† طھط´ظپظٹط±ظ‡ط§ ظˆظ…ط¯ط© طµظ„ط§ط­ظٹطھظ‡ط§.
 
-### 6. التحقق والأمان (Verification & Security)
-- **`QR_CHECK_INS`**: السجل اللحظي لمسح رموز الـ QR عند أبواب مساحات العمل للتحقق من الدخول.
-- **`OTP_CODES`**: تخزين أكواد التحقق المؤقتة المرسلة عبر الإيميل للتسجيل واستعادة كلمة المرور، لضمان تشفيرها ومدة صلاحيتها.
-
-### 7. الإشعارات ونقاط الولاء (Notifications & Loyalty)
-- **`NOTIFICATIONS`**: جميع الإشعارات الصادرة (بريد أو تطبيق) لكل مستخدم وتتبع حالة قراءتها.
-- **`LOYALTY_RULES`**: اقتراحات الشركاء لقواعد النقاط والتي يراجعها الـ Super Admin للموافقة.
-- **`LOYALTY_POINTS` & `POINTS_TRANSACTIONS`**: رصيد كل مستخدم من النقاط وسجل الاكتساب والاستبدال.
-
----
-
-
-```sql
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
--- 1. الكيانات الأساسية (Core Entities)
-CREATE TABLE users (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name VARCHAR(255) NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    role VARCHAR(50) NOT NULL CHECK (role IN ('GUEST', 'B2C', 'HR_ADMIN', 'PARTNER_ADMIN', 'SUPER_ADMIN')),
-    company_id UUID,
-    email_verified BOOLEAN DEFAULT FALSE
-);
-
-CREATE TABLE companies (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    company_name VARCHAR(255) NOT NULL,
-    hr_admin_id UUID REFERENCES users(id),
-    total_passes_allocated INT NOT NULL DEFAULT 0,
-    shared_wallet_balance DECIMAL(10,2) DEFAULT 0.0
-);
-ALTER TABLE users ADD CONSTRAINT fk_user_company FOREIGN KEY (company_id) REFERENCES companies(id);
-
-CREATE TABLE partners (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    brand_name VARCHAR(255) NOT NULL,
-    contact_email VARCHAR(255) NOT NULL,
-    tax_number VARCHAR(100) NOT NULL,
-    revenue_share_percentage DECIMAL(5,2) NOT NULL
-);
-
--- 2. المساحات والمرافق (Workspace & Sections)
-CREATE TABLE workspaces (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    partner_id UUID REFERENCES partners(id) NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    city VARCHAR(100) NOT NULL,
-    location_map_url TEXT,
-    daily_rate DECIMAL(10,2),
-    monthly_rate DECIMAL(10,2),
-    yearly_rate DECIMAL(10,2),
-    pass_visit_value DECIMAL(10,2) NOT NULL,
-    total_capacity INT NOT NULL
-);
-
-CREATE TABLE workspace_sections (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    workspace_id UUID REFERENCES workspaces(id) NOT NULL,
-    type VARCHAR(50) NOT NULL CHECK (type IN ('DESK', 'MEETING_ROOM', 'THEATER')),
-    name VARCHAR(255) NOT NULL,
-    capacity INT NOT NULL,
-    daily_rate DECIMAL(10,2),
-    monthly_rate DECIMAL(10,2),
-    yearly_rate DECIMAL(10,2)
-);
-
-CREATE TABLE hourly_packages (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    section_id UUID REFERENCES workspace_sections(id) NOT NULL,
-    package_name VARCHAR(255) NOT NULL,
-    hours_amount INT NOT NULL,
-    period_type VARCHAR(50) NOT NULL CHECK (period_type IN ('PER_DAY', 'PER_MONTH')),
-    price DECIMAL(10,2) NOT NULL
-);
-
--- 3. إدارة الميزات (Amenities Management)
-CREATE TABLE amenities_catalog (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name VARCHAR(255) NOT NULL,
-    icon VARCHAR(255),
-    is_default BOOLEAN DEFAULT TRUE,
-    status VARCHAR(50) NOT NULL CHECK (status IN ('APPROVED', 'PENDING_APPROVAL', 'REJECTED')),
-    requested_by UUID REFERENCES users(id),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE workspace_amenities (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    workspace_id UUID REFERENCES workspaces(id) NOT NULL,
-    amenity_id UUID REFERENCES amenities_catalog(id) NOT NULL
-);
-
--- 4. الحجوزات والعضويات (Plans & Bookings)
-CREATE TABLE membership_plans (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    plan_name VARCHAR(255) NOT NULL,
-    type VARCHAR(50) NOT NULL CHECK (type IN ('B2C', 'B2B')),
-    total_visits_allowed INT NOT NULL,
-    price DECIMAL(10,2) NOT NULL
-);
-
-CREATE TABLE subscriptions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES users(id) NOT NULL,
-    plan_id UUID REFERENCES membership_plans(id) NOT NULL,
-    start_date DATE NOT NULL,
-    end_date DATE NOT NULL,
-    visits_used INT DEFAULT 0,
-    status VARCHAR(50) NOT NULL CHECK (status IN ('ACTIVE', 'EXPIRED', 'CANCELLED'))
-);
-
-CREATE TABLE direct_bookings (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES users(id) NOT NULL,
-    workspace_id UUID REFERENCES workspaces(id) NOT NULL,
-    section_id UUID REFERENCES workspace_sections(id) NOT NULL,
-    duration_type VARCHAR(50) NOT NULL CHECK (duration_type IN ('DAILY', 'MONTHLY', 'YEARLY')),
-    booking_date DATE NOT NULL,
-    status VARCHAR(50) NOT NULL CHECK (status IN ('CONFIRMED', 'WAITLISTED', 'CANCELLED')),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE hourly_bookings (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES users(id) NOT NULL,
-    section_id UUID REFERENCES workspace_sections(id) NOT NULL,
-    package_id UUID REFERENCES hourly_packages(id) NOT NULL,
-    start_date DATE NOT NULL,
-    end_date DATE NOT NULL,
-    hours_used DECIMAL(5,2) DEFAULT 0.0,
-    status VARCHAR(50) NOT NULL CHECK (status IN ('ACTIVE', 'EXPIRED', 'CANCELLED')),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- 5. الدفع والمالية (Financial)
-CREATE TABLE payments (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES users(id) NOT NULL,
-    amount DECIMAL(10,2) NOT NULL,
-    method VARCHAR(50) NOT NULL CHECK (method IN ('MADA', 'VISA', 'APPLE_PAY', 'SAMSUNG_PAY')),
-    gateway_transaction_id VARCHAR(255),
-    payment_for VARCHAR(50) NOT NULL CHECK (payment_for IN ('DIRECT_BOOKING', 'HOURLY_BOOKING', 'SUBSCRIPTION', 'POINTS_REDEMPTION')),
-    reference_id UUID,
-    status VARCHAR(50) NOT NULL CHECK (status IN ('SUCCESS', 'FAILED'))
-);
-
-CREATE TABLE payouts (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    partner_id UUID REFERENCES partners(id) NOT NULL,
-    billing_month VARCHAR(7) NOT NULL,
-    total_visits_received INT NOT NULL,
-    amount_due DECIMAL(10,2) NOT NULL,
-    status VARCHAR(50) NOT NULL CHECK (status IN ('PENDING', 'PAID'))
-);
-
--- 6. التحقق والأمان (Verification & Security)
-CREATE TABLE qr_check_ins (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES users(id) NOT NULL,
-    workspace_id UUID REFERENCES workspaces(id) NOT NULL,
-    section_id UUID REFERENCES workspace_sections(id) NOT NULL,
-    scanned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    qr_code_hash VARCHAR(255) NOT NULL,
-    status VARCHAR(50) NOT NULL CHECK (status IN ('VALID', 'FRAUD_ATTEMPT'))
-);
-
-CREATE TABLE otp_codes (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES users(id) NOT NULL,
-    code_hash VARCHAR(255) NOT NULL,
-    purpose VARCHAR(50) NOT NULL CHECK (purpose IN ('EMAIL_VERIFICATION', 'PASSWORD_RESET')),
-    expires_at TIMESTAMP NOT NULL,
-    is_used BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- 7. الإشعارات ونقاط الولاء (Notifications & Loyalty)
-CREATE TABLE notifications (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES users(id) NOT NULL,
-    type VARCHAR(50) NOT NULL,
-    title VARCHAR(255) NOT NULL,
-    message TEXT NOT NULL,
-    channel VARCHAR(50) NOT NULL CHECK (channel IN ('EMAIL', 'IN_APP', 'BOTH')),
-    is_read BOOLEAN DEFAULT FALSE,
-    sent_at TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE loyalty_points (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES users(id) NOT NULL UNIQUE,
-    total_earned INT DEFAULT 0,
-    total_redeemed INT DEFAULT 0,
-    available_balance INT DEFAULT 0
-);
-
-CREATE TABLE points_transactions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES users(id) NOT NULL,
-    type VARCHAR(50) NOT NULL CHECK (type IN ('EARNED', 'REDEEMED')),
-    points INT NOT NULL,
-    description VARCHAR(255),
-    reference_id UUID,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE loyalty_rules (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    rule_name VARCHAR(255) NOT NULL,
-    rule_type VARCHAR(50) NOT NULL CHECK (rule_type IN ('EARNING', 'REDEMPTION')),
-    points_value INT NOT NULL,
-    monetary_value DECIMAL(10,2) NOT NULL,
-    description TEXT,
-    status VARCHAR(50) NOT NULL CHECK (status IN ('APPROVED', 'PENDING_APPROVAL', 'REJECTED')),
-    proposed_by UUID REFERENCES users(id) NOT NULL,
-    approved_by UUID REFERENCES users(id),
-    is_active BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
+### 7. ط§ظ„ط¥ط´ط¹ط§ط±ط§طھ ظˆظ†ظ‚ط§ط· ط§ظ„ظˆظ„ط§ط، (Notifications & Loyalty)
+- **`NOTIFICATIONS`**: ط¬ظ…ظٹط¹ ط§ظ„ط¥ط´ط¹ط§ط±ط§طھ ط§ظ„طµط§ط¯ط±ط© (ط¨ط±ظٹط¯ ط£ظˆ طھط·ط¨ظٹظ‚) ظ„ظƒظ„ ظ…ط³طھط®ط¯ظ… ظˆطھطھط¨ط¹ ط­ط§ظ„ط© ظ‚ط±ط§ط،طھظ‡ط§.
+- **`LOYALTY_RULES`**: ط§ظ‚طھط±ط§ط­ط§طھ ط§ظ„ط´ط±ظƒط§ط، ظ„ظ‚ظˆط§ط¹ط¯ ط§ظ„ظ†ظ‚ط§ط· ظˆط§ظ„طھظٹ ظٹط±ط§ط¬ط¹ظ‡ط§ ط§ظ„ظ€ Super Admin ظ„ظ„ظ…ظˆط§ظپظ‚ط©.
+- **`LOYALTY_POINTS` & `POINTS_TRANSACTIONS`**: ط±طµظٹط¯ ظƒظ„ ظ…ط³طھط®ط¯ظ… ظ…ظ† ط§ظ„ظ†ظ‚ط§ط· ظˆط³ط¬ظ„ ط§ظ„ط§ظƒطھط³ط§ط¨ ظˆط§ظ„ط§ط³طھط¨ط¯ط§ظ„.
