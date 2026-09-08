@@ -60,6 +60,7 @@ export default function Navbar() {
         { label: 'Dashboard', screen: 'org-dashboard' as const },
         { label: 'Browse Spaces', screen: 'browse' as const },
         { label: 'Team Bookings', screen: 'team-bookings' as const },
+        { label: 'Support', screen: 'contact' as const },
       ];
     }
 
@@ -68,6 +69,7 @@ export default function Navbar() {
         { label: 'Dashboard', screen: 'provider-dashboard' as const },
         { label: 'My Spaces', screen: 'provider-spaces' as const },
         { label: 'Bookings', screen: 'provider-bookings' as const },
+        { label: 'Support', screen: 'contact' as const },
       ];
     }
 
@@ -77,6 +79,7 @@ export default function Navbar() {
         { label: 'Spaces', screen: 'admin-spaces' as const },
         { label: 'Users', screen: 'admin-users' as const },
         { label: 'Bookings', screen: 'admin-bookings' as const },
+        { label: 'Support', screen: 'admin-support' as const },
         { label: 'Reports', screen: 'admin-reports' as const },
       ];
     }
@@ -86,6 +89,7 @@ export default function Navbar() {
       { label: 'Dashboard', screen: 'ind-dashboard' as const },
       { label: 'Browse Spaces', screen: 'browse' as const },
       { label: 'My Bookings', screen: 'my-bookings' as const },
+      { label: 'Support', screen: 'contact' as const },
     ];
   };
 
@@ -162,8 +166,7 @@ export default function Navbar() {
                     : 'text-moss hover:text-soot hover:bg-soot/5'
                 }`}
               >
-                <MoreHorizontal size={16} />
-                <span>Management</span>
+                <span>Support &amp; Settings</span>
                 <ChevronDown size={14} className={`text-moss transition-transform duration-200 ${moreOpen ? 'rotate-180' : ''}`} />
               </button>
 

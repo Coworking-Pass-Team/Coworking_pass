@@ -885,6 +885,7 @@ export type Screen =
   | 'admin-bookings'
   | 'admin-reports'
   | 'admin-settings'
+  | 'admin-support'
   | 'provider-dashboard'
   | 'provider-spaces'
   | 'provider-bookings'
@@ -896,6 +897,30 @@ export type Screen =
   | 'privacy-policy'
   | 'terms-of-service'
   | 'legal';
+
+export type TicketCategory = 'general' | 'complaint' | 'refund';
+export type TicketStatus = 'open' | 'in-progress' | 'resolved' | 'closed';
+export type TicketPriority = 'low' | 'medium' | 'high' | 'urgent';
+
+export interface SupportTicket {
+  id: string;
+  ticketNumber: string;
+  userName: string;
+  userEmail: string;
+  userId?: string;
+  category: TicketCategory;
+  subject: string;
+  message: string;
+  attachedImage?: string;
+  attachedFileName?: string;
+  status: TicketStatus;
+  priority: TicketPriority;
+  createdAt: string;
+  updatedAt?: string;
+  adminNotes?: string;
+  adminReply?: string;
+  bookingId?: string;
+}
 
 export interface OtpSession {
   user: User;
