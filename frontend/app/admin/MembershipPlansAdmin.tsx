@@ -111,7 +111,7 @@ export default function MembershipPlansAdmin() {
   const handleOpenEdit = (plan: MembershipPlan) => {
     setEditingPlanId(plan.id);
     setEditPlanName(plan.planName);
-    setEditPlanType(plan.type);
+    setEditPlanType(plan.type === 'B2B' ? 'B2B' : 'B2C');
     setEditTotalVisitsAllowed(plan.totalVisitsAllowed);
     setEditPrice(plan.price);
     setEditFormError('');

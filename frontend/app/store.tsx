@@ -29,113 +29,57 @@ export function getStoredToken(): string | undefined {
 
 async function fetchPartnersFromApi(token?: string): Promise<Partner[]> {
   try {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     const storedToken = token || getStoredToken();
-    if (storedToken) {
-      headers['Authorization'] = `Bearer ${storedToken}`;
-    }
-
-    const response = await fetch(`${getApiBaseUrl()}/partners`, {
-      method: 'GET',
-      headers,
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `Failed to fetch partners (Status: ${response.status})`);
-    }
-
+    if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+    const response = await fetch(`${getApiBaseUrl()}/partners`, { method: 'GET', headers });
+    if (!response.ok) return [];
     const data = await response.json();
-    return data as Partner[];
+    return Array.isArray(data) ? (data as Partner[]) : [];
   } catch (error: any) {
-    console.error('Error fetching partners from GET /api/partners:', error);
-    throw error;
+    return [];
   }
 }
 
 async function fetchWorkspacesFromApi(token?: string): Promise<WorkspaceApi[]> {
   try {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     const storedToken = token || getStoredToken();
-    if (storedToken) {
-      headers['Authorization'] = `Bearer ${storedToken}`;
-    }
-
-    const response = await fetch(`${getApiBaseUrl()}/workspaces`, {
-      method: 'GET',
-      headers,
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `Failed to fetch workspaces (Status: ${response.status})`);
-    }
-
+    if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+    const response = await fetch(`${getApiBaseUrl()}/workspaces`, { method: 'GET', headers });
+    if (!response.ok) return [];
     const data = await response.json();
-    return data as WorkspaceApi[];
+    return Array.isArray(data) ? (data as WorkspaceApi[]) : [];
   } catch (error: any) {
-    console.error('Error fetching workspaces from GET /api/workspaces:', error);
-    throw error;
+    return [];
   }
 }
 
 async function fetchHourlyBookingsFromApi(token?: string): Promise<HourlyBookingApi[]> {
   try {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     const storedToken = token || getStoredToken();
-    if (storedToken) {
-      headers['Authorization'] = `Bearer ${storedToken}`;
-    }
-
-    const response = await fetch(`${getApiBaseUrl()}/hourly-bookings`, {
-      method: 'GET',
-      headers,
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `Failed to fetch hourly bookings (Status: ${response.status})`);
-    }
-
+    if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+    const response = await fetch(`${getApiBaseUrl()}/hourly-bookings`, { method: 'GET', headers });
+    if (!response.ok) return [];
     const data = await response.json();
-    return data as HourlyBookingApi[];
+    return Array.isArray(data) ? (data as HourlyBookingApi[]) : [];
   } catch (error: any) {
-    console.error('Error fetching hourly bookings from GET /api/hourly-bookings:', error);
-    throw error;
+    return [];
   }
 }
 
 async function fetchPayoutsFromApi(token?: string): Promise<PayoutApi[]> {
   try {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     const storedToken = token || getStoredToken();
-    if (storedToken) {
-      headers['Authorization'] = `Bearer ${storedToken}`;
-    }
-
-    const response = await fetch(`${getApiBaseUrl()}/payouts`, {
-      method: 'GET',
-      headers,
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `Failed to fetch payouts (Status: ${response.status})`);
-    }
-
+    if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+    const response = await fetch(`${getApiBaseUrl()}/payouts`, { method: 'GET', headers });
+    if (!response.ok) return [];
     const data = await response.json();
-    return data as PayoutApi[];
+    return Array.isArray(data) ? (data as PayoutApi[]) : [];
   } catch (error: any) {
-    console.error('Error fetching payouts from GET /api/payouts:', error);
-    throw error;
+    return [];
   }
 }
 
@@ -145,15 +89,11 @@ async function fetchMembershipPlansFromApi(token?: string): Promise<MembershipPl
     const storedToken = token || getStoredToken();
     if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
     const response = await fetch(`${getApiBaseUrl()}/membership-plans`, { method: 'GET', headers });
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `Failed to fetch plans (Status: ${response.status})`);
-    }
+    if (!response.ok) return [];
     const data = await response.json();
-    return data as MembershipPlanApi[];
+    return Array.isArray(data) ? (data as MembershipPlanApi[]) : [];
   } catch (error: any) {
-    console.error('Error fetching membership plans:', error);
-    throw error;
+    return [];
   }
 }
 
@@ -163,15 +103,11 @@ async function fetchSubscriptionsFromApi(token?: string): Promise<SubscriptionAp
     const storedToken = token || getStoredToken();
     if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
     const response = await fetch(`${getApiBaseUrl()}/subscriptions`, { method: 'GET', headers });
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `Failed to fetch subscriptions (Status: ${response.status})`);
-    }
+    if (!response.ok) return [];
     const data = await response.json();
-    return data as SubscriptionApi[];
+    return Array.isArray(data) ? (data as SubscriptionApi[]) : [];
   } catch (error: any) {
-    console.error('Error fetching subscriptions:', error);
-    throw error;
+    return [];
   }
 }
 
@@ -181,15 +117,11 @@ async function fetchDirectBookingsFromApi(token?: string): Promise<DirectBooking
     const storedToken = token || getStoredToken();
     if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
     const response = await fetch(`${getApiBaseUrl()}/direct-bookings`, { method: 'GET', headers });
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `Failed to fetch direct bookings (Status: ${response.status})`);
-    }
+    if (!response.ok) return [];
     const data = await response.json();
-    return data as DirectBookingApi[];
+    return Array.isArray(data) ? (data as DirectBookingApi[]) : [];
   } catch (error: any) {
-    console.error('Error fetching direct bookings:', error);
-    throw error;
+    return [];
   }
 }
 
@@ -199,15 +131,11 @@ async function fetchPaymentsFromApi(token?: string): Promise<PaymentApi[]> {
     const storedToken = token || getStoredToken();
     if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
     const response = await fetch(`${getApiBaseUrl()}/payments`, { method: 'GET', headers });
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `Failed to fetch payments (Status: ${response.status})`);
-    }
+    if (!response.ok) return [];
     const data = await response.json();
-    return data as PaymentApi[];
+    return Array.isArray(data) ? (data as PaymentApi[]) : [];
   } catch (error: any) {
-    console.error('Error fetching payments:', error);
-    throw error;
+    return [];
   }
 }
 

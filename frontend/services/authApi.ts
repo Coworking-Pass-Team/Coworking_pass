@@ -261,3 +261,212 @@ export async function verifyLoginApi(payload: VerifyLoginPayload): Promise<Verif
     };
   }
 }
+
+export function getStoredToken(): string | undefined {
+  return (
+    (typeof window !== 'undefined' && (
+      localStorage.getItem('cp_token') ||
+      localStorage.getItem('token') ||
+      localStorage.getItem('jwt')
+    )) || undefined
+  );
+}
+
+function getAuthHeaders(): Record<string, string> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const token = getStoredToken();
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  return headers;
+}
+
+export interface MembershipPlan {
+  id: string;
+  planName: string;
+  type: string;
+  totalVisitsAllowed: number;
+  price: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export async function createDirectBookingApi(payload: {
+  userId: string;
+  workspaceId: string;
+  sectionId: string;
+  durationType: string;
+  bookingDate: string;
+  status?: string;
+}) {
+  const url = `${getAuthBaseUrl()}/api/direct-bookings`;
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to create direct booking' };
+    }
+    return { success: true, booking: data };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+export async function updateDirectBookingApi(bookingId: string, updates: { status: string }) {
+  const url = `${getAuthBaseUrl()}/api/direct-bookings/${bookingId}`;
+  try {
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(updates),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to update direct booking' };
+    }
+    return { success: true, booking: data };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+export async function deleteDirectBookingApi(bookingId: string) {
+  const url = `${getAuthBaseUrl()}/api/direct-bookings/${bookingId}`;
+  try {
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to delete direct booking' };
+    }
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+export async function createPaymentApi(payload: {
+  userId: string;
+  amount: number;
+  method: string;
+  paymentFor: string;
+  referenceId?: string;
+  status?: string;
+}) {
+  const url = `${getAuthBaseUrl()}/api/payments`;
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to record payment' };
+    }
+    return { success: true, payment: data };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+export async function createSubscriptionApi(payload: {
+  userId: string;
+  planId: string;
+  startDate: string;
+  endDate: string;
+  status?: string;
+}) {
+  const url = `${getAuthBaseUrl()}/api/subscriptions`;
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to create subscription' };
+    }
+    return { success: true, data, subscription: data };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+export async function getMembershipPlansApi() {
+  const url = `${getAuthBaseUrl()}/api/membership-plans`;
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) return { success: false, error: data.error || 'Failed to fetch membership plans', data: [] };
+    return { success: true, data: Array.isArray(data) ? data : [] };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error', data: [] };
+  }
+}
+
+export async function createMembershipPlanApi(payload: {
+  planName: string;
+  type: string;
+  totalVisitsAllowed: number;
+  price: number;
+}) {
+  const url = `${getAuthBaseUrl()}/api/membership-plans`;
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to create plan' };
+    }
+    return { success: true, data, plan: data };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+export async function updateMembershipPlanApi(planId: string, updates: Partial<{ planName: string; type: string; totalVisitsAllowed: number; price: number }>) {
+  const url = `${getAuthBaseUrl()}/api/membership-plans/${planId}`;
+  try {
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(updates),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to update plan' };
+    }
+    return { success: true, data, plan: data };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+export async function deleteMembershipPlanApi(planId: string) {
+  const url = `${getAuthBaseUrl()}/api/membership-plans/${planId}`;
+  try {
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to delete plan' };
+    }
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}

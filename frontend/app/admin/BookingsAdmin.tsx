@@ -85,7 +85,7 @@ export default function BookingsAdmin() {
       setSelectedBooking((prev) => (prev ? { ...prev, status } : null));
     }
     const backendStatus = status === 'active' ? 'CONFIRMED' : status === 'cancelled' ? 'CANCELLED' : 'CONFIRMED';
-    updateDirectBookingApi(bookingId, { status: backendStatus }).catch((err) =>
+    updateDirectBookingApi(bookingId, { status: backendStatus }).catch((err: any) =>
       console.warn('[Direct Booking PUT Sync]', err)
     );
     showToast(`Booking status changed to ${status}`);
