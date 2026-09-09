@@ -19,7 +19,7 @@ import { useApp } from '@/app/store';
 import { Booking, BookingStatus, getBookingPrice } from '@/types/types';
 
 export default function ProviderSpaceBookings() {
-  const { currentUser, spaces, bookings, users, updateBookingStatus, showToast } = useApp();
+  const { currentUser, spaces, partners, bookings, users, updateBookingStatus, showToast } = useApp();
   const [query, setQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterSpace, setFilterSpace] = useState('');
@@ -48,7 +48,13 @@ export default function ProviderSpaceBookings() {
 
   if (!currentUser) return null;
 
-  const mySpaces = spaces.filter((s) => s.ownerId === currentUser.id);
+  const userPartner = partners.find(p => p.contactEmail?.toLowerCase() === currentUser.email?.toLowerCase());
+  const mySpaces = spaces.filter((s) =>
+    s.ownerId === currentUser.id ||
+    (userPartner && s.ownerId === userPartner.id) ||
+    (s.email && s.email.toLowerCase() === currentUser.email?.toLowerCase()) ||
+    (currentUser.email && s.email && s.email.toLowerCase() === currentUser.email.toLowerCase())
+  );
   const mySpaceIds = mySpaces.map((s) => s.id);
   const myBookings = bookings.filter((b) => mySpaceIds.includes(b.spaceId));
 

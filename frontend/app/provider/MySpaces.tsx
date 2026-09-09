@@ -49,7 +49,7 @@ const CITIES = ['Riyadh', 'Jeddah', 'Dammam', 'Khobar', 'Madinah', 'Makkah', 'Ab
 const TYPES = ALL_SPACE_TYPES;
 
 export default function ProviderMySpaces() {
-  const { currentUser, spaces, addSpace, updateSpace, toggleSpaceVisibility, deleteSpace, amenityRequests, requestCustomAmenity, getApprovedAmenities } = useApp();
+  const { currentUser, spaces, partners, addSpace, updateSpace, toggleSpaceVisibility, deleteSpace, amenityRequests, requestCustomAmenity, getApprovedAmenities } = useApp();
   const [query, setQuery] = useState('');
   const [filterCity, setFilterCity] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<'all' | SpaceCategory>('all');
@@ -91,7 +91,13 @@ export default function ProviderMySpaces() {
 
   if (!currentUser) return null;
 
-  const mySpaces = spaces.filter((s) => s.ownerId === currentUser.id);
+  const userPartner = partners.find(p => p.contactEmail?.toLowerCase() === currentUser.email?.toLowerCase());
+  const mySpaces = spaces.filter((s) =>
+    s.ownerId === currentUser.id ||
+    (userPartner && s.ownerId === userPartner.id) ||
+    (s.email && s.email.toLowerCase() === currentUser.email?.toLowerCase()) ||
+    (currentUser.email && s.email && s.email.toLowerCase() === currentUser.email.toLowerCase())
+  );
 
   const filteredSpaces = mySpaces.filter((s) => {
     const q = query.trim().toLowerCase();
@@ -140,7 +146,7 @@ export default function ProviderMySpaces() {
       isFeatured: false,
       openHours: 'Sun–Thu: 8am–9pm',
       phone: '',
-      email: '',
+      email: currentUser.email || '',
       images: ['https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&h=800&fit=crop&auto=format'],
       ownerId: currentUser.id,
     });
@@ -174,6 +180,7 @@ export default function ProviderMySpaces() {
     } else {
       addSpace({
         ...form,
+        email: form.email || currentUser.email || '',
         ownerId: currentUser.id,
       } as Omit<Space, 'id'>);
     }
