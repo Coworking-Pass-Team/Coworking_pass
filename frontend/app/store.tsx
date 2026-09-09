@@ -57,9 +57,12 @@ async function fetchWorkspacesFromApi(token?: string): Promise<WorkspaceApi[]> {
 
 async function fetchHourlyBookingsFromApi(token?: string): Promise<HourlyBookingApi[]> {
   try {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     const storedToken = token || getStoredToken();
-    if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+    if (!storedToken) return [];
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${storedToken}`,
+    };
     const response = await fetch(`${getApiBaseUrl()}/hourly-bookings`, { method: 'GET', headers });
     if (!response.ok) return [];
     const data = await response.json();
@@ -71,9 +74,12 @@ async function fetchHourlyBookingsFromApi(token?: string): Promise<HourlyBooking
 
 async function fetchPayoutsFromApi(token?: string): Promise<PayoutApi[]> {
   try {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     const storedToken = token || getStoredToken();
-    if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+    if (!storedToken) return [];
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${storedToken}`,
+    };
     const response = await fetch(`${getApiBaseUrl()}/payouts`, { method: 'GET', headers });
     if (!response.ok) return [];
     const data = await response.json();
@@ -85,9 +91,12 @@ async function fetchPayoutsFromApi(token?: string): Promise<PayoutApi[]> {
 
 async function fetchMembershipPlansFromApi(token?: string): Promise<MembershipPlanApi[]> {
   try {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     const storedToken = token || getStoredToken();
-    if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+    if (!storedToken) return [];
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${storedToken}`,
+    };
     const response = await fetch(`${getApiBaseUrl()}/membership-plans`, { method: 'GET', headers });
     if (!response.ok) return [];
     const data = await response.json();
@@ -99,9 +108,12 @@ async function fetchMembershipPlansFromApi(token?: string): Promise<MembershipPl
 
 async function fetchSubscriptionsFromApi(token?: string): Promise<SubscriptionApi[]> {
   try {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     const storedToken = token || getStoredToken();
-    if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+    if (!storedToken) return [];
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${storedToken}`,
+    };
     const response = await fetch(`${getApiBaseUrl()}/subscriptions`, { method: 'GET', headers });
     if (!response.ok) return [];
     const data = await response.json();
@@ -113,9 +125,12 @@ async function fetchSubscriptionsFromApi(token?: string): Promise<SubscriptionAp
 
 async function fetchDirectBookingsFromApi(token?: string): Promise<DirectBookingApi[]> {
   try {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     const storedToken = token || getStoredToken();
-    if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+    if (!storedToken) return [];
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${storedToken}`,
+    };
     const response = await fetch(`${getApiBaseUrl()}/direct-bookings`, { method: 'GET', headers });
     if (!response.ok) return [];
     const data = await response.json();
@@ -127,9 +142,12 @@ async function fetchDirectBookingsFromApi(token?: string): Promise<DirectBooking
 
 async function fetchPaymentsFromApi(token?: string): Promise<PaymentApi[]> {
   try {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     const storedToken = token || getStoredToken();
-    if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+    if (!storedToken) return [];
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${storedToken}`,
+    };
     const response = await fetch(`${getApiBaseUrl()}/payments`, { method: 'GET', headers });
     if (!response.ok) return [];
     const data = await response.json();
@@ -1102,11 +1120,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           ownerId: w.partnerId,
         }));
 
-        setSpaces((prev) => {
-          const existingIds = new Set(prev.map((s) => s.id));
-          const newDbSpaces = dbSpaces.filter((s) => !existingIds.has(s.id));
-          return [...newDbSpaces, ...prev];
-        });
+        setSpaces(dbSpaces);
       }
       return data;
     } catch (err) {
@@ -1241,13 +1255,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     revenueSharePercentage: number;
   }): Promise<{ success: boolean; partner?: Partner; error?: string }> => {
     try {
+      const storedToken = getStoredToken();
+      if (!storedToken) {
+        return { success: false, error: 'Please log in first' };
+      }
+
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${storedToken}`,
       };
-      const storedToken = getStoredToken();
-      if (storedToken) {
-        headers['Authorization'] = `Bearer ${storedToken}`;
-      }
 
       const response = await fetch(`${getApiBaseUrl()}/partners`, {
         method: 'POST',
@@ -1488,6 +1504,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       } else {
         localStorage.setItem('cp_support_tickets', JSON.stringify(INITIAL_SUPPORT_TICKETS));
       }
+
+      // Initial DB load for workspaces & partners
+      fetchPartners().catch(() => {});
+      fetchWorkspaces().catch(() => {});
     } catch (e) {
       console.error('Failed to load storage state:', e);
     }
@@ -1911,31 +1931,35 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const lat = space.latitude ?? space.coordinates?.lat ?? cityCoords.lat;
     const lng = space.longitude ?? space.coordinates?.lng ?? cityCoords.lng;
 
+    const tempId = `space-${Date.now()}`;
     const newSpace: Space = {
       ...space,
-      id: `space-${Date.now()}`,
+      id: tempId,
       latitude: lat,
       longitude: lng,
       coordinates: { lat, lng },
     };
+
     setSpaces(prev => [...prev, newSpace]);
     showToast('Space added successfully.');
 
     // Persist new workspace to backend database with valid partnerId
     (async () => {
       try {
+        const storedToken = getStoredToken();
         let currentPartners = partners;
         if (currentPartners.length === 0) {
           currentPartners = await fetchPartners();
         }
 
-        let validPartnerId = currentPartners.find(p => p.id === space.ownerId)?.id || currentPartners[0]?.id;
+        const userEmail = currentUser?.email?.toLowerCase();
+        let validPartnerId = currentPartners.find(p => p.id === space.ownerId)?.id ||
+          (userEmail ? currentPartners.find(p => p.contactEmail.toLowerCase() === userEmail)?.id : undefined);
 
-        if (!validPartnerId) {
-          // Auto-create a Partner record in DB if no partner exists yet
+        if (!validPartnerId && storedToken) {
           const partnerRes = await createPartner({
-            brandName: (space as any).providerName || space.name || 'Default Partner',
-            contactEmail: `contact-${Date.now()}@coworkingpass.sa`,
+            brandName: (space as any).providerName || currentUser?.name || space.name || 'Default Partner',
+            contactEmail: currentUser?.email || `contact-${Date.now()}@coworkingpass.sa`,
             taxNumber: '300000000000003',
             revenueSharePercentage: 20,
           });
@@ -1944,8 +1968,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           }
         }
 
-        if (validPartnerId) {
-          await createWorkspace({
+        if (validPartnerId && storedToken) {
+          const createRes = await createWorkspace({
             partnerId: validPartnerId,
             name: space.name,
             city: space.city || 'Riyadh',
@@ -1955,6 +1979,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
             passVisitValue: 15,
             totalCapacity: space.totalCapacity || 30,
           });
+
+          if (createRes.success) {
+            await fetchWorkspaces();
+          }
         }
       } catch (err) {
         console.warn('Database workspace save notice:', err);
@@ -1965,6 +1993,31 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const updateSpace = (id: string, updates: Partial<Space>) => {
     setSpaces(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
     showToast('Space updated successfully.');
+
+    // Sync update with backend database if logged in
+    (async () => {
+      try {
+        const storedToken = getStoredToken();
+        if (!storedToken) return;
+
+        const payload: Record<string, any> = {};
+        if (updates.name !== undefined) payload.name = updates.name;
+        if (updates.city !== undefined) payload.city = updates.city;
+        if (updates.totalCapacity !== undefined) payload.totalCapacity = updates.totalCapacity;
+        if (updates.pricing?.daily !== undefined) payload.dailyRate = updates.pricing.daily;
+        if (updates.pricing?.monthly !== undefined) payload.monthlyRate = updates.pricing.monthly;
+        if (updates.pricing?.yearly !== undefined) payload.yearlyRate = updates.pricing.yearly;
+
+        if (Object.keys(payload).length > 0) {
+          const res = await updateWorkspace(id, payload);
+          if (res.success) {
+            await fetchWorkspaces();
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to save space update to database:', err);
+      }
+    })();
   };
 
   const toggleSpaceVisibility = (id: string) => {
@@ -1974,6 +2027,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const deleteSpace = (id: string) => {
     setSpaces(prev => prev.filter(s => s.id !== id));
     showToast('Space deleted.');
+
+    // Delete from backend database if logged in
+    (async () => {
+      try {
+        const storedToken = getStoredToken();
+        if (!storedToken) return;
+        const res = await deleteWorkspace(id);
+        if (res.success) {
+          await fetchWorkspaces();
+        }
+      } catch (err) {
+        console.warn('Failed to delete space from database:', err);
+      }
+    })();
   };
 
   const addBooking = (booking: Omit<Booking, 'id' | 'createdAt'>) => {
