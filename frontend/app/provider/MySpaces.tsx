@@ -72,6 +72,7 @@ export default function ProviderMySpaces() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [imageUrlInput, setImageUrlInput] = useState('');
+  const [customAmenityInput, setCustomAmenityInput] = useState('');
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -203,7 +204,6 @@ export default function ProviderMySpaces() {
     toggleSpaceVisibility(spaceId);
   };
 
-  const [customAmenityInput, setCustomAmenityInput] = useState('');
 
   const toggleAmenity = (amenity: string) => {
     setForm((prev) => ({

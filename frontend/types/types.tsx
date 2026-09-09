@@ -409,11 +409,19 @@ export type MembershipTier = 'all-access' | 'pro' | 'basic' | 'enterprise' | 'no
 
 export interface PlanPricingResult {
   isCovered: boolean;
+  isPartiallyCovered?: boolean;
   effectivePrice: number;
   originalPrice: number;
   badgeLabel: string;
+  displayPriceLabel?: string;
+  totalPayableLabel?: string;
   hasDiscount: boolean;
   discountPercentage?: number;
+  coveredSeats?: number;
+  payableSeats?: number;
+  coveredHours?: number;
+  payableHours?: number;
+  coverageNote?: string;
 }
 
 /**
@@ -725,7 +733,8 @@ export function getEffectiveSpacePrice(
   planType: BookingPlan = 'daily',
   deskType?: BookingType | SpaceType,
   durationHours: number = 1,
-  durationMonths: number = 1
+  durationMonths: number = 1,
+  seats: number = 1
 ): PlanPricingResult {
   if (!space) {
     return {
@@ -733,86 +742,228 @@ export function getEffectiveSpacePrice(
       effectivePrice: 150,
       originalPrice: 150,
       badgeLabel: 'SAR 150',
+      displayPriceLabel: 'SAR 150',
+      totalPayableLabel: 'SAR 150',
       hasDiscount: false,
     };
   }
 
-  let originalPrice = 150;
+  const effectiveSeats = Math.max(1, seats);
+  const targetCategory = getSpaceCategory(space);
+  const targetType = String(deskType || space.type || 'hot-desk').toLowerCase().trim();
+
+  // 1. Calculate standard price for a single seat
+  let singleOriginalPrice = 150;
   if (planType === 'hourly') {
-    originalPrice = getHourlyPriceForDuration(space, durationHours);
+    singleOriginalPrice = getHourlyPriceForDuration(space, durationHours);
   } else if (planType === 'monthly') {
-    originalPrice = getMonthlyPriceForDuration(space, durationMonths);
+    singleOriginalPrice = getMonthlyPriceForDuration(space, durationMonths);
   } else if (planType === 'yearly') {
-    originalPrice = space.pricing?.yearly ?? ((space.pricing?.monthly ?? 1800) * 10);
+    singleOriginalPrice = space.pricing?.yearly ?? ((space.pricing?.monthly ?? 1800) * 10);
   } else {
-    originalPrice = space.pricing?.daily ?? 150;
+    singleOriginalPrice = space.pricing?.daily ?? 150;
   }
 
-  if (planType === 'hourly') {
+  const fullOriginalTotal = singleOriginalPrice * effectiveSeats;
+
+  // 2. Unsubscribed user -> full price as normal
+  if (!user || !user.hasActivePass) {
     return {
       isCovered: false,
-      effectivePrice: originalPrice,
-      originalPrice,
-      badgeLabel: `SAR ${originalPrice.toLocaleString()}`,
+      isPartiallyCovered: false,
+      effectivePrice: fullOriginalTotal,
+      originalPrice: fullOriginalTotal,
+      badgeLabel: `SAR ${singleOriginalPrice.toLocaleString()}`,
+      displayPriceLabel: `SAR ${singleOriginalPrice.toLocaleString()}`,
+      totalPayableLabel: `SAR ${fullOriginalTotal.toLocaleString()}`,
       hasDiscount: false,
+      coveredSeats: 0,
+      payableSeats: effectiveSeats,
+      coveredHours: 0,
+      payableHours: durationHours,
     };
   }
 
-  if (!user || user.hasActivePass === false) {
+  // 3. Subscribed user: determine plan tier
+  const tierStr = (user.membershipTier || '').toLowerCase().trim();
+  const isOrg = user.role === 'organization' || user.role === 'HR_ADMIN';
+
+  const isEnterprisePass = tierStr.includes('enterprise') || tierStr.includes('custom enterprise');
+  const isBusinessPass = tierStr.includes('business');
+  const isTeamPass = tierStr.includes('team') || tierStr.includes('corporate') || (isOrg && !isBusinessPass && !isEnterprisePass);
+  const isAnnualPass = tierStr.includes('annual') || tierStr.includes('yearly') || tierStr.includes('executive');
+  const isMonthlyPass = tierStr.includes('monthly') || tierStr.includes('pro') || tierStr.includes('all-access') || (!isOrg && !isAnnualPass && !tierStr.includes('day'));
+  const isDayPass = tierStr.includes('day') || tierStr.includes('daily') || tierStr.includes('basic');
+
+  // 4. Coverage by Plan Tier & Workspace Type
+  let isTypeIncluded = false;
+  let isPlanDurationAllowed = false;
+  let includedMeetingHours = 0;
+  let maxCoveredSeats = 1;
+  let planDisplayName = 'Your Plan';
+
+  if (isEnterprisePass) {
+    planDisplayName = 'Enterprise Pass';
+    isTypeIncluded = true; // All space types covered
+    isPlanDurationAllowed = true; // All durations covered
+    includedMeetingHours = 9999;
+    maxCoveredSeats = 9999;
+  } else if (isBusinessPass) {
+    planDisplayName = 'Business Pass';
+    isTypeIncluded = targetCategory !== 'theater' && !targetType.includes('theater');
+    isPlanDurationAllowed = planType === 'daily' || planType === 'monthly' || planType === 'yearly' || planType === 'hourly';
+    includedMeetingHours = 9999;
+    maxCoveredSeats = 50;
+  } else if (isTeamPass) {
+    planDisplayName = 'Team Pass';
+    isTypeIncluded = (targetType.includes('desk') || targetType === 'meeting-room' || targetCategory === 'office') && targetCategory !== 'theater';
+    isPlanDurationAllowed = planType === 'daily' || planType === 'monthly' || (planType === 'hourly' && targetType.includes('meeting'));
+    includedMeetingHours = 10;
+    maxCoveredSeats = 20;
+  } else if (isAnnualPass) {
+    planDisplayName = 'Annual Pass';
+    isTypeIncluded = targetCategory === 'office' || targetType.includes('desk') || targetType === 'private-office' || targetType === 'meeting-room';
+    isPlanDurationAllowed = planType === 'daily' || planType === 'monthly' || planType === 'yearly' || (planType === 'hourly' && targetType.includes('meeting'));
+    includedMeetingHours = 8;
+    maxCoveredSeats = 1;
+  } else if (isMonthlyPass) {
+    planDisplayName = 'Monthly Pass';
+    isTypeIncluded = (targetCategory === 'office' || targetType.includes('desk') || targetType === 'meeting-room') && targetType !== 'private-office' && targetCategory !== 'theater';
+    isPlanDurationAllowed = planType === 'daily' || planType === 'monthly' || (planType === 'hourly' && targetType.includes('meeting'));
+    includedMeetingHours = 2;
+    maxCoveredSeats = 1;
+  } else if (isDayPass) {
+    planDisplayName = 'Day Pass';
+    isTypeIncluded = targetType.includes('desk') || (targetCategory === 'office' && targetType !== 'private-office' && targetType !== 'meeting-room');
+    isPlanDurationAllowed = planType === 'daily';
+    includedMeetingHours = 0;
+    maxCoveredSeats = 1;
+  }
+
+  // Check meeting room hourly coverage
+  const isMeetingRoom = targetType === 'meeting-room' || targetType === 'meeting-hall';
+  if (isMeetingRoom && planType === 'hourly') {
+    if (includedMeetingHours > 0) {
+      const coveredHours = Math.min(durationHours, includedMeetingHours);
+      const payableHours = Math.max(0, durationHours - coveredHours);
+      const hourlyRate = space.pricing?.hourly || 150;
+      const payablePrice = payableHours * hourlyRate * effectiveSeats;
+
+      if (payableHours === 0) {
+        return {
+          isCovered: true,
+          isPartiallyCovered: false,
+          effectivePrice: 0,
+          originalPrice: fullOriginalTotal,
+          badgeLabel: 'Included in your Plan',
+          displayPriceLabel: 'Included in your Plan',
+          totalPayableLabel: 'SAR 0 to Pay',
+          hasDiscount: true,
+          discountPercentage: 100,
+          coveredSeats: effectiveSeats,
+          payableSeats: 0,
+          coveredHours,
+          payableHours: 0,
+          coverageNote: `Covered by ${planDisplayName} meeting room credits`,
+        };
+      } else {
+        return {
+          isCovered: false,
+          isPartiallyCovered: true,
+          effectivePrice: payablePrice,
+          originalPrice: fullOriginalTotal,
+          badgeLabel: `${coveredHours}h Included in Plan · SAR ${payablePrice.toLocaleString()} to Pay`,
+          displayPriceLabel: `${coveredHours}h Included in Plan · SAR ${payablePrice.toLocaleString()}`,
+          totalPayableLabel: `SAR ${payablePrice.toLocaleString()} to Pay`,
+          hasDiscount: true,
+          discountPercentage: Math.round(((fullOriginalTotal - payablePrice) / fullOriginalTotal) * 100),
+          coveredSeats: effectiveSeats,
+          payableSeats: 0,
+          coveredHours,
+          payableHours,
+          coverageNote: `${coveredHours}h included in pass, ${payableHours}h payable`,
+        };
+      }
+    } else {
+      // Meeting room not included in this plan
+      return {
+        isCovered: false,
+        isPartiallyCovered: false,
+        effectivePrice: fullOriginalTotal,
+        originalPrice: fullOriginalTotal,
+        badgeLabel: `SAR ${singleOriginalPrice.toLocaleString()}`,
+        displayPriceLabel: `SAR ${singleOriginalPrice.toLocaleString()}`,
+        totalPayableLabel: `SAR ${fullOriginalTotal.toLocaleString()}`,
+        hasDiscount: false,
+        coveredSeats: 0,
+        payableSeats: effectiveSeats,
+        coveredHours: 0,
+        payableHours: durationHours,
+        coverageNote: `Meeting rooms not included in ${planDisplayName}`,
+      };
+    }
+  }
+
+  // Not included workspace type or plan duration
+  if (!isTypeIncluded || !isPlanDurationAllowed) {
     return {
       isCovered: false,
-      effectivePrice: originalPrice,
-      originalPrice,
-      badgeLabel: `SAR ${originalPrice.toLocaleString()}`,
+      isPartiallyCovered: false,
+      effectivePrice: fullOriginalTotal,
+      originalPrice: fullOriginalTotal,
+      badgeLabel: `SAR ${singleOriginalPrice.toLocaleString()}`,
+      displayPriceLabel: `SAR ${singleOriginalPrice.toLocaleString()}`,
+      totalPayableLabel: `SAR ${fullOriginalTotal.toLocaleString()}`,
       hasDiscount: false,
+      coveredSeats: 0,
+      payableSeats: effectiveSeats,
+      coveredHours: 0,
+      payableHours: durationHours,
+      coverageNote: `Not included in ${planDisplayName}`,
     };
   }
 
-  const tierStr = (user.membershipTier || '').toLowerCase();
+  // Evaluate seat coverage
+  const coveredSeats = Math.min(effectiveSeats, maxCoveredSeats);
+  const payableSeats = Math.max(0, effectiveSeats - coveredSeats);
+  const effectivePrice = payableSeats * singleOriginalPrice;
 
-  const isYearlyPass = tierStr.includes('yearly') || tierStr.includes('enterprise') || tierStr.includes('all-access');
-  const isMonthlyPass = tierStr.includes('monthly') || tierStr.includes('pro');
-  const isDailyPass = tierStr.includes('daily') || tierStr.includes('basic');
-
-  if (isYearlyPass && planType === 'yearly') {
+  if (payableSeats === 0) {
+    // 100% Fully Covered
     return {
       isCovered: true,
+      isPartiallyCovered: false,
       effectivePrice: 0,
-      originalPrice,
-      badgeLabel: 'Included in Pass',
+      originalPrice: fullOriginalTotal,
+      badgeLabel: 'Included in your Plan',
+      displayPriceLabel: 'Included in your Plan',
+      totalPayableLabel: 'SAR 0 to Pay',
       hasDiscount: true,
       discountPercentage: 100,
+      coveredSeats,
+      payableSeats: 0,
+      coveredHours: durationHours,
+      payableHours: 0,
+      coverageNote: `Covered by ${planDisplayName}`,
     };
   }
 
-  if (isMonthlyPass && planType === 'monthly') {
-    return {
-      isCovered: true,
-      effectivePrice: 0,
-      originalPrice,
-      badgeLabel: 'Included in Pass',
-      hasDiscount: true,
-      discountPercentage: 100,
-    };
-  }
-
-  if (isDailyPass && planType === 'daily') {
-    return {
-      isCovered: true,
-      effectivePrice: 0,
-      originalPrice,
-      badgeLabel: 'Included in Pass',
-      hasDiscount: true,
-      discountPercentage: 100,
-    };
-  }
-
+  // Partially Covered (e.g. 1 seat covered by individual pass, 2 extra seats payable)
   return {
     isCovered: false,
-    effectivePrice: originalPrice,
-    originalPrice,
-    badgeLabel: `SAR ${originalPrice.toLocaleString()}`,
-    hasDiscount: false,
+    isPartiallyCovered: true,
+    effectivePrice,
+    originalPrice: fullOriginalTotal,
+    badgeLabel: `${coveredSeats} Seat${coveredSeats > 1 ? 's' : ''} Included in Plan · SAR ${effectivePrice.toLocaleString()} to Pay`,
+    displayPriceLabel: `${coveredSeats} Seat${coveredSeats > 1 ? 's' : ''} Included in Plan`,
+    totalPayableLabel: `SAR ${effectivePrice.toLocaleString()} to Pay`,
+    hasDiscount: true,
+    discountPercentage: Math.round(((fullOriginalTotal - effectivePrice) / fullOriginalTotal) * 100),
+    coveredSeats,
+    payableSeats,
+    coveredHours: durationHours,
+    payableHours: 0,
+    coverageNote: `${coveredSeats} seat included in pass, ${payableSeats} seat${payableSeats > 1 ? 's' : ''} payable`,
   };
 }
 
@@ -991,6 +1142,7 @@ export interface OtpSession {
   userId?: string;
   token?: string;
   backendSynced?: boolean;
+  devOtp?: string;
 }
 
 export interface NavState {

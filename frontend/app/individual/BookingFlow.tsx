@@ -170,9 +170,9 @@ export default function BookingFlow() {
     : calculateEndDate(startDate, plan, durationMonths);
 
   // Price calculations
-  const planInfo = getEffectiveSpacePrice(currentUser, space, plan, deskType, durationHours, durationMonths);
+  const planInfo = getEffectiveSpacePrice(currentUser, space, plan, deskType, durationHours, durationMonths, seats);
   const planPrice = planInfo.effectivePrice;
-  const rawTotalPrice = planPrice * seats;
+  const rawTotalPrice = planInfo.effectivePrice;
 
   // Loyalty calculations
   const multiplier = space.loyaltyPointsMultiplier || 1;
@@ -350,7 +350,13 @@ export default function BookingFlow() {
               <Row label="Reserved Seats" value={`${seats} seat${seats > 1 ? 's' : ''}`} />
               <div className="pt-3 border-t border-soot/8 flex justify-between items-center font-semibold text-base">
                 <span className="text-soot">Total Paid (incl. VAT)</span>
-                <span className="text-soot font-bold text-lg">SAR {totalPrice.toLocaleString()}</span>
+                {totalPrice === 0 ? (
+                  <span className="text-moss font-bold text-xs sm:text-sm bg-eucalyptus/25 px-3 py-1 rounded-full border border-eucalyptus/30">
+                    Included in your Plan · SAR 0 Paid
+                  </span>
+                ) : (
+                  <span className="text-soot font-bold text-lg">SAR {totalPrice.toLocaleString()}</span>
+                )}
               </div>
             </div>
           </div>
@@ -497,7 +503,7 @@ export default function BookingFlow() {
                     {pInfo.isCovered ? (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-eucalyptus/30 text-soot font-semibold text-xs border border-eucalyptus/40 shadow-2xs">
                         <Check size={11} className="text-moss shrink-0" />
-                        <span>Included in Pass</span>
+                        <span>Included in your Plan</span>
                       </span>
                     ) : pInfo.hasDiscount ? (
                       <div>
@@ -900,7 +906,7 @@ export default function BookingFlow() {
 
               <Row
                 label={`Rate per Seat (${isHourly ? `${startTime} – ${endTime} (${durationHours}h)` : plan === 'monthly' ? `${durationMonths} Mo Monthly` : `${plan} pass`})`}
-                value={`SAR ${planInfo.originalPrice.toLocaleString()}${planInfo.isCovered ? ' (Included with Pass)' : ''}`}
+                value={planInfo.isCovered ? 'Included in your Plan' : `SAR ${planInfo.originalPrice.toLocaleString()}`}
               />
               <Row
                 label={`Number of Reserved Seats`}
@@ -908,11 +914,11 @@ export default function BookingFlow() {
               />
               <Row
                 label={`Subtotal`}
-                value={`SAR ${(planInfo.originalPrice * seats).toLocaleString()}`}
+                value={planInfo.isCovered ? 'Included in your Plan' : `SAR ${(planInfo.originalPrice * seats).toLocaleString()}`}
               />
               <Row
                 label="VAT (15% included in price)"
-                value={`SAR ${((planInfo.originalPrice * seats) * 0.15).toFixed(0)}`}
+                value={planInfo.isCovered ? 'SAR 0' : `SAR ${((planInfo.originalPrice * seats) * 0.15).toFixed(0)}`}
               />
 
               {/* Highlighted Final Payable Amount */}
@@ -923,11 +929,18 @@ export default function BookingFlow() {
                 </div>
 
                 <div className="text-right">
-                  {planInfo.isCovered ? (
+                  {totalPrice === 0 ? (
                     <div>
-                      <span className="text-2xl font-bold text-soot">SAR 0</span>
+                      <span className="text-2xl font-bold text-soot">SAR 0 to Pay</span>
                       <div className="text-xs text-moss font-semibold bg-eucalyptus/25 border border-eucalyptus/30 px-2.5 py-0.5 rounded-full inline-block ml-2">
-                        Included in Pass (Standard: SAR {(planInfo.originalPrice * seats).toLocaleString()})
+                        Included in your Plan
+                      </div>
+                    </div>
+                  ) : planInfo.isPartiallyCovered ? (
+                    <div>
+                      <span className="text-2xl font-bold text-soot">SAR {totalPrice.toLocaleString()} to Pay</span>
+                      <div className="text-xs text-amber-900 font-semibold bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 rounded-full block mt-0.5">
+                        {(planInfo.coveredSeats || 0) > 0 ? `${planInfo.coveredSeats} Seat Included in Plan` : `${planInfo.coveredHours || 0}h Included in Plan`}
                       </div>
                     </div>
                   ) : planInfo.hasDiscount ? (
@@ -972,7 +985,7 @@ export default function BookingFlow() {
                   endDate: endDate,
                   seats: seats,
                   notes: notes,
-                  pricePerSeat: planPrice,
+                  pricePerSeat: planInfo.isCovered ? 0 : Math.round(totalPrice / seats),
                   itemTotal: totalPrice,
                 });
                 navigate('browse');
@@ -980,7 +993,7 @@ export default function BookingFlow() {
               className="py-3.5 px-5 rounded-full border border-soot/15 text-soot font-medium text-sm hover:bg-soot/5 transition-all bg-white flex items-center justify-center gap-2 cursor-pointer shadow-2xs"
             >
               <ShoppingBag size={16} />
-              <span>Add to Cart</span>
+              <span>{totalPrice === 0 ? 'Add to Cart (Included · SAR 0)' : 'Add to Cart'}</span>
             </button>
             <button
               onClick={confirmBooking}
@@ -989,10 +1002,10 @@ export default function BookingFlow() {
             >
               {loading ? (
                 <span>Processing Payment...</span>
-              ) : planInfo.isCovered ? (
+              ) : totalPrice === 0 ? (
                 <>
                   <Check size={16} className="text-moss" />
-                  <span>Confirm Reservation (Included in Pass)</span>
+                  <span>Confirm Reservation (Included in your Plan · SAR 0 to Pay)</span>
                 </>
               ) : (
                 <>
