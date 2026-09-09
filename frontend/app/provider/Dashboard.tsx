@@ -5,10 +5,15 @@ import { useApp } from '@/app/store';
 import { getBookingPrice, getSpaceCategory, isHourlyAllowed } from '@/types/types';
 
 export default function ProviderDashboard() {
-  const { currentUser, spaces, bookings, navigate } = useApp();
+  const { currentUser, spaces, partners, bookings, navigate } = useApp();
   if (!currentUser) return null;
 
-  const mySpaces = spaces.filter((s) => s.ownerId === currentUser.id);
+  const userPartner = partners.find(p => p.contactEmail?.toLowerCase() === currentUser.email?.toLowerCase());
+  const mySpaces = spaces.filter((s) =>
+    s.ownerId === currentUser.id ||
+    (userPartner && s.ownerId === userPartner.id) ||
+    (s.email && s.email.toLowerCase() === currentUser.email?.toLowerCase())
+  );
   const mySpaceIds = mySpaces.map((s) => s.id);
   const myBookings = bookings.filter((b) => mySpaceIds.includes(b.spaceId));
   const activeBookings = myBookings.filter((b) => b.status === 'active');

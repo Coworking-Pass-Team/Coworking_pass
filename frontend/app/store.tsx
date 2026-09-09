@@ -1093,32 +1093,43 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const data = await fetchWorkspacesFromApi();
       if (Array.isArray(data) && data.length > 0) {
         setWorkspacesApi(data);
-        const dbSpaces: Space[] = data.map((w) => ({
-          id: w.id,
-          name: w.name,
-          city: w.city,
-          district: '',
-          address: w.city,
-          description: `Workspace managed by ${w.partner?.brandName || 'Partner'}`,
-          type: 'private-office',
-          images: ['https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80'],
-          amenities: ['High-Speed Wi-Fi', 'Coffee Bar', 'Meeting Rooms'],
-          totalCapacity: w.totalCapacity || 50,
-          availableCapacity: w.totalCapacity || 50,
-          pricing: {
-            daily: w.dailyRate || 100,
-            monthly: w.monthlyRate || 2000,
-            yearly: w.yearlyRate || 20000,
-          },
-          rating: 4.8,
-          reviewCount: 12,
-          isVisible: true,
-          isFeatured: false,
-          openHours: '08:00 AM - 10:00 PM',
-          phone: '+966 50 000 0000',
-          email: w.partner?.contactEmail || 'contact@coworkingpass.sa',
-          ownerId: w.partnerId,
-        }));
+        const userEmail = currentUser?.email?.toLowerCase();
+        const userPartner = partners.find(p => p.contactEmail?.toLowerCase() === userEmail);
+        const userPartnerId = userPartner?.id;
+
+        const dbSpaces: Space[] = data.map((w) => {
+          const isBelongingToCurrentUser = currentUser && (
+            w.partnerId === currentUser.id ||
+            (userPartnerId && w.partnerId === userPartnerId) ||
+            (userEmail && w.partner?.contactEmail?.toLowerCase() === userEmail)
+          );
+          return {
+            id: w.id,
+            name: w.name,
+            city: w.city,
+            district: '',
+            address: w.city,
+            description: `Workspace managed by ${w.partner?.brandName || 'Partner'}`,
+            type: 'private-office',
+            images: ['https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80'],
+            amenities: ['High-Speed Wi-Fi', 'Coffee Bar', 'Meeting Rooms'],
+            totalCapacity: w.totalCapacity || 50,
+            availableCapacity: w.totalCapacity || 50,
+            pricing: {
+              daily: w.dailyRate || 100,
+              monthly: w.monthlyRate || 2000,
+              yearly: w.yearlyRate || 20000,
+            },
+            rating: 4.8,
+            reviewCount: 12,
+            isVisible: true,
+            isFeatured: false,
+            openHours: '08:00 AM - 10:00 PM',
+            phone: '+966 50 000 0000',
+            email: w.partner?.contactEmail || 'contact@coworkingpass.sa',
+            ownerId: isBelongingToCurrentUser ? currentUser.id : w.partnerId,
+          };
+        });
 
         setSpaces(dbSpaces);
       }
@@ -1513,6 +1524,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Auto-sync Partner record in PostgreSQL Partner table for logged in provider
+  useEffect(() => {
+    if (currentUser && (currentUser.role === 'provider' || currentUser.role === 'admin')) {
+      const storedToken = getStoredToken();
+      if (storedToken) {
+        const userEmail = currentUser.email?.toLowerCase();
+        const exists = partners.some(p => p.contactEmail?.toLowerCase() === userEmail);
+        if (!exists && userEmail) {
+          createPartner({
+            brandName: (currentUser as any).businessName || currentUser.name || 'Venue Partner',
+            contactEmail: currentUser.email,
+            taxNumber: (currentUser as any).crNumber || '300000000000003',
+            revenueSharePercentage: 20,
+          }).catch(() => {});
+        }
+      }
+    }
+  }, [currentUser, partners]);
+
   const navigate = (screen: Screen, params: Record<string, any> = {}) => {
     setHistory(prev => [...prev.slice(-9), nav]);
     setNav({ screen, params });
@@ -1751,16 +1781,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
       avatar: otpSession.user.avatar || '',
       ...(otpSession.extraData || {}),
     };
+
     const updatedUsers = users.some(u => u.id === updated.id || u.email.toLowerCase() === updated.email.toLowerCase())
       ? users.map(u => (u.id === updated.id || u.email.toLowerCase() === updated.email.toLowerCase()) ? updated : u)
       : [...users, updated];
     setUsers(updatedUsers);
-    setCurrentUser(updated);
     setPendingUser(null);
     setOtpSession(null);
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cp_users', JSON.stringify(updatedUsers));
+    }
+
+    // Automatically transition to login to complete authentication and receive JWT token
+    const loginRes = await login(updated.email, updated.password);
+    if (loginRes.success) {
+      showToast('Account email verified successfully! Please enter the security code sent to your email to log in.', 'success');
+      return { success: true };
+    }
+
+    setCurrentUser(updated);
     if (typeof window !== 'undefined') {
       localStorage.setItem('cp_currentUser', JSON.stringify(updated));
-      localStorage.setItem('cp_users', JSON.stringify(updatedUsers));
     }
     if (updated.role === 'organization') navigate('org-dashboard');
     else if (updated.role === 'provider') navigate('provider-dashboard');
