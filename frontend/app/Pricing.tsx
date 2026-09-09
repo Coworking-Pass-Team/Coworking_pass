@@ -176,7 +176,7 @@ export default function Pricing() {
         paymentFor: 'SUBSCRIPTION',
         referenceId: res.data?.id || plan.id,
         status: 'SUCCESS',
-      }).catch((err) => console.warn('[Payment Record Sync]', err));
+      }).catch((err: any) => console.warn('[Payment Record Sync]', err));
 
       showToast(`Subscribed to ${plan.name} successfully!`, 'success');
       if (currentUser.role === 'organization') navigate('org-dashboard');

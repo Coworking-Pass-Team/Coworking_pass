@@ -64,7 +64,7 @@ export default function MyBookings() {
     if (!cancelModal) return;
     const bookingToCancel = cancelModal;
     cancelBooking(bookingToCancel.id, refundMethod);
-    deleteDirectBookingApi(bookingToCancel.id).catch((err) =>
+    deleteDirectBookingApi(bookingToCancel.id).catch((err: any) =>
       console.warn('[Direct Booking DELETE Sync]', err)
     );
     setCancelModal(null);

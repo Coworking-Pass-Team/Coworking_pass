@@ -280,7 +280,7 @@ export default function BookingFlow() {
           durationType,
           bookingDate: new Date(startDate).toISOString(),
           status: 'CONFIRMED',
-        }).catch((err) => console.warn('[Direct Booking API Sync]', err));
+        }).catch((err: any) => console.warn('[Direct Booking API Sync]', err));
       }
 
       // Record payment transaction
@@ -292,7 +292,7 @@ export default function BookingFlow() {
           paymentFor: isHourly ? 'HOURLY_BOOKING' : 'DIRECT_BOOKING',
           referenceId: booking.id,
           status: 'SUCCESS',
-        }).catch((err) => console.warn('[Payment Record Sync]', err));
+        }).catch((err: any) => console.warn('[Payment Record Sync]', err));
       }
 
       setConfirmedBooking(booking);
