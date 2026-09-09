@@ -256,7 +256,7 @@ export default function MembershipPlansAdmin() {
         <div className="text-center py-16 bg-white rounded-3xl border border-soot/8">
           <Tag size={28} className="text-moss/50 mx-auto mb-2" />
           <h3 className="text-base font-semibold text-soot">No membership plans found</h3>
-          <p className="text-xs text-moss mt-1">Try adjusting your search query or click "Create Plan" above.</p>
+          <p className="text-xs text-moss mt-1">Try adjusting your search query or click &quot;Create Plan&quot; above.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">

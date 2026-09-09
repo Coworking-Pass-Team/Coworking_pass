@@ -248,7 +248,14 @@ export default function MyBookings() {
 
                 {/* Revenue Amount */}
                 <div className="col-span-1 mt-2 lg:mt-0 text-sm font-semibold text-soot">
-                  SAR {getBookingPrice(b).toLocaleString()}
+                  {getBookingPrice(b) === 0 ? (
+                    <span className="text-xs font-bold text-moss bg-eucalyptus/30 px-2.5 py-1 rounded-full border border-eucalyptus/40 inline-flex items-center gap-1">
+                      <Check size={11} className="text-moss" />
+                      <span>Included</span>
+                    </span>
+                  ) : (
+                    `SAR ${getBookingPrice(b).toLocaleString()}`
+                  )}
                 </div>
 
                 {/* Actions */}
@@ -376,8 +383,8 @@ export default function MyBookings() {
               <div className="flex items-center justify-between p-4 bg-soot text-plaster rounded-2xl">
                 <div>
                   <span className="text-xs text-plaster/70 block">Total Booking Fee</span>
-                  <span className="text-2xl font-serif-display font-normal">
-                    SAR {getBookingPrice(selectedBooking).toLocaleString()}
+                  <span className="text-xl sm:text-2xl font-serif-display font-normal">
+                    {getBookingPrice(selectedBooking) === 0 ? 'Included in your Plan · SAR 0 Paid' : `SAR ${getBookingPrice(selectedBooking).toLocaleString()}`}
                   </span>
                 </div>
                 <span

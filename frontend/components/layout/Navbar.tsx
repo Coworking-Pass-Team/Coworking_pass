@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Menu, X, User as UserIcon, LogOut, ChevronDown, Calendar, Building2, MoreHorizontal, Users, Settings } from 'lucide-react';
+import { Menu, X, User as UserIcon, LogOut, ChevronDown, Calendar, Building2, Users, Settings } from 'lucide-react';
 import { useApp } from '@/app/store';
 import Logo from './logo';
 
@@ -48,7 +48,7 @@ export default function Navbar() {
       return [
         { label: 'Home', screen: 'landing' as const },
         { label: 'Browse Spaces', screen: 'browse' as const },
-        { label: 'Plans & Pricing', screen: 'pricing' as const },
+        { label: 'Pricing & Plans', screen: 'pricing' as const },
         { label: 'Contact Us', screen: 'contact' as const },
       ];
     }
@@ -59,6 +59,7 @@ export default function Navbar() {
       return [
         { label: 'Dashboard', screen: 'org-dashboard' as const },
         { label: 'Browse Spaces', screen: 'browse' as const },
+        { label: 'Pricing & Plans', screen: 'pricing' as const },
         { label: 'Team Bookings', screen: 'team-bookings' as const },
         { label: 'Support', screen: 'contact' as const },
       ];
@@ -88,6 +89,7 @@ export default function Navbar() {
     return [
       { label: 'Dashboard', screen: 'ind-dashboard' as const },
       { label: 'Browse Spaces', screen: 'browse' as const },
+      { label: 'Pricing & Plans', screen: 'pricing' as const },
       { label: 'My Bookings', screen: 'my-bookings' as const },
       { label: 'Support', screen: 'contact' as const },
     ];
