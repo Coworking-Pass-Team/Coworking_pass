@@ -2,6 +2,40 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
+
+
+/**
+ * @swagger
+ * /api/direct-bookings:
+ *   post:
+ *     summary: إنشاء حجز مباشر
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [userId, workspaceId, sectionId, durationType, bookingDate]
+ *             properties:
+ *               userId:
+ *                 type: string
+ *               workspaceId:
+ *                 type: string
+ *               sectionId:
+ *                 type: string
+ *               durationType:
+ *                 type: string
+ *                 enum: [DAILY, MONTHLY, YEARLY]
+ *               bookingDate:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: تم إنشاء الحجز (أو تسجيله بالطابور لو المساحة ممتلئة). لو المستخدم مرتبط بشركة، يُخصم تلقائياً من رصيد محفظة الشركة.
+ *       400:
+ *         description: رصيد الشركة غير كافٍ لهذا الحجز
+ */
 export async function POST(request: NextRequest) {
   try {
     

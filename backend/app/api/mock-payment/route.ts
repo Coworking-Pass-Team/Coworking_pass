@@ -1,6 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+
+
+
+/**
+ * @swagger
+ * /api/mock-payment:
+ *   post:
+ *     summary: محاكاة استجابة بوابة دفع
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: استجابة عشوائية (SUCCESS أو FAILED)، بنسبة نجاح تقارب 95%
+ */
 // POST: محاكاة عملية دفع
 export async function POST(request: NextRequest) {
   try {
