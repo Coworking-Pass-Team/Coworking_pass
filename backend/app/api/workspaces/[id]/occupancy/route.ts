@@ -2,6 +2,25 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
+
+
+/**
+ * @swagger
+ * /api/workspaces/{id}/occupancy:
+ *   get:
+ *     summary: حساب نسبة إشغال مساحة العمل
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: يرجع عدد الحجوزات النشطة ونسبة الإشغال المئوية
+ */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

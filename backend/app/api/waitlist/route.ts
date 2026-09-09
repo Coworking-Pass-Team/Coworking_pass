@@ -2,6 +2,19 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
+
+
+/**
+ * @swagger
+ * /api/waitlist:
+ *   get:
+ *     summary: عرض كل قائمة الانتظار
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: نجح
+ */
 // GET: جلب جميع طلبات الانتظار
 export async function GET(request: Request) {
   try {
