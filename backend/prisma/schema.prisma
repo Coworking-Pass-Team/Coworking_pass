@@ -170,6 +170,7 @@ model Company {
   companyName          String
   hrAdminId            String @unique
   totalPassesAllocated Int    @default(0)
+  balance               Float  @default(0)  
 
   hrAdmin   User     @relation("CompanyHrAdmin", fields: [hrAdminId], references: [id])
   employees User[]   @relation("CompanyEmployees")
