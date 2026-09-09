@@ -201,6 +201,8 @@ model Workspace {
   yearlyRate     Float?
   passVisitValue Float
   totalCapacity  Int
+  latitude       Float?
+  longitude      Float?
 
   partner    Partner            @relation(fields: [partnerId], references: [id])
   sections   WorkspaceSection[]
