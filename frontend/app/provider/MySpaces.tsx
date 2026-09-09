@@ -99,6 +99,14 @@ export default function ProviderMySpaces() {
     (currentUser.email && s.email && s.email.toLowerCase() === currentUser.email.toLowerCase())
   );
 
+  const myAmenityRequests = (amenityRequests || []).filter((req) =>
+    req.providerId === currentUser.id ||
+    (userPartner && req.providerId === userPartner.id) ||
+    (req.providerName && currentUser.name && req.providerName.toLowerCase() === currentUser.name.toLowerCase()) ||
+    (req.providerName && currentUser.businessName && req.providerName.toLowerCase() === currentUser.businessName.toLowerCase()) ||
+    (userPartner && req.providerName && userPartner.brandName && req.providerName.toLowerCase() === userPartner.brandName.toLowerCase())
+  );
+
   const filteredSpaces = mySpaces.filter((s) => {
     const q = query.trim().toLowerCase();
     if (q && !s.name.toLowerCase().includes(q) && !s.city.toLowerCase().includes(q)) return false;
@@ -1108,13 +1116,13 @@ export default function ProviderMySpaces() {
               </div>
 
               {/* Provider's Custom Amenity Requests Status */}
-              {amenityRequests && amenityRequests.length > 0 && (
+              {myAmenityRequests && myAmenityRequests.length > 0 && (
                 <div className="mt-3 pt-3 border-t border-soot/10">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-moss block mb-2">
                     My Amenity Requests & Status
                   </span>
                   <div className="flex flex-wrap gap-2">
-                    {amenityRequests.map((req) => (
+                    {myAmenityRequests.map((req) => (
                       <div
                         key={req.id}
                         className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border ${

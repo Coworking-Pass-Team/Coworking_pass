@@ -56,7 +56,10 @@ export default function ProviderSpaceBookings() {
     (currentUser.email && s.email && s.email.toLowerCase() === currentUser.email.toLowerCase())
   );
   const mySpaceIds = mySpaces.map((s) => s.id);
-  const myBookings = bookings.filter((b) => mySpaceIds.includes(b.spaceId));
+  const myBookings = bookings.filter((b) =>
+    mySpaceIds.includes(b.spaceId) ||
+    mySpaces.some((s) => s.name.toLowerCase() === b.spaceName?.toLowerCase())
+  );
 
   const getUserName = (userId: string) => {
     const u = users.find((user) => user.id === userId);
