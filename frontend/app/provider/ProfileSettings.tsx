@@ -30,10 +30,19 @@ import Modal from '@/components/ui/Modal';
 import UserAvatar from '@/components/ui/UserAvatar';
 
 export default function ProviderProfileSettings() {
-  const { currentUser, navigate, nav, updateCurrentUser, spaces, showToast } = useApp();
+  const { currentUser, navigate, nav, updateCurrentUser, spaces, partners, showToast } = useApp();
+  if (!currentUser) return null;
 
   const [activeTab, setActiveTab] = useState<'profile' | 'settings'>(
     nav.screen === 'provider-settings' ? 'settings' : 'profile'
+  );
+
+  const userPartner = partners.find(p => p.contactEmail?.toLowerCase() === currentUser.email?.toLowerCase());
+  const providerSpaces = spaces.filter((s: Space) =>
+    s.ownerId === currentUser.id ||
+    (userPartner && s.ownerId === userPartner.id) ||
+    (s.email && s.email.toLowerCase() === currentUser.email?.toLowerCase()) ||
+    (currentUser.email && s.email && s.email.toLowerCase() === currentUser.email.toLowerCase())
   );
 
   // Edit Profile Modal State
@@ -68,10 +77,6 @@ export default function ProviderProfileSettings() {
     autoPayout: true,
     instantBooking: true,
   });
-
-  if (!currentUser) return null;
-
-  const providerSpaces = spaces.filter((s: Space) => s.ownerId === currentUser.id);
 
   const handleOpenEdit = () => {
     setEditBusinessName(currentUser.businessName || 'The Hub Riyadh Holdings');
