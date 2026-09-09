@@ -30,7 +30,6 @@ import MembershipPlansAdmin from './MembershipPlansAdmin';
 
 export default function AdminSettings() {
   const { currentUser, updateCurrentUser, logout, showToast, navigate, nav } = useApp();
-  if (!currentUser) return null;
 
   const [activeTab, setActiveTab] = useState<'profile' | 'plans' | 'settings'>(
     nav.screen === 'admin-settings' ? 'profile' : 'profile'
@@ -38,9 +37,9 @@ export default function AdminSettings() {
 
   // Edit Profile Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editName, setEditName] = useState(currentUser.name || 'System Admin');
-  const [editPhone, setEditPhone] = useState(currentUser.phone || '+966 50 000 0001');
-  const [editAvatar, setEditAvatar] = useState(currentUser.avatar || '');
+  const [editName, setEditName] = useState(currentUser?.name || 'System Admin');
+  const [editPhone, setEditPhone] = useState(currentUser?.phone || '+966 50 000 0001');
+  const [editAvatar, setEditAvatar] = useState(currentUser?.avatar || '');
   const [isSaving, setIsSaving] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -64,6 +63,8 @@ export default function AdminSettings() {
     auditLogging: true,
     revenueSharePercent: 15,
   });
+
+  if (!currentUser) return null;
 
   const handleOpenEdit = () => {
     setEditName(currentUser.name || '');

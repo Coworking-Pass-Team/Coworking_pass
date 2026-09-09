@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Search, CalendarDays, Settings, LogOut,
   Building2, Users, BarChart3, BookOpen,
   Briefcase, AlertCircle, Bell, Sparkles, CheckCheck, ChevronRight, ShoppingBag, HelpCircle,
-  ChevronDown, MoreHorizontal
+  ChevronDown, CreditCard
 } from 'lucide-react';
 import { Screen } from '@/types/types';
 import { useApp } from '@/app/store';
@@ -38,7 +38,6 @@ import OrgDashboard from './organization/Dashboard';
 import OrgProfile from './organization/OrgProfile';
 import TeamBooking from './organization/TeamBooking';
 import TeamBookings from './organization/TeamBookings';
-import CompanyBookings from './organization/CompanyBookings';
 import CompanyTeam from './organization/CompanyTeam';
 
 // Provider screens
@@ -65,6 +64,7 @@ interface NavItem {
 const individualNav: NavItem[] = [
   { label: 'Dashboard', screen: 'ind-dashboard', icon: LayoutDashboard },
   { label: 'Browse Spaces', screen: 'browse', icon: Search },
+  { label: 'Pricing & Plans', screen: 'pricing', icon: CreditCard },
   { label: 'My Bookings', screen: 'my-bookings', icon: CalendarDays },
   { label: 'Support', screen: 'contact', icon: HelpCircle },
   { label: 'Settings', screen: 'ind-settings', icon: Settings },
@@ -73,6 +73,7 @@ const individualNav: NavItem[] = [
 const orgNav: NavItem[] = [
   { label: 'Dashboard', screen: 'org-dashboard', icon: LayoutDashboard },
   { label: 'Browse Spaces', screen: 'browse', icon: Search },
+  { label: 'Pricing & Plans', screen: 'pricing', icon: CreditCard },
   { label: 'Team Bookings', screen: 'team-bookings', icon: Briefcase },
   { label: 'Team Members', screen: 'company-team', icon: Users },
 ];
@@ -400,7 +401,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               {role === 'organization' ? 'HR Admin (B2B)' : role === 'admin' ? 'Admin Portal' : `${role} portal`}
             </span>
 
-            {(role === 'individual' || role === 'organization' || (role as any) === 'B2C' || (role as any) === 'HR_ADMIN') && (
+            {(role === 'individual' || role === 'organization' || role === 'B2C' || role === 'HR_ADMIN') && (
               <>
                 <LoyaltyButton />
                 <CartButton onClick={() => setCartOpen(true)} />

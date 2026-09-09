@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { ArrowRight, MapPin, Star, Users, Zap, Headphones, Shield, ChevronDown, Quote, Check, Building2, Presentation, Clapperboard } from 'lucide-react';
 import { useApp } from '@/app/store';
-import { isUserPassHolder, getEffectiveSpacePrice, getSpaceCategory } from '@/types/types';
+import { getEffectiveSpacePrice, getSpaceCategory } from '@/types/types';
 import GuestNav from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import Button from '@/components/ui/Button';
@@ -13,7 +13,6 @@ const cities = ['All Cities', 'Riyadh', 'Jeddah', 'Dammam', 'Khobar', 'Madinah',
 
 export default function Landing() {
   const { navigate, spaces, currentUser } = useApp();
-  const passActive = isUserPassHolder(currentUser);
   const [searchCity, setSearchCity] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
