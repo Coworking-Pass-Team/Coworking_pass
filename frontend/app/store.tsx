@@ -1,27 +1,43 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, Space, Booking, Screen, NavState, UserRole, BookingType, PaymentCard, Notification, CartItem, AmenityRequest, AmenityRequestStatus, calculateEndDate, isCancellationRefundEligible, getBookingPrice, OtpSession, SupportTicket, TicketStatus, Partner, WorkspaceApi, HourlyBookingApi, PayoutApi } from '@/types/types';
+import { User, Space, Booking, Screen, NavState, UserRole, BookingType, PaymentCard, Notification, CartItem, AmenityRequest, AmenityRequestStatus, calculateEndDate, isCancellationRefundEligible, getBookingPrice, OtpSession, SupportTicket, TicketStatus, Partner, WorkspaceApi, HourlyBookingApi, PayoutApi, MembershipPlanApi, SubscriptionApi, DirectBookingApi, PaymentApi } from '@/types/types';
 import { INITIAL_SPACES, INITIAL_USERS, INITIAL_BOOKINGS, INITIAL_NOTIFICATIONS, INITIAL_SUPPORT_TICKETS } from '@/data/data';
 import { registerUserApi, verifyEmailApi, loginUserApi, verifyLoginApi, mapRoleToFrontend } from '@/services/authApi';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+export function getApiBaseUrl(): string {
+  const envUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (envUrl) {
+    const cleaned = envUrl.replace(/\/$/, '');
+    return cleaned.endsWith('/api') ? cleaned : `${cleaned}/api`;
+  }
+  return 'http://localhost:3001/api';
+}
+
+export const API_BASE_URL = getApiBaseUrl();
+
+
+export function getStoredToken(): string | undefined {
+  return (
+    (typeof window !== 'undefined' && (
+      localStorage.getItem('cp_token') ||
+      localStorage.getItem('token') ||
+      localStorage.getItem('jwt')
+    )) || undefined
+  );
+}
 
 async function fetchPartnersFromApi(token?: string): Promise<Partner[]> {
   try {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    } else if (typeof window !== 'undefined') {
-      const storedToken = localStorage.getItem('token') || localStorage.getItem('jwt');
-      if (storedToken) {
-        headers['Authorization'] = `Bearer ${storedToken}`;
-      }
+    const storedToken = token || getStoredToken();
+    if (storedToken) {
+      headers['Authorization'] = `Bearer ${storedToken}`;
     }
 
-    const response = await fetch(`${API_BASE_URL}/partners`, {
+    const response = await fetch(`${getApiBaseUrl()}/partners`, {
       method: 'GET',
       headers,
     });
@@ -44,16 +60,12 @@ async function fetchWorkspacesFromApi(token?: string): Promise<WorkspaceApi[]> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    } else if (typeof window !== 'undefined') {
-      const storedToken = localStorage.getItem('token') || localStorage.getItem('jwt');
-      if (storedToken) {
-        headers['Authorization'] = `Bearer ${storedToken}`;
-      }
+    const storedToken = token || getStoredToken();
+    if (storedToken) {
+      headers['Authorization'] = `Bearer ${storedToken}`;
     }
 
-    const response = await fetch(`${API_BASE_URL}/workspaces`, {
+    const response = await fetch(`${getApiBaseUrl()}/workspaces`, {
       method: 'GET',
       headers,
     });
@@ -76,16 +88,12 @@ async function fetchHourlyBookingsFromApi(token?: string): Promise<HourlyBooking
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    } else if (typeof window !== 'undefined') {
-      const storedToken = localStorage.getItem('token') || localStorage.getItem('jwt');
-      if (storedToken) {
-        headers['Authorization'] = `Bearer ${storedToken}`;
-      }
+    const storedToken = token || getStoredToken();
+    if (storedToken) {
+      headers['Authorization'] = `Bearer ${storedToken}`;
     }
 
-    const response = await fetch(`${API_BASE_URL}/hourly-bookings`, {
+    const response = await fetch(`${getApiBaseUrl()}/hourly-bookings`, {
       method: 'GET',
       headers,
     });
@@ -108,16 +116,12 @@ async function fetchPayoutsFromApi(token?: string): Promise<PayoutApi[]> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    } else if (typeof window !== 'undefined') {
-      const storedToken = localStorage.getItem('token') || localStorage.getItem('jwt');
-      if (storedToken) {
-        headers['Authorization'] = `Bearer ${storedToken}`;
-      }
+    const storedToken = token || getStoredToken();
+    if (storedToken) {
+      headers['Authorization'] = `Bearer ${storedToken}`;
     }
 
-    const response = await fetch(`${API_BASE_URL}/payouts`, {
+    const response = await fetch(`${getApiBaseUrl()}/payouts`, {
       method: 'GET',
       headers,
     });
@@ -131,6 +135,78 @@ async function fetchPayoutsFromApi(token?: string): Promise<PayoutApi[]> {
     return data as PayoutApi[];
   } catch (error: any) {
     console.error('Error fetching payouts from GET /api/payouts:', error);
+    throw error;
+  }
+}
+
+async function fetchMembershipPlansFromApi(token?: string): Promise<MembershipPlanApi[]> {
+  try {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    const storedToken = token || getStoredToken();
+    if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+    const response = await fetch(`${getApiBaseUrl()}/membership-plans`, { method: 'GET', headers });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Failed to fetch plans (Status: ${response.status})`);
+    }
+    const data = await response.json();
+    return data as MembershipPlanApi[];
+  } catch (error: any) {
+    console.error('Error fetching membership plans:', error);
+    throw error;
+  }
+}
+
+async function fetchSubscriptionsFromApi(token?: string): Promise<SubscriptionApi[]> {
+  try {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    const storedToken = token || getStoredToken();
+    if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+    const response = await fetch(`${getApiBaseUrl()}/subscriptions`, { method: 'GET', headers });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Failed to fetch subscriptions (Status: ${response.status})`);
+    }
+    const data = await response.json();
+    return data as SubscriptionApi[];
+  } catch (error: any) {
+    console.error('Error fetching subscriptions:', error);
+    throw error;
+  }
+}
+
+async function fetchDirectBookingsFromApi(token?: string): Promise<DirectBookingApi[]> {
+  try {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    const storedToken = token || getStoredToken();
+    if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+    const response = await fetch(`${getApiBaseUrl()}/direct-bookings`, { method: 'GET', headers });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Failed to fetch direct bookings (Status: ${response.status})`);
+    }
+    const data = await response.json();
+    return data as DirectBookingApi[];
+  } catch (error: any) {
+    console.error('Error fetching direct bookings:', error);
+    throw error;
+  }
+}
+
+async function fetchPaymentsFromApi(token?: string): Promise<PaymentApi[]> {
+  try {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    const storedToken = token || getStoredToken();
+    if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+    const response = await fetch(`${getApiBaseUrl()}/payments`, { method: 'GET', headers });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Failed to fetch payments (Status: ${response.status})`);
+    }
+    const data = await response.json();
+    return data as PaymentApi[];
+  } catch (error: any) {
+    console.error('Error fetching payments:', error);
     throw error;
   }
 }
@@ -216,7 +292,7 @@ interface AppContextType {
   ) => Promise<{ success: boolean; booking?: HourlyBookingApi; error?: string }>;
   deleteHourlyBooking: (bookingId: string) => Promise<{ success: boolean; error?: string }>;
 
-  // Payouts API (GET, POST, PUT, DELETE http://localhost:3001/api/payouts)
+  // Payouts API (GET, POST, PUT, DELETE /api/payouts)
   payoutsApi: PayoutApi[];
   fetchPayouts: () => Promise<PayoutApi[]>;
   createPayout: (payoutData: {
@@ -238,6 +314,72 @@ interface AppContextType {
     }>
   ) => Promise<{ success: boolean; payout?: PayoutApi; error?: string }>;
   deletePayout: (payoutId: string) => Promise<{ success: boolean; error?: string }>;
+
+  // Membership Plans API (GET, POST, PUT, DELETE /api/membership-plans)
+  membershipPlansApi: MembershipPlanApi[];
+  fetchMembershipPlans: () => Promise<MembershipPlanApi[]>;
+  createMembershipPlan: (planData: {
+    planName: string;
+    type: string;
+    totalVisitsAllowed: number;
+    price: number;
+  }) => Promise<{ success: boolean; plan?: MembershipPlanApi; error?: string }>;
+  updateMembershipPlan: (
+    planId: string,
+    updates: Partial<{ planName: string; type: string; totalVisitsAllowed: number; price: number }>
+  ) => Promise<{ success: boolean; plan?: MembershipPlanApi; error?: string }>;
+  deleteMembershipPlan: (planId: string) => Promise<{ success: boolean; error?: string }>;
+
+  // Subscriptions API (GET, POST, PUT, DELETE /api/subscriptions)
+  subscriptionsApi: SubscriptionApi[];
+  fetchSubscriptions: () => Promise<SubscriptionApi[]>;
+  createSubscription: (subData: {
+    userId: string;
+    planId: string;
+    startDate: string;
+    endDate: string;
+    status?: string;
+  }) => Promise<{ success: boolean; subscription?: SubscriptionApi; error?: string }>;
+  updateSubscription: (
+    subscriptionId: string,
+    updates: Partial<{ status: string }>
+  ) => Promise<{ success: boolean; subscription?: SubscriptionApi; error?: string }>;
+  deleteSubscription: (subscriptionId: string) => Promise<{ success: boolean; error?: string }>;
+
+  // Direct Bookings API (GET, POST, PUT, DELETE /api/direct-bookings)
+  directBookingsApi: DirectBookingApi[];
+  fetchDirectBookings: () => Promise<DirectBookingApi[]>;
+  createDirectBooking: (bookingData: {
+    userId: string;
+    workspaceId: string;
+    sectionId: string;
+    durationType: string;
+    bookingDate: string;
+    status?: string;
+  }) => Promise<{ success: boolean; booking?: DirectBookingApi; error?: string }>;
+  updateDirectBooking: (
+    bookingId: string,
+    updates: Partial<{ status: string }>
+  ) => Promise<{ success: boolean; booking?: DirectBookingApi; error?: string }>;
+  deleteDirectBooking: (bookingId: string) => Promise<{ success: boolean; error?: string }>;
+
+  // Payments API (GET, POST, PUT, DELETE /api/payments)
+  paymentsApi: PaymentApi[];
+  fetchPayments: () => Promise<PaymentApi[]>;
+  createPayment: (paymentData: {
+    userId: string;
+    amount: number;
+    method: string;
+    paymentFor: string;
+    referenceId?: string;
+    status?: string;
+  }) => Promise<{ success: boolean; payment?: PaymentApi; error?: string }>;
+  updatePayment: (
+    paymentId: string,
+    updates: Partial<{ status: string }>
+  ) => Promise<{ success: boolean; payment?: PaymentApi; error?: string }>;
+  deletePayment: (paymentId: string) => Promise<{ success: boolean; error?: string }>;
+
 
   // Support Tickets & Inquiries
   supportTickets: SupportTicket[];
@@ -387,6 +529,353 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [workspacesApi, setWorkspacesApi] = useState<WorkspaceApi[]>([]);
   const [hourlyBookingsApi, setHourlyBookingsApi] = useState<HourlyBookingApi[]>([]);
   const [payoutsApi, setPayoutsApi] = useState<PayoutApi[]>([]);
+  const [membershipPlansApi, setMembershipPlansApi] = useState<MembershipPlanApi[]>([]);
+  const [subscriptionsApi, setSubscriptionsApi] = useState<SubscriptionApi[]>([]);
+  const [directBookingsApi, setDirectBookingsApi] = useState<DirectBookingApi[]>([]);
+  const [paymentsApi, setPaymentsApi] = useState<PaymentApi[]>([]);
+
+  const fetchMembershipPlans = async (): Promise<MembershipPlanApi[]> => {
+    try {
+      const data = await fetchMembershipPlansFromApi();
+      if (Array.isArray(data)) setMembershipPlansApi(data);
+      return data;
+    } catch (err) {
+      console.error('Failed to fetch membership plans:', err);
+      return membershipPlansApi;
+    }
+  };
+
+  const createMembershipPlan = async (planData: {
+    planName: string;
+    type: string;
+    totalVisitsAllowed: number;
+    price: number;
+  }): Promise<{ success: boolean; plan?: MembershipPlanApi; error?: string }> => {
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const storedToken = getStoredToken();
+      if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+      const response = await fetch(`${getApiBaseUrl()}/membership-plans`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(planData),
+      });
+      const resData = await response.json();
+      if (!response.ok) throw new Error(resData.error || 'Failed to create membership plan');
+      const newPlan: MembershipPlanApi = resData;
+      setMembershipPlansApi((prev) => [newPlan, ...prev]);
+      showToast('Membership plan created successfully', 'success');
+      return { success: true, plan: newPlan };
+    } catch (err: any) {
+      showToast(err.message || 'Failed to create membership plan', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const updateMembershipPlan = async (
+    planId: string,
+    updates: Partial<{ planName: string; type: string; totalVisitsAllowed: number; price: number }>
+  ): Promise<{ success: boolean; plan?: MembershipPlanApi; error?: string }> => {
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const storedToken = getStoredToken();
+      if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+      const response = await fetch(`${getApiBaseUrl()}/membership-plans/${planId}`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(updates),
+      });
+      const resData = await response.json();
+      if (!response.ok) throw new Error(resData.error || 'Failed to update membership plan');
+      const updatedPlan: MembershipPlanApi = resData;
+      setMembershipPlansApi((prev) => prev.map((p) => (p.id === planId ? updatedPlan : p)));
+      showToast('Membership plan updated successfully', 'success');
+      return { success: true, plan: updatedPlan };
+    } catch (err: any) {
+      showToast(err.message || 'Failed to update membership plan', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const deleteMembershipPlan = async (planId: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const storedToken = getStoredToken();
+      if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+      const response = await fetch(`${getApiBaseUrl()}/membership-plans/${planId}`, {
+        method: 'DELETE',
+        headers,
+      });
+      const resData = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(resData.error || 'Failed to delete membership plan');
+      setMembershipPlansApi((prev) => prev.filter((p) => p.id !== planId));
+      showToast('Membership plan deleted successfully', 'success');
+      return { success: true };
+    } catch (err: any) {
+      showToast(err.message || 'Failed to delete membership plan', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const fetchSubscriptions = async (): Promise<SubscriptionApi[]> => {
+    try {
+      const data = await fetchSubscriptionsFromApi();
+      if (Array.isArray(data)) setSubscriptionsApi(data);
+      return data;
+    } catch (err) {
+      console.error('Failed to fetch subscriptions:', err);
+      return subscriptionsApi;
+    }
+  };
+
+  const createSubscription = async (subData: {
+    userId: string;
+    planId: string;
+    startDate: string;
+    endDate: string;
+    status?: string;
+  }): Promise<{ success: boolean; subscription?: SubscriptionApi; error?: string }> => {
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const storedToken = getStoredToken();
+      if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+      const response = await fetch(`${getApiBaseUrl()}/subscriptions`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(subData),
+      });
+      const resData = await response.json();
+      if (!response.ok) throw new Error(resData.error || 'Failed to create subscription');
+      const newSub: SubscriptionApi = resData;
+      setSubscriptionsApi((prev) => [newSub, ...prev]);
+      showToast('Subscription created successfully', 'success');
+      return { success: true, subscription: newSub };
+    } catch (err: any) {
+      showToast(err.message || 'Failed to create subscription', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const updateSubscription = async (
+    subscriptionId: string,
+    updates: Partial<{ status: string }>
+  ): Promise<{ success: boolean; subscription?: SubscriptionApi; error?: string }> => {
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const storedToken = getStoredToken();
+      if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+      const response = await fetch(`${getApiBaseUrl()}/subscriptions/${subscriptionId}`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(updates),
+      });
+      const resData = await response.json();
+      if (!response.ok) throw new Error(resData.error || 'Failed to update subscription');
+      const updatedSub: SubscriptionApi = resData;
+      setSubscriptionsApi((prev) => prev.map((s) => (s.id === subscriptionId ? updatedSub : s)));
+      showToast('Subscription updated successfully', 'success');
+      return { success: true, subscription: updatedSub };
+    } catch (err: any) {
+      showToast(err.message || 'Failed to update subscription', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const deleteSubscription = async (subscriptionId: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const storedToken = getStoredToken();
+      if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+      const response = await fetch(`${getApiBaseUrl()}/subscriptions/${subscriptionId}`, {
+        method: 'DELETE',
+        headers,
+      });
+      const resData = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(resData.error || 'Failed to delete subscription');
+      setSubscriptionsApi((prev) => prev.filter((s) => s.id !== subscriptionId));
+      showToast('Subscription deleted successfully', 'success');
+      return { success: true };
+    } catch (err: any) {
+      showToast(err.message || 'Failed to delete subscription', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const fetchDirectBookings = async (): Promise<DirectBookingApi[]> => {
+    try {
+      const data = await fetchDirectBookingsFromApi();
+      if (Array.isArray(data)) setDirectBookingsApi(data);
+      return data;
+    } catch (err) {
+      console.error('Failed to fetch direct bookings:', err);
+      return directBookingsApi;
+    }
+  };
+
+  const createDirectBooking = async (bookingData: {
+    userId: string;
+    workspaceId: string;
+    sectionId: string;
+    durationType: string;
+    bookingDate: string;
+    status?: string;
+  }): Promise<{ success: boolean; booking?: DirectBookingApi; error?: string }> => {
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const storedToken = getStoredToken();
+      if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+      const response = await fetch(`${getApiBaseUrl()}/direct-bookings`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(bookingData),
+      });
+      const resData = await response.json();
+      if (!response.ok) throw new Error(resData.error || 'Failed to create direct booking');
+      const newBooking: DirectBookingApi = resData;
+      setDirectBookingsApi((prev) => [newBooking, ...prev]);
+      showToast('Direct booking created successfully', 'success');
+      return { success: true, booking: newBooking };
+    } catch (err: any) {
+      showToast(err.message || 'Failed to create direct booking', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const updateDirectBooking = async (
+    bookingId: string,
+    updates: Partial<{ status: string }>
+  ): Promise<{ success: boolean; booking?: DirectBookingApi; error?: string }> => {
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const storedToken = getStoredToken();
+      if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+      const response = await fetch(`${getApiBaseUrl()}/direct-bookings/${bookingId}`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(updates),
+      });
+      const resData = await response.json();
+      if (!response.ok) throw new Error(resData.error || 'Failed to update direct booking');
+      const updatedBooking: DirectBookingApi = resData;
+      setDirectBookingsApi((prev) => prev.map((b) => (b.id === bookingId ? updatedBooking : b)));
+      showToast('Direct booking updated successfully', 'success');
+      return { success: true, booking: updatedBooking };
+    } catch (err: any) {
+      showToast(err.message || 'Failed to update direct booking', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const deleteDirectBooking = async (bookingId: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const storedToken = getStoredToken();
+      if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+      const response = await fetch(`${getApiBaseUrl()}/direct-bookings/${bookingId}`, {
+        method: 'DELETE',
+        headers,
+      });
+      const resData = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(resData.error || 'Failed to delete direct booking');
+      setDirectBookingsApi((prev) => prev.filter((b) => b.id !== bookingId));
+      showToast('Direct booking deleted successfully', 'success');
+      return { success: true };
+    } catch (err: any) {
+      showToast(err.message || 'Failed to delete direct booking', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const fetchPayments = async (): Promise<PaymentApi[]> => {
+    try {
+      const data = await fetchPaymentsFromApi();
+      if (Array.isArray(data)) setPaymentsApi(data);
+      return data;
+    } catch (err) {
+      console.error('Failed to fetch payments:', err);
+      return paymentsApi;
+    }
+  };
+
+  const createPayment = async (paymentData: {
+    userId: string;
+    amount: number;
+    method: string;
+    paymentFor: string;
+    referenceId?: string;
+    status?: string;
+  }): Promise<{ success: boolean; payment?: PaymentApi; error?: string }> => {
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const storedToken = getStoredToken();
+      if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+      const response = await fetch(`${getApiBaseUrl()}/payments`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(paymentData),
+      });
+      const resData = await response.json();
+      if (!response.ok) throw new Error(resData.error || 'Failed to record payment');
+      const newPayment: PaymentApi = resData;
+      setPaymentsApi((prev) => [newPayment, ...prev]);
+      showToast('Payment recorded successfully', 'success');
+      return { success: true, payment: newPayment };
+    } catch (err: any) {
+      showToast(err.message || 'Failed to record payment', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const updatePayment = async (
+    paymentId: string,
+    updates: Partial<{ status: string }>
+  ): Promise<{ success: boolean; payment?: PaymentApi; error?: string }> => {
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const storedToken = getStoredToken();
+      if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+      const response = await fetch(`${getApiBaseUrl()}/payments/${paymentId}`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(updates),
+      });
+      const resData = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setPaymentsApi((prev) => prev.map((p) => (p.id === paymentId ? { ...p, ...updates } : p)));
+        return { success: true };
+      }
+      const updatedPayment: PaymentApi = resData;
+      setPaymentsApi((prev) => prev.map((p) => (p.id === paymentId ? updatedPayment : p)));
+      showToast('Payment updated successfully', 'success');
+      return { success: true, payment: updatedPayment };
+    } catch (err: any) {
+      setPaymentsApi((prev) => prev.map((p) => (p.id === paymentId ? { ...p, ...updates } : p)));
+      return { success: true };
+    }
+  };
+
+  const deletePayment = async (paymentId: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const storedToken = getStoredToken();
+      if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+      const response = await fetch(`${getApiBaseUrl()}/payments/${paymentId}`, {
+        method: 'DELETE',
+        headers,
+      });
+      const resData = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setPaymentsApi((prev) => prev.filter((p) => p.id !== paymentId));
+        return { success: true };
+      }
+      setPaymentsApi((prev) => prev.filter((p) => p.id !== paymentId));
+      showToast('Payment deleted successfully', 'success');
+      return { success: true };
+    } catch (err: any) {
+      setPaymentsApi((prev) => prev.filter((p) => p.id !== paymentId));
+      return { success: true };
+    }
+  };
 
   const fetchPartners = async (): Promise<Partner[]> => {
     try {
@@ -426,14 +915,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
-      if (typeof window !== 'undefined') {
-        const storedToken = localStorage.getItem('token') || localStorage.getItem('jwt');
-        if (storedToken) {
-          headers['Authorization'] = `Bearer ${storedToken}`;
-        }
+      const storedToken = getStoredToken();
+      if (storedToken) {
+        headers['Authorization'] = `Bearer ${storedToken}`;
       }
 
-      const response = await fetch(`${API_BASE_URL}/hourly-bookings`, {
+      const response = await fetch(`${getApiBaseUrl()}/hourly-bookings`, {
         method: 'POST',
         headers,
         body: JSON.stringify(bookingData),
@@ -471,14 +958,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
-      if (typeof window !== 'undefined') {
-        const storedToken = localStorage.getItem('token') || localStorage.getItem('jwt');
-        if (storedToken) {
-          headers['Authorization'] = `Bearer ${storedToken}`;
-        }
+      const storedToken = getStoredToken();
+      if (storedToken) {
+        headers['Authorization'] = `Bearer ${storedToken}`;
       }
 
-      const response = await fetch(`${API_BASE_URL}/hourly-bookings/${bookingId}`, {
+      const response = await fetch(`${getApiBaseUrl()}/hourly-bookings/${bookingId}`, {
         method: 'PUT',
         headers,
         body: JSON.stringify(updates),
@@ -507,14 +992,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
-      if (typeof window !== 'undefined') {
-        const storedToken = localStorage.getItem('token') || localStorage.getItem('jwt');
-        if (storedToken) {
-          headers['Authorization'] = `Bearer ${storedToken}`;
-        }
+      const storedToken = getStoredToken();
+      if (storedToken) {
+        headers['Authorization'] = `Bearer ${storedToken}`;
       }
 
-      const response = await fetch(`${API_BASE_URL}/hourly-bookings/${bookingId}`, {
+      const response = await fetch(`${getApiBaseUrl()}/hourly-bookings/${bookingId}`, {
         method: 'DELETE',
         headers,
       });
@@ -558,14 +1041,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
-      if (typeof window !== 'undefined') {
-        const storedToken = localStorage.getItem('token') || localStorage.getItem('jwt');
-        if (storedToken) {
-          headers['Authorization'] = `Bearer ${storedToken}`;
-        }
+      const storedToken = getStoredToken();
+      if (storedToken) {
+        headers['Authorization'] = `Bearer ${storedToken}`;
       }
 
-      const response = await fetch(`${API_BASE_URL}/payouts`, {
+      const response = await fetch(`${getApiBaseUrl()}/payouts`, {
         method: 'POST',
         headers,
         body: JSON.stringify(payoutData),
@@ -602,14 +1083,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
-      if (typeof window !== 'undefined') {
-        const storedToken = localStorage.getItem('token') || localStorage.getItem('jwt');
-        if (storedToken) {
-          headers['Authorization'] = `Bearer ${storedToken}`;
-        }
+      const storedToken = getStoredToken();
+      if (storedToken) {
+        headers['Authorization'] = `Bearer ${storedToken}`;
       }
 
-      const response = await fetch(`${API_BASE_URL}/payouts/${payoutId}`, {
+      const response = await fetch(`${getApiBaseUrl()}/payouts/${payoutId}`, {
         method: 'PUT',
         headers,
         body: JSON.stringify(updates),
@@ -638,14 +1117,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
-      if (typeof window !== 'undefined') {
-        const storedToken = localStorage.getItem('token') || localStorage.getItem('jwt');
-        if (storedToken) {
-          headers['Authorization'] = `Bearer ${storedToken}`;
-        }
+      const storedToken = getStoredToken();
+      if (storedToken) {
+        headers['Authorization'] = `Bearer ${storedToken}`;
       }
 
-      const response = await fetch(`${API_BASE_URL}/payouts/${payoutId}`, {
+      const response = await fetch(`${getApiBaseUrl()}/payouts/${payoutId}`, {
         method: 'DELETE',
         headers,
       });
@@ -670,6 +1147,38 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const data = await fetchWorkspacesFromApi();
       if (Array.isArray(data) && data.length > 0) {
         setWorkspacesApi(data);
+        const dbSpaces: Space[] = data.map((w) => ({
+          id: w.id,
+          name: w.name,
+          city: w.city,
+          district: '',
+          address: w.city,
+          description: `Workspace managed by ${w.partner?.brandName || 'Partner'}`,
+          type: 'private-office',
+          images: ['https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80'],
+          amenities: ['High-Speed Wi-Fi', 'Coffee Bar', 'Meeting Rooms'],
+          totalCapacity: w.totalCapacity || 50,
+          availableCapacity: w.totalCapacity || 50,
+          pricing: {
+            daily: w.dailyRate || 100,
+            monthly: w.monthlyRate || 2000,
+            yearly: w.yearlyRate || 20000,
+          },
+          rating: 4.8,
+          reviewCount: 12,
+          isVisible: true,
+          isFeatured: false,
+          openHours: '08:00 AM - 10:00 PM',
+          phone: '+966 50 000 0000',
+          email: w.partner?.contactEmail || 'contact@coworkingpass.sa',
+          ownerId: w.partnerId,
+        }));
+
+        setSpaces((prev) => {
+          const existingIds = new Set(prev.map((s) => s.id));
+          const newDbSpaces = dbSpaces.filter((s) => !existingIds.has(s.id));
+          return [...newDbSpaces, ...prev];
+        });
       }
       return data;
     } catch (err) {
@@ -693,14 +1202,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
-      if (typeof window !== 'undefined') {
-        const storedToken = localStorage.getItem('token') || localStorage.getItem('jwt');
-        if (storedToken) {
-          headers['Authorization'] = `Bearer ${storedToken}`;
-        }
+      const storedToken = getStoredToken();
+      if (storedToken) {
+        headers['Authorization'] = `Bearer ${storedToken}`;
       }
 
-      const response = await fetch(`${API_BASE_URL}/workspaces`, {
+      const response = await fetch(`${getApiBaseUrl()}/workspaces`, {
         method: 'POST',
         headers,
         body: JSON.stringify(workspaceData),
@@ -740,14 +1247,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
-      if (typeof window !== 'undefined') {
-        const storedToken = localStorage.getItem('token') || localStorage.getItem('jwt');
-        if (storedToken) {
-          headers['Authorization'] = `Bearer ${storedToken}`;
-        }
+      const storedToken = getStoredToken();
+      if (storedToken) {
+        headers['Authorization'] = `Bearer ${storedToken}`;
       }
 
-      const response = await fetch(`${API_BASE_URL}/workspaces/${workspaceId}`, {
+      const response = await fetch(`${getApiBaseUrl()}/workspaces/${workspaceId}`, {
         method: 'PUT',
         headers,
         body: JSON.stringify(updates),
@@ -776,14 +1281,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
-      if (typeof window !== 'undefined') {
-        const storedToken = localStorage.getItem('token') || localStorage.getItem('jwt');
-        if (storedToken) {
-          headers['Authorization'] = `Bearer ${storedToken}`;
-        }
+      const storedToken = getStoredToken();
+      if (storedToken) {
+        headers['Authorization'] = `Bearer ${storedToken}`;
       }
 
-      const response = await fetch(`${API_BASE_URL}/workspaces/${workspaceId}`, {
+      const response = await fetch(`${getApiBaseUrl()}/workspaces/${workspaceId}`, {
         method: 'DELETE',
         headers,
       });
@@ -813,14 +1316,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
-      if (typeof window !== 'undefined') {
-        const storedToken = localStorage.getItem('token') || localStorage.getItem('jwt');
-        if (storedToken) {
-          headers['Authorization'] = `Bearer ${storedToken}`;
-        }
+      const storedToken = getStoredToken();
+      if (storedToken) {
+        headers['Authorization'] = `Bearer ${storedToken}`;
       }
 
-      const response = await fetch(`${API_BASE_URL}/partners`, {
+      const response = await fetch(`${getApiBaseUrl()}/partners`, {
         method: 'POST',
         headers,
         body: JSON.stringify(partnerData),
@@ -855,14 +1356,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
-      if (typeof window !== 'undefined') {
-        const storedToken = localStorage.getItem('token') || localStorage.getItem('jwt');
-        if (storedToken) {
-          headers['Authorization'] = `Bearer ${storedToken}`;
-        }
+      const storedToken = getStoredToken();
+      if (storedToken) {
+        headers['Authorization'] = `Bearer ${storedToken}`;
       }
 
-      const response = await fetch(`${API_BASE_URL}/partners/${partnerId}`, {
+      const response = await fetch(`${getApiBaseUrl()}/partners/${partnerId}`, {
         method: 'PUT',
         headers,
         body: JSON.stringify(updates),
@@ -891,14 +1390,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
-      if (typeof window !== 'undefined') {
-        const storedToken = localStorage.getItem('token') || localStorage.getItem('jwt');
-        if (storedToken) {
-          headers['Authorization'] = `Bearer ${storedToken}`;
-        }
+      const storedToken = getStoredToken();
+      if (storedToken) {
+        headers['Authorization'] = `Bearer ${storedToken}`;
       }
 
-      const response = await fetch(`${API_BASE_URL}/partners/${partnerId}`, {
+      const response = await fetch(`${getApiBaseUrl()}/partners/${partnerId}`, {
         method: 'DELETE',
         headers,
       });
@@ -923,6 +1420,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     fetchWorkspaces().catch(() => {});
     fetchHourlyBookings().catch(() => {});
     fetchPayouts().catch(() => {});
+    fetchMembershipPlans().catch(() => {});
+    fetchSubscriptions().catch(() => {});
+    fetchDirectBookings().catch(() => {});
+    fetchPayments().catch(() => {});
   }, []);
 
   const sanitizeBookings = (list: Booking[]): Booking[] => {
@@ -1417,6 +1918,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setPendingUser(null);
     if (typeof window !== 'undefined') {
       localStorage.removeItem('cp_currentUser');
+      localStorage.removeItem('cp_token');
+      localStorage.removeItem('token');
+      localStorage.removeItem('jwt');
     }
     navigate('landing');
     showToast('You have been logged out.', 'info');
@@ -1488,6 +1992,46 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
     setSpaces(prev => [...prev, newSpace]);
     showToast('Space added successfully.');
+
+    // Persist new workspace to backend database with valid partnerId
+    (async () => {
+      try {
+        let currentPartners = partners;
+        if (currentPartners.length === 0) {
+          currentPartners = await fetchPartners();
+        }
+
+        let validPartnerId = currentPartners.find(p => p.id === space.ownerId)?.id || currentPartners[0]?.id;
+
+        if (!validPartnerId) {
+          // Auto-create a Partner record in DB if no partner exists yet
+          const partnerRes = await createPartner({
+            brandName: (space as any).providerName || space.name || 'Default Partner',
+            contactEmail: `contact-${Date.now()}@coworkingpass.sa`,
+            taxNumber: '300000000000003',
+            revenueSharePercentage: 20,
+          });
+          if (partnerRes.success && partnerRes.partner) {
+            validPartnerId = partnerRes.partner.id;
+          }
+        }
+
+        if (validPartnerId) {
+          await createWorkspace({
+            partnerId: validPartnerId,
+            name: space.name,
+            city: space.city || 'Riyadh',
+            dailyRate: space.pricing?.daily || 50,
+            monthlyRate: space.pricing?.monthly || 800,
+            yearlyRate: space.pricing?.yearly || 8000,
+            passVisitValue: 15,
+            totalCapacity: space.totalCapacity || 30,
+          });
+        }
+      } catch (err) {
+        console.warn('Database workspace save notice:', err);
+      }
+    })();
   };
 
   const updateSpace = (id: string, updates: Partial<Space>) => {
@@ -2189,6 +2733,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       workspacesApi, fetchWorkspaces, createWorkspace, updateWorkspace, deleteWorkspace,
       hourlyBookingsApi, fetchHourlyBookings, createHourlyBooking, updateHourlyBooking, deleteHourlyBooking,
       payoutsApi, fetchPayouts, createPayout, updatePayout, deletePayout,
+      membershipPlansApi, fetchMembershipPlans, createMembershipPlan, updateMembershipPlan, deleteMembershipPlan,
+      subscriptionsApi, fetchSubscriptions, createSubscription, updateSubscription, deleteSubscription,
+      directBookingsApi, fetchDirectBookings, createDirectBooking, updateDirectBooking, deleteDirectBooking,
+      paymentsApi, fetchPayments, createPayment, updatePayment, deletePayment,
       currentUser, login, signup, logout, setPendingUser, pendingUser,
       userLocation, locationStatus, requestUserLocation,
       spaces, favorites, toggleFavorite, addSpace, updateSpace, toggleSpaceVisibility, deleteSpace,
