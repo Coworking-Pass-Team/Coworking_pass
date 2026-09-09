@@ -270,7 +270,7 @@ export default function UsersAdmin() {
           <button
             type="button"
             onClick={() => setRoleDropdownOpen(!roleDropdownOpen)}
-            className="w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/50 border border-soot/12 transition-all duration-200 text-left cursor-pointer focus:outline-none"
+            className="w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/50 border border-soot/12 transition-all duration-200 text-left cursor-pointer focus:outline-none relative z-1000"
           >
             <span className="text-sm font-medium text-soot truncate">
               {filterRole ? (filterRole === 'individual' ? 'Individual' : filterRole === 'organization' ? 'Organization' : 'Provider') : 'All Roles'}
@@ -422,7 +422,7 @@ export default function UsersAdmin() {
                   </button>
 
                   {isDropdownActive && (
-                    <div className="absolute top-full left-0 mt-1 w-44 p-1 bg-plaster-surface border border-soot/15 rounded-xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
+                    <div className="absolute top-full left-0 mt-1 w-44 p-1 bg-plaster-surface border border-soot/15 rounded-xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100 relative z-50">
                       {ROLES.map((r) => (
                         <button
                           key={r.value}

@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Check, ArrowRight, Sparkles, HelpCircle, Building2, User, ChevronDown } from 'lucide-react';
 import { useApp } from '@/app/store';
+import { createSubscriptionApi, createPaymentApi } from '@/services/authApi';
 
 const individualPlans = [
   {
@@ -133,11 +134,57 @@ const faqs = [
 ];
 
 export default function Pricing() {
-  const { navigate } = useApp();
+  const { currentUser, showToast, navigate } = useApp();
   const [billingType, setBillingType] = useState<'individual' | 'corporate'>('individual');
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [subscribingId, setSubscribingId] = useState<string | null>(null);
 
   const activePlans = billingType === 'individual' ? individualPlans : corporatePlans;
+
+  const handleSelectPlan = async (plan: any) => {
+    if (!plan.price) {
+      navigate('contact');
+      return;
+    }
+
+    if (!currentUser) {
+      navigate('signup');
+      return;
+    }
+
+    setSubscribingId(plan.id);
+    const startDate = new Date().toISOString();
+    const durationDays = plan.id === 'day' ? 1 : plan.id === 'annual' ? 365 : 30;
+    const endDate = new Date(Date.now() + durationDays * 86400000).toISOString();
+
+    const res = await createSubscriptionApi({
+      userId: currentUser.id,
+      planId: plan.id,
+      startDate,
+      endDate,
+      status: 'ACTIVE',
+    });
+
+    setSubscribingId(null);
+
+    if (res.success) {
+      // Record payment transaction
+      createPaymentApi({
+        userId: currentUser.id,
+        amount: plan.price,
+        method: 'APPLE_PAY',
+        paymentFor: 'SUBSCRIPTION',
+        referenceId: res.data?.id || plan.id,
+        status: 'SUCCESS',
+      }).catch((err) => console.warn('[Payment Record Sync]', err));
+
+      showToast(`Subscribed to ${plan.name} successfully!`, 'success');
+      if (currentUser.role === 'organization') navigate('org-dashboard');
+      else navigate('ind-dashboard');
+    } else {
+      showToast(res.error || 'Failed to create subscription.', 'error');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-plaster text-soot py-12 px-4 sm:px-6 lg:px-8">
@@ -257,15 +304,22 @@ export default function Pricing() {
 
                 <button
                   type="button"
-                  onClick={() => navigate(plan.price ? 'signup' : 'contact')}
-                  className={`w-full py-3.5 px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 shadow-xs active:scale-[0.99] ${
+                  disabled={subscribingId === plan.id}
+                  onClick={() => handleSelectPlan(plan)}
+                  className={`w-full py-3.5 px-4 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 shadow-xs active:scale-[0.99] disabled:opacity-50 ${
                     isFeatured
                       ? 'bg-soot text-plaster hover:bg-moss'
                       : 'bg-plaster-dark/40 text-soot hover:bg-soot hover:text-plaster'
                   }`}
                 >
-                  <span>{plan.cta}</span>
-                  <ArrowRight size={14} />
+                  {subscribingId === plan.id ? (
+                    <span>Subscribing...</span>
+                  ) : (
+                    <>
+                      <span>{plan.cta}</span>
+                      <ArrowRight size={14} />
+                    </>
+                  )}
                 </button>
               </div>
             );
