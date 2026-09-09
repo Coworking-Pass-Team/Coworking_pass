@@ -6,7 +6,11 @@
     "dev": "next dev -p 3001",
     "build": "next build",
     "start": "next start -p 3001",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:start": "powershell -ExecutionPolicy Bypass -File ./scripts/start-db.ps1",
+    "db:stop": "powershell -ExecutionPolicy Bypass -File ./scripts/stop-db.ps1",
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
