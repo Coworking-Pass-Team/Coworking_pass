@@ -49,7 +49,7 @@ const CITIES = ['Riyadh', 'Jeddah', 'Dammam', 'Khobar', 'Madinah', 'Makkah', 'Ab
 const TYPES = ALL_SPACE_TYPES;
 
 export default function ProviderMySpaces() {
-  const { currentUser, spaces, addSpace, updateSpace, toggleSpaceVisibility, deleteSpace, amenityRequests, requestCustomAmenity, getApprovedAmenities } = useApp();
+  const { currentUser, spaces, partners, addSpace, updateSpace, toggleSpaceVisibility, deleteSpace, amenityRequests, requestCustomAmenity, getApprovedAmenities } = useApp();
   const [query, setQuery] = useState('');
   const [filterCity, setFilterCity] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<'all' | SpaceCategory>('all');
@@ -92,7 +92,21 @@ export default function ProviderMySpaces() {
 
   if (!currentUser) return null;
 
-  const mySpaces = spaces.filter((s) => s.ownerId === currentUser.id);
+  const userPartner = partners.find(p => p.contactEmail?.toLowerCase() === currentUser.email?.toLowerCase());
+  const mySpaces = spaces.filter((s) =>
+    s.ownerId === currentUser.id ||
+    (userPartner && s.ownerId === userPartner.id) ||
+    (s.email && s.email.toLowerCase() === currentUser.email?.toLowerCase()) ||
+    (currentUser.email && s.email && s.email.toLowerCase() === currentUser.email.toLowerCase())
+  );
+
+  const myAmenityRequests = (amenityRequests || []).filter((req) =>
+    req.providerId === currentUser.id ||
+    (userPartner && req.providerId === userPartner.id) ||
+    (req.providerName && currentUser.name && req.providerName.toLowerCase() === currentUser.name.toLowerCase()) ||
+    (req.providerName && currentUser.businessName && req.providerName.toLowerCase() === currentUser.businessName.toLowerCase()) ||
+    (userPartner && req.providerName && userPartner.brandName && req.providerName.toLowerCase() === userPartner.brandName.toLowerCase())
+  );
 
   const filteredSpaces = mySpaces.filter((s) => {
     const q = query.trim().toLowerCase();
@@ -141,7 +155,7 @@ export default function ProviderMySpaces() {
       isFeatured: false,
       openHours: 'Sun–Thu: 8am–9pm',
       phone: '',
-      email: '',
+      email: currentUser.email || '',
       images: ['https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&h=800&fit=crop&auto=format'],
       ownerId: currentUser.id,
     });
@@ -175,6 +189,7 @@ export default function ProviderMySpaces() {
     } else {
       addSpace({
         ...form,
+        email: form.email || currentUser.email || '',
         ownerId: currentUser.id,
       } as Omit<Space, 'id'>);
     }
@@ -1101,13 +1116,13 @@ export default function ProviderMySpaces() {
               </div>
 
               {/* Provider's Custom Amenity Requests Status */}
-              {amenityRequests && amenityRequests.length > 0 && (
+              {myAmenityRequests && myAmenityRequests.length > 0 && (
                 <div className="mt-3 pt-3 border-t border-soot/10">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-moss block mb-2">
                     My Amenity Requests & Status
                   </span>
                   <div className="flex flex-wrap gap-2">
-                    {amenityRequests.map((req) => (
+                    {myAmenityRequests.map((req) => (
                       <div
                         key={req.id}
                         className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border ${
