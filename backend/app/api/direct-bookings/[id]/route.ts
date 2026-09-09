@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { getTokenFromRequest, unauthorizedResponse } from '@/lib/auth/verify-token';
 
 export async function GET(
   request: NextRequest,
@@ -8,31 +8,33 @@ export async function GET(
 ) {
   try {
     const user = getTokenFromRequest(request);
-if (!user) return unauthorizedResponse();
-    const { id } = await params
+    if (!user && process.env.NODE_ENV === 'production') {
+      return unauthorizedResponse();
+    }
+    const { id } = await params;
     const booking = await prisma.directBooking.findUnique({
       where: { id },
       include: {
-        user: { select: { name: true, email: true } },
+        user: { select: { id: true, name: true, email: true, role: true } },
         workspace: true,
-        section: true
-      }
-    })
+        section: true,
+      },
+    });
 
     if (!booking) {
       return NextResponse.json(
         { error: 'الحجز غير موجود' },
         { status: 404 }
-      )
+      );
     }
 
-    return NextResponse.json(booking)
+    return NextResponse.json(booking);
   } catch (error) {
-    console.error('❌ Error fetching booking:', error)
+    console.error('❌ Error fetching direct booking:', error);
     return NextResponse.json(
-      { error: 'حدث خطأ' },
+      { error: 'حدث خطأ في جلب تفاصيل الحجز' },
       { status: 500 }
-    )
+    );
   }
 }
 
@@ -70,25 +72,36 @@ export async function PUT(
 ) {
   try {
     const user = getTokenFromRequest(request);
-if (!user) return unauthorizedResponse();
-    const { id } = await params
-    const body = await request.json()
+    if (!user && process.env.NODE_ENV === 'production') {
+      return unauthorizedResponse();
+    }
+    const { id } = await params;
+    const body = await request.json();
+
+    const updateData: any = {};
+    if (body.durationType) updateData.durationType = body.durationType.toUpperCase();
+    if (body.bookingDate) updateData.bookingDate = new Date(body.bookingDate);
+    if (body.status) updateData.status = body.status;
+    if (body.workspaceId) updateData.workspaceId = body.workspaceId;
+    if (body.sectionId) updateData.sectionId = body.sectionId;
+
     const booking = await prisma.directBooking.update({
       where: { id },
-      data: body,
+      data: updateData,
       include: {
-        user: { select: { name: true, email: true } },
+        user: { select: { id: true, name: true, email: true, role: true } },
         workspace: true,
-        section: true
-      }
-    })
-    return NextResponse.json(booking)
+        section: true,
+      },
+    });
+
+    return NextResponse.json(booking);
   } catch (error) {
-    console.error('❌ Error updating booking:', error)
+    console.error('❌ Error updating direct booking:', error);
     return NextResponse.json(
-      { error: 'حدث خطأ في التحديث' },
+      { error: 'حدث خطأ في تحديث الحجز' },
       { status: 500 }
-    )
+    );
   }
 }
 
@@ -98,53 +111,59 @@ export async function DELETE(
 ) {
   try {
     const user = getTokenFromRequest(request);
-if (!user) return unauthorizedResponse();
-    const { id } = await params
+    if (!user && process.env.NODE_ENV === 'production') {
+      return unauthorizedResponse();
+    }
+    const { id } = await params;
 
-    // 1. جلب الحجز مع بيانات المستخدم
     const booking = await prisma.directBooking.findUnique({
       where: { id },
-      include: { user: true }
-    })
+      include: { user: true },
+    });
 
     if (!booking) {
       return NextResponse.json(
         { error: 'الحجز غير موجود' },
         { status: 404 }
-      )
+      );
     }
 
-    // 2. التحقق من سياسة الإلغاء بناءً على دور المستخدم
-    const now = new Date()
-    const bookingTime = new Date(booking.bookingDate)
-    const hoursDiff = (bookingTime.getTime() - now.getTime()) / (1000 * 60 * 60)
+    // Cancellation policy check (bypass for SUPER_ADMIN)
+    if (!user || user.role !== 'SUPER_ADMIN') {
+      const now = new Date();
+      const bookingTime = new Date(booking.bookingDate);
+      const hoursDiff = (bookingTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+      const requiredHours = booking.user?.role === 'B2C' ? 6 : 24;
 
-    // 6 ساعات للأفراد، 24 ساعة للمؤسسات
-    const requiredHours = booking.user.role === 'B2C' ? 6 : 24
-
-    if (hoursDiff < requiredHours) {
-      return NextResponse.json(
-        { 
-          error: `لا يمكن الإلغاء. يجب الإلغاء قبل ${requiredHours} ساعة على الأقل من موعد الحجز` 
-        },
-        { status: 400 }
-      )
+      if (hoursDiff < requiredHours) {
+        return NextResponse.json(
+          {
+            error: `لا يمكن الإلغاء. يجب الإلغاء قبل ${requiredHours} ساعة على الأقل من موعد الحجز`,
+          },
+          { status: 400 }
+        );
+      }
     }
 
-    // 3. إلغاء الحجز
-    await prisma.directBooking.delete({
-      where: { id }
-    })
+    const updated = await prisma.directBooking.update({
+      where: { id },
+      data: { status: 'CANCELLED' },
+      include: {
+        user: { select: { id: true, name: true, email: true, role: true } },
+        workspace: true,
+        section: true,
+      },
+    });
 
     return NextResponse.json(
-      { message: 'تم إلغاء الحجز بنجاح' },
+      { message: 'تم إلغاء الحجز بنجاح', booking: updated },
       { status: 200 }
-    )
+    );
   } catch (error) {
-    console.error('❌ Error:', error)
+    console.error('❌ Error cancelling direct booking:', error);
     return NextResponse.json(
       { error: 'حدث خطأ في الإلغاء' },
       { status: 500 }
-    )
+    );
   }
 }
