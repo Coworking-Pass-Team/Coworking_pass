@@ -3,9 +3,15 @@
  * Handles communication between the frontend and backend authentication & OTP endpoints.
  */
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  'http://localhost:3001';
+function getAuthBaseUrl(): string {
+  const envUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (envUrl) {
+    const cleaned = envUrl.replace(/\/$/, '');
+    return cleaned.endsWith('/api') ? cleaned.replace(/\/api$/, '') : cleaned;
+  }
+  return 'http://localhost:3001';
+}
+
 
 export interface RegisterPayload {
   name: string;
@@ -91,7 +97,7 @@ export function mapRoleToFrontend(backendRole: string): 'individual' | 'organiza
  * URL: http://localhost:3001/api/auth/register
  */
 export async function registerUserApi(payload: RegisterPayload): Promise<RegisterResponse> {
-  const url = `${API_BASE_URL}/api/auth/register`;
+  const url = `${getAuthBaseUrl()}/api/auth/register`;
   try {
     const backendRole = mapRoleToBackend(payload.role);
     const response = await fetch(url, {
@@ -136,7 +142,7 @@ export async function registerUserApi(payload: RegisterPayload): Promise<Registe
  * URL: http://localhost:3001/api/auth/verify-email
  */
 export async function verifyEmailApi(payload: VerifyEmailPayload): Promise<VerifyEmailResponse> {
-  const url = `${API_BASE_URL}/api/auth/verify-email`;
+  const url = `${getAuthBaseUrl()}/api/auth/verify-email`;
   try {
     const response = await fetch(url, {
       method: 'POST',
@@ -177,7 +183,7 @@ export async function verifyEmailApi(payload: VerifyEmailPayload): Promise<Verif
  * URL: http://localhost:3001/api/auth/login
  */
 export async function loginUserApi(payload: LoginPayload): Promise<LoginResponse> {
-  const url = `${API_BASE_URL}/api/auth/login`;
+  const url = `${getAuthBaseUrl()}/api/auth/login`;
   try {
     const response = await fetch(url, {
       method: 'POST',
@@ -219,7 +225,7 @@ export async function loginUserApi(payload: LoginPayload): Promise<LoginResponse
  * URL: http://localhost:3001/api/auth/verify-login
  */
 export async function verifyLoginApi(payload: VerifyLoginPayload): Promise<VerifyLoginResponse> {
-  const url = `${API_BASE_URL}/api/auth/verify-login`;
+  const url = `${getAuthBaseUrl()}/api/auth/verify-login`;
   try {
     const response = await fetch(url, {
       method: 'POST',

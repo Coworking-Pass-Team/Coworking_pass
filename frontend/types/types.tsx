@@ -1054,3 +1054,56 @@ export interface PayoutApi {
   partner?: Partner;
 }
 
+export interface MembershipPlanApi {
+  id: string;
+  planName: string;
+  type: string;
+  totalVisitsAllowed: number;
+  price: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface SubscriptionApi {
+  id: string;
+  userId: string;
+  planId: string;
+  startDate: string;
+  endDate: string;
+  status: string;
+  visitsUsed?: number;
+  createdAt?: string;
+  updatedAt?: string;
+  user?: { name: string; email: string };
+  plan?: MembershipPlanApi;
+}
+
+export interface DirectBookingApi {
+  id: string;
+  userId: string;
+  workspaceId: string;
+  sectionId: string;
+  durationType: string;
+  bookingDate: string;
+  status: string;
+  createdAt?: string;
+  updatedAt?: string;
+  user?: { name: string; email: string };
+  workspace?: WorkspaceApi;
+  section?: any;
+}
+
+export interface PaymentApi {
+  id: string;
+  userId: string;
+  amount: number;
+  method: string;
+  paymentFor: string;
+  referenceId?: string;
+  status: string;
+  gatewayTransactionId?: string;
+  createdAt?: string;
+  user?: { name: string; email: string };
+}
+
+
