@@ -49,17 +49,17 @@ export default function ProviderProfileSettings() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   // Form Fields
-  const [editBusinessName, setEditBusinessName] = useState(currentUser.businessName || 'The Hub Riyadh Holdings');
-  const [editName, setEditName] = useState(currentUser.name || 'Nawaf Al-Qahtani');
-  const [editCrNumber, setEditCrNumber] = useState(currentUser.crNumber || '1010456789');
-  const [editPhone, setEditPhone] = useState(currentUser.phone || '+966 50 234 5678');
-  const [editCity, setEditCity] = useState(currentUser.city || 'Riyadh, Saudi Arabia');
-  const [editWebsite, setEditWebsite] = useState(currentUser.website || 'https://thehubriyadh.sa');
+  const [editBusinessName, setEditBusinessName] = useState(currentUser?.businessName || 'The Hub Riyadh Holdings');
+  const [editName, setEditName] = useState(currentUser?.name || 'Nawaf Al-Qahtani');
+  const [editCrNumber, setEditCrNumber] = useState(currentUser?.crNumber || '1010456789');
+  const [editPhone, setEditPhone] = useState(currentUser?.phone || '+966 50 234 5678');
+  const [editCity, setEditCity] = useState(currentUser?.city || 'Riyadh, Saudi Arabia');
+  const [editWebsite, setEditWebsite] = useState(currentUser?.website || 'https://thehubriyadh.sa');
   const [editBusinessDescription, setEditBusinessDescription] = useState(
-    currentUser.businessDescription ||
+    currentUser?.businessDescription ||
       'Operator of premium coworking spaces in Riyadh, including The Hub Riyadh and Desk Society. Dedicated to providing flexible, tech-enabled productive work environments.'
   );
-  const [editAvatar, setEditAvatar] = useState(currentUser.avatar || '');
+  const [editAvatar, setEditAvatar] = useState(currentUser?.avatar || '');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
 

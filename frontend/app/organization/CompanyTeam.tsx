@@ -41,12 +41,11 @@ const ROLE_BADGE: Record<CompanyRole, string> = {
 
 export default function CompanyTeam() {
   const { currentUser, updateCurrentUser, showToast } = useApp();
-  if (!currentUser) return null;
 
-  const rawEmployees = currentUser.employees || [];
+  const rawEmployees = currentUser?.employees || [];
 
   const [members, setMembers] = useState<TeamMemberExt[]>([
-    { id: 'owner', name: currentUser.name, email: currentUser.email, department: 'Leadership', role: 'Company Owner', status: 'active', lastActive: '2026-09-01' },
+    { id: 'owner', name: currentUser?.name || '', email: currentUser?.email || '', department: 'Leadership', role: 'Company Owner', status: 'active', lastActive: '2026-09-01' },
     ...rawEmployees.map((e: Employee, i: number) => ({
       ...e,
       role: (['Company Manager', 'Booking Manager', 'Team Member', 'Team Member', 'Team Member', 'Team Member'][i] || 'Team Member') as CompanyRole,
@@ -85,6 +84,8 @@ export default function CompanyTeam() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  if (!currentUser) return null;
 
   const filtered = members.filter(m => {
     const q = query.trim().toLowerCase();

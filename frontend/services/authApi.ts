@@ -24,6 +24,7 @@ export interface RegisterResponse {
   success: boolean;
   message?: string;
   userId?: string;
+  devOtp?: string;
   error?: string;
 }
 
@@ -47,6 +48,7 @@ export interface LoginResponse {
   success: boolean;
   message?: string;
   userId?: string;
+  devOtp?: string;
   error?: string;
 }
 
@@ -126,6 +128,7 @@ export async function registerUserApi(payload: RegisterPayload): Promise<Registe
       success: true,
       message: data.message || 'Account created. Verification code sent to your email.',
       userId: data.userId,
+      devOtp: data.devOtp,
     };
   } catch (error: any) {
     console.warn('[API Network Exception] registerUserApi:', error);
@@ -209,6 +212,7 @@ export async function loginUserApi(payload: LoginPayload): Promise<LoginResponse
       success: true,
       message: data.message || 'Verification code sent to your email.',
       userId: data.userId,
+      devOtp: data.devOtp,
     };
   } catch (error: any) {
     console.warn('[API Network Exception] loginUserApi:', error);
