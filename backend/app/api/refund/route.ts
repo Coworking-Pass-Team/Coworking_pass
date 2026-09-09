@@ -5,7 +5,7 @@ import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-tok
 export async function POST(request: NextRequest) {
   try {
     const user = getTokenFromRequest(request);
-if (!user) return unauthorizedResponse();
+    if (!user) return unauthorizedResponse();
 
     const { bookingId, userId } = await request.json()
 
@@ -82,10 +82,11 @@ if (!user) return unauthorizedResponse();
       }
     })
 
-    // 7. تسجيل معاملة المحفظة
+    // 7. تسجيل معاملة المحفظة (مع walletId)
     await prisma.walletTransaction.create({
       data: {
-        userId,
+        walletId: wallet.id,  // ✅ أضيفي هذا الحقل!
+        userId: userId,
         amount: refundAmount,
         type: 'REFUND',
         description: `استرجاع حجز ${bookingId}`,
