@@ -15,7 +15,10 @@ export default function ProviderDashboard() {
     (s.email && s.email.toLowerCase() === currentUser.email?.toLowerCase())
   );
   const mySpaceIds = mySpaces.map((s) => s.id);
-  const myBookings = bookings.filter((b) => mySpaceIds.includes(b.spaceId));
+  const myBookings = bookings.filter((b) =>
+    mySpaceIds.includes(b.spaceId) ||
+    mySpaces.some((s) => s.name.toLowerCase() === b.spaceName?.toLowerCase())
+  );
   const activeBookings = myBookings.filter((b) => b.status === 'active');
   const totalRevenue = myBookings
     .filter((b) => b.status !== 'cancelled')

@@ -35,7 +35,7 @@ export default function MyBookings() {
 
   if (!currentUser) return null;
 
-  const myBookings = bookings.filter(b => b.userId === currentUser.id);
+  const myBookings = bookings.filter(b => b.userId === currentUser.id || (currentUser.email && b.userId.toLowerCase() === currentUser.email.toLowerCase()));
 
   const filtered = myBookings
     .filter(b => {
