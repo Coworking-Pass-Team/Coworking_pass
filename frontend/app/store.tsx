@@ -777,6 +777,82 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const fetchAmenities = async () => {
+    try {
+      const storedToken = getStoredToken();
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+
+      const res = await fetch(`${getApiBaseUrl()}/amenities`, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          const approved = data
+            .filter((a: any) => a.status === 'APPROVED' && !a.isDefault)
+            .map((a: any) => a.name);
+          if (approved.length > 0) {
+            setApprovedCustomAmenities((prev) => Array.from(new Set([...prev, ...approved])));
+          }
+
+          const requests: AmenityRequest[] = data
+            .filter((a: any) => !a.isDefault || a.requestedBy)
+            .map((a: any) => ({
+              id: a.id,
+              amenityName: a.name,
+              providerId: a.requestedBy || 'user-p1',
+              providerName: 'Workspace Provider',
+              status: (a.status || 'PENDING_APPROVAL') as AmenityRequestStatus,
+              createdAt: a.createdAt || new Date().toISOString(),
+            }));
+
+          if (requests.length > 0) {
+            setAmenityRequests((prev) => {
+              const map = new Map(prev.map((r) => [r.id, r]));
+              requests.forEach((r) => map.set(r.id, r));
+              return Array.from(map.values());
+            });
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to fetch amenities from /api/amenities:', err);
+    }
+  };
+
+  const fetchNotifications = async (): Promise<Notification[]> => {
+    try {
+      const storedToken = getStoredToken();
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+
+      const res = await fetch(`${getApiBaseUrl()}/notifications`, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          const dbNotifs: Notification[] = data.map((n: any) => ({
+            id: n.id,
+            userId: n.userId,
+            title: n.title,
+            message: n.message,
+            type: (n.type?.toLowerCase() || 'info') as any,
+            read: n.isRead ?? false,
+            createdAt: n.sentAt ? new Date(n.sentAt).toLocaleString() : 'Just now',
+          }));
+
+          setNotifications((prev) => {
+            const map = new Map(prev.map((item) => [item.id, item]));
+            dbNotifs.forEach((dbItem) => map.set(dbItem.id, dbItem));
+            return Array.from(map.values());
+          });
+        }
+      }
+      return notifications;
+    } catch (err) {
+      console.warn('Failed to fetch notifications from /api/notifications:', err);
+      return notifications;
+    }
+  };
+
   const createPayment = async (paymentData: {
     userId: string;
     amount: number;
@@ -1444,6 +1520,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     fetchSubscriptions().catch(() => {});
     fetchDirectBookings().catch(() => {});
     fetchPayments().catch(() => {});
+    fetchAmenities().catch(() => {});
+    fetchNotifications().catch(() => {});
   }, []);
 
   const sanitizeBookings = (list: Booking[]): Booking[] => {
@@ -2175,15 +2253,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    setNotifications(prev => [{
-      id: `notification-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+    addNotification({
       userId: booking.userId,
       title: 'Booking confirmed',
       message: `${booking.spaceName} confirmed.${earnedPoints > 0 ? ` Earned ${earnedPoints} loyalty points!` : ''}`,
       type: 'booking',
       read: false,
-      createdAt: new Date().toLocaleString(),
-    }, ...prev]);
+    });
 
     setSpaces(prev => prev.map(s =>
       s.id === booking.spaceId
@@ -2357,15 +2433,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setBookings(prev => prev.map(b => b.id === id ? { ...b, status } : b));
     const booking = bookings.find(b => b.id === id);
     if (booking) {
-      setNotifications(prev => [{
-        id: `notification-${Date.now()}`,
+      addNotification({
         userId: booking.userId,
         title: `Booking ${status}`,
         message: `${booking.spaceName} booking status was updated to ${status}.`,
         type: status === 'cancelled' ? 'cancelled' : 'booking',
-        read: false,
-        createdAt: new Date().toLocaleString(),
-      }, ...prev]);
+      });
     }
 
     // Sync status update to PostgreSQL database
@@ -2385,25 +2458,131 @@ export function AppProvider({ children }: { children: ReactNode }) {
     })();
   };
 
-  const userNotifications = currentUser ? notifications.filter(n => n.userId === currentUser.id || currentUser.role === 'admin') : [];
+  const getValidPostgresUserId = (candidateId?: string): string | undefined => {
+    if (candidateId && candidateId.length > 20 && !candidateId.startsWith('user-') && candidateId !== 'admin' && !candidateId.startsWith('notif-')) {
+      return candidateId;
+    }
+    if (currentUser?.id && currentUser.id.length > 20 && !currentUser.id.startsWith('user-') && currentUser.id !== 'admin') {
+      return currentUser.id;
+    }
+    try {
+      const token = getStoredToken();
+      if (token) {
+        const parts = token.split('.');
+        if (parts.length === 3) {
+          const payload = JSON.parse(atob(parts[1]));
+          if (payload.userId && payload.userId.length > 20) return payload.userId;
+        }
+      }
+    } catch (e) {}
 
-  const markNotificationRead = (id: string) => setNotifications(prev => {
-    const updated = prev.map(n => n.id === id ? { ...n, read: true } : n);
-    if (typeof window !== 'undefined') localStorage.setItem('cp_notifications', JSON.stringify(updated));
-    return updated;
-  });
+    const realUser = users.find(u => u.id && u.id.length > 20 && !u.id.startsWith('user-'));
+    if (realUser) return realUser.id;
 
-  const toggleNotificationRead = (id: string) => setNotifications(prev => {
-    const updated = prev.map(n => n.id === id ? { ...n, read: !n.read } : n);
-    if (typeof window !== 'undefined') localStorage.setItem('cp_notifications', JSON.stringify(updated));
-    return updated;
-  });
+    return undefined;
+  };
 
-  const markAllNotificationsRead = () => setNotifications(prev => {
-    const updated = prev.map(n => userNotifications.some(u => u.id === n.id) ? { ...n, read: true } : n);
-    if (typeof window !== 'undefined') localStorage.setItem('cp_notifications', JSON.stringify(updated));
-    return updated;
-  });
+  const mapToNotificationTypeEnum = (typeStr: string = '', titleStr: string = ''): string => {
+    const upper = typeStr.toUpperCase();
+    const validEnums = [
+      'BOOKING_CONFIRMED', 'BOOKING_CANCELLED', 'WAITLIST_PROMOTED', 'MEETING_BOOKED',
+      'PAYMENT_SUCCESS', 'PAYMENT_FAILED', 'PASS_ASSIGNED', 'PASS_EXPIRING',
+      'ACCOUNT_VERIFIED', 'POINTS_EARNED', 'POINTS_REDEEMED', 'PAYOUT_PROCESSED',
+      'PARTNER_APPROVED', 'AMENITY_REQUEST_STATUS'
+    ];
+    if (validEnums.includes(upper)) return upper;
+
+    const combined = (typeStr + ' ' + titleStr).toLowerCase();
+    if (combined.includes('cancel')) return 'BOOKING_CANCELLED';
+    if (combined.includes('payment') || combined.includes('pay')) return 'PAYMENT_SUCCESS';
+    if (combined.includes('expir') || combined.includes('remind')) return 'PASS_EXPIRING';
+    if (combined.includes('point')) return 'POINTS_EARNED';
+    if (combined.includes('amenity')) return 'AMENITY_REQUEST_STATUS';
+    if (combined.includes('partner') || combined.includes('approve')) return 'PARTNER_APPROVED';
+    if (combined.includes('meeting')) return 'MEETING_BOOKED';
+    if (combined.includes('pass')) return 'PASS_ASSIGNED';
+    return 'BOOKING_CONFIRMED';
+  };
+
+  const currentDbUserId = getValidPostgresUserId(currentUser?.id);
+  const userNotifications = currentUser
+    ? notifications.filter(n =>
+        currentUser.role === 'admin' ||
+        n.userId === currentUser.id ||
+        (currentDbUserId && n.userId === currentDbUserId) ||
+        (!n.userId || n.userId === 'user-1' || n.userId === 'admin' || n.userId.startsWith('user-'))
+      )
+    : [];
+
+  const markNotificationRead = (id: string) => {
+    setNotifications(prev => {
+      const updated = prev.map(n => n.id === id ? { ...n, read: true } : n);
+      if (typeof window !== 'undefined') localStorage.setItem('cp_notifications', JSON.stringify(updated));
+      return updated;
+    });
+
+    (async () => {
+      try {
+        const storedToken = getStoredToken();
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+        await fetch(`${getApiBaseUrl()}/notifications`, {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify({ id, isRead: true }),
+        });
+      } catch (err) {}
+    })();
+  };
+
+  const toggleNotificationRead = (id: string) => {
+    let nextReadState = false;
+    setNotifications(prev => {
+      const target = prev.find(n => n.id === id);
+      nextReadState = target ? !target.read : true;
+      const updated = prev.map(n => n.id === id ? { ...n, read: nextReadState } : n);
+      if (typeof window !== 'undefined') localStorage.setItem('cp_notifications', JSON.stringify(updated));
+      return updated;
+    });
+
+    (async () => {
+      try {
+        const storedToken = getStoredToken();
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+        await fetch(`${getApiBaseUrl()}/notifications`, {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify({ id, isRead: nextReadState }),
+        });
+      } catch (err) {}
+    })();
+  };
+
+  const markAllNotificationsRead = () => {
+    setNotifications(prev => {
+      const updated = prev.map(n => userNotifications.some(u => u.id === n.id) ? { ...n, read: true } : n);
+      if (typeof window !== 'undefined') localStorage.setItem('cp_notifications', JSON.stringify(updated));
+      return updated;
+    });
+
+    (async () => {
+      try {
+        const storedToken = getStoredToken();
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+        for (const n of userNotifications) {
+          if (!n.read) {
+            await fetch(`${getApiBaseUrl()}/notifications`, {
+              method: 'PUT',
+              headers,
+              body: JSON.stringify({ id: n.id, isRead: true }),
+            }).catch(() => {});
+          }
+        }
+      } catch (err) {}
+    })();
+  };
 
   const deleteNotification = (id: string) => {
     setNotifications(prev => {
@@ -2439,6 +2618,44 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (typeof window !== 'undefined') localStorage.setItem('cp_notifications', JSON.stringify(updated));
       return updated;
     });
+
+    // Save notification to PostgreSQL database
+    (async () => {
+      try {
+        const storedToken = getStoredToken();
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+
+        let targetUserId = getValidPostgresUserId(notifData.userId);
+
+        if (targetUserId) {
+          const notifType = mapToNotificationTypeEnum(notifData.type, notifData.title);
+
+          const res = await fetch(`${getApiBaseUrl()}/notifications`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              userId: targetUserId,
+              type: notifType,
+              title: notifData.title,
+              message: notifData.message,
+              channel: 'IN_APP',
+            }),
+          });
+          if (res.ok) {
+            const created = await res.json();
+            if (created?.id) {
+              setNotifications(prev => prev.map(n => n.id === newNotif.id ? { ...n, id: created.id, userId: targetUserId! } : n));
+            }
+          } else {
+            console.warn('POST /api/notifications returned status:', res.status);
+          }
+        }
+      } catch (err) {
+        console.warn('Notification DB persistence notice:', err);
+      }
+    })();
+
     return newNotif;
   };
 
@@ -2809,6 +3026,35 @@ export function AppProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('cp_amenity_requests', JSON.stringify(updated));
     }
 
+    // Persist custom amenity request to PostgreSQL Database
+    (async () => {
+      try {
+        const storedToken = getStoredToken();
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+
+        const res = await fetch(`${getApiBaseUrl()}/amenities`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            name: trimmed,
+            icon: 'Sparkles',
+            isDefault: false,
+            requestedBy: currentUser?.id || 'user-p1',
+          }),
+        });
+
+        if (res.ok) {
+          const resData = await res.json();
+          if (resData.amenity?.id) {
+            setAmenityRequests(prev => prev.map(r => r.id === newReq.id ? { ...r, id: resData.amenity.id } : r));
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to save custom amenity to database:', err);
+      }
+    })();
+
     // Notify Admin
     addNotification({
       userId: 'admin',
@@ -2845,6 +3091,47 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
     }
 
+    // Persist approval to PostgreSQL DB via PUT /api/amenities/:id
+    (async () => {
+      try {
+        const storedToken = getStoredToken();
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+
+        let putRes = await fetch(`${getApiBaseUrl()}/amenities/${requestId}`, {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify({ status: 'APPROVED' }),
+        });
+
+        if (!putRes.ok) {
+          const postRes = await fetch(`${getApiBaseUrl()}/amenities`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              name: req.amenityName,
+              icon: 'Sparkles',
+              isDefault: false,
+              requestedBy: req.providerId || currentUser?.id || 'user-p1',
+            }),
+          });
+          if (postRes.ok) {
+            const postData = await postRes.json();
+            const realId = postData.amenity?.id || postData.id;
+            if (realId) {
+              await fetch(`${getApiBaseUrl()}/amenities/${realId}`, {
+                method: 'PUT',
+                headers,
+                body: JSON.stringify({ status: 'APPROVED' }),
+              });
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to approve amenity in database:', err);
+      }
+    })();
+
     if (typeof window !== 'undefined') {
       localStorage.setItem('cp_amenity_requests', JSON.stringify(updatedReqs));
       localStorage.setItem('cp_approved_amenities', JSON.stringify(newApproved));
@@ -2870,6 +3157,47 @@ export function AppProvider({ children }: { children: ReactNode }) {
         : r
     );
     setAmenityRequests(updatedReqs);
+
+    // Persist rejection to PostgreSQL DB via PUT /api/amenities/:id
+    (async () => {
+      try {
+        const storedToken = getStoredToken();
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+
+        let putRes = await fetch(`${getApiBaseUrl()}/amenities/${requestId}`, {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify({ status: 'REJECTED' }),
+        });
+
+        if (!putRes.ok) {
+          const postRes = await fetch(`${getApiBaseUrl()}/amenities`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              name: req.amenityName,
+              icon: 'Sparkles',
+              isDefault: false,
+              requestedBy: req.providerId || currentUser?.id || 'user-p1',
+            }),
+          });
+          if (postRes.ok) {
+            const postData = await postRes.json();
+            const realId = postData.amenity?.id || postData.id;
+            if (realId) {
+              await fetch(`${getApiBaseUrl()}/amenities/${realId}`, {
+                method: 'PUT',
+                headers,
+                body: JSON.stringify({ status: 'REJECTED' }),
+              });
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to reject amenity in database:', err);
+      }
+    })();
 
     if (typeof window !== 'undefined') {
       localStorage.setItem('cp_amenity_requests', JSON.stringify(updatedReqs));
