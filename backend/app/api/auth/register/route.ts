@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { sendOtpEmail } from "@/lib/mailer";
 
+
 const VALID_ROLES = ["GUEST", "B2C"];
 
 function generateOtp() {
