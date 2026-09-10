@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '@/app/store';
 import { User, UserRole } from '@/types/types';
+import { createCompanyApi } from '@/services/authApi';
 import Badge from '@/components/ui/Badge';
 
 const ROLES: { value: UserRole; label: string }[] = [
@@ -149,6 +150,12 @@ export default function UsersAdmin() {
         ...(role === 'organization' ? { orgName, orgSize: parseInt(orgSize) || 10, industry } : {}),
       };
       users.unshift(newUser);
+      if (role === 'organization') {
+        createCompanyApi({
+          companyName: orgName || name || 'New Organization',
+          hrAdminId: newUser.id,
+        }).catch((err) => console.warn('Failed to create company from UsersAdmin:', err));
+      }
       showToast('New user account created!', 'success');
     }
 
