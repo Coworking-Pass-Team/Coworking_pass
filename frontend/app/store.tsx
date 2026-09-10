@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, Space, SpaceType, Booking, Screen, NavState, UserRole, BookingType, PaymentCard, Notification, CartItem, AmenityRequest, AmenityRequestStatus, calculateEndDate, isCancellationRefundEligible, getBookingPrice, getEffectiveSpacePrice, OtpSession, SupportTicket, TicketStatus, Partner, WorkspaceApi, HourlyBookingApi, PayoutApi, MembershipPlanApi, SubscriptionApi, DirectBookingApi, PaymentApi } from '@/types/types';
 import { INITIAL_SPACES, INITIAL_USERS, INITIAL_BOOKINGS, INITIAL_NOTIFICATIONS, INITIAL_SUPPORT_TICKETS } from '@/data/data';
-import { registerUserApi, verifyEmailApi, loginUserApi, verifyLoginApi, mapRoleToFrontend, createCompanyApi } from '@/services/authApi';
+import { registerUserApi, verifyEmailApi, loginUserApi, verifyLoginApi, mapRoleToFrontend, createCompanyApi, createPointsTransactionApi, getLoyaltyPointsApi, getPointsTransactionsApi } from '@/services/authApi';
 
 export function getApiBaseUrl(): string {
   const envUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -1606,6 +1606,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
       fetchDirectBookings().catch(() => {});
       fetchPayments().catch(() => {});
       fetchNotifications().catch(() => {});
+      if (currentUser) {
+        getLoyaltyPointsApi(currentUser.id).then(ptsRes => {
+          if (ptsRes.success && Array.isArray(ptsRes.data)) {
+            const uPts = ptsRes.data.find((p: any) => p.userId === currentUser.id);
+            if (uPts && typeof uPts.availableBalance === 'number') {
+              const syncedUser = { ...currentUser, loyaltyPoints: uPts.availableBalance };
+              setCurrentUser(syncedUser);
+              if (typeof window !== 'undefined') {
+                localStorage.setItem('cp_currentUser', JSON.stringify(syncedUser));
+              }
+            }
+          }
+        }).catch(() => {});
+      }
     }
   }, []);
 
@@ -2471,10 +2485,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
     setBookings(prev => [...prev, newBooking]);
     
-    // Auto-calculate loyalty points earned
+    // Auto-calculate loyalty points earned (at least 10 pts per booking or 10% of total price)
     const space = spaces.find(s => s.id === booking.spaceId);
     const multiplier = space?.loyaltyPointsMultiplier || 1;
-    const earnedPoints = Math.floor((booking.totalPrice || 0) / 100) * 10 * multiplier;
+    const rawPrice = booking.totalPrice || 0;
+    const earnedPoints = (rawPrice > 0 ? Math.max(10, Math.floor(rawPrice / 10)) : 10) * multiplier;
 
     if (currentUser && currentUser.id === booking.userId && earnedPoints > 0) {
       const updatedUser = {
@@ -2486,6 +2501,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (typeof window !== 'undefined') {
         localStorage.setItem('cp_currentUser', JSON.stringify(updatedUser));
       }
+
+      // Record EARNED points in PostgreSQL DB & sync DB balance
+      createPointsTransactionApi({
+        userId: currentUser.id,
+        type: 'EARNED',
+        points: earnedPoints,
+        description: `Earned points for booking: ${booking.spaceName}`,
+        referenceId: newBooking.id,
+      }).then(res => {
+        if (res.success) {
+          getLoyaltyPointsApi(currentUser.id).then(ptsRes => {
+            if (ptsRes.success && Array.isArray(ptsRes.data)) {
+              const uPts = ptsRes.data.find((p: any) => p.userId === currentUser.id);
+              if (uPts && typeof uPts.availableBalance === 'number') {
+                const syncedUser = { ...currentUser, loyaltyPoints: uPts.availableBalance };
+                setCurrentUser(syncedUser);
+                if (typeof window !== 'undefined') {
+                  localStorage.setItem('cp_currentUser', JSON.stringify(syncedUser));
+                }
+              }
+            }
+          }).catch(() => {});
+        }
+      }).catch(() => {});
     }
 
     addNotification({
@@ -2521,6 +2560,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           validWorkspaceId = workspacesApi[0].id;
         }
 
+        const targetSpace = spaces.find(s => s.id === validWorkspaceId);
+
         let sectionId: string | null = null;
         try {
           const secRes = await fetch(`${getApiBaseUrl()}/workspace-sections`, { headers });
@@ -2535,8 +2576,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
         if (!sectionId && validWorkspaceId) {
           try {
-            const matchedSpace = spaces.find(s => s.id === validWorkspaceId);
-            const spaceType = matchedSpace?.type || 'desk';
+            const spaceType = targetSpace?.type || 'desk';
             const dbSecType = mapFrontendTypeToDbSectionType(spaceType);
             const secCreateRes = await fetch(`${getApiBaseUrl()}/workspace-sections`, {
               method: 'POST',
@@ -2544,8 +2584,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
               body: JSON.stringify({
                 workspaceId: validWorkspaceId,
                 type: dbSecType,
-                name: `${matchedSpace?.name || 'Workspace'} Section`,
-                capacity: matchedSpace?.totalCapacity || 50,
+                name: `${targetSpace?.name || 'Workspace'} Section`,
+                capacity: targetSpace?.totalCapacity || 50,
                 dailyRate: booking.totalPrice || 50,
               }),
             });
@@ -2591,7 +2631,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             }).catch(() => {});
           }
 
-          if (booking.plan === 'hourly' || (matchedSpace && matchedSpace.bookingMode === 'hourly')) {
+          if (booking.plan === 'hourly' || (targetSpace && targetSpace.bookingMode === 'hourly')) {
             let pkgId: string | null = null;
             try {
               const pkgRes = await fetch(`${getApiBaseUrl()}/hourly-packages`, { headers });
@@ -3249,6 +3289,31 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (typeof window !== 'undefined') {
       localStorage.setItem('cp_currentUser', JSON.stringify(updatedUser));
       localStorage.setItem('cp_users', JSON.stringify(updatedUsers));
+    }
+
+    // Record REDEEMED points in PostgreSQL DB if user used loyalty discount & sync DB balance
+    if (currentUser && safePointsToUse > 0) {
+      createPointsTransactionApi({
+        userId: currentUser.id,
+        type: 'REDEEMED',
+        points: safePointsToUse,
+        description: `Redeemed points for checkout discount (SAR ${pointsDiscount} off)`,
+      }).then(res => {
+        if (res.success) {
+          getLoyaltyPointsApi(currentUser.id).then(ptsRes => {
+            if (ptsRes.success && Array.isArray(ptsRes.data)) {
+              const uPts = ptsRes.data.find((p: any) => p.userId === currentUser.id);
+              if (uPts && typeof uPts.availableBalance === 'number') {
+                const syncedUser = { ...currentUser, loyaltyPoints: uPts.availableBalance };
+                setCurrentUser(syncedUser);
+                if (typeof window !== 'undefined') {
+                  localStorage.setItem('cp_currentUser', JSON.stringify(syncedUser));
+                }
+              }
+            }
+          }).catch(() => {});
+        }
+      }).catch(() => {});
     }
 
     clearCart();
