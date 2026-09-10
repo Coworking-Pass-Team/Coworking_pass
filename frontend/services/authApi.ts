@@ -383,6 +383,36 @@ export async function createCompanyApi(payload: { companyName: string; hrAdminId
   }
 }
 
+export interface PaymentItemApi {
+  id: string;
+  userId: string;
+  amount: number;
+  method: string;
+  paymentFor: string;
+  referenceId?: string;
+  gatewayTransactionId?: string;
+  status: 'SUCCESS' | 'FAILED' | string;
+  createdAt?: string;
+  user?: { id?: string; name?: string; email?: string; role?: string };
+}
+
+export async function getPaymentsApi() {
+  const url = `${getAuthBaseUrl()}/api/payments`;
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+    const data = await response.json().catch(() => ([]));
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to fetch payments', data: [] };
+    }
+    return { success: true, data: Array.isArray(data) ? data : [] };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error', data: [] };
+  }
+}
+
 export async function createPaymentApi(payload: {
   userId: string;
   amount: number;
@@ -403,6 +433,128 @@ export async function createPaymentApi(payload: {
       return { success: false, error: data.error || 'Failed to record payment' };
     }
     return { success: true, payment: data };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+export async function updatePaymentApi(paymentId: string, payload: { status?: string; amount?: number; method?: string; paymentFor?: string }) {
+  const url = `${getAuthBaseUrl()}/api/payments/${paymentId}`;
+  try {
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to update payment' };
+    }
+    return { success: true, payment: data };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+export async function deletePaymentApi(paymentId: string) {
+  const url = `${getAuthBaseUrl()}/api/payments/${paymentId}`;
+  try {
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to delete payment' };
+    }
+    return { success: true, message: data.message || 'Payment deleted' };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+export interface PayoutItemApi {
+  id: string;
+  partnerId: string;
+  billingMonth: string;
+  totalVisitsReceived: number;
+  amountDue: number;
+  status: 'PENDING' | 'PAID' | string;
+  createdAt?: string;
+  partner?: { id?: string; brandName?: string; contactEmail?: string; taxNumber?: string; revenueSharePercentage?: number };
+}
+
+export async function getPayoutsApi() {
+  const url = `${getAuthBaseUrl()}/api/payouts`;
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+    const data = await response.json().catch(() => ([]));
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to fetch payouts', data: [] };
+    }
+    return { success: true, data: Array.isArray(data) ? data : [] };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error', data: [] };
+  }
+}
+
+export async function createPayoutApi(payload: {
+  partnerId: string;
+  billingMonth: string;
+  totalVisitsReceived: number;
+  amountDue: number;
+  status?: string;
+}) {
+  const url = `${getAuthBaseUrl()}/api/payouts`;
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to create payout' };
+    }
+    return { success: true, payout: data };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+export async function updatePayoutApi(payoutId: string, payload: { status?: string; billingMonth?: string; totalVisitsReceived?: number; amountDue?: number }) {
+  const url = `${getAuthBaseUrl()}/api/payouts/${payoutId}`;
+  try {
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to update payout' };
+    }
+    return { success: true, payout: data };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+export async function deletePayoutApi(payoutId: string) {
+  const url = `${getAuthBaseUrl()}/api/payouts/${payoutId}`;
+  try {
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to delete payout' };
+    }
+    return { success: true, message: data.message || 'Payout deleted' };
   } catch (err: any) {
     return { success: false, error: err.message || 'Network error' };
   }
@@ -608,5 +760,250 @@ export async function deleteMembershipPlanApi(planId: string) {
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+export interface HourlyBookingItemApi {
+  id: string;
+  userId: string;
+  sectionId: string;
+  packageId: string;
+  startDate: string;
+  endDate: string;
+  hoursUsed?: number;
+  status: string;
+  createdAt?: string;
+  user?: { name: string; email: string };
+  section?: { id: string; name: string; type: string };
+  package?: { id: string; packageName: string; hoursAmount: number; price: number };
+}
+
+export async function getHourlyBookingsApi() {
+  const url = `${getAuthBaseUrl()}/api/hourly-bookings`;
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+    const data = await response.json().catch(() => ([]));
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to fetch hourly bookings', data: [] };
+    }
+    return { success: true, data: Array.isArray(data) ? data : [] };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error', data: [] };
+  }
+}
+
+export async function createHourlyBookingApi(payload: {
+  userId: string;
+  sectionId: string;
+  packageId: string;
+  startDate: string;
+  endDate: string;
+  status?: string;
+}) {
+  const url = `${getAuthBaseUrl()}/api/hourly-bookings`;
+  try {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+    let targetUserId = payload.userId;
+    if (!uuidRegex.test(targetUserId)) {
+      if (typeof window !== 'undefined') {
+        const storedUserId = localStorage.getItem('cp_userId') || localStorage.getItem('userId');
+        if (storedUserId && uuidRegex.test(storedUserId)) {
+          targetUserId = storedUserId;
+        }
+      }
+      if (!uuidRegex.test(targetUserId)) {
+        try {
+          const usersRes = await fetch(`${getAuthBaseUrl()}/api/users`, { headers: getAuthHeaders() });
+          if (usersRes.ok) {
+            const usersList = await usersRes.json();
+            if (Array.isArray(usersList) && usersList.length > 0) {
+              targetUserId = usersList[0].id;
+            }
+          }
+        } catch (_) {}
+      }
+    }
+
+    let targetSectionId = payload.sectionId;
+    if (!uuidRegex.test(targetSectionId) || targetSectionId.includes('PASTE') || targetSectionId.startsWith('sec_')) {
+      const secRes = await getWorkspaceSectionsApi();
+      if (secRes.success && Array.isArray(secRes.data) && secRes.data.length > 0) {
+        const meetingSec = secRes.data.find((s: any) => ['MEETING_ROOM', 'THEATER'].includes(s.type)) || secRes.data[0];
+        targetSectionId = meetingSec.id;
+      }
+    }
+
+    let targetPackageId = payload.packageId;
+    if (!uuidRegex.test(targetPackageId) || targetPackageId.includes('PASTE') || targetPackageId.startsWith('pkg_')) {
+      const pkgRes = await getHourlyPackagesApi();
+      if (pkgRes.success && Array.isArray(pkgRes.data) && pkgRes.data.length > 0) {
+        targetPackageId = pkgRes.data[0].id;
+      }
+    }
+
+    const finalPayload = {
+      ...payload,
+      userId: targetUserId,
+      sectionId: targetSectionId,
+      packageId: targetPackageId,
+    };
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(finalPayload),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to create hourly booking in database' };
+    }
+    return { success: true, data, booking: data };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+export async function updateHourlyBookingApi(bookingId: string, updates: Partial<{ status: string; startDate: string; endDate: string; hoursUsed: number }>) {
+  const url = `${getAuthBaseUrl()}/api/hourly-bookings/${bookingId}`;
+  try {
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(updates),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to update hourly booking' };
+    }
+    return { success: true, data, booking: data };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+export async function deleteHourlyBookingApi(bookingId: string) {
+  const url = `${getAuthBaseUrl()}/api/hourly-bookings/${bookingId}`;
+  try {
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to delete hourly booking' };
+    }
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+export async function getWorkspaceSectionsApi() {
+  const url = `${getAuthBaseUrl()}/api/workspace-sections`;
+  try {
+    const response = await fetch(url, { method: 'GET', headers: getAuthHeaders() });
+    const data = await response.json().catch(() => ([]));
+    if (!response.ok) return { success: false, data: [] };
+    return { success: true, data: Array.isArray(data) ? data : [] };
+  } catch (_) {
+    return { success: false, data: [] };
+  }
+}
+
+export async function getHourlyPackagesApi() {
+  const url = `${getAuthBaseUrl()}/api/hourly-packages`;
+  try {
+    const response = await fetch(url, { method: 'GET', headers: getAuthHeaders() });
+    const data = await response.json().catch(() => ([]));
+    if (!response.ok) return { success: false, data: [] };
+
+    let packages = Array.isArray(data) ? data : [];
+
+    if (packages.length === 0) {
+      try {
+        const secRes = await getWorkspaceSectionsApi();
+        if (secRes.success && Array.isArray(secRes.data) && secRes.data.length > 0) {
+          const meetingSec = secRes.data.find((s: any) => ['MEETING_ROOM', 'THEATER'].includes(s.type)) || secRes.data[0];
+          if (meetingSec) {
+            const createPkgRes = await fetch(url, {
+              method: 'POST',
+              headers: getAuthHeaders(),
+              body: JSON.stringify({
+                sectionId: meetingSec.id,
+                packageName: 'Standard Hourly Package',
+                hoursAmount: 10,
+                periodType: 'PER_DAY',
+                price: 150
+              })
+            });
+            if (createPkgRes.ok) {
+              const newPkgData = await createPkgRes.json();
+              const createdPkg = newPkgData.hourlyPackage || newPkgData;
+              if (createdPkg && createdPkg.id) {
+                packages = [createdPkg];
+              }
+            }
+          }
+        }
+      } catch (_) {}
+    }
+
+    return { success: true, data: packages };
+  } catch (_) {
+    return { success: false, data: [] };
+  }
+}
+
+export interface PointsTransactionPayload {
+  userId: string;
+  type: 'EARNED' | 'REDEEMED';
+  points: number;
+  description?: string;
+  referenceId?: string;
+}
+
+export async function createPointsTransactionApi(payload: PointsTransactionPayload) {
+  const url = `${getAuthBaseUrl()}/api/points-transactions`;
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to record points transaction' };
+    }
+    return { success: true, data };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+export async function getLoyaltyPointsApi(userId?: string) {
+  const url = `${getAuthBaseUrl()}/api/loyalty-points${userId ? `?userId=${encodeURIComponent(userId)}` : ''}`;
+  try {
+    const response = await fetch(url, { method: 'GET', headers: getAuthHeaders() });
+    const data = await response.json().catch(() => ([]));
+    if (!response.ok) return { success: false, data: [] };
+    return { success: true, data: Array.isArray(data) ? data : [] };
+  } catch (_) {
+    return { success: false, data: [] };
+  }
+}
+
+export async function getPointsTransactionsApi() {
+  const url = `${getAuthBaseUrl()}/api/points-transactions`;
+  try {
+    const response = await fetch(url, { method: 'GET', headers: getAuthHeaders() });
+    const data = await response.json().catch(() => ([]));
+    if (!response.ok) return { success: false, data: [] };
+    return { success: true, data: Array.isArray(data) ? data : [] };
+  } catch (_) {
+    return { success: false, data: [] };
   }
 }

@@ -56,6 +56,8 @@ import AdminSettings from './admin/AdminSettings';
 import SupportAdmin from './admin/SupportAdmin';
 import MembershipPlansAdmin from './admin/MembershipPlansAdmin';
 import SubscriptionsAdmin from './admin/SubscriptionsAdmin';
+import PaymentsAdmin from './admin/PaymentsAdmin';
+import PayoutsAdmin from './admin/PayoutsAdmin';
 
 interface NavItem {
   label: string;
@@ -90,6 +92,7 @@ const adminNav: NavItem[] = [
   { label: 'Spaces', screen: 'admin-spaces', icon: Building2 },
   { label: 'Users', screen: 'admin-users', icon: Users },
   { label: 'Bookings', screen: 'admin-bookings', icon: BookOpen },
+  { label: 'Payments', screen: 'admin-payments', icon: CreditCard },
   { label: 'Reports', screen: 'admin-reports', icon: BarChart3 },
 ];
 
@@ -801,6 +804,8 @@ export function Router() {
         {screen === 'admin-bookings' && <BookingsAdmin />}
         {screen === 'admin-plans' && <MembershipPlansAdmin />}
         {screen === 'admin-subscriptions' && <SubscriptionsAdmin />}
+        {screen === 'admin-payments' && <PaymentsAdmin />}
+        {screen === 'admin-payouts' && <PayoutsAdmin />}
         {screen === 'admin-support' && <SupportAdmin />}
         {screen === 'admin-reports' && <Reports />}
         {screen === 'admin-settings' && <AdminSettings />}

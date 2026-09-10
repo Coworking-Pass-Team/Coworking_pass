@@ -1,9 +1,9 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, Space, Booking, Screen, NavState, UserRole, BookingType, PaymentCard, Notification, CartItem, AmenityRequest, AmenityRequestStatus, calculateEndDate, isCancellationRefundEligible, getBookingPrice, getEffectiveSpacePrice, OtpSession, SupportTicket, TicketStatus, Partner, WorkspaceApi, HourlyBookingApi, PayoutApi, MembershipPlanApi, SubscriptionApi, DirectBookingApi, PaymentApi } from '@/types/types';
+import { User, Space, SpaceType, Booking, Screen, NavState, UserRole, BookingType, PaymentCard, Notification, CartItem, AmenityRequest, AmenityRequestStatus, calculateEndDate, isCancellationRefundEligible, getBookingPrice, getEffectiveSpacePrice, OtpSession, SupportTicket, TicketStatus, Partner, WorkspaceApi, HourlyBookingApi, PayoutApi, MembershipPlanApi, SubscriptionApi, DirectBookingApi, PaymentApi } from '@/types/types';
 import { INITIAL_SPACES, INITIAL_USERS, INITIAL_BOOKINGS, INITIAL_NOTIFICATIONS, INITIAL_SUPPORT_TICKETS } from '@/data/data';
-import { registerUserApi, verifyEmailApi, loginUserApi, verifyLoginApi, mapRoleToFrontend, createCompanyApi } from '@/services/authApi';
+import { registerUserApi, verifyEmailApi, loginUserApi, verifyLoginApi, mapRoleToFrontend, createCompanyApi, createPointsTransactionApi, getLoyaltyPointsApi, getPointsTransactionsApi } from '@/services/authApi';
 
 export function getApiBaseUrl(): string {
   const envUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -16,6 +16,27 @@ export function getApiBaseUrl(): string {
 
 export const API_BASE_URL = getApiBaseUrl();
 
+
+export function mapFrontendTypeToDbSectionType(type: string): 'DESK' | 'MEETING_ROOM' | 'THEATER' {
+  const t = (type || '').toLowerCase();
+  if (t === 'theater' || t.includes('theater') || t.includes('auditorium')) {
+    return 'THEATER';
+  }
+  if (
+    t.includes('hall') ||
+    t.includes('meeting') ||
+    t.includes('room') ||
+    t.includes('majlis') ||
+    t.includes('conference') ||
+    t.includes('training') ||
+    t.includes('workshop') ||
+    t.includes('event') ||
+    t.includes('lecture')
+  ) {
+    return 'MEETING_ROOM';
+  }
+  return 'DESK';
+}
 
 export function getStoredToken(): string | undefined {
   return (
@@ -1240,36 +1261,94 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const userPartner = partners.find(p => p.contactEmail?.toLowerCase() === userEmail);
         const userPartnerId = userPartner?.id;
 
+        let savedTypes: Record<string, string> = {};
+        if (typeof window !== 'undefined') {
+          try {
+            const rawMap = localStorage.getItem('cp_space_types');
+            if (rawMap) savedTypes = JSON.parse(rawMap);
+          } catch (_) {}
+        }
+
         const dbSpaces: Space[] = data.map((w) => {
           const isBelongingToCurrentUser = currentUser && (
             w.partnerId === currentUser.id ||
             (userPartnerId && w.partnerId === userPartnerId) ||
             (userEmail && w.partner?.contactEmail?.toLowerCase() === userEmail)
           );
+          const existing = spaces.find(s => s.id === w.id || s.name.toLowerCase() === w.name.toLowerCase())
+            || INITIAL_SPACES.find(s => s.id === w.id || s.name.toLowerCase() === w.name.toLowerCase());
+          
+          const savedType = savedTypes[w.id] || savedTypes[w.name.toLowerCase()];
+
+          const nameLower = (w.name || '').toLowerCase();
+          const isNameHall = nameLower.includes('hall') || nameLower.includes('قاعة') || nameLower.includes('majlis') || nameLower.includes('conference') || nameLower.includes('training') || nameLower.includes('meeting') || nameLower.includes('room');
+          const isNameTheater = nameLower.includes('theater') || nameLower.includes('مسرح') || nameLower.includes('auditorium');
+
+          let inferredType: SpaceType | undefined = undefined;
+          if (isNameTheater) inferredType = 'theater';
+          else if (isNameHall) inferredType = 'meeting-room';
+
+          let sectionType: string | undefined = undefined;
+          if (Array.isArray(w.sections) && w.sections.length > 0) {
+            const sec = w.sections[0];
+            if (sec.type === 'MEETING_ROOM') sectionType = 'meeting-room';
+            else if (sec.type === 'THEATER') sectionType = 'theater';
+            else if (sec.type === 'DESK') {
+              if (isNameTheater) sectionType = 'theater';
+              else if (isNameHall) sectionType = 'meeting-room';
+              else if (savedType) sectionType = savedType;
+              else sectionType = 'private-office';
+            }
+          }
+
+          const preservedType = (savedType || sectionType || inferredType || existing?.type || (w as any).type || 'private-office') as SpaceType;
+
+          // Asynchronously sync section to PostgreSQL backend DB if section was stored as DESK but space is actually hall or theater
+          if (Array.isArray(w.sections) && w.sections.length > 0) {
+            const sec = w.sections[0];
+            const targetDbSecType = mapFrontendTypeToDbSectionType(preservedType);
+            if (sec.type !== targetDbSecType && targetDbSecType !== 'DESK') {
+              const storedToken = getStoredToken();
+              if (storedToken) {
+                fetch(`${getApiBaseUrl()}/workspace-sections/${sec.id}`, {
+                  method: 'PUT',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${storedToken}`,
+                  },
+                  body: JSON.stringify({ type: targetDbSecType }),
+                }).catch(() => {});
+              }
+            }
+          }
+
           return {
             id: w.id,
             name: w.name,
             city: w.city,
             district: '',
             address: w.city,
-            description: `Workspace managed by ${w.partner?.brandName || 'Partner'}`,
-            type: 'private-office',
-            images: ['https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80'],
-            amenities: ['High-Speed Wi-Fi', 'Coffee Bar', 'Meeting Rooms'],
-            totalCapacity: w.totalCapacity || 50,
-            availableCapacity: w.totalCapacity || 50,
+            description: existing?.description || `Workspace managed by ${w.partner?.brandName || 'Partner'}`,
+            type: preservedType,
+            images: existing?.images && existing.images.length > 0 ? existing.images : ['https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80'],
+            amenities: existing?.amenities && existing.amenities.length > 0 ? existing.amenities : ['High-Speed Wi-Fi', 'Coffee Bar', 'Meeting Rooms'],
+            totalCapacity: w.totalCapacity || existing?.totalCapacity || 50,
+            availableCapacity: w.totalCapacity || existing?.availableCapacity || 50,
             pricing: {
-              daily: w.dailyRate || 100,
-              monthly: w.monthlyRate || 2000,
-              yearly: w.yearlyRate || 20000,
+              hourly: existing?.pricing?.hourly || 45,
+              daily: w.dailyRate || existing?.pricing?.daily || 100,
+              monthly: w.monthlyRate || existing?.pricing?.monthly || 2000,
+              yearly: w.yearlyRate || existing?.pricing?.yearly || 20000,
             },
-            rating: 4.8,
-            reviewCount: 12,
-            isVisible: true,
-            isFeatured: false,
-            openHours: '08:00 AM - 10:00 PM',
-            phone: '+966 50 000 0000',
-            email: w.partner?.contactEmail || 'contact@coworkingpass.sa',
+            bookingMode: existing?.bookingMode || (preservedType === 'meeting-room' || preservedType === 'event-hall' || (preservedType as string).includes('hall') ? 'hourly' : 'subscription'),
+            bookingPackages: existing?.bookingPackages || [],
+            rating: existing?.rating || 4.8,
+            reviewCount: existing?.reviewCount || 12,
+            isVisible: existing?.isVisible !== undefined ? existing.isVisible : true,
+            isFeatured: existing?.isFeatured !== undefined ? existing.isFeatured : false,
+            openHours: existing?.openHours || '08:00 AM - 10:00 PM',
+            phone: existing?.phone || '+966 50 000 0000',
+            email: w.partner?.contactEmail || existing?.email || 'contact@coworkingpass.sa',
             ownerId: isBelongingToCurrentUser ? currentUser.id : w.partnerId,
           };
         });
@@ -1527,6 +1606,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
       fetchDirectBookings().catch(() => {});
       fetchPayments().catch(() => {});
       fetchNotifications().catch(() => {});
+      if (currentUser) {
+        getLoyaltyPointsApi(currentUser.id).then(ptsRes => {
+          if (ptsRes.success && Array.isArray(ptsRes.data)) {
+            const uPts = ptsRes.data.find((p: any) => p.userId === currentUser.id);
+            if (uPts && typeof uPts.availableBalance === 'number') {
+              const syncedUser = { ...currentUser, loyaltyPoints: uPts.availableBalance };
+              setCurrentUser(syncedUser);
+              if (typeof window !== 'undefined') {
+                localStorage.setItem('cp_currentUser', JSON.stringify(syncedUser));
+              }
+            }
+          }
+        }).catch(() => {});
+      }
     }
   }, []);
 
@@ -2199,6 +2292,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
       coordinates: { lat, lng },
     };
 
+    if (typeof window !== 'undefined' && newSpace.type) {
+      try {
+        const rawMap = localStorage.getItem('cp_space_types');
+        const typeMap = rawMap ? JSON.parse(rawMap) : {};
+        typeMap[newSpace.id] = newSpace.type;
+        typeMap[newSpace.name.toLowerCase()] = newSpace.type;
+        localStorage.setItem('cp_space_types', JSON.stringify(typeMap));
+      } catch (_) {}
+    }
+
     setSpaces(prev => [...prev, newSpace]);
     showToast('Space added successfully.');
 
@@ -2239,7 +2342,36 @@ export function AppProvider({ children }: { children: ReactNode }) {
             totalCapacity: space.totalCapacity || 30,
           });
 
-          if (createRes.success) {
+          if (createRes.success && createRes.workspace) {
+            // Also create corresponding section in database (MEETING_ROOM for halls, THEATER for theaters, DESK for offices)
+            const dbSecType = mapFrontendTypeToDbSectionType(newSpace.type);
+            const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+            if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+            try {
+              await fetch(`${getApiBaseUrl()}/workspace-sections`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({
+                  workspaceId: createRes.workspace.id,
+                  type: dbSecType,
+                  name: `${space.name} Section`,
+                  capacity: space.totalCapacity || 30,
+                  dailyRate: space.pricing?.daily || 50,
+                  monthlyRate: space.pricing?.monthly || 800,
+                  yearlyRate: space.pricing?.yearly || 8000,
+                }),
+              });
+            } catch (_) {}
+
+            if (typeof window !== 'undefined' && newSpace.type) {
+              try {
+                const rawMap = localStorage.getItem('cp_space_types');
+                const typeMap = rawMap ? JSON.parse(rawMap) : {};
+                typeMap[createRes.workspace.id] = newSpace.type;
+                typeMap[createRes.workspace.name.toLowerCase()] = newSpace.type;
+                localStorage.setItem('cp_space_types', JSON.stringify(typeMap));
+              } catch (_) {}
+            }
             await fetchWorkspaces();
           }
         }
@@ -2250,6 +2382,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const updateSpace = (id: string, updates: Partial<Space>) => {
+    if (typeof window !== 'undefined' && updates.type) {
+      try {
+        const rawMap = localStorage.getItem('cp_space_types');
+        const typeMap = rawMap ? JSON.parse(rawMap) : {};
+        typeMap[id] = updates.type;
+        if (updates.name) typeMap[updates.name.toLowerCase()] = updates.type;
+        localStorage.setItem('cp_space_types', JSON.stringify(typeMap));
+      } catch (_) {}
+    }
+
     setSpaces(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
     showToast('Space updated successfully.');
 
@@ -2267,11 +2409,44 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (updates.pricing?.monthly !== undefined) payload.monthlyRate = updates.pricing.monthly;
         if (updates.pricing?.yearly !== undefined) payload.yearlyRate = updates.pricing.yearly;
 
-        if (Object.keys(payload).length > 0) {
-          const res = await updateWorkspace(id, payload);
-          if (res.success) {
-            await fetchWorkspaces();
+        if (Object.keys(payload).length > 0 || updates.type) {
+          if (Object.keys(payload).length > 0) {
+            await updateWorkspace(id, payload);
           }
+
+          if (updates.type) {
+            const dbSecType = mapFrontendTypeToDbSectionType(updates.type);
+            const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+            headers['Authorization'] = `Bearer ${storedToken}`;
+            try {
+              const secRes = await fetch(`${getApiBaseUrl()}/workspace-sections`, { headers });
+              if (secRes.ok) {
+                const sections = await secRes.json();
+                if (Array.isArray(sections)) {
+                  const existingSec = sections.find((s: any) => s.workspaceId === id);
+                  if (existingSec) {
+                    await fetch(`${getApiBaseUrl()}/workspace-sections/${existingSec.id}`, {
+                      method: 'PUT',
+                      headers,
+                      body: JSON.stringify({ type: dbSecType }),
+                    });
+                  } else {
+                    await fetch(`${getApiBaseUrl()}/workspace-sections`, {
+                      method: 'POST',
+                      headers,
+                      body: JSON.stringify({
+                        workspaceId: id,
+                        type: dbSecType,
+                        name: `Section - ${dbSecType}`,
+                        capacity: updates.totalCapacity || 30,
+                      }),
+                    });
+                  }
+                }
+              }
+            } catch (_) {}
+          }
+          await fetchWorkspaces();
         }
       } catch (err) {
         console.warn('Failed to save space update to database:', err);
@@ -2310,10 +2485,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
     setBookings(prev => [...prev, newBooking]);
     
-    // Auto-calculate loyalty points earned
+    // Auto-calculate loyalty points earned (at least 10 pts per booking or 10% of total price)
     const space = spaces.find(s => s.id === booking.spaceId);
     const multiplier = space?.loyaltyPointsMultiplier || 1;
-    const earnedPoints = Math.floor((booking.totalPrice || 0) / 100) * 10 * multiplier;
+    const rawPrice = booking.totalPrice || 0;
+    const earnedPoints = (rawPrice > 0 ? Math.max(10, Math.floor(rawPrice / 10)) : 10) * multiplier;
 
     if (currentUser && currentUser.id === booking.userId && earnedPoints > 0) {
       const updatedUser = {
@@ -2325,6 +2501,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (typeof window !== 'undefined') {
         localStorage.setItem('cp_currentUser', JSON.stringify(updatedUser));
       }
+
+      // Record EARNED points in PostgreSQL DB & sync DB balance
+      createPointsTransactionApi({
+        userId: currentUser.id,
+        type: 'EARNED',
+        points: earnedPoints,
+        description: `Earned points for booking: ${booking.spaceName}`,
+        referenceId: newBooking.id,
+      }).then(res => {
+        if (res.success) {
+          getLoyaltyPointsApi(currentUser.id).then(ptsRes => {
+            if (ptsRes.success && Array.isArray(ptsRes.data)) {
+              const uPts = ptsRes.data.find((p: any) => p.userId === currentUser.id);
+              if (uPts && typeof uPts.availableBalance === 'number') {
+                const syncedUser = { ...currentUser, loyaltyPoints: uPts.availableBalance };
+                setCurrentUser(syncedUser);
+                if (typeof window !== 'undefined') {
+                  localStorage.setItem('cp_currentUser', JSON.stringify(syncedUser));
+                }
+              }
+            }
+          }).catch(() => {});
+        }
+      }).catch(() => {});
     }
 
     addNotification({
@@ -2360,6 +2560,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           validWorkspaceId = workspacesApi[0].id;
         }
 
+        const targetSpace = spaces.find(s => s.id === validWorkspaceId);
+
         let sectionId: string | null = null;
         try {
           const secRes = await fetch(`${getApiBaseUrl()}/workspace-sections`, { headers });
@@ -2374,14 +2576,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
         if (!sectionId && validWorkspaceId) {
           try {
+            const spaceType = targetSpace?.type || 'desk';
+            const dbSecType = mapFrontendTypeToDbSectionType(spaceType);
             const secCreateRes = await fetch(`${getApiBaseUrl()}/workspace-sections`, {
               method: 'POST',
               headers,
               body: JSON.stringify({
                 workspaceId: validWorkspaceId,
-                type: 'DESK',
-                name: 'General Space Section',
-                capacity: 50,
+                type: dbSecType,
+                name: `${targetSpace?.name || 'Workspace'} Section`,
+                capacity: targetSpace?.totalCapacity || 50,
                 dailyRate: booking.totalPrice || 50,
               }),
             });
@@ -2425,6 +2629,61 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 referenceId: dbBooking.id || newBooking.id,
               }),
             }).catch(() => {});
+          }
+
+          if (booking.plan === 'hourly' || (targetSpace && targetSpace.bookingMode === 'hourly')) {
+            let pkgId: string | null = null;
+            try {
+              const pkgRes = await fetch(`${getApiBaseUrl()}/hourly-packages`, { headers });
+              if (pkgRes.ok) {
+                const pkgs = await pkgRes.json();
+                if (Array.isArray(pkgs)) {
+                  const matchPkg = pkgs.find((p: any) => p.sectionId === sectionId);
+                  if (matchPkg) pkgId = matchPkg.id;
+                }
+              }
+            } catch (_) {}
+
+            if (!pkgId && sectionId) {
+              try {
+                const pkgCreateRes = await fetch(`${getApiBaseUrl()}/hourly-packages`, {
+                  method: 'POST',
+                  headers,
+                  body: JSON.stringify({
+                    sectionId,
+                    packageName: `${booking.durationHours || 1} Hour Package`,
+                    hoursAmount: booking.durationHours || 1,
+                    periodType: 'PER_DAY',
+                    price: booking.totalPrice || 45,
+                  }),
+                });
+                if (pkgCreateRes.ok) {
+                  const pkgData = await pkgCreateRes.json();
+                  pkgId = pkgData.id || pkgData.hourlyPackage?.id;
+                }
+              } catch (_) {}
+            }
+
+            if (sectionId && pkgId) {
+              try {
+                const hbRes = await fetch(`${getApiBaseUrl()}/hourly-bookings`, {
+                  method: 'POST',
+                  headers,
+                  body: JSON.stringify({
+                    userId: currentUser?.id || booking.userId,
+                    sectionId,
+                    packageId: pkgId,
+                    startDate: booking.startDate ? new Date(booking.startDate).toISOString() : new Date().toISOString(),
+                    endDate: booking.endDate ? new Date(booking.endDate).toISOString() : new Date().toISOString(),
+                    status: 'ACTIVE',
+                  }),
+                });
+                if (hbRes.ok) {
+                  const hbData = await hbRes.json();
+                  setHourlyBookingsApi(prev => [hbData, ...prev]);
+                }
+              } catch (_) {}
+            }
           }
         }
       } catch (err) {
@@ -3030,6 +3289,31 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (typeof window !== 'undefined') {
       localStorage.setItem('cp_currentUser', JSON.stringify(updatedUser));
       localStorage.setItem('cp_users', JSON.stringify(updatedUsers));
+    }
+
+    // Record REDEEMED points in PostgreSQL DB if user used loyalty discount & sync DB balance
+    if (currentUser && safePointsToUse > 0) {
+      createPointsTransactionApi({
+        userId: currentUser.id,
+        type: 'REDEEMED',
+        points: safePointsToUse,
+        description: `Redeemed points for checkout discount (SAR ${pointsDiscount} off)`,
+      }).then(res => {
+        if (res.success) {
+          getLoyaltyPointsApi(currentUser.id).then(ptsRes => {
+            if (ptsRes.success && Array.isArray(ptsRes.data)) {
+              const uPts = ptsRes.data.find((p: any) => p.userId === currentUser.id);
+              if (uPts && typeof uPts.availableBalance === 'number') {
+                const syncedUser = { ...currentUser, loyaltyPoints: uPts.availableBalance };
+                setCurrentUser(syncedUser);
+                if (typeof window !== 'undefined') {
+                  localStorage.setItem('cp_currentUser', JSON.stringify(syncedUser));
+                }
+              }
+            }
+          }).catch(() => {});
+        }
+      }).catch(() => {});
     }
 
     clearCart();
