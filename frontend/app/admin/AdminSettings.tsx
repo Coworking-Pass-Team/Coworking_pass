@@ -28,6 +28,7 @@ import UserAvatar from '@/components/ui/UserAvatar';
 import Modal from '@/components/ui/Modal';
 import MembershipPlansAdmin from './MembershipPlansAdmin';
 import SubscriptionsAdmin from './SubscriptionsAdmin';
+import HourlyBookingsAdmin from './HourlyBookingsAdmin';
 
 export default function AdminSettings() {
   const { currentUser, updateCurrentUser, logout, showToast, navigate, nav } = useApp();

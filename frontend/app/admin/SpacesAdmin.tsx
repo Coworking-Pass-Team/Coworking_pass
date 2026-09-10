@@ -52,9 +52,11 @@ const emptyForm = (): Partial<Space> => ({
   city: 'Riyadh',
   address: '',
   description: '',
-  type: 'mixed',
-  bookingMode: 'subscription',
-  bookingPackages: [],
+  type: 'meeting-hall',
+  bookingMode: 'hourly',
+  bookingPackages: [
+    { id: `package-${Date.now()}`, name: '2 hours per day', period: 'day', hours: 2, price: 100 }
+  ],
   amenities: [],
   totalCapacity: 20,
   availableCapacity: 20,
@@ -190,16 +192,9 @@ export default function SpacesAdmin() {
   };
 
   const handleTypeChange = (type: Space['type']) => {
-    const hourly = isHourlyOnlySpace(type);
     setForm((prev) => ({
       ...prev,
       type,
-      bookingMode: hourly ? 'hourly' : 'subscription',
-      bookingPackages: hourly
-        ? (prev.bookingPackages?.length
-            ? prev.bookingPackages
-            : [{ id: `package-${Date.now()}`, name: '2 hours per day', period: 'day', hours: 2, price: 100 }])
-        : [],
     }));
   };
 
