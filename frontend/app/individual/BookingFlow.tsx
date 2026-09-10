@@ -19,7 +19,7 @@ import {
   ShoppingBag
 } from 'lucide-react';
 import { useApp } from '@/app/store';
-import { createDirectBookingApi, createPaymentApi } from '@/services/authApi';
+import { createDirectBookingApi, createPaymentApi, createPointsTransactionApi, getLoyaltyPointsApi } from '@/services/authApi';
 import {
   BookingPlan,
   BookingType,
@@ -245,6 +245,26 @@ export default function BookingFlow() {
       if (pointsUsed > 0) {
         const updatedPoints = Math.max(0, availablePoints - pointsUsed);
         updateCurrentUser({ loyaltyPoints: updatedPoints });
+
+        if (currentUser) {
+          createPointsTransactionApi({
+            userId: currentUser.id,
+            type: 'REDEEMED',
+            points: pointsUsed,
+            description: `Redeemed points for booking discount at ${space.name}`,
+          }).then(res => {
+            if (res.success) {
+              getLoyaltyPointsApi(currentUser.id).then(ptsRes => {
+                if (ptsRes.success && Array.isArray(ptsRes.data)) {
+                  const uPts = ptsRes.data.find((p: any) => p.userId === currentUser.id);
+                  if (uPts && typeof uPts.availableBalance === 'number') {
+                    updateCurrentUser({ loyaltyPoints: uPts.availableBalance });
+                  }
+                }
+              }).catch(() => {});
+            }
+          }).catch(() => {});
+        }
       }
 
       const booking = addBooking({

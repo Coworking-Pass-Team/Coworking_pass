@@ -17,6 +17,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { useApp } from '@/app/store';
+import { createPointsTransactionApi, getLoyaltyPointsApi } from '@/services/authApi';
 import {
   BookingPlan,
   BookingType,
@@ -242,6 +243,26 @@ export default function TeamBooking() {
       const pointsUsed = useLoyaltyPoints ? maxRedeemablePoints : 0;
       const updatedPoints = Math.max(0, availablePoints - pointsUsed + earnedPoints);
       updateCurrentUser({ loyaltyPoints: updatedPoints });
+
+      if (pointsUsed > 0 && currentUser) {
+        createPointsTransactionApi({
+          userId: currentUser.id,
+          type: 'REDEEMED',
+          points: pointsUsed,
+          description: `Redeemed points for team booking discount (${space.name})`,
+        }).then(res => {
+          if (res.success) {
+            getLoyaltyPointsApi(currentUser.id).then(ptsRes => {
+              if (ptsRes.success && Array.isArray(ptsRes.data)) {
+                const uPts = ptsRes.data.find((p: any) => p.userId === currentUser.id);
+                if (uPts && typeof uPts.availableBalance === 'number') {
+                  updateCurrentUser({ loyaltyPoints: uPts.availableBalance });
+                }
+              }
+            }).catch(() => {});
+          }
+        }).catch(() => {});
+      }
 
       setConfirmedBooking(booking);
       setStep(4);
