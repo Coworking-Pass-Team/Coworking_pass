@@ -2,6 +2,18 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
+
+/**
+ * @swagger
+ * /api/wallet:
+ *   get:
+ *     summary: عرض أو إدارة محفظة المستخدم
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: نجح
+ */
 // GET: جلب رصيد المحفظة
 export async function GET(request: NextRequest) {
   try {
