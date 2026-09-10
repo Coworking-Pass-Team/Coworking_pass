@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Menu, X, User as UserIcon, LogOut, ChevronDown, Calendar, Building2, Users, Settings } from 'lucide-react';
+import { Menu, X, User as UserIcon, LogOut, ChevronDown, Calendar, Building2, Users, Settings, CreditCard } from 'lucide-react';
 import { useApp } from '@/app/store';
 import Logo from './logo';
 
@@ -59,8 +59,7 @@ export default function Navbar() {
       return [
         { label: 'Dashboard', screen: 'org-dashboard' as const },
         { label: 'Browse Spaces', screen: 'browse' as const },
-        { label: 'Pricing & Plans', screen: 'pricing' as const },
-        { label: 'Team Bookings', screen: 'team-bookings' as const },
+        { label: 'Team Bookings', screen: 'company-bookings' as const },
         { label: 'Support', screen: 'contact' as const },
       ];
     }
@@ -175,6 +174,7 @@ export default function Navbar() {
               {moreOpen && (
                 <div className="absolute right-0 mt-1 w-52 bg-plaster-surface rounded-2xl border border-soot/15 shadow-xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
                   {[
+                    { label: 'Pricing & Plans', screen: 'pricing' as const, icon: CreditCard },
                     { label: 'Team Bookings', screen: 'company-bookings' as const, icon: Calendar },
                     { label: 'Team Members', screen: 'company-team' as const, icon: Users },
                     { label: 'Browse Spaces', screen: 'browse' as const, icon: Building2 },
@@ -269,16 +269,28 @@ export default function Navbar() {
                     )}
 
                     {currentUser.role === 'organization' && (
-                      <button
-                        onClick={() => {
-                          navigate('company-bookings');
-                          setDropdownOpen(false);
-                        }}
-                        className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold text-soot hover:bg-plaster-dark/50 flex items-center gap-2.5 transition-colors cursor-pointer"
-                      >
-                        <Building2 size={15} className="text-moss" />
-                        <span>Company Bookings</span>
-                      </button>
+                      <>
+                        <button
+                          onClick={() => {
+                            navigate('pricing');
+                            setDropdownOpen(false);
+                          }}
+                          className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold text-soot hover:bg-plaster-dark/50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                        >
+                          <CreditCard size={15} className="text-moss" />
+                          <span>Pricing & Plans</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            navigate('company-bookings');
+                            setDropdownOpen(false);
+                          }}
+                          className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold text-soot hover:bg-plaster-dark/50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                        >
+                          <Building2 size={15} className="text-moss" />
+                          <span>Company Bookings</span>
+                        </button>
+                      </>
                     )}
 
                     <div className="pt-1 mt-1 border-t border-soot/8">

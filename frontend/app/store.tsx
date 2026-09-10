@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, Space, Booking, Screen, NavState, UserRole, BookingType, PaymentCard, Notification, CartItem, AmenityRequest, AmenityRequestStatus, calculateEndDate, isCancellationRefundEligible, getBookingPrice, getEffectiveSpacePrice, OtpSession, SupportTicket, TicketStatus, Partner, WorkspaceApi, HourlyBookingApi, PayoutApi, MembershipPlanApi, SubscriptionApi, DirectBookingApi, PaymentApi } from '@/types/types';
 import { INITIAL_SPACES, INITIAL_USERS, INITIAL_BOOKINGS, INITIAL_NOTIFICATIONS, INITIAL_SUPPORT_TICKETS } from '@/data/data';
-import { registerUserApi, verifyEmailApi, loginUserApi, verifyLoginApi, mapRoleToFrontend } from '@/services/authApi';
+import { registerUserApi, verifyEmailApi, loginUserApi, verifyLoginApi, mapRoleToFrontend, createCompanyApi } from '@/services/authApi';
 
 export function getApiBaseUrl(): string {
   const envUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -1514,16 +1514,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    fetchPartners().catch(() => {});
     fetchWorkspaces().catch(() => {});
-    fetchHourlyBookings().catch(() => {});
-    fetchPayouts().catch(() => {});
     fetchMembershipPlans().catch(() => {});
-    fetchSubscriptions().catch(() => {});
-    fetchDirectBookings().catch(() => {});
-    fetchPayments().catch(() => {});
     fetchAmenities().catch(() => {});
-    fetchNotifications().catch(() => {});
+
+    const storedToken = getStoredToken();
+    if (storedToken) {
+      fetchPartners().catch(() => {});
+      fetchHourlyBookings().catch(() => {});
+      fetchPayouts().catch(() => {});
+      fetchSubscriptions().catch(() => {});
+      fetchDirectBookings().catch(() => {});
+      fetchPayments().catch(() => {});
+      fetchNotifications().catch(() => {});
+    }
   }, []);
 
   const sanitizeBookings = (list: Booking[]): Booking[] => {
@@ -1803,6 +1807,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       email: newUser.email,
       password: newUser.password,
       role: role || newUser.role || 'individual',
+      orgName: extraData?.orgName,
+      companyName: extraData?.orgName,
     });
 
     if (!apiRes.success && apiRes.error && !apiRes.error.includes('Network connection issue')) {
@@ -1810,8 +1816,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return { success: false, error: apiRes.error };
     }
 
+    const mergedUser: User = {
+      ...newUser,
+      role: role || newUser.role || 'individual',
+      orgName: extraData?.orgName || newUser.orgName,
+      ...(extraData || {}),
+    };
+
     const session: OtpSession = {
-      user: newUser,
+      user: mergedUser,
       targetEmailOrPhone: newUser.email || newUser.phone,
       mode: 'signup',
       role,
@@ -1899,6 +1912,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (typeof window !== 'undefined') {
         localStorage.setItem('cp_currentUser', JSON.stringify(user));
       }
+
+      // Auto-create Company record in DB via frontend API call if logged in as Organization/Company
+      if (user.role === 'organization') {
+        createCompanyApi({
+          companyName: user.orgName || user.name || 'New Organization',
+          hrAdminId: user.id,
+        }).then(res => {
+          if (res.success) {
+            console.log('[Company DB Sync] Created company record:', res.company);
+          } else {
+            console.warn('[Company DB Sync] Company creation response:', res.error);
+          }
+        });
+      }
+
       setOtpSession(null);
       if (user.role === 'admin') navigate('admin-dashboard');
       else if (user.role === 'organization') navigate('org-dashboard');
@@ -1943,6 +1971,43 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     if (typeof window !== 'undefined') {
       localStorage.setItem('cp_users', JSON.stringify(updatedUsers));
+    }
+
+    // Auto-create Company record in DB via frontend API call if registered as Organization/Company
+    if (updated.role === 'organization') {
+      const hrAdminId = updated.id || otpSession.userId || '';
+      const companyName = updated.orgName || updated.name || 'New Organization';
+      if (hrAdminId) {
+        createCompanyApi({ companyName, hrAdminId }).then(res => {
+          if (res.success) {
+            console.log('[Company DB Sync] Created company record on signup:', res.company);
+          } else {
+            console.warn('[Company DB Sync] Signup creation response:', res.error);
+          }
+        });
+      }
+    }
+
+    if (updated.role === 'provider') {
+      (async () => {
+        try {
+          const storedToken = getStoredToken();
+          const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+          if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+          await fetch(`${getApiBaseUrl()}/partners`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              brandName: updated.orgName || updated.name,
+              contactEmail: updated.email,
+              taxNumber: '1234567890',
+              revenueSharePercentage: 20,
+            }),
+          });
+        } catch (err) {
+          console.warn('Frontend auto-create partner error:', err);
+        }
+      })();
     }
 
     // Automatically transition to login to complete authentication and receive JWT token

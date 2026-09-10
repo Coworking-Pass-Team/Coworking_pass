@@ -73,7 +73,6 @@ const individualNav: NavItem[] = [
 const orgNav: NavItem[] = [
   { label: 'Dashboard', screen: 'org-dashboard', icon: LayoutDashboard },
   { label: 'Browse Spaces', screen: 'browse', icon: Search },
-  { label: 'Pricing & Plans', screen: 'pricing', icon: CreditCard },
   { label: 'Team Bookings', screen: 'team-bookings', icon: Briefcase },
   { label: 'Team Members', screen: 'company-team', icon: Users },
 ];
@@ -343,7 +342,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                   type="button"
                   onClick={() => setOrgDropdownOpen(!orgDropdownOpen)}
                   className={`flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 rounded-full text-xs xl:text-sm font-medium transition-all whitespace-nowrap cursor-pointer ${
-                    nav.screen === 'contact' || nav.screen === 'org-settings' || nav.screen === 'org-profile' || orgDropdownOpen
+                    nav.screen === 'contact' || nav.screen === 'org-settings' || nav.screen === 'org-profile' || nav.screen === 'pricing' || orgDropdownOpen
                       ? 'bg-[#DDE6DF] text-soot shadow-xs border border-soot/10 font-semibold'
                       : 'text-moss hover:text-soot hover:bg-soot/5'
                   }`}
@@ -354,6 +353,20 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
                 {orgDropdownOpen && (
                   <div className="absolute right-0 mt-2 w-52 bg-plaster-surface rounded-2xl border border-soot/15 shadow-xl p-1.5 z-50 animate-in fade-in-50 zoom-in-95 duration-100">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigate('pricing');
+                        setOrgDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-colors cursor-pointer ${
+                        nav.screen === 'pricing' ? 'bg-[#DDE6DF] text-soot shadow-2xs font-bold' : 'text-soot hover:bg-soot/5'
+                      }`}
+                    >
+                      <CreditCard size={15} className="text-moss shrink-0" />
+                      <span>Pricing &amp; Plans</span>
+                    </button>
+
                     <button
                       type="button"
                       onClick={() => {
@@ -459,6 +472,18 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
           {role === 'organization' && (
             <>
+              <button
+                type="button"
+                onClick={() => navigate('pricing')}
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap shrink-0 transition-all ${
+                  nav.screen === 'pricing'
+                    ? 'bg-[#E2E8E4] text-[#2D3536] ring-1 ring-[#2D3536]/15 shadow-2xs'
+                    : 'text-moss hover:text-soot'
+                }`}
+              >
+                <CreditCard size={14} className={nav.screen === 'pricing' ? 'text-[#2D3536]' : 'text-moss'} />
+                <span>Pricing &amp; Plans</span>
+              </button>
               <button
                 type="button"
                 onClick={() => navigate('contact')}

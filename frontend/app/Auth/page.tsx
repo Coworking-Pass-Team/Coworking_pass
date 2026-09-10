@@ -1113,10 +1113,13 @@ export function OtpVerificationScreen() {
   const [canResend, setCanResend] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Focus first input on mount
+  // Focus first input & reset form on OTP session change
   useEffect(() => {
+    setLoading(false);
+    setDigits(['', '', '', '', '', '']);
+    setError('');
     inputRefs.current[0]?.focus();
-  }, []);
+  }, [otpSession?.targetEmailOrPhone, otpSession?.mode, otpSession?.userId]);
 
   // Timer countdown
   useEffect(() => {
@@ -1192,9 +1195,14 @@ export function OtpVerificationScreen() {
     setLoading(true);
     setError('');
 
-    const res = await verifyOtp(code);
-    if (!res.success) {
-      setError(res.error || 'Invalid verification code. Please try again.');
+    try {
+      const res = await verifyOtp(code);
+      if (!res.success) {
+        setError(res.error || 'Invalid verification code. Please try again.');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Verification failed. Please try again.');
+    } finally {
       setLoading(false);
     }
   };
@@ -1251,30 +1259,7 @@ export function OtpVerificationScreen() {
               </div>
             )}
 
-            {/* Quick Helper for Test/Dev verification */}
-            <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs rounded-2xl p-3.5 flex items-center justify-between shadow-2xs">
-              <div className="flex items-center gap-2">
-                <Sparkles size={15} className="text-emerald-700 shrink-0" />
-                <span>
-                  {otpSession?.devOtp ? (
-                    <>Verification Code: <strong className="font-mono text-sm tracking-wider text-emerald-800">{otpSession.devOtp}</strong></>
-                  ) : (
-                    <>Didn&apos;t get email? Use test code: <strong className="font-mono text-sm tracking-wider text-emerald-800">123456</strong></>
-                  )}
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  const codeToFill = otpSession?.devOtp || '123456';
-                  setDigits(codeToFill.split('').slice(0, 6));
-                  setError('');
-                }}
-                className="px-2.5 py-1 bg-emerald-800 text-white rounded-lg text-[11px] font-semibold hover:bg-emerald-900 cursor-pointer transition-colors shadow-2xs"
-              >
-                Auto-fill Code
-              </button>
-            </div>
+
 
             {/* 6 Digit Input Boxes */}
             <div>

@@ -18,6 +18,8 @@ export interface RegisterPayload {
   email: string;
   password: string;
   role: string;
+  orgName?: string;
+  companyName?: string;
 }
 
 export interface RegisterResponse {
@@ -112,6 +114,8 @@ export async function registerUserApi(payload: RegisterPayload): Promise<Registe
         email: payload.email.trim().toLowerCase(),
         password: payload.password,
         role: backendRole,
+        orgName: payload.orgName?.trim(),
+        companyName: payload.companyName?.trim(),
       }),
     });
 
@@ -348,6 +352,29 @@ export async function deleteDirectBookingApi(bookingId: string) {
       return { success: false, error: data.error || 'Failed to delete direct booking' };
     }
     return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+export async function createCompanyApi(payload: { companyName: string; hrAdminId: string; totalPassesAllocated?: number }) {
+  const url = `${getAuthBaseUrl()}/api/companies`;
+  try {
+    const companyName = payload.companyName?.trim() || 'New Organization';
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        companyName,
+        hrAdminId: payload.hrAdminId,
+        totalPassesAllocated: payload.totalPassesAllocated ?? 0,
+      }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to create company' };
+    }
+    return { success: true, company: data.company || data };
   } catch (err: any) {
     return { success: false, error: err.message || 'Network error' };
   }
