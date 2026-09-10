@@ -28,12 +28,6 @@ interface CartDrawerProps {
   onClose: () => void;
 }
 
-const TIME_SLOTS = [
-  '08:00', '09:00', '10:00', '11:00', '12:00',
-  '13:00', '14:00', '15:00', '16:00', '17:00',
-  '18:00', '19:00', '20:00', '21:00', '22:00'
-];
-
 function formatDateNice(dateStr?: string) {
   if (!dateStr) return '';
   const d = new Date(dateStr);
@@ -42,7 +36,7 @@ function formatDateNice(dateStr?: string) {
 }
 
 export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
-  const { cart, removeFromCart, updateCartItemSeats, updateCartItem, clearCart, checkoutCart, currentUser, spaces, navigate } = useApp();
+  const { cart, removeFromCart, updateCartItemSeats, clearCart, checkoutCart, currentUser, spaces, navigate } = useApp();
   const [step, setStep] = useState<'cart' | 'review'>('cart');
   const [useLoyaltyPoints, setUseLoyaltyPoints] = useState(false);
 
@@ -62,7 +56,6 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
 
   if (!isOpen) return null;
 
-  const todayISO = new Date().toISOString().split('T')[0];
   const totalAmount = cart.reduce((sum, item) => sum + item.itemTotal, 0);
   const totalSeats = cart.reduce((sum, item) => sum + item.seats, 0);
 
@@ -292,9 +285,15 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
 
                       <div className="text-right">
                         <span className="text-xs text-moss block">Subtotal</span>
-                        <span className="text-sm font-semibold text-soot">
-                          SAR {item.itemTotal.toLocaleString()}
-                        </span>
+                        {item.itemTotal === 0 ? (
+                          <span className="text-xs font-bold text-moss bg-eucalyptus/30 px-2 py-0.5 rounded-full border border-eucalyptus/40">
+                            Included in your Plan (SAR 0)
+                          </span>
+                        ) : (
+                          <span className="text-sm font-semibold text-soot">
+                            SAR {item.itemTotal.toLocaleString()}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -372,9 +371,15 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                     <span className="text-moss font-medium flex items-center gap-1">
                       <Users size={12} /> {item.seats} Seat{item.seats > 1 ? 's' : ''} Reserved
                     </span>
-                    <span className="font-semibold text-soot">
-                      SAR {item.itemTotal.toLocaleString()}
-                    </span>
+                    {item.itemTotal === 0 ? (
+                      <span className="text-xs font-bold text-moss bg-eucalyptus/30 px-2 py-0.5 rounded-full border border-eucalyptus/40">
+                        Included in your Plan (SAR 0)
+                      </span>
+                    ) : (
+                      <span className="font-semibold text-soot">
+                        SAR {item.itemTotal.toLocaleString()}
+                      </span>
+                    )}
                   </div>
                 </div>
               ))}
@@ -448,11 +453,17 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                   <span className="font-bold">- SAR {pointsDiscount.toLocaleString()}</span>
                 </div>
               )}
-              <div className="flex justify-between text-sm pt-2 border-t border-soot/10 font-bold">
+              <div className="flex justify-between text-sm pt-2 border-t border-soot/10 font-bold items-center">
                 <span className="text-soot font-serif-display text-base">Total Amount</span>
-                <span className="text-soot font-serif-display text-lg text-emerald-900">
-                  SAR {finalTotalAmount.toLocaleString()}
-                </span>
+                {finalTotalAmount === 0 ? (
+                  <span className="text-moss font-bold text-xs sm:text-sm bg-eucalyptus/30 px-3 py-1 rounded-full border border-eucalyptus/40">
+                    SAR 0 to Pay (Covered by Plan)
+                  </span>
+                ) : (
+                  <span className="text-soot font-serif-display text-lg text-emerald-900">
+                    SAR {finalTotalAmount.toLocaleString()}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -491,7 +502,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                   className="flex-1 btn-primary justify-center py-3 text-sm shadow-md cursor-pointer bg-emerald-900 hover:bg-emerald-950 text-white"
                 >
                   <CreditCard size={16} />
-                  <span>Confirm Dates & Pay SAR {finalTotalAmount.toLocaleString()}</span>
+                  <span>{finalTotalAmount === 0 ? 'Confirm Reservations (Included in Pass · SAR 0 to Pay)' : `Confirm Dates & Pay SAR ${finalTotalAmount.toLocaleString()}`}</span>
                 </button>
               </div>
             )}

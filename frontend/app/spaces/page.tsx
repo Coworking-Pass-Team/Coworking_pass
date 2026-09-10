@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Search, SlidersHorizontal, X, MapPin, ChevronDown, Check, ArrowUpDown, Sparkles, Building2, Presentation, Clapperboard, LayoutGrid } from 'lucide-react';
+import { Search, SlidersHorizontal, X, MapPin, ChevronDown, Check, ArrowUpDown, Sparkles, Building2, Presentation, Clapperboard, LayoutGrid, Navigation, Loader2 } from 'lucide-react';
 import { useApp } from '@/app/store';
 import SpaceCard from '@/components/spaces/spaceCard';
 import Badge from '@/components/ui/Badge';
-import { getSpaceCategory, SpaceCategory } from '@/types/types';
+import { getSpaceCategory, SpaceCategory, calculateHaversineDistance, getSpaceCoordinates } from '@/types/types';
 
 const CITIES = ['All Cities', 'Riyadh', 'Jeddah', 'Dammam', 'Khobar', 'Madinah', 'Makkah'];
 const CATEGORY_TABS: { id: 'all' | SpaceCategory; label: string; icon: any }[] = [
@@ -52,6 +52,7 @@ const ALL_TYPES = [
 const AMENITIES = ['WiFi', 'Coffee', 'Printer', 'Parking', 'Prayer Room', 'Meeting Rooms', 'Projector', 'Sound System'];
 const SORT_OPTIONS = [
   'Recommended',
+  'Nearest to Me',
   'Price: Low to High',
   'Price: High to Low',
   'Rating',
@@ -59,7 +60,7 @@ const SORT_OPTIONS = [
 ];
 
 export default function Browse() {
-  const { spaces, navigate, currentUser, nav } = useApp();
+  const { spaces, navigate, currentUser, nav, userLocation, locationStatus, requestUserLocation } = useApp();
   const initialCity = nav?.params?.city || (typeof window !== 'undefined' ? (window as any).__browseCity || '' : '');
   const initialCategory = (nav?.params?.category as ('all' | SpaceCategory)) || 'all';
 
@@ -115,8 +116,36 @@ export default function Browse() {
     };
   }, [visible]);
 
+  // Compute distance for all visible spaces when userLocation is available
+  const spacesWithDistance = useMemo(() => {
+    return visible.map(space => {
+      const coords = getSpaceCoordinates(space);
+      let distance: number | null = null;
+      if (userLocation && coords) {
+        distance = calculateHaversineDistance(
+          userLocation.lat,
+          userLocation.lng,
+          coords.lat,
+          coords.lng
+        );
+      }
+      return {
+        ...space,
+        distance,
+      };
+    });
+  }, [visible, userLocation]);
+
+  const handleSortChange = async (option: string) => {
+    setSort(option);
+    setSortDropdownOpen(false);
+    if (option === 'Nearest to Me' && !userLocation) {
+      await requestUserLocation();
+    }
+  };
+
   const filtered = useMemo(() => {
-    let list = visible.filter(s => {
+    let list = spacesWithDistance.filter(s => {
       if (
         query &&
         !s.name.toLowerCase().includes(query.toLowerCase()) &&
@@ -134,13 +163,27 @@ export default function Browse() {
       return true;
     });
 
-    if (sort === 'Price: Low to High') list.sort((a, b) => a.pricing.daily - b.pricing.daily);
-    else if (sort === 'Price: High to Low') list.sort((a, b) => b.pricing.daily - a.pricing.daily);
-    else if (sort === 'Rating') list.sort((a, b) => b.rating - a.rating);
-    else if (sort === 'Availability') list.sort((a, b) => b.availableCapacity - a.availableCapacity);
+    if (sort === 'Nearest to Me') {
+      if (userLocation) {
+        list.sort((a, b) => {
+          if (a.distance === null && b.distance === null) return 0;
+          if (a.distance === null) return 1;
+          if (b.distance === null) return -1;
+          return a.distance - b.distance;
+        });
+      }
+    } else if (sort === 'Price: Low to High') {
+      list.sort((a, b) => a.pricing.daily - b.pricing.daily);
+    } else if (sort === 'Price: High to Low') {
+      list.sort((a, b) => b.pricing.daily - a.pricing.daily);
+    } else if (sort === 'Rating') {
+      list.sort((a, b) => b.rating - a.rating);
+    } else if (sort === 'Availability') {
+      list.sort((a, b) => b.availableCapacity - a.availableCapacity);
+    }
 
     return list;
-  }, [visible, query, categoryFilter, city, spaceType, maxPrice, availableOnly, selectedAmenities, sort]);
+  }, [spacesWithDistance, query, categoryFilter, city, spaceType, maxPrice, availableOnly, selectedAmenities, sort, userLocation]);
 
   const clearFilters = () => {
     setQuery('');
@@ -330,10 +373,7 @@ export default function Browse() {
                       <button
                         key={o}
                         type="button"
-                        onClick={() => {
-                          setSort(o);
-                          setSortDropdownOpen(false);
-                        }}
+                        onClick={() => handleSortChange(o)}
                         className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors cursor-pointer text-left ${
                           isSelected
                             ? 'bg-soot text-plaster font-semibold'
@@ -350,6 +390,46 @@ export default function Browse() {
             )}
           </div>
         </div>
+
+        {/* Location Status Feedback Banner when sorting by Nearest to Me */}
+        {sort === 'Nearest to Me' && (
+          <div className="mb-6">
+            {locationStatus === 'loading' ? (
+              <div className="px-4 py-3 bg-plaster-dark/50 border border-soot/10 rounded-2xl flex items-center gap-3 text-xs sm:text-sm text-soot animate-pulse">
+                <Loader2 size={16} className="animate-spin text-moss shrink-0" />
+                <span>Locating your current position to calculate distance to workspaces...</span>
+              </div>
+            ) : userLocation ? (
+              <div className="px-4 py-2.5 bg-emerald-50/90 border border-emerald-200/80 rounded-2xl flex items-center justify-between gap-3 text-xs sm:text-sm text-emerald-900 shadow-2xs">
+                <div className="flex items-center gap-2">
+                  <Navigation size={14} className="fill-emerald-700 text-emerald-700 shrink-0" />
+                  <span className="font-medium">Sorted by distance from your current location</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => requestUserLocation()}
+                  className="text-[11px] font-semibold text-emerald-800 hover:text-emerald-950 underline cursor-pointer shrink-0"
+                >
+                  Refresh Location
+                </button>
+              </div>
+            ) : (
+              <div className="px-4 py-2.5 bg-amber-50/90 border border-amber-200/80 rounded-2xl flex items-center justify-between gap-3 text-xs sm:text-sm text-amber-900 shadow-2xs">
+                <div className="flex items-center gap-2">
+                  <MapPin size={14} className="text-amber-700 shrink-0" />
+                  <span>Location access unavailable. Showing standard order without distance sorting.</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => requestUserLocation()}
+                  className="text-[11px] font-semibold text-amber-800 hover:text-amber-950 underline cursor-pointer shrink-0"
+                >
+                  Enable Location
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Expanded Filters Drawer */}
         {showFilters && (
@@ -497,6 +577,7 @@ export default function Browse() {
               <SpaceCard
                 key={space.id}
                 space={space}
+                distance={space.distance}
                 onSelect={s => navigate('space-details', { spaceId: s.id })}
               />
             ))}

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Menu, X, User as UserIcon, LogOut, ChevronDown, Calendar, Building2, MoreHorizontal, Users, Settings } from 'lucide-react';
+import { Menu, X, User as UserIcon, LogOut, ChevronDown, Calendar, Building2, Users, Settings, CreditCard, HelpCircle } from 'lucide-react';
 import { useApp } from '@/app/store';
 import Logo from './logo';
 
@@ -48,7 +48,7 @@ export default function Navbar() {
       return [
         { label: 'Home', screen: 'landing' as const },
         { label: 'Browse Spaces', screen: 'browse' as const },
-        { label: 'Plans & Pricing', screen: 'pricing' as const },
+        { label: 'Pricing & Plans', screen: 'pricing' as const },
         { label: 'Contact Us', screen: 'contact' as const },
       ];
     }
@@ -59,7 +59,8 @@ export default function Navbar() {
       return [
         { label: 'Dashboard', screen: 'org-dashboard' as const },
         { label: 'Browse Spaces', screen: 'browse' as const },
-        { label: 'Team Bookings', screen: 'team-bookings' as const },
+        { label: 'Team Bookings', screen: 'company-bookings' as const },
+        { label: 'Support', screen: 'contact' as const },
       ];
     }
 
@@ -68,6 +69,7 @@ export default function Navbar() {
         { label: 'Dashboard', screen: 'provider-dashboard' as const },
         { label: 'My Spaces', screen: 'provider-spaces' as const },
         { label: 'Bookings', screen: 'provider-bookings' as const },
+        { label: 'Support', screen: 'contact' as const },
       ];
     }
 
@@ -77,6 +79,7 @@ export default function Navbar() {
         { label: 'Spaces', screen: 'admin-spaces' as const },
         { label: 'Users', screen: 'admin-users' as const },
         { label: 'Bookings', screen: 'admin-bookings' as const },
+        { label: 'Support', screen: 'admin-support' as const },
         { label: 'Reports', screen: 'admin-reports' as const },
       ];
     }
@@ -85,6 +88,7 @@ export default function Navbar() {
     return [
       { label: 'Dashboard', screen: 'ind-dashboard' as const },
       { label: 'Browse Spaces', screen: 'browse' as const },
+      { label: 'Pricing & Plans', screen: 'pricing' as const },
       { label: 'My Bookings', screen: 'my-bookings' as const },
     ];
   };
@@ -162,18 +166,73 @@ export default function Navbar() {
                     : 'text-moss hover:text-soot hover:bg-soot/5'
                 }`}
               >
-                <MoreHorizontal size={16} />
-                <span>Management</span>
+                <span>Support &amp; Settings</span>
                 <ChevronDown size={14} className={`text-moss transition-transform duration-200 ${moreOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {moreOpen && (
                 <div className="absolute right-0 mt-1 w-52 bg-plaster-surface rounded-2xl border border-soot/15 shadow-xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
                   {[
+                    { label: 'Pricing & Plans', screen: 'pricing' as const, icon: CreditCard },
                     { label: 'Team Bookings', screen: 'company-bookings' as const, icon: Calendar },
                     { label: 'Team Members', screen: 'company-team' as const, icon: Users },
                     { label: 'Browse Spaces', screen: 'browse' as const, icon: Building2 },
                     { label: 'Settings', screen: 'org-settings' as const, icon: Settings },
+                  ].map(item => {
+                    const active = nav.screen === item.screen;
+                    const Icon = item.icon;
+                    return (
+                      <button
+                        key={item.screen}
+                        type="button"
+                        onClick={() => {
+                          navigate(item.screen);
+                          setMoreOpen(false);
+                        }}
+                        className={`w-full text-left px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-colors cursor-pointer ${
+                          active
+                            ? 'bg-[#DDE6DF] text-soot shadow-2xs'
+                            : 'text-soot hover:bg-soot/5'
+                        }`}
+                      >
+                        <Icon size={15} className="text-moss shrink-0" />
+                        <span>{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {currentUser?.role === 'individual' && (
+            <div
+              className="relative shrink-0"
+              ref={moreRef}
+              onMouseEnter={handleMoreMouseEnter}
+              onMouseLeave={handleMoreMouseLeave}
+            >
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMoreOpen(prev => !prev);
+                }}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs xl:text-sm font-medium transition-all whitespace-nowrap cursor-pointer ${
+                  ['contact', 'ind-settings', 'ind-profile'].includes(nav.screen) || moreOpen
+                    ? 'bg-[#DDE6DF] text-soot shadow-xs border border-soot/10 font-semibold'
+                    : 'text-moss hover:text-soot hover:bg-soot/5'
+                }`}
+              >
+                <span>Support &amp; Settings</span>
+                <ChevronDown size={14} className={`text-moss transition-transform duration-200 ${moreOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {moreOpen && (
+                <div className="absolute right-0 mt-1 w-52 bg-plaster-surface rounded-2xl border border-soot/15 shadow-xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                  {[
+                    { label: 'Support Desk', screen: 'contact' as const, icon: HelpCircle },
+                    { label: 'Account Settings', screen: 'ind-settings' as const, icon: Settings },
                   ].map(item => {
                     const active = nav.screen === item.screen;
                     const Icon = item.icon;
@@ -264,16 +323,28 @@ export default function Navbar() {
                     )}
 
                     {currentUser.role === 'organization' && (
-                      <button
-                        onClick={() => {
-                          navigate('company-bookings');
-                          setDropdownOpen(false);
-                        }}
-                        className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold text-soot hover:bg-plaster-dark/50 flex items-center gap-2.5 transition-colors cursor-pointer"
-                      >
-                        <Building2 size={15} className="text-moss" />
-                        <span>Company Bookings</span>
-                      </button>
+                      <>
+                        <button
+                          onClick={() => {
+                            navigate('pricing');
+                            setDropdownOpen(false);
+                          }}
+                          className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold text-soot hover:bg-plaster-dark/50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                        >
+                          <CreditCard size={15} className="text-moss" />
+                          <span>Pricing & Plans</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            navigate('company-bookings');
+                            setDropdownOpen(false);
+                          }}
+                          className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold text-soot hover:bg-plaster-dark/50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                        >
+                          <Building2 size={15} className="text-moss" />
+                          <span>Company Bookings</span>
+                        </button>
+                      </>
                     )}
 
                     <div className="pt-1 mt-1 border-t border-soot/8">
