@@ -377,7 +377,7 @@ export default function OrgDashboard() {
                     </div>
                     <div className="font-bold text-soot text-sm">
                       {planInfo.isCovered ? (
-                        <span className="text-emerald-800 font-semibold">Corporate Pass</span>
+                        <span className="text-emerald-800 font-semibold">Included in Plan</span>
                       ) : (
                         <span>SAR {planInfo.originalPrice.toLocaleString()} {isHourly ? '/h' : '/seat'}</span>
                       )}

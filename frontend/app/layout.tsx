@@ -1,5 +1,3 @@
-'use client';
-
 import '@/app/globals.css';
 import { AppProvider } from '@/app/store';
 

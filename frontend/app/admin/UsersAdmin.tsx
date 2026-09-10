@@ -18,9 +18,11 @@ import {
   Calendar,
   Eye,
   Pencil,
+  Trash2,
 } from 'lucide-react';
 import { useApp } from '@/app/store';
 import { User, UserRole } from '@/types/types';
+import { createCompanyApi } from '@/services/authApi';
 import Badge from '@/components/ui/Badge';
 
 const ROLES: { value: UserRole; label: string }[] = [
@@ -30,7 +32,7 @@ const ROLES: { value: UserRole; label: string }[] = [
 ];
 
 export default function UsersAdmin() {
-  const { users, blockUser, unblockUser, changeUserRole, showToast } = useApp();
+  const { users, blockUser, unblockUser, changeUserRole, showToast, deletePartner } = useApp();
   const [query, setQuery] = useState('');
   const [filterRole, setFilterRole] = useState<string>('');
   const [filterStatus, setFilterStatus] = useState<string>('');
@@ -148,6 +150,12 @@ export default function UsersAdmin() {
         ...(role === 'organization' ? { orgName, orgSize: parseInt(orgSize) || 10, industry } : {}),
       };
       users.unshift(newUser);
+      if (role === 'organization') {
+        createCompanyApi({
+          companyName: orgName || name || 'New Organization',
+          hrAdminId: newUser.id,
+        }).catch((err) => console.warn('Failed to create company from UsersAdmin:', err));
+      }
       showToast('New user account created!', 'success');
     }
 
@@ -270,7 +278,7 @@ export default function UsersAdmin() {
           <button
             type="button"
             onClick={() => setRoleDropdownOpen(!roleDropdownOpen)}
-            className="w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/50 border border-soot/12 transition-all duration-200 text-left cursor-pointer focus:outline-none"
+            className="w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/50 border border-soot/12 transition-all duration-200 text-left cursor-pointer focus:outline-none relative z-1000"
           >
             <span className="text-sm font-medium text-soot truncate">
               {filterRole ? (filterRole === 'individual' ? 'Individual' : filterRole === 'organization' ? 'Organization' : 'Provider') : 'All Roles'}
@@ -422,7 +430,7 @@ export default function UsersAdmin() {
                   </button>
 
                   {isDropdownActive && (
-                    <div className="absolute top-full left-0 mt-1 w-44 p-1 bg-plaster-surface border border-soot/15 rounded-xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
+                    <div className="absolute top-full left-0 mt-1 w-44 p-1 bg-plaster-surface border border-soot/15 rounded-xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100 relative z-50">
                       {ROLES.map((r) => (
                         <button
                           key={r.value}
@@ -494,6 +502,19 @@ export default function UsersAdmin() {
                     title={u.isBlocked ? 'Unblock User' : 'Block User'}
                   >
                     {u.isBlocked ? <Shield size={15} /> : <ShieldOff size={15} />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (confirm(`Are you sure you want to delete user/partner "${u.name}"?`)) {
+                        deletePartner(u.id);
+                      }
+                    }}
+                    className="p-2 rounded-xl text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-all cursor-pointer"
+                    title="Delete User/Partner"
+                  >
+                    <Trash2 size={15} />
                   </button>
                 </div>
               </div>

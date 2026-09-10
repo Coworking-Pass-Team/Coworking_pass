@@ -20,25 +20,25 @@ import {
   Bell,
   Cpu,
   LogOut,
-  UserCheck
+  UserCheck,
+  CreditCard
 } from 'lucide-react';
 import { useApp } from '@/app/store';
 import UserAvatar from '@/components/ui/UserAvatar';
 import Modal from '@/components/ui/Modal';
+import MembershipPlansAdmin from './MembershipPlansAdmin';
+import SubscriptionsAdmin from './SubscriptionsAdmin';
 
 export default function AdminSettings() {
   const { currentUser, updateCurrentUser, logout, showToast, navigate, nav } = useApp();
-  if (!currentUser) return null;
 
-  const [activeTab, setActiveTab] = useState<'profile' | 'settings'>(
-    nav.screen === 'admin-settings' ? 'profile' : 'profile'
-  );
+  const [activeTab, setActiveTab] = useState<'profile' | 'plans' | 'subscriptions' | 'settings'>('profile');
 
   // Edit Profile Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editName, setEditName] = useState(currentUser.name || 'System Admin');
-  const [editPhone, setEditPhone] = useState(currentUser.phone || '+966 50 000 0001');
-  const [editAvatar, setEditAvatar] = useState(currentUser.avatar || '');
+  const [editName, setEditName] = useState(currentUser?.name || 'System Admin');
+  const [editPhone, setEditPhone] = useState(currentUser?.phone || '+966 50 000 0001');
+  const [editAvatar, setEditAvatar] = useState(currentUser?.avatar || '');
   const [isSaving, setIsSaving] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -62,6 +62,8 @@ export default function AdminSettings() {
     auditLogging: true,
     revenueSharePercent: 15,
   });
+
+  if (!currentUser) return null;
 
   const handleOpenEdit = () => {
     setEditName(currentUser.name || '');
@@ -137,7 +139,7 @@ export default function AdminSettings() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-3xl sm:text-4xl text-soot font-normal" style={{ fontFamily: 'DM Serif Display, serif' }}>
-            {activeTab === 'profile' ? 'Admin Profile & Security' : 'Platform Settings'}
+            {activeTab === 'profile' ? 'Admin Profile & Security' : activeTab === 'plans' ? 'Membership Plans Management' : 'Platform Settings'}
           </h1>
           <p className="text-moss text-xs sm:text-sm mt-1 font-normal">
             Super Admin system administration, security controls, and platform governance
@@ -160,6 +162,30 @@ export default function AdminSettings() {
           </button>
           <button
             type="button"
+            onClick={() => setActiveTab('plans')}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all cursor-pointer ${
+              activeTab === 'plans'
+                ? 'bg-[#DDE6DF] text-soot shadow-xs border border-soot/5 font-semibold'
+                : 'text-moss hover:text-soot'
+            }`}
+          >
+            <CreditCard size={15} />
+            <span>Membership Plans</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('subscriptions')}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all cursor-pointer ${
+              activeTab === 'subscriptions'
+                ? 'bg-[#DDE6DF] text-soot shadow-xs border border-soot/5 font-semibold'
+                : 'text-moss hover:text-soot'
+            }`}
+          >
+            <Calendar size={15} />
+            <span>Subscriptions</span>
+          </button>
+          <button
+            type="button"
             onClick={() => setActiveTab('settings')}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all cursor-pointer ${
               activeTab === 'settings'
@@ -173,7 +199,11 @@ export default function AdminSettings() {
         </div>
       </div>
 
-      {activeTab === 'profile' ? (
+      {activeTab === 'plans' ? (
+        <MembershipPlansAdmin />
+      ) : activeTab === 'subscriptions' ? (
+        <SubscriptionsAdmin />
+      ) : activeTab === 'profile' ? (
         <div className="space-y-7">
           {/* Card 1: Main Admin Header Card */}
           <div className="bg-white rounded-3xl border border-soot/8 shadow-sm overflow-hidden">
