@@ -23,6 +23,7 @@ import {
 import { useApp } from '@/app/store';
 import { Booking, BookingStatus, getHourlyPriceForDuration, getBookingPrice, isCancellationRefundEligible } from '@/types/types';
 import Modal from '@/components/ui/Modal';
+import { deleteDirectBookingApi } from '@/services/authApi';
 
 export default function MyBookings() {
   const { bookings, spaces, currentUser, navigate, cancelBooking, nav, showToast } = useApp();
@@ -34,7 +35,7 @@ export default function MyBookings() {
 
   if (!currentUser) return null;
 
-  const myBookings = bookings.filter(b => b.userId === currentUser.id);
+  const myBookings = bookings.filter(b => b.userId === currentUser.id || (currentUser.email && b.userId.toLowerCase() === currentUser.email.toLowerCase()));
 
   const filtered = myBookings
     .filter(b => {
@@ -61,9 +62,13 @@ export default function MyBookings() {
 
   const handleCancelConfirm = () => {
     if (!cancelModal) return;
-    cancelBooking(cancelModal.id, refundMethod);
+    const bookingToCancel = cancelModal;
+    cancelBooking(bookingToCancel.id, refundMethod);
+    deleteDirectBookingApi(bookingToCancel.id).catch((err: any) =>
+      console.warn('[Direct Booking DELETE Sync]', err)
+    );
     setCancelModal(null);
-    if (selectedBooking && selectedBooking.id === cancelModal.id) {
+    if (selectedBooking && selectedBooking.id === bookingToCancel.id) {
       setSelectedBooking(null);
     }
   };
@@ -243,7 +248,14 @@ export default function MyBookings() {
 
                 {/* Revenue Amount */}
                 <div className="col-span-1 mt-2 lg:mt-0 text-sm font-semibold text-soot">
-                  SAR {getBookingPrice(b).toLocaleString()}
+                  {getBookingPrice(b) === 0 ? (
+                    <span className="text-xs font-bold text-moss bg-eucalyptus/30 px-2.5 py-1 rounded-full border border-eucalyptus/40 inline-flex items-center gap-1">
+                      <Check size={11} className="text-moss" />
+                      <span>Included</span>
+                    </span>
+                  ) : (
+                    `SAR ${getBookingPrice(b).toLocaleString()}`
+                  )}
                 </div>
 
                 {/* Actions */}
@@ -371,8 +383,8 @@ export default function MyBookings() {
               <div className="flex items-center justify-between p-4 bg-soot text-plaster rounded-2xl">
                 <div>
                   <span className="text-xs text-plaster/70 block">Total Booking Fee</span>
-                  <span className="text-2xl font-serif-display font-normal">
-                    SAR {getBookingPrice(selectedBooking).toLocaleString()}
+                  <span className="text-xl sm:text-2xl font-serif-display font-normal">
+                    {getBookingPrice(selectedBooking) === 0 ? 'Included in your Plan · SAR 0 Paid' : `SAR ${getBookingPrice(selectedBooking).toLocaleString()}`}
                   </span>
                 </div>
                 <span

@@ -1,16 +1,17 @@
 'use client';
 
-import { Heart, MapPin, Star, Users, Check } from 'lucide-react';
-import { Space, BookingPlan, getEffectiveSpacePrice, isHourlyOnlySpace, isHourlyAllowed } from '@/types/types';
+import { Heart, MapPin, Star, Users, Check, Navigation } from 'lucide-react';
+import { Space, BookingPlan, getEffectiveSpacePrice, isHourlyOnlySpace, isHourlyAllowed, formatDistance } from '@/types/types';
 import { useApp } from '@/app/store';
 import Badge from '@/components/ui/Badge';
 
 interface SpaceCardProps {
   space: Space;
+  distance?: number | null;
   onSelect: (space: Space) => void;
 }
 
-export default function SpaceCard({ space, onSelect }: SpaceCardProps) {
+export default function SpaceCard({ space, distance, onSelect }: SpaceCardProps) {
   const { favorites, toggleFavorite, currentUser } = useApp();
   const isFav = favorites.includes(space.id);
   const userTier = (currentUser?.membershipTier || '').toLowerCase();
@@ -30,6 +31,8 @@ export default function SpaceCard({ space, onSelect }: SpaceCardProps) {
     : isAlmostFull
     ? { label: space.availableCapacity <= 3 ? `Only ${space.availableCapacity} Left!` : 'Almost Full', badgeClass: 'bg-amber-100/90 text-amber-900 border-amber-200/90 backdrop-blur-md font-semibold' }
     : { label: 'Available', badgeClass: 'bg-emerald-100/90 text-emerald-900 border-emerald-200/90 backdrop-blur-md font-semibold' };
+
+  const formattedDist = distance !== undefined && distance !== null && !isNaN(distance) ? formatDistance(distance) : '';
 
   return (
     <div
@@ -113,10 +116,18 @@ export default function SpaceCard({ space, onSelect }: SpaceCardProps) {
             </div>
           </div>
 
-          {/* Location */}
-          <div className="flex items-center gap-1.5 text-moss text-xs mb-3">
-            <MapPin size={13} className="shrink-0" />
-            <span>{space.city}</span>
+          {/* Location and Distance Badge */}
+          <div className="flex items-center justify-between gap-2 text-moss text-xs mb-3">
+            <div className="flex items-center gap-1.5 truncate">
+              <MapPin size={13} className="shrink-0" />
+              <span className="truncate">{space.city}</span>
+            </div>
+            {formattedDist && (
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-moss bg-soot/5 border border-soot/10 px-2.5 py-0.5 rounded-full shrink-0 shadow-2xs">
+                <Navigation size={10} className="shrink-0 text-moss" />
+                <span>{formattedDist}</span>
+              </span>
+            )}
           </div>
 
           {/* Amenities Chips */}

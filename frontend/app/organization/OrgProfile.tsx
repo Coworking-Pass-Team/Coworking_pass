@@ -31,7 +31,6 @@ import UserAvatar from '@/components/ui/UserAvatar';
 
 export default function OrgProfile() {
   const { currentUser, navigate, nav, updateCurrentUser, showToast, bookings } = useApp();
-  if (!currentUser) return null;
 
   const [activeTab, setActiveTab] = useState<'profile' | 'settings'>(
     nav.screen === 'org-settings' ? 'settings' : 'profile'
@@ -41,25 +40,25 @@ export default function OrgProfile() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   // Edit Form Fields (Exact existing Organization fields preserved)
-  const [editOrgName, setEditOrgName] = useState(currentUser.orgName || currentUser.name || '');
-  const [editIndustry, setEditIndustry] = useState(currentUser.industry || 'Technology & Digital Solutions');
-  const [editOrgSize, setEditOrgSize] = useState(String(currentUser.orgSize || '15'));
-  const [editWebsite, setEditWebsite] = useState(currentUser.website || 'https://sauditech.sa');
-  const [editPhone, setEditPhone] = useState(currentUser.phone || '+966 56 456 7890');
-  const [editCrNumber, setEditCrNumber] = useState(currentUser.crNumber || '1010874921');
-  const [editCity, setEditCity] = useState(currentUser.city || 'Riyadh, Saudi Arabia');
+  const [editOrgName, setEditOrgName] = useState(currentUser?.orgName || currentUser?.name || '');
+  const [editIndustry, setEditIndustry] = useState(currentUser?.industry || 'Technology & Digital Solutions');
+  const [editOrgSize, setEditOrgSize] = useState(String(currentUser?.orgSize || '15'));
+  const [editWebsite, setEditWebsite] = useState(currentUser?.website || 'https://sauditech.sa');
+  const [editPhone, setEditPhone] = useState(currentUser?.phone || '+966 56 456 7890');
+  const [editCrNumber, setEditCrNumber] = useState(currentUser?.crNumber || '1010874921');
+  const [editCity, setEditCity] = useState(currentUser?.city || 'Riyadh, Saudi Arabia');
   const [editOrgDescription, setEditOrgDescription] = useState(
-    currentUser.orgDescription ||
+    currentUser?.orgDescription ||
       'Leading enterprise technology and consulting firm specializing in distributed workspace solutions across Saudi Arabia.'
   );
-  const [editAvatar, setEditAvatar] = useState(currentUser.avatar || '');
+  const [editAvatar, setEditAvatar] = useState(currentUser?.avatar || '');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Employees State
-  const [employees, setEmployees] = useState<Employee[]>(currentUser.employees || [
+  const [employees, setEmployees] = useState<Employee[]>(currentUser?.employees || [
     { id: 'emp-1', name: 'Sara Al-Ghamdi', email: 'sara@sauditech.sa', department: 'Product Design' },
     { id: 'emp-2', name: 'Fahad Al-Dosari', email: 'fahad@sauditech.sa', department: 'Engineering' },
     { id: 'emp-3', name: 'Noura Al-Mutairi', email: 'noura@sauditech.sa', department: 'Operations' },
@@ -83,6 +82,8 @@ export default function OrgProfile() {
     passUsage: false,
   });
   const [privacy, setPrivacy] = useState({ allowTeamSelfBooking: true, centralBilling: true });
+
+  if (!currentUser) return null;
 
   const orgBookings = bookings.filter(b => b.userId === currentUser.id);
 

@@ -12,7 +12,8 @@ import {
   UserCheck, 
   Building, 
   AlertCircle, 
-  CalendarX 
+  CalendarX,
+  HelpCircle
 } from 'lucide-react';
 import { useApp } from '@/app/store';
 import { getBookingPrice } from '@/types/types';
@@ -273,7 +274,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Quick Action Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { 
             label: 'Manage Spaces', 
@@ -286,6 +287,12 @@ export default function AdminDashboard() {
             desc: 'Audit roles, permissions, and security status', 
             screen: 'admin-users' as const,
             icon: Users 
+          },
+          { 
+            label: 'Support Desk', 
+            desc: 'Review complaints, refunds & inquiries', 
+            screen: 'admin-support' as const,
+            icon: HelpCircle 
           },
           { 
             label: 'Analytics & Reports', 

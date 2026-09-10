@@ -373,15 +373,21 @@ export default function SpaceDetails() {
                 <div className="space-y-2">
                   <div className="flex items-baseline gap-2 flex-wrap">
                     <span className="text-3xl font-semibold text-soot tracking-tight whitespace-nowrap">
-                      {currentPlanInfo.isCovered ? 'SAR 0' : `SAR ${currentPlanInfo.effectivePrice.toLocaleString()}`}
+                      {currentPlanInfo.isCovered ? 'Included in your Plan' : `SAR ${currentPlanInfo.effectivePrice.toLocaleString()}`}
                     </span>
-                    <span className="text-sm font-medium text-moss whitespace-nowrap">{planLabel}</span>
+                    {!currentPlanInfo.isCovered && (
+                      <span className="text-sm font-medium text-moss whitespace-nowrap">{planLabel}</span>
+                    )}
                   </div>
 
                   {currentPlanInfo.isCovered ? (
                     <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-eucalyptus/30 text-soot font-semibold text-xs border border-eucalyptus/40 shadow-2xs">
                       <Check size={13} className="text-moss shrink-0" />
-                      <span>Included in Pass · SAR 0</span>
+                      <span>Included in Pass · SAR 0 to Pay</span>
+                    </div>
+                  ) : currentPlanInfo.isPartiallyCovered ? (
+                    <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-900 font-semibold text-xs border border-amber-500/30">
+                      <span>{currentPlanInfo.badgeLabel}</span>
                     </div>
                   ) : currentPlanInfo.hasDiscount ? (
                     <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-900 font-semibold text-xs border border-amber-500/30">
@@ -427,7 +433,7 @@ export default function SpaceDetails() {
                         >
                           <div className="capitalize text-xs font-semibold">{plan}</div>
                           <div className={`text-[10px] mt-1 ${isSelected ? 'text-plaster/80 font-medium' : 'text-moss/80'}`}>
-                            {planP.isCovered ? 'Included' : `SAR ${planP.effectivePrice.toLocaleString()}`}
+                            {planP.isCovered ? 'Included in Pass' : `SAR ${planP.effectivePrice.toLocaleString()}`}
                           </div>
                         </button>
                       );
@@ -444,7 +450,7 @@ export default function SpaceDetails() {
                         <span>Select Number of Months</span>
                       </label>
                       <span className="text-xs font-bold text-soot bg-white px-3 py-1 rounded-full border border-soot/10 shadow-2xs">
-                        {durationMonths} Month{durationMonths > 1 ? 's' : ''} ({currentPlanInfo.isCovered ? 'Included (SAR 0)' : `SAR ${currentPlanInfo.effectivePrice.toLocaleString()}`})
+                        {durationMonths} Month{durationMonths > 1 ? 's' : ''} ({currentPlanInfo.isCovered ? 'Included in your Plan · SAR 0 to Pay' : `SAR ${currentPlanInfo.effectivePrice.toLocaleString()}`})
                       </span>
                     </div>
                     <div className="grid grid-cols-5 gap-2">
@@ -465,7 +471,7 @@ export default function SpaceDetails() {
                           >
                             <div className="font-bold text-xs">{m} {m === 1 ? 'Mo' : 'Mos'}</div>
                             <div className={`text-[10px] mt-1 ${isSelected ? 'text-plaster/80 font-medium' : 'text-moss'}`}>
-                              {isTierCovered ? 'Included' : `SAR ${tierPrice.toLocaleString()}`}
+                              {isTierCovered ? 'Included in Pass' : `SAR ${tierPrice.toLocaleString()}`}
                             </div>
                           </button>
                         );
@@ -624,7 +630,7 @@ export default function SpaceDetails() {
                     onClick={handleBook}
                     className="w-full py-3.5 px-4 rounded-xl font-semibold text-sm bg-soot text-plaster hover:bg-moss active:scale-[0.99] transition-all duration-200 shadow-md flex items-center justify-center gap-2 cursor-pointer focus-visible:ring-2 focus-visible:ring-eucalyptus"
                   >
-                    <span>{currentUser ? 'Proceed to Reservation' : 'Sign in to Reserve'}</span>
+                    <span>{currentUser ? (currentPlanInfo.isCovered ? 'Reserve Workspace (Included in Plan)' : 'Proceed to Reservation') : 'Sign in to Reserve'}</span>
                     <ArrowRight size={16} />
                   </button>
 
@@ -648,14 +654,14 @@ export default function SpaceDetails() {
                           startDate: targetDate,
                           endDate: selectedPlan === 'hourly' || selectedPlan === 'daily' ? targetDate : calculateEndDate(targetDate, selectedPlan, durationMonths),
                           seats: 1,
-                          pricePerSeat: planPrice,
-                          itemTotal: planPrice,
+                          pricePerSeat: currentPlanInfo.effectivePrice,
+                          itemTotal: currentPlanInfo.effectivePrice,
                         });
                       }}
                       className="w-full py-3 px-4 rounded-xl font-semibold text-xs border border-soot/15 text-soot bg-white hover:bg-plaster-dark/40 active:scale-[0.99] transition-all duration-200 shadow-2xs flex items-center justify-center gap-2 cursor-pointer"
                     >
                       <ShoppingBag size={15} />
-                      <span>Add Pass to Cart</span>
+                      <span>{currentPlanInfo.isCovered ? 'Add to Cart (Included · SAR 0)' : 'Add Pass to Cart'}</span>
                     </button>
                   )}
                 </div>

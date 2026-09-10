@@ -16,9 +16,12 @@ import {
   Paperclip
 } from 'lucide-react';
 
+import { useApp } from '@/app/store';
+
 type InquiryType = 'general' | 'complaint' | 'refund';
 
 export default function Contact() {
+  const { addSupportTicket, currentUser } = useApp();
   const [submitted, setSubmitted] = useState(false);
   const [inquiryType, setInquiryType] = useState<InquiryType>('general');
   const [name, setName] = useState('');
@@ -69,6 +72,19 @@ export default function Contact() {
       return;
     }
     setFieldErrors({});
+
+    addSupportTicket({
+      userName: name.trim(),
+      userEmail: email.trim(),
+      userId: currentUser?.id,
+      category: inquiryType,
+      subject: subject.trim(),
+      message: message.trim(),
+      attachedImage: attachedImage || undefined,
+      attachedFileName: fileName || undefined,
+      status: 'open',
+    });
+
     setSubmitted(true);
   };
 

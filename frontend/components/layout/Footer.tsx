@@ -151,8 +151,8 @@ export default function Footer() {
               ) : (
                 <>
                   <li><button onClick={() => navigate('contact')} className="text-plaster/75 hover:text-eucalyptus transition-colors text-left">Support & Help Desk</button></li>
-                  <li><button onClick={() => navigate('contact')} className="text-plaster/75 hover:text-eucalyptus transition-colors text-left">Booking Guidelines</button></li>
-                  <li><button onClick={() => navigate('contact')} className="text-plaster/75 hover:text-eucalyptus transition-colors text-left">Community Standards</button></li>
+                  <li><button onClick={() => navigate('terms-of-service')} className="text-plaster/75 hover:text-eucalyptus transition-colors text-left">Terms of Service & Cancellation</button></li>
+                  <li><button onClick={() => navigate('privacy-policy')} className="text-plaster/75 hover:text-eucalyptus transition-colors text-left">Privacy Policy & Compliance</button></li>
                 </>
               )}
             </ul>
