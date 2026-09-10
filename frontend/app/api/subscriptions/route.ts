@@ -97,8 +97,20 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { userId, planId, startDate, endDate, status = 'ACTIVE' } = body;
+    const body = await request.json().catch(() => null);
+
+    if (!body || typeof body !== 'object') {
+      return NextResponse.json(
+        { error: 'Missing or invalid JSON body. Required fields: userId, planId, startDate, endDate' },
+        { status: 400 }
+      );
+    }
+
+    const userId = body.userId || body.user_id;
+    const planId = body.planId || body.plan_id;
+    const startDate = body.startDate || body.start_date;
+    const endDate = body.endDate || body.end_date;
+    const status = body.status || 'ACTIVE';
 
     if (!userId || !planId || !startDate || !endDate) {
       return NextResponse.json(
@@ -107,22 +119,35 @@ export async function POST(request: Request) {
       );
     }
 
+    const startObj = new Date(startDate);
+    const endObj = new Date(endDate);
+    if (isNaN(startObj.getTime()) || isNaN(endObj.getTime())) {
+      return NextResponse.json(
+        { error: 'Invalid startDate or endDate format. Please use YYYY-MM-DD.' },
+        { status: 400 }
+      );
+    }
+
+    if (!globalSubs.__cp_subscriptions || !Array.isArray(globalSubs.__cp_subscriptions)) {
+      globalSubs.__cp_subscriptions = [...DEFAULT_SUBSCRIPTIONS];
+    }
+
     const newSub: SubscriptionItem = {
       id: `sub_${Date.now()}`,
-      userId,
-      planId,
-      startDate: new Date(startDate).toISOString(),
-      endDate: new Date(endDate).toISOString(),
+      userId: String(userId),
+      planId: String(planId),
+      startDate: startObj.toISOString(),
+      endDate: endObj.toISOString(),
       visitsUsed: 0,
       status: status === 'ACTIVE' || status === 'EXPIRED' || status === 'CANCELLED' ? status : 'ACTIVE',
       user: {
-        id: userId,
+        id: String(userId),
         name: body.userName || 'Member User',
         email: body.userEmail || 'user@example.com',
         role: body.userRole || 'B2C',
       },
       plan: {
-        id: planId,
+        id: String(planId),
         planName: body.planName || 'Monthly Pass',
         type: body.planType || 'B2C',
         totalVisitsAllowed: Number(body.totalVisitsAllowed || 30),
@@ -130,11 +155,11 @@ export async function POST(request: Request) {
       },
     };
 
-    globalSubs.__cp_subscriptions!.unshift(newSub);
+    globalSubs.__cp_subscriptions.unshift(newSub);
 
     return NextResponse.json(newSub, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('[Subscriptions POST Error]:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: error?.message || 'Failed to create subscription' }, { status: 400 });
   }
 }

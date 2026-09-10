@@ -1092,6 +1092,8 @@ export type Screen =
   | 'admin-spaces'
   | 'admin-users'
   | 'admin-bookings'
+  | 'admin-plans'
+  | 'admin-subscriptions'
   | 'admin-reports'
   | 'admin-settings'
   | 'admin-support'

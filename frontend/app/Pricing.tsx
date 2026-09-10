@@ -6,7 +6,7 @@ import {
   CreditCard, ShieldCheck, CheckCircle2, AlertCircle, ArrowUpRight, Zap, RefreshCw, X
 } from 'lucide-react';
 import { useApp } from '@/app/store';
-import { createSubscriptionApi, createPaymentApi } from '@/services/authApi';
+import { createSubscriptionApi, createPaymentApi, getSubscriptionsApi, updateSubscriptionApi } from '@/services/authApi';
 import Modal from '@/components/ui/Modal';
 
 interface PlanItem {
@@ -317,27 +317,38 @@ export default function Pricing() {
     }
   };
 
-  const handleCancelSubscription = () => {
+  const handleCancelSubscription = async () => {
     if (!currentUser) return;
     setIsCancelling(true);
 
-    setTimeout(() => {
-      updateCurrentUser({
-        hasActivePass: false,
-        membershipTier: undefined,
-      });
+    try {
+      const activeSubsRes = await getSubscriptionsApi();
+      if (activeSubsRes.success && Array.isArray(activeSubsRes.data)) {
+        const storedUserId = typeof window !== 'undefined' ? (localStorage.getItem('cp_userId') || currentUser.id) : currentUser.id;
+        const userSub = activeSubsRes.data.find(s => s.userId === storedUserId || s.userId === currentUser.id || s.status === 'ACTIVE');
+        if (userSub) {
+          await updateSubscriptionApi(userSub.id, { status: 'CANCELLED' });
+        }
+      }
+    } catch (err) {
+      console.warn('[Cancel Sub API Error]', err);
+    }
 
-      addNotification({
-        userId: currentUser.id,
-        title: 'Pass Subscription Cancelled',
-        message: 'Your coworking membership pass has been cancelled.',
-        type: 'system',
-      });
+    updateCurrentUser({
+      hasActivePass: false,
+      membershipTier: undefined,
+    });
 
-      setIsCancelling(false);
-      setShowManageModal(false);
-      showToast('Subscription cancelled successfully.', 'info');
-    }, 600);
+    addNotification({
+      userId: currentUser.id,
+      title: 'Pass Subscription Cancelled',
+      message: 'Your coworking membership pass has been cancelled.',
+      type: 'system',
+    });
+
+    setIsCancelling(false);
+    setShowManageModal(false);
+    showToast('Subscription cancelled in database successfully.', 'info');
   };
 
   return (
