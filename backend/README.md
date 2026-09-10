@@ -64,7 +64,7 @@ npx prisma dev start coworkingpass
 
 ```powershell
 cd Coworking_pass\backend
-cp .env.example .env
+New-Item .env
 code .env
 ```
 
