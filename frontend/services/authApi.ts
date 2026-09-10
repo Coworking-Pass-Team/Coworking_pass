@@ -383,6 +383,36 @@ export async function createCompanyApi(payload: { companyName: string; hrAdminId
   }
 }
 
+export interface PaymentItemApi {
+  id: string;
+  userId: string;
+  amount: number;
+  method: string;
+  paymentFor: string;
+  referenceId?: string;
+  gatewayTransactionId?: string;
+  status: 'SUCCESS' | 'FAILED' | string;
+  createdAt?: string;
+  user?: { id?: string; name?: string; email?: string; role?: string };
+}
+
+export async function getPaymentsApi() {
+  const url = `${getAuthBaseUrl()}/api/payments`;
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+    const data = await response.json().catch(() => ([]));
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to fetch payments', data: [] };
+    }
+    return { success: true, data: Array.isArray(data) ? data : [] };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error', data: [] };
+  }
+}
+
 export async function createPaymentApi(payload: {
   userId: string;
   amount: number;
@@ -403,6 +433,128 @@ export async function createPaymentApi(payload: {
       return { success: false, error: data.error || 'Failed to record payment' };
     }
     return { success: true, payment: data };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+export async function updatePaymentApi(paymentId: string, payload: { status?: string; amount?: number; method?: string; paymentFor?: string }) {
+  const url = `${getAuthBaseUrl()}/api/payments/${paymentId}`;
+  try {
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to update payment' };
+    }
+    return { success: true, payment: data };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+export async function deletePaymentApi(paymentId: string) {
+  const url = `${getAuthBaseUrl()}/api/payments/${paymentId}`;
+  try {
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to delete payment' };
+    }
+    return { success: true, message: data.message || 'Payment deleted' };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+export interface PayoutItemApi {
+  id: string;
+  partnerId: string;
+  billingMonth: string;
+  totalVisitsReceived: number;
+  amountDue: number;
+  status: 'PENDING' | 'PAID' | string;
+  createdAt?: string;
+  partner?: { id?: string; brandName?: string; contactEmail?: string; taxNumber?: string; revenueSharePercentage?: number };
+}
+
+export async function getPayoutsApi() {
+  const url = `${getAuthBaseUrl()}/api/payouts`;
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+    const data = await response.json().catch(() => ([]));
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to fetch payouts', data: [] };
+    }
+    return { success: true, data: Array.isArray(data) ? data : [] };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error', data: [] };
+  }
+}
+
+export async function createPayoutApi(payload: {
+  partnerId: string;
+  billingMonth: string;
+  totalVisitsReceived: number;
+  amountDue: number;
+  status?: string;
+}) {
+  const url = `${getAuthBaseUrl()}/api/payouts`;
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to create payout' };
+    }
+    return { success: true, payout: data };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+export async function updatePayoutApi(payoutId: string, payload: { status?: string; billingMonth?: string; totalVisitsReceived?: number; amountDue?: number }) {
+  const url = `${getAuthBaseUrl()}/api/payouts/${payoutId}`;
+  try {
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to update payout' };
+    }
+    return { success: true, payout: data };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+export async function deletePayoutApi(payoutId: string) {
+  const url = `${getAuthBaseUrl()}/api/payouts/${payoutId}`;
+  try {
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to delete payout' };
+    }
+    return { success: true, message: data.message || 'Payout deleted' };
   } catch (err: any) {
     return { success: false, error: err.message || 'Network error' };
   }
@@ -801,6 +953,56 @@ export async function getHourlyPackagesApi() {
     }
 
     return { success: true, data: packages };
+  } catch (_) {
+    return { success: false, data: [] };
+  }
+}
+
+export interface PointsTransactionPayload {
+  userId: string;
+  type: 'EARNED' | 'REDEEMED';
+  points: number;
+  description?: string;
+  referenceId?: string;
+}
+
+export async function createPointsTransactionApi(payload: PointsTransactionPayload) {
+  const url = `${getAuthBaseUrl()}/api/points-transactions`;
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to record points transaction' };
+    }
+    return { success: true, data };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+export async function getLoyaltyPointsApi(userId?: string) {
+  const url = `${getAuthBaseUrl()}/api/loyalty-points${userId ? `?userId=${encodeURIComponent(userId)}` : ''}`;
+  try {
+    const response = await fetch(url, { method: 'GET', headers: getAuthHeaders() });
+    const data = await response.json().catch(() => ([]));
+    if (!response.ok) return { success: false, data: [] };
+    return { success: true, data: Array.isArray(data) ? data : [] };
+  } catch (_) {
+    return { success: false, data: [] };
+  }
+}
+
+export async function getPointsTransactionsApi() {
+  const url = `${getAuthBaseUrl()}/api/points-transactions`;
+  try {
+    const response = await fetch(url, { method: 'GET', headers: getAuthHeaders() });
+    const data = await response.json().catch(() => ([]));
+    if (!response.ok) return { success: false, data: [] };
+    return { success: true, data: Array.isArray(data) ? data : [] };
   } catch (_) {
     return { success: false, data: [] };
   }

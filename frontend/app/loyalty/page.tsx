@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Sparkles,
   Gift,
@@ -14,12 +14,37 @@ import {
   MapPin,
   ArrowUpRight,
   ShieldCheck,
-  Check
+  Check,
+  RefreshCw
 } from 'lucide-react';
 import { useApp } from '@/app/store';
+import { getLoyaltyPointsApi, getPointsTransactionsApi } from '@/services/authApi';
 
 export default function LoyaltyPage() {
-  const { currentUser, spaces, bookings, navigate } = useApp();
+  const { currentUser, spaces, bookings, navigate, updateCurrentUser } = useApp();
+  const [dbTransactions, setDbTransactions] = useState<any[]>([]);
+  const [loadingDb, setLoadingDb] = useState(false);
+
+  useEffect(() => {
+    if (!currentUser) return;
+    (async () => {
+      setLoadingDb(true);
+      const pointsRes = await getLoyaltyPointsApi(currentUser.id);
+      if (pointsRes.success && Array.isArray(pointsRes.data) && pointsRes.data.length > 0) {
+        const userPts = pointsRes.data.find((p: any) => p.userId === currentUser.id);
+        if (userPts && typeof userPts.availableBalance === 'number') {
+          updateCurrentUser({ loyaltyPoints: userPts.availableBalance });
+        }
+      }
+
+      const txRes = await getPointsTransactionsApi();
+      if (txRes.success && Array.isArray(txRes.data)) {
+        const userTx = txRes.data.filter((t: any) => t.userId === currentUser.id);
+        setDbTransactions(userTx);
+      }
+      setLoadingDb(false);
+    })();
+  }, [currentUser?.id]);
 
   if (!currentUser) return null;
 
@@ -305,12 +330,46 @@ export default function LoyaltyPage() {
           <p className="text-xs text-moss mt-0.5">Recent rewards earned and redeemed from your reservations</p>
         </div>
 
-        {myBookings.length === 0 ? (
+        {dbTransactions.length > 0 ? (
+          <div className="bg-plaster-surface rounded-3xl border border-soot/12 overflow-hidden shadow-xs">
+            <div className="hidden md:grid grid-cols-12 gap-4 px-6 py-4 border-b border-soot/10 text-xs font-semibold uppercase tracking-wider text-moss bg-plaster-dark/40 items-center">
+              <div className="col-span-5">Activity Description</div>
+              <div className="col-span-3">Type</div>
+              <div className="col-span-2">Date</div>
+              <div className="col-span-2 text-right">Points</div>
+            </div>
+
+            <div className="divide-y divide-soot/8">
+              {dbTransactions.map(t => {
+                const isEarned = t.type === 'EARNED';
+                return (
+                  <div key={t.id} className="px-6 py-4 flex flex-col md:grid md:grid-cols-12 md:gap-4 md:items-center text-xs">
+                    <div className="col-span-5 font-semibold text-soot flex items-center gap-2">
+                      <CheckCircle2 size={15} className={isEarned ? 'text-emerald-800 shrink-0' : 'text-rose-800 shrink-0'} />
+                      <span>{t.description || (isEarned ? 'Earned Points' : 'Redeemed Points')}</span>
+                    </div>
+                    <div className="col-span-3 font-medium">
+                      <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${isEarned ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                        {t.type}
+                      </span>
+                    </div>
+                    <div className="col-span-2 text-moss mt-1 md:mt-0 font-medium">
+                      {t.createdAt ? new Date(t.createdAt).toLocaleDateString() : 'Recent'}
+                    </div>
+                    <div className={`col-span-2 text-right font-bold mt-1 md:mt-0 ${isEarned ? 'text-emerald-800' : 'text-rose-800'}`}>
+                      {isEarned ? `+${t.points}` : `-${t.points}`} pts
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : myBookings.length === 0 ? (
           <div className="bg-plaster-surface rounded-3xl border border-soot/12 p-8 text-center shadow-xs">
             <Sparkles size={28} className="text-moss mx-auto mb-2" />
             <h4 className="text-sm font-semibold text-soot mb-1 font-serif-display">No Points Activity Yet</h4>
             <p className="text-xs text-moss max-w-sm mx-auto">
-              Your points history will appear here automatically when you complete your first workspace booking.
+              Your points history will appear here automatically when you earn or redeem points on workspace bookings.
             </p>
           </div>
         ) : (
