@@ -18,6 +18,7 @@ import {
   Calendar,
   Eye,
   Pencil,
+  Trash2,
 } from 'lucide-react';
 import { useApp } from '@/app/store';
 import { User, UserRole } from '@/types/types';
@@ -30,7 +31,7 @@ const ROLES: { value: UserRole; label: string }[] = [
 ];
 
 export default function UsersAdmin() {
-  const { users, blockUser, unblockUser, changeUserRole, showToast } = useApp();
+  const { users, blockUser, unblockUser, changeUserRole, showToast, deletePartner } = useApp();
   const [query, setQuery] = useState('');
   const [filterRole, setFilterRole] = useState<string>('');
   const [filterStatus, setFilterStatus] = useState<string>('');
@@ -494,6 +495,19 @@ export default function UsersAdmin() {
                     title={u.isBlocked ? 'Unblock User' : 'Block User'}
                   >
                     {u.isBlocked ? <Shield size={15} /> : <ShieldOff size={15} />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (confirm(`Are you sure you want to delete user/partner "${u.name}"?`)) {
+                        deletePartner(u.id);
+                      }
+                    }}
+                    className="p-2 rounded-xl text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-all cursor-pointer"
+                    title="Delete User/Partner"
+                  >
+                    <Trash2 size={15} />
                   </button>
                 </div>
               </div>
