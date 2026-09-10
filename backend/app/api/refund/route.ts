@@ -2,6 +2,26 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
+
+
+
+/**
+ * @swagger
+ * /api/refund:
+ *   post:
+ *     summary: تنفيذ استرجاع مالي (يحدّث الحجز إلى REFUNDED ويضيف المبلغ لمحفظة العميل)
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: تم الاسترجاع بنجاح
+ */
 export async function POST(request: NextRequest) {
   try {
     const user = getTokenFromRequest(request);
