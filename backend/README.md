@@ -160,6 +160,9 @@ npx prisma studio
 يفتح `http://localhost:5555` — تشوفين فيها كل الجداول والبيانات اللي أضفتيها.
 ئعة وحلولها
 
+## 9. مشاكل شائعة وحلولها
+
+
 | المشكلة | الحل |
 |---|---|
 | `Can't reach database server` | القاعدة متوقفة — شغّليها بـ `npx prisma dev start coworkingpass` |
