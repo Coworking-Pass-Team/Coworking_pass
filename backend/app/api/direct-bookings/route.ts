@@ -3,7 +3,6 @@ import { prisma } from '@/lib/prisma'
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
 
-
 /**
  * @swagger
  * /api/direct-bookings:
@@ -36,9 +35,9 @@ import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-tok
  *       400:
  *         description: رصيد الشركة غير كافٍ لهذا الحجز
  */
+
 export async function POST(request: NextRequest) {
   try {
-    
     const user = getTokenFromRequest(request);
     if (!user) return unauthorizedResponse();
 
@@ -52,7 +51,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 2. إنشاء الحجز
+    // إنشاء الحجز
     const booking = await prisma.directBooking.create({
       data: {
         userId,
@@ -69,16 +68,26 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    //  3. المحفظة المشتركة للشركات
+    //  إرسال إشعار للمستخدم
+    await prisma.notification.create({
+      data: {
+        userId,
+        type: 'BOOKING_CONFIRMED',
+        title: 'تم تأكيد حجزك',
+        message: `تم تأكيد حجزك في ${booking.workspace.name} بنجاح`,
+        channel: 'IN_APP',
+        sentAt: new Date()
+      }
+    })
+
+    // المحفظة المشتركة للشركات
     const bookingUser = await prisma.user.findUnique({
       where: { id: userId },
       include: { company: true }
     })
 
     if (bookingUser?.companyId) {
-      // احسب التكلفة (مثال: حسب نوع الحجز)
-      const bookingCost = 100 // يمكن تعديلها حسب durationType
-
+      const bookingCost = 100
       const company = await prisma.company.findUnique({
         where: { id: bookingUser.companyId }
       })
@@ -99,7 +108,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(booking, { status: 201 })
 
   } catch (error) {
-    console.error('❌ Error creating booking:', error)
+    console.error(' Error creating booking:', error)
     return NextResponse.json(
       { error: 'حدث خطأ في إنشاء الحجز' },
       { status: 500 }

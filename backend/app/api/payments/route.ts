@@ -81,6 +81,18 @@ if (!user) return unauthorizedResponse();
       }
     })
 
+    // ✅ إرسال إشعار للمستخدم عند نجاح الدفع
+await prisma.notification.create({
+  data: {
+    userId,
+    type: 'PAYMENT_SUCCESS',
+    title: 'تم الدفع بنجاح',
+    message: `تم استلام دفعتك بمبلغ ${amount} ريال بنجاح`,
+    channel: 'IN_APP',
+    sentAt: new Date()
+  }
+})
+
     return NextResponse.json(payment, { status: 201 })
   } catch (error) {
     console.error('❌ Error creating payment:', error)
