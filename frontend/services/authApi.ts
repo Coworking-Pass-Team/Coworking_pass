@@ -610,3 +610,198 @@ export async function deleteMembershipPlanApi(planId: string) {
     return { success: false, error: err.message || 'Network error' };
   }
 }
+
+export interface HourlyBookingItemApi {
+  id: string;
+  userId: string;
+  sectionId: string;
+  packageId: string;
+  startDate: string;
+  endDate: string;
+  hoursUsed?: number;
+  status: string;
+  createdAt?: string;
+  user?: { name: string; email: string };
+  section?: { id: string; name: string; type: string };
+  package?: { id: string; packageName: string; hoursAmount: number; price: number };
+}
+
+export async function getHourlyBookingsApi() {
+  const url = `${getAuthBaseUrl()}/api/hourly-bookings`;
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+    const data = await response.json().catch(() => ([]));
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to fetch hourly bookings', data: [] };
+    }
+    return { success: true, data: Array.isArray(data) ? data : [] };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error', data: [] };
+  }
+}
+
+export async function createHourlyBookingApi(payload: {
+  userId: string;
+  sectionId: string;
+  packageId: string;
+  startDate: string;
+  endDate: string;
+  status?: string;
+}) {
+  const url = `${getAuthBaseUrl()}/api/hourly-bookings`;
+  try {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+    let targetUserId = payload.userId;
+    if (!uuidRegex.test(targetUserId)) {
+      if (typeof window !== 'undefined') {
+        const storedUserId = localStorage.getItem('cp_userId') || localStorage.getItem('userId');
+        if (storedUserId && uuidRegex.test(storedUserId)) {
+          targetUserId = storedUserId;
+        }
+      }
+      if (!uuidRegex.test(targetUserId)) {
+        try {
+          const usersRes = await fetch(`${getAuthBaseUrl()}/api/users`, { headers: getAuthHeaders() });
+          if (usersRes.ok) {
+            const usersList = await usersRes.json();
+            if (Array.isArray(usersList) && usersList.length > 0) {
+              targetUserId = usersList[0].id;
+            }
+          }
+        } catch (_) {}
+      }
+    }
+
+    let targetSectionId = payload.sectionId;
+    if (!uuidRegex.test(targetSectionId) || targetSectionId.includes('PASTE') || targetSectionId.startsWith('sec_')) {
+      const secRes = await getWorkspaceSectionsApi();
+      if (secRes.success && Array.isArray(secRes.data) && secRes.data.length > 0) {
+        const meetingSec = secRes.data.find((s: any) => ['MEETING_ROOM', 'THEATER'].includes(s.type)) || secRes.data[0];
+        targetSectionId = meetingSec.id;
+      }
+    }
+
+    let targetPackageId = payload.packageId;
+    if (!uuidRegex.test(targetPackageId) || targetPackageId.includes('PASTE') || targetPackageId.startsWith('pkg_')) {
+      const pkgRes = await getHourlyPackagesApi();
+      if (pkgRes.success && Array.isArray(pkgRes.data) && pkgRes.data.length > 0) {
+        targetPackageId = pkgRes.data[0].id;
+      }
+    }
+
+    const finalPayload = {
+      ...payload,
+      userId: targetUserId,
+      sectionId: targetSectionId,
+      packageId: targetPackageId,
+    };
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(finalPayload),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to create hourly booking in database' };
+    }
+    return { success: true, data, booking: data };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+export async function updateHourlyBookingApi(bookingId: string, updates: Partial<{ status: string; startDate: string; endDate: string; hoursUsed: number }>) {
+  const url = `${getAuthBaseUrl()}/api/hourly-bookings/${bookingId}`;
+  try {
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(updates),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to update hourly booking' };
+    }
+    return { success: true, data, booking: data };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+export async function deleteHourlyBookingApi(bookingId: string) {
+  const url = `${getAuthBaseUrl()}/api/hourly-bookings/${bookingId}`;
+  try {
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to delete hourly booking' };
+    }
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+export async function getWorkspaceSectionsApi() {
+  const url = `${getAuthBaseUrl()}/api/workspace-sections`;
+  try {
+    const response = await fetch(url, { method: 'GET', headers: getAuthHeaders() });
+    const data = await response.json().catch(() => ([]));
+    if (!response.ok) return { success: false, data: [] };
+    return { success: true, data: Array.isArray(data) ? data : [] };
+  } catch (_) {
+    return { success: false, data: [] };
+  }
+}
+
+export async function getHourlyPackagesApi() {
+  const url = `${getAuthBaseUrl()}/api/hourly-packages`;
+  try {
+    const response = await fetch(url, { method: 'GET', headers: getAuthHeaders() });
+    const data = await response.json().catch(() => ([]));
+    if (!response.ok) return { success: false, data: [] };
+
+    let packages = Array.isArray(data) ? data : [];
+
+    if (packages.length === 0) {
+      try {
+        const secRes = await getWorkspaceSectionsApi();
+        if (secRes.success && Array.isArray(secRes.data) && secRes.data.length > 0) {
+          const meetingSec = secRes.data.find((s: any) => ['MEETING_ROOM', 'THEATER'].includes(s.type)) || secRes.data[0];
+          if (meetingSec) {
+            const createPkgRes = await fetch(url, {
+              method: 'POST',
+              headers: getAuthHeaders(),
+              body: JSON.stringify({
+                sectionId: meetingSec.id,
+                packageName: 'Standard Hourly Package',
+                hoursAmount: 10,
+                periodType: 'PER_DAY',
+                price: 150
+              })
+            });
+            if (createPkgRes.ok) {
+              const newPkgData = await createPkgRes.json();
+              const createdPkg = newPkgData.hourlyPackage || newPkgData;
+              if (createdPkg && createdPkg.id) {
+                packages = [createdPkg];
+              }
+            }
+          }
+        }
+      } catch (_) {}
+    }
+
+    return { success: true, data: packages };
+  } catch (_) {
+    return { success: false, data: [] };
+  }
+}

@@ -20,9 +20,10 @@ import {
 import { useApp } from '@/app/store';
 import { Booking, BookingStatus, getBookingPrice } from '@/types/types';
 import { updateDirectBookingApi } from '@/services/authApi';
+import HourlyBookingsAdmin from './HourlyBookingsAdmin';
 
 export default function BookingsAdmin() {
-  const { bookings, spaces, users, updateBookingStatus, deleteBooking, showToast } = useApp();
+  const { bookings, spaces, users, updateBookingStatus, deleteBooking, showToast, fetchHourlyBookings } = useApp();
   const [query, setQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterPlan, setFilterPlan] = useState('');
@@ -35,6 +36,10 @@ export default function BookingsAdmin() {
 
   // Detail Modal State
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+
+  useEffect(() => {
+    fetchHourlyBookings().catch(() => {});
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -95,7 +100,7 @@ export default function BookingsAdmin() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-wrap">
         <div>
           <span className="text-xs font-semibold tracking-wider uppercase text-moss block mb-1">
             Booking Management & Platform Activity

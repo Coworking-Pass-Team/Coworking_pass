@@ -56,6 +56,8 @@ export function getSpaceCategory(spaceOrType?: Space | SpaceType | string): Spac
     t === 'event-hall' ||
     t === 'lecture-hall' ||
     t === 'multipurpose-hall' ||
+    t === 'meeting-room' ||
+    t === 'event-space' ||
     t.includes('hall')
   ) {
     return 'hall';
@@ -128,6 +130,7 @@ export const ALL_SPACE_TYPES: { value: SpaceType; label: string; group: 'Offices
   { value: 'private-office', label: 'Private Office', group: 'Offices' },
   
   // Halls
+  { value: 'meeting-room', label: 'Meeting Room / Hall', group: 'Halls' },
   { value: 'meeting-hall', label: 'Meeting Hall', group: 'Halls' },
   { value: 'training-hall', label: 'Training Hall', group: 'Halls' },
   { value: 'conference-hall', label: 'Conference Hall', group: 'Halls' },
@@ -144,7 +147,6 @@ export const ALL_SPACE_TYPES: { value: SpaceType; label: string; group: 'Offices
   // Desks & Workspaces
   { value: 'hot-desk', label: 'Hot Desk', group: 'Desks & Workspaces' },
   { value: 'shared-desk', label: 'Shared Desk', group: 'Desks & Workspaces' },
-  { value: 'meeting-room', label: 'Meeting Room', group: 'Desks & Workspaces' },
   { value: 'mixed', label: 'Mixed Workspace', group: 'Desks & Workspaces' },
 ];
 
@@ -1094,6 +1096,7 @@ export type Screen =
   | 'admin-bookings'
   | 'admin-plans'
   | 'admin-subscriptions'
+  | 'admin-hourly-bookings'
   | 'admin-reports'
   | 'admin-settings'
   | 'admin-support'
