@@ -2,6 +2,25 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
+
+
+/**
+ * @swagger
+ * /api/ticket-replies/{id}:
+ *   delete:
+ *     summary: حذف رد على تذكرة
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: تم حذف الرد
+ */
 // DELETE /api/ticket-replies/[id] — حذف رد
 export async function DELETE(
   request: Request,

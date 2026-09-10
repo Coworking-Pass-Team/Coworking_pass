@@ -1,6 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
+
+
+
+/**
+ * @swagger
+ * /api/payment-gateway/refund:
+ *   post:
+ *     summary: محاكاة استرجاع مالي عبر بوابة الدفع (يستغرق 3-5 أيام عمل)
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: تم بدء عملية الاسترجاع (حالة PENDING)
+ */
 export async function POST(request: NextRequest) {
   try {
     const user = getTokenFromRequest(request);

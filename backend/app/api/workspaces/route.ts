@@ -2,25 +2,54 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
-// GET /api/workspaces — عرض كل مساحات العمل
+/**
+ * @swagger
+ * /api/workspaces:
+ *   get:
+ *     summary: عرض المساحات (مع إمكانية التصفية)
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: city
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: minPrice
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: maxPrice
+ *         schema:
+ *           type: number
+ *     responses:
+ *       200:
+ *         description: قائمة المساحات المطابقة للفلاتر
+ */
 export async function GET(request: Request) {
   try {
     const user = getTokenFromRequest(request);
-if (!user) return unauthorizedResponse();
+    if (!user) return unauthorizedResponse();
+
+    const { searchParams } = new URL(request.url);
+    const city = searchParams.get("city");
+    const minPrice = searchParams.get("minPrice");
+    const maxPrice = searchParams.get("maxPrice");
 
     const workspaces = await prisma.workspace.findMany({
+      where: {
+        ...(city && { city: { equals: city, mode: "insensitive" } }),
+        ...(minPrice && { dailyRate: { gte: Number(minPrice) } }),
+        ...(maxPrice && { dailyRate: { lte: Number(maxPrice) } }),
+      },
       include: { partner: true, sections: true },
     });
     return NextResponse.json(workspaces);
-  } catch (error) {
+ } catch (error) {
     console.error(error);
-    return NextResponse.json(
-      { error: "حدث خطأ في السيرفر" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "حدث خطأ في السيرفر" }, { status: 500 });
   }
 }
-
 
 
 /**
