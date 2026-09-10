@@ -64,44 +64,13 @@ if (!user) return unauthorizedResponse();
  *       200:
  *         description: تم تعديل الحجز
  */
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const user = getTokenFromRequest(request);
-if (!user) return unauthorizedResponse();
-    const { id } = await params
-    const body = await request.json()
-    const booking = await prisma.directBooking.update({
-      where: { id },
-      data: body,
-      include: {
-        user: { select: { name: true, email: true } },
-        workspace: true,
-        section: true
-      }
-    })
-    return NextResponse.json(booking)
-  } catch (error) {
-    console.error('❌ Error updating booking:', error)
-    return NextResponse.json(
-      { error: 'حدث خطأ في التحديث' },
-      { status: 500 }
-    )
-  }
-}
-
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = getTokenFromRequest(request);
-if (!user) return unauthorizedResponse();
     const { id } = await params
 
-    // 1. جلب الحجز مع بيانات المستخدم
     const booking = await prisma.directBooking.findUnique({
       where: { id },
       include: { user: true }
@@ -114,26 +83,31 @@ if (!user) return unauthorizedResponse();
       )
     }
 
-    // 2. التحقق من سياسة الإلغاء بناءً على دور المستخدم
+    // سياسة الإلغاء
     const now = new Date()
     const bookingTime = new Date(booking.bookingDate)
     const hoursDiff = (bookingTime.getTime() - now.getTime()) / (1000 * 60 * 60)
-
-    // 6 ساعات للأفراد، 24 ساعة للمؤسسات
     const requiredHours = booking.user.role === 'B2C' ? 6 : 24
 
     if (hoursDiff < requiredHours) {
       return NextResponse.json(
-        { 
-          error: `لا يمكن الإلغاء. يجب الإلغاء قبل ${requiredHours} ساعة على الأقل من موعد الحجز` 
-        },
+        { error: `لا يمكن الإلغاء. يجب الإلغاء قبل ${requiredHours} ساعة على الأقل` },
         { status: 400 }
       )
     }
 
-    // 3. إلغاء الحجز
-    await prisma.directBooking.delete({
-      where: { id }
+    await prisma.directBooking.delete({ where: { id } })
+
+    //  إرسال إشعار
+    await prisma.notification.create({
+      data: {
+        userId: booking.userId,
+        type: 'BOOKING_CANCELLED',
+        title: 'تم إلغاء حجزك',
+        message: `تم إلغاء حجزك رقم ${booking.id.slice(0, 8)} بنجاح`,
+        channel: 'IN_APP',
+        sentAt: new Date()
+      }
     })
 
     return NextResponse.json(
@@ -141,7 +115,7 @@ if (!user) return unauthorizedResponse();
       { status: 200 }
     )
   } catch (error) {
-    console.error('❌ Error:', error)
+    console.error(' Error deleting booking:', error)
     return NextResponse.json(
       { error: 'حدث خطأ في الإلغاء' },
       { status: 500 }
