@@ -38,7 +38,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json(bookings);
   } catch (error) {
-    console.error('❌ Error fetching direct bookings:', error);
+    console.error(' Error fetching direct bookings:', error);
     return NextResponse.json(
       { error: 'حدث خطأ في جلب الحجوزات المباشرة' },
       { status: 500 }
@@ -81,7 +81,6 @@ export async function GET(request: Request) {
 export async function POST(request: NextRequest) {
   try {
     const user = getTokenFromRequest(request);
-
     if (!user && process.env.NODE_ENV === 'production') {
       return unauthorizedResponse();
     }
@@ -107,13 +106,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const bookingCost = 100; // تكلفة الحجز
+
     // 1. فحص المحفظة المشتركة للشركات إذا كان المستخدم يتبع لشركة
     const bookingUser = await prisma.user.findUnique({
       where: { id: effectiveUserId },
       include: { company: true },
     });
-
-    const bookingCost = 100; // تكلفة الحجز
 
     if (bookingUser?.companyId) {
       const company = await prisma.company.findUnique({
@@ -150,9 +149,21 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    //  3. إرسال إشعار للمستخدم 
+    await prisma.notification.create({
+      data: {
+        userId: effectiveUserId,
+        type: 'BOOKING_CONFIRMED',
+        title: 'تم تأكيد حجزك',
+        message: `تم تأكيد حجزك في ${booking.workspace.name} بنجاح`,
+        channel: 'IN_APP',
+        sentAt: new Date()
+      }
+    });
+
     return NextResponse.json(booking, { status: 201 });
   } catch (error) {
-    console.error('❌ Error creating direct booking:', error);
+    console.error(' Error creating direct booking:', error);
     return NextResponse.json(
       { error: 'حدث خطأ في إنشاء الحجز المباشر' },
       { status: 500 }

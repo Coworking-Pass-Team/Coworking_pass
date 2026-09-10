@@ -36,13 +36,14 @@ export async function GET(request: Request) {
 
     return NextResponse.json(payments);
   } catch (error) {
-    console.error('❌ Error fetching payments:', error);
+    console.error(' Error fetching payments:', error);
     return NextResponse.json(
       { error: 'حدث خطأ في جلب المدفوعات' },
       { status: 500 }
     );
   }
 }
+
 /**
  * @swagger
  * /api/payments:
@@ -126,9 +127,23 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    //  إرسال إشعار للمستخدم عند نجاح الدفع 
+    if (payment.status === 'SUCCESS') {
+      await prisma.notification.create({
+        data: {
+          userId: effectiveUserId,
+          type: 'PAYMENT_SUCCESS',
+          title: 'تم الدفع بنجاح',
+          message: `تم استلام دفعتك بمبلغ ${amount} ريال بنجاح`,
+          channel: 'IN_APP',
+          sentAt: new Date()
+        }
+      });
+    }
+
     return NextResponse.json(payment, { status: 201 });
   } catch (error) {
-    console.error('❌ Error creating payment:', error);
+    console.error(' Error creating payment:', error);
     return NextResponse.json(
       { error: 'حدث خطأ في إنشاء الدفع' },
       { status: 500 }

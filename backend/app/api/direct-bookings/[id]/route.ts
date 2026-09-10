@@ -30,14 +30,13 @@ export async function GET(
 
     return NextResponse.json(booking);
   } catch (error) {
-    console.error('❌ Error fetching direct booking:', error);
+    console.error(' Error fetching direct booking:', error);
     return NextResponse.json(
       { error: 'حدث خطأ في جلب تفاصيل الحجز' },
       { status: 500 }
     );
   }
 }
-
 
 /**
  * @swagger
@@ -97,7 +96,7 @@ export async function PUT(
 
     return NextResponse.json(booking);
   } catch (error) {
-    console.error('❌ Error updating direct booking:', error);
+    console.error(' Error updating direct booking:', error);
     return NextResponse.json(
       { error: 'حدث خطأ في تحديث الحجز' },
       { status: 500 }
@@ -128,7 +127,7 @@ export async function DELETE(
       );
     }
 
-    // Cancellation policy check (bypass for SUPER_ADMIN)
+    //  سياسة الإلغاء (مع bypass للمدير)
     if (!user || user.role !== 'SUPER_ADMIN') {
       const now = new Date();
       const bookingTime = new Date(booking.bookingDate);
@@ -145,6 +144,7 @@ export async function DELETE(
       }
     }
 
+    
     const updated = await prisma.directBooking.update({
       where: { id },
       data: { status: 'CANCELLED' },
@@ -155,12 +155,24 @@ export async function DELETE(
       },
     });
 
+    //  إرسال إشعار 
+    await prisma.notification.create({
+      data: {
+        userId: booking.userId,
+        type: 'BOOKING_CANCELLED',
+        title: 'تم إلغاء حجزك',
+        message: `تم إلغاء حجزك رقم ${booking.id.slice(0, 8)} بنجاح`,
+        channel: 'IN_APP',
+        sentAt: new Date()
+      }
+    });
+
     return NextResponse.json(
       { message: 'تم إلغاء الحجز بنجاح', booking: updated },
       { status: 200 }
     );
   } catch (error) {
-    console.error('❌ Error cancelling direct booking:', error);
+    console.error(' Error cancelling direct booking:', error);
     return NextResponse.json(
       { error: 'حدث خطأ في الإلغاء' },
       { status: 500 }
