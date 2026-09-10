@@ -27,13 +27,12 @@ import { useApp } from '@/app/store';
 import UserAvatar from '@/components/ui/UserAvatar';
 import Modal from '@/components/ui/Modal';
 import MembershipPlansAdmin from './MembershipPlansAdmin';
+import SubscriptionsAdmin from './SubscriptionsAdmin';
 
 export default function AdminSettings() {
   const { currentUser, updateCurrentUser, logout, showToast, navigate, nav } = useApp();
 
-  const [activeTab, setActiveTab] = useState<'profile' | 'plans' | 'settings'>(
-    nav.screen === 'admin-settings' ? 'profile' : 'profile'
-  );
+  const [activeTab, setActiveTab] = useState<'profile' | 'plans' | 'subscriptions' | 'settings'>('profile');
 
   // Edit Profile Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -175,6 +174,18 @@ export default function AdminSettings() {
           </button>
           <button
             type="button"
+            onClick={() => setActiveTab('subscriptions')}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all cursor-pointer ${
+              activeTab === 'subscriptions'
+                ? 'bg-[#DDE6DF] text-soot shadow-xs border border-soot/5 font-semibold'
+                : 'text-moss hover:text-soot'
+            }`}
+          >
+            <Calendar size={15} />
+            <span>Subscriptions</span>
+          </button>
+          <button
+            type="button"
             onClick={() => setActiveTab('settings')}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all cursor-pointer ${
               activeTab === 'settings'
@@ -190,6 +201,8 @@ export default function AdminSettings() {
 
       {activeTab === 'plans' ? (
         <MembershipPlansAdmin />
+      ) : activeTab === 'subscriptions' ? (
+        <SubscriptionsAdmin />
       ) : activeTab === 'profile' ? (
         <div className="space-y-7">
           {/* Card 1: Main Admin Header Card */}

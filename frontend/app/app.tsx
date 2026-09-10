@@ -54,6 +54,8 @@ import BookingsAdmin from './admin/BookingsAdmin';
 import Reports from './admin/Reports';
 import AdminSettings from './admin/AdminSettings';
 import SupportAdmin from './admin/SupportAdmin';
+import MembershipPlansAdmin from './admin/MembershipPlansAdmin';
+import SubscriptionsAdmin from './admin/SubscriptionsAdmin';
 
 interface NavItem {
   label: string;
@@ -66,8 +68,6 @@ const individualNav: NavItem[] = [
   { label: 'Browse Spaces', screen: 'browse', icon: Search },
   { label: 'Pricing & Plans', screen: 'pricing', icon: CreditCard },
   { label: 'My Bookings', screen: 'my-bookings', icon: CalendarDays },
-  { label: 'Support', screen: 'contact', icon: HelpCircle },
-  { label: 'Settings', screen: 'ind-settings', icon: Settings },
 ];
 
 const orgNav: NavItem[] = [
@@ -90,9 +90,7 @@ const adminNav: NavItem[] = [
   { label: 'Spaces', screen: 'admin-spaces', icon: Building2 },
   { label: 'Users', screen: 'admin-users', icon: Users },
   { label: 'Bookings', screen: 'admin-bookings', icon: BookOpen },
-  { label: 'Support & Help', screen: 'admin-support', icon: HelpCircle },
   { label: 'Reports', screen: 'admin-reports', icon: BarChart3 },
-  { label: 'Settings', screen: 'admin-settings', icon: Settings },
 ];
 
 function NotificationButton() {
@@ -250,12 +248,22 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const [orgDropdownOpen, setOrgDropdownOpen] = useState(false);
+  const [indDropdownOpen, setIndDropdownOpen] = useState(false);
+  const [adminDropdownOpen, setAdminDropdownOpen] = useState(false);
   const orgDropdownRef = useRef<HTMLDivElement>(null);
+  const indDropdownRef = useRef<HTMLDivElement>(null);
+  const adminDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (orgDropdownRef.current && !orgDropdownRef.current.contains(event.target as Node)) {
         setOrgDropdownOpen(false);
+      }
+      if (indDropdownRef.current && !indDropdownRef.current.contains(event.target as Node)) {
+        setIndDropdownOpen(false);
+      }
+      if (adminDropdownRef.current && !adminDropdownRef.current.contains(event.target as Node)) {
+        setAdminDropdownOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -398,6 +406,132 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 )}
               </div>
             )}
+
+            {role === 'individual' && (
+              <div className="relative shrink-0" ref={indDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setIndDropdownOpen(!indDropdownOpen)}
+                  className={`flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 rounded-full text-xs xl:text-sm font-medium transition-all whitespace-nowrap cursor-pointer ${
+                    nav.screen === 'contact' || nav.screen === 'ind-settings' || nav.screen === 'ind-profile' || indDropdownOpen
+                      ? 'bg-[#DDE6DF] text-soot shadow-xs border border-soot/10 font-semibold'
+                      : 'text-moss hover:text-soot hover:bg-soot/5'
+                  }`}
+                >
+                  <span>Support &amp; Settings</span>
+                  <ChevronDown size={14} className={`text-moss transition-transform duration-200 ${indDropdownOpen ? 'rotate-180 text-soot' : ''}`} />
+                </button>
+
+                {indDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-52 bg-plaster-surface rounded-2xl border border-soot/15 shadow-xl p-1.5 z-50 animate-in fade-in-50 zoom-in-95 duration-100">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigate('contact');
+                        setIndDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-colors cursor-pointer ${
+                        nav.screen === 'contact' ? 'bg-[#DDE6DF] text-soot shadow-2xs font-bold' : 'text-soot hover:bg-soot/5'
+                      }`}
+                    >
+                      <HelpCircle size={15} className="text-moss shrink-0" />
+                      <span>Support Desk</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigate('ind-settings');
+                        setIndDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-colors cursor-pointer ${
+                        nav.screen === 'ind-settings' || nav.screen === 'ind-profile' ? 'bg-[#DDE6DF] text-soot shadow-2xs font-bold' : 'text-soot hover:bg-soot/5'
+                      }`}
+                    >
+                      <Settings size={15} className="text-moss shrink-0" />
+                      <span>Account Settings</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {role === 'admin' && (
+              <div className="relative shrink-0" ref={adminDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setAdminDropdownOpen(!adminDropdownOpen)}
+                  className={`flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 rounded-full text-xs xl:text-sm font-medium transition-all whitespace-nowrap cursor-pointer ${
+                    nav.screen === 'admin-plans' || nav.screen === 'admin-support' || nav.screen === 'admin-settings' || adminDropdownOpen
+                      ? 'bg-[#DDE6DF] text-soot shadow-xs border border-soot/10 font-semibold'
+                      : 'text-moss hover:text-soot hover:bg-soot/5'
+                  }`}
+                >
+                  <span>Support &amp; Settings</span>
+                  <ChevronDown size={14} className={`text-moss transition-transform duration-200 ${adminDropdownOpen ? 'rotate-180 text-soot' : ''}`} />
+                </button>
+
+                {adminDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-56 bg-plaster-surface rounded-2xl border border-soot/15 shadow-xl p-1.5 z-50 animate-in fade-in-50 zoom-in-95 duration-100">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigate('admin-plans');
+                        setAdminDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-colors cursor-pointer ${
+                        nav.screen === 'admin-plans' ? 'bg-[#DDE6DF] text-soot shadow-2xs font-bold' : 'text-soot hover:bg-soot/5'
+                      }`}
+                    >
+                      <CreditCard size={15} className="text-moss shrink-0" />
+                      <span>Membership Plans</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigate('admin-subscriptions');
+                        setAdminDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-colors cursor-pointer ${
+                        nav.screen === 'admin-subscriptions' ? 'bg-[#DDE6DF] text-soot shadow-2xs font-bold' : 'text-soot hover:bg-soot/5'
+                      }`}
+                    >
+                      <Sparkles size={15} className="text-moss shrink-0" />
+                      <span>Subscriptions &amp; Passes</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigate('admin-support');
+                        setAdminDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-colors cursor-pointer ${
+                        nav.screen === 'admin-support' ? 'bg-[#DDE6DF] text-soot shadow-2xs font-bold' : 'text-soot hover:bg-soot/5'
+                      }`}
+                    >
+                      <HelpCircle size={15} className="text-moss shrink-0" />
+                      <span>Support &amp; Help Desk</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigate('admin-settings');
+                        setAdminDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-colors cursor-pointer ${
+                        nav.screen === 'admin-settings' ? 'bg-[#DDE6DF] text-soot shadow-2xs font-bold' : 'text-soot hover:bg-soot/5'
+                      }`}
+                    >
+                      <Settings size={15} className="text-moss shrink-0" />
+                      <span>Admin System Settings</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </nav>
 
           {/* Right Controls */}
@@ -506,6 +640,46 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 }`}
               >
                 <Settings size={14} className={nav.screen === 'org-settings' || nav.screen === 'org-profile' ? 'text-[#2D3536]' : 'text-moss'} />
+                <span>Settings</span>
+              </button>
+            </>
+          )}
+          {role === 'admin' && (
+            <>
+              <button
+                type="button"
+                onClick={() => navigate('admin-plans')}
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap shrink-0 transition-all ${
+                  nav.screen === 'admin-plans'
+                    ? 'bg-[#E2E8E4] text-[#2D3536] ring-1 ring-[#2D3536]/15 shadow-2xs'
+                    : 'text-moss hover:text-soot'
+                }`}
+              >
+                <CreditCard size={14} className={nav.screen === 'admin-plans' ? 'text-[#2D3536]' : 'text-moss'} />
+                <span>Plans</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('admin-support')}
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap shrink-0 transition-all ${
+                  nav.screen === 'admin-support'
+                    ? 'bg-[#E2E8E4] text-[#2D3536] ring-1 ring-[#2D3536]/15 shadow-2xs'
+                    : 'text-moss hover:text-soot'
+                }`}
+              >
+                <HelpCircle size={14} className={nav.screen === 'admin-support' ? 'text-[#2D3536]' : 'text-moss'} />
+                <span>Support</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('admin-settings')}
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap shrink-0 transition-all ${
+                  nav.screen === 'admin-settings'
+                    ? 'bg-[#E2E8E4] text-[#2D3536] ring-1 ring-[#2D3536]/15 shadow-2xs'
+                    : 'text-moss hover:text-soot'
+                }`}
+              >
+                <Settings size={14} className={nav.screen === 'admin-settings' ? 'text-[#2D3536]' : 'text-moss'} />
                 <span>Settings</span>
               </button>
             </>
@@ -625,6 +799,8 @@ export function Router() {
         {screen === 'admin-spaces' && <SpacesAdmin />}
         {screen === 'admin-users' && <UsersAdmin />}
         {screen === 'admin-bookings' && <BookingsAdmin />}
+        {screen === 'admin-plans' && <MembershipPlansAdmin />}
+        {screen === 'admin-subscriptions' && <SubscriptionsAdmin />}
         {screen === 'admin-support' && <SupportAdmin />}
         {screen === 'admin-reports' && <Reports />}
         {screen === 'admin-settings' && <AdminSettings />}

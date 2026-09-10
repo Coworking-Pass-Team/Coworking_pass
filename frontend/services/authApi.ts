@@ -9,6 +9,9 @@ function getAuthBaseUrl(): string {
     const cleaned = envUrl.replace(/\/$/, '');
     return cleaned.endsWith('/api') ? cleaned.replace(/\/api$/, '') : cleaned;
   }
+  if (typeof window !== 'undefined' && window.location?.port === '3001') {
+    return 'http://localhost:3001';
+  }
   return 'http://localhost:3001';
 }
 
@@ -405,6 +408,35 @@ export async function createPaymentApi(payload: {
   }
 }
 
+export interface SubscriptionItemApi {
+  id: string;
+  userId: string;
+  planId: string;
+  startDate: string;
+  endDate: string;
+  status: 'ACTIVE' | 'CANCELLED' | 'EXPIRED' | string;
+  visitsUsed?: number;
+  user?: { id?: string; name?: string; email?: string; role?: string };
+  plan?: { id?: string; planName?: string; price?: number; type?: string; totalVisitsAllowed?: number };
+}
+
+export async function getSubscriptionsApi() {
+  const url = `${getAuthBaseUrl()}/api/subscriptions`;
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+    const data = await response.json().catch(() => ([]));
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to fetch subscriptions', data: [] };
+    }
+    return { success: true, data: Array.isArray(data) ? data : [] };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error', data: [] };
+  }
+}
+
 export async function createSubscriptionApi(payload: {
   userId: string;
   planId: string;
@@ -414,16 +446,93 @@ export async function createSubscriptionApi(payload: {
 }) {
   const url = `${getAuthBaseUrl()}/api/subscriptions`;
   try {
+    // 1. Resolve real DB Plan ID from PostgreSQL membership plans
+    let targetPlanId = payload.planId;
+    const plansRes = await getMembershipPlansApi();
+    if (plansRes.success && Array.isArray(plansRes.data) && plansRes.data.length > 0) {
+      const dbPlans = plansRes.data;
+      const exactMatch = dbPlans.find((p: any) => p.id === payload.planId);
+      if (exactMatch) {
+        targetPlanId = exactMatch.id;
+      } else {
+        const query = (payload.planId || '').toLowerCase();
+        const matched = dbPlans.find((p: any) => {
+          const name = (p.planName || '').toLowerCase();
+          if (query === 'day' || query.includes('day')) return name.includes('day');
+          if (query === 'monthly' || query.includes('month')) return name.includes('month');
+          if (query === 'annual' || query.includes('annu') || query.includes('year')) return name.includes('annu') || name.includes('year');
+          if (query === 'team' || query.includes('team')) return name.includes('team');
+          if (query === 'enterprise' || query.includes('business')) return name.includes('business') || name.includes('enterp');
+          return false;
+        });
+        if (matched) {
+          targetPlanId = matched.id;
+        } else {
+          targetPlanId = dbPlans[0].id;
+        }
+      }
+    }
+
+    // 2. Resolve real DB User ID if stored in localStorage
+    let targetUserId = payload.userId;
+    if (typeof window !== 'undefined') {
+      const storedUserId = localStorage.getItem('cp_userId') || localStorage.getItem('userId');
+      if (storedUserId && (payload.userId.startsWith('u') || payload.userId.includes('b2c') || payload.userId.includes('org'))) {
+        targetUserId = storedUserId;
+      }
+    }
+
+    const finalPayload = {
+      ...payload,
+      userId: targetUserId,
+      planId: targetPlanId,
+    };
+
     const response = await fetch(url, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify(payload),
+      body: JSON.stringify(finalPayload),
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
-      return { success: false, error: data.error || 'Failed to create subscription' };
+      return { success: false, error: data.error || 'Failed to create subscription in database' };
     }
     return { success: true, data, subscription: data };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+export async function updateSubscriptionApi(subscriptionId: string, updates: Partial<{ status: string; planId: string; startDate: string; endDate: string; visitsUsed: number }>) {
+  const url = `${getAuthBaseUrl()}/api/subscriptions/${subscriptionId}`;
+  try {
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(updates),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to update subscription in database' };
+    }
+    return { success: true, data, subscription: data };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+export async function deleteSubscriptionApi(subscriptionId: string) {
+  const url = `${getAuthBaseUrl()}/api/subscriptions/${subscriptionId}`;
+  try {
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to delete subscription from database' };
+    }
+    return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message || 'Network error' };
   }
