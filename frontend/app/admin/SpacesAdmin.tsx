@@ -92,7 +92,7 @@ const emptyForm = (): Partial<Space> => ({
 });
 
 export default function SpacesAdmin() {
-  const { spaces, addSpace, updateSpace, toggleSpaceVisibility, deleteSpace, navigate, amenityRequests, approveAmenityRequest, rejectAmenityRequest, getApprovedAmenities } = useApp();
+  const { spaces, addSpace, updateSpace, toggleSpaceVisibility, deleteSpace, navigate, amenityRequests, approveAmenityRequest, rejectAmenityRequest, deleteAmenityRequest, getApprovedAmenities } = useApp();
   const [query, setQuery] = useState('');
   const [filterCity, setFilterCity] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<'all' | SpaceCategory | 'amenity-requests'>('all');
@@ -707,10 +707,37 @@ export default function SpacesAdmin() {
                         <XCircle size={15} />
                         <span>Reject</span>
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (confirm(`Are you sure you want to delete "${req.amenityName}" from the catalog?`)) {
+                            deleteAmenityRequest(req.id);
+                          }
+                        }}
+                        title="Delete Amenity"
+                        className="p-2 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 transition-colors cursor-pointer border border-rose-200"
+                      >
+                        <Trash2 size={15} />
+                      </button>
                     </div>
                   ) : (
-                    <div className="text-[11px] text-moss text-right font-medium italic pt-2 border-t border-soot/10">
-                      Decision logged
+                    <div className="flex items-center justify-between pt-2 border-t border-soot/10">
+                      <span className="text-[11px] text-moss font-medium italic">
+                        Decision logged
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (confirm(`Are you sure you want to delete "${req.amenityName}" from the catalog?`)) {
+                            deleteAmenityRequest(req.id);
+                          }
+                        }}
+                        title="Delete Amenity from Catalog"
+                        className="px-2.5 py-1.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100 text-xs font-semibold cursor-pointer transition-all flex items-center gap-1.5"
+                      >
+                        <Trash2 size={14} />
+                        <span>Delete</span>
+                      </button>
                     </div>
                   )}
                 </div>

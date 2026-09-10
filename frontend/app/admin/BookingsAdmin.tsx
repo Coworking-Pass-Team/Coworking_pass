@@ -15,13 +15,14 @@ import {
   Eye,
   X,
   CreditCard,
+  Trash2,
 } from 'lucide-react';
 import { useApp } from '@/app/store';
 import { Booking, BookingStatus, getBookingPrice } from '@/types/types';
 import { updateDirectBookingApi } from '@/services/authApi';
 
 export default function BookingsAdmin() {
-  const { bookings, spaces, users, updateBookingStatus, showToast } = useApp();
+  const { bookings, spaces, users, updateBookingStatus, deleteBooking, showToast } = useApp();
   const [query, setQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterPlan, setFilterPlan] = useState('');
@@ -388,6 +389,20 @@ export default function BookingsAdmin() {
                   title="View Full Booking Details"
                 >
                   <Eye size={15} />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (confirm(`Are you sure you want to permanently delete booking "${b.id}" for workspace "${b.spaceName}"?`)) {
+                      deleteBooking(b.id);
+                    }
+                  }}
+                  className="p-2 rounded-xl text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-all cursor-pointer"
+                  title="Permanently Delete Booking"
+                >
+                  <Trash2 size={15} />
                 </button>
               </div>
             </div>

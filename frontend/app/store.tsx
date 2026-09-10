@@ -371,6 +371,7 @@ interface AppContextType {
   addBooking: (booking: Omit<Booking, 'id' | 'createdAt'>) => Booking;
   cancelBooking: (id: string, refundMethod?: 'wallet' | 'card') => void;
   updateBookingStatus: (id: string, status: Booking['status']) => void;
+  deleteBooking: (bookingId: string) => void;
 
   // Amenity Requests (Provider -> Admin)
   amenityRequests: AmenityRequest[];
@@ -378,6 +379,7 @@ interface AppContextType {
   requestCustomAmenity: (amenityName: string, spaceId?: string, spaceName?: string) => { success: boolean; message: string; request?: AmenityRequest };
   approveAmenityRequest: (requestId: string) => void;
   rejectAmenityRequest: (requestId: string, reason?: string) => void;
+  deleteAmenityRequest: (requestId: string) => void;
   getApprovedAmenities: () => string[];
 
   // Notifications
@@ -1858,12 +1860,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return { success: false, error: 'Please enter a valid 6-digit verification code.' };
     }
 
+    const isDemo = Boolean(
+      (otpSession.userId && (otpSession.userId.startsWith('usr_') || otpSession.userId.startsWith('demo_'))) ||
+      (otpSession.user?.email && ['admin@coworkingpass.sa', 'sarah@example.com', 'hr@aramco.com', 'partner@spacehub.sa'].includes(otpSession.user.email.toLowerCase()))
+    );
+
     if (otpSession.mode === 'login') {
       let user = otpSession.user;
       if (otpSession.userId) {
         // Backend Login OTP Verification: POST http://localhost:3001/api/auth/verify-login
         const apiRes = await verifyLoginApi({ userId: otpSession.userId, code: cleanCode });
-        if (!apiRes.success && cleanCode !== '123456') {
+        if (!apiRes.success && (!isDemo || cleanCode !== '123456')) {
           return { success: false, error: apiRes.error || 'Invalid verification code. Please try again.' };
         }
         if (apiRes.token && typeof window !== 'undefined') {
@@ -1914,7 +1921,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (otpSession.userId) {
       // Backend Email OTP Verification: POST http://localhost:3001/api/auth/verify-email
       const apiRes = await verifyEmailApi({ userId: otpSession.userId, code: cleanCode });
-      if (!apiRes.success && cleanCode !== '123456') {
+      if (!apiRes.success && (!isDemo || cleanCode !== '123456')) {
         return { success: false, error: apiRes.error || 'Invalid verification code. Please try again.' };
       }
     }
@@ -3293,6 +3300,38 @@ export function AppProvider({ children }: { children: ReactNode }) {
     showToast(`Response sent to customer`, 'success');
   };
 
+  const deleteBooking = (bookingId: string) => {
+    const updated = bookings.filter((b) => b.id !== bookingId);
+    setBookings(updated);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cp_bookings', JSON.stringify(updated));
+    }
+    deleteDirectBooking(bookingId);
+    showToast('Booking deleted permanently', 'info');
+  };
+
+  const deleteAmenityRequest = (requestId: string) => {
+    const updated = amenityRequests.filter((r) => r.id !== requestId);
+    setAmenityRequests(updated);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cp_amenity_requests', JSON.stringify(updated));
+    }
+    (async () => {
+      try {
+        const storedToken = getStoredToken();
+        const headers: Record<string, string> = {};
+        if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+        await fetch(`${getApiBaseUrl()}/amenities/${requestId}`, {
+          method: 'DELETE',
+          headers,
+        });
+      } catch (err) {
+        console.warn('Failed to delete amenity from database:', err);
+      }
+    })();
+    showToast('Amenity deleted from catalog', 'info');
+  };
+
   return (
     <AppContext.Provider value={{
       nav, navigate, goBack,
@@ -3307,8 +3346,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       currentUser, login, signup, logout, setPendingUser, pendingUser,
       userLocation, locationStatus, requestUserLocation,
       spaces, favorites, toggleFavorite, addSpace, updateSpace, toggleSpaceVisibility, deleteSpace,
-      bookings, addBooking, cancelBooking, updateBookingStatus,
-      amenityRequests, approvedCustomAmenities, requestCustomAmenity, approveAmenityRequest, rejectAmenityRequest, getApprovedAmenities,
+      bookings, addBooking, cancelBooking, updateBookingStatus, deleteBooking,
+      amenityRequests, approvedCustomAmenities, requestCustomAmenity, approveAmenityRequest, rejectAmenityRequest, deleteAmenityRequest, getApprovedAmenities,
       supportTickets, addSupportTicket, updateTicketStatus, replyToTicket,
       notifications: userNotifications,
       unreadNotificationsCount: userNotifications.filter(n => !n.read).length,
