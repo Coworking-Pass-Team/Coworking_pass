@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   MapPin,
   Calendar,
@@ -23,18 +23,36 @@ import {
 import { useApp } from '@/app/store';
 import { Booking, BookingStatus, getHourlyPriceForDuration, getBookingPrice, isCancellationRefundEligible } from '@/types/types';
 import Modal from '@/components/ui/Modal';
+import { deleteDirectBookingApi, getHourlyBookingsApi, updateHourlyBookingApi, HourlyBookingItemApi } from '@/services/authApi';
 
 export default function MyBookings() {
   const { bookings, spaces, currentUser, navigate, cancelBooking, nav, showToast } = useApp();
+  const [bookingCategory, setBookingCategory] = useState<'direct' | 'hourly'>('direct');
+  const [hourlyBookings, setHourlyBookings] = useState<HourlyBookingItemApi[]>([]);
+  const [loadingHourly, setLoadingHourly] = useState(false);
   const [activeTab, setActiveTab] = useState<BookingStatus>((nav.params?.tab as BookingStatus) || 'active');
   const [query, setQuery] = useState('');
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [cancelModal, setCancelModal] = useState<Booking | null>(null);
   const [refundMethod, setRefundMethod] = useState<'wallet' | 'card'>('wallet');
 
+  useEffect(() => {
+    if (bookingCategory === 'hourly') {
+      setLoadingHourly(true);
+      getHourlyBookingsApi().then(res => {
+        if (res.success && res.data) {
+          const storedUserId = typeof window !== 'undefined' ? (localStorage.getItem('cp_userId') || currentUser?.id) : currentUser?.id;
+          const userHourly = res.data.filter(hb => hb.userId === storedUserId || hb.userId === currentUser?.id || !hb.userId);
+          setHourlyBookings(userHourly.length > 0 ? userHourly : res.data);
+        }
+        setLoadingHourly(false);
+      });
+    }
+  }, [bookingCategory, currentUser]);
+
   if (!currentUser) return null;
 
-  const myBookings = bookings.filter(b => b.userId === currentUser.id);
+  const myBookings = bookings.filter(b => b.userId === currentUser.id || (currentUser.email && b.userId.toLowerCase() === currentUser.email.toLowerCase()));
 
   const filtered = myBookings
     .filter(b => {
@@ -61,9 +79,13 @@ export default function MyBookings() {
 
   const handleCancelConfirm = () => {
     if (!cancelModal) return;
-    cancelBooking(cancelModal.id, refundMethod);
+    const bookingToCancel = cancelModal;
+    cancelBooking(bookingToCancel.id, refundMethod);
+    deleteDirectBookingApi(bookingToCancel.id).catch((err: any) =>
+      console.warn('[Direct Booking DELETE Sync]', err)
+    );
     setCancelModal(null);
-    if (selectedBooking && selectedBooking.id === cancelModal.id) {
+    if (selectedBooking && selectedBooking.id === bookingToCancel.id) {
       setSelectedBooking(null);
     }
   };
@@ -71,7 +93,7 @@ export default function MyBookings() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-wrap">
         <div>
           <span className="text-xs font-semibold tracking-wider uppercase text-moss block mb-1">
             Personal Reservations & Pass Activity
@@ -81,7 +103,104 @@ export default function MyBookings() {
           </h1>
           <p className="text-moss text-sm mt-1">Manage and view your active and past workspace reservations.</p>
         </div>
+
+        {/* Category Switcher */}
+        <div className="inline-flex p-1 rounded-2xl bg-white border border-soot/12 shadow-2xs">
+          <button
+            type="button"
+            onClick={() => setBookingCategory('direct')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+              bookingCategory === 'direct'
+                ? 'bg-soot text-plaster shadow-xs'
+                : 'text-moss hover:text-soot'
+            }`}
+          >
+            <CalendarDays size={15} />
+            <span>Pass &amp; Direct Bookings</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setBookingCategory('hourly')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+              bookingCategory === 'hourly'
+                ? 'bg-soot text-plaster shadow-xs'
+                : 'text-moss hover:text-soot'
+            }`}
+          >
+            <Clock size={15} />
+            <span>Hourly Bookings</span>
+          </button>
+        </div>
       </div>
+
+      {bookingCategory === 'hourly' ? (
+        <div className="space-y-6">
+          <div className="bg-white rounded-3xl p-6 border border-soot/10 shadow-xs flex items-center justify-between">
+            <div>
+              <h3 className="text-xl font-normal font-serif-display text-soot">Hourly Package Reservations</h3>
+              <p className="text-xs text-moss mt-0.5">Your hourly meeting room &amp; desk packages booked across Saudi Arabia.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setLoadingHourly(true);
+                getHourlyBookingsApi().then(res => {
+                  if (res.success && res.data) setHourlyBookings(res.data);
+                  setLoadingHourly(false);
+                });
+              }}
+              className="p-2 rounded-xl border border-soot/12 text-moss hover:text-soot cursor-pointer"
+            >
+              <Clock size={16} className={loadingHourly ? 'animate-spin' : ''} />
+            </button>
+          </div>
+
+          {loadingHourly ? (
+            <div className="text-center py-12 bg-white rounded-3xl border border-soot/8 text-moss text-xs">
+              Loading hourly bookings...
+            </div>
+          ) : hourlyBookings.length === 0 ? (
+            <div className="text-center py-12 bg-white rounded-3xl border border-soot/8 text-moss text-xs">
+              No hourly bookings found.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {hourlyBookings.map(hb => (
+                <div key={hb.id} className="bg-white rounded-3xl p-6 border border-soot/10 shadow-xs space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full uppercase tracking-wider">
+                      {hb.status}
+                    </span>
+                    <span className="text-xs font-mono text-moss">{hb.id.slice(0, 10)}...</span>
+                  </div>
+                  <h4 className="text-base font-semibold text-soot font-serif-display">
+                    {hb.package?.packageName || hb.section?.name || 'Hourly Package'}
+                  </h4>
+                  <div className="text-xs text-moss space-y-1 pt-2 border-t border-soot/6">
+                    <div>Start Date: <span className="font-medium text-soot">{hb.startDate ? new Date(hb.startDate).toLocaleDateString() : 'N/A'}</span></div>
+                    <div>End Date: <span className="font-medium text-soot">{hb.endDate ? new Date(hb.endDate).toLocaleDateString() : 'N/A'}</span></div>
+                  </div>
+                  {hb.status !== 'CANCELLED' && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await updateHourlyBookingApi(hb.id, { status: 'CANCELLED' });
+                        showToast('Hourly booking cancelled successfully', 'info');
+                        setHourlyBookings(prev => prev.map(b => b.id === hb.id ? { ...b, status: 'CANCELLED' } : b));
+                      }}
+                      className="w-full mt-2 py-2 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 text-xs font-semibold hover:bg-rose-100 transition-colors cursor-pointer"
+                    >
+                      Cancel Hourly Booking
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <>
 
       {/* Admin-Matching Elevated Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
@@ -243,7 +362,14 @@ export default function MyBookings() {
 
                 {/* Revenue Amount */}
                 <div className="col-span-1 mt-2 lg:mt-0 text-sm font-semibold text-soot">
-                  SAR {getBookingPrice(b).toLocaleString()}
+                  {getBookingPrice(b) === 0 ? (
+                    <span className="text-xs font-bold text-moss bg-eucalyptus/30 px-2.5 py-1 rounded-full border border-eucalyptus/40 inline-flex items-center gap-1">
+                      <Check size={11} className="text-moss" />
+                      <span>Included</span>
+                    </span>
+                  ) : (
+                    `SAR ${getBookingPrice(b).toLocaleString()}`
+                  )}
                 </div>
 
                 {/* Actions */}
@@ -371,8 +497,8 @@ export default function MyBookings() {
               <div className="flex items-center justify-between p-4 bg-soot text-plaster rounded-2xl">
                 <div>
                   <span className="text-xs text-plaster/70 block">Total Booking Fee</span>
-                  <span className="text-2xl font-serif-display font-normal">
-                    SAR {getBookingPrice(selectedBooking).toLocaleString()}
+                  <span className="text-xl sm:text-2xl font-serif-display font-normal">
+                    {getBookingPrice(selectedBooking) === 0 ? 'Included in your Plan · SAR 0 Paid' : `SAR ${getBookingPrice(selectedBooking).toLocaleString()}`}
                   </span>
                 </div>
                 <span
@@ -507,6 +633,8 @@ export default function MyBookings() {
           </Modal>
         );
       })()}
+      </>
+      )}
     </div>
   );
 }

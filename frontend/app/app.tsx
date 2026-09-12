@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   LayoutDashboard, Search, CalendarDays, Settings, LogOut,
   Building2, Users, BarChart3, BookOpen,
-  Briefcase, AlertCircle, Bell, Sparkles, CheckCheck, ChevronRight, ShoppingBag
+  Briefcase, AlertCircle, Bell, Sparkles, CheckCheck, ChevronRight, ShoppingBag, HelpCircle,
+  ChevronDown, CreditCard
 } from 'lucide-react';
 import { Screen } from '@/types/types';
 import { useApp } from '@/app/store';
@@ -34,10 +35,9 @@ import ProfileSettings from './individual/ProfileSettings';
 
 // Organization screens
 import OrgDashboard from './organization/Dashboard';
+import OrgProfile from './organization/OrgProfile';
 import TeamBooking from './organization/TeamBooking';
 import TeamBookings from './organization/TeamBookings';
-import OrgProfile from './organization/OrgProfile';
-import CompanyBookings from './organization/CompanyBookings';
 import CompanyTeam from './organization/CompanyTeam';
 
 // Provider screens
@@ -53,6 +53,11 @@ import UsersAdmin from './admin/UsersAdmin';
 import BookingsAdmin from './admin/BookingsAdmin';
 import Reports from './admin/Reports';
 import AdminSettings from './admin/AdminSettings';
+import SupportAdmin from './admin/SupportAdmin';
+import MembershipPlansAdmin from './admin/MembershipPlansAdmin';
+import SubscriptionsAdmin from './admin/SubscriptionsAdmin';
+import PaymentsAdmin from './admin/PaymentsAdmin';
+import PayoutsAdmin from './admin/PayoutsAdmin';
 
 interface NavItem {
   label: string;
@@ -63,8 +68,8 @@ interface NavItem {
 const individualNav: NavItem[] = [
   { label: 'Dashboard', screen: 'ind-dashboard', icon: LayoutDashboard },
   { label: 'Browse Spaces', screen: 'browse', icon: Search },
+  { label: 'Pricing & Plans', screen: 'pricing', icon: CreditCard },
   { label: 'My Bookings', screen: 'my-bookings', icon: CalendarDays },
-  { label: 'Settings', screen: 'ind-settings', icon: Settings },
 ];
 
 const orgNav: NavItem[] = [
@@ -72,13 +77,13 @@ const orgNav: NavItem[] = [
   { label: 'Browse Spaces', screen: 'browse', icon: Search },
   { label: 'Team Bookings', screen: 'team-bookings', icon: Briefcase },
   { label: 'Team Members', screen: 'company-team', icon: Users },
-  { label: 'Settings', screen: 'org-settings', icon: Settings },
 ];
 
 const providerNav: NavItem[] = [
   { label: 'Dashboard', screen: 'provider-dashboard', icon: LayoutDashboard },
   { label: 'My Spaces', screen: 'provider-spaces', icon: Building2 },
   { label: 'Bookings', screen: 'provider-bookings', icon: BookOpen },
+  { label: 'Support', screen: 'contact', icon: HelpCircle },
   { label: 'Settings', screen: 'provider-settings', icon: Settings },
 ];
 
@@ -87,8 +92,8 @@ const adminNav: NavItem[] = [
   { label: 'Spaces', screen: 'admin-spaces', icon: Building2 },
   { label: 'Users', screen: 'admin-users', icon: Users },
   { label: 'Bookings', screen: 'admin-bookings', icon: BookOpen },
+  { label: 'Payments', screen: 'admin-payments', icon: CreditCard },
   { label: 'Reports', screen: 'admin-reports', icon: BarChart3 },
-  { label: 'Settings', screen: 'admin-settings', icon: Settings },
 ];
 
 function NotificationButton() {
@@ -245,6 +250,28 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { currentUser, navigate, logout, nav } = useApp();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
+  const [orgDropdownOpen, setOrgDropdownOpen] = useState(false);
+  const [indDropdownOpen, setIndDropdownOpen] = useState(false);
+  const [adminDropdownOpen, setAdminDropdownOpen] = useState(false);
+  const orgDropdownRef = useRef<HTMLDivElement>(null);
+  const indDropdownRef = useRef<HTMLDivElement>(null);
+  const adminDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (orgDropdownRef.current && !orgDropdownRef.current.contains(event.target as Node)) {
+        setOrgDropdownOpen(false);
+      }
+      if (indDropdownRef.current && !indDropdownRef.current.contains(event.target as Node)) {
+        setIndDropdownOpen(false);
+      }
+      if (adminDropdownRef.current && !adminDropdownRef.current.contains(event.target as Node)) {
+        setAdminDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   if (!currentUser) return <>{children}</>;
 
@@ -284,13 +311,13 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen flex flex-col bg-plaster text-soot">
       {/* Top Navbar Header */}
       <header className="sticky top-0 z-40 w-full bg-plaster-surface/95 backdrop-blur-md border-b border-soot/12 shadow-xs transition-colors duration-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-2 sm:gap-4 w-full">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-3 sm:gap-4 w-full">
           
           {/* Brand Logo & Title */}
           <button
             type="button"
             onClick={() => navigate(dashboardScreen)}
-            className="flex items-center gap-2 sm:gap-2.5 cursor-pointer focus:outline-none shrink-0 group mr-2"
+            className="flex items-center gap-2 sm:gap-2.5 cursor-pointer focus:outline-none shrink-0 group"
           >
             <LogoImage className="w-8 h-8 sm:w-9 sm:h-9 object-contain group-hover:scale-105 transition-transform shrink-0" />
             <span className="font-serif-display font-normal text-soot text-lg sm:text-xl xl:text-2xl tracking-tight hidden sm:inline-block whitespace-nowrap">
@@ -299,7 +326,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           </button>
 
           {/* Centered Navigation Row */}
-          <nav className="hidden xl:flex items-center justify-center gap-1 flex-1 min-w-0 mx-2">
+          <nav className="hidden xl:flex items-center justify-center gap-1 xl:gap-2 shrink-0">
             {navItems.map(item => {
               const active = isActive(item);
               const Icon = item.icon;
@@ -308,7 +335,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                   key={item.screen}
                   type="button"
                   onClick={() => navigate(item.screen)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs xl:text-sm font-medium transition-all whitespace-nowrap cursor-pointer shrink-0 ${
+                  className={`flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 rounded-full text-xs xl:text-sm font-medium transition-all whitespace-nowrap cursor-pointer shrink-0 ${
                     active
                       ? 'bg-[#DDE6DF] text-soot shadow-xs border border-soot/10 font-semibold'
                       : 'text-moss hover:text-soot hover:bg-soot/5'
@@ -319,10 +346,199 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 </button>
               );
             })}
+
+            {role === 'organization' && (
+              <div className="relative shrink-0" ref={orgDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setOrgDropdownOpen(!orgDropdownOpen)}
+                  className={`flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 rounded-full text-xs xl:text-sm font-medium transition-all whitespace-nowrap cursor-pointer ${
+                    nav.screen === 'contact' || nav.screen === 'org-settings' || nav.screen === 'org-profile' || nav.screen === 'pricing' || orgDropdownOpen
+                      ? 'bg-[#DDE6DF] text-soot shadow-xs border border-soot/10 font-semibold'
+                      : 'text-moss hover:text-soot hover:bg-soot/5'
+                  }`}
+                >
+                  <span>Support &amp; Settings</span>
+                  <ChevronDown size={14} className={`text-moss transition-transform duration-200 ${orgDropdownOpen ? 'rotate-180 text-soot' : ''}`} />
+                </button>
+
+                {orgDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-52 bg-plaster-surface rounded-2xl border border-soot/15 shadow-xl p-1.5 z-50 animate-in fade-in-50 zoom-in-95 duration-100">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigate('pricing');
+                        setOrgDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-colors cursor-pointer ${
+                        nav.screen === 'pricing' ? 'bg-[#DDE6DF] text-soot shadow-2xs font-bold' : 'text-soot hover:bg-soot/5'
+                      }`}
+                    >
+                      <CreditCard size={15} className="text-moss shrink-0" />
+                      <span>Pricing &amp; Plans</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigate('contact');
+                        setOrgDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-colors cursor-pointer ${
+                        nav.screen === 'contact' ? 'bg-[#DDE6DF] text-soot shadow-2xs font-bold' : 'text-soot hover:bg-soot/5'
+                      }`}
+                    >
+                      <HelpCircle size={15} className="text-moss shrink-0" />
+                      <span>Support Desk</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigate('org-settings');
+                        setOrgDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-colors cursor-pointer ${
+                        nav.screen === 'org-settings' || nav.screen === 'org-profile' ? 'bg-[#DDE6DF] text-soot shadow-2xs font-bold' : 'text-soot hover:bg-soot/5'
+                      }`}
+                    >
+                      <Settings size={15} className="text-moss shrink-0" />
+                      <span>Organization Settings</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {role === 'individual' && (
+              <div className="relative shrink-0" ref={indDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setIndDropdownOpen(!indDropdownOpen)}
+                  className={`flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 rounded-full text-xs xl:text-sm font-medium transition-all whitespace-nowrap cursor-pointer ${
+                    nav.screen === 'contact' || nav.screen === 'ind-settings' || nav.screen === 'ind-profile' || indDropdownOpen
+                      ? 'bg-[#DDE6DF] text-soot shadow-xs border border-soot/10 font-semibold'
+                      : 'text-moss hover:text-soot hover:bg-soot/5'
+                  }`}
+                >
+                  <span>Support &amp; Settings</span>
+                  <ChevronDown size={14} className={`text-moss transition-transform duration-200 ${indDropdownOpen ? 'rotate-180 text-soot' : ''}`} />
+                </button>
+
+                {indDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-52 bg-plaster-surface rounded-2xl border border-soot/15 shadow-xl p-1.5 z-50 animate-in fade-in-50 zoom-in-95 duration-100">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigate('contact');
+                        setIndDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-colors cursor-pointer ${
+                        nav.screen === 'contact' ? 'bg-[#DDE6DF] text-soot shadow-2xs font-bold' : 'text-soot hover:bg-soot/5'
+                      }`}
+                    >
+                      <HelpCircle size={15} className="text-moss shrink-0" />
+                      <span>Support Desk</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigate('ind-settings');
+                        setIndDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-colors cursor-pointer ${
+                        nav.screen === 'ind-settings' || nav.screen === 'ind-profile' ? 'bg-[#DDE6DF] text-soot shadow-2xs font-bold' : 'text-soot hover:bg-soot/5'
+                      }`}
+                    >
+                      <Settings size={15} className="text-moss shrink-0" />
+                      <span>Account Settings</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {role === 'admin' && (
+              <div className="relative shrink-0" ref={adminDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setAdminDropdownOpen(!adminDropdownOpen)}
+                  className={`flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 rounded-full text-xs xl:text-sm font-medium transition-all whitespace-nowrap cursor-pointer ${
+                    nav.screen === 'admin-plans' || nav.screen === 'admin-support' || nav.screen === 'admin-settings' || adminDropdownOpen
+                      ? 'bg-[#DDE6DF] text-soot shadow-xs border border-soot/10 font-semibold'
+                      : 'text-moss hover:text-soot hover:bg-soot/5'
+                  }`}
+                >
+                  <span>Support &amp; Settings</span>
+                  <ChevronDown size={14} className={`text-moss transition-transform duration-200 ${adminDropdownOpen ? 'rotate-180 text-soot' : ''}`} />
+                </button>
+
+                {adminDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-56 bg-plaster-surface rounded-2xl border border-soot/15 shadow-xl p-1.5 z-50 animate-in fade-in-50 zoom-in-95 duration-100">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigate('admin-plans');
+                        setAdminDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-colors cursor-pointer ${
+                        nav.screen === 'admin-plans' ? 'bg-[#DDE6DF] text-soot shadow-2xs font-bold' : 'text-soot hover:bg-soot/5'
+                      }`}
+                    >
+                      <CreditCard size={15} className="text-moss shrink-0" />
+                      <span>Membership Plans</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigate('admin-subscriptions');
+                        setAdminDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-colors cursor-pointer ${
+                        nav.screen === 'admin-subscriptions' ? 'bg-[#DDE6DF] text-soot shadow-2xs font-bold' : 'text-soot hover:bg-soot/5'
+                      }`}
+                    >
+                      <Sparkles size={15} className="text-moss shrink-0" />
+                      <span>Subscriptions &amp; Passes</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigate('admin-support');
+                        setAdminDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-colors cursor-pointer ${
+                        nav.screen === 'admin-support' ? 'bg-[#DDE6DF] text-soot shadow-2xs font-bold' : 'text-soot hover:bg-soot/5'
+                      }`}
+                    >
+                      <HelpCircle size={15} className="text-moss shrink-0" />
+                      <span>Support &amp; Help Desk</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigate('admin-settings');
+                        setAdminDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-colors cursor-pointer ${
+                        nav.screen === 'admin-settings' ? 'bg-[#DDE6DF] text-soot shadow-2xs font-bold' : 'text-soot hover:bg-soot/5'
+                      }`}
+                    >
+                      <Settings size={15} className="text-moss shrink-0" />
+                      <span>Admin System Settings</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </nav>
 
           {/* Right Controls */}
-          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0 ml-auto">
+          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
             <span
               className={`hidden 2xl:inline-flex text-[11px] font-semibold uppercase tracking-wider px-3 py-1 rounded-full border shadow-2xs shrink-0 ${
                 role === 'organization' || role === 'admin'
@@ -335,7 +551,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               {role === 'organization' ? 'HR Admin (B2B)' : role === 'admin' ? 'Admin Portal' : `${role} portal`}
             </span>
 
-            {(role === 'individual' || role === 'organization' || (role as any) === 'B2C' || (role as any) === 'HR_ADMIN') && (
+            {(role === 'individual' || role === 'organization' || role === 'B2C' || role === 'HR_ADMIN') && (
               <>
                 <LoyaltyButton />
                 <CartButton onClick={() => setCartOpen(true)} />
@@ -390,6 +606,87 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               </button>
             );
           })}
+
+          {role === 'organization' && (
+            <>
+              <button
+                type="button"
+                onClick={() => navigate('pricing')}
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap shrink-0 transition-all ${
+                  nav.screen === 'pricing'
+                    ? 'bg-[#E2E8E4] text-[#2D3536] ring-1 ring-[#2D3536]/15 shadow-2xs'
+                    : 'text-moss hover:text-soot'
+                }`}
+              >
+                <CreditCard size={14} className={nav.screen === 'pricing' ? 'text-[#2D3536]' : 'text-moss'} />
+                <span>Pricing &amp; Plans</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('contact')}
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap shrink-0 transition-all ${
+                  nav.screen === 'contact'
+                    ? 'bg-[#E2E8E4] text-[#2D3536] ring-1 ring-[#2D3536]/15 shadow-2xs'
+                    : 'text-moss hover:text-soot'
+                }`}
+              >
+                <HelpCircle size={14} className={nav.screen === 'contact' ? 'text-[#2D3536]' : 'text-moss'} />
+                <span>Support</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('org-settings')}
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap shrink-0 transition-all ${
+                  nav.screen === 'org-settings' || nav.screen === 'org-profile'
+                    ? 'bg-[#E2E8E4] text-[#2D3536] ring-1 ring-[#2D3536]/15 shadow-2xs'
+                    : 'text-moss hover:text-soot'
+                }`}
+              >
+                <Settings size={14} className={nav.screen === 'org-settings' || nav.screen === 'org-profile' ? 'text-[#2D3536]' : 'text-moss'} />
+                <span>Settings</span>
+              </button>
+            </>
+          )}
+          {role === 'admin' && (
+            <>
+              <button
+                type="button"
+                onClick={() => navigate('admin-plans')}
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap shrink-0 transition-all ${
+                  nav.screen === 'admin-plans'
+                    ? 'bg-[#E2E8E4] text-[#2D3536] ring-1 ring-[#2D3536]/15 shadow-2xs'
+                    : 'text-moss hover:text-soot'
+                }`}
+              >
+                <CreditCard size={14} className={nav.screen === 'admin-plans' ? 'text-[#2D3536]' : 'text-moss'} />
+                <span>Plans</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('admin-support')}
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap shrink-0 transition-all ${
+                  nav.screen === 'admin-support'
+                    ? 'bg-[#E2E8E4] text-[#2D3536] ring-1 ring-[#2D3536]/15 shadow-2xs'
+                    : 'text-moss hover:text-soot'
+                }`}
+              >
+                <HelpCircle size={14} className={nav.screen === 'admin-support' ? 'text-[#2D3536]' : 'text-moss'} />
+                <span>Support</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('admin-settings')}
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap shrink-0 transition-all ${
+                  nav.screen === 'admin-settings'
+                    ? 'bg-[#E2E8E4] text-[#2D3536] ring-1 ring-[#2D3536]/15 shadow-2xs'
+                    : 'text-moss hover:text-soot'
+                }`}
+              >
+                <Settings size={14} className={nav.screen === 'admin-settings' ? 'text-[#2D3536]' : 'text-moss'} />
+                <span>Settings</span>
+              </button>
+            </>
+          )}
         </div>
       </header>
 
@@ -505,6 +802,11 @@ export function Router() {
         {screen === 'admin-spaces' && <SpacesAdmin />}
         {screen === 'admin-users' && <UsersAdmin />}
         {screen === 'admin-bookings' && <BookingsAdmin />}
+        {screen === 'admin-plans' && <MembershipPlansAdmin />}
+        {screen === 'admin-subscriptions' && <SubscriptionsAdmin />}
+        {screen === 'admin-payments' && <PaymentsAdmin />}
+        {screen === 'admin-payouts' && <PayoutsAdmin />}
+        {screen === 'admin-support' && <SupportAdmin />}
         {screen === 'admin-reports' && <Reports />}
         {screen === 'admin-settings' && <AdminSettings />}
         {screen === 'notifications' && <Notifications />}
@@ -512,6 +814,7 @@ export function Router() {
         {screen === 'space-details' && <SpaceDetails />}
         {screen === 'pricing' && <Pricing />}
         {screen === 'contact' && <Contact />}
+        {(screen === 'privacy-policy' || screen === 'terms-of-service' || screen === 'legal') && <LegalPage />}
       </DashboardLayout>
     );
   }
@@ -535,6 +838,7 @@ export function Router() {
         {screen === 'space-details' && <SpaceDetails />}
         {screen === 'pricing' && <Pricing />}
         {screen === 'contact' && <Contact />}
+        {(screen === 'privacy-policy' || screen === 'terms-of-service' || screen === 'legal') && <LegalPage />}
       </DashboardLayout>
     );
   }
@@ -554,6 +858,7 @@ export function Router() {
         {screen === 'space-details' && <SpaceDetails />}
         {screen === 'pricing' && <Pricing />}
         {screen === 'contact' && <Contact />}
+        {(screen === 'privacy-policy' || screen === 'terms-of-service' || screen === 'legal') && <LegalPage />}
       </DashboardLayout>
     );
   }

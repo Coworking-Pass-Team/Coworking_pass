@@ -1,8 +1,182 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, Space, Booking, Screen, NavState, UserRole, BookingType, PaymentCard, Notification, CartItem, AmenityRequest, AmenityRequestStatus, calculateEndDate, isCancellationRefundEligible, getBookingPrice, OtpSession } from '@/types/types';
-import { INITIAL_SPACES, INITIAL_USERS, INITIAL_BOOKINGS, INITIAL_NOTIFICATIONS } from '@/data/data';
+import { User, Space, SpaceType, Booking, Screen, NavState, UserRole, BookingType, PaymentCard, Notification, CartItem, AmenityRequest, AmenityRequestStatus, calculateEndDate, isCancellationRefundEligible, getBookingPrice, getEffectiveSpacePrice, OtpSession, SupportTicket, TicketStatus, Partner, WorkspaceApi, HourlyBookingApi, PayoutApi, MembershipPlanApi, SubscriptionApi, DirectBookingApi, PaymentApi } from '@/types/types';
+import { INITIAL_SPACES, INITIAL_USERS, INITIAL_BOOKINGS, INITIAL_NOTIFICATIONS, INITIAL_SUPPORT_TICKETS } from '@/data/data';
+import { registerUserApi, verifyEmailApi, loginUserApi, verifyLoginApi, mapRoleToFrontend, createCompanyApi, createPointsTransactionApi, getLoyaltyPointsApi, getPointsTransactionsApi } from '@/services/authApi';
+
+export function getApiBaseUrl(): string {
+  const envUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (envUrl) {
+    const cleaned = envUrl.replace(/\/$/, '');
+    return cleaned.endsWith('/api') ? cleaned : `${cleaned}/api`;
+  }
+  return 'http://localhost:3001/api';
+}
+
+export const API_BASE_URL = getApiBaseUrl();
+
+
+export function mapFrontendTypeToDbSectionType(type: string): 'DESK' | 'MEETING_ROOM' | 'THEATER' {
+  const t = (type || '').toLowerCase();
+  if (t === 'theater' || t.includes('theater') || t.includes('auditorium')) {
+    return 'THEATER';
+  }
+  if (
+    t.includes('hall') ||
+    t.includes('meeting') ||
+    t.includes('room') ||
+    t.includes('majlis') ||
+    t.includes('conference') ||
+    t.includes('training') ||
+    t.includes('workshop') ||
+    t.includes('event') ||
+    t.includes('lecture')
+  ) {
+    return 'MEETING_ROOM';
+  }
+  return 'DESK';
+}
+
+export function getStoredToken(): string | undefined {
+  return (
+    (typeof window !== 'undefined' && (
+      localStorage.getItem('cp_token') ||
+      localStorage.getItem('token') ||
+      localStorage.getItem('jwt')
+    )) || undefined
+  );
+}
+
+async function fetchPartnersFromApi(token?: string): Promise<Partner[]> {
+  try {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    const storedToken = token || getStoredToken();
+    if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+    const response = await fetch(`${getApiBaseUrl()}/partners`, { method: 'GET', headers });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return Array.isArray(data) ? (data as Partner[]) : [];
+  } catch (error: any) {
+    return [];
+  }
+}
+
+async function fetchWorkspacesFromApi(token?: string): Promise<WorkspaceApi[]> {
+  try {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    const storedToken = token || getStoredToken();
+    if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+    const response = await fetch(`${getApiBaseUrl()}/workspaces`, { method: 'GET', headers });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return Array.isArray(data) ? (data as WorkspaceApi[]) : [];
+  } catch (error: any) {
+    return [];
+  }
+}
+
+async function fetchHourlyBookingsFromApi(token?: string): Promise<HourlyBookingApi[]> {
+  try {
+    const storedToken = token || getStoredToken();
+    if (!storedToken) return [];
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${storedToken}`,
+    };
+    const response = await fetch(`${getApiBaseUrl()}/hourly-bookings`, { method: 'GET', headers });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return Array.isArray(data) ? (data as HourlyBookingApi[]) : [];
+  } catch (error: any) {
+    return [];
+  }
+}
+
+async function fetchPayoutsFromApi(token?: string): Promise<PayoutApi[]> {
+  try {
+    const storedToken = token || getStoredToken();
+    if (!storedToken) return [];
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${storedToken}`,
+    };
+    const response = await fetch(`${getApiBaseUrl()}/payouts`, { method: 'GET', headers });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return Array.isArray(data) ? (data as PayoutApi[]) : [];
+  } catch (error: any) {
+    return [];
+  }
+}
+
+async function fetchMembershipPlansFromApi(token?: string): Promise<MembershipPlanApi[]> {
+  try {
+    const storedToken = token || getStoredToken();
+    if (!storedToken) return [];
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${storedToken}`,
+    };
+    const response = await fetch(`${getApiBaseUrl()}/membership-plans`, { method: 'GET', headers });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return Array.isArray(data) ? (data as MembershipPlanApi[]) : [];
+  } catch (error: any) {
+    return [];
+  }
+}
+
+async function fetchSubscriptionsFromApi(token?: string): Promise<SubscriptionApi[]> {
+  try {
+    const storedToken = token || getStoredToken();
+    if (!storedToken) return [];
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${storedToken}`,
+    };
+    const response = await fetch(`${getApiBaseUrl()}/subscriptions`, { method: 'GET', headers });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return Array.isArray(data) ? (data as SubscriptionApi[]) : [];
+  } catch (error: any) {
+    return [];
+  }
+}
+
+async function fetchDirectBookingsFromApi(token?: string): Promise<DirectBookingApi[]> {
+  try {
+    const storedToken = token || getStoredToken();
+    if (!storedToken) return [];
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${storedToken}`,
+    };
+    const response = await fetch(`${getApiBaseUrl()}/direct-bookings`, { method: 'GET', headers });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return Array.isArray(data) ? (data as DirectBookingApi[]) : [];
+  } catch (error: any) {
+    return [];
+  }
+}
+
+async function fetchPaymentsFromApi(token?: string): Promise<PaymentApi[]> {
+  try {
+    const storedToken = token || getStoredToken();
+    if (!storedToken) return [];
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${storedToken}`,
+    };
+    const response = await fetch(`${getApiBaseUrl()}/payments`, { method: 'GET', headers });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return Array.isArray(data) ? (data as PaymentApi[]) : [];
+  } catch (error: any) {
+    return [];
+  }
+}
 
 interface AppContextType {
   // Navigation
@@ -10,17 +184,187 @@ interface AppContextType {
   navigate: (screen: Screen, params?: Record<string, any>) => void;
   goBack: () => void;
 
+  // Partners / Providers (GET, POST, PUT http://localhost:3001/api/partners)
+  partners: Partner[];
+  fetchPartners: () => Promise<Partner[]>;
+  createPartner: (partnerData: {
+    brandName: string;
+    contactEmail: string;
+    taxNumber: string;
+    revenueSharePercentage: number;
+  }) => Promise<{ success: boolean; partner?: Partner; error?: string }>;
+  updatePartner: (
+    partnerId: string,
+    updates: Partial<{
+      brandName: string;
+      contactEmail: string;
+      taxNumber: string;
+      revenueSharePercentage: number;
+    }>
+  ) => Promise<{ success: boolean; partner?: Partner; error?: string }>;
+  deletePartner: (partnerId: string) => Promise<{ success: boolean; error?: string }>;
+
+  // Workspaces API (GET, POST, PUT, DELETE http://localhost:3001/api/workspaces)
+  workspacesApi: WorkspaceApi[];
+  fetchWorkspaces: () => Promise<WorkspaceApi[]>;
+  createWorkspace: (workspaceData: {
+    partnerId: string;
+    name: string;
+    city: string;
+    locationMapUrl?: string;
+    dailyRate?: number;
+    monthlyRate?: number;
+    yearlyRate?: number;
+    passVisitValue: number;
+    totalCapacity: number;
+  }) => Promise<{ success: boolean; workspace?: WorkspaceApi; error?: string }>;
+  updateWorkspace: (
+    workspaceId: string,
+    updates: Partial<{
+      partnerId: string;
+      name: string;
+      city: string;
+      locationMapUrl: string;
+      dailyRate: number;
+      monthlyRate: number;
+      yearlyRate: number;
+      passVisitValue: number;
+      totalCapacity: number;
+    }>
+  ) => Promise<{ success: boolean; workspace?: WorkspaceApi; error?: string }>;
+  deleteWorkspace: (workspaceId: string) => Promise<{ success: boolean; error?: string }>;
+
+  // Hourly Bookings API (GET, POST, PUT, DELETE http://localhost:3001/api/hourly-bookings)
+  hourlyBookingsApi: HourlyBookingApi[];
+  fetchHourlyBookings: () => Promise<HourlyBookingApi[]>;
+  createHourlyBooking: (bookingData: {
+    userId: string;
+    sectionId: string;
+    packageId: string;
+    startDate: string;
+    endDate: string;
+    status?: string;
+  }) => Promise<{ success: boolean; booking?: HourlyBookingApi; error?: string }>;
+  updateHourlyBooking: (
+    bookingId: string,
+    updates: Partial<{
+      userId: string;
+      sectionId: string;
+      packageId: string;
+      startDate: string;
+      endDate: string;
+      hoursUsed: number;
+      status: string;
+    }>
+  ) => Promise<{ success: boolean; booking?: HourlyBookingApi; error?: string }>;
+  deleteHourlyBooking: (bookingId: string) => Promise<{ success: boolean; error?: string }>;
+
+  // Payouts API (GET, POST, PUT, DELETE /api/payouts)
+  payoutsApi: PayoutApi[];
+  fetchPayouts: () => Promise<PayoutApi[]>;
+  createPayout: (payoutData: {
+    partnerId: string;
+    billingMonth: string;
+    totalVisitsReceived: number;
+    amountDue: number;
+    status?: string;
+  }) => Promise<{ success: boolean; payout?: PayoutApi; error?: string }>;
+  updatePayout: (
+    payoutId: string,
+    updates: Partial<{
+      partnerId: string;
+      billingMonth: string;
+      totalVisitsReceived: number;
+      amountDue: number;
+      status: string;
+      paidAt: string;
+    }>
+  ) => Promise<{ success: boolean; payout?: PayoutApi; error?: string }>;
+  deletePayout: (payoutId: string) => Promise<{ success: boolean; error?: string }>;
+
+  // Membership Plans API (GET, POST, PUT, DELETE /api/membership-plans)
+  membershipPlansApi: MembershipPlanApi[];
+  fetchMembershipPlans: () => Promise<MembershipPlanApi[]>;
+  createMembershipPlan: (planData: {
+    planName: string;
+    type: string;
+    totalVisitsAllowed: number;
+    price: number;
+  }) => Promise<{ success: boolean; plan?: MembershipPlanApi; error?: string }>;
+  updateMembershipPlan: (
+    planId: string,
+    updates: Partial<{ planName: string; type: string; totalVisitsAllowed: number; price: number }>
+  ) => Promise<{ success: boolean; plan?: MembershipPlanApi; error?: string }>;
+  deleteMembershipPlan: (planId: string) => Promise<{ success: boolean; error?: string }>;
+
+  // Subscriptions API (GET, POST, PUT, DELETE /api/subscriptions)
+  subscriptionsApi: SubscriptionApi[];
+  fetchSubscriptions: () => Promise<SubscriptionApi[]>;
+  createSubscription: (subData: {
+    userId: string;
+    planId: string;
+    startDate: string;
+    endDate: string;
+    status?: string;
+  }) => Promise<{ success: boolean; subscription?: SubscriptionApi; error?: string }>;
+  updateSubscription: (
+    subscriptionId: string,
+    updates: Partial<{ status: string }>
+  ) => Promise<{ success: boolean; subscription?: SubscriptionApi; error?: string }>;
+  deleteSubscription: (subscriptionId: string) => Promise<{ success: boolean; error?: string }>;
+
+  // Direct Bookings API (GET, POST, PUT, DELETE /api/direct-bookings)
+  directBookingsApi: DirectBookingApi[];
+  fetchDirectBookings: () => Promise<DirectBookingApi[]>;
+  createDirectBooking: (bookingData: {
+    userId: string;
+    workspaceId: string;
+    sectionId: string;
+    durationType: string;
+    bookingDate: string;
+    status?: string;
+  }) => Promise<{ success: boolean; booking?: DirectBookingApi; error?: string }>;
+  updateDirectBooking: (
+    bookingId: string,
+    updates: Partial<{ status: string }>
+  ) => Promise<{ success: boolean; booking?: DirectBookingApi; error?: string }>;
+  deleteDirectBooking: (bookingId: string) => Promise<{ success: boolean; error?: string }>;
+
+  // Payments API (GET, POST, PUT, DELETE /api/payments)
+  paymentsApi: PaymentApi[];
+  fetchPayments: () => Promise<PaymentApi[]>;
+  createPayment: (paymentData: {
+    userId: string;
+    amount: number;
+    method: string;
+    paymentFor: string;
+    referenceId?: string;
+    status?: string;
+  }) => Promise<{ success: boolean; payment?: PaymentApi; error?: string }>;
+  updatePayment: (
+    paymentId: string,
+    updates: Partial<{ status: string }>
+  ) => Promise<{ success: boolean; payment?: PaymentApi; error?: string }>;
+  deletePayment: (paymentId: string) => Promise<{ success: boolean; error?: string }>;
+
+
+  // Support Tickets & Inquiries
+  supportTickets: SupportTicket[];
+  addSupportTicket: (ticketData: Omit<SupportTicket, 'id' | 'ticketNumber' | 'createdAt' | 'status' | 'priority'> & { status?: TicketStatus; priority?: SupportTicket['priority'] }) => SupportTicket;
+  updateTicketStatus: (id: string, status: TicketStatus, notes?: string) => void;
+  replyToTicket: (id: string, reply: string, newStatus?: TicketStatus) => void;
+
   // Auth & 2FA OTP
   currentUser: User | null;
   otpSession: OtpSession | null;
-  login: (email: string, password: string) => { success: boolean; error?: string; requireOtp?: boolean };
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string; requireOtp?: boolean }>;
   signup: (name: string, email: string, password: string, phone: string) => User;
-  requestSignupOtp: (newUser: User, role: UserRole, extraData?: Partial<User>) => void;
+  requestSignupOtp: (newUser: User, role: UserRole, extraData?: Partial<User>) => Promise<{ success: boolean; error?: string; message?: string }>;
   requestForgotPasswordOtp: (email: string) => { success: boolean; error?: string };
   resetPassword: (newPassword: string) => { success: boolean; error?: string };
   completeSignup: (role: UserRole, extraData?: Partial<User>) => void;
-  verifyOtp: (code: string) => { success: boolean; error?: string };
-  resendOtp: () => void;
+  verifyOtp: (code: string) => Promise<{ success: boolean; error?: string }>;
+  resendOtp: () => Promise<void>;
   cancelOtp: () => void;
   startOtpVerification: (session: OtpSession) => void;
   logout: () => void;
@@ -28,6 +372,11 @@ interface AppContextType {
   pendingUser: Partial<User> | null;
   pendingResetUser: User | null;
   updateCurrentUser: (updates: Partial<User>) => void;
+
+  // Location & Geolocation
+  userLocation: { lat: number; lng: number } | null;
+  locationStatus: 'idle' | 'loading' | 'granted' | 'denied' | 'unsupported';
+  requestUserLocation: () => Promise<{ lat: number; lng: number } | null>;
 
   // Spaces
   spaces: Space[];
@@ -43,6 +392,7 @@ interface AppContextType {
   addBooking: (booking: Omit<Booking, 'id' | 'createdAt'>) => Booking;
   cancelBooking: (id: string, refundMethod?: 'wallet' | 'card') => void;
   updateBookingStatus: (id: string, status: Booking['status']) => void;
+  deleteBooking: (bookingId: string) => void;
 
   // Amenity Requests (Provider -> Admin)
   amenityRequests: AmenityRequest[];
@@ -50,6 +400,7 @@ interface AppContextType {
   requestCustomAmenity: (amenityName: string, spaceId?: string, spaceName?: string) => { success: boolean; message: string; request?: AmenityRequest };
   approveAmenityRequest: (requestId: string) => void;
   rejectAmenityRequest: (requestId: string, reason?: string) => void;
+  deleteAmenityRequest: (requestId: string) => void;
   getApprovedAmenities: () => string[];
 
   // Notifications
@@ -108,6 +459,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [pendingResetUser, setPendingResetUser] = useState<User | null>(null);
   const [otpSession, setOtpSession] = useState<OtpSession | null>(null);
   const [spaces, setSpaces] = useState<Space[]>(INITIAL_SPACES);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationStatus, setLocationStatus] = useState<'idle' | 'loading' | 'granted' | 'denied' | 'unsupported'>('idle');
   const [bookings, setBookings] = useState<Booking[]>(INITIAL_BOOKINGS);
   const [users, setUsers] = useState<User[]>(INITIAL_USERS);
   const [favorites, setFavorites] = useState<string[]>(['space-1', 'space-3']);
@@ -140,6 +493,1135 @@ export function AppProvider({ children }: { children: ReactNode }) {
     },
   ]);
   const [approvedCustomAmenities, setApprovedCustomAmenities] = useState<string[]>(['Podcast Recording Studio']);
+  const [supportTickets, setSupportTickets] = useState<SupportTicket[]>(INITIAL_SUPPORT_TICKETS);
+  const [partners, setPartners] = useState<Partner[]>([]);
+  const [workspacesApi, setWorkspacesApi] = useState<WorkspaceApi[]>([]);
+  const [hourlyBookingsApi, setHourlyBookingsApi] = useState<HourlyBookingApi[]>([]);
+  const [payoutsApi, setPayoutsApi] = useState<PayoutApi[]>([]);
+  const [membershipPlansApi, setMembershipPlansApi] = useState<MembershipPlanApi[]>([]);
+  const [subscriptionsApi, setSubscriptionsApi] = useState<SubscriptionApi[]>([]);
+  const [directBookingsApi, setDirectBookingsApi] = useState<DirectBookingApi[]>([]);
+  const [paymentsApi, setPaymentsApi] = useState<PaymentApi[]>([]);
+
+  const fetchMembershipPlans = async (): Promise<MembershipPlanApi[]> => {
+    try {
+      const data = await fetchMembershipPlansFromApi();
+      if (Array.isArray(data)) setMembershipPlansApi(data);
+      return data;
+    } catch (err) {
+      console.error('Failed to fetch membership plans:', err);
+      return membershipPlansApi;
+    }
+  };
+
+  const createMembershipPlan = async (planData: {
+    planName: string;
+    type: string;
+    totalVisitsAllowed: number;
+    price: number;
+  }): Promise<{ success: boolean; plan?: MembershipPlanApi; error?: string }> => {
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const storedToken = getStoredToken();
+      if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+      const response = await fetch(`${getApiBaseUrl()}/membership-plans`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(planData),
+      });
+      const resData = await response.json();
+      if (!response.ok) throw new Error(resData.error || 'Failed to create membership plan');
+      const newPlan: MembershipPlanApi = resData;
+      setMembershipPlansApi((prev) => [newPlan, ...prev]);
+      showToast('Membership plan created successfully', 'success');
+      return { success: true, plan: newPlan };
+    } catch (err: any) {
+      showToast(err.message || 'Failed to create membership plan', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const updateMembershipPlan = async (
+    planId: string,
+    updates: Partial<{ planName: string; type: string; totalVisitsAllowed: number; price: number }>
+  ): Promise<{ success: boolean; plan?: MembershipPlanApi; error?: string }> => {
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const storedToken = getStoredToken();
+      if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+      const response = await fetch(`${getApiBaseUrl()}/membership-plans/${planId}`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(updates),
+      });
+      const resData = await response.json();
+      if (!response.ok) throw new Error(resData.error || 'Failed to update membership plan');
+      const updatedPlan: MembershipPlanApi = resData;
+      setMembershipPlansApi((prev) => prev.map((p) => (p.id === planId ? updatedPlan : p)));
+      showToast('Membership plan updated successfully', 'success');
+      return { success: true, plan: updatedPlan };
+    } catch (err: any) {
+      showToast(err.message || 'Failed to update membership plan', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const deleteMembershipPlan = async (planId: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const storedToken = getStoredToken();
+      if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+      const response = await fetch(`${getApiBaseUrl()}/membership-plans/${planId}`, {
+        method: 'DELETE',
+        headers,
+      });
+      const resData = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(resData.error || 'Failed to delete membership plan');
+      setMembershipPlansApi((prev) => prev.filter((p) => p.id !== planId));
+      showToast('Membership plan deleted successfully', 'success');
+      return { success: true };
+    } catch (err: any) {
+      showToast(err.message || 'Failed to delete membership plan', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const fetchSubscriptions = async (): Promise<SubscriptionApi[]> => {
+    try {
+      const data = await fetchSubscriptionsFromApi();
+      if (Array.isArray(data)) setSubscriptionsApi(data);
+      return data;
+    } catch (err) {
+      console.error('Failed to fetch subscriptions:', err);
+      return subscriptionsApi;
+    }
+  };
+
+  const createSubscription = async (subData: {
+    userId: string;
+    planId: string;
+    startDate: string;
+    endDate: string;
+    status?: string;
+  }): Promise<{ success: boolean; subscription?: SubscriptionApi; error?: string }> => {
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const storedToken = getStoredToken();
+      if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+      const response = await fetch(`${getApiBaseUrl()}/subscriptions`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(subData),
+      });
+      const resData = await response.json();
+      if (!response.ok) throw new Error(resData.error || 'Failed to create subscription');
+      const newSub: SubscriptionApi = resData;
+      setSubscriptionsApi((prev) => [newSub, ...prev]);
+      showToast('Subscription created successfully', 'success');
+      return { success: true, subscription: newSub };
+    } catch (err: any) {
+      showToast(err.message || 'Failed to create subscription', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const updateSubscription = async (
+    subscriptionId: string,
+    updates: Partial<{ status: string }>
+  ): Promise<{ success: boolean; subscription?: SubscriptionApi; error?: string }> => {
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const storedToken = getStoredToken();
+      if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+      const response = await fetch(`${getApiBaseUrl()}/subscriptions/${subscriptionId}`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(updates),
+      });
+      const resData = await response.json();
+      if (!response.ok) throw new Error(resData.error || 'Failed to update subscription');
+      const updatedSub: SubscriptionApi = resData;
+      setSubscriptionsApi((prev) => prev.map((s) => (s.id === subscriptionId ? updatedSub : s)));
+      showToast('Subscription updated successfully', 'success');
+      return { success: true, subscription: updatedSub };
+    } catch (err: any) {
+      showToast(err.message || 'Failed to update subscription', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const deleteSubscription = async (subscriptionId: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const storedToken = getStoredToken();
+      if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+      const response = await fetch(`${getApiBaseUrl()}/subscriptions/${subscriptionId}`, {
+        method: 'DELETE',
+        headers,
+      });
+      const resData = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(resData.error || 'Failed to delete subscription');
+      setSubscriptionsApi((prev) => prev.filter((s) => s.id !== subscriptionId));
+      showToast('Subscription deleted successfully', 'success');
+      return { success: true };
+    } catch (err: any) {
+      showToast(err.message || 'Failed to delete subscription', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const fetchDirectBookings = async (): Promise<DirectBookingApi[]> => {
+    try {
+      const data = await fetchDirectBookingsFromApi();
+      if (Array.isArray(data) && data.length > 0) {
+        setDirectBookingsApi(data);
+        const dbBookings: Booking[] = data.map((b) => {
+          const matchedSpace = spaces.find(s => s.id === b.workspaceId) || spaces.find(s => s.name === b.workspace?.name);
+          const p = b.durationType?.toLowerCase() === 'monthly' ? 'monthly' : b.durationType?.toLowerCase() === 'yearly' ? 'yearly' : 'daily';
+          const userIdStr = b.userId || (typeof b.user === 'object' && b.user && 'id' in b.user ? (b.user as any).id : '') || '';
+          return {
+            id: b.id,
+            userId: userIdStr,
+            spaceId: b.workspaceId || matchedSpace?.id || 'space-1',
+            spaceName: b.workspace?.name || matchedSpace?.name || 'Workspace',
+            spaceCity: b.workspace?.city || matchedSpace?.city || 'Riyadh',
+            spaceAddress: matchedSpace?.address || b.workspace?.city || 'Riyadh',
+            spaceImage: matchedSpace?.images?.[0] || 'https://images.unsplash.com/photo-1497366216548-37526070297c',
+            type: matchedSpace?.type || 'private-office',
+            plan: p,
+            seats: 1,
+            employees: [],
+            startDate: b.bookingDate ? new Date(b.bookingDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+            endDate: b.bookingDate ? new Date(b.bookingDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+            startTime: '09:00',
+            endTime: '18:00',
+            totalPrice: matchedSpace?.pricing?.daily || b.workspace?.dailyRate || 50,
+            status: b.status === 'CONFIRMED' || b.status === 'ACTIVE' ? 'active' : b.status === 'CANCELLED' ? 'cancelled' : 'previous',
+            createdAt: b.createdAt ? new Date(b.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          };
+        });
+
+        setBookings((prev) => {
+          const map = new Map(prev.map(item => [item.id, item]));
+          dbBookings.forEach(dbItem => map.set(dbItem.id, dbItem));
+          return Array.from(map.values());
+        });
+      }
+      return data;
+    } catch (err) {
+      console.error('Failed to fetch direct bookings:', err);
+      return directBookingsApi;
+    }
+  };
+
+  const createDirectBooking = async (bookingData: {
+    userId: string;
+    workspaceId: string;
+    sectionId: string;
+    durationType: string;
+    bookingDate: string;
+    status?: string;
+  }): Promise<{ success: boolean; booking?: DirectBookingApi; error?: string }> => {
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const storedToken = getStoredToken();
+      if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+      const response = await fetch(`${getApiBaseUrl()}/direct-bookings`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(bookingData),
+      });
+      const resData = await response.json();
+      if (!response.ok) throw new Error(resData.error || 'Failed to create direct booking');
+      const newBooking: DirectBookingApi = resData;
+      setDirectBookingsApi((prev) => [newBooking, ...prev]);
+      showToast('Direct booking created successfully', 'success');
+      return { success: true, booking: newBooking };
+    } catch (err: any) {
+      showToast(err.message || 'Failed to create direct booking', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const updateDirectBooking = async (
+    bookingId: string,
+    updates: Partial<{ status: string }>
+  ): Promise<{ success: boolean; booking?: DirectBookingApi; error?: string }> => {
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const storedToken = getStoredToken();
+      if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+      const response = await fetch(`${getApiBaseUrl()}/direct-bookings/${bookingId}`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(updates),
+      });
+      const resData = await response.json();
+      if (!response.ok) throw new Error(resData.error || 'Failed to update direct booking');
+      const updatedBooking: DirectBookingApi = resData;
+      setDirectBookingsApi((prev) => prev.map((b) => (b.id === bookingId ? updatedBooking : b)));
+      showToast('Direct booking updated successfully', 'success');
+      return { success: true, booking: updatedBooking };
+    } catch (err: any) {
+      showToast(err.message || 'Failed to update direct booking', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const deleteDirectBooking = async (bookingId: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const storedToken = getStoredToken();
+      if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+      const response = await fetch(`${getApiBaseUrl()}/direct-bookings/${bookingId}`, {
+        method: 'DELETE',
+        headers,
+      });
+      const resData = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(resData.error || 'Failed to delete direct booking');
+      setDirectBookingsApi((prev) => prev.filter((b) => b.id !== bookingId));
+      setBookings((prev) => prev.filter((b) => b.id !== bookingId));
+      showToast('Direct booking deleted successfully', 'success');
+      return { success: true };
+    } catch (err: any) {
+      showToast(err.message || 'Failed to delete direct booking', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const fetchPayments = async (): Promise<PaymentApi[]> => {
+    try {
+      const data = await fetchPaymentsFromApi();
+      if (Array.isArray(data)) setPaymentsApi(data);
+      return data;
+    } catch (err) {
+      console.error('Failed to fetch payments:', err);
+      return paymentsApi;
+    }
+  };
+
+  const fetchAmenities = async () => {
+    try {
+      const storedToken = getStoredToken();
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+
+      const res = await fetch(`${getApiBaseUrl()}/amenities`, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          const approved = data
+            .filter((a: any) => a.status === 'APPROVED' && !a.isDefault)
+            .map((a: any) => a.name);
+          if (approved.length > 0) {
+            setApprovedCustomAmenities((prev) => Array.from(new Set([...prev, ...approved])));
+          }
+
+          const requests: AmenityRequest[] = data
+            .filter((a: any) => !a.isDefault || a.requestedBy)
+            .map((a: any) => ({
+              id: a.id,
+              amenityName: a.name,
+              providerId: a.requestedBy || 'user-p1',
+              providerName: 'Workspace Provider',
+              status: (a.status || 'PENDING_APPROVAL') as AmenityRequestStatus,
+              createdAt: a.createdAt || new Date().toISOString(),
+            }));
+
+          if (requests.length > 0) {
+            setAmenityRequests((prev) => {
+              const map = new Map(prev.map((r) => [r.id, r]));
+              requests.forEach((r) => map.set(r.id, r));
+              return Array.from(map.values());
+            });
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to fetch amenities from /api/amenities:', err);
+    }
+  };
+
+  const fetchNotifications = async (): Promise<Notification[]> => {
+    try {
+      const storedToken = getStoredToken();
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+
+      const res = await fetch(`${getApiBaseUrl()}/notifications`, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          const dbNotifs: Notification[] = data.map((n: any) => ({
+            id: n.id,
+            userId: n.userId,
+            title: n.title,
+            message: n.message,
+            type: (n.type?.toLowerCase() || 'info') as any,
+            read: n.isRead ?? false,
+            createdAt: n.sentAt ? new Date(n.sentAt).toLocaleString() : 'Just now',
+          }));
+
+          setNotifications((prev) => {
+            const map = new Map(prev.map((item) => [item.id, item]));
+            dbNotifs.forEach((dbItem) => map.set(dbItem.id, dbItem));
+            return Array.from(map.values());
+          });
+        }
+      }
+      return notifications;
+    } catch (err) {
+      console.warn('Failed to fetch notifications from /api/notifications:', err);
+      return notifications;
+    }
+  };
+
+  const createPayment = async (paymentData: {
+    userId: string;
+    amount: number;
+    method: string;
+    paymentFor: string;
+    referenceId?: string;
+    status?: string;
+  }): Promise<{ success: boolean; payment?: PaymentApi; error?: string }> => {
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const storedToken = getStoredToken();
+      if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+      const response = await fetch(`${getApiBaseUrl()}/payments`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(paymentData),
+      });
+      const resData = await response.json();
+      if (!response.ok) throw new Error(resData.error || 'Failed to record payment');
+      const newPayment: PaymentApi = resData;
+      setPaymentsApi((prev) => [newPayment, ...prev]);
+      showToast('Payment recorded successfully', 'success');
+      return { success: true, payment: newPayment };
+    } catch (err: any) {
+      showToast(err.message || 'Failed to record payment', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const updatePayment = async (
+    paymentId: string,
+    updates: Partial<{ status: string }>
+  ): Promise<{ success: boolean; payment?: PaymentApi; error?: string }> => {
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const storedToken = getStoredToken();
+      if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+      const response = await fetch(`${getApiBaseUrl()}/payments/${paymentId}`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(updates),
+      });
+      const resData = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setPaymentsApi((prev) => prev.map((p) => (p.id === paymentId ? { ...p, ...updates } : p)));
+        return { success: true };
+      }
+      const updatedPayment: PaymentApi = resData;
+      setPaymentsApi((prev) => prev.map((p) => (p.id === paymentId ? updatedPayment : p)));
+      showToast('Payment updated successfully', 'success');
+      return { success: true, payment: updatedPayment };
+    } catch (err: any) {
+      setPaymentsApi((prev) => prev.map((p) => (p.id === paymentId ? { ...p, ...updates } : p)));
+      return { success: true };
+    }
+  };
+
+  const deletePayment = async (paymentId: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const storedToken = getStoredToken();
+      if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+      const response = await fetch(`${getApiBaseUrl()}/payments/${paymentId}`, {
+        method: 'DELETE',
+        headers,
+      });
+      const resData = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setPaymentsApi((prev) => prev.filter((p) => p.id !== paymentId));
+        return { success: true };
+      }
+      setPaymentsApi((prev) => prev.filter((p) => p.id !== paymentId));
+      showToast('Payment deleted successfully', 'success');
+      return { success: true };
+    } catch (err: any) {
+      setPaymentsApi((prev) => prev.filter((p) => p.id !== paymentId));
+      return { success: true };
+    }
+  };
+
+  const fetchPartners = async (): Promise<Partner[]> => {
+    try {
+      const data = await fetchPartnersFromApi();
+      if (Array.isArray(data) && data.length > 0) {
+        setPartners(data);
+      }
+      return data;
+    } catch (err) {
+      console.error('Failed to fetch partners from /api/partners:', err);
+      return partners;
+    }
+  };
+
+  const fetchHourlyBookings = async (): Promise<HourlyBookingApi[]> => {
+    try {
+      const data = await fetchHourlyBookingsFromApi();
+      if (Array.isArray(data) && data.length > 0) {
+        setHourlyBookingsApi(data);
+        const dbBookings: Booking[] = data.map((b) => {
+          const matchedSpace = spaces.find(s => s.id === b.section?.workspaceId);
+          const userIdStr = b.userId || (typeof b.user === 'object' && b.user && 'id' in b.user ? (b.user as any).id : '') || '';
+          return {
+            id: b.id,
+            userId: userIdStr,
+            spaceId: b.section?.workspaceId || matchedSpace?.id || 'space-1',
+            spaceName: matchedSpace?.name || 'Workspace',
+            spaceCity: matchedSpace?.city || 'Riyadh',
+            spaceAddress: matchedSpace?.address || 'Riyadh',
+            spaceImage: matchedSpace?.images?.[0] || 'https://images.unsplash.com/photo-1497366216548-37526070297c',
+            type: matchedSpace?.type || 'private-office',
+            plan: 'hourly',
+            seats: 1,
+            employees: [],
+            startDate: b.startDate ? new Date(b.startDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+            endDate: b.endDate ? new Date(b.endDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+            startTime: '09:00',
+            endTime: '18:00',
+            totalPrice: matchedSpace?.pricing?.hourly || 45,
+            status: b.status === 'ACTIVE' || b.status === 'CONFIRMED' ? 'active' : b.status === 'CANCELLED' ? 'cancelled' : 'previous',
+            createdAt: b.createdAt ? new Date(b.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          };
+        });
+
+        setBookings((prev) => {
+          const map = new Map(prev.map(item => [item.id, item]));
+          dbBookings.forEach(dbItem => map.set(dbItem.id, dbItem));
+          return Array.from(map.values());
+        });
+      }
+      return data;
+    } catch (err) {
+      console.error('Failed to fetch hourly bookings from /api/hourly-bookings:', err);
+      return hourlyBookingsApi;
+    }
+  };
+
+  const createHourlyBooking = async (bookingData: {
+    userId: string;
+    sectionId: string;
+    packageId: string;
+    startDate: string;
+    endDate: string;
+    status?: string;
+  }): Promise<{ success: boolean; booking?: HourlyBookingApi; error?: string }> => {
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      const storedToken = getStoredToken();
+      if (storedToken) {
+        headers['Authorization'] = `Bearer ${storedToken}`;
+      }
+
+      const response = await fetch(`${getApiBaseUrl()}/hourly-bookings`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(bookingData),
+      });
+
+      const resData = await response.json();
+      if (!response.ok) {
+        throw new Error(resData.error || 'Failed to create hourly booking');
+      }
+
+      const newBooking: HourlyBookingApi = resData.booking || resData;
+      setHourlyBookingsApi((prev) => [newBooking, ...prev]);
+      showToast(`Hourly booking created successfully`, 'success');
+      return { success: true, booking: newBooking };
+    } catch (err: any) {
+      console.error('Error creating hourly booking via POST /api/hourly-bookings:', err);
+      showToast(err.message || 'Failed to create hourly booking', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const updateHourlyBooking = async (
+    bookingId: string,
+    updates: Partial<{
+      userId: string;
+      sectionId: string;
+      packageId: string;
+      startDate: string;
+      endDate: string;
+      hoursUsed: number;
+      status: string;
+    }>
+  ): Promise<{ success: boolean; booking?: HourlyBookingApi; error?: string }> => {
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      const storedToken = getStoredToken();
+      if (storedToken) {
+        headers['Authorization'] = `Bearer ${storedToken}`;
+      }
+
+      const response = await fetch(`${getApiBaseUrl()}/hourly-bookings/${bookingId}`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(updates),
+      });
+
+      const resData = await response.json();
+      if (!response.ok) {
+        throw new Error(resData.error || 'Failed to update hourly booking');
+      }
+
+      const updatedBooking: HourlyBookingApi = resData.booking || resData;
+      setHourlyBookingsApi((prev) =>
+        prev.map((b) => (b.id === bookingId ? { ...b, ...updatedBooking } : b))
+      );
+      showToast(`Hourly booking updated successfully`, 'success');
+      return { success: true, booking: updatedBooking };
+    } catch (err: any) {
+      console.error(`Error updating hourly booking via PUT /api/hourly-bookings/${bookingId}:`, err);
+      showToast(err.message || 'Failed to update hourly booking', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const deleteHourlyBooking = async (bookingId: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      const storedToken = getStoredToken();
+      if (storedToken) {
+        headers['Authorization'] = `Bearer ${storedToken}`;
+      }
+
+      const response = await fetch(`${getApiBaseUrl()}/hourly-bookings/${bookingId}`, {
+        method: 'DELETE',
+        headers,
+      });
+
+      const resData = await response.json();
+      if (!response.ok) {
+        throw new Error(resData.error || 'Failed to delete hourly booking');
+      }
+
+      setHourlyBookingsApi((prev) => prev.filter((b) => b.id !== bookingId));
+      setBookings((prev) => prev.filter((b) => b.id !== bookingId));
+      showToast(`Hourly booking cancelled successfully`, 'success');
+      return { success: true };
+    } catch (err: any) {
+      console.error(`Error deleting hourly booking via DELETE /api/hourly-bookings/${bookingId}:`, err);
+      showToast(err.message || 'Failed to delete hourly booking', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const fetchPayouts = async (): Promise<PayoutApi[]> => {
+    try {
+      const data = await fetchPayoutsFromApi();
+      if (Array.isArray(data) && data.length > 0) {
+        setPayoutsApi(data);
+      }
+      return data;
+    } catch (err) {
+      console.error('Failed to fetch payouts from /api/payouts:', err);
+      return payoutsApi;
+    }
+  };
+
+  const createPayout = async (payoutData: {
+    partnerId: string;
+    billingMonth: string;
+    totalVisitsReceived: number;
+    amountDue: number;
+    status?: string;
+  }): Promise<{ success: boolean; payout?: PayoutApi; error?: string }> => {
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      const storedToken = getStoredToken();
+      if (storedToken) {
+        headers['Authorization'] = `Bearer ${storedToken}`;
+      }
+
+      const response = await fetch(`${getApiBaseUrl()}/payouts`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payoutData),
+      });
+
+      const resData = await response.json();
+      if (!response.ok) {
+        throw new Error(resData.error || 'Failed to create payout');
+      }
+
+      const newPayout: PayoutApi = resData.payout || resData;
+      setPayoutsApi((prev) => [newPayout, ...prev]);
+      showToast(`Payout created successfully`, 'success');
+      return { success: true, payout: newPayout };
+    } catch (err: any) {
+      console.error('Error creating payout via POST /api/payouts:', err);
+      showToast(err.message || 'Failed to create payout', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const updatePayout = async (
+    payoutId: string,
+    updates: Partial<{
+      partnerId: string;
+      billingMonth: string;
+      totalVisitsReceived: number;
+      amountDue: number;
+      status: string;
+      paidAt: string;
+    }>
+  ): Promise<{ success: boolean; payout?: PayoutApi; error?: string }> => {
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      const storedToken = getStoredToken();
+      if (storedToken) {
+        headers['Authorization'] = `Bearer ${storedToken}`;
+      }
+
+      const response = await fetch(`${getApiBaseUrl()}/payouts/${payoutId}`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(updates),
+      });
+
+      const resData = await response.json();
+      if (!response.ok) {
+        throw new Error(resData.error || 'Failed to update payout');
+      }
+
+      const updatedPayout: PayoutApi = resData.payout || resData;
+      setPayoutsApi((prev) =>
+        prev.map((p) => (p.id === payoutId ? { ...p, ...updatedPayout } : p))
+      );
+      showToast(`Payout updated successfully`, 'success');
+      return { success: true, payout: updatedPayout };
+    } catch (err: any) {
+      console.error(`Error updating payout via PUT /api/payouts/${payoutId}:`, err);
+      showToast(err.message || 'Failed to update payout', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const deletePayout = async (payoutId: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      const storedToken = getStoredToken();
+      if (storedToken) {
+        headers['Authorization'] = `Bearer ${storedToken}`;
+      }
+
+      const response = await fetch(`${getApiBaseUrl()}/payouts/${payoutId}`, {
+        method: 'DELETE',
+        headers,
+      });
+
+      const resData = await response.json();
+      if (!response.ok) {
+        throw new Error(resData.error || 'Failed to delete payout');
+      }
+
+      setPayoutsApi((prev) => prev.filter((p) => p.id !== payoutId));
+      showToast(`Payout deleted successfully`, 'success');
+      return { success: true };
+    } catch (err: any) {
+      console.error(`Error deleting payout via DELETE /api/payouts/${payoutId}:`, err);
+      showToast(err.message || 'Failed to delete payout', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const fetchWorkspaces = async (): Promise<WorkspaceApi[]> => {
+    try {
+      const data = await fetchWorkspacesFromApi();
+      if (Array.isArray(data) && data.length > 0) {
+        setWorkspacesApi(data);
+        const userEmail = currentUser?.email?.toLowerCase();
+        const userPartner = partners.find(p => p.contactEmail?.toLowerCase() === userEmail);
+        const userPartnerId = userPartner?.id;
+
+        let savedTypes: Record<string, string> = {};
+        if (typeof window !== 'undefined') {
+          try {
+            const rawMap = localStorage.getItem('cp_space_types');
+            if (rawMap) savedTypes = JSON.parse(rawMap);
+          } catch (_) {}
+        }
+
+        const dbSpaces: Space[] = data.map((w) => {
+          const isBelongingToCurrentUser = currentUser && (
+            w.partnerId === currentUser.id ||
+            (userPartnerId && w.partnerId === userPartnerId) ||
+            (userEmail && w.partner?.contactEmail?.toLowerCase() === userEmail)
+          );
+          const existing = spaces.find(s => s.id === w.id || s.name.toLowerCase() === w.name.toLowerCase())
+            || INITIAL_SPACES.find(s => s.id === w.id || s.name.toLowerCase() === w.name.toLowerCase());
+          
+          const savedType = savedTypes[w.id] || savedTypes[w.name.toLowerCase()];
+
+          const nameLower = (w.name || '').toLowerCase();
+          const isNameHall = nameLower.includes('hall') || nameLower.includes('قاعة') || nameLower.includes('majlis') || nameLower.includes('conference') || nameLower.includes('training') || nameLower.includes('meeting') || nameLower.includes('room');
+          const isNameTheater = nameLower.includes('theater') || nameLower.includes('مسرح') || nameLower.includes('auditorium');
+
+          let inferredType: SpaceType | undefined = undefined;
+          if (isNameTheater) inferredType = 'theater';
+          else if (isNameHall) inferredType = 'meeting-room';
+
+          let sectionType: string | undefined = undefined;
+          if (Array.isArray(w.sections) && w.sections.length > 0) {
+            const sec = w.sections[0];
+            if (sec.type === 'MEETING_ROOM') sectionType = 'meeting-room';
+            else if (sec.type === 'THEATER') sectionType = 'theater';
+            else if (sec.type === 'DESK') {
+              if (isNameTheater) sectionType = 'theater';
+              else if (isNameHall) sectionType = 'meeting-room';
+              else if (savedType) sectionType = savedType;
+              else sectionType = 'private-office';
+            }
+          }
+
+          const preservedType = (savedType || sectionType || inferredType || existing?.type || (w as any).type || 'private-office') as SpaceType;
+
+          // Asynchronously sync section to PostgreSQL backend DB if section was stored as DESK but space is actually hall or theater
+          if (Array.isArray(w.sections) && w.sections.length > 0) {
+            const sec = w.sections[0];
+            const targetDbSecType = mapFrontendTypeToDbSectionType(preservedType);
+            if (sec.type !== targetDbSecType && targetDbSecType !== 'DESK') {
+              const storedToken = getStoredToken();
+              if (storedToken) {
+                fetch(`${getApiBaseUrl()}/workspace-sections/${sec.id}`, {
+                  method: 'PUT',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${storedToken}`,
+                  },
+                  body: JSON.stringify({ type: targetDbSecType }),
+                }).catch(() => {});
+              }
+            }
+          }
+
+          return {
+            id: w.id,
+            name: w.name,
+            city: w.city,
+            district: '',
+            address: w.city,
+            description: existing?.description || `Workspace managed by ${w.partner?.brandName || 'Partner'}`,
+            type: preservedType,
+            images: existing?.images && existing.images.length > 0 ? existing.images : ['https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80'],
+            amenities: existing?.amenities && existing.amenities.length > 0 ? existing.amenities : ['High-Speed Wi-Fi', 'Coffee Bar', 'Meeting Rooms'],
+            totalCapacity: w.totalCapacity || existing?.totalCapacity || 50,
+            availableCapacity: w.totalCapacity || existing?.availableCapacity || 50,
+            pricing: {
+              hourly: existing?.pricing?.hourly || 45,
+              daily: w.dailyRate || existing?.pricing?.daily || 100,
+              monthly: w.monthlyRate || existing?.pricing?.monthly || 2000,
+              yearly: w.yearlyRate || existing?.pricing?.yearly || 20000,
+            },
+            bookingMode: existing?.bookingMode || (preservedType === 'meeting-room' || preservedType === 'event-hall' || (preservedType as string).includes('hall') ? 'hourly' : 'subscription'),
+            bookingPackages: existing?.bookingPackages || [],
+            rating: existing?.rating || 4.8,
+            reviewCount: existing?.reviewCount || 12,
+            isVisible: existing?.isVisible !== undefined ? existing.isVisible : true,
+            isFeatured: existing?.isFeatured !== undefined ? existing.isFeatured : false,
+            openHours: existing?.openHours || '08:00 AM - 10:00 PM',
+            phone: existing?.phone || '+966 50 000 0000',
+            email: w.partner?.contactEmail || existing?.email || 'contact@coworkingpass.sa',
+            ownerId: isBelongingToCurrentUser ? currentUser.id : w.partnerId,
+          };
+        });
+
+        setSpaces(dbSpaces);
+      }
+      return data;
+    } catch (err) {
+      console.error('Failed to fetch workspaces from /api/workspaces:', err);
+      return workspacesApi;
+    }
+  };
+
+  const createWorkspace = async (workspaceData: {
+    partnerId: string;
+    name: string;
+    city: string;
+    locationMapUrl?: string;
+    dailyRate?: number;
+    monthlyRate?: number;
+    yearlyRate?: number;
+    passVisitValue: number;
+    totalCapacity: number;
+  }): Promise<{ success: boolean; workspace?: WorkspaceApi; error?: string }> => {
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      const storedToken = getStoredToken();
+      if (storedToken) {
+        headers['Authorization'] = `Bearer ${storedToken}`;
+      }
+
+      const response = await fetch(`${getApiBaseUrl()}/workspaces`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(workspaceData),
+      });
+
+      const resData = await response.json();
+      if (!response.ok) {
+        throw new Error(resData.error || 'Failed to create workspace');
+      }
+
+      const newWorkspace: WorkspaceApi = resData.workspace || resData;
+      setWorkspacesApi((prev) => [newWorkspace, ...prev]);
+      showToast(`Workspace ${workspaceData.name} created successfully`, 'success');
+      return { success: true, workspace: newWorkspace };
+    } catch (err: any) {
+      console.error('Error creating workspace via POST /api/workspaces:', err);
+      showToast(err.message || 'Failed to create workspace', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const updateWorkspace = async (
+    workspaceId: string,
+    updates: Partial<{
+      partnerId: string;
+      name: string;
+      city: string;
+      locationMapUrl: string;
+      dailyRate: number;
+      monthlyRate: number;
+      yearlyRate: number;
+      passVisitValue: number;
+      totalCapacity: number;
+    }>
+  ): Promise<{ success: boolean; workspace?: WorkspaceApi; error?: string }> => {
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      const storedToken = getStoredToken();
+      if (storedToken) {
+        headers['Authorization'] = `Bearer ${storedToken}`;
+      }
+
+      const response = await fetch(`${getApiBaseUrl()}/workspaces/${workspaceId}`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(updates),
+      });
+
+      const resData = await response.json();
+      if (!response.ok) {
+        throw new Error(resData.error || 'Failed to update workspace');
+      }
+
+      const updatedWorkspace: WorkspaceApi = resData.workspace || resData;
+      setWorkspacesApi((prev) =>
+        prev.map((w) => (w.id === workspaceId ? { ...w, ...updatedWorkspace } : w))
+      );
+      showToast(`Workspace updated successfully`, 'success');
+      return { success: true, workspace: updatedWorkspace };
+    } catch (err: any) {
+      console.error(`Error updating workspace via PUT /api/workspaces/${workspaceId}:`, err);
+      showToast(err.message || 'Failed to update workspace', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const deleteWorkspace = async (workspaceId: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      const storedToken = getStoredToken();
+      if (storedToken) {
+        headers['Authorization'] = `Bearer ${storedToken}`;
+      }
+
+      const response = await fetch(`${getApiBaseUrl()}/workspaces/${workspaceId}`, {
+        method: 'DELETE',
+        headers,
+      });
+
+      const resData = await response.json();
+      if (!response.ok) {
+        throw new Error(resData.error || 'Failed to delete workspace');
+      }
+
+      setWorkspacesApi((prev) => prev.filter((w) => w.id !== workspaceId));
+      showToast(`Workspace deleted successfully`, 'success');
+      return { success: true };
+    } catch (err: any) {
+      console.error(`Error deleting workspace via DELETE /api/workspaces/${workspaceId}:`, err);
+      showToast(err.message || 'Failed to delete workspace', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const createPartner = async (partnerData: {
+    brandName: string;
+    contactEmail: string;
+    taxNumber: string;
+    revenueSharePercentage: number;
+  }): Promise<{ success: boolean; partner?: Partner; error?: string }> => {
+    try {
+      const storedToken = getStoredToken();
+      if (!storedToken) {
+        return { success: false, error: 'Please log in first' };
+      }
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${storedToken}`,
+      };
+
+      const response = await fetch(`${getApiBaseUrl()}/partners`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(partnerData),
+      });
+
+      const resData = await response.json();
+      if (!response.ok) {
+        throw new Error(resData.error || 'Failed to create partner');
+      }
+
+      const newPartner: Partner = resData.partner || resData;
+      setPartners((prev) => [newPartner, ...prev]);
+      showToast(`Partner ${partnerData.brandName} created successfully`, 'success');
+      return { success: true, partner: newPartner };
+    } catch (err: any) {
+      console.error('Error creating partner via POST /api/partners:', err);
+      showToast(err.message || 'Failed to create partner', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const updatePartner = async (
+    partnerId: string,
+    updates: Partial<{
+      brandName: string;
+      contactEmail: string;
+      taxNumber: string;
+      revenueSharePercentage: number;
+    }>
+  ): Promise<{ success: boolean; partner?: Partner; error?: string }> => {
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      const storedToken = getStoredToken();
+      if (storedToken) {
+        headers['Authorization'] = `Bearer ${storedToken}`;
+      }
+
+      const response = await fetch(`${getApiBaseUrl()}/partners/${partnerId}`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(updates),
+      });
+
+      const resData = await response.json();
+      if (!response.ok) {
+        throw new Error(resData.error || 'Failed to update partner');
+      }
+
+      const updatedPartner: Partner = resData.partner || resData;
+      setPartners((prev) =>
+        prev.map((p) => (p.id === partnerId ? { ...p, ...updatedPartner } : p))
+      );
+      showToast(`Partner updated successfully`, 'success');
+      return { success: true, partner: updatedPartner };
+    } catch (err: any) {
+      console.error(`Error updating partner via PUT /api/partners/${partnerId}:`, err);
+      showToast(err.message || 'Failed to update partner', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const deletePartner = async (partnerId: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      const storedToken = getStoredToken();
+      if (storedToken) {
+        headers['Authorization'] = `Bearer ${storedToken}`;
+      }
+
+      const response = await fetch(`${getApiBaseUrl()}/partners/${partnerId}`, {
+        method: 'DELETE',
+        headers,
+      });
+
+      const resData = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(resData.error || 'Failed to delete partner');
+      }
+
+      setPartners((prev) => prev.filter((p) => p.id !== partnerId));
+      showToast(`Partner deleted successfully`, 'success');
+      return { success: true };
+    } catch (err: any) {
+      console.error(`Error deleting partner via DELETE /api/partners/${partnerId}:`, err);
+      showToast(err.message || 'Failed to delete partner', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  useEffect(() => {
+    fetchWorkspaces().catch(() => {});
+    fetchMembershipPlans().catch(() => {});
+    fetchAmenities().catch(() => {});
+
+    const storedToken = getStoredToken();
+    if (storedToken) {
+      fetchPartners().catch(() => {});
+      fetchHourlyBookings().catch(() => {});
+      fetchPayouts().catch(() => {});
+      fetchSubscriptions().catch(() => {});
+      fetchDirectBookings().catch(() => {});
+      fetchPayments().catch(() => {});
+      fetchNotifications().catch(() => {});
+      if (currentUser) {
+        getLoyaltyPointsApi(currentUser.id).then(ptsRes => {
+          if (ptsRes.success && Array.isArray(ptsRes.data)) {
+            const uPts = ptsRes.data.find((p: any) => p.userId === currentUser.id);
+            if (uPts && typeof uPts.availableBalance === 'number') {
+              const syncedUser = { ...currentUser, loyaltyPoints: uPts.availableBalance };
+              setCurrentUser(syncedUser);
+              if (typeof window !== 'undefined') {
+                localStorage.setItem('cp_currentUser', JSON.stringify(syncedUser));
+              }
+            }
+          }
+        }).catch(() => {});
+      }
+    }
+  }, []);
 
   const sanitizeBookings = (list: Booking[]): Booking[] => {
     const seen = new Set<string>();
@@ -264,10 +1746,44 @@ export function AppProvider({ children }: { children: ReactNode }) {
           // Keep default state
         }
       }
+
+      const savedTickets = localStorage.getItem('cp_support_tickets');
+      if (savedTickets) {
+        try {
+          setSupportTickets(JSON.parse(savedTickets));
+        } catch (e) {
+          setSupportTickets(INITIAL_SUPPORT_TICKETS);
+        }
+      } else {
+        localStorage.setItem('cp_support_tickets', JSON.stringify(INITIAL_SUPPORT_TICKETS));
+      }
+
+      // Initial DB load for workspaces & partners
+      fetchPartners().catch(() => {});
+      fetchWorkspaces().catch(() => {});
     } catch (e) {
       console.error('Failed to load storage state:', e);
     }
   }, []);
+
+  // Auto-sync Partner record in PostgreSQL Partner table for logged in provider
+  useEffect(() => {
+    if (currentUser && (currentUser.role === 'provider' || currentUser.role === 'admin')) {
+      const storedToken = getStoredToken();
+      if (storedToken) {
+        const userEmail = currentUser.email?.toLowerCase();
+        const exists = partners.some(p => p.contactEmail?.toLowerCase() === userEmail);
+        if (!exists && userEmail) {
+          createPartner({
+            brandName: (currentUser as any).businessName || currentUser.name || 'Venue Partner',
+            contactEmail: currentUser.email,
+            taxNumber: (currentUser as any).crNumber || '300000000000003',
+            revenueSharePercentage: 20,
+          }).catch(() => {});
+        }
+      }
+    }
+  }, [currentUser, partners]);
 
   const navigate = (screen: Screen, params: Record<string, any> = {}) => {
     setHistory(prev => [...prev.slice(-9), nav]);
@@ -293,13 +1809,51 @@ export function AppProvider({ children }: { children: ReactNode }) {
     navigate('otp-verify');
   };
 
-  const login = (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string; requireOtp?: boolean }> => {
+    // 1. Attempt login with backend API: POST http://localhost:3001/api/auth/login
+    const apiRes = await loginUserApi({ email, password });
+    if (apiRes.success && apiRes.userId) {
+      let user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+      if (!user) {
+        user = {
+          id: apiRes.userId,
+          name: email.split('@')[0],
+          email,
+          password,
+          role: 'individual',
+          phone: '',
+          avatar: '',
+          isBlocked: false,
+          joinDate: new Date().toISOString().split('T')[0],
+          loyaltyPoints: 0,
+        };
+      }
+      const session: OtpSession = {
+        user,
+        targetEmailOrPhone: email,
+        mode: 'login',
+        role: user.role,
+        userId: apiRes.userId,
+        backendSynced: true,
+        devOtp: apiRes.devOtp,
+      };
+      setOtpSession(session);
+      navigate('otp-verify');
+      showToast(apiRes.message || `Verification code sent to ${email}`, 'info');
+      return { success: true, requireOtp: true };
+    }
+
+    // 2. Fallback to local stored user / mock authentication
     let user = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
     if (!user) {
       user = INITIAL_USERS.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
     }
-    if (!user) return { success: false, error: 'Invalid email or password. Please try again.' };
-    if (user.isBlocked) return { success: false, error: 'Your account has been suspended. Please contact support.' };
+    if (!user) {
+      return { success: false, error: apiRes.error || 'Invalid email or password. Please try again.' };
+    }
+    if (user.isBlocked) {
+      return { success: false, error: 'Your account has been suspended. Please contact support.' };
+    }
 
     const session: OtpSession = {
       user,
@@ -339,17 +1893,43 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return newUser;
   };
 
-  const requestSignupOtp = (newUser: User, role: UserRole, extraData?: Partial<User>) => {
+  const requestSignupOtp = async (newUser: User, role: UserRole, extraData?: Partial<User>): Promise<{ success: boolean; error?: string; message?: string }> => {
+    // 1. Call Backend API: POST http://localhost:3001/api/auth/register
+    const apiRes = await registerUserApi({
+      name: newUser.name,
+      email: newUser.email,
+      password: newUser.password,
+      role: role || newUser.role || 'individual',
+      orgName: extraData?.orgName,
+      companyName: extraData?.orgName,
+    });
+
+    if (!apiRes.success && apiRes.error && !apiRes.error.includes('Network connection issue')) {
+      showToast(apiRes.error, 'error');
+      return { success: false, error: apiRes.error };
+    }
+
+    const mergedUser: User = {
+      ...newUser,
+      role: role || newUser.role || 'individual',
+      orgName: extraData?.orgName || newUser.orgName,
+      ...(extraData || {}),
+    };
+
     const session: OtpSession = {
-      user: newUser,
+      user: mergedUser,
       targetEmailOrPhone: newUser.email || newUser.phone,
       mode: 'signup',
       role,
       extraData,
+      userId: apiRes.userId,
+      backendSynced: Boolean(apiRes.userId),
+      devOtp: apiRes.devOtp,
     };
     setOtpSession(session);
     navigate('otp-verify');
-    showToast(`Verification code sent to ${newUser.email || newUser.phone}`, 'info');
+    showToast(apiRes.message || `Verification code sent to ${newUser.email || newUser.phone}`, 'info');
+    return { success: true, message: apiRes.message };
   };
 
   const requestForgotPasswordOtp = (email: string) => {
@@ -377,7 +1957,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return { success: true };
   };
 
-  const verifyOtp = (code: string) => {
+  const verifyOtp = async (code: string): Promise<{ success: boolean; error?: string }> => {
     if (!otpSession) {
       return { success: false, error: 'No active verification session. Please sign in again.' };
     }
@@ -386,12 +1966,60 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return { success: false, error: 'Please enter a valid 6-digit verification code.' };
     }
 
+    const isDemo = Boolean(
+      (otpSession.userId && (otpSession.userId.startsWith('usr_') || otpSession.userId.startsWith('demo_'))) ||
+      (otpSession.user?.email && ['admin@coworkingpass.sa', 'sarah@example.com', 'hr@aramco.com', 'partner@spacehub.sa'].includes(otpSession.user.email.toLowerCase()))
+    );
+
     if (otpSession.mode === 'login') {
-      const user = otpSession.user;
+      let user = otpSession.user;
+      if (otpSession.userId) {
+        // Backend Login OTP Verification: POST http://localhost:3001/api/auth/verify-login
+        const apiRes = await verifyLoginApi({ userId: otpSession.userId, code: cleanCode });
+        if (!apiRes.success && (!isDemo || cleanCode !== '123456')) {
+          return { success: false, error: apiRes.error || 'Invalid verification code. Please try again.' };
+        }
+        if (apiRes.token && typeof window !== 'undefined') {
+          localStorage.setItem('cp_token', apiRes.token);
+        }
+        if (apiRes.user) {
+          const userRole = mapRoleToFrontend(apiRes.user.role);
+          user = {
+            ...user,
+            id: apiRes.user.id || user.id,
+            name: apiRes.user.name || user.name,
+            email: apiRes.user.email || user.email,
+            role: userRole,
+          };
+          const updatedUsers = users.some(u => u.id === user.id || u.email.toLowerCase() === user.email.toLowerCase())
+            ? users.map(u => (u.id === user.id || u.email.toLowerCase() === user.email.toLowerCase()) ? user : u)
+            : [...users, user];
+          setUsers(updatedUsers);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('cp_users', JSON.stringify(updatedUsers));
+          }
+        }
+      }
+
       setCurrentUser(user);
       if (typeof window !== 'undefined') {
         localStorage.setItem('cp_currentUser', JSON.stringify(user));
       }
+
+      // Auto-create Company record in DB via frontend API call if logged in as Organization/Company
+      if (user.role === 'organization') {
+        createCompanyApi({
+          companyName: user.orgName || user.name || 'New Organization',
+          hrAdminId: user.id,
+        }).then(res => {
+          if (res.success) {
+            console.log('[Company DB Sync] Created company record:', res.company);
+          } else {
+            console.warn('[Company DB Sync] Company creation response:', res.error);
+          }
+        });
+      }
+
       setOtpSession(null);
       if (user.role === 'admin') navigate('admin-dashboard');
       else if (user.role === 'organization') navigate('org-dashboard');
@@ -411,28 +2039,110 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
 
     // signup mode
+    if (otpSession.userId) {
+      // Backend Email OTP Verification: POST http://localhost:3001/api/auth/verify-email
+      const apiRes = await verifyEmailApi({ userId: otpSession.userId, code: cleanCode });
+      if (!apiRes.success && (!isDemo || cleanCode !== '123456')) {
+        return { success: false, error: apiRes.error || 'Invalid verification code. Please try again.' };
+      }
+    }
+
     const updated: User = {
       ...otpSession.user,
+      id: otpSession.userId || otpSession.user.id,
       role: otpSession.role || 'individual',
       avatar: otpSession.user.avatar || '',
       ...(otpSession.extraData || {}),
     };
-    const updatedUsers = users.some(u => u.id === updated.id)
-      ? users.map(u => u.id === updated.id ? updated : u)
+
+    const updatedUsers = users.some(u => u.id === updated.id || u.email.toLowerCase() === updated.email.toLowerCase())
+      ? users.map(u => (u.id === updated.id || u.email.toLowerCase() === updated.email.toLowerCase()) ? updated : u)
       : [...users, updated];
     setUsers(updatedUsers);
-    setCurrentUser(updated);
     setPendingUser(null);
     setOtpSession(null);
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cp_users', JSON.stringify(updatedUsers));
+    }
+
+    // Auto-create Company record in DB via frontend API call if registered as Organization/Company
+    if (updated.role === 'organization') {
+      const hrAdminId = updated.id || otpSession.userId || '';
+      const companyName = updated.orgName || updated.name || 'New Organization';
+      if (hrAdminId) {
+        createCompanyApi({ companyName, hrAdminId }).then(res => {
+          if (res.success) {
+            console.log('[Company DB Sync] Created company record on signup:', res.company);
+          } else {
+            console.warn('[Company DB Sync] Signup creation response:', res.error);
+          }
+        });
+      }
+    }
+
+    if (updated.role === 'provider') {
+      (async () => {
+        try {
+          const storedToken = getStoredToken();
+          const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+          if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+          await fetch(`${getApiBaseUrl()}/partners`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              brandName: updated.orgName || updated.name,
+              contactEmail: updated.email,
+              taxNumber: '1234567890',
+              revenueSharePercentage: 20,
+            }),
+          });
+        } catch (err) {
+          console.warn('Frontend auto-create partner error:', err);
+        }
+      })();
+    }
+
+    // Automatically transition to login to complete authentication and receive JWT token
+    const loginRes = await login(updated.email, updated.password);
+    if (loginRes.success) {
+      showToast('Account email verified successfully! Please enter the security code sent to your email to log in.', 'success');
+      return { success: true };
+    }
+
+    setCurrentUser(updated);
     if (typeof window !== 'undefined') {
       localStorage.setItem('cp_currentUser', JSON.stringify(updated));
-      localStorage.setItem('cp_users', JSON.stringify(updatedUsers));
     }
     if (updated.role === 'organization') navigate('org-dashboard');
     else if (updated.role === 'provider') navigate('provider-dashboard');
     else navigate('ind-dashboard');
     showToast(`Account verified! Welcome to Coworking Pass, ${updated.name}!`, 'success');
     return { success: true };
+  };
+
+  const resendOtp = async () => {
+    if (!otpSession) return;
+    if (otpSession.mode === 'signup' && otpSession.user) {
+      const apiRes = await registerUserApi({
+        name: otpSession.user.name,
+        email: otpSession.user.email,
+        password: otpSession.user.password,
+        role: otpSession.role || otpSession.user.role || 'individual',
+      });
+      if (apiRes.userId || apiRes.devOtp) {
+        setOtpSession(prev => prev ? { ...prev, userId: apiRes.userId || prev.userId, devOtp: apiRes.devOtp } : null);
+      }
+    } else if (otpSession.mode === 'login' && otpSession.user) {
+      const apiRes = await loginUserApi({
+        email: otpSession.user.email,
+        password: otpSession.user.password,
+      });
+      if (apiRes.userId || apiRes.devOtp) {
+        setOtpSession(prev => prev ? { ...prev, userId: apiRes.userId || prev.userId, devOtp: apiRes.devOtp } : null);
+      }
+    }
+    showToast(`New verification code sent to ${otpSession.targetEmailOrPhone}`, 'info');
   };
 
   const resetPassword = (newPassword: string) => {
@@ -458,11 +2168,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     navigate('login');
     showToast('Password updated successfully! Please sign in with your new password.', 'success');
     return { success: true };
-  };
-
-  const resendOtp = () => {
-    if (!otpSession) return;
-    showToast(`New verification code sent to ${otpSession.targetEmailOrPhone}`, 'info');
   };
 
   const cancelOtp = () => {
@@ -513,6 +2218,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setPendingUser(null);
     if (typeof window !== 'undefined') {
       localStorage.removeItem('cp_currentUser');
+      localStorage.removeItem('cp_token');
+      localStorage.removeItem('token');
+      localStorage.removeItem('jwt');
     }
     navigate('landing');
     showToast('You have been logged out.', 'info');
@@ -524,15 +2232,226 @@ export function AppProvider({ children }: { children: ReactNode }) {
     );
   };
 
+  const requestUserLocation = async (): Promise<{ lat: number; lng: number } | null> => {
+    if (typeof window === 'undefined' || !navigator?.geolocation) {
+      setLocationStatus('unsupported');
+      showToast('Geolocation is not supported by your browser.', 'error');
+      return null;
+    }
+
+    if (userLocation) {
+      return userLocation;
+    }
+
+    setLocationStatus('loading');
+    return new Promise(resolve => {
+      navigator.geolocation.getCurrentPosition(
+        position => {
+          const coords = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          };
+          setUserLocation(coords);
+          setLocationStatus('granted');
+          resolve(coords);
+        },
+        error => {
+          console.warn('Geolocation error:', error);
+          setLocationStatus('denied');
+          if (error.code === 1) { // PERMISSION_DENIED
+            showToast('Location permission was denied. Workspaces will be sorted without distance.', 'info');
+          } else {
+            showToast('Unable to determine your current location.', 'info');
+          }
+          resolve(null);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+      );
+    });
+  };
+
   const addSpace = (space: Omit<Space, 'id'>) => {
-    const newSpace: Space = { ...space, id: `space-${Date.now()}` };
+    const defaultCoordsByCity: Record<string, { lat: number; lng: number }> = {
+      Riyadh: { lat: 24.7136, lng: 46.6753 },
+      Jeddah: { lat: 21.5433, lng: 39.1728 },
+      Dammam: { lat: 26.4207, lng: 50.0888 },
+      Khobar: { lat: 26.2810, lng: 50.2080 },
+      Madinah: { lat: 24.4672, lng: 39.6111 },
+      Makkah: { lat: 21.3891, lng: 39.8579 },
+    };
+    const cityCoords = defaultCoordsByCity[space.city] || { lat: 24.7136, lng: 46.6753 };
+    const lat = space.latitude ?? space.coordinates?.lat ?? cityCoords.lat;
+    const lng = space.longitude ?? space.coordinates?.lng ?? cityCoords.lng;
+
+    const tempId = `space-${Date.now()}`;
+    const newSpace: Space = {
+      ...space,
+      id: tempId,
+      latitude: lat,
+      longitude: lng,
+      coordinates: { lat, lng },
+    };
+
+    if (typeof window !== 'undefined' && newSpace.type) {
+      try {
+        const rawMap = localStorage.getItem('cp_space_types');
+        const typeMap = rawMap ? JSON.parse(rawMap) : {};
+        typeMap[newSpace.id] = newSpace.type;
+        typeMap[newSpace.name.toLowerCase()] = newSpace.type;
+        localStorage.setItem('cp_space_types', JSON.stringify(typeMap));
+      } catch (_) {}
+    }
+
     setSpaces(prev => [...prev, newSpace]);
     showToast('Space added successfully.');
+
+    // Persist new workspace to backend database with valid partnerId
+    (async () => {
+      try {
+        const storedToken = getStoredToken();
+        let currentPartners = partners;
+        if (currentPartners.length === 0) {
+          currentPartners = await fetchPartners();
+        }
+
+        const userEmail = currentUser?.email?.toLowerCase();
+        let validPartnerId = currentPartners.find(p => p.id === space.ownerId)?.id ||
+          (userEmail ? currentPartners.find(p => p.contactEmail.toLowerCase() === userEmail)?.id : undefined);
+
+        if (!validPartnerId && storedToken) {
+          const partnerRes = await createPartner({
+            brandName: (space as any).providerName || currentUser?.name || space.name || 'Default Partner',
+            contactEmail: currentUser?.email || `contact-${Date.now()}@coworkingpass.sa`,
+            taxNumber: '300000000000003',
+            revenueSharePercentage: 20,
+          });
+          if (partnerRes.success && partnerRes.partner) {
+            validPartnerId = partnerRes.partner.id;
+          }
+        }
+
+        if (validPartnerId && storedToken) {
+          const createRes = await createWorkspace({
+            partnerId: validPartnerId,
+            name: space.name,
+            city: space.city || 'Riyadh',
+            dailyRate: space.pricing?.daily || 50,
+            monthlyRate: space.pricing?.monthly || 800,
+            yearlyRate: space.pricing?.yearly || 8000,
+            passVisitValue: 15,
+            totalCapacity: space.totalCapacity || 30,
+          });
+
+          if (createRes.success && createRes.workspace) {
+            // Also create corresponding section in database (MEETING_ROOM for halls, THEATER for theaters, DESK for offices)
+            const dbSecType = mapFrontendTypeToDbSectionType(newSpace.type);
+            const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+            if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+            try {
+              await fetch(`${getApiBaseUrl()}/workspace-sections`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({
+                  workspaceId: createRes.workspace.id,
+                  type: dbSecType,
+                  name: `${space.name} Section`,
+                  capacity: space.totalCapacity || 30,
+                  dailyRate: space.pricing?.daily || 50,
+                  monthlyRate: space.pricing?.monthly || 800,
+                  yearlyRate: space.pricing?.yearly || 8000,
+                }),
+              });
+            } catch (_) {}
+
+            if (typeof window !== 'undefined' && newSpace.type) {
+              try {
+                const rawMap = localStorage.getItem('cp_space_types');
+                const typeMap = rawMap ? JSON.parse(rawMap) : {};
+                typeMap[createRes.workspace.id] = newSpace.type;
+                typeMap[createRes.workspace.name.toLowerCase()] = newSpace.type;
+                localStorage.setItem('cp_space_types', JSON.stringify(typeMap));
+              } catch (_) {}
+            }
+            await fetchWorkspaces();
+          }
+        }
+      } catch (err) {
+        console.warn('Database workspace save notice:', err);
+      }
+    })();
   };
 
   const updateSpace = (id: string, updates: Partial<Space>) => {
+    if (typeof window !== 'undefined' && updates.type) {
+      try {
+        const rawMap = localStorage.getItem('cp_space_types');
+        const typeMap = rawMap ? JSON.parse(rawMap) : {};
+        typeMap[id] = updates.type;
+        if (updates.name) typeMap[updates.name.toLowerCase()] = updates.type;
+        localStorage.setItem('cp_space_types', JSON.stringify(typeMap));
+      } catch (_) {}
+    }
+
     setSpaces(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
     showToast('Space updated successfully.');
+
+    // Sync update with backend database if logged in
+    (async () => {
+      try {
+        const storedToken = getStoredToken();
+        if (!storedToken) return;
+
+        const payload: Record<string, any> = {};
+        if (updates.name !== undefined) payload.name = updates.name;
+        if (updates.city !== undefined) payload.city = updates.city;
+        if (updates.totalCapacity !== undefined) payload.totalCapacity = updates.totalCapacity;
+        if (updates.pricing?.daily !== undefined) payload.dailyRate = updates.pricing.daily;
+        if (updates.pricing?.monthly !== undefined) payload.monthlyRate = updates.pricing.monthly;
+        if (updates.pricing?.yearly !== undefined) payload.yearlyRate = updates.pricing.yearly;
+
+        if (Object.keys(payload).length > 0 || updates.type) {
+          if (Object.keys(payload).length > 0) {
+            await updateWorkspace(id, payload);
+          }
+
+          if (updates.type) {
+            const dbSecType = mapFrontendTypeToDbSectionType(updates.type);
+            const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+            headers['Authorization'] = `Bearer ${storedToken}`;
+            try {
+              const secRes = await fetch(`${getApiBaseUrl()}/workspace-sections`, { headers });
+              if (secRes.ok) {
+                const sections = await secRes.json();
+                if (Array.isArray(sections)) {
+                  const existingSec = sections.find((s: any) => s.workspaceId === id);
+                  if (existingSec) {
+                    await fetch(`${getApiBaseUrl()}/workspace-sections/${existingSec.id}`, {
+                      method: 'PUT',
+                      headers,
+                      body: JSON.stringify({ type: dbSecType }),
+                    });
+                  } else {
+                    await fetch(`${getApiBaseUrl()}/workspace-sections`, {
+                      method: 'POST',
+                      headers,
+                      body: JSON.stringify({
+                        workspaceId: id,
+                        type: dbSecType,
+                        name: `Section - ${dbSecType}`,
+                        capacity: updates.totalCapacity || 30,
+                      }),
+                    });
+                  }
+                }
+              }
+            } catch (_) {}
+          }
+          await fetchWorkspaces();
+        }
+      } catch (err) {
+        console.warn('Failed to save space update to database:', err);
+      }
+    })();
   };
 
   const toggleSpaceVisibility = (id: string) => {
@@ -542,6 +2461,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const deleteSpace = (id: string) => {
     setSpaces(prev => prev.filter(s => s.id !== id));
     showToast('Space deleted.');
+
+    // Delete from backend database if logged in
+    (async () => {
+      try {
+        const storedToken = getStoredToken();
+        if (!storedToken) return;
+        const res = await deleteWorkspace(id);
+        if (res.success) {
+          await fetchWorkspaces();
+        }
+      } catch (err) {
+        console.warn('Failed to delete space from database:', err);
+      }
+    })();
   };
 
   const addBooking = (booking: Omit<Booking, 'id' | 'createdAt'>) => {
@@ -552,10 +2485,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
     setBookings(prev => [...prev, newBooking]);
     
-    // Auto-calculate loyalty points earned
+    // Auto-calculate loyalty points earned (at least 10 pts per booking or 10% of total price)
     const space = spaces.find(s => s.id === booking.spaceId);
     const multiplier = space?.loyaltyPointsMultiplier || 1;
-    const earnedPoints = Math.floor((booking.totalPrice || 0) / 100) * 10 * multiplier;
+    const rawPrice = booking.totalPrice || 0;
+    const earnedPoints = (rawPrice > 0 ? Math.max(10, Math.floor(rawPrice / 10)) : 10) * multiplier;
 
     if (currentUser && currentUser.id === booking.userId && earnedPoints > 0) {
       const updatedUser = {
@@ -567,23 +2501,196 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (typeof window !== 'undefined') {
         localStorage.setItem('cp_currentUser', JSON.stringify(updatedUser));
       }
+
+      // Record EARNED points in PostgreSQL DB & sync DB balance
+      createPointsTransactionApi({
+        userId: currentUser.id,
+        type: 'EARNED',
+        points: earnedPoints,
+        description: `Earned points for booking: ${booking.spaceName}`,
+        referenceId: newBooking.id,
+      }).then(res => {
+        if (res.success) {
+          getLoyaltyPointsApi(currentUser.id).then(ptsRes => {
+            if (ptsRes.success && Array.isArray(ptsRes.data)) {
+              const uPts = ptsRes.data.find((p: any) => p.userId === currentUser.id);
+              if (uPts && typeof uPts.availableBalance === 'number') {
+                const syncedUser = { ...currentUser, loyaltyPoints: uPts.availableBalance };
+                setCurrentUser(syncedUser);
+                if (typeof window !== 'undefined') {
+                  localStorage.setItem('cp_currentUser', JSON.stringify(syncedUser));
+                }
+              }
+            }
+          }).catch(() => {});
+        }
+      }).catch(() => {});
     }
 
-    setNotifications(prev => [{
-      id: `notification-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+    addNotification({
       userId: booking.userId,
       title: 'Booking confirmed',
       message: `${booking.spaceName} confirmed.${earnedPoints > 0 ? ` Earned ${earnedPoints} loyalty points!` : ''}`,
       type: 'booking',
       read: false,
-      createdAt: new Date().toLocaleString(),
-    }, ...prev]);
+    });
 
     setSpaces(prev => prev.map(s =>
       s.id === booking.spaceId
         ? { ...s, availableCapacity: Math.max(0, s.availableCapacity - booking.seats) }
         : s
     ));
+
+    // Persist booking to backend PostgreSQL database
+    (async () => {
+      try {
+        const storedToken = getStoredToken();
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+        };
+        if (storedToken) {
+          headers['Authorization'] = `Bearer ${storedToken}`;
+        }
+
+        let validWorkspaceId = booking.spaceId;
+        const matchedW = workspacesApi.find(w => w.id === booking.spaceId || w.name.toLowerCase() === booking.spaceName.toLowerCase());
+        if (matchedW) {
+          validWorkspaceId = matchedW.id;
+        } else if (workspacesApi.length > 0) {
+          validWorkspaceId = workspacesApi[0].id;
+        }
+
+        const targetSpace = spaces.find(s => s.id === validWorkspaceId);
+
+        let sectionId: string | null = null;
+        try {
+          const secRes = await fetch(`${getApiBaseUrl()}/workspace-sections`, { headers });
+          if (secRes.ok) {
+            const sections = await secRes.json();
+            if (Array.isArray(sections)) {
+              const matchedSec = sections.find((sec: any) => sec.workspaceId === validWorkspaceId);
+              if (matchedSec) sectionId = matchedSec.id;
+            }
+          }
+        } catch (e) {}
+
+        if (!sectionId && validWorkspaceId) {
+          try {
+            const spaceType = targetSpace?.type || 'desk';
+            const dbSecType = mapFrontendTypeToDbSectionType(spaceType);
+            const secCreateRes = await fetch(`${getApiBaseUrl()}/workspace-sections`, {
+              method: 'POST',
+              headers,
+              body: JSON.stringify({
+                workspaceId: validWorkspaceId,
+                type: dbSecType,
+                name: `${targetSpace?.name || 'Workspace'} Section`,
+                capacity: targetSpace?.totalCapacity || 50,
+                dailyRate: booking.totalPrice || 50,
+              }),
+            });
+            if (secCreateRes.ok) {
+              const secData = await secCreateRes.json();
+              sectionId = secData.id || secData.section?.id;
+            }
+          } catch (e) {}
+        }
+
+        if (sectionId && validWorkspaceId) {
+          const bookingPlanStr = (booking.plan || (booking as any).type || '') as string;
+          const durationType = bookingPlanStr === 'monthly' ? 'MONTHLY' : bookingPlanStr === 'yearly' ? 'YEARLY' : 'DAILY';
+          const bookingDate = booking.startDate || new Date().toISOString().split('T')[0];
+
+          const directRes = await fetch(`${getApiBaseUrl()}/direct-bookings`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              userId: currentUser?.id || booking.userId,
+              workspaceId: validWorkspaceId,
+              sectionId,
+              durationType,
+              bookingDate,
+              status: 'CONFIRMED',
+            }),
+          });
+
+          if (directRes.ok) {
+            const dbBooking = await directRes.json();
+            setDirectBookingsApi(prev => [dbBooking, ...prev]);
+
+            await fetch(`${getApiBaseUrl()}/payments`, {
+              method: 'POST',
+              headers,
+              body: JSON.stringify({
+                userId: currentUser?.id || booking.userId,
+                amount: booking.totalPrice || 50,
+                method: 'VISA',
+                paymentFor: 'DIRECT_BOOKING',
+                referenceId: dbBooking.id || newBooking.id,
+              }),
+            }).catch(() => {});
+          }
+
+          if (booking.plan === 'hourly' || (targetSpace && targetSpace.bookingMode === 'hourly')) {
+            let pkgId: string | null = null;
+            try {
+              const pkgRes = await fetch(`${getApiBaseUrl()}/hourly-packages`, { headers });
+              if (pkgRes.ok) {
+                const pkgs = await pkgRes.json();
+                if (Array.isArray(pkgs)) {
+                  const matchPkg = pkgs.find((p: any) => p.sectionId === sectionId);
+                  if (matchPkg) pkgId = matchPkg.id;
+                }
+              }
+            } catch (_) {}
+
+            if (!pkgId && sectionId) {
+              try {
+                const pkgCreateRes = await fetch(`${getApiBaseUrl()}/hourly-packages`, {
+                  method: 'POST',
+                  headers,
+                  body: JSON.stringify({
+                    sectionId,
+                    packageName: `${booking.durationHours || 1} Hour Package`,
+                    hoursAmount: booking.durationHours || 1,
+                    periodType: 'PER_DAY',
+                    price: booking.totalPrice || 45,
+                  }),
+                });
+                if (pkgCreateRes.ok) {
+                  const pkgData = await pkgCreateRes.json();
+                  pkgId = pkgData.id || pkgData.hourlyPackage?.id;
+                }
+              } catch (_) {}
+            }
+
+            if (sectionId && pkgId) {
+              try {
+                const hbRes = await fetch(`${getApiBaseUrl()}/hourly-bookings`, {
+                  method: 'POST',
+                  headers,
+                  body: JSON.stringify({
+                    userId: currentUser?.id || booking.userId,
+                    sectionId,
+                    packageId: pkgId,
+                    startDate: booking.startDate ? new Date(booking.startDate).toISOString() : new Date().toISOString(),
+                    endDate: booking.endDate ? new Date(booking.endDate).toISOString() : new Date().toISOString(),
+                    status: 'ACTIVE',
+                  }),
+                });
+                if (hbRes.ok) {
+                  const hbData = await hbRes.json();
+                  setHourlyBookingsApi(prev => [hbData, ...prev]);
+                }
+              } catch (_) {}
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Booking DB persistence notice:', err);
+      }
+    })();
+
     return newBooking;
   };
 
@@ -599,6 +2706,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
           : s
       )
     );
+
+    // Sync cancellation to PostgreSQL database
+    (async () => {
+      try {
+        const storedToken = getStoredToken();
+        if (!storedToken) return;
+        const directRes = await updateDirectBooking(id, { status: 'CANCELLED' });
+        if (!directRes.success) {
+          await updateHourlyBooking(id, { status: 'CANCELLED' });
+        }
+      } catch (err) {
+        console.warn('Booking cancellation DB sync notice:', err);
+      }
+    })();
 
     const price = getBookingPrice(booking, spaces);
     const userRole = currentUser?.id === booking.userId ? currentUser?.role : 'individual';
@@ -645,37 +2766,156 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setBookings(prev => prev.map(b => b.id === id ? { ...b, status } : b));
     const booking = bookings.find(b => b.id === id);
     if (booking) {
-      setNotifications(prev => [{
-        id: `notification-${Date.now()}`,
+      addNotification({
         userId: booking.userId,
         title: `Booking ${status}`,
         message: `${booking.spaceName} booking status was updated to ${status}.`,
         type: status === 'cancelled' ? 'cancelled' : 'booking',
-        read: false,
-        createdAt: new Date().toLocaleString(),
-      }, ...prev]);
+      });
     }
+
+    // Sync status update to PostgreSQL database
+    (async () => {
+      try {
+        const storedToken = getStoredToken();
+        if (!storedToken) return;
+        const dbStatus = status === 'active' ? 'CONFIRMED' : status === 'cancelled' ? 'CANCELLED' : 'EXPIRED';
+        const directRes = await updateDirectBooking(id, { status: dbStatus });
+        if (!directRes.success) {
+          const hourlyDbStatus = status === 'active' ? 'ACTIVE' : status === 'cancelled' ? 'CANCELLED' : 'EXPIRED';
+          await updateHourlyBooking(id, { status: hourlyDbStatus });
+        }
+      } catch (err) {
+        console.warn('Booking status update DB sync notice:', err);
+      }
+    })();
   };
 
-  const userNotifications = currentUser ? notifications.filter(n => n.userId === currentUser.id || currentUser.role === 'admin') : [];
+  const getValidPostgresUserId = (candidateId?: string): string | undefined => {
+    if (candidateId && candidateId.length > 20 && !candidateId.startsWith('user-') && candidateId !== 'admin' && !candidateId.startsWith('notif-')) {
+      return candidateId;
+    }
+    if (currentUser?.id && currentUser.id.length > 20 && !currentUser.id.startsWith('user-') && currentUser.id !== 'admin') {
+      return currentUser.id;
+    }
+    try {
+      const token = getStoredToken();
+      if (token) {
+        const parts = token.split('.');
+        if (parts.length === 3) {
+          const payload = JSON.parse(atob(parts[1]));
+          if (payload.userId && payload.userId.length > 20) return payload.userId;
+        }
+      }
+    } catch (e) {}
 
-  const markNotificationRead = (id: string) => setNotifications(prev => {
-    const updated = prev.map(n => n.id === id ? { ...n, read: true } : n);
-    if (typeof window !== 'undefined') localStorage.setItem('cp_notifications', JSON.stringify(updated));
-    return updated;
-  });
+    const realUser = users.find(u => u.id && u.id.length > 20 && !u.id.startsWith('user-'));
+    if (realUser) return realUser.id;
 
-  const toggleNotificationRead = (id: string) => setNotifications(prev => {
-    const updated = prev.map(n => n.id === id ? { ...n, read: !n.read } : n);
-    if (typeof window !== 'undefined') localStorage.setItem('cp_notifications', JSON.stringify(updated));
-    return updated;
-  });
+    return undefined;
+  };
 
-  const markAllNotificationsRead = () => setNotifications(prev => {
-    const updated = prev.map(n => userNotifications.some(u => u.id === n.id) ? { ...n, read: true } : n);
-    if (typeof window !== 'undefined') localStorage.setItem('cp_notifications', JSON.stringify(updated));
-    return updated;
-  });
+  const mapToNotificationTypeEnum = (typeStr: string = '', titleStr: string = ''): string => {
+    const upper = typeStr.toUpperCase();
+    const validEnums = [
+      'BOOKING_CONFIRMED', 'BOOKING_CANCELLED', 'WAITLIST_PROMOTED', 'MEETING_BOOKED',
+      'PAYMENT_SUCCESS', 'PAYMENT_FAILED', 'PASS_ASSIGNED', 'PASS_EXPIRING',
+      'ACCOUNT_VERIFIED', 'POINTS_EARNED', 'POINTS_REDEEMED', 'PAYOUT_PROCESSED',
+      'PARTNER_APPROVED', 'AMENITY_REQUEST_STATUS'
+    ];
+    if (validEnums.includes(upper)) return upper;
+
+    const combined = (typeStr + ' ' + titleStr).toLowerCase();
+    if (combined.includes('cancel')) return 'BOOKING_CANCELLED';
+    if (combined.includes('payment') || combined.includes('pay')) return 'PAYMENT_SUCCESS';
+    if (combined.includes('expir') || combined.includes('remind')) return 'PASS_EXPIRING';
+    if (combined.includes('point')) return 'POINTS_EARNED';
+    if (combined.includes('amenity')) return 'AMENITY_REQUEST_STATUS';
+    if (combined.includes('partner') || combined.includes('approve')) return 'PARTNER_APPROVED';
+    if (combined.includes('meeting')) return 'MEETING_BOOKED';
+    if (combined.includes('pass')) return 'PASS_ASSIGNED';
+    return 'BOOKING_CONFIRMED';
+  };
+
+  const currentDbUserId = getValidPostgresUserId(currentUser?.id);
+  const userNotifications = currentUser
+    ? notifications.filter(n =>
+        currentUser.role === 'admin' ||
+        n.userId === currentUser.id ||
+        (currentDbUserId && n.userId === currentDbUserId) ||
+        (!n.userId || n.userId === 'user-1' || n.userId === 'admin' || n.userId.startsWith('user-'))
+      )
+    : [];
+
+  const markNotificationRead = (id: string) => {
+    setNotifications(prev => {
+      const updated = prev.map(n => n.id === id ? { ...n, read: true } : n);
+      if (typeof window !== 'undefined') localStorage.setItem('cp_notifications', JSON.stringify(updated));
+      return updated;
+    });
+
+    (async () => {
+      try {
+        const storedToken = getStoredToken();
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+        await fetch(`${getApiBaseUrl()}/notifications`, {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify({ id, isRead: true }),
+        });
+      } catch (err) {}
+    })();
+  };
+
+  const toggleNotificationRead = (id: string) => {
+    let nextReadState = false;
+    setNotifications(prev => {
+      const target = prev.find(n => n.id === id);
+      nextReadState = target ? !target.read : true;
+      const updated = prev.map(n => n.id === id ? { ...n, read: nextReadState } : n);
+      if (typeof window !== 'undefined') localStorage.setItem('cp_notifications', JSON.stringify(updated));
+      return updated;
+    });
+
+    (async () => {
+      try {
+        const storedToken = getStoredToken();
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+        await fetch(`${getApiBaseUrl()}/notifications`, {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify({ id, isRead: nextReadState }),
+        });
+      } catch (err) {}
+    })();
+  };
+
+  const markAllNotificationsRead = () => {
+    setNotifications(prev => {
+      const updated = prev.map(n => userNotifications.some(u => u.id === n.id) ? { ...n, read: true } : n);
+      if (typeof window !== 'undefined') localStorage.setItem('cp_notifications', JSON.stringify(updated));
+      return updated;
+    });
+
+    (async () => {
+      try {
+        const storedToken = getStoredToken();
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+        for (const n of userNotifications) {
+          if (!n.read) {
+            await fetch(`${getApiBaseUrl()}/notifications`, {
+              method: 'PUT',
+              headers,
+              body: JSON.stringify({ id: n.id, isRead: true }),
+            }).catch(() => {});
+          }
+        }
+      } catch (err) {}
+    })();
+  };
 
   const deleteNotification = (id: string) => {
     setNotifications(prev => {
@@ -711,6 +2951,44 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (typeof window !== 'undefined') localStorage.setItem('cp_notifications', JSON.stringify(updated));
       return updated;
     });
+
+    // Save notification to PostgreSQL database
+    (async () => {
+      try {
+        const storedToken = getStoredToken();
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+
+        let targetUserId = getValidPostgresUserId(notifData.userId);
+
+        if (targetUserId) {
+          const notifType = mapToNotificationTypeEnum(notifData.type, notifData.title);
+
+          const res = await fetch(`${getApiBaseUrl()}/notifications`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              userId: targetUserId,
+              type: notifType,
+              title: notifData.title,
+              message: notifData.message,
+              channel: 'IN_APP',
+            }),
+          });
+          if (res.ok) {
+            const created = await res.json();
+            if (created?.id) {
+              setNotifications(prev => prev.map(n => n.id === newNotif.id ? { ...n, id: created.id, userId: targetUserId! } : n));
+            }
+          } else {
+            console.warn('POST /api/notifications returned status:', res.status);
+          }
+        }
+      } catch (err) {
+        console.warn('Notification DB persistence notice:', err);
+      }
+    })();
+
     return newNotif;
   };
 
@@ -899,7 +3177,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
         // Recalculate item total price
         const seats = newItem.seats || 1;
-        if (newItem.plan === 'hourly') {
+        const targetSpace = spaces.find((s) => s.id === newItem.spaceId);
+        if (targetSpace && currentUser?.hasActivePass) {
+          const coverage = getEffectiveSpacePrice(
+            currentUser,
+            targetSpace,
+            newItem.plan,
+            newItem.type,
+            newItem.durationHours || 1,
+            newItem.durationMonths || 1,
+            seats
+          );
+          newItem.itemTotal = coverage.effectivePrice;
+          newItem.pricePerSeat = coverage.isCovered ? 0 : Math.round(coverage.effectivePrice / seats);
+        } else if (newItem.plan === 'hourly') {
           const hours = newItem.durationHours || 1;
           newItem.itemTotal = newItem.pricePerSeat * hours * seats;
         } else if (newItem.plan === 'monthly') {
@@ -1000,6 +3291,31 @@ export function AppProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('cp_users', JSON.stringify(updatedUsers));
     }
 
+    // Record REDEEMED points in PostgreSQL DB if user used loyalty discount & sync DB balance
+    if (currentUser && safePointsToUse > 0) {
+      createPointsTransactionApi({
+        userId: currentUser.id,
+        type: 'REDEEMED',
+        points: safePointsToUse,
+        description: `Redeemed points for checkout discount (SAR ${pointsDiscount} off)`,
+      }).then(res => {
+        if (res.success) {
+          getLoyaltyPointsApi(currentUser.id).then(ptsRes => {
+            if (ptsRes.success && Array.isArray(ptsRes.data)) {
+              const uPts = ptsRes.data.find((p: any) => p.userId === currentUser.id);
+              if (uPts && typeof uPts.availableBalance === 'number') {
+                const syncedUser = { ...currentUser, loyaltyPoints: uPts.availableBalance };
+                setCurrentUser(syncedUser);
+                if (typeof window !== 'undefined') {
+                  localStorage.setItem('cp_currentUser', JSON.stringify(syncedUser));
+                }
+              }
+            }
+          }).catch(() => {});
+        }
+      }).catch(() => {});
+    }
+
     clearCart();
 
     addNotification({
@@ -1081,6 +3397,35 @@ export function AppProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('cp_amenity_requests', JSON.stringify(updated));
     }
 
+    // Persist custom amenity request to PostgreSQL Database
+    (async () => {
+      try {
+        const storedToken = getStoredToken();
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+
+        const res = await fetch(`${getApiBaseUrl()}/amenities`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            name: trimmed,
+            icon: 'Sparkles',
+            isDefault: false,
+            requestedBy: currentUser?.id || 'user-p1',
+          }),
+        });
+
+        if (res.ok) {
+          const resData = await res.json();
+          if (resData.amenity?.id) {
+            setAmenityRequests(prev => prev.map(r => r.id === newReq.id ? { ...r, id: resData.amenity.id } : r));
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to save custom amenity to database:', err);
+      }
+    })();
+
     // Notify Admin
     addNotification({
       userId: 'admin',
@@ -1117,6 +3462,47 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
     }
 
+    // Persist approval to PostgreSQL DB via PUT /api/amenities/:id
+    (async () => {
+      try {
+        const storedToken = getStoredToken();
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+
+        let putRes = await fetch(`${getApiBaseUrl()}/amenities/${requestId}`, {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify({ status: 'APPROVED' }),
+        });
+
+        if (!putRes.ok) {
+          const postRes = await fetch(`${getApiBaseUrl()}/amenities`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              name: req.amenityName,
+              icon: 'Sparkles',
+              isDefault: false,
+              requestedBy: req.providerId || currentUser?.id || 'user-p1',
+            }),
+          });
+          if (postRes.ok) {
+            const postData = await postRes.json();
+            const realId = postData.amenity?.id || postData.id;
+            if (realId) {
+              await fetch(`${getApiBaseUrl()}/amenities/${realId}`, {
+                method: 'PUT',
+                headers,
+                body: JSON.stringify({ status: 'APPROVED' }),
+              });
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to approve amenity in database:', err);
+      }
+    })();
+
     if (typeof window !== 'undefined') {
       localStorage.setItem('cp_amenity_requests', JSON.stringify(updatedReqs));
       localStorage.setItem('cp_approved_amenities', JSON.stringify(newApproved));
@@ -1143,6 +3529,47 @@ export function AppProvider({ children }: { children: ReactNode }) {
     );
     setAmenityRequests(updatedReqs);
 
+    // Persist rejection to PostgreSQL DB via PUT /api/amenities/:id
+    (async () => {
+      try {
+        const storedToken = getStoredToken();
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+
+        let putRes = await fetch(`${getApiBaseUrl()}/amenities/${requestId}`, {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify({ status: 'REJECTED' }),
+        });
+
+        if (!putRes.ok) {
+          const postRes = await fetch(`${getApiBaseUrl()}/amenities`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              name: req.amenityName,
+              icon: 'Sparkles',
+              isDefault: false,
+              requestedBy: req.providerId || currentUser?.id || 'user-p1',
+            }),
+          });
+          if (postRes.ok) {
+            const postData = await postRes.json();
+            const realId = postData.amenity?.id || postData.id;
+            if (realId) {
+              await fetch(`${getApiBaseUrl()}/amenities/${realId}`, {
+                method: 'PUT',
+                headers,
+                body: JSON.stringify({ status: 'REJECTED' }),
+              });
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to reject amenity in database:', err);
+      }
+    })();
+
     if (typeof window !== 'undefined') {
       localStorage.setItem('cp_amenity_requests', JSON.stringify(updatedReqs));
     }
@@ -1157,13 +3584,120 @@ export function AppProvider({ children }: { children: ReactNode }) {
     showToast(`Rejected custom amenity request "${req.amenityName}".`, 'error');
   };
 
+  const addSupportTicket: AppContextType['addSupportTicket'] = (ticketData) => {
+    const newTicket: SupportTicket = {
+      id: `ticket-${Date.now()}`,
+      ticketNumber: `TK-${Math.floor(1000 + Math.random() * 9000)}`,
+      status: ticketData.status || 'open',
+      priority: ticketData.priority || (ticketData.category === 'complaint' ? 'high' : ticketData.category === 'refund' ? 'medium' : 'low'),
+      createdAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      ...ticketData,
+    };
+    const updated = [newTicket, ...supportTickets];
+    setSupportTickets(updated);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cp_support_tickets', JSON.stringify(updated));
+    }
+    showToast(`Support ticket ${newTicket.ticketNumber} logged successfully`, 'success');
+    return newTicket;
+  };
+
+  const updateTicketStatus = (id: string, status: TicketStatus, notes?: string) => {
+    const updated = supportTickets.map((t) =>
+      t.id === id
+        ? {
+            ...t,
+            status,
+            adminNotes: notes !== undefined ? notes : t.adminNotes,
+            updatedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
+          }
+        : t
+    );
+    setSupportTickets(updated);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cp_support_tickets', JSON.stringify(updated));
+    }
+    showToast(`Ticket status updated to ${status}`, 'success');
+  };
+
+  const replyToTicket = (id: string, reply: string, newStatus: TicketStatus = 'resolved') => {
+    const ticket = supportTickets.find((t) => t.id === id);
+    const updated = supportTickets.map((t) =>
+      t.id === id
+        ? {
+            ...t,
+            adminReply: reply,
+            status: newStatus,
+            updatedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
+          }
+        : t
+    );
+    setSupportTickets(updated);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cp_support_tickets', JSON.stringify(updated));
+    }
+
+    if (ticket && ticket.userId) {
+      addNotification({
+        userId: ticket.userId,
+        title: `Response to Ticket ${ticket.ticketNumber}`,
+        message: `Admin Response: "${reply}"`,
+        type: 'system',
+      });
+    }
+
+    showToast(`Response sent to customer`, 'success');
+  };
+
+  const deleteBooking = (bookingId: string) => {
+    const updated = bookings.filter((b) => b.id !== bookingId);
+    setBookings(updated);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cp_bookings', JSON.stringify(updated));
+    }
+    deleteDirectBooking(bookingId);
+    showToast('Booking deleted permanently', 'info');
+  };
+
+  const deleteAmenityRequest = (requestId: string) => {
+    const updated = amenityRequests.filter((r) => r.id !== requestId);
+    setAmenityRequests(updated);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cp_amenity_requests', JSON.stringify(updated));
+    }
+    (async () => {
+      try {
+        const storedToken = getStoredToken();
+        const headers: Record<string, string> = {};
+        if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+        await fetch(`${getApiBaseUrl()}/amenities/${requestId}`, {
+          method: 'DELETE',
+          headers,
+        });
+      } catch (err) {
+        console.warn('Failed to delete amenity from database:', err);
+      }
+    })();
+    showToast('Amenity deleted from catalog', 'info');
+  };
+
   return (
     <AppContext.Provider value={{
       nav, navigate, goBack,
+      partners, fetchPartners, createPartner, updatePartner, deletePartner,
+      workspacesApi, fetchWorkspaces, createWorkspace, updateWorkspace, deleteWorkspace,
+      hourlyBookingsApi, fetchHourlyBookings, createHourlyBooking, updateHourlyBooking, deleteHourlyBooking,
+      payoutsApi, fetchPayouts, createPayout, updatePayout, deletePayout,
+      membershipPlansApi, fetchMembershipPlans, createMembershipPlan, updateMembershipPlan, deleteMembershipPlan,
+      subscriptionsApi, fetchSubscriptions, createSubscription, updateSubscription, deleteSubscription,
+      directBookingsApi, fetchDirectBookings, createDirectBooking, updateDirectBooking, deleteDirectBooking,
+      paymentsApi, fetchPayments, createPayment, updatePayment, deletePayment,
       currentUser, login, signup, logout, setPendingUser, pendingUser,
+      userLocation, locationStatus, requestUserLocation,
       spaces, favorites, toggleFavorite, addSpace, updateSpace, toggleSpaceVisibility, deleteSpace,
-      bookings, addBooking, cancelBooking, updateBookingStatus,
-      amenityRequests, approvedCustomAmenities, requestCustomAmenity, approveAmenityRequest, rejectAmenityRequest, getApprovedAmenities,
+      bookings, addBooking, cancelBooking, updateBookingStatus, deleteBooking,
+      amenityRequests, approvedCustomAmenities, requestCustomAmenity, approveAmenityRequest, rejectAmenityRequest, deleteAmenityRequest, getApprovedAmenities,
+      supportTickets, addSupportTicket, updateTicketStatus, replyToTicket,
       notifications: userNotifications,
       unreadNotificationsCount: userNotifications.filter(n => !n.read).length,
       markNotificationRead, toggleNotificationRead, markAllNotificationsRead, deleteNotification, clearAllNotifications, addNotification, generateFakeNotification,

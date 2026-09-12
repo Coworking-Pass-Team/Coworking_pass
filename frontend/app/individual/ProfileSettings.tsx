@@ -32,7 +32,6 @@ import { PaymentCard } from '@/types/types';
 
 export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile' | 'settings' }) {
   const { currentUser, updateCurrentUser, navigate, nav, showToast, addPaymentCard, bookings } = useApp();
-  if (!currentUser) return null;
 
   const [activeTab, setActiveTab] = useState<'profile' | 'settings'>(
     mode || (nav.screen === 'ind-settings' ? 'settings' : 'profile')
@@ -42,15 +41,15 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   // Edit Form Fields (Exact existing Individual fields preserved)
-  const [editName, setEditName] = useState(currentUser.name || '');
+  const [editName, setEditName] = useState(currentUser?.name || '');
   const [editUsername, setEditUsername] = useState(
-    currentUser.username || currentUser.name.toLowerCase().replace(/[^a-z0-9_]/g, '') || ''
+    currentUser?.username || currentUser?.name?.toLowerCase().replace(/[^a-z0-9_]/g, '') || ''
   );
-  const [editPhone, setEditPhone] = useState(currentUser.phone || '');
-  const [editUniversity, setEditUniversity] = useState(currentUser.university || '');
-  const [editCity, setEditCity] = useState(currentUser.city || 'Riyadh, Saudi Arabia');
-  const [editBio, setEditBio] = useState(currentUser.bio || '');
-  const [editAvatar, setEditAvatar] = useState(currentUser.avatar || '');
+  const [editPhone, setEditPhone] = useState(currentUser?.phone || '');
+  const [editUniversity, setEditUniversity] = useState(currentUser?.university || '');
+  const [editCity, setEditCity] = useState(currentUser?.city || 'Riyadh, Saudi Arabia');
+  const [editBio, setEditBio] = useState(currentUser?.bio || '');
+  const [editAvatar, setEditAvatar] = useState(currentUser?.avatar || '');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
 
@@ -58,7 +57,7 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
 
   // Add Payment Card Modal State
   const [isAddCardOpen, setIsAddCardOpen] = useState(false);
-  const [cardHolder, setCardHolder] = useState(currentUser.name || '');
+  const [cardHolder, setCardHolder] = useState(currentUser?.name || '');
   const [cardNumber, setCardNumber] = useState('');
   const [cardExpiry, setCardExpiry] = useState('');
   const [cardBrand, setCardBrand] = useState<'Visa' | 'Mastercard' | 'Mada'>('Visa');
@@ -79,6 +78,8 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
     waitlist: true,
   });
   const [privacy, setPrivacy] = useState({ profileVisible: true, showBookings: false });
+
+  if (!currentUser) return null;
 
   const usernameDisplay = currentUser.username || currentUser.name.toLowerCase().replace(/[^a-z0-9_]/g, '') || 'user';
   const savedCards: PaymentCard[] = currentUser.savedCards || [

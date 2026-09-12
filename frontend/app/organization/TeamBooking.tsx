@@ -17,6 +17,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { useApp } from '@/app/store';
+import { createPointsTransactionApi, getLoyaltyPointsApi } from '@/services/authApi';
 import {
   BookingPlan,
   BookingType,
@@ -127,9 +128,9 @@ export default function TeamBooking() {
     ? startDate
     : calculateEndDate(startDate, plan, durationMonths);
 
-  const planInfo = getEffectiveSpacePrice(currentUser, space, plan, bookingType, durationHours, durationMonths);
-  const pricePerSeat = planInfo.effectivePrice;
-  const rawTotalPrice = pricePerSeat * seats;
+  const planInfo = getEffectiveSpacePrice(currentUser, space, plan, bookingType, durationHours, durationMonths, seats);
+  const pricePerSeat = planInfo.isCovered ? 0 : Math.round(planInfo.effectivePrice / seats);
+  const rawTotalPrice = planInfo.effectivePrice;
 
   // منطق نقاط الولاء المكتسبة والمستخدمة
   const multiplier = space.loyaltyPointsMultiplier || 1;
@@ -243,6 +244,26 @@ export default function TeamBooking() {
       const updatedPoints = Math.max(0, availablePoints - pointsUsed + earnedPoints);
       updateCurrentUser({ loyaltyPoints: updatedPoints });
 
+      if (pointsUsed > 0 && currentUser) {
+        createPointsTransactionApi({
+          userId: currentUser.id,
+          type: 'REDEEMED',
+          points: pointsUsed,
+          description: `Redeemed points for team booking discount (${space.name})`,
+        }).then(res => {
+          if (res.success) {
+            getLoyaltyPointsApi(currentUser.id).then(ptsRes => {
+              if (ptsRes.success && Array.isArray(ptsRes.data)) {
+                const uPts = ptsRes.data.find((p: any) => p.userId === currentUser.id);
+                if (uPts && typeof uPts.availableBalance === 'number') {
+                  updateCurrentUser({ loyaltyPoints: uPts.availableBalance });
+                }
+              }
+            }).catch(() => {});
+          }
+        }).catch(() => {});
+      }
+
       setConfirmedBooking(booking);
       setStep(4);
       setLoading(false);
@@ -322,7 +343,13 @@ export default function TeamBooking() {
 
               <div className="pt-3 border-t border-soot/8 flex justify-between items-center font-semibold text-base">
                 <span className="text-soot">Total Paid (incl. VAT)</span>
-                <span className="text-soot font-bold text-lg">SAR {finalPayablePrice.toLocaleString()}</span>
+                {finalPayablePrice === 0 ? (
+                  <span className="text-moss font-bold text-xs sm:text-sm bg-eucalyptus/25 px-3 py-1 rounded-full border border-eucalyptus/30">
+                    Included in your Plan · SAR 0 Paid
+                  </span>
+                ) : (
+                  <span className="text-soot font-bold text-lg">SAR {finalPayablePrice.toLocaleString()}</span>
+                )}
               </div>
             </div>
           </div>
@@ -456,7 +483,7 @@ export default function TeamBooking() {
                     >
                       <div className="text-xs capitalize font-semibold">{p}</div>
                       <div className="text-[10px] text-moss mt-0.5">
-                        {pInfo.isCovered ? 'Included' : `SAR ${pInfo.effectivePrice}/seat`}
+                        {pInfo.isCovered ? 'Included in Plan' : `SAR ${pInfo.effectivePrice}/seat`}
                       </div>
                     </button>
                   );
@@ -472,7 +499,7 @@ export default function TeamBooking() {
                     <Calendar size={12} />
                     <span>Select Number of Months</span>
                   </span>
-                  <span className="text-xs font-bold text-soot">{durationMonths} Month{durationMonths > 1 ? 's' : ''} (SAR {getMonthlyPriceForDuration(space, durationMonths).toLocaleString()}/seat)</span>
+                  <span className="text-xs font-bold text-soot">{durationMonths} Month{durationMonths > 1 ? 's' : ''} ({planInfo.isCovered ? 'Included in your Plan · SAR 0 to Pay' : `SAR ${getMonthlyPriceForDuration(space, durationMonths).toLocaleString()}/seat`})</span>
                 </div>
                 <div className="grid grid-cols-5 gap-2">
                   {[1, 2, 3, 6, 12].map(m => (
@@ -871,7 +898,7 @@ export default function TeamBooking() {
                   Rate per Seat ({isHourly ? `${startTime} – ${endTime} (${durationHours}h)` : plan === 'monthly' ? `${durationMonths} Mo Monthly` : `${plan} pass`})
                 </span>
                 <span className="text-soot font-medium">
-                  SAR {planInfo.originalPrice.toLocaleString()} {planInfo.isCovered ? '(Included in Pass)' : ''}
+                  {planInfo.isCovered ? 'Included in your Plan' : `SAR ${planInfo.originalPrice.toLocaleString()}`}
                 </span>
               </div>
               <div className="flex justify-between text-xs sm:text-sm">
@@ -881,7 +908,7 @@ export default function TeamBooking() {
               <div className="flex justify-between text-xs sm:text-sm">
                 <span className="text-moss">Subtotal</span>
                 <span className="text-soot font-medium">
-                  SAR {(planInfo.originalPrice * seats).toLocaleString()}
+                  {planInfo.isCovered ? 'Included in your Plan' : `SAR ${(planInfo.originalPrice * seats).toLocaleString()}`}
                 </span>
               </div>
               {pointsDiscount > 0 && (
@@ -893,7 +920,7 @@ export default function TeamBooking() {
               <div className="flex justify-between text-xs sm:text-sm">
                 <span className="text-moss">VAT (15% included)</span>
                 <span className="text-soot font-medium">
-                  SAR {((finalPayablePrice) * 0.15).toFixed(0)}
+                  {planInfo.isCovered ? 'SAR 0' : `SAR ${((finalPayablePrice) * 0.15).toFixed(0)}`}
                 </span>
               </div>
 
@@ -903,10 +930,19 @@ export default function TeamBooking() {
                   <span className="text-xs text-moss">Corporate billing</span>
                 </div>
                 <div className="text-right">
-                  {planInfo.isCovered ? (
+                  {finalPayablePrice === 0 ? (
                     <div>
-                      <span className="text-2xl font-bold text-soot">SAR 0</span>
-                      <span className="text-xs font-medium text-moss ml-1.5">(Enterprise Pass · Standard: SAR {(planInfo.originalPrice * seats).toLocaleString()})</span>
+                      <span className="text-2xl font-bold text-soot">SAR 0 to Pay</span>
+                      <div className="text-xs text-moss font-semibold bg-eucalyptus/25 border border-eucalyptus/30 px-2.5 py-0.5 rounded-full inline-block ml-2">
+                        Included in your Plan
+                      </div>
+                    </div>
+                  ) : planInfo.isPartiallyCovered ? (
+                    <div>
+                      <span className="text-2xl font-bold text-soot">SAR {finalPayablePrice.toLocaleString()} to Pay</span>
+                      <div className="text-xs text-amber-900 font-semibold bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 rounded-full block mt-0.5">
+                        {(planInfo.coveredSeats || 0) > 0 ? `${planInfo.coveredSeats} Seats Included in Plan` : `${planInfo.coveredHours || 0}h Included in Plan`}
+                      </div>
                     </div>
                   ) : (
                     <span className="text-2xl font-bold text-soot">SAR {finalPayablePrice.toLocaleString()}</span>
@@ -964,7 +1000,7 @@ export default function TeamBooking() {
               className="py-3 px-5 rounded-full border border-soot/15 text-soot font-medium text-sm hover:bg-soot/5 transition-all bg-white flex items-center justify-center gap-2 cursor-pointer shadow-2xs"
             >
               <ShoppingBag size={15} />
-              <span>Add to Cart</span>
+              <span>{finalPayablePrice === 0 ? 'Add to Cart (Included · SAR 0)' : 'Add to Cart'}</span>
             </button>
 
             <button
@@ -974,10 +1010,10 @@ export default function TeamBooking() {
             >
               {loading ? (
                 <span>Confirming...</span>
-              ) : planInfo.isCovered ? (
+              ) : finalPayablePrice === 0 ? (
                 <>
                   <Check size={15} className="text-moss" />
-                  <span>Confirm Reservation (Enterprise Pass)</span>
+                  <span>Confirm Reservation (Included in your Plan · SAR 0 to Pay)</span>
                 </>
               ) : (
                 <>

@@ -15,12 +15,15 @@ import {
   Eye,
   X,
   CreditCard,
+  Trash2,
 } from 'lucide-react';
 import { useApp } from '@/app/store';
 import { Booking, BookingStatus, getBookingPrice } from '@/types/types';
+import { updateDirectBookingApi } from '@/services/authApi';
+import HourlyBookingsAdmin from './HourlyBookingsAdmin';
 
 export default function BookingsAdmin() {
-  const { bookings, spaces, users, updateBookingStatus, showToast } = useApp();
+  const { bookings, spaces, users, updateBookingStatus, deleteBooking, showToast, fetchHourlyBookings } = useApp();
   const [query, setQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterPlan, setFilterPlan] = useState('');
@@ -33,6 +36,10 @@ export default function BookingsAdmin() {
 
   // Detail Modal State
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+
+  useEffect(() => {
+    fetchHourlyBookings().catch(() => {});
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -83,13 +90,17 @@ export default function BookingsAdmin() {
     if (selectedBooking && selectedBooking.id === bookingId) {
       setSelectedBooking((prev) => (prev ? { ...prev, status } : null));
     }
+    const backendStatus = status === 'active' ? 'CONFIRMED' : status === 'cancelled' ? 'CANCELLED' : 'CONFIRMED';
+    updateDirectBookingApi(bookingId, { status: backendStatus }).catch((err: any) =>
+      console.warn('[Direct Booking PUT Sync]', err)
+    );
     showToast(`Booking status changed to ${status}`);
   };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-wrap">
         <div>
           <span className="text-xs font-semibold tracking-wider uppercase text-moss block mb-1">
             Booking Management & Platform Activity
@@ -383,6 +394,20 @@ export default function BookingsAdmin() {
                   title="View Full Booking Details"
                 >
                   <Eye size={15} />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (confirm(`Are you sure you want to permanently delete booking "${b.id}" for workspace "${b.spaceName}"?`)) {
+                      deleteBooking(b.id);
+                    }
+                  }}
+                  className="p-2 rounded-xl text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-all cursor-pointer"
+                  title="Permanently Delete Booking"
+                >
+                  <Trash2 size={15} />
                 </button>
               </div>
             </div>
