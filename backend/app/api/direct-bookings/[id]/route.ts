@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { getTokenFromRequest, unauthorizedResponse } from '@/lib/auth/verify-token';
 
 /**
  * @swagger
@@ -27,31 +27,33 @@ export async function GET(
 ) {
   try {
     const user = getTokenFromRequest(request);
-if (!user) return unauthorizedResponse();
-    const { id } = await params
+    if (!user && process.env.NODE_ENV === 'production') {
+      return unauthorizedResponse();
+    }
+    const { id } = await params;
     const booking = await prisma.directBooking.findUnique({
       where: { id },
       include: {
-        user: { select: { name: true, email: true } },
+        user: { select: { id: true, name: true, email: true, role: true } },
         workspace: true,
-        section: true
-      }
-    })
+        section: true,
+      },
+    });
 
     if (!booking) {
       return NextResponse.json(
         { error: 'الحجز غير موجود' },
         { status: 404 }
-      )
+      );
     }
 
-    return NextResponse.json(booking)
+    return NextResponse.json(booking);
   } catch (error) {
-    console.error('❌ Error fetching booking:', error)
+    console.error(' Error fetching direct booking:', error);
     return NextResponse.json(
-      { error: 'حدث خطأ' },
+      { error: 'حدث خطأ في جلب تفاصيل الحجز' },
       { status: 500 }
-    )
+    );
   }
 }
 
@@ -88,25 +90,36 @@ export async function PUT(
 ) {
   try {
     const user = getTokenFromRequest(request);
-if (!user) return unauthorizedResponse();
-    const { id } = await params
-    const body = await request.json()
+    if (!user && process.env.NODE_ENV === 'production') {
+      return unauthorizedResponse();
+    }
+    const { id } = await params;
+    const body = await request.json();
+
+    const updateData: any = {};
+    if (body.durationType) updateData.durationType = body.durationType.toUpperCase();
+    if (body.bookingDate) updateData.bookingDate = new Date(body.bookingDate);
+    if (body.status) updateData.status = body.status;
+    if (body.workspaceId) updateData.workspaceId = body.workspaceId;
+    if (body.sectionId) updateData.sectionId = body.sectionId;
+
     const booking = await prisma.directBooking.update({
       where: { id },
-      data: body,
+      data: updateData,
       include: {
-        user: { select: { name: true, email: true } },
+        user: { select: { id: true, name: true, email: true, role: true } },
         workspace: true,
-        section: true
-      }
-    })
-    return NextResponse.json(booking)
+        section: true,
+      },
+    });
+
+    return NextResponse.json(booking);
   } catch (error) {
-    console.error('❌ Error updating booking:', error)
+    console.error(' Error updating direct booking:', error);
     return NextResponse.json(
-      { error: 'حدث خطأ في التحديث' },
+      { error: 'حدث خطأ في تحديث الحجز' },
       { status: 500 }
-    )
+    );
   }
 }
 
@@ -229,10 +242,10 @@ export async function DELETE(
       { status: 200 }
     );
   } catch (error) {
-    console.error('❌ Error:', error)
+    console.error(' Error cancelling direct booking:', error);
     return NextResponse.json(
       { error: 'حدث خطأ في الإلغاء' },
       { status: 500 }
-    )
+    );
   }
 }

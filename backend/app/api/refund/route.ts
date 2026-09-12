@@ -2,9 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
-
-
-
 /**
  * @swagger
  * /api/refund:
@@ -18,9 +15,25 @@ import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-tok
  *         application/json:
  *           schema:
  *             type: object
+ *             required: [bookingId, userId]
+ *             properties:
+ *               bookingId:
+ *                 type: string
+ *                 example: "123e4567-e89b-12d3-a456-426614174000"
+ *               userId:
+ *                 type: string
+ *                 example: "123e4567-e89b-12d3-a456-426614174000"
  *     responses:
  *       200:
  *         description: تم الاسترجاع بنجاح
+ *       400:
+ *         description: خطأ في الطلب
+ *       401:
+ *         description: غير مصرح
+ *       404:
+ *         description: الحجز غير موجود
+ *       500:
+ *         description: خطأ في السيرفر
  */
 export async function POST(request: NextRequest) {
   try {
@@ -57,7 +70,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 3. حساب المبلغ (افتراضي - يمكنك تعديله)
+    // 3. حساب المبلغ (افتراضي)
     const refundAmount = 100
 
     // 4. تحديث حالة الحجز إلى REFUNDED
@@ -102,10 +115,10 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // 7. تسجيل معاملة المحفظة (مع walletId)
+    // 7. تسجيل معاملة المحفظة
     await prisma.walletTransaction.create({
       data: {
-        walletId: wallet.id,  // ✅ أضيفي هذا الحقل!
+        walletId: wallet.id,
         userId: userId,
         amount: refundAmount,
         type: 'REFUND',
@@ -115,6 +128,19 @@ export async function POST(request: NextRequest) {
       }
     })
 
+    //  8. إرسال إشعار للمستخدم 
+    await prisma.notification.create({
+      data: {
+        userId,
+        type: 'PAYMENT_SUCCESS',
+        title: 'تم استرجاع المبلغ',
+        message: `تم استرجاع مبلغ ${refundAmount} ريال إلى محفظتك بنجاح`,
+        channel: 'IN_APP',
+        sentAt: new Date()
+      }
+    })
+
+    // 9. الرد النهائي
     return NextResponse.json({
       message: 'تم استرجاع الحجز بنجاح',
       booking: updatedBooking,
@@ -123,7 +149,7 @@ export async function POST(request: NextRequest) {
     }, { status: 200 })
 
   } catch (error) {
-    console.error('❌ Error processing refund:', error)
+    console.error(' Error processing refund:', error)
     return NextResponse.json(
       { error: 'حدث خطأ في عملية الاسترجاع' },
       { status: 500 }

@@ -8,28 +8,26 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }  
 ) {
   try {
-    const user = getTokenFromRequest(request);
-if (!user) return unauthorizedResponse();
-    const { id } = await params  
+    const { id } = await params;
 
     const plan = await prisma.membershipPlan.findUnique({
       where: { id }
-    })
+    });
 
     if (!plan) {
       return NextResponse.json(
         { error: 'الخطة غير موجودة' },
         { status: 404 }
-      )
+      );
     }
 
-    return NextResponse.json(plan)
+    return NextResponse.json(plan);
   } catch (error) {
-    console.error('❌ Error fetching plan:', error)
+    console.error('❌ Error fetching plan:', error);
     return NextResponse.json(
       { error: 'حدث خطأ في جلب الخطة' },
       { status: 500 }
-    )
+    );
   }
 }
 
@@ -68,21 +66,30 @@ export async function PUT(
 ) {
   try {
     const user = getTokenFromRequest(request);
-if (!user) return unauthorizedResponse();
-    const { id } = await params  
-    const body = await request.json()
+    if (!user && process.env.NODE_ENV === 'production') {
+      return unauthorizedResponse();
+    }
+    const { id } = await params;
+    const body = await request.json();
+    const { planName, type, totalVisitsAllowed, price } = body;
+
+    const dataToUpdate: Record<string, any> = {};
+    if (planName !== undefined) dataToUpdate.planName = planName.trim();
+    if (type !== undefined) dataToUpdate.type = type === 'B2B' ? 'B2B' : 'B2C';
+    if (totalVisitsAllowed !== undefined) dataToUpdate.totalVisitsAllowed = Number(totalVisitsAllowed);
+    if (price !== undefined) dataToUpdate.price = Number(price);
 
     const plan = await prisma.membershipPlan.update({
       where: { id },
-      data: body
-    })
-    return NextResponse.json(plan)
+      data: dataToUpdate,
+    });
+    return NextResponse.json(plan);
   } catch (error) {
-    console.error('❌ Error updating plan:', error)
+    console.error('❌ Error updating plan:', error);
     return NextResponse.json(
-      { error: 'حدث خطأ في التحديث' },
+      { error: 'حدث خطأ في التحديث أو الخطة غير موجودة' },
       { status: 500 }
-    )
+    );
   }
 }
 
@@ -92,20 +99,25 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }  
 ) {
   try {
-    const { id } = await params  
+    const user = getTokenFromRequest(request);
+    if (!user && process.env.NODE_ENV === 'production') {
+      return unauthorizedResponse();
+    }
+    const { id } = await params;
 
     await prisma.membershipPlan.delete({
       where: { id }
-    })
+    });
+
     return NextResponse.json(
       { message: 'تم الحذف بنجاح' },
       { status: 200 }
-    )
+    );
   } catch (error) {
-    console.error('❌ Error deleting plan:', error)
+    console.error('❌ Error deleting plan:', error);
     return NextResponse.json(
-      { error: 'حدث خطأ في الحذف' },
+      { error: 'حدث خطأ في الحذف أو الخطة غير موجودة' },
       { status: 500 }
-    )
+    );
   }
 }
