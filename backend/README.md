@@ -1,10 +1,10 @@
 # Coworking Pass Backend
 
-> **ملاحظة مهمة:** كل شخص يشغّل **قاعدة بيانات محلية خاصة به** (بجهازه فقط)  بياناتك التجريبية منفصلة تماماً عن باقي الفريق.
+
 
 ---
 
-## 1. سحب المشروع
+## الخطوة 1: سحب المشروع
 
 ```powershell
 git clone https://github.com/Coworking-Pass-Team/Coworking_pass.git
@@ -15,92 +15,84 @@ git pull origin develop
 
 ---
 
-## 2. تثبيت المكتبات
+## الخطوة 2: تثبيت المكتبات
 
 ```powershell
 npm install
 ```
-هذا يقرأ ملف `package.json` ويحمّل **كل** المكتبات اللي يحتاجها المشروع تلقائياً.
 
 ---
 
-## 3. إعداد قاعدة بيانات محلية
-
-### افتحي نافذة PowerShell **جديدة ومخصصة** لهذا (خليها مفتوحة طول وقت شغلك):
-```powershell
-cd Coworking_pass\backend
-npx prisma dev --name coworkingpas
-```
-
-> **ليش `--name coworkingpass`؟** عشان تصير قاعدتك "مسمّاة" وثابتة — رابط الاتصال ما يتغيّر بكل مرة، وتقدرين توقفينها وترجعينها بأمان بدون ما تضيع بياناتك.
-
-انتظري لين يطلع لك:
-```
-✔ Your local Prisma Postgres server default is now running 👍
-
-🔌 To connect with Prisma ORM use the following connection strings:
-
-   DATABASE_URL="postgres://postgres:postgres@localhost:XXXXX/template1?..."
-```
-
-**انسخي سطر `DATABASE_URL` كامل** — بتحتاجينه بالخطوة الجاية.
-
-### كيف توقفينها وترجعينها بأمان (بدل قفل النافذة)
-```powershell
-# لإيقافها بأمان (يحفظ بياناتك):
-npx prisma dev stop coworkingpass
-
-# لتشغيلها من جديد لاحقاً (بنفس البيانات ونفس الرابط):
-npx prisma dev start coworkingpass
-```
-
-> ⚠️ لو قفلتِ النافذة مباشرة (بزر X) بدل الأمر أعلاه، احتمال تفقدين بياناتك أو يتغيّر رابط الاتصال. الأفضل دايماً استخدام `stop`/`start`.
-
----
-
-## 4. إعداد ملف `.env`
-
-بنافذة **PowerShell ثانية** (خلي نافذة `prisma dev` شغالة بالأولى):
+## الخطوة 3: إنشاء ملف `.env` (بقيمة مؤقتة أولاً)
 
 ```powershell
-cd Coworking_pass\backend
 New-Item .env
 code .env
 ```
 
-### أ) `DATABASE_URL`
-الصقي الرابط اللي نسختيه من الخطوة 4.
-
-### ب) `JWT_SECRET`
-أي نص طويل عشوائي، مثال:
+يُكتب بالملف سطر واحد مؤقت فقط بهذي المرحلة:
 ```
-JWT_SECRET="my-super-secret-dev-key-2026"
+DATABASE_URL="placeholder"
 ```
+يُحفَظ الملف (`Ctrl+S`).
 
-### ج) `RESEND_API_KEY` 
-
-Resend هي الخدمة اللي يرسل منها المشروع كود التفعيل (OTP) للإيميل. كل شخص يسوي حسابه الخاص:
-
-1. روحي لـ resend.com/signup وسجلي حساب مجاني
-2. اضغطي **Create API Key**
-3. اختاري أي اسم (مثال: `local-dev`)، واضغطي **Add**
-4. **انسخي المفتاح فوراً** (يبدأ بـ `re_...`) — ما يظهر مرة ثانية بعد ما تسكرين الصفحة
-5. الصقيه بملف `.env`:
-```
-RESEND_API_KEY="re_xxxxxxxxxxxxxxxxxxxxxxxx"
-```
-
-احفظي الملف (`Ctrl+S`) بعد تعبئة الثلاث قيم.
+> **لماذا قيمة مؤقتة أولاً؟** لأن ملف إعدادات المشروع (`prisma.config.ts`) يتطلب وجود `DATABASE_URL` حتى لتشغيل أمر إنشاء قاعدة البيانات نفسه. توضع قيمة وهمية الآن، ثم تُستبدل بالقيمة الحقيقية بالخطوة القادمة.
 
 ---
 
-## 5. بناء الجداول بقاعدتك المحلية
+## الخطوة 4: تشغيل قاعدة بيانات محلية
+
+تُفتح نافذة PowerShell **جديدة ومنفصلة** (تبقى مفتوحة طوال فترة العمل على المشروع):
+```powershell
+cd Coworking_pass\backend
+npx prisma dev --name coworkingpass
+```
+
+يظهر رد يحتوي على **رابطين مختلفين** — يُستخدم **الثاني فقط** (الذي يبدأ بـ `postgres://`، وليس `prisma+postgres://`):
+
+```
+يُستخدم هذا الشكل:
+DATABASE_URL="postgres://postgres:postgres@localhost:XXXXX/template1?sslmode=disable&connection_limit=10&connect_timeout=0&max_idle_connection_lifetime=0&pool_timeout=0&socket_timeout=0"
+
+لا يُستخدم هذا الشكل:
+DATABASE_URL="prisma+postgres://localhost:XXXXX/?api_key=..."
+```
+
+**يُنسَخ الرابط الصحيح (الثاني) بالكامل.**
+
+
+## الخطوة 5: تحديث `.env` بالقيم الحقيقية
+
+بنافذة PowerShell **ثانية** (تبقى نافذة `prisma dev` مفتوحة بالأولى):
+```powershell
+cd Coworking_pass\backend
+code .env
+```
+
+يُستبدل السطر المؤقت، وتُضاف باقي القيم:
+
+```
+DATABASE_URL="الرابط المنسوخ من الخطوة 4 (الشكل الصحيح: postgres://...)"
+JWT_SECRET="أي نص طويل عشوائي، مثال: my-super-secret-dev-key-2026"
+RESEND_API_KEY="يُؤخذ ذاتياً، الخطوات بالأسفل"
+```
+
+### الحصول على `RESEND_API_KEY` (مجاني، خطوتين)
+1. يُفتح الموقع resend.com/signup ويُنشأ حساب مجاني
+2. من القائمة الجانبية: **API Keys** → **Create API Key** → يُختار أي اسم → **Add**
+3. يُنسخ المفتاح فوراً (يبدأ بـ `re_`) — لا يظهر مرة أخرى بعد إغلاق الصفحة
+4. يُلصق بملف `.env`
+
+يُحفَظ الملف (`Ctrl+S`).
+
+---
+
+## الخطوة 6: بناء الجداول
 
 ```powershell
 npx prisma db push
 ```
-
-لازم يطلع لك:
+يجب أن يظهر:
 ```
 Your database is now in sync with your Prisma schema.
 ✔ Generated Prisma Client
@@ -108,69 +100,81 @@ Your database is now in sync with your Prisma schema.
 
 ---
 
-## 6. تشغيل المشروع
+## الخطوة 7: تشغيل المشروع
 
-بنفس النافذة أو نافذة **ثالثة**:
+بنافذة **ثالثة**:
 ```powershell
 npm run dev
 ```
-انتظري لين يطلع:
+يُنتظر حتى يظهر:
 ```
 ✓ Ready in ...
 ```
-اتركي هذي النافذة مفتوحة كمان طول وقت التجربة.
+تبقى هذي النافذة مفتوحة أيضاً طوال فترة الاستخدام.
 
 ---
 
-## 7. فتح Swagger وتجربة الـ APIs
+## الخطوة 8: فتح Swagger وتجربة الـ APIs
 
-افتحي المتصفح على:
+يُفتح المتصفح على:
 ```
 http://localhost:3000/api-doc
 ```
 
-بتشوفين قائمة بكل الـ endpoints مقسّمة بأقسام (auth, partners, workspaces...). كل وحدة تقدرين تضغطين عليها وتشوفين شكل البيانات المطلوبة.
+### تسلسل التجربة الأولى (القاعدة فارغة تماماً بالبداية):
+1. `POST /api/auth/register` → Try it out → تُعدَّل القيم (بريد حقيقي) → Execute
+2. `POST /api/auth/verify-email` → يُلصق `userId` من الرد السابق + الكود الوارد بالبريد
+3. `POST /api/auth/login` → نفس البريد وكلمة المرور
+4. `POST /api/auth/verify-login` → الكود الجديد → يُنسخ `token` من الرد
+5. زر **Authorize** أعلى الصفحة → يُلصق التوكن (بدون كلمة `Bearer`) → Authorize → Close
 
-### الخطوات الأولى (بما إن قاعدتك فاضية تماماً، ما فيها بيانات):
+بعد هذي الخطوة، أي طلب محمي يُستخدم فيه التوكن تلقائياً.
 
-1. **سجلي حساب** — افتحي `POST /api/auth/register` → اضغطي **Try it out** → عدّلي القيم بالمربع (استخدمي إيميلك الحقيقي) → **Execute**
-2. **فعّلي الإيميل** — افتحي `POST /api/auth/verify-email` → الصقي الـ `userId` من الرد السابق + الكود اللي وصلك بالإيميل
-3. **سجلي دخول** — `POST /api/auth/login` بنفس الإيميل وكلمة المرور
-4. **أكملي الدخول** — `POST /api/auth/verify-login` بالكود الجديد اللي وصلك → **انسخي قيمة `token` من الرد**
-5. **فعّلي التوكن لكل الصفحة** — اضغطي زر **Authorize** فوق يمين الصفحة → الصقي التوكن (بدون كلمة `Bearer` قبله) → **Authorize** → **Close**
-
-بعد كذا، أي endpoint محمي تجربينه بزر "Try it out" بياخذ التوكن تلقائياً معه.
-
-### بناء بيانات تجريبية (بما إن القاعدة فاضية، لازم تبنين أول شي أساسي)
-رتبي حسب الترابط بينهم:
+### بناء بيانات تجريبية أولية
 ```
-1. Partners (POST) → خذي id الشريك من الرد
-2. Workspaces (POST) → تحتاج partner id، خذي id المساحة
-3. باقي الجداول حسب اللي تبين تجربينه
+1. Partners (POST) → يُؤخذ id الشريك
+2. Workspaces (POST) → يحتاج partner id
+3. باقي الجداول حسب الحاجة
 ```
 
 ---
 
-## 8. أدوات إضافية مفيدة
+## أدوات إضافية
 
-### عرض قاعدة بياناتك بصرياً (زي جدول Excel)
+### عرض قاعدة البيانات بصرياً
 ```powershell
 npx prisma studio
 ```
-يفتح `http://localhost:5555` — تشوفين فيها كل الجداول والبيانات اللي أضفتيها.
-ئعة وحلولها
-
-## 9. مشاكل شائعة وحلولها
 
 
-| المشكلة | الحل |
-|---|---|
-| `Can't reach database server` | القاعدة متوقفة — شغّليها بـ `npx prisma dev start coworkingpass` |
-| `Module not found` بعد `git pull` | شغّلي `npm install` من جديد (مكتبات جديدة انضافت) |
-| صفحة Swagger فاضية أو 404 | تأكدي إن `npm run dev` شغال بدون أخطاء، وإنك على فرع `develop` محدّث |
-| `401 Unauthorized` بكل الطلبات | تأكدي ضغطتِ **Authorize** بصفحة Swagger وحطيتِ توكن صالح |
-| ما توصلني رسالة الإيميل (OTP) | تأكدي `RESEND_API_KEY` معبّى صح بـ `.env` (مفتاحك الشخصي من الخطوة 5-ج)، وشيكي مجلد الرسائل غير المرغوبة (Spam) |
+يُفتح على `http://localhost:5555`.
+
+
+
+```powershell
+# لإيقاف آمن (يحافظ على البيانات):
+npx prisma dev stop coworkingpass
+
+# لإعادة التشغيل لاحقاً (بنفس البيانات ونفس الرابط):
+npx prisma dev start coworkingpass
+```
+> يُفضَّل عدم إغلاق النافذة بزر الإغلاق مباشرة — يُستخدَم أمر `stop` دائماً بدلاً من ذلك.
 
 ---
 
-**عندك سؤال أو مشكلة غير موجودة هنا؟** اسألي بقروب الفريق.
+## مشاكل شائعة وحلولها
+
+| المشكلة | السبب والحل |
+|---|---|
+| `PrismaConfigEnvError: Missing required environment variable` | ملف `.env` غير موجود أو فارغ — تُنشأ قيمة مؤقتة `DATABASE_URL="placeholder"` أولاً (الخطوة 3) قبل تشغيل أي أمر Prisma آخر |
+| `Can't reach database server` | القاعدة المحلية متوقفة — يُشغَّل الأمر `npx prisma dev start coworkingpass` |
+| `EPERM: operation not permitted, rename ...query_engine...` | نافذة `npm run dev` مفتوحة وتمسك ملفاً قيد التحديث — تُغلَق تلك النافذة (Ctrl+C)، ثم يُعاد تشغيل `npx prisma generate` |
+| `Error: prepared statement "s0" already exists` | اتصال قديم عالق بقاعدة البيانات المحلية — يُنفَّذ: `npx prisma dev stop coworkingpass` ثم `npx prisma dev start coworkingpass`، وإذا استمرت المشكلة: `npx prisma dev rm coworkingpass` ثم إعادة الإنشاء من جديد بنفس الاسم |
+| اتصال فاشل رغم اتباع كل الخطوات | يُتأكَّد من استخدام الرابط الذي يبدأ بـ `postgres://` وليس `prisma+postgres://` بملف `.env` |
+| `Module not found` بعد `git pull` | يُشغَّل `npm install` من جديد |
+| صفحة Swagger فارغة أو 404 | يُتأكَّد من تشغيل `npm run dev` بدون أخطاء، ومن كون الفرع الحالي هو `develop` المحدَّث |
+| `401 Unauthorized` بكل الطلبات | يُتأكَّد من الضغط على **Authorize** بصفحة Swagger مع توكن صالح |
+| عدم وصول رمز التحقق بالبريد | يُتأكَّد من صحة `RESEND_API_KEY`، ويُفحَص مجلد الرسائل غير المرغوبة |
+| أوامر PowerShell لا تعمل مع مسارات تحتوي `[id]` | يُستخدم الخيار `-LiteralPath` بدلاً من `-Path` مع أوامر `Get-Content` أو `Select-String` |
+
+---
