@@ -8,6 +8,17 @@ function generateQRHash() {
   return crypto.randomBytes(16).toString('hex')
 }
 
+/**
+ * @swagger
+ * /api/qr-check-ins:
+ *   get:
+ *     summary: عرض كل عمليات مسح QR
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: قائمة المسحات
+ */
 export async function GET(request: Request) {
   try {
     const user = getTokenFromRequest(request);
@@ -35,7 +46,7 @@ if (!user) return unauthorizedResponse();
  * @swagger
  * /api/qr-check-ins:
  *   post:
- *     summary: تسجيل مسح QR
+ *     summary: تسجيل مسح QR (يمنح نقاط ولاء، ويخصم ساعات من الباقة الساعية النشطة)
  *     security:
  *       - BearerAuth: []
  *     requestBody:
@@ -133,6 +144,33 @@ if (!user) return unauthorizedResponse();
     } catch (pointsError) {
       // نطبع الخطأ بس ما نوقف الـ API
       console.error('❌ Error earning loyalty points:', pointsError)
+    }
+
+    // ✅ 3. خصم الساعات عند مسح QR (لأصحاب الباقات الساعية)
+    try {
+      const activeHourlyBooking = await prisma.hourlyBooking.findFirst({
+        where: {
+          userId: userId,
+          sectionId: sectionId,
+          status: 'ACTIVE',
+        },
+        include: { package: true },
+      })
+
+      if (activeHourlyBooking) {
+        const hoursPerVisit = 1
+        const newHoursUsed = activeHourlyBooking.hoursUsed + hoursPerVisit
+
+        await prisma.hourlyBooking.update({
+          where: { id: activeHourlyBooking.id },
+          data: {
+            hoursUsed: newHoursUsed,
+            status: newHoursUsed >= activeHourlyBooking.package.hoursAmount ? 'EXPIRED' : 'ACTIVE',
+          },
+        })
+      }
+    } catch (hoursError) {
+      console.error('❌ Error deducting hours:', hoursError)
     }
 
     return NextResponse.json(checkIn, { status: 201 })

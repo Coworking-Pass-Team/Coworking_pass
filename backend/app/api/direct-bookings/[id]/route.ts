@@ -2,6 +2,25 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getTokenFromRequest, unauthorizedResponse } from '@/lib/auth/verify-token';
 
+/**
+ * @swagger
+ * /api/direct-bookings/{id}:
+ *   get:
+ *     summary: عرض تفاصيل حجز مباشر معيّن
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: تفاصيل الحجز
+ *       404:
+ *         description: الحجز غير موجود
+ */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -104,6 +123,27 @@ export async function PUT(
   }
 }
 
+/**
+ * @swagger
+ * /api/direct-bookings/{id}:
+ *   delete:
+ *     summary: إلغاء حجز مباشر (بسياسة زمنية + ترقية تلقائية للطابور + إشعارات)
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: تم إلغاء الحجز بنجاح (وتُرقّى أول حالة WAITLISTED تلقائياً لنفس المساحة/القسم إن وُجدت)
+ *       400:
+ *         description: تجاوز مهلة الإلغاء (6 ساعات للأفراد، 24 للمؤسسات)
+ *       404:
+ *         description: الحجز غير موجود
+ */
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -144,7 +184,6 @@ export async function DELETE(
       }
     }
 
-    
     const updated = await prisma.directBooking.update({
       where: { id },
       data: { status: 'CANCELLED' },
@@ -155,7 +194,7 @@ export async function DELETE(
       },
     });
 
-    //  إرسال إشعار 
+    //  إرسال إشعار
     await prisma.notification.create({
       data: {
         userId: booking.userId,
@@ -167,8 +206,39 @@ export async function DELETE(
       }
     });
 
+    //  Seat Release — ترقية فورية لأول شخص بقائمة الانتظار
+    const nextInWaitlist = await prisma.directBooking.findFirst({
+      where: {
+        workspaceId: booking.workspaceId,
+        sectionId: booking.sectionId,
+        status: 'WAITLISTED'
+      },
+      orderBy: { createdAt: 'asc' }
+    });
+
+    let promotedMessage = '';
+    if (nextInWaitlist) {
+      await prisma.directBooking.update({
+        where: { id: nextInWaitlist.id },
+        data: { status: 'CONFIRMED', bookingDate: new Date() }
+      });
+
+      await prisma.notification.create({
+        data: {
+          userId: nextInWaitlist.userId,
+          type: 'WAITLIST_PROMOTED',
+          title: 'تم تأكيد حجزك من قائمة الانتظار',
+          message: 'توفر مكان وتم تأكيد حجزك تلقائياً',
+          channel: 'IN_APP',
+          sentAt: new Date()
+        }
+      });
+
+      promotedMessage = ' وتم ترقية أول مستخدم من قائمة الانتظار تلقائياً';
+    }
+
     return NextResponse.json(
-      { message: 'تم إلغاء الحجز بنجاح', booking: updated },
+      { message: `تم إلغاء الحجز بنجاح${promotedMessage}`, booking: updated },
       { status: 200 }
     );
   } catch (error) {
