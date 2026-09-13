@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Check, ArrowRight, Sparkles, HelpCircle, Building2, User, ChevronDown,
-  CreditCard, ShieldCheck, CheckCircle2, AlertCircle, ArrowUpRight, Zap, RefreshCw, X
+  CreditCard, ShieldCheck, CheckCircle2, AlertCircle, ArrowUpRight, Zap, RefreshCw, X, Wallet
 } from 'lucide-react';
 import { useApp } from '@/app/store';
 import { createSubscriptionApi, createPaymentApi, getSubscriptionsApi, updateSubscriptionApi } from '@/services/authApi';
@@ -157,10 +157,10 @@ const faqs = [
   },
 ];
 
-type PaymentMethodType = 'MADA' | 'APPLE_PAY' | 'CREDIT_CARD' | 'CORPORATE_INVOICE';
+type PaymentMethodType = 'MADA' | 'APPLE_PAY' | 'CREDIT_CARD' | 'CORPORATE_INVOICE' | 'WALLET';
 
 export default function Pricing() {
-  const { currentUser, showToast, navigate, updateCurrentUser, addNotification } = useApp();
+  const { currentUser, showToast, navigate, updateCurrentUser, addNotification, withdrawFromWallet } = useApp();
   
   const isOrg = currentUser?.role === 'organization' || currentUser?.role === 'HR_ADMIN' || (currentUser?.role as any) === 'B2B';
   const isInd = Boolean(currentUser && !isOrg);
@@ -258,6 +258,17 @@ export default function Pricing() {
       showToast('Organization accounts cannot subscribe to individual plans.', 'error');
       setCheckoutPlan(null);
       return;
+    }
+
+    if (selectedPaymentMethod === 'WALLET') {
+      const userWalletBalance = currentUser.walletBalance || 0;
+      if (userWalletBalance < checkoutPlan.price) {
+        showToast('Insufficient wallet balance for this subscription. Please top-up or choose another payment method.', 'error');
+        return;
+      }
+      if (withdrawFromWallet) {
+        await withdrawFromWallet(checkoutPlan.price, `Subscription: ${checkoutPlan.name}`);
+      }
     }
 
     setIsProcessingPayment(true);
@@ -813,6 +824,30 @@ export default function Pricing() {
                     </div>
                   </div>
                   {selectedPaymentMethod === 'APPLE_PAY' && (
+                    <CheckCircle2 size={16} className="text-emerald-700" />
+                  )}
+                </button>
+
+                {/* Digital Wallet */}
+                <button
+                  type="button"
+                  onClick={() => setSelectedPaymentMethod('WALLET')}
+                  className={`p-3.5 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${
+                    selectedPaymentMethod === 'WALLET'
+                      ? 'border-emerald-700 bg-emerald-50/60 ring-2 ring-emerald-500/20 shadow-2xs'
+                      : 'border-soot/15 bg-white hover:bg-plaster-dark/20'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-700 text-white flex items-center justify-center shadow-2xs">
+                      <Wallet size={16} />
+                    </div>
+                    <div>
+                      <div className="text-xs font-semibold text-soot">Digital Wallet Balance</div>
+                      <div className="text-[10px] text-moss">Available: SAR {(currentUser?.walletBalance || 0).toLocaleString()}</div>
+                    </div>
+                  </div>
+                  {selectedPaymentMethod === 'WALLET' && (
                     <CheckCircle2 size={16} className="text-emerald-700" />
                   )}
                 </button>

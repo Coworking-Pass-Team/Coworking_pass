@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, Space, SpaceType, Booking, Screen, NavState, UserRole, BookingType, PaymentCard, Notification, CartItem, AmenityRequest, AmenityRequestStatus, calculateEndDate, isCancellationRefundEligible, getBookingPrice, getEffectiveSpacePrice, OtpSession, SupportTicket, TicketStatus, Partner, WorkspaceApi, HourlyBookingApi, PayoutApi, MembershipPlanApi, SubscriptionApi, DirectBookingApi, PaymentApi } from '@/types/types';
+import { User, Space, SpaceType, Booking, Screen, NavState, UserRole, BookingType, PaymentCard, Notification, CartItem, AmenityRequest, AmenityRequestStatus, calculateEndDate, isCancellationRefundEligible, getBookingPrice, getEffectiveSpacePrice, OtpSession, SupportTicket, TicketStatus, Partner, WorkspaceApi, HourlyBookingApi, PayoutApi, MembershipPlanApi, SubscriptionApi, DirectBookingApi, PaymentApi, WalletTransaction } from '@/types/types';
 import { INITIAL_SPACES, INITIAL_USERS, INITIAL_BOOKINGS, INITIAL_NOTIFICATIONS, INITIAL_SUPPORT_TICKETS } from '@/data/data';
 import { registerUserApi, verifyEmailApi, loginUserApi, verifyLoginApi, mapRoleToFrontend, createCompanyApi, createPointsTransactionApi, getLoyaltyPointsApi, getPointsTransactionsApi } from '@/services/authApi';
 
@@ -444,6 +444,12 @@ interface AppContextType {
   // Loyalty Points (الميزة المضافة من كودهم)
   applyLoyaltyDiscount: (pointsToUse: number) => { discount: number; safePoints: number };
 
+  // Wallet
+  walletTransactions: WalletTransaction[];
+  fetchWallet: (userId?: string) => Promise<{ balance: number; transactions: WalletTransaction[] } | null>;
+  depositToWallet: (amount: number, description?: string) => Promise<{ success: boolean; message: string; balance?: number }>;
+  withdrawFromWallet: (amount: number, description?: string) => Promise<{ success: boolean; message: string; balance?: number }>;
+
   // Toast
   toast: { message: string; type: 'success' | 'error' | 'info' } | null;
   showToast: (message: string, type?: 'success' | 'error' | 'info') => void;
@@ -469,6 +475,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [autobookingCard, setAutobookingCard] = useState<Record<string, string>>({});
   const [toast, setToast] = useState<AppContextType['toast']>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [walletTransactions, setWalletTransactions] = useState<WalletTransaction[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [amenityRequests, setAmenityRequests] = useState<AmenityRequest[]>([
     {
@@ -953,6 +960,126 @@ export function AppProvider({ children }: { children: ReactNode }) {
     } catch (err: any) {
       setPaymentsApi((prev) => prev.filter((p) => p.id !== paymentId));
       return { success: true };
+    }
+  };
+
+  const fetchWallet = async (targetUserId?: string): Promise<{ balance: number; transactions: WalletTransaction[] } | null> => {
+    const uid = targetUserId || currentUser?.id;
+    if (!uid) return null;
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const storedToken = getStoredToken();
+      if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+
+      const response = await fetch(`${getApiBaseUrl()}/wallet?userId=${encodeURIComponent(uid)}`, {
+        method: 'GET',
+        headers,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const balance = typeof data.balance === 'number' ? data.balance : 0;
+        const txs: WalletTransaction[] = Array.isArray(data.transactions) ? data.transactions : [];
+
+        setWalletTransactions(txs);
+        setCurrentUser((prev) => (prev && prev.id === uid ? { ...prev, walletBalance: balance } : prev));
+        return { balance, transactions: txs };
+      }
+    } catch (err) {
+      console.warn('Failed to fetch wallet:', err);
+    }
+    return null;
+  };
+
+  const depositToWallet = async (amount: number, description?: string): Promise<{ success: boolean; message: string; balance?: number }> => {
+    if (!currentUser) return { success: false, message: 'User is not logged in' };
+    if (amount <= 0) return { success: false, message: 'Invalid amount' };
+
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const storedToken = getStoredToken();
+      if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+
+      const response = await fetch(`${getApiBaseUrl()}/wallet`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          userId: currentUser.id,
+          amount,
+          type: 'DEPOSIT',
+          description: description || 'Wallet Top-up',
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to top-up wallet');
+      }
+
+      setCurrentUser((prev) => (prev ? { ...prev, walletBalance: data.balance } : null));
+      const newTx: WalletTransaction = data.transaction || {
+        id: `tx-${Date.now()}`,
+        walletId: currentUser.id,
+        userId: currentUser.id,
+        amount,
+        type: 'DEPOSIT',
+        description: description || 'Wallet Top-up',
+        balanceAfter: data.balance,
+        createdAt: new Date().toISOString(),
+      };
+      setWalletTransactions((prev) => [newTx, ...prev]);
+      showToast('Wallet topped up successfully', 'success');
+      return { success: true, message: data.message || 'Wallet topped up successfully', balance: data.balance };
+    } catch (err: any) {
+      const msg = err.message || 'An error occurred while topping up wallet';
+      showToast(msg, 'error');
+      return { success: false, message: msg };
+    }
+  };
+
+  const withdrawFromWallet = async (amount: number, description?: string): Promise<{ success: boolean; message: string; balance?: number }> => {
+    if (!currentUser) return { success: false, message: 'User is not logged in' };
+    if (amount <= 0) return { success: false, message: 'Invalid amount' };
+
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const storedToken = getStoredToken();
+      if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+
+      const response = await fetch(`${getApiBaseUrl()}/wallet`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          userId: currentUser.id,
+          amount,
+          type: 'WITHDRAW',
+          description: description || 'Wallet Withdrawal',
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to withdraw from wallet');
+      }
+
+      setCurrentUser((prev) => (prev ? { ...prev, walletBalance: data.balance } : null));
+      const newTx: WalletTransaction = data.transaction || {
+        id: `tx-${Date.now()}`,
+        walletId: currentUser.id,
+        userId: currentUser.id,
+        amount,
+        type: 'WITHDRAW',
+        description: description || 'Wallet Withdrawal',
+        balanceAfter: data.balance,
+        createdAt: new Date().toISOString(),
+      };
+      setWalletTransactions((prev) => [newTx, ...prev]);
+      showToast('Wallet debited successfully', 'success');
+      return { success: true, message: data.message || 'Wallet debited successfully', balance: data.balance };
+    } catch (err: any) {
+      const msg = err.message || 'An error occurred while withdrawing';
+      showToast(msg, 'error');
+      return { success: false, message: msg };
     }
   };
 
@@ -1624,6 +1751,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       fetchPayments().catch(() => {});
       fetchNotifications().catch(() => {});
       if (currentUser) {
+        fetchWallet(currentUser.id).catch(() => {});
         getLoyaltyPointsApi(currentUser.id).then(ptsRes => {
           if (ptsRes.success && Array.isArray(ptsRes.data)) {
             const uPts = ptsRes.data.find((p: any) => p.userId === currentUser.id);
@@ -1639,6 +1767,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
     }
   }, []);
+
+  useEffect(() => {
+    if (currentUser?.id) {
+      fetchWallet(currentUser.id).catch(() => {});
+    }
+  }, [currentUser?.id]);
 
   const sanitizeBookings = (list: Booking[]): Booking[] => {
     const seen = new Set<string>();
@@ -2832,6 +2966,44 @@ export function AppProvider({ children }: { children: ReactNode }) {
           const currentWallet = currentUser.walletBalance || 0;
           updatedUser = { ...currentUser, walletBalance: currentWallet + price };
           msg = `Booking cancelled. SAR ${price.toLocaleString()} refunded to your wallet balance.`;
+
+          if (price > 0) {
+            (async () => {
+              try {
+                const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+                const storedToken = getStoredToken();
+                if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+                const response = await fetch(`${getApiBaseUrl()}/wallet`, {
+                  method: 'POST',
+                  headers,
+                  body: JSON.stringify({
+                    userId: currentUser.id,
+                    amount: price,
+                    type: 'REFUND',
+                    description: `Refund for cancelled booking (${booking.spaceName})`,
+                    referenceId: booking.id,
+                  }),
+                });
+                if (response.ok) {
+                  const data = await response.json();
+                  setCurrentUser((prev) => (prev ? { ...prev, walletBalance: data.balance } : null));
+                  const refundTx: WalletTransaction = data.transaction || {
+                    id: `tx-${Date.now()}`,
+                    walletId: currentUser.id,
+                    userId: currentUser.id,
+                    amount: price,
+                    type: 'REFUND',
+                    description: `Refund for cancelled booking (${booking.spaceName})`,
+                    balanceAfter: data.balance ?? (currentWallet + price),
+                    createdAt: new Date().toISOString(),
+                  };
+                  setWalletTransactions((prev) => [refundTx, ...prev.filter(t => t.id !== refundTx.id)]);
+                }
+              } catch (err) {
+                console.warn('Wallet refund DB sync notice:', err);
+              }
+            })();
+          }
         } else {
           msg = `Booking cancelled. Refund of SAR ${price.toLocaleString()} initiated to original card (5-14 business days).`;
         }
@@ -3804,6 +3976,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addPaymentCard,
       cart, addToCart, removeFromCart, updateCartItemSeats, updateCartItem, clearCart, checkoutCart,
       applyLoyaltyDiscount,
+      walletTransactions, fetchWallet, depositToWallet, withdrawFromWallet,
       toast, showToast, updateCurrentUser, completeSignup,
       otpSession, startOtpVerification, requestSignupOtp, requestForgotPasswordOtp, resetPassword, pendingResetUser, verifyOtp, resendOtp, cancelOtp,
     }}>

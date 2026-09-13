@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Search, CalendarDays, Settings, LogOut,
   Building2, Users, BarChart3, BookOpen,
   Briefcase, AlertCircle, Bell, Sparkles, CheckCheck, ChevronRight, ShoppingBag, HelpCircle,
-  ChevronDown, CreditCard
+  ChevronDown, CreditCard, Wallet, User as UserIcon
 } from 'lucide-react';
 import { Screen } from '@/types/types';
 import { useApp } from '@/app/store';
@@ -15,6 +15,7 @@ import LogoImage from '@/components/layout/logo';
 import Modal from '@/components/ui/Modal';
 import UserAvatar from '@/components/ui/UserAvatar';
 import CartDrawer from '@/app/CartDrawer';
+import WalletModal from '@/components/ui/WalletModal';
 
 // Guest screens
 import Landing from './Landing';
@@ -228,6 +229,24 @@ function CartButton({ onClick }: { onClick: () => void }) {
   );
 }
 
+export function WalletButton({ onClick }: { onClick: () => void }) {
+  const { currentUser } = useApp();
+  if (!currentUser) return null;
+  const balance = currentUser.walletBalance || 0;
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex items-center gap-1 px-2 py-1 sm:px-2.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300 text-[11px] font-semibold shadow-2xs transition-all cursor-pointer shrink-0"
+      title="Digital Wallet"
+    >
+      <Wallet size={13} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+      <span>SAR {balance.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+    </button>
+  );
+}
+
 export function LoyaltyButton() {
   const { navigate, currentUser } = useApp();
   if (!currentUser) return null;
@@ -237,10 +256,10 @@ export function LoyaltyButton() {
     <button
       type="button"
       onClick={() => navigate('loyalty')}
-      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#E2E8E4] hover:bg-[#DDE6DF] border border-[#2D3536]/15 text-soot text-xs font-semibold shadow-2xs transition-all cursor-pointer shrink-0"
+      className="flex items-center gap-1 px-2 py-1 sm:px-2.5 rounded-full bg-[#E2E8E4] hover:bg-[#DDE6DF] border border-[#2D3536]/15 text-soot text-[11px] font-semibold shadow-2xs transition-all cursor-pointer shrink-0"
       title="Loyalty Rewards Hub"
     >
-      <Sparkles size={14} className="text-moss shrink-0" />
+      <Sparkles size={13} className="text-moss shrink-0" />
       <span>{points.toLocaleString()} pts</span>
     </button>
   );
@@ -250,12 +269,15 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { currentUser, navigate, logout, nav } = useApp();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
+  const [walletOpen, setWalletOpen] = useState(false);
   const [orgDropdownOpen, setOrgDropdownOpen] = useState(false);
   const [indDropdownOpen, setIndDropdownOpen] = useState(false);
   const [adminDropdownOpen, setAdminDropdownOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const orgDropdownRef = useRef<HTMLDivElement>(null);
   const indDropdownRef = useRef<HTMLDivElement>(null);
   const adminDropdownRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -267,6 +289,9 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       }
       if (adminDropdownRef.current && !adminDropdownRef.current.contains(event.target as Node)) {
         setAdminDropdownOpen(false);
+      }
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setUserMenuOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -553,35 +578,70 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
             {(role === 'individual' || role === 'organization' || role === 'B2C' || role === 'HR_ADMIN') && (
               <>
+                <WalletButton onClick={() => setWalletOpen(true)} />
                 <LoyaltyButton />
                 <CartButton onClick={() => setCartOpen(true)} />
               </>
             )}
             <NotificationButton />
 
-            <button
-              type="button"
-              onClick={() => navigate(profileScreen)}
-              className="flex items-center gap-2 p-1 sm:px-2 sm:py-1 rounded-full hover:bg-soot/5 border border-transparent hover:border-soot/10 transition-all cursor-pointer shrink-0"
-            >
-              <UserAvatar
-                src={currentUser.avatar}
-                name={currentUser.name}
-                size="sm"
-              />
-              <span className="hidden lg:block text-xs sm:text-sm font-semibold text-soot">
-                {currentUser.name.split(' ')[0]}
-              </span>
-            </button>
+            <div className="relative" ref={userMenuRef}>
+              <button
+                type="button"
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                className="flex items-center gap-1.5 p-1 sm:px-2 sm:py-1 rounded-full hover:bg-soot/5 border border-transparent hover:border-soot/10 transition-all cursor-pointer shrink-0"
+              >
+                <UserAvatar
+                  src={currentUser.avatar}
+                  name={currentUser.name}
+                  size="sm"
+                />
+                <span className="hidden lg:block text-xs sm:text-sm font-semibold text-soot">
+                  {currentUser.name.split(' ')[0]}
+                </span>
+                <ChevronDown size={14} className={`text-moss transition-transform duration-200 ${userMenuOpen ? 'rotate-180' : ''}`} />
+              </button>
 
-            <button
-              type="button"
-              onClick={() => setShowLogoutModal(true)}
-              className="p-1.5 sm:p-2 rounded-xl text-moss hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer shrink-0"
-              title="Log out"
-            >
-              <LogOut size={17} />
-            </button>
+              {userMenuOpen && (
+                <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-[#1A1F20] rounded-2xl shadow-xl border border-soot/10 dark:border-white/10 py-2 z-50 animate-in fade-in duration-150">
+                  <div className="px-4 py-2.5 border-b border-soot/10 dark:border-white/10 flex items-center gap-3">
+                    <UserAvatar src={currentUser.avatar} name={currentUser.name} size="sm" />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-bold text-soot dark:text-white truncate">{currentUser.name}</div>
+                      <div className="text-[10px] text-moss dark:text-white/60 truncate">{currentUser.email || currentUser.username || 'User Profile'}</div>
+                    </div>
+                  </div>
+
+                  <div className="py-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUserMenuOpen(false);
+                        navigate(profileScreen);
+                      }}
+                      className="w-full text-left px-4 py-2 text-xs font-medium text-soot dark:text-white hover:bg-soot/5 dark:hover:bg-white/5 flex items-center gap-2.5 transition-colors cursor-pointer"
+                    >
+                      <UserIcon size={15} className="text-moss" />
+                      <span>My Profile</span>
+                    </button>
+                  </div>
+
+                  <div className="border-t border-soot/10 dark:border-white/10 pt-1 mt-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUserMenuOpen(false);
+                        setShowLogoutModal(true);
+                      }}
+                      className="w-full text-left px-4 py-2 text-xs font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 flex items-center gap-2.5 transition-colors cursor-pointer"
+                    >
+                      <LogOut size={15} />
+                      <span>Log Out</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -738,6 +798,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       </Modal>
 
       <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
+      <WalletModal isOpen={walletOpen} onClose={() => setWalletOpen(false)} />
     </div>
   );
 }

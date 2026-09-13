@@ -14,6 +14,7 @@ import {
   Presentation,
   Clapperboard,
   QrCode,
+  Wallet,
 } from 'lucide-react';
 import { useApp } from '@/app/store';
 import BookingQrModal from '@/components/BookingQrModal';

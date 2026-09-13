@@ -332,6 +332,18 @@ export interface User {
   walletBalance?: number;
 }
 
+export interface WalletTransaction {
+  id: string;
+  walletId: string;
+  userId: string;
+  amount: number;
+  type: 'DEPOSIT' | 'WITHDRAW' | 'REFUND';
+  description?: string | null;
+  referenceId?: string | null;
+  balanceAfter: number;
+  createdAt: string;
+}
+
 export function parseBookingDateTime(startDate?: string, startTime?: string): Date | null {
   if (!startDate) return null;
 

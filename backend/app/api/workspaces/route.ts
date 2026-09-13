@@ -26,6 +26,38 @@ import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-tok
  *       200:
  *         description: قائمة المساحات المطابقة للفلاتر
  */
+async function syncWorkspaceAmenities(workspaceId: string, amenities: string[]) {
+  if (!Array.isArray(amenities)) return;
+  await prisma.workspaceAmenity.deleteMany({ where: { workspaceId } });
+
+  for (const amenityName of amenities) {
+    if (!amenityName || typeof amenityName !== 'string') continue;
+    const trimmed = amenityName.trim();
+    if (!trimmed) continue;
+
+    let catalogItem = await prisma.amenityCatalog.findFirst({
+      where: { name: { equals: trimmed, mode: 'insensitive' } },
+    });
+
+    if (!catalogItem) {
+      catalogItem = await prisma.amenityCatalog.create({
+        data: {
+          name: trimmed,
+          isDefault: true,
+          status: 'APPROVED',
+        },
+      });
+    }
+
+    await prisma.workspaceAmenity.create({
+      data: {
+        workspaceId,
+        amenityId: catalogItem.id,
+      },
+    });
+  }
+}
+
 export async function GET(request: Request) {
   try {
     const user = getTokenFromRequest(request);
@@ -42,10 +74,18 @@ export async function GET(request: Request) {
         ...(minPrice && { dailyRate: { gte: Number(minPrice) } }),
         ...(maxPrice && { dailyRate: { lte: Number(maxPrice) } }),
       },
-      include: { partner: true, sections: true },
+      include: { partner: true, sections: true, amenities: { include: { amenity: true } } },
     });
-    return NextResponse.json(workspaces);
- } catch (error) {
+
+    const formatted = workspaces.map((w: any) => ({
+      ...w,
+      amenities: Array.isArray(w.amenities)
+        ? w.amenities.map((wa: any) => wa.amenity?.name || wa.name).filter(Boolean)
+        : [],
+    }));
+
+    return NextResponse.json(formatted);
+  } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "حدث خطأ في السيرفر" }, { status: 500 });
   }
@@ -93,8 +133,9 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const user = getTokenFromRequest(request);
-if (!user) return unauthorizedResponse();
+    if (!user) return unauthorizedResponse();
 
+    const body = await request.json();
     const {
       partnerId,
       name,
@@ -105,7 +146,8 @@ if (!user) return unauthorizedResponse();
       yearlyRate,
       passVisitValue,
       totalCapacity,
-    } = await request.json();
+      amenities,
+    } = body;
 
     if (!partnerId || !name || !city || !passVisitValue || !totalCapacity) {
       return NextResponse.json(
@@ -136,8 +178,12 @@ if (!user) return unauthorizedResponse();
       },
     });
 
+    if (Array.isArray(amenities) && amenities.length > 0) {
+      await syncWorkspaceAmenities(workspace.id, amenities);
+    }
+
     return NextResponse.json(
-      { message: "تم إنشاء مساحة العمل بنجاح", workspace },
+      { message: "تم إنشاء مساحة العمل بنجاح", workspace: { ...workspace, amenities: amenities || [] } },
       { status: 201 }
     );
   } catch (error) {
