@@ -1,9 +1,56 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, Space, SpaceType, Booking, Screen, NavState, UserRole, BookingType, PaymentCard, Notification, CartItem, AmenityRequest, AmenityRequestStatus, calculateEndDate, isCancellationRefundEligible, getBookingPrice, getEffectiveSpacePrice, OtpSession, SupportTicket, TicketStatus, Partner, WorkspaceApi, HourlyBookingApi, PayoutApi, MembershipPlanApi, SubscriptionApi, DirectBookingApi, PaymentApi, WalletTransaction } from '@/types/types';
+import { 
+  User, 
+  Space, 
+  SpaceType, 
+  Booking, 
+  Screen, 
+  NavState, 
+  UserRole, 
+  BookingType, 
+  PaymentCard, 
+  Notification, 
+  CartItem, 
+  AmenityRequest, 
+  AmenityRequestStatus, 
+  calculateEndDate, 
+  isCancellationRefundEligible, 
+  getBookingPrice, 
+  getEffectiveSpacePrice, 
+  OtpSession, 
+  SupportTicket, 
+  TicketStatus, 
+  Partner, 
+  WorkspaceApi, 
+  HourlyBookingApi, 
+  PayoutApi, 
+  MembershipPlanApi, 
+  SubscriptionApi, 
+  DirectBookingApi, 
+  PaymentApi, 
+  WalletTransaction,
+  LoyaltyRule, 
+  LoyaltyRuleType, 
+  ApprovalStatus 
+} from '@/types/types';
 import { INITIAL_SPACES, INITIAL_USERS, INITIAL_BOOKINGS, INITIAL_NOTIFICATIONS, INITIAL_SUPPORT_TICKETS } from '@/data/data';
-import { registerUserApi, verifyEmailApi, loginUserApi, verifyLoginApi, mapRoleToFrontend, createCompanyApi, createPointsTransactionApi, getLoyaltyPointsApi, getPointsTransactionsApi } from '@/services/authApi';
+import { 
+  registerUserApi, 
+  verifyEmailApi, 
+  loginUserApi, 
+  verifyLoginApi, 
+  mapRoleToFrontend, 
+  createCompanyApi, 
+  createPointsTransactionApi, 
+  getLoyaltyPointsApi, 
+  getPointsTransactionsApi, 
+  getLoyaltyRulesApi, 
+  createLoyaltyRuleApi, 
+  updateLoyaltyRuleApi, 
+  deleteLoyaltyRuleApi 
+} from '@/services/authApi';
 
 export function getApiBaseUrl(): string {
   const envUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -15,7 +62,6 @@ export function getApiBaseUrl(): string {
 }
 
 export const API_BASE_URL = getApiBaseUrl();
-
 
 export function mapFrontendTypeToDbSectionType(type: string): 'DESK' | 'MEETING_ROOM' | 'THEATER' {
   const t = (type || '').toLowerCase();
@@ -179,12 +225,10 @@ async function fetchPaymentsFromApi(token?: string): Promise<PaymentApi[]> {
 }
 
 interface AppContextType {
-  // Navigation
   nav: NavState;
   navigate: (screen: Screen, params?: Record<string, any>) => void;
   goBack: () => void;
 
-  // Partners / Providers (GET, POST, PUT http://localhost:3001/api/partners)
   partners: Partner[];
   fetchPartners: () => Promise<Partner[]>;
   createPartner: (partnerData: {
@@ -204,7 +248,6 @@ interface AppContextType {
   ) => Promise<{ success: boolean; partner?: Partner; error?: string }>;
   deletePartner: (partnerId: string) => Promise<{ success: boolean; error?: string }>;
 
-  // Workspaces API (GET, POST, PUT, DELETE http://localhost:3001/api/workspaces)
   workspacesApi: WorkspaceApi[];
   fetchWorkspaces: () => Promise<WorkspaceApi[]>;
   createWorkspace: (workspaceData: {
@@ -234,7 +277,6 @@ interface AppContextType {
   ) => Promise<{ success: boolean; workspace?: WorkspaceApi; error?: string }>;
   deleteWorkspace: (workspaceId: string) => Promise<{ success: boolean; error?: string }>;
 
-  // Hourly Bookings API (GET, POST, PUT, DELETE http://localhost:3001/api/hourly-bookings)
   hourlyBookingsApi: HourlyBookingApi[];
   fetchHourlyBookings: () => Promise<HourlyBookingApi[]>;
   createHourlyBooking: (bookingData: {
@@ -259,7 +301,6 @@ interface AppContextType {
   ) => Promise<{ success: boolean; booking?: HourlyBookingApi; error?: string }>;
   deleteHourlyBooking: (bookingId: string) => Promise<{ success: boolean; error?: string }>;
 
-  // Payouts API (GET, POST, PUT, DELETE /api/payouts)
   payoutsApi: PayoutApi[];
   fetchPayouts: () => Promise<PayoutApi[]>;
   createPayout: (payoutData: {
@@ -282,7 +323,6 @@ interface AppContextType {
   ) => Promise<{ success: boolean; payout?: PayoutApi; error?: string }>;
   deletePayout: (payoutId: string) => Promise<{ success: boolean; error?: string }>;
 
-  // Membership Plans API (GET, POST, PUT, DELETE /api/membership-plans)
   membershipPlansApi: MembershipPlanApi[];
   fetchMembershipPlans: () => Promise<MembershipPlanApi[]>;
   createMembershipPlan: (planData: {
@@ -297,7 +337,6 @@ interface AppContextType {
   ) => Promise<{ success: boolean; plan?: MembershipPlanApi; error?: string }>;
   deleteMembershipPlan: (planId: string) => Promise<{ success: boolean; error?: string }>;
 
-  // Subscriptions API (GET, POST, PUT, DELETE /api/subscriptions)
   subscriptionsApi: SubscriptionApi[];
   fetchSubscriptions: () => Promise<SubscriptionApi[]>;
   createSubscription: (subData: {
@@ -313,7 +352,6 @@ interface AppContextType {
   ) => Promise<{ success: boolean; subscription?: SubscriptionApi; error?: string }>;
   deleteSubscription: (subscriptionId: string) => Promise<{ success: boolean; error?: string }>;
 
-  // Direct Bookings API (GET, POST, PUT, DELETE /api/direct-bookings)
   directBookingsApi: DirectBookingApi[];
   fetchDirectBookings: () => Promise<DirectBookingApi[]>;
   createDirectBooking: (bookingData: {
@@ -330,7 +368,6 @@ interface AppContextType {
   ) => Promise<{ success: boolean; booking?: DirectBookingApi; error?: string }>;
   deleteDirectBooking: (bookingId: string) => Promise<{ success: boolean; error?: string }>;
 
-  // Payments API (GET, POST, PUT, DELETE /api/payments)
   paymentsApi: PaymentApi[];
   fetchPayments: () => Promise<PaymentApi[]>;
   createPayment: (paymentData: {
@@ -347,14 +384,11 @@ interface AppContextType {
   ) => Promise<{ success: boolean; payment?: PaymentApi; error?: string }>;
   deletePayment: (paymentId: string) => Promise<{ success: boolean; error?: string }>;
 
-
-  // Support Tickets & Inquiries
   supportTickets: SupportTicket[];
   addSupportTicket: (ticketData: Omit<SupportTicket, 'id' | 'ticketNumber' | 'createdAt' | 'status' | 'priority'> & { status?: TicketStatus; priority?: SupportTicket['priority'] }) => SupportTicket;
   updateTicketStatus: (id: string, status: TicketStatus, notes?: string) => void;
   replyToTicket: (id: string, reply: string, newStatus?: TicketStatus) => void;
 
-  // Auth & 2FA OTP
   currentUser: User | null;
   otpSession: OtpSession | null;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string; requireOtp?: boolean }>;
@@ -373,12 +407,10 @@ interface AppContextType {
   pendingResetUser: User | null;
   updateCurrentUser: (updates: Partial<User>) => void;
 
-  // Location & Geolocation
   userLocation: { lat: number; lng: number } | null;
   locationStatus: 'idle' | 'loading' | 'granted' | 'denied' | 'unsupported';
   requestUserLocation: () => Promise<{ lat: number; lng: number } | null>;
 
-  // Spaces
   spaces: Space[];
   favorites: string[];
   toggleFavorite: (spaceId: string) => void;
@@ -387,14 +419,12 @@ interface AppContextType {
   toggleSpaceVisibility: (id: string) => void;
   deleteSpace: (id: string) => void;
 
-  // Bookings
   bookings: Booking[];
   addBooking: (booking: Omit<Booking, 'id' | 'createdAt'>) => Booking;
   cancelBooking: (id: string, refundMethod?: 'wallet' | 'card') => void;
   updateBookingStatus: (id: string, status: Booking['status']) => void;
   deleteBooking: (bookingId: string) => void;
 
-  // Amenity Requests (Provider -> Admin)
   amenityRequests: AmenityRequest[];
   approvedCustomAmenities: string[];
   requestCustomAmenity: (amenityName: string, spaceId?: string, spaceName?: string) => { success: boolean; message: string; request?: AmenityRequest };
@@ -403,7 +433,6 @@ interface AppContextType {
   deleteAmenityRequest: (requestId: string) => void;
   getApprovedAmenities: () => string[];
 
-  // Notifications
   notifications: Notification[];
   unreadNotificationsCount: number;
   markNotificationRead: (id: string) => void;
@@ -414,13 +443,11 @@ interface AppContextType {
   addNotification: (notif: Omit<Notification, 'id' | 'createdAt' | 'read'> & { read?: boolean }) => Notification;
   generateFakeNotification: (presetType?: string, customTitle?: string, customMessage?: string) => Notification;
 
-  // Users (admin)
   users: User[];
   blockUser: (id: string) => void;
   unblockUser: (id: string) => void;
   changeUserRole: (id: string, role: UserRole) => void;
 
-  // Waitlist & Auto-booking
   waitlist: Record<string, boolean>;
   autobooking: Record<string, boolean>;
   autobookingCard: Record<string, string>;
@@ -429,10 +456,8 @@ interface AppContextType {
   enableAutoBooking: (spaceId: string, cardId: string) => void;
   disableAutoBooking: (spaceId: string) => void;
 
-  // Payment cards
   addPaymentCard: (card: Omit<PaymentCard, 'id'>) => PaymentCard;
 
-  // Shopping Cart (نفس كودك الأصلي تماماً)
   cart: CartItem[];
   addToCart: (item: Omit<CartItem, 'id'>) => void;
   removeFromCart: (cartItemId: string) => void;
@@ -441,16 +466,31 @@ interface AppContextType {
   clearCart: () => void;
   checkoutCart: (pointsToUse?: number) => Booking[];
 
-  // Loyalty Points (الميزة المضافة من كودهم)
   applyLoyaltyDiscount: (pointsToUse: number) => { discount: number; safePoints: number };
 
-  // Wallet
   walletTransactions: WalletTransaction[];
   fetchWallet: (userId?: string) => Promise<{ balance: number; transactions: WalletTransaction[] } | null>;
   depositToWallet: (amount: number, description?: string) => Promise<{ success: boolean; message: string; balance?: number }>;
   withdrawFromWallet: (amount: number, description?: string) => Promise<{ success: boolean; message: string; balance?: number }>;
 
-  // Toast
+  loyaltyRules: LoyaltyRule[];
+  fetchLoyaltyRules: () => Promise<LoyaltyRule[]>;
+  createLoyaltyProposal: (proposalData: {
+    ruleName: string;
+    ruleType: LoyaltyRuleType;
+    pointsValue: number;
+    monetaryValue: number;
+    description?: string;
+    workspaceId?: string;
+    bonusMultiplier?: number;
+  }) => Promise<{ success: boolean; rule?: LoyaltyRule; error?: string }>;
+  updateLoyaltyRuleStatus: (
+    ruleId: string,
+    status: ApprovalStatus,
+    notes?: string
+  ) => Promise<{ success: boolean; rule?: LoyaltyRule; error?: string }>;
+  deleteLoyaltyRule: (ruleId: string) => Promise<{ success: boolean; error?: string }>;
+
   toast: { message: string; type: 'success' | 'error' | 'info' } | null;
   showToast: (message: string, type?: 'success' | 'error' | 'info') => void;
 }
@@ -509,6 +549,189 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [subscriptionsApi, setSubscriptionsApi] = useState<SubscriptionApi[]>([]);
   const [directBookingsApi, setDirectBookingsApi] = useState<DirectBookingApi[]>([]);
   const [paymentsApi, setPaymentsApi] = useState<PaymentApi[]>([]);
+  const [loyaltyRules, setLoyaltyRules] = useState<LoyaltyRule[]>([
+    {
+      id: 'rule-1',
+      ruleName: 'Weekend Coworking Earning Boost',
+      ruleType: 'EARNING',
+      pointsValue: 20,
+      monetaryValue: 100,
+      description: 'Award members 20 bonus points for every 100 SAR spent on weekend hot-desk and private office bookings.',
+      status: 'APPROVED',
+      proposedBy: 'user-p1',
+      proposerName: 'DeskFlow Workspace Co.',
+      approvedBy: 'admin-1',
+      approverName: 'Super Admin',
+      isActive: true,
+      bonusMultiplier: 2.0,
+      createdAt: '2026-09-08T09:00:00Z',
+    },
+    {
+      id: 'rule-2',
+      ruleName: 'Meeting Room 500 Pts Discount',
+      ruleType: 'REDEMPTION',
+      pointsValue: 500,
+      monetaryValue: 25,
+      description: 'Redeem 500 points for an instant SAR 25 voucher on any meeting hall or conference room reservation.',
+      status: 'PENDING_APPROVAL',
+      proposedBy: 'user-p1',
+      proposerName: 'DeskFlow Workspace Co.',
+      isActive: false,
+      createdAt: '2026-09-12T14:30:00Z',
+    },
+    {
+      id: 'rule-3',
+      ruleName: 'Monthly Pass Kickback Reward',
+      ruleType: 'EARNING',
+      pointsValue: 150,
+      monetaryValue: 1500,
+      description: 'Give users 150 points when purchasing or renewing an individual monthly pass.',
+      status: 'APPROVED',
+      proposedBy: 'user-p2',
+      proposerName: 'Oasis Tech Hub',
+      approvedBy: 'admin-1',
+      approverName: 'Super Admin',
+      isActive: true,
+      bonusMultiplier: 1.5,
+      createdAt: '2026-09-05T11:00:00Z',
+    },
+  ]);
+
+  const fetchLoyaltyRules = async (): Promise<LoyaltyRule[]> => {
+    try {
+      const res = await getLoyaltyRulesApi();
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        const mapped: LoyaltyRule[] = res.data.map((r: any) => ({
+          id: r.id,
+          ruleName: r.ruleName,
+          ruleType: r.ruleType,
+          pointsValue: r.pointsValue,
+          monetaryValue: r.monetaryValue,
+          description: r.description,
+          status: r.status,
+          proposedBy: r.proposedBy,
+          proposerName: r.proposer?.name || 'Space Partner',
+          proposerEmail: r.proposer?.email,
+          approvedBy: r.approvedBy,
+          approverName: r.approver?.name,
+          isActive: r.isActive,
+          createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : new Date().toISOString(),
+        }));
+        setLoyaltyRules(mapped);
+        return mapped;
+      }
+      return loyaltyRules;
+    } catch (err) {
+      console.error('Failed to fetch loyalty rules:', err);
+      return loyaltyRules;
+    }
+  };
+
+  const createLoyaltyProposal = async (proposalData: {
+    ruleName: string;
+    ruleType: LoyaltyRuleType;
+    pointsValue: number;
+    monetaryValue: number;
+    description?: string;
+    workspaceId?: string;
+    bonusMultiplier?: number;
+  }): Promise<{ success: boolean; rule?: LoyaltyRule; error?: string }> => {
+    try {
+      const proposerId = currentUser?.id || 'user-p1';
+      const newRule: LoyaltyRule = {
+        id: `rule-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        ruleName: proposalData.ruleName.trim(),
+        ruleType: proposalData.ruleType,
+        pointsValue: Number(proposalData.pointsValue),
+        monetaryValue: Number(proposalData.monetaryValue),
+        description: proposalData.description?.trim(),
+        status: 'PENDING_APPROVAL',
+        proposedBy: proposerId,
+        proposerName: currentUser?.businessName || currentUser?.name || 'Space Partner',
+        proposerEmail: currentUser?.email,
+        isActive: false,
+        workspaceId: proposalData.workspaceId,
+        bonusMultiplier: proposalData.bonusMultiplier,
+        createdAt: new Date().toISOString(),
+      };
+
+      setLoyaltyRules((prev) => [newRule, ...prev]);
+
+      const apiRes = await createLoyaltyRuleApi({
+        ruleName: newRule.ruleName,
+        ruleType: newRule.ruleType,
+        pointsValue: newRule.pointsValue,
+        monetaryValue: newRule.monetaryValue,
+        description: newRule.description,
+        proposedBy: proposerId,
+        status: 'PENDING_APPROVAL',
+      });
+
+      if (apiRes.success && apiRes.data?.id) {
+        newRule.id = apiRes.data.id;
+        setLoyaltyRules((prev) => prev.map((r) => (r.id === newRule.id ? { ...newRule, id: apiRes.data.id } : r)));
+      }
+
+      showToast('Loyalty proposal submitted for Admin review!', 'success');
+      return { success: true, rule: newRule };
+    } catch (err: any) {
+      console.error('Error creating loyalty proposal:', err);
+      showToast(err.message || 'Failed to submit proposal', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const updateLoyaltyRuleStatus = async (
+    ruleId: string,
+    status: ApprovalStatus,
+    notes?: string
+  ): Promise<{ success: boolean; rule?: LoyaltyRule; error?: string }> => {
+    try {
+      const approverId = currentUser?.id || 'admin-1';
+      const approverName = currentUser?.name || 'Super Admin';
+
+      setLoyaltyRules((prev) =>
+        prev.map((r) =>
+          r.id === ruleId
+            ? {
+                ...r,
+                status,
+                approvedBy: approverId,
+                approverName,
+                isActive: status === 'APPROVED',
+                adminFeedback: notes || r.adminFeedback,
+              }
+            : r
+        )
+      );
+
+      await updateLoyaltyRuleApi(ruleId, {
+        status,
+        approvedBy: approverId,
+        isActive: status === 'APPROVED',
+        adminFeedback: notes,
+      });
+
+      showToast(`Loyalty rule ${status === 'APPROVED' ? 'approved & activated' : 'rejected'}`, status === 'APPROVED' ? 'success' : 'info');
+      return { success: true };
+    } catch (err: any) {
+      console.error('Error updating loyalty rule status:', err);
+      showToast(err.message || 'Failed to update rule status', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const deleteLoyaltyRule = async (ruleId: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      setLoyaltyRules((prev) => prev.filter((r) => r.id !== ruleId));
+      await deleteLoyaltyRuleApi(ruleId);
+      showToast('Loyalty proposal removed', 'info');
+      return { success: true };
+    } catch (err: any) {
+      console.error('Error deleting loyalty rule:', err);
+      return { success: false, error: err.message };
+    }
+  };
 
   const fetchMembershipPlans = async (): Promise<MembershipPlanApi[]> => {
     try {
@@ -1435,7 +1658,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
           const preservedType = (savedType || sectionType || inferredType || existing?.type || (w as any).type || 'private-office') as SpaceType;
 
-          // Asynchronously sync section to PostgreSQL backend DB if section was stored as DESK but space is actually hall or theater
           if (Array.isArray(w.sections) && w.sections.length > 0) {
             const sec = w.sections[0];
             const targetDbSecType = mapFrontendTypeToDbSectionType(preservedType);
@@ -1740,6 +1962,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     fetchWorkspaces().catch(() => {});
     fetchMembershipPlans().catch(() => {});
     fetchAmenities().catch(() => {});
+    fetchLoyaltyRules().catch(() => {});
 
     const storedToken = getStoredToken();
     if (storedToken) {
@@ -1909,7 +2132,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('cp_support_tickets', JSON.stringify(INITIAL_SUPPORT_TICKETS));
       }
 
-      // Initial DB load for workspaces & partners
       fetchPartners().catch(() => {});
       fetchWorkspaces().catch(() => {});
     } catch (e) {
@@ -1917,7 +2139,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Auto-sync Partner record in PostgreSQL Partner table for logged in provider
   useEffect(() => {
     if (currentUser && (currentUser.role === 'provider' || currentUser.role === 'admin')) {
       const storedToken = getStoredToken();
@@ -1961,7 +2182,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string; requireOtp?: boolean }> => {
-    // 1. Attempt login with backend API: POST http://localhost:3001/api/auth/login
     const apiRes = await loginUserApi({ email, password });
     if (apiRes.success && apiRes.userId) {
       let user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
@@ -1994,7 +2214,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return { success: true, requireOtp: true };
     }
 
-    // 2. Fallback to local stored user / mock authentication
     let user = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
     if (!user) {
       user = INITIAL_USERS.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
@@ -2045,7 +2264,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const requestSignupOtp = async (newUser: User, role: UserRole, extraData?: Partial<User>): Promise<{ success: boolean; error?: string; message?: string }> => {
-    // 1. Call Backend API: POST http://localhost:3001/api/auth/register
     const apiRes = await registerUserApi({
       name: newUser.name,
       email: newUser.email,
@@ -2125,7 +2343,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (otpSession.mode === 'login') {
       let user = otpSession.user;
       if (otpSession.userId) {
-        // Backend Login OTP Verification: POST http://localhost:3001/api/auth/verify-login
         const apiRes = await verifyLoginApi({ userId: otpSession.userId, code: cleanCode });
         if (!apiRes.success && (!isDemo || cleanCode !== '123456')) {
           return { success: false, error: apiRes.error || 'Invalid verification code. Please try again.' };
@@ -2157,7 +2374,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('cp_currentUser', JSON.stringify(user));
       }
 
-      // Auto-create Company record in DB via frontend API call if logged in as Organization/Company
       if (user.role === 'organization') {
         createCompanyApi({
           companyName: user.orgName || user.name || 'New Organization',
@@ -2189,9 +2405,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return { success: true };
     }
 
-    // signup mode
     if (otpSession.userId) {
-      // Backend Email OTP Verification: POST http://localhost:3001/api/auth/verify-email
       const apiRes = await verifyEmailApi({ userId: otpSession.userId, code: cleanCode });
       if (!apiRes.success && (!isDemo || cleanCode !== '123456')) {
         return { success: false, error: apiRes.error || 'Invalid verification code. Please try again.' };
@@ -2217,7 +2431,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('cp_users', JSON.stringify(updatedUsers));
     }
 
-    // Auto-create Company record in DB via frontend API call if registered as Organization/Company
     if (updated.role === 'organization') {
       const hrAdminId = updated.id || otpSession.userId || '';
       const companyName = updated.orgName || updated.name || 'New Organization';
@@ -2254,7 +2467,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       })();
     }
 
-    // Automatically transition to login to complete authentication and receive JWT token
     const loginRes = await login(updated.email, updated.password);
     if (loginRes.success) {
       showToast('Account email verified successfully! Please enter the security code sent to your email to log in.', 'success');
@@ -2409,7 +2621,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         error => {
           console.warn('Geolocation error:', error);
           setLocationStatus('denied');
-          if (error.code === 1) { // PERMISSION_DENIED
+          if (error.code === 1) {
             showToast('Location permission was denied. Workspaces will be sorted without distance.', 'info');
           } else {
             showToast('Unable to determine your current location.', 'info');
@@ -2456,7 +2668,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setSpaces(prev => [...prev, newSpace]);
     showToast('Space added successfully.');
 
-    // Persist new workspace to backend database with valid partnerId
     (async () => {
       try {
         const storedToken = getStoredToken();
@@ -2495,7 +2706,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
           });
 
           if (createRes.success && createRes.workspace) {
-            // Also create corresponding section in database (MEETING_ROOM for halls, THEATER for theaters, DESK for offices)
             const dbSecType = mapFrontendTypeToDbSectionType(newSpace.type);
             const headers: Record<string, string> = { 'Content-Type': 'application/json' };
             if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
@@ -2575,7 +2785,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setSpaces(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
     showToast('Space updated successfully.');
 
-    // Sync update with backend database if logged in
     (async () => {
       try {
         const storedToken = getStoredToken();
@@ -2694,7 +2903,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setSpaces(prev => prev.filter(s => s.id !== id));
     showToast('Space deleted.');
 
-    // Delete from backend database if logged in
     (async () => {
       try {
         const storedToken = getStoredToken();
@@ -2717,7 +2925,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
     setBookings(prev => [...prev, newBooking]);
     
-    // Auto-calculate loyalty points earned (at least 10 pts per booking or 10% of total price)
     const space = spaces.find(s => s.id === booking.spaceId);
     const multiplier = space?.loyaltyPointsMultiplier || 1;
     const rawPrice = booking.totalPrice || 0;
@@ -2734,7 +2941,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('cp_currentUser', JSON.stringify(updatedUser));
       }
 
-      // Record EARNED points in PostgreSQL DB & sync DB balance
       createPointsTransactionApi({
         userId: currentUser.id,
         type: 'EARNED',
@@ -2773,7 +2979,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         : s
     ));
 
-    // Persist booking to backend PostgreSQL database
     (async () => {
       try {
         const storedToken = getStoredToken();
@@ -2939,7 +3144,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       )
     );
 
-    // Sync cancellation to PostgreSQL database
     (async () => {
       try {
         const storedToken = getStoredToken();
@@ -3044,7 +3248,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       });
     }
 
-    // Sync status update to PostgreSQL database
     (async () => {
       try {
         const storedToken = getStoredToken();
@@ -3222,7 +3425,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return updated;
     });
 
-    // Save notification to PostgreSQL database
     (async () => {
       try {
         const storedToken = getStoredToken();
@@ -3388,7 +3590,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return newCard;
   };
 
-  // دوال السلة الخاصة بك
   const saveCartToStorage = (newCart: CartItem[]) => {
     if (typeof window !== 'undefined') {
       try {
@@ -3427,7 +3628,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (i.id === cartItemId) {
         const newItem = { ...i, ...updates };
 
-        // Recalculate end date if start date, plan or durationMonths updated
         if (updates.startDate !== undefined || updates.plan !== undefined || updates.durationMonths !== undefined) {
           const sDate = updates.startDate ?? i.startDate;
           const plan = updates.plan ?? i.plan;
@@ -3435,7 +3635,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
           newItem.endDate = calculateEndDate(sDate, plan, durM);
         }
 
-        // Recalculate end time for hourly plan if startTime or durationHours changed
         if (newItem.plan === 'hourly' && newItem.startTime) {
           const durH = newItem.durationHours || 1;
           const [h, m] = newItem.startTime.split(':').map(Number);
@@ -3445,7 +3644,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
           }
         }
 
-        // Recalculate item total price
         const seats = newItem.seats || 1;
         const targetSpace = spaces.find((s) => s.id === newItem.spaceId);
         if (targetSpace && currentUser?.hasActivePass) {
@@ -3490,16 +3688,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // دالة استخدام النقاط كخصم (من كودهم)
   const applyLoyaltyDiscount = (pointsToUse: number) => {
     if (!currentUser) return { discount: 0, safePoints: 0 };
     const availablePoints = currentUser.loyaltyPoints || 0;
     const safePoints = Math.max(0, Math.min(Math.floor(pointsToUse / 100) * 100, availablePoints));
-    const discount = (safePoints / 100) * 25; // كل 100 نقطة = 25 ريالاً
+    const discount = (safePoints / 100) * 25;
     return { discount, safePoints };
   };
 
-  // دالة الدفع مع إبقاء التوقيع نفسه، وتحديث النقاط المكتسبة تلقائياً
   const checkoutCart = (pointsToUse: number = 0): Booking[] => {
     if (!currentUser || cart.length === 0) return [];
 
@@ -3543,7 +3739,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       newBookings.push(b);
     });
 
-    // احتساب نقاط الولاء المكتسبة بناءً على كودهم
     const earned = cart.reduce((sum, item) => {
       const space = spaces.find((s) => s.id === item.spaceId);
       const multiplier = space?.loyaltyPointsMultiplier || 1;
@@ -3561,7 +3756,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('cp_users', JSON.stringify(updatedUsers));
     }
 
-    // Record REDEEMED points in PostgreSQL DB if user used loyalty discount & sync DB balance
     if (currentUser && safePointsToUse > 0) {
       createPointsTransactionApi({
         userId: currentUser.id,
@@ -3667,7 +3861,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('cp_amenity_requests', JSON.stringify(updated));
     }
 
-    // Persist custom amenity request to PostgreSQL Database
     (async () => {
       try {
         const storedToken = getStoredToken();
@@ -3696,7 +3889,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
     })();
 
-    // Notify Admin
     addNotification({
       userId: 'admin',
       title: 'New Custom Amenity Request',
@@ -3732,7 +3924,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    // Persist approval to PostgreSQL DB via PUT /api/amenities/:id
     (async () => {
       try {
         const storedToken = getStoredToken();
@@ -3799,7 +3990,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     );
     setAmenityRequests(updatedReqs);
 
-    // Persist rejection to PostgreSQL DB via PUT /api/amenities/:id
     (async () => {
       try {
         const storedToken = getStoredToken();
@@ -3977,6 +4167,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       cart, addToCart, removeFromCart, updateCartItemSeats, updateCartItem, clearCart, checkoutCart,
       applyLoyaltyDiscount,
       walletTransactions, fetchWallet, depositToWallet, withdrawFromWallet,
+      loyaltyRules, fetchLoyaltyRules, createLoyaltyProposal, updateLoyaltyRuleStatus, deleteLoyaltyRule,
       toast, showToast, updateCurrentUser, completeSignup,
       otpSession, startOtpVerification, requestSignupOtp, requestForgotPasswordOtp, resetPassword, pendingResetUser, verifyOtp, resendOtp, cancelOtp,
     }}>

@@ -35,7 +35,7 @@ export default function BookingQrModal({
   const [isVerified, setIsVerified] = useState(false);
   const [verifiedTime, setVerifiedTime] = useState<string | null>(null);
 
-  const matchedSpace = space || (booking ? spaces.find(s => s.id === booking.spaceId) : null);
+  const matchedSpace = space || (booking ? spaces.find((s: any) => s.id === booking.spaceId) : null);
 
   // Format Booking ID for display like BK-928194
   const formattedBookingId = booking
