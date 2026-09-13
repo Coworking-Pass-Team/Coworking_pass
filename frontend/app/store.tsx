@@ -47,12 +47,12 @@ import {
   mapRoleToFrontend, 
   createCompanyApi, 
   createPointsTransactionApi, 
-  getLoyaltyPointsApi, 
-  getPointsTransactionsApi, 
   getLoyaltyRulesApi, 
   createLoyaltyRuleApi, 
   updateLoyaltyRuleApi, 
-  deleteLoyaltyRuleApi 
+  deleteLoyaltyRuleApi,
+  getQrCheckInsApi,
+  createQrCheckInApi
 } from '@/services/authApi';
 
 export function getApiBaseUrl(): string {

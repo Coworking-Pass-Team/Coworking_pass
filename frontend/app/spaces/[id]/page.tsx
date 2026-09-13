@@ -48,7 +48,7 @@ import Modal from '@/components/ui/Modal';
 import Badge from '@/components/ui/Badge';
 
 export default function SpaceDetails() {
-  const { nav, navigate, goBack, spaces, currentUser, favorites, toggleFavorite, waitlist, autobooking, joinWaitlist, leaveWaitlist, enableAutoBooking, disableAutoBooking, addToCart } = useApp();
+  const { nav, navigate, goBack, spaces, currentUser, favorites, toggleFavorite, waitlist, autobooking, joinWaitlist, leaveWaitlist, enableAutoBooking, disableAutoBooking, addToCart, getSpaceCrowding } = useApp();
   const passActive = isUserPassHolder(currentUser);
 
   const urlId = typeof window !== 'undefined' ? window.location.pathname.split('/').pop() : '';
@@ -580,19 +580,31 @@ export default function SpaceDetails() {
                 )}
               </div>
 
-              {/* Capacity Progress Bar */}
-              <div className="mb-6">
-                <div className="flex justify-between text-xs text-moss mb-1.5 font-medium">
-                  <span>Capacity Status</span>
-                  <span className="text-soot font-semibold">{space.availableCapacity} of {space.totalCapacity} open</span>
+              {/* Live Crowding Indicator (Connected to QR Code Scans) */}
+              <div className="mb-6 p-4 rounded-2xl bg-[#FAF7F2] border border-soot/10 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-moss font-normal">Capacity</span>
+                  <span className={`font-semibold ${crowding.textColor}`}>
+                    {crowding.level}
+                  </span>
                 </div>
-                <div className="h-2 bg-soot/10 rounded-full overflow-hidden">
+                <div className="w-full h-2 rounded-full bg-[#E5EBE7] overflow-hidden">
                   <div
-                    className={`h-full rounded-full transition-all duration-300 ${
-                      isFullyBooked ? 'bg-red-500' : space.availableCapacity <= 5 ? 'bg-amber-500' : 'bg-eucalyptus'
-                    }`}
-                    style={{ width: `${(space.availableCapacity / space.totalCapacity) * 100}%` }}
+                    className={`h-full rounded-full transition-all duration-500 ${crowding.barColor}`}
+                    style={{
+                      width: `${
+                        crowding.level === 'Busy'
+                          ? 100
+                          : Math.min(100, Math.max(10, crowding.occupancyPercentage))
+                      }%`,
+                    }}
                   />
+                </div>
+                <div className="flex items-center justify-between text-[11px] text-moss pt-0.5">
+                  <span>{crowding.availableCapacity} / {crowding.totalCapacity} available</span>
+                  <span className="text-[10px] font-medium text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60">
+                    {crowding.scannedCount} QR Check-ins Today
+                  </span>
                 </div>
               </div>
 
