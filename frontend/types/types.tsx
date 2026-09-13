@@ -1258,6 +1258,8 @@ export interface WorkspaceApi {
   yearlyRate?: number;
   passVisitValue: number;
   totalCapacity: number;
+  images?: string[];
+  amenities?: string[];
   createdAt?: string;
   updatedAt?: string;
   partner?: Partner;

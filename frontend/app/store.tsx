@@ -269,6 +269,8 @@ interface AppContextType {
     yearlyRate?: number;
     passVisitValue: number;
     totalCapacity: number;
+    amenities?: string[];
+    images?: string[];
   }) => Promise<{ success: boolean; workspace?: WorkspaceApi; error?: string }>;
   updateWorkspace: (
     workspaceId: string,
@@ -282,6 +284,8 @@ interface AppContextType {
       yearlyRate: number;
       passVisitValue: number;
       totalCapacity: number;
+      amenities: string[];
+      images: string[];
     }>
   ) => Promise<{ success: boolean; workspace?: WorkspaceApi; error?: string }>;
   deleteWorkspace: (workspaceId: string) => Promise<{ success: boolean; error?: string }>;
@@ -1833,6 +1837,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
               ? backendAmenityList
               : (existing?.amenities !== undefined ? existing.amenities : []));
 
+          let savedImagesList: string[] | undefined = undefined;
+          if (typeof window !== 'undefined') {
+            try {
+              const rawImgMap = localStorage.getItem('cp_space_images');
+              if (rawImgMap) {
+                const imgMap = JSON.parse(rawImgMap);
+                savedImagesList = imgMap[w.id] || imgMap[w.name.toLowerCase()];
+              }
+            } catch (_) {}
+          }
+
+          const dbImages = (w as any).images && Array.isArray((w as any).images) && (w as any).images.length > 0
+            ? (w as any).images
+            : undefined;
+
+          const finalImages = dbImages || savedImagesList || (existing?.images && existing.images.length > 0 ? existing.images : ['https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80']);
+
           return {
             id: w.id,
             name: w.name,
@@ -1841,7 +1862,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             address: w.city,
             description: existing?.description || `Workspace managed by ${w.partner?.brandName || 'Partner'}`,
             type: preservedType,
-            images: existing?.images && existing.images.length > 0 ? existing.images : ['https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80'],
+            images: finalImages,
             amenities: finalAmenities,
             totalCapacity: w.totalCapacity || existing?.totalCapacity || 50,
             availableCapacity: w.totalCapacity || existing?.availableCapacity || 50,
@@ -1884,6 +1905,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     passVisitValue: number;
     totalCapacity: number;
     amenities?: string[];
+    images?: string[];
   }): Promise<{ success: boolean; workspace?: WorkspaceApi; error?: string }> => {
     try {
       const headers: Record<string, string> = {
@@ -1929,6 +1951,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       passVisitValue: number;
       totalCapacity: number;
       amenities: string[];
+      images: string[];
     }>
   ): Promise<{ success: boolean; workspace?: WorkspaceApi; error?: string }> => {
     try {
@@ -2840,6 +2863,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             passVisitValue: 15,
             totalCapacity: space.totalCapacity || 30,
             amenities: space.amenities || [],
+            images: space.images || [],
           });
 
           if (createRes.success && createRes.workspace) {
@@ -2877,6 +2901,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
                   amenitiesMap[createRes.workspace.id] = space.amenities;
                   amenitiesMap[createRes.workspace.name.toLowerCase()] = space.amenities;
                   localStorage.setItem('cp_space_amenities', JSON.stringify(amenitiesMap));
+                }
+                if (space.images) {
+                  const rawImgMap = localStorage.getItem('cp_space_images');
+                  const imgMap = rawImgMap ? JSON.parse(rawImgMap) : {};
+                  imgMap[createRes.workspace.id] = space.images;
+                  imgMap[createRes.workspace.name.toLowerCase()] = space.images;
+                  localStorage.setItem('cp_space_images', JSON.stringify(imgMap));
                 }
               } catch (_) {}
             }
@@ -2916,6 +2947,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
           }
           localStorage.setItem('cp_space_amenities', JSON.stringify(amenitiesMap));
         }
+        if (updates.images !== undefined) {
+          const rawMap = localStorage.getItem('cp_space_images');
+          const imgMap = rawMap ? JSON.parse(rawMap) : {};
+          imgMap[id] = updates.images;
+          if (updates.name || targetSpace?.name) {
+            const rawName = updates.name || targetSpace?.name || '';
+            const nameKey = rawName.trim().toLowerCase();
+            if (nameKey) {
+              imgMap[nameKey] = updates.images;
+              imgMap[rawName.toLowerCase()] = updates.images;
+            }
+          }
+          localStorage.setItem('cp_space_images', JSON.stringify(imgMap));
+        }
       } catch (_) {}
     }
 
@@ -2940,6 +2985,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (updates.pricing?.monthly !== undefined) payload.monthlyRate = updates.pricing.monthly;
         if (updates.pricing?.yearly !== undefined) payload.yearlyRate = updates.pricing.yearly;
         if (updates.amenities !== undefined) payload.amenities = updates.amenities;
+        if (updates.images !== undefined) payload.images = updates.images;
 
         if (targetDbId && (Object.keys(payload).length > 0 || updates.type)) {
           if (Object.keys(payload).length > 0) {
@@ -3001,6 +3047,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               passVisitValue: 15,
               totalCapacity: (updatedSpaceObj as any).totalCapacity || 30,
               amenities: (updatedSpaceObj as any).amenities || [],
+              images: (updatedSpaceObj as any).images || [],
             });
 
             if (createRes.success && createRes.workspace) {
