@@ -51,6 +51,7 @@ import {
   createLoyaltyRuleApi, 
   updateLoyaltyRuleApi, 
   deleteLoyaltyRuleApi,
+  getLoyaltyPointsApi,
   getQrCheckInsApi,
   createQrCheckInApi
 } from '@/services/authApi';
@@ -495,7 +496,8 @@ interface AppContextType {
   deleteLoyaltyRule: (ruleId: string) => Promise<{ success: boolean; error?: string }>;
 
   qrScans: Record<string, number>;
-  recordQrScan: (spaceId: string) => void;
+  fetchQrCheckIns: () => Promise<Record<string, number>>;
+  recordQrScan: (spaceId: string) => Promise<void>;
   getSpaceCrowding: (space: Space) => SpaceCrowdingInfo;
 
   toast: { message: string; type: 'success' | 'error' | 'info' } | null;
@@ -604,7 +606,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     },
   ]);
 
-  // QR Code check-in scans tracked per workspace (drives real-time crowding indicator)
+  // QR Code check-in scans tracked per workspace (drives real-time crowding indicator from database)
   const [qrScans, setQrScans] = useState<Record<string, number>>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -622,7 +624,40 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
   });
 
-  const recordQrScan = (spaceId: string) => {
+  const fetchQrCheckIns = async (): Promise<Record<string, number>> => {
+    try {
+      const res = await getQrCheckInsApi();
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        const dbCounts: Record<string, number> = {};
+        for (const checkIn of res.data) {
+          const wId = checkIn.workspaceId || checkIn.workspace?.id;
+          if (wId) {
+            dbCounts[wId] = (dbCounts[wId] || 0) + 1;
+          }
+        }
+        setQrScans(prev => {
+          const merged = { ...prev, ...dbCounts };
+          if (typeof window !== 'undefined') {
+            try {
+              localStorage.setItem('cp_qr_scans', JSON.stringify(merged));
+            } catch (_) {}
+          }
+          return merged;
+        });
+        return dbCounts;
+      }
+      return qrScans;
+    } catch (err) {
+      console.warn('Failed to fetch QR check-ins from database:', err);
+      return qrScans;
+    }
+  };
+
+  useEffect(() => {
+    fetchQrCheckIns();
+  }, []);
+
+  const recordQrScan = async (spaceId: string) => {
     setQrScans(prev => {
       const next = { ...prev, [spaceId]: (prev[spaceId] || 0) + 1 };
       if (typeof window !== 'undefined') {
@@ -632,6 +667,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
       return next;
     });
+
+    try {
+      await createQrCheckInApi({
+        userId: currentUser?.id || 'guest',
+        workspaceId: spaceId,
+        sectionId: `sec-${spaceId}`,
+        status: 'VALID',
+      });
+      fetchQrCheckIns();
+    } catch (err) {
+      console.warn('Could not persist QR check-in to database:', err);
+    }
   };
 
   const getSpaceCrowding = (space: Space): SpaceCrowdingInfo => {
@@ -4210,7 +4257,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       applyLoyaltyDiscount,
       walletTransactions, fetchWallet, depositToWallet, withdrawFromWallet,
       loyaltyRules, fetchLoyaltyRules, createLoyaltyProposal, updateLoyaltyRuleStatus, deleteLoyaltyRule,
-      qrScans, recordQrScan, getSpaceCrowding,
+      qrScans, fetchQrCheckIns, recordQrScan, getSpaceCrowding,
       toast, showToast, updateCurrentUser, completeSignup,
       otpSession, startOtpVerification, requestSignupOtp, requestForgotPasswordOtp, resetPassword, pendingResetUser, verifyOtp, resendOtp, cancelOtp,
     }}>
