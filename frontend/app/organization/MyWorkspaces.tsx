@@ -21,7 +21,7 @@ import Modal from '@/components/ui/Modal';
 const CITIES = ['Riyadh', 'Jeddah', 'Dammam', 'Khobar', 'Madinah', 'Makkah'];
 
 export default function MyWorkspaces() {
-  const { currentUser, spaces, navigate, toggleSpaceVisibility, deleteSpace, bookings } = useApp();
+  const { currentUser, spaces, navigate, toggleSpaceVisibility, deleteSpace, bookings, getSpaceCrowding } = useApp();
   const [query, setQuery] = useState('');
   const [filterCity, setFilterCity] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -222,8 +222,18 @@ export default function MyWorkspaces() {
         ) : (
           <div className="divide-y divide-soot/8">
             {filtered.map((space) => {
-              const occupancyRatio =
-                space.totalCapacity > 0 ? (space.availableCapacity / space.totalCapacity) * 100 : 0;
+              const crowding = getSpaceCrowding ? getSpaceCrowding(space) : {
+                scannedCount: 0,
+                totalCapacity: space.totalCapacity || 30,
+                availableCapacity: space.availableCapacity ?? 15,
+                occupiedSeats: (space.totalCapacity || 30) - (space.availableCapacity ?? 15),
+                occupancyPercentage: 50,
+                level: 'Moderate' as const,
+                badgeClass: 'bg-amber-100/90 text-amber-900 border-amber-200/90',
+                barColor: 'bg-[#D97706]',
+                textColor: 'text-[#D97706]',
+                trackColor: 'bg-[#E5EBE7]',
+              };
 
               return (
                 <div
@@ -236,7 +246,7 @@ export default function MyWorkspaces() {
                     <img
                       src={space.images[0]}
                       alt={space.name}
-                      className="w-11 h-11 rounded-xl object-cover border border-soot/10 shrink-0 shadow-2xs group-hover:scale-105 transition-transform"
+                      className="w-12 h-12 rounded-xl object-cover border border-soot/10 shadow-2xs group-hover:scale-105 transition-transform shrink-0"
                     />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
@@ -266,24 +276,22 @@ export default function MyWorkspaces() {
                     <span className="truncate">{space.city}</span>
                   </div>
 
-                  {/* Capacity */}
-                  <div className="col-span-2 mt-3 md:mt-0 flex flex-col justify-center">
-                    <div className="flex items-center gap-1 text-xs text-moss mb-1.5 font-medium">
-                      <span className="font-semibold text-soot text-sm leading-none">
-                        {space.availableCapacity}
-                      </span>
-                      <span>/ {space.totalCapacity}</span>
+                  {/* Capacity & Crowding Indicator */}
+                  <div className="col-span-2 mt-3 md:mt-0 flex flex-col justify-center space-y-1">
+                    <div className="flex items-center justify-between text-xs max-w-[130px]">
+                      <span className="text-moss">{crowding.availableCapacity}/{crowding.totalCapacity}</span>
+                      <span className={`font-semibold ${crowding.textColor}`}>{crowding.level}</span>
                     </div>
-                    <div className="w-full max-w-[120px] h-2 bg-soot/10 rounded-full overflow-hidden">
+                    <div className="w-full max-w-[130px] h-1.5 bg-[#E5EBE7] rounded-full overflow-hidden">
                       <div
-                        className={`h-full rounded-full transition-all ${
-                          space.availableCapacity === 0
-                            ? 'bg-red-500'
-                            : space.availableCapacity <= 5
-                            ? 'bg-amber-500'
-                            : 'bg-[#40534C]'
-                        }`}
-                        style={{ width: `${Math.min(100, Math.max(0, occupancyRatio))}%` }}
+                        className={`h-full rounded-full transition-all duration-500 ${crowding.barColor}`}
+                        style={{
+                          width: `${
+                            crowding.level === 'Busy'
+                              ? 100
+                              : Math.min(100, Math.max(10, crowding.occupancyPercentage))
+                          }%`,
+                        }}
                       />
                     </div>
                   </div>
