@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Shield,
   Settings,
@@ -40,10 +40,16 @@ import PaymentsAdmin from './PaymentsAdmin';
 import PayoutsAdmin from './PayoutsAdmin';
 
 export default function AdminSettings() {
-  const { currentUser, updateCurrentUser, logout, showToast, navigate, nav, loyaltyRules, updateLoyaltyRuleStatus, deleteLoyaltyRule } = useApp();
+  const { currentUser, updateCurrentUser, logout, showToast, navigate, nav, loyaltyRules, fetchLoyaltyRules, updateLoyaltyRuleStatus, deleteLoyaltyRule } = useApp();
 
   const [activeTab, setActiveTab] = useState<'profile' | 'plans' | 'subscriptions' | 'payments' | 'payouts' | 'loyalty' | 'settings'>('profile');
   const [adminFeedbackInput, setAdminFeedbackInput] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (activeTab === 'loyalty') {
+      fetchLoyaltyRules().catch(() => {});
+    }
+  }, [activeTab]);
 
 
   // Edit Profile Modal State

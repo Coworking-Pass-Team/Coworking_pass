@@ -25,12 +25,17 @@ import {
   Zap,
   Info
 } from 'lucide-react';
+import { useEffect } from 'react';
 import { useApp } from '@/app/store';
 import { LoyaltyRule, LoyaltyRuleType, ApprovalStatus } from '@/types/types';
 import Modal from '@/components/ui/Modal';
 
 export default function LoyaltyProposalsAdmin() {
-  const { currentUser, loyaltyRules, updateLoyaltyRuleStatus, deleteLoyaltyRule, showToast } = useApp();
+  const { currentUser, loyaltyRules, fetchLoyaltyRules, updateLoyaltyRuleStatus, deleteLoyaltyRule, showToast } = useApp();
+
+  useEffect(() => {
+    fetchLoyaltyRules().catch(() => {});
+  }, []);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | ApprovalStatus>('ALL');
