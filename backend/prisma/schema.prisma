@@ -144,6 +144,8 @@ model User {
   role          Role
   companyId     String?
   emailVerified Boolean @default(false)
+  isBanned Boolean @default(false)
+  
 
   company            Company?            @relation("CompanyEmployees", fields: [companyId], references: [id])
   hrAdminOf          Company?            @relation("CompanyHrAdmin")
