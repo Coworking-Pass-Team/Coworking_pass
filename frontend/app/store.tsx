@@ -581,7 +581,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     saveLoyaltyRulesToStorage(loyaltyRules);
   }, [loyaltyRules]);
 
-  // QR Code check-in scans tracked per workspace (drives real-time crowding indicator from database)
+  // QR Code check-in scans tracked per workspace (purely driven by real-time database scans)
   const [qrScans, setQrScans] = useState<Record<string, number>>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -589,20 +589,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (stored) return JSON.parse(stored);
       } catch (_) {}
     }
-    return {
-      'space-1': 14,
-      'space-2': 28,
-      'space-3': 5,
-      'space-4': 40,
-      'space-5': 12,
-      'space-6': 2,
-    };
+    return {};
   });
 
   const fetchQrCheckIns = async (): Promise<Record<string, number>> => {
     try {
       const res = await getQrCheckInsApi();
-      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+      if (res.success && Array.isArray(res.data)) {
         const dbCounts: Record<string, number> = {};
         for (const checkIn of res.data) {
           const wId = checkIn.workspaceId || checkIn.workspace?.id;
@@ -610,15 +603,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
             dbCounts[wId] = (dbCounts[wId] || 0) + 1;
           }
         }
-        setQrScans(prev => {
-          const merged = { ...prev, ...dbCounts };
-          if (typeof window !== 'undefined') {
-            try {
-              localStorage.setItem('cp_qr_scans', JSON.stringify(merged));
-            } catch (_) {}
-          }
-          return merged;
-        });
+        setQrScans(dbCounts);
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem('cp_qr_scans', JSON.stringify(dbCounts));
+          } catch (_) {}
+        }
         return dbCounts;
       }
       return qrScans;
@@ -630,6 +620,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     fetchQrCheckIns();
+    const interval = setInterval(() => {
+      fetchQrCheckIns();
+    }, 4000);
+
+    const onFocus = () => fetchQrCheckIns();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('focus', onFocus);
+    }
+
+    return () => {
+      clearInterval(interval);
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('focus', onFocus);
+      }
+    };
   }, []);
 
   const recordQrScan = async (spaceId: string) => {

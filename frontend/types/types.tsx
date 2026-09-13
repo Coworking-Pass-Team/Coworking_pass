@@ -308,10 +308,9 @@ export function calculateSpaceCrowding(
   scannedCount: number = 0
 ): SpaceCrowdingInfo {
   const total = space.totalCapacity > 0 ? space.totalCapacity : 30;
-  const baseOccupied = Math.max(0, total - (typeof space.availableCapacity === 'number' ? space.availableCapacity : total));
-  const totalOccupied = Math.min(total, baseOccupied + Math.max(0, scannedCount));
-  const available = Math.max(0, total - totalOccupied);
-  const occupancyPercentage = total > 0 ? Math.round((totalOccupied / total) * 100) : 0;
+  const occupied = Math.min(total, Math.max(0, scannedCount));
+  const available = Math.max(0, total - occupied);
+  const occupancyPercentage = total > 0 ? Math.round((occupied / total) * 100) : 0;
 
   let level: CrowdingLevel = 'Quiet';
   let textColor = 'text-[#059669]';
@@ -340,7 +339,7 @@ export function calculateSpaceCrowding(
     scannedCount,
     totalCapacity: total,
     availableCapacity: available,
-    occupiedSeats: totalOccupied,
+    occupiedSeats: occupied,
     occupancyPercentage,
     level,
     badgeClass,
