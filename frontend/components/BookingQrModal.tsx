@@ -29,22 +29,11 @@ export default function BookingQrModal({
   useEffect(() => {
     if (!booking) return;
 
-    // High fidelity QR Payload
-    const qrPayload = JSON.stringify({
-      app: 'CoworkingPass',
-      passType: 'ENTRY_PASS',
-      bookingId: booking.id,
-      userId: booking.userId,
-      spaceId: booking.spaceId,
-      spaceName: booking.spaceName,
-      startDate: booking.startDate,
-      plan: booking.plan,
-      seats: booking.seats,
-      signature: `CP-VALID-${booking.id}-${booking.spaceId}`,
-      timestamp: Date.now(),
-    });
+    // Build real verification URL so scanning with mobile phone opens pass & connects to database
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+    const verifyUrl = `${origin}/pass?bookingId=${encodeURIComponent(booking.id)}&spaceId=${encodeURIComponent(booking.spaceId)}&userId=${encodeURIComponent(booking.userId)}&spaceName=${encodeURIComponent(booking.spaceName || '')}&seats=${booking.seats || 1}&plan=${encodeURIComponent(booking.plan || 'daily')}`;
 
-    QRCode.toDataURL(qrPayload, {
+    QRCode.toDataURL(verifyUrl, {
       width: 320,
       margin: 1,
       errorCorrectionLevel: 'H',
