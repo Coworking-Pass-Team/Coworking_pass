@@ -17,10 +17,11 @@ import {
   CreditCard,
   Building2,
   Download,
+  QrCode,
 } from 'lucide-react';
 import { useApp } from '@/app/store';
 import { Booking, BookingStatus, Space, User, getBookingPrice } from '@/types/types';
-
+import BookingQrModal from '@/components/BookingQrModal';
 import { getHourlyBookingsApi, updateHourlyBookingApi, HourlyBookingItemApi } from '@/services/authApi';
 
 export default function CompanyBookings() {
@@ -199,19 +200,50 @@ export default function CompanyBookings() {
                     <div>Start Date: <span className="font-medium text-soot">{hb.startDate ? new Date(hb.startDate).toLocaleDateString() : 'N/A'}</span></div>
                     <div>End Date: <span className="font-medium text-soot">{hb.endDate ? new Date(hb.endDate).toLocaleDateString() : 'N/A'}</span></div>
                   </div>
-                  {hb.status !== 'CANCELLED' && (
+                  <div className="flex items-center gap-2 pt-1">
                     <button
                       type="button"
-                      onClick={async () => {
-                        await updateHourlyBookingApi(hb.id, { status: 'CANCELLED' });
-                        showToast('Hourly booking cancelled successfully', 'info');
-                        setHourlyBookings(prev => prev.map(b => b.id === hb.id ? { ...b, status: 'CANCELLED' } : b));
+                      onClick={() => {
+                        const converted: Booking = {
+                          id: hb.id,
+                          userId: hb.userId || currentUser?.id || 'org-user',
+                          spaceId: (hb as any).workspaceId || (hb.section as any)?.workspaceId || (spaces[0]?.id || 'sp-1'),
+                          spaceName: hb.package?.packageName || hb.section?.name || 'Corporate Meeting & Desk Package',
+                          spaceCity: 'Riyadh',
+                          spaceAddress: 'King Fahd Road, Riyadh',
+                          spaceImage: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80',
+                          type: 'meeting-room',
+                          plan: 'hourly',
+                          startDate: hb.startDate ? new Date(hb.startDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+                          endDate: hb.endDate ? new Date(hb.endDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+                          seats: 1,
+                          employees: [],
+                          totalPrice: hb.package?.price || 150,
+                          status: hb.status === 'CONFIRMED' || hb.status === 'ACTIVE' ? 'active' : hb.status === 'CANCELLED' ? 'cancelled' : 'previous',
+                          createdAt: hb.createdAt || new Date().toISOString(),
+                        };
+                        setSelectedBooking(converted);
                       }}
-                      className="w-full mt-2 py-2 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 text-xs font-semibold hover:bg-rose-100 transition-colors cursor-pointer"
+                      className="flex-1 py-2 px-3 rounded-xl bg-soot text-plaster text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-black transition-colors cursor-pointer"
                     >
-                      Cancel Hourly Booking
+                      <QrCode size={14} />
+                      <span>View QR Pass</span>
                     </button>
-                  )}
+
+                    {hb.status !== 'CANCELLED' && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await updateHourlyBookingApi(hb.id, { status: 'CANCELLED' });
+                          showToast('Hourly booking cancelled successfully', 'info');
+                          setHourlyBookings(prev => prev.map(b => b.id === hb.id ? { ...b, status: 'CANCELLED' } : b));
+                        }}
+                        className="py-2 px-3 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 text-xs font-semibold hover:bg-rose-100 transition-colors cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -404,7 +436,7 @@ export default function CompanyBookings() {
                 </div>
 
                 {/* Actions */}
-                <div className="col-span-2 mt-4 lg:mt-0 flex items-center justify-end gap-3">
+                <div className="col-span-2 mt-4 lg:mt-0 flex items-center justify-end gap-2">
                   <span
                     className={`text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider ${
                       b.status === 'active'
@@ -416,6 +448,17 @@ export default function CompanyBookings() {
                   >
                     {b.status}
                   </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedBooking(b);
+                    }}
+                    className="p-2 rounded-xl text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/60 transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
+                    title="View QR Entry Pass"
+                  >
+                    <QrCode size={15} />
+                  </button>
                   <button
                     type="button"
                     onClick={(e) => {
@@ -434,6 +477,19 @@ export default function CompanyBookings() {
         )}
       </div>
       </>
+      )}
+
+      {/* Booking QR Code & Pass Details Modal */}
+      {selectedBooking && (
+        <BookingQrModal
+          booking={selectedBooking}
+          onClose={() => setSelectedBooking(null)}
+          onCancelClick={(b) => {
+            setSelectedBooking(null);
+            cancelBooking(b.id);
+            showToast('Booking cancelled', 'info');
+          }}
+        />
       )}
     </div>
   );
