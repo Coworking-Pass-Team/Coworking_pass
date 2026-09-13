@@ -309,15 +309,22 @@ export default function SpaceDetails() {
                 Included Amenities
               </h2>
               <div className="flex flex-wrap gap-2">
-                {space.amenities.map(a => (
-                  <div
-                    key={a}
-                    className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-plaster-surface border border-soot/12 text-xs font-medium text-soot shadow-xs"
-                  >
-                    <Check size={13} className="text-eucalyptus stroke-[2.5]" />
-                    <span>{a}</span>
-                  </div>
-                ))}
+                {Array.isArray(space.amenities) && space.amenities.length > 0 ? (
+                  space.amenities.map(a => {
+                    const amenityName = typeof a === 'string' ? a : (a as any)?.amenity?.name || (a as any)?.name || String(a);
+                    return (
+                      <div
+                        key={amenityName}
+                        className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-plaster-surface border border-soot/12 text-xs font-medium text-soot shadow-xs"
+                      >
+                        <Check size={13} className="text-eucalyptus stroke-[2.5]" />
+                        <span>{amenityName}</span>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <p className="text-xs text-moss font-medium">No specific amenities added to this workspace yet.</p>
+                )}
               </div>
             </div>
 
