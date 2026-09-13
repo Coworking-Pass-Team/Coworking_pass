@@ -53,7 +53,12 @@ import {
   deleteLoyaltyRuleApi,
   getLoyaltyPointsApi,
   getQrCheckInsApi,
-  createQrCheckInApi
+  createQrCheckInApi,
+  getCompaniesApi,
+  createTicketApi,
+  createTicketReplyApi,
+  getTicketsApi,
+  updateTicketStatusApi
 } from '@/services/authApi';
 
 export function getApiBaseUrl(): string {
@@ -389,6 +394,7 @@ interface AppContextType {
   deletePayment: (paymentId: string) => Promise<{ success: boolean; error?: string }>;
 
   supportTickets: SupportTicket[];
+  fetchTickets: () => Promise<SupportTicket[]>;
   addSupportTicket: (ticketData: Omit<SupportTicket, 'id' | 'ticketNumber' | 'createdAt' | 'status' | 'priority'> & { status?: TicketStatus; priority?: SupportTicket['priority'] }) => SupportTicket;
   updateTicketStatus: (id: string, status: TicketStatus, notes?: string) => void;
   replyToTicket: (id: string, reply: string, newStatus?: TicketStatus) => void;
@@ -549,7 +555,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     },
   ]);
   const [approvedCustomAmenities, setApprovedCustomAmenities] = useState<string[]>(['Podcast Recording Studio']);
-  const [supportTickets, setSupportTickets] = useState<SupportTicket[]>(INITIAL_SUPPORT_TICKETS);
+  const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([]);
   const [partners, setPartners] = useState<Partner[]>([]);
   const [workspacesApi, setWorkspacesApi] = useState<WorkspaceApi[]>([]);
   const [hourlyBookingsApi, setHourlyBookingsApi] = useState<HourlyBookingApi[]>([]);
@@ -1399,6 +1405,49 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const fetchTickets = async (): Promise<SupportTicket[]> => {
+    try {
+      const res = await getTicketsApi();
+      if (res.success && Array.isArray(res.data)) {
+        const mapped: SupportTicket[] = res.data.map((dbT: any) => {
+          const statusLower = (dbT.status || 'OPEN').toLowerCase();
+          const validStatus: TicketStatus = 
+            statusLower === 'in_progress' || statusLower === 'in-progress' || statusLower === 'pending'
+              ? 'in-progress'
+              : statusLower === 'resolved'
+              ? 'resolved'
+              : statusLower === 'closed'
+              ? 'closed'
+              : 'open';
+
+          const replies = Array.isArray(dbT.replies) ? dbT.replies : [];
+          const lastReplyMessage = replies.length > 0 ? replies[replies.length - 1].message : undefined;
+
+          return {
+            id: dbT.id,
+            ticketNumber: `TK-${dbT.id.slice(-4).toUpperCase()}`,
+            userName: dbT.user?.name || dbT.company?.name || 'مستخدم',
+            userEmail: dbT.user?.email || dbT.company?.email || 'user@coworkingpass.sa',
+            userId: dbT.userId,
+            category: 'general',
+            subject: dbT.subject || 'تذكرة دعم',
+            message: dbT.subject || '',
+            status: validStatus,
+            priority: 'medium',
+            createdAt: dbT.createdAt ? new Date(dbT.createdAt).toLocaleString('ar-SA') : new Date().toLocaleString('ar-SA'),
+            updatedAt: dbT.updatedAt ? new Date(dbT.updatedAt).toLocaleString('ar-SA') : undefined,
+            adminReply: lastReplyMessage,
+          };
+        });
+        setSupportTickets(mapped);
+        return mapped;
+      }
+    } catch (err) {
+      console.error('Failed to fetch tickets from /api/tickets:', err);
+    }
+    return supportTickets;
+  };
+
   const fetchPartners = async (): Promise<Partner[]> => {
     try {
       const data = await fetchPartnersFromApi();
@@ -2214,17 +2263,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      const savedTickets = localStorage.getItem('cp_support_tickets');
-      if (savedTickets) {
-        try {
-          setSupportTickets(JSON.parse(savedTickets));
-        } catch (e) {
-          setSupportTickets(INITIAL_SUPPORT_TICKETS);
-        }
-      } else {
-        localStorage.setItem('cp_support_tickets', JSON.stringify(INITIAL_SUPPORT_TICKETS));
-      }
-
+      fetchTickets().catch(() => {});
       fetchPartners().catch(() => {});
       fetchWorkspaces().catch(() => {});
     } catch (e) {
@@ -4151,6 +4190,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (typeof window !== 'undefined') {
       localStorage.setItem('cp_support_tickets', JSON.stringify(updated));
     }
+
+    // Sync to PostgreSQL DB Ticket table
+    (async () => {
+      try {
+        const compRes = await getCompaniesApi();
+        const companies = compRes.success && Array.isArray(compRes.data) ? compRes.data : [];
+        const compId = currentUser?.companyId || companies[0]?.id;
+        if (compId) {
+          await createTicketApi({
+            companyId: compId,
+            userId: currentUser?.id || newTicket.userId || 'user-1',
+            subject: newTicket.subject || newTicket.message || 'Support Inquiry',
+          });
+        }
+      } catch (err) {
+        console.warn('DB Ticket sync notice:', err);
+      }
+    })();
+
     showToast(`Support ticket ${newTicket.ticketNumber} logged successfully`, 'success');
     return newTicket;
   };
@@ -4167,9 +4225,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         : t
     );
     setSupportTickets(updated);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('cp_support_tickets', JSON.stringify(updated));
-    }
+
+    const dbStatus = status === 'in-progress' ? 'IN_PROGRESS' : status === 'closed' || status === 'resolved' ? 'CLOSED' : 'OPEN';
+    updateTicketStatusApi(id, dbStatus).catch((err) => console.warn('DB Ticket status sync notice:', err));
+
     showToast(`Ticket status updated to ${status}`, 'success');
   };
 
@@ -4189,6 +4248,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (typeof window !== 'undefined') {
       localStorage.setItem('cp_support_tickets', JSON.stringify(updated));
     }
+
+    // Sync reply to PostgreSQL DB TicketReply table
+    (async () => {
+      try {
+        await createTicketReplyApi({
+          ticketId: id,
+          userId: currentUser?.id || 'admin-1',
+          message: reply,
+        });
+      } catch (err) {
+        console.warn('DB TicketReply sync notice:', err);
+      }
+    })();
 
     if (ticket && ticket.userId) {
       addNotification({
@@ -4250,7 +4322,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       spaces, favorites, toggleFavorite, addSpace, updateSpace, toggleSpaceVisibility, deleteSpace,
       bookings, addBooking, cancelBooking, updateBookingStatus, deleteBooking,
       amenityRequests, approvedCustomAmenities, requestCustomAmenity, approveAmenityRequest, rejectAmenityRequest, deleteAmenityRequest, getApprovedAmenities,
-      supportTickets, addSupportTicket, updateTicketStatus, replyToTicket,
+      supportTickets, fetchTickets, addSupportTicket, updateTicketStatus, replyToTicket,
       notifications: userNotifications,
       unreadNotificationsCount: userNotifications.filter(n => !n.read).length,
       markNotificationRead, toggleNotificationRead, markAllNotificationsRead, deleteNotification, clearAllNotifications, addNotification, generateFakeNotification,
