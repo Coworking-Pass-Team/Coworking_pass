@@ -79,6 +79,7 @@ export async function GET(request: Request) {
 
     const formatted = workspaces.map((w: any) => ({
       ...w,
+      images: Array.isArray(w.images) ? w.images : [],
       amenities: Array.isArray(w.amenities)
         ? w.amenities.map((wa: any) => wa.amenity?.name || wa.name).filter(Boolean)
         : [],
@@ -147,6 +148,7 @@ export async function POST(request: Request) {
       passVisitValue,
       totalCapacity,
       amenities,
+      images,
     } = body;
 
     if (!partnerId || !name || !city || !passVisitValue || !totalCapacity) {
@@ -175,6 +177,7 @@ export async function POST(request: Request) {
         yearlyRate,
         passVisitValue,
         totalCapacity,
+        images: Array.isArray(images) ? images : [],
       },
     });
 
