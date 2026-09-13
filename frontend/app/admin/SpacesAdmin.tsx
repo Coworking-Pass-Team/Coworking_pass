@@ -186,7 +186,10 @@ export default function SpacesAdmin() {
   const openEdit = (e: React.MouseEvent, space: Space) => {
     e.stopPropagation();
     setEditingSpace(space);
-    setForm({ ...space });
+    setForm({
+      ...space,
+      amenities: Array.isArray(space.amenities) ? [...space.amenities] : [],
+    });
     setEditModal(true);
     setSaved(false);
   };
@@ -798,6 +801,30 @@ export default function SpacesAdmin() {
                         </span>
                         <span>·</span>
                         <span className="capitalize">{space.type.replace('-', ' ')}</span>
+                      </div>
+
+                      {/* Amenities Chips in Table */}
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {Array.isArray(space.amenities) && space.amenities.length > 0 ? (
+                          <>
+                            {space.amenities.slice(0, 3).map((a) => (
+                              <span
+                                key={typeof a === 'string' ? a : (a as any)?.name}
+                                className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-lg bg-soot/5 border border-soot/10 text-soot"
+                              >
+                                <Check size={10} className="text-emerald-600 shrink-0" />
+                                <span className="truncate max-w-[90px]">{typeof a === 'string' ? a : (a as any)?.name}</span>
+                              </span>
+                            ))}
+                            {space.amenities.length > 3 && (
+                              <span className="text-[10px] font-semibold text-moss self-center px-1">
+                                +{space.amenities.length - 3}
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          <span className="text-[10px] text-moss/60 italic">No amenities added</span>
+                        )}
                       </div>
                     </div>
                   </div>
