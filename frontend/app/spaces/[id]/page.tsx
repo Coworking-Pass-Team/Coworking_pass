@@ -103,10 +103,7 @@ export default function SpaceDetails() {
 
   if (!space) {
     return (
-      <div className="min-h-[70vh] flex flex-col items-center justify-center py-20 px-4 bg-plaster text-soot">
-        <div className="w-14 h-14 rounded-2xl bg-soot/5 flex items-center justify-center mb-4">
-          <Info size={24} className="text-moss" />
-        </div>
+      <div className="min-h-screen bg-plaster text-soot flex flex-col items-center justify-center p-8">
         <h2 className="text-2xl font-serif-display text-soot mb-2">Space not found</h2>
         <button
           onClick={() => navigate('browse')}
@@ -118,8 +115,21 @@ export default function SpaceDetails() {
     );
   }
 
+  const crowding = getSpaceCrowding ? getSpaceCrowding(space) : {
+    scannedCount: 0,
+    totalCapacity: space.totalCapacity || 30,
+    availableCapacity: space.availableCapacity ?? 15,
+    occupiedSeats: (space.totalCapacity || 30) - (space.availableCapacity ?? 15),
+    occupancyPercentage: 50,
+    level: 'Moderate' as const,
+    badgeClass: 'bg-amber-100/90 text-amber-900 border-amber-200/90',
+    barColor: 'bg-[#D97706]',
+    textColor: 'text-[#D97706]',
+    trackColor: 'bg-[#E5EBE7]',
+  };
+
   const isFav = favorites.includes(space.id);
-  const isFullyBooked = space.availableCapacity === 0;
+  const isFullyBooked = crowding.availableCapacity === 0 || crowding.level === 'Busy';
   const inWaitlist = Boolean(currentUser && waitlist[`${currentUser.id}_${space.id}`]);
   const autoBookOn = Boolean(currentUser && autobooking[`${currentUser.id}_${space.id}`]);
 
@@ -147,10 +157,10 @@ export default function SpaceDetails() {
   };
 
   const availabilityInfo = isFullyBooked
-    ? { label: 'Fully Booked', color: 'text-rose-800 bg-rose-100/90 border-rose-200/90 backdrop-blur-md font-semibold' }
-    : space.availableCapacity <= 5
-    ? { label: space.availableCapacity <= 3 ? `Only ${space.availableCapacity} spots left!` : 'Almost Full', color: 'text-amber-900 bg-amber-100/90 border-amber-200/90 backdrop-blur-md font-semibold' }
-    : { label: `${space.availableCapacity} spots available`, color: 'text-emerald-900 bg-emerald-100/90 border-emerald-200/90 backdrop-blur-md font-semibold' };
+    ? { label: 'Limited Spots', color: 'text-rose-800 bg-rose-100/90 border-rose-200/90 backdrop-blur-md font-semibold' }
+    : crowding.availableCapacity <= 5
+    ? { label: `Only ${crowding.availableCapacity} left!`, color: 'text-amber-900 bg-amber-100/90 border-amber-200/90 backdrop-blur-md font-semibold' }
+    : { label: `${crowding.availableCapacity} seats available`, color: 'text-emerald-900 bg-emerald-100/90 border-emerald-200/90 backdrop-blur-md font-semibold' };
 
   const currentPlanInfo = getEffectiveSpacePrice(currentUser, space, selectedPlan, undefined, durationHours, durationMonths);
   const planPrice = currentPlanInfo.effectivePrice;

@@ -33,7 +33,10 @@ import {
   WalletTransaction,
   LoyaltyRule, 
   LoyaltyRuleType, 
-  ApprovalStatus 
+  ApprovalStatus,
+  CrowdingLevel,
+  SpaceCrowdingInfo,
+  calculateSpaceCrowding
 } from '@/types/types';
 import { INITIAL_SPACES, INITIAL_USERS, INITIAL_BOOKINGS, INITIAL_NOTIFICATIONS, INITIAL_SUPPORT_TICKETS } from '@/data/data';
 import { 
@@ -491,6 +494,10 @@ interface AppContextType {
   ) => Promise<{ success: boolean; rule?: LoyaltyRule; error?: string }>;
   deleteLoyaltyRule: (ruleId: string) => Promise<{ success: boolean; error?: string }>;
 
+  qrScans: Record<string, number>;
+  recordQrScan: (spaceId: string) => void;
+  getSpaceCrowding: (space: Space) => SpaceCrowdingInfo;
+
   toast: { message: string; type: 'success' | 'error' | 'info' } | null;
   showToast: (message: string, type?: 'success' | 'error' | 'info') => void;
 }
@@ -596,6 +603,41 @@ export function AppProvider({ children }: { children: ReactNode }) {
       createdAt: '2026-09-05T11:00:00Z',
     },
   ]);
+
+  // QR Code check-in scans tracked per workspace (drives real-time crowding indicator)
+  const [qrScans, setQrScans] = useState<Record<string, number>>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('cp_qr_scans');
+        if (stored) return JSON.parse(stored);
+      } catch (_) {}
+    }
+    return {
+      'space-1': 14,
+      'space-2': 28,
+      'space-3': 5,
+      'space-4': 40,
+      'space-5': 12,
+      'space-6': 2,
+    };
+  });
+
+  const recordQrScan = (spaceId: string) => {
+    setQrScans(prev => {
+      const next = { ...prev, [spaceId]: (prev[spaceId] || 0) + 1 };
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('cp_qr_scans', JSON.stringify(next));
+        } catch (_) {}
+      }
+      return next;
+    });
+  };
+
+  const getSpaceCrowding = (space: Space): SpaceCrowdingInfo => {
+    const scanned = qrScans[space.id] || 0;
+    return calculateSpaceCrowding(space, scanned);
+  };
 
   const fetchLoyaltyRules = async (): Promise<LoyaltyRule[]> => {
     try {
@@ -4168,6 +4210,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       applyLoyaltyDiscount,
       walletTransactions, fetchWallet, depositToWallet, withdrawFromWallet,
       loyaltyRules, fetchLoyaltyRules, createLoyaltyProposal, updateLoyaltyRuleStatus, deleteLoyaltyRule,
+      qrScans, recordQrScan, getSpaceCrowding,
       toast, showToast, updateCurrentUser, completeSignup,
       otpSession, startOtpVerification, requestSignupOtp, requestForgotPasswordOtp, resetPassword, pendingResetUser, verifyOtp, resendOtp, cancelOtp,
     }}>
