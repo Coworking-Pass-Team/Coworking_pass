@@ -1016,6 +1016,23 @@ export interface QrCheckInPayload {
 }
 
 export async function createQrCheckInApi(payload: QrCheckInPayload) {
+  try {
+    const localRes = await fetch('/api/qr-check-ins', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: payload.userId,
+        workspaceId: payload.workspaceId,
+        sectionId: payload.sectionId || `sec-${payload.workspaceId}`,
+        status: payload.status || 'VALID',
+      }),
+    });
+    if (localRes.ok) {
+      const data = await localRes.json();
+      return { success: true, data: data.data || data };
+    }
+  } catch (_) {}
+
   const url = `${getAuthBaseUrl()}/api/qr-check-ins`;
   try {
     const response = await fetch(url, {
@@ -1039,9 +1056,21 @@ export async function createQrCheckInApi(payload: QrCheckInPayload) {
 }
 
 export async function getQrCheckInsApi() {
+  try {
+    const localRes = await fetch('/api/qr-check-ins', { 
+      method: 'GET', 
+      headers: { 'Content-Type': 'application/json' }, 
+      cache: 'no-store' 
+    });
+    if (localRes.ok) {
+      const list = await localRes.json();
+      if (Array.isArray(list)) return { success: true, data: list };
+    }
+  } catch (_) {}
+
   const url = `${getAuthBaseUrl()}/api/qr-check-ins`;
   try {
-    const response = await fetch(url, { method: 'GET', headers: getAuthHeaders() });
+    const response = await fetch(url, { method: 'GET', headers: getAuthHeaders(), cache: 'no-store' });
     const data = await response.json().catch(() => ([]));
     if (!response.ok) return { success: false, data: [] };
     return { success: true, data: Array.isArray(data) ? data : [] };
