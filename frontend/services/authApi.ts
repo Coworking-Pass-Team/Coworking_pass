@@ -1127,3 +1127,78 @@ export async function deleteLoyaltyRuleApi(id: string) {
   }
 }
 
+export async function getCompaniesApi() {
+  const url = `${getAuthBaseUrl()}/api/companies`;
+  try {
+    const response = await fetch(url, { method: 'GET', headers: getAuthHeaders() });
+    const data = await response.json().catch(() => ([]));
+    if (!response.ok) return { success: false, data: [] };
+    return { success: true, data: Array.isArray(data) ? data : [] };
+  } catch (_) {
+    return { success: false, data: [] };
+  }
+}
+
+export async function createTicketApi(payload: { companyId: string; userId: string; subject: string }) {
+  const url = `${getAuthBaseUrl()}/api/tickets`;
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) return { success: false, error: data.error || 'Failed to create ticket' };
+    return { success: true, data: data.ticket || data };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+export async function createTicketReplyApi(payload: { ticketId: string; userId: string; message: string }) {
+  const url = `${getAuthBaseUrl()}/api/ticket-replies`;
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) return { success: false, error: data.error || 'Failed to add reply' };
+    return { success: true, data: data.reply || data };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+export async function getTicketsApi() {
+  const url = `${getAuthBaseUrl()}/api/tickets`;
+  try {
+    const response = await fetch(url, {
+      headers: getAuthHeaders(),
+    });
+    const data = await response.json().catch(() => ([]));
+    if (!response.ok) return { success: false, data: [] };
+    return { success: true, data: Array.isArray(data) ? data : [] };
+  } catch (_) {
+    return { success: false, data: [] };
+  }
+}
+
+export async function updateTicketStatusApi(id: string, status: string) {
+  const url = `${getAuthBaseUrl()}/api/tickets/${id}`;
+  try {
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ status }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) return { success: false, error: data.error || 'Failed to update ticket status' };
+    return { success: true, data: data.ticket || data };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+
