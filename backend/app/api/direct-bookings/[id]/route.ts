@@ -102,7 +102,7 @@ export async function PUT(
     if (body.status) updateData.status = body.status;
     if (body.workspaceId) updateData.workspaceId = body.workspaceId;
     if (body.sectionId) updateData.sectionId = body.sectionId;
-
+6
     const booking = await prisma.directBooking.update({
       where: { id },
       data: updateData,
