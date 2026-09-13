@@ -284,6 +284,72 @@ export function getSpaceCoordinates(space?: Space | null): { lat: number; lng: n
   return null;
 }
 
+export type CrowdingLevel = 'Quiet' | 'Moderate' | 'Busy';
+
+export interface SpaceCrowdingInfo {
+  scannedCount: number;
+  totalCapacity: number;
+  availableCapacity: number;
+  occupiedSeats: number;
+  occupancyPercentage: number;
+  level: CrowdingLevel;
+  badgeClass: string;
+  barColor: string;
+  textColor: string;
+  trackColor: string;
+}
+
+/**
+ * Calculates live crowding indicators based on total capacity, baseline availability,
+ * and real-time QR code check-in scans.
+ */
+export function calculateSpaceCrowding(
+  space: Space,
+  scannedCount: number = 0
+): SpaceCrowdingInfo {
+  const total = space.totalCapacity > 0 ? space.totalCapacity : 30;
+  const baseOccupied = Math.max(0, total - (typeof space.availableCapacity === 'number' ? space.availableCapacity : total));
+  const totalOccupied = Math.min(total, baseOccupied + Math.max(0, scannedCount));
+  const available = Math.max(0, total - totalOccupied);
+  const occupancyPercentage = total > 0 ? Math.round((totalOccupied / total) * 100) : 0;
+
+  let level: CrowdingLevel = 'Quiet';
+  let textColor = 'text-[#059669]';
+  let barColor = 'bg-[#059669]';
+  let badgeClass = 'bg-emerald-100/90 text-emerald-900 border-emerald-200/90';
+  let trackColor = 'bg-[#E5EBE7]';
+
+  if (available === 0 || occupancyPercentage >= 80) {
+    level = 'Busy';
+    textColor = 'text-[#DC2626]';
+    barColor = 'bg-[#DC2626]';
+    badgeClass = 'bg-rose-100/90 text-rose-800 border-rose-200/90';
+  } else if (occupancyPercentage >= 40) {
+    level = 'Moderate';
+    textColor = 'text-[#D97706]';
+    barColor = 'bg-[#D97706]';
+    badgeClass = 'bg-amber-100/90 text-amber-900 border-amber-200/90';
+  } else {
+    level = 'Quiet';
+    textColor = 'text-[#059669]';
+    barColor = 'bg-[#059669]';
+    badgeClass = 'bg-emerald-100/90 text-emerald-900 border-emerald-200/90';
+  }
+
+  return {
+    scannedCount,
+    totalCapacity: total,
+    availableCapacity: available,
+    occupiedSeats: totalOccupied,
+    occupancyPercentage,
+    level,
+    badgeClass,
+    barColor,
+    textColor,
+    trackColor,
+  };
+}
+
 export interface Employee {
   id: string;
   name: string;

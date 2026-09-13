@@ -33,7 +33,10 @@ import {
   WalletTransaction,
   LoyaltyRule, 
   LoyaltyRuleType, 
-  ApprovalStatus 
+  ApprovalStatus,
+  CrowdingLevel,
+  SpaceCrowdingInfo,
+  calculateSpaceCrowding
 } from '@/types/types';
 import { INITIAL_SPACES, INITIAL_USERS, INITIAL_BOOKINGS, INITIAL_NOTIFICATIONS, INITIAL_SUPPORT_TICKETS } from '@/data/data';
 import { 
@@ -44,12 +47,13 @@ import {
   mapRoleToFrontend, 
   createCompanyApi, 
   createPointsTransactionApi, 
-  getLoyaltyPointsApi, 
-  getPointsTransactionsApi, 
   getLoyaltyRulesApi, 
   createLoyaltyRuleApi, 
   updateLoyaltyRuleApi, 
-  deleteLoyaltyRuleApi 
+  deleteLoyaltyRuleApi,
+  getLoyaltyPointsApi,
+  getQrCheckInsApi,
+  createQrCheckInApi
 } from '@/services/authApi';
 
 export function getApiBaseUrl(): string {
@@ -491,6 +495,11 @@ interface AppContextType {
   ) => Promise<{ success: boolean; rule?: LoyaltyRule; error?: string }>;
   deleteLoyaltyRule: (ruleId: string) => Promise<{ success: boolean; error?: string }>;
 
+  qrScans: Record<string, number>;
+  fetchQrCheckIns: () => Promise<Record<string, number>>;
+  recordQrScan: (spaceId: string) => Promise<void>;
+  getSpaceCrowding: (space: Space) => SpaceCrowdingInfo;
+
   toast: { message: string; type: 'success' | 'error' | 'info' } | null;
   showToast: (message: string, type?: 'success' | 'error' | 'info') => void;
 }
@@ -571,6 +580,86 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     saveLoyaltyRulesToStorage(loyaltyRules);
   }, [loyaltyRules]);
+
+  // QR Code check-in scans tracked per workspace (drives real-time crowding indicator from database)
+  const [qrScans, setQrScans] = useState<Record<string, number>>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('cp_qr_scans');
+        if (stored) return JSON.parse(stored);
+      } catch (_) {}
+    }
+    return {
+      'space-1': 14,
+      'space-2': 28,
+      'space-3': 5,
+      'space-4': 40,
+      'space-5': 12,
+      'space-6': 2,
+    };
+  });
+
+  const fetchQrCheckIns = async (): Promise<Record<string, number>> => {
+    try {
+      const res = await getQrCheckInsApi();
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        const dbCounts: Record<string, number> = {};
+        for (const checkIn of res.data) {
+          const wId = checkIn.workspaceId || checkIn.workspace?.id;
+          if (wId) {
+            dbCounts[wId] = (dbCounts[wId] || 0) + 1;
+          }
+        }
+        setQrScans(prev => {
+          const merged = { ...prev, ...dbCounts };
+          if (typeof window !== 'undefined') {
+            try {
+              localStorage.setItem('cp_qr_scans', JSON.stringify(merged));
+            } catch (_) {}
+          }
+          return merged;
+        });
+        return dbCounts;
+      }
+      return qrScans;
+    } catch (err) {
+      console.warn('Failed to fetch QR check-ins from database:', err);
+      return qrScans;
+    }
+  };
+
+  useEffect(() => {
+    fetchQrCheckIns();
+  }, []);
+
+  const recordQrScan = async (spaceId: string) => {
+    setQrScans(prev => {
+      const next = { ...prev, [spaceId]: (prev[spaceId] || 0) + 1 };
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('cp_qr_scans', JSON.stringify(next));
+        } catch (_) {}
+      }
+      return next;
+    });
+
+    try {
+      await createQrCheckInApi({
+        userId: currentUser?.id || 'guest',
+        workspaceId: spaceId,
+        sectionId: `sec-${spaceId}`,
+        status: 'VALID',
+      });
+      fetchQrCheckIns();
+    } catch (err) {
+      console.warn('Could not persist QR check-in to database:', err);
+    }
+  };
+
+  const getSpaceCrowding = (space: Space): SpaceCrowdingInfo => {
+    const scanned = qrScans[space.id] || 0;
+    return calculateSpaceCrowding(space, scanned);
+  };
 
   const fetchLoyaltyRules = async (): Promise<LoyaltyRule[]> => {
     try {
@@ -4172,6 +4261,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       applyLoyaltyDiscount,
       walletTransactions, fetchWallet, depositToWallet, withdrawFromWallet,
       loyaltyRules, fetchLoyaltyRules, createLoyaltyProposal, updateLoyaltyRuleStatus, deleteLoyaltyRule,
+      qrScans, fetchQrCheckIns, recordQrScan, getSpaceCrowding,
       toast, showToast, updateCurrentUser, completeSignup,
       otpSession, startOtpVerification, requestSignupOtp, requestForgotPasswordOtp, resetPassword, pendingResetUser, verifyOtp, resendOtp, cancelOtp,
     }}>
