@@ -1262,10 +1262,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const userPartnerId = userPartner?.id;
 
         let savedTypes: Record<string, string> = {};
+        let savedAmenities: Record<string, string[]> = {};
         if (typeof window !== 'undefined') {
           try {
             const rawMap = localStorage.getItem('cp_space_types');
             if (rawMap) savedTypes = JSON.parse(rawMap);
+            const rawAmenityMap = localStorage.getItem('cp_space_amenities');
+            if (rawAmenityMap) savedAmenities = JSON.parse(rawAmenityMap);
           } catch (_) {}
         }
 
@@ -1278,7 +1281,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
           const existing = spaces.find(s => s.id === w.id || s.name.toLowerCase() === w.name.toLowerCase())
             || INITIAL_SPACES.find(s => s.id === w.id || s.name.toLowerCase() === w.name.toLowerCase());
           
-          const savedType = savedTypes[w.id] || savedTypes[w.name.toLowerCase()];
+          const nameKey = (w.name || '').trim().toLowerCase();
+          const savedType = savedTypes[w.id] || savedTypes[nameKey] || savedTypes[w.name.toLowerCase()];
+          const savedAmenityList = savedAmenities[w.id] || savedAmenities[nameKey] || savedAmenities[w.name.toLowerCase()];
 
           const nameLower = (w.name || '').toLowerCase();
           const isNameHall = nameLower.includes('hall') || nameLower.includes('قاعة') || nameLower.includes('majlis') || nameLower.includes('conference') || nameLower.includes('training') || nameLower.includes('meeting') || nameLower.includes('room');
@@ -1322,6 +1327,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
             }
           }
 
+          const backendAmenityList = (w as any).amenities !== undefined && Array.isArray((w as any).amenities)
+            ? (w as any).amenities.map((a: any) => typeof a === 'string' ? a : (a.amenity?.name || a.name)).filter(Boolean)
+            : undefined;
+
+          const finalAmenities = savedAmenityList !== undefined
+            ? savedAmenityList
+            : (backendAmenityList !== undefined
+              ? backendAmenityList
+              : (existing?.amenities !== undefined ? existing.amenities : []));
+
           return {
             id: w.id,
             name: w.name,
@@ -1331,7 +1346,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             description: existing?.description || `Workspace managed by ${w.partner?.brandName || 'Partner'}`,
             type: preservedType,
             images: existing?.images && existing.images.length > 0 ? existing.images : ['https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80'],
-            amenities: existing?.amenities && existing.amenities.length > 0 ? existing.amenities : ['High-Speed Wi-Fi', 'Coffee Bar', 'Meeting Rooms'],
+            amenities: finalAmenities,
             totalCapacity: w.totalCapacity || existing?.totalCapacity || 50,
             availableCapacity: w.totalCapacity || existing?.availableCapacity || 50,
             pricing: {
@@ -1372,6 +1387,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     yearlyRate?: number;
     passVisitValue: number;
     totalCapacity: number;
+    amenities?: string[];
   }): Promise<{ success: boolean; workspace?: WorkspaceApi; error?: string }> => {
     try {
       const headers: Record<string, string> = {
@@ -1416,6 +1432,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       yearlyRate: number;
       passVisitValue: number;
       totalCapacity: number;
+      amenities: string[];
     }>
   ): Promise<{ success: boolean; workspace?: WorkspaceApi; error?: string }> => {
     try {
@@ -1433,9 +1450,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify(updates),
       });
 
-      const resData = await response.json();
+      const resData = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(resData.error || 'Failed to update workspace');
+        console.warn(`Workspace PUT notice (${workspaceId}):`, resData.error || 'Failed to update workspace in DB');
+        return { success: false, error: resData.error || 'Failed to update workspace' };
       }
 
       const updatedWorkspace: WorkspaceApi = resData.workspace || resData;
@@ -1446,7 +1464,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return { success: true, workspace: updatedWorkspace };
     } catch (err: any) {
       console.error(`Error updating workspace via PUT /api/workspaces/${workspaceId}:`, err);
-      showToast(err.message || 'Failed to update workspace', 'error');
       return { success: false, error: err.message };
     }
   };
@@ -2340,6 +2357,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             yearlyRate: space.pricing?.yearly || 8000,
             passVisitValue: 15,
             totalCapacity: space.totalCapacity || 30,
+            amenities: space.amenities || [],
           });
 
           if (createRes.success && createRes.workspace) {
@@ -2363,13 +2381,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
               });
             } catch (_) {}
 
-            if (typeof window !== 'undefined' && newSpace.type) {
+            if (typeof window !== 'undefined') {
               try {
-                const rawMap = localStorage.getItem('cp_space_types');
-                const typeMap = rawMap ? JSON.parse(rawMap) : {};
-                typeMap[createRes.workspace.id] = newSpace.type;
-                typeMap[createRes.workspace.name.toLowerCase()] = newSpace.type;
-                localStorage.setItem('cp_space_types', JSON.stringify(typeMap));
+                if (newSpace.type) {
+                  const rawMap = localStorage.getItem('cp_space_types');
+                  const typeMap = rawMap ? JSON.parse(rawMap) : {};
+                  typeMap[createRes.workspace.id] = newSpace.type;
+                  typeMap[createRes.workspace.name.toLowerCase()] = newSpace.type;
+                  localStorage.setItem('cp_space_types', JSON.stringify(typeMap));
+                }
+                if (space.amenities) {
+                  const rawAmenityMap = localStorage.getItem('cp_space_amenities');
+                  const amenitiesMap = rawAmenityMap ? JSON.parse(rawAmenityMap) : {};
+                  amenitiesMap[createRes.workspace.id] = space.amenities;
+                  amenitiesMap[createRes.workspace.name.toLowerCase()] = space.amenities;
+                  localStorage.setItem('cp_space_amenities', JSON.stringify(amenitiesMap));
+                }
               } catch (_) {}
             }
             await fetchWorkspaces();
@@ -2382,13 +2409,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const updateSpace = (id: string, updates: Partial<Space>) => {
-    if (typeof window !== 'undefined' && updates.type) {
+    const targetSpace = spaces.find(s => s.id === id);
+    const updatedSpaceObj = targetSpace ? { ...targetSpace, ...updates } : updates;
+
+    if (typeof window !== 'undefined') {
       try {
-        const rawMap = localStorage.getItem('cp_space_types');
-        const typeMap = rawMap ? JSON.parse(rawMap) : {};
-        typeMap[id] = updates.type;
-        if (updates.name) typeMap[updates.name.toLowerCase()] = updates.type;
-        localStorage.setItem('cp_space_types', JSON.stringify(typeMap));
+        if (updates.type) {
+          const rawMap = localStorage.getItem('cp_space_types');
+          const typeMap = rawMap ? JSON.parse(rawMap) : {};
+          typeMap[id] = updates.type;
+          if (updates.name) typeMap[updates.name.toLowerCase()] = updates.type;
+          localStorage.setItem('cp_space_types', JSON.stringify(typeMap));
+        }
+        if (updates.amenities !== undefined) {
+          const rawMap = localStorage.getItem('cp_space_amenities');
+          const amenitiesMap = rawMap ? JSON.parse(rawMap) : {};
+          amenitiesMap[id] = updates.amenities;
+          if (updates.name || targetSpace?.name) {
+            const rawName = updates.name || targetSpace?.name || '';
+            const nameKey = rawName.trim().toLowerCase();
+            if (nameKey) {
+              amenitiesMap[nameKey] = updates.amenities;
+              amenitiesMap[rawName.toLowerCase()] = updates.amenities;
+            }
+          }
+          localStorage.setItem('cp_space_amenities', JSON.stringify(amenitiesMap));
+        }
       } catch (_) {}
     }
 
@@ -2401,6 +2447,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const storedToken = getStoredToken();
         if (!storedToken) return;
 
+        const matchedDbWorkspace = workspacesApi.find(
+          w => w.id === id || (targetSpace && w.name.toLowerCase() === targetSpace.name.toLowerCase())
+        );
+        const targetDbId = matchedDbWorkspace?.id;
+
         const payload: Record<string, any> = {};
         if (updates.name !== undefined) payload.name = updates.name;
         if (updates.city !== undefined) payload.city = updates.city;
@@ -2408,10 +2459,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (updates.pricing?.daily !== undefined) payload.dailyRate = updates.pricing.daily;
         if (updates.pricing?.monthly !== undefined) payload.monthlyRate = updates.pricing.monthly;
         if (updates.pricing?.yearly !== undefined) payload.yearlyRate = updates.pricing.yearly;
+        if (updates.amenities !== undefined) payload.amenities = updates.amenities;
 
-        if (Object.keys(payload).length > 0 || updates.type) {
+        if (targetDbId && (Object.keys(payload).length > 0 || updates.type)) {
           if (Object.keys(payload).length > 0) {
-            await updateWorkspace(id, payload);
+            await updateWorkspace(targetDbId, payload);
           }
 
           if (updates.type) {
@@ -2423,7 +2475,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               if (secRes.ok) {
                 const sections = await secRes.json();
                 if (Array.isArray(sections)) {
-                  const existingSec = sections.find((s: any) => s.workspaceId === id);
+                  const existingSec = sections.find((s: any) => s.workspaceId === targetDbId);
                   if (existingSec) {
                     await fetch(`${getApiBaseUrl()}/workspace-sections/${existingSec.id}`, {
                       method: 'PUT',
@@ -2435,10 +2487,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
                       method: 'POST',
                       headers,
                       body: JSON.stringify({
-                        workspaceId: id,
+                        workspaceId: targetDbId,
                         type: dbSecType,
                         name: `Section - ${dbSecType}`,
-                        capacity: updates.totalCapacity || 30,
+                        capacity: (updatedSpaceObj as any).totalCapacity || 30,
                       }),
                     });
                   }
@@ -2447,6 +2499,52 @@ export function AppProvider({ children }: { children: ReactNode }) {
             } catch (_) {}
           }
           await fetchWorkspaces();
+        } else if (!targetDbId && (Object.keys(payload).length > 0 || updates.type)) {
+          let currentPartners = partners;
+          if (currentPartners.length === 0) {
+            currentPartners = await fetchPartners();
+          }
+
+          const userEmail = currentUser?.email?.toLowerCase();
+          let validPartnerId = currentPartners.find(p => p.id === (targetSpace as any)?.ownerId)?.id ||
+            (userEmail ? currentPartners.find(p => p.contactEmail.toLowerCase() === userEmail)?.id : undefined) ||
+            currentPartners[0]?.id;
+
+          if (validPartnerId) {
+            const createRes = await createWorkspace({
+              partnerId: validPartnerId,
+              name: (updatedSpaceObj as any).name || 'Workspace',
+              city: (updatedSpaceObj as any).city || 'Riyadh',
+              dailyRate: (updatedSpaceObj as any).pricing?.daily || 50,
+              monthlyRate: (updatedSpaceObj as any).pricing?.monthly || 800,
+              yearlyRate: (updatedSpaceObj as any).pricing?.yearly || 8000,
+              passVisitValue: 15,
+              totalCapacity: (updatedSpaceObj as any).totalCapacity || 30,
+              amenities: (updatedSpaceObj as any).amenities || [],
+            });
+
+            if (createRes.success && createRes.workspace) {
+              const dbSecType = mapFrontendTypeToDbSectionType((updatedSpaceObj as any).type || 'mixed');
+              const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+              headers['Authorization'] = `Bearer ${storedToken}`;
+              try {
+                await fetch(`${getApiBaseUrl()}/workspace-sections`, {
+                  method: 'POST',
+                  headers,
+                  body: JSON.stringify({
+                    workspaceId: createRes.workspace.id,
+                    type: dbSecType,
+                    name: `${(updatedSpaceObj as any).name || 'Workspace'} Section`,
+                    capacity: (updatedSpaceObj as any).totalCapacity || 30,
+                    dailyRate: (updatedSpaceObj as any).pricing?.daily || 50,
+                    monthlyRate: (updatedSpaceObj as any).pricing?.monthly || 800,
+                    yearlyRate: (updatedSpaceObj as any).pricing?.yearly || 8000,
+                  }),
+                });
+              } catch (_) {}
+              await fetchWorkspaces();
+            }
+          }
         }
       } catch (err) {
         console.warn('Failed to save space update to database:', err);
