@@ -16,9 +16,12 @@ import {
   Info,
   ShieldCheck,
   Receipt,
-  ShoppingBag
+  ShoppingBag,
+  QrCode
 } from 'lucide-react';
+import QRCode from 'qrcode';
 import { useApp } from '@/app/store';
+import BookingQrModal from '@/components/BookingQrModal';
 import { createDirectBookingApi, createPaymentApi, createPointsTransactionApi, getLoyaltyPointsApi } from '@/services/authApi';
 import {
   BookingPlan,
@@ -134,8 +137,36 @@ export default function BookingFlow() {
   const [seats, setSeats] = useState(1);
   const [notes, setNotes] = useState('');
   const [confirmedBooking, setConfirmedBooking] = useState<any>(null);
+  const [showQrModal, setShowQrModal] = useState(false);
+  const [confirmationQrDataUrl, setConfirmationQrDataUrl] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [useLoyaltyPoints, setUseLoyaltyPoints] = useState(false);
+
+  useEffect(() => {
+    if (confirmedBooking) {
+      const qrPayload = JSON.stringify({
+        app: 'CoworkingPass',
+        passType: 'ENTRY_PASS',
+        bookingId: confirmedBooking.id,
+        userId: confirmedBooking.userId,
+        spaceId: confirmedBooking.spaceId,
+        spaceName: confirmedBooking.spaceName,
+        startDate: confirmedBooking.startDate,
+        plan: confirmedBooking.plan,
+        seats: confirmedBooking.seats,
+        signature: `CP-VALID-${confirmedBooking.id}-${confirmedBooking.spaceId}`,
+        timestamp: Date.now(),
+      });
+      QRCode.toDataURL(qrPayload, {
+        width: 220,
+        margin: 2,
+        errorCorrectionLevel: 'H',
+        color: { dark: '#181C1B', light: '#FFFFFF' },
+      })
+        .then((url: string) => setConfirmationQrDataUrl(url))
+        .catch((err: any) => console.error('Error creating confirmation QR:', err));
+    }
+  }, [confirmedBooking]);
 
   // Sync state if navigation params change
   useEffect(() => {
@@ -379,6 +410,39 @@ export default function BookingFlow() {
                 )}
               </div>
             </div>
+
+            {/* Entry QR Code Pass Card Matching Mockup */}
+            <div className="mt-6 pt-6 border-t border-soot/8 bg-[#FAF7F2] -mx-6 -mb-6 sm:-mx-8 sm:-mb-8 p-6 rounded-b-3xl text-center space-y-3">
+              <div>
+                <h3 className="text-base font-semibold text-soot font-serif-display">Entry QR code</h3>
+                <p className="text-xs text-moss mt-0.5">Show at the space entrance for instant check-in verification.</p>
+              </div>
+
+              <div className="inline-flex p-3 bg-white rounded-2xl border border-soot/12 shadow-2xs mx-auto">
+                {confirmationQrDataUrl ? (
+                  <img
+                    src={confirmationQrDataUrl}
+                    alt="Booking QR Code"
+                    className="w-40 h-40 object-contain rounded-lg"
+                  />
+                ) : (
+                  <div className="w-40 h-40 flex items-center justify-center text-moss text-xs">
+                    Generating pass...
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setShowQrModal(true)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-soot text-plaster text-xs font-semibold hover:bg-black transition-colors cursor-pointer shadow-2xs"
+                >
+                  <QrCode size={14} />
+                  <span>Open Full Entry Pass Modal</span>
+                </button>
+              </div>
+            </div>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4">
@@ -396,6 +460,15 @@ export default function BookingFlow() {
             </button>
           </div>
         </div>
+
+        {/* Interactive Entry QR Pass Modal */}
+        {showQrModal && confirmedBooking && (
+          <BookingQrModal
+            booking={confirmedBooking}
+            space={space}
+            onClose={() => setShowQrModal(false)}
+          />
+        )}
       </div>
     );
   }
