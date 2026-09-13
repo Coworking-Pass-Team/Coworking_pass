@@ -1,9 +1,11 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, Space, SpaceType, Booking, Screen, NavState, UserRole, BookingType, PaymentCard, Notification, CartItem, AmenityRequest, AmenityRequestStatus, calculateEndDate, isCancellationRefundEligible, getBookingPrice, getEffectiveSpacePrice, OtpSession, SupportTicket, TicketStatus, Partner, WorkspaceApi, HourlyBookingApi, PayoutApi, MembershipPlanApi, SubscriptionApi, DirectBookingApi, PaymentApi } from '@/types/types';
+import { User, Space, SpaceType, Booking, Screen, NavState, UserRole, BookingType, PaymentCard, Notification, CartItem, AmenityRequest, AmenityRequestStatus, calculateEndDate, isCancellationRefundEligible, getBookingPrice, getEffectiveSpacePrice, OtpSession, SupportTicket, TicketStatus, Partner, WorkspaceApi, HourlyBookingApi, PayoutApi, MembershipPlanApi, SubscriptionApi, DirectBookingApi, PaymentApi, LoyaltyRule, LoyaltyRuleType, ApprovalStatus } from '@/types/types';
 import { INITIAL_SPACES, INITIAL_USERS, INITIAL_BOOKINGS, INITIAL_NOTIFICATIONS, INITIAL_SUPPORT_TICKETS } from '@/data/data';
-import { registerUserApi, verifyEmailApi, loginUserApi, verifyLoginApi, mapRoleToFrontend, createCompanyApi, createPointsTransactionApi, getLoyaltyPointsApi, getPointsTransactionsApi } from '@/services/authApi';
+import { registerUserApi, verifyEmailApi, loginUserApi, verifyLoginApi, mapRoleToFrontend, createCompanyApi, createPointsTransactionApi, getLoyaltyPointsApi, getPointsTransactionsApi, getLoyaltyRulesApi, createLoyaltyRuleApi, updateLoyaltyRuleApi, deleteLoyaltyRuleApi } from '@/services/authApi';
+
+
 
 export function getApiBaseUrl(): string {
   const envUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -444,10 +446,30 @@ interface AppContextType {
   // Loyalty Points (الميزة المضافة من كودهم)
   applyLoyaltyDiscount: (pointsToUse: number) => { discount: number; safePoints: number };
 
+  // Loyalty Rules & Provider Proposals
+  loyaltyRules: LoyaltyRule[];
+  fetchLoyaltyRules: () => Promise<LoyaltyRule[]>;
+  createLoyaltyProposal: (proposalData: {
+    ruleName: string;
+    ruleType: LoyaltyRuleType;
+    pointsValue: number;
+    monetaryValue: number;
+    description?: string;
+    workspaceId?: string;
+    bonusMultiplier?: number;
+  }) => Promise<{ success: boolean; rule?: LoyaltyRule; error?: string }>;
+  updateLoyaltyRuleStatus: (
+    ruleId: string,
+    status: ApprovalStatus,
+    notes?: string
+  ) => Promise<{ success: boolean; rule?: LoyaltyRule; error?: string }>;
+  deleteLoyaltyRule: (ruleId: string) => Promise<{ success: boolean; error?: string }>;
+
   // Toast
   toast: { message: string; type: 'success' | 'error' | 'info' } | null;
   showToast: (message: string, type?: 'success' | 'error' | 'info') => void;
 }
+
 
 const AppContext = createContext<AppContextType | null>(null);
 
@@ -502,6 +524,190 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [subscriptionsApi, setSubscriptionsApi] = useState<SubscriptionApi[]>([]);
   const [directBookingsApi, setDirectBookingsApi] = useState<DirectBookingApi[]>([]);
   const [paymentsApi, setPaymentsApi] = useState<PaymentApi[]>([]);
+  const [loyaltyRules, setLoyaltyRules] = useState<LoyaltyRule[]>([
+    {
+      id: 'rule-1',
+      ruleName: 'Weekend Coworking Earning Boost',
+      ruleType: 'EARNING',
+      pointsValue: 20,
+      monetaryValue: 100,
+      description: 'Award members 20 bonus points for every 100 SAR spent on weekend hot-desk and private office bookings.',
+      status: 'APPROVED',
+      proposedBy: 'user-p1',
+      proposerName: 'DeskFlow Workspace Co.',
+      approvedBy: 'admin-1',
+      approverName: 'Super Admin',
+      isActive: true,
+      bonusMultiplier: 2.0,
+      createdAt: '2026-09-08T09:00:00Z',
+    },
+    {
+      id: 'rule-2',
+      ruleName: 'Meeting Room 500 Pts Discount',
+      ruleType: 'REDEMPTION',
+      pointsValue: 500,
+      monetaryValue: 25,
+      description: 'Redeem 500 points for an instant SAR 25 voucher on any meeting hall or conference room reservation.',
+      status: 'PENDING_APPROVAL',
+      proposedBy: 'user-p1',
+      proposerName: 'DeskFlow Workspace Co.',
+      isActive: false,
+      createdAt: '2026-09-12T14:30:00Z',
+    },
+    {
+      id: 'rule-3',
+      ruleName: 'Monthly Pass Kickback Reward',
+      ruleType: 'EARNING',
+      pointsValue: 150,
+      monetaryValue: 1500,
+      description: 'Give users 150 points when purchasing or renewing an individual monthly pass.',
+      status: 'APPROVED',
+      proposedBy: 'user-p2',
+      proposerName: 'Oasis Tech Hub',
+      approvedBy: 'admin-1',
+      approverName: 'Super Admin',
+      isActive: true,
+      bonusMultiplier: 1.5,
+      createdAt: '2026-09-05T11:00:00Z',
+    },
+  ]);
+
+  const fetchLoyaltyRules = async (): Promise<LoyaltyRule[]> => {
+    try {
+      const res = await getLoyaltyRulesApi();
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        const mapped: LoyaltyRule[] = res.data.map((r: any) => ({
+          id: r.id,
+          ruleName: r.ruleName,
+          ruleType: r.ruleType,
+          pointsValue: r.pointsValue,
+          monetaryValue: r.monetaryValue,
+          description: r.description,
+          status: r.status,
+          proposedBy: r.proposedBy,
+          proposerName: r.proposer?.name || 'Space Partner',
+          proposerEmail: r.proposer?.email,
+          approvedBy: r.approvedBy,
+          approverName: r.approver?.name,
+          isActive: r.isActive,
+          createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : new Date().toISOString(),
+        }));
+        setLoyaltyRules(mapped);
+        return mapped;
+      }
+      return loyaltyRules;
+    } catch (err) {
+      console.error('Failed to fetch loyalty rules:', err);
+      return loyaltyRules;
+    }
+  };
+
+  const createLoyaltyProposal = async (proposalData: {
+    ruleName: string;
+    ruleType: LoyaltyRuleType;
+    pointsValue: number;
+    monetaryValue: number;
+    description?: string;
+    workspaceId?: string;
+    bonusMultiplier?: number;
+  }): Promise<{ success: boolean; rule?: LoyaltyRule; error?: string }> => {
+    try {
+      const proposerId = currentUser?.id || 'user-p1';
+      const newRule: LoyaltyRule = {
+        id: `rule-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        ruleName: proposalData.ruleName.trim(),
+        ruleType: proposalData.ruleType,
+        pointsValue: Number(proposalData.pointsValue),
+        monetaryValue: Number(proposalData.monetaryValue),
+        description: proposalData.description?.trim(),
+        status: 'PENDING_APPROVAL',
+        proposedBy: proposerId,
+        proposerName: currentUser?.businessName || currentUser?.name || 'Space Partner',
+        proposerEmail: currentUser?.email,
+        isActive: false,
+        workspaceId: proposalData.workspaceId,
+        bonusMultiplier: proposalData.bonusMultiplier,
+        createdAt: new Date().toISOString(),
+      };
+
+      setLoyaltyRules((prev) => [newRule, ...prev]);
+
+      const apiRes = await createLoyaltyRuleApi({
+        ruleName: newRule.ruleName,
+        ruleType: newRule.ruleType,
+        pointsValue: newRule.pointsValue,
+        monetaryValue: newRule.monetaryValue,
+        description: newRule.description,
+        proposedBy: proposerId,
+        status: 'PENDING_APPROVAL',
+      });
+
+      if (apiRes.success && apiRes.data?.id) {
+        newRule.id = apiRes.data.id;
+        setLoyaltyRules((prev) => prev.map((r) => (r.id === newRule.id ? { ...newRule, id: apiRes.data.id } : r)));
+      }
+
+      showToast('Loyalty proposal submitted for Admin review!', 'success');
+      return { success: true, rule: newRule };
+    } catch (err: any) {
+      console.error('Error creating loyalty proposal:', err);
+      showToast(err.message || 'Failed to submit proposal', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const updateLoyaltyRuleStatus = async (
+    ruleId: string,
+    status: ApprovalStatus,
+    notes?: string
+  ): Promise<{ success: boolean; rule?: LoyaltyRule; error?: string }> => {
+    try {
+      const approverId = currentUser?.id || 'admin-1';
+      const approverName = currentUser?.name || 'Super Admin';
+
+      setLoyaltyRules((prev) =>
+        prev.map((r) =>
+          r.id === ruleId
+            ? {
+                ...r,
+                status,
+                approvedBy: approverId,
+                approverName,
+                isActive: status === 'APPROVED',
+                adminFeedback: notes || r.adminFeedback,
+              }
+            : r
+        )
+      );
+
+      await updateLoyaltyRuleApi(ruleId, {
+        status,
+        approvedBy: approverId,
+        isActive: status === 'APPROVED',
+        adminFeedback: notes,
+      });
+
+      showToast(`Loyalty rule ${status === 'APPROVED' ? 'approved & activated' : 'rejected'}`, status === 'APPROVED' ? 'success' : 'info');
+      return { success: true };
+    } catch (err: any) {
+      console.error('Error updating loyalty rule status:', err);
+      showToast(err.message || 'Failed to update rule status', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const deleteLoyaltyRule = async (ruleId: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      setLoyaltyRules((prev) => prev.filter((r) => r.id !== ruleId));
+      await deleteLoyaltyRuleApi(ruleId);
+      showToast('Loyalty proposal removed', 'info');
+      return { success: true };
+    } catch (err: any) {
+      console.error('Error deleting loyalty rule:', err);
+      return { success: false, error: err.message };
+    }
+  };
+
 
   const fetchMembershipPlans = async (): Promise<MembershipPlanApi[]> => {
     try {
@@ -1596,6 +1802,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     fetchWorkspaces().catch(() => {});
     fetchMembershipPlans().catch(() => {});
     fetchAmenities().catch(() => {});
+    fetchLoyaltyRules().catch(() => {});
+
 
     const storedToken = getStoredToken();
     if (storedToken) {
@@ -3706,6 +3914,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addPaymentCard,
       cart, addToCart, removeFromCart, updateCartItemSeats, updateCartItem, clearCart, checkoutCart,
       applyLoyaltyDiscount,
+      loyaltyRules, fetchLoyaltyRules, createLoyaltyProposal, updateLoyaltyRuleStatus, deleteLoyaltyRule,
       toast, showToast, updateCurrentUser, completeSignup,
       otpSession, startOtpVerification, requestSignupOtp, requestForgotPasswordOtp, resetPassword, pendingResetUser, verifyOtp, resendOtp, cancelOtp,
     }}>

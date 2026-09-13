@@ -1101,10 +1101,12 @@ export type Screen =
   | 'admin-hourly-bookings'
   | 'admin-reports'
   | 'admin-settings'
+  | 'admin-loyalty-proposals'
   | 'admin-support'
   | 'provider-dashboard'
   | 'provider-spaces'
   | 'provider-bookings'
+  | 'provider-loyalty-proposals'
   | 'provider-profile'
   | 'provider-settings'
   | 'notifications'
@@ -1264,5 +1266,43 @@ export interface PaymentApi {
   createdAt?: string;
   user?: { name: string; email: string };
 }
+
+export type LoyaltyRuleType = 'EARNING' | 'REDEMPTION';
+export type ApprovalStatus = 'APPROVED' | 'PENDING_APPROVAL' | 'REJECTED';
+
+export interface LoyaltyRule {
+  id: string;
+  ruleName: string;
+  ruleType: LoyaltyRuleType;
+  pointsValue: number;
+  monetaryValue: number;
+  description?: string;
+  status: ApprovalStatus;
+  proposedBy: string;
+  proposerName?: string;
+  proposerEmail?: string;
+  approvedBy?: string;
+  approverName?: string;
+  isActive: boolean;
+  workspaceId?: string;
+  workspaceName?: string;
+  bonusMultiplier?: number;
+  adminFeedback?: string;
+  createdAt: string;
+  updatedAt?: string;
+  proposer?: { name: string; email: string };
+  approver?: { name: string; email: string };
+}
+
+export interface LoyaltyProposalForm {
+  ruleName: string;
+  ruleType: LoyaltyRuleType;
+  pointsValue: number;
+  monetaryValue: number;
+  description: string;
+  workspaceId?: string;
+  bonusMultiplier?: number;
+}
+
 
 

@@ -1049,3 +1049,81 @@ export async function getQrCheckInsApi() {
     return { success: false, data: [] };
   }
 }
+
+export interface LoyaltyRulePayload {
+  ruleName: string;
+  ruleType: 'EARNING' | 'REDEMPTION';
+  pointsValue: number;
+  monetaryValue: number;
+  description?: string;
+  proposedBy: string;
+  status?: string;
+  workspaceId?: string;
+  bonusMultiplier?: number;
+}
+
+export async function getLoyaltyRulesApi() {
+  const url = `${getAuthBaseUrl()}/api/loyalty-rules`;
+  try {
+    const response = await fetch(url, { method: 'GET', headers: getAuthHeaders() });
+    const data = await response.json().catch(() => ([]));
+    if (!response.ok) return { success: false, data: [] };
+    return { success: true, data: Array.isArray(data) ? data : [] };
+  } catch (_) {
+    return { success: false, data: [] };
+  }
+}
+
+export async function createLoyaltyRuleApi(payload: LoyaltyRulePayload) {
+  const url = `${getAuthBaseUrl()}/api/loyalty-rules`;
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to submit loyalty proposal' };
+    }
+    return { success: true, data };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+export async function updateLoyaltyRuleApi(id: string, payload: { status: string; approvedBy?: string; isActive?: boolean; adminFeedback?: string }) {
+  const url = `${getAuthBaseUrl()}/api/loyalty-rules/${encodeURIComponent(id)}`;
+  try {
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to update loyalty rule' };
+    }
+    return { success: true, data };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+export async function deleteLoyaltyRuleApi(id: string) {
+  const url = `${getAuthBaseUrl()}/api/loyalty-rules/${encodeURIComponent(id)}`;
+  try {
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to delete loyalty rule' };
+    }
+    return { success: true, data };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
