@@ -454,17 +454,6 @@ export default function CompanyBookings() {
                       e.stopPropagation();
                       setSelectedBooking(b);
                     }}
-                    className="p-2 rounded-xl text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/60 transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
-                    title="View QR Entry Pass"
-                  >
-                    <QrCode size={15} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedBooking(b);
-                    }}
                     className="p-2 rounded-xl text-moss hover:text-soot hover:bg-plaster-surface border border-transparent hover:border-soot/10 transition-all cursor-pointer"
                     title="View Details"
                   >
