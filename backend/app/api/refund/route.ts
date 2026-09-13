@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
         userId: userId,
         amount: refundAmount,
         type: 'REFUND',
-        description: `استرجاع حجز ${bookingId}`,
+        description: `Refund for booking ${bookingId}`,
         referenceId: bookingId,
         balanceAfter: newBalance
       }
@@ -133,8 +133,8 @@ export async function POST(request: NextRequest) {
       data: {
         userId,
         type: 'PAYMENT_SUCCESS',
-        title: 'تم استرجاع المبلغ',
-        message: `تم استرجاع مبلغ ${refundAmount} ريال إلى محفظتك بنجاح`,
+        title: 'Amount Refunded',
+        message: `Refund of SAR ${refundAmount} has been credited to your wallet.`,
         channel: 'IN_APP',
         sentAt: new Date()
       }
@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
 
     // 9. الرد النهائي
     return NextResponse.json({
-      message: 'تم استرجاع الحجز بنجاح',
+      message: 'Booking refunded successfully',
       booking: updatedBooking,
       refundAmount,
       walletBalance: newBalance
