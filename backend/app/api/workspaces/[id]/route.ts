@@ -92,6 +92,7 @@ export async function PUT(
     const formatted = updatedWithAmenities
       ? {
           ...updatedWithAmenities,
+          images: Array.isArray(updatedWithAmenities.images) ? updatedWithAmenities.images : [],
           amenities: Array.isArray(updatedWithAmenities.amenities)
             ? updatedWithAmenities.amenities.map((wa: any) => wa.amenity?.name || wa.name).filter(Boolean)
             : [],

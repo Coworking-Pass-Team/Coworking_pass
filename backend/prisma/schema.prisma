@@ -203,6 +203,7 @@ model Workspace {
   totalCapacity  Int
   latitude       Float?
   longitude      Float?
+  images         String[] @default([])
 
   partner    Partner            @relation(fields: [partnerId], references: [id])
   sections   WorkspaceSection[]
