@@ -17,12 +17,17 @@ import {
   Info,
   Gift
 } from 'lucide-react';
+import { useEffect } from 'react';
 import { useApp } from '@/app/store';
 import { LoyaltyRule, LoyaltyRuleType, ApprovalStatus } from '@/types/types';
 import Modal from '@/components/ui/Modal';
 
 export default function ProviderLoyaltyProposals() {
-  const { currentUser, spaces, partners, loyaltyRules, createLoyaltyProposal, deleteLoyaltyRule, showToast } = useApp();
+  const { currentUser, spaces, partners, loyaltyRules, fetchLoyaltyRules, createLoyaltyProposal, deleteLoyaltyRule, showToast } = useApp();
+
+  useEffect(() => {
+    fetchLoyaltyRules().catch(() => {});
+  }, []);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRuleDetail, setSelectedRuleDetail] = useState<LoyaltyRule | null>(null);
@@ -50,14 +55,17 @@ export default function ProviderLoyaltyProposals() {
       (s.email && s.email.toLowerCase() === currentUser.email?.toLowerCase())
   );
 
-  // Filter provider's proposals (or all proposals if provider is viewing their dashboard)
-  const myProposals = loyaltyRules.filter(
-    (r) =>
-      r.proposedBy === currentUser.id ||
-      r.proposerEmail?.toLowerCase() === currentUser.email?.toLowerCase() ||
-      r.proposedBy === 'user-p1' || // include demo provider rules
-      !r.proposedBy
-  );
+  // Filter ONLY this specific provider's proposals
+  const myProposals = loyaltyRules.filter((r) => {
+    const isOwnerId = r.proposedBy === currentUser.id;
+    const isOwnerEmail = !!(
+      r.proposerEmail &&
+      currentUser.email &&
+      r.proposerEmail.toLowerCase() === currentUser.email.toLowerCase()
+    );
+    const isPartnerId = !!(userPartner && r.proposedBy === userPartner.id);
+    return isOwnerId || isOwnerEmail || isPartnerId;
+  });
 
   // Metrics
   const totalProposals = myProposals.length;

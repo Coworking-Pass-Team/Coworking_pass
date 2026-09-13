@@ -549,53 +549,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [subscriptionsApi, setSubscriptionsApi] = useState<SubscriptionApi[]>([]);
   const [directBookingsApi, setDirectBookingsApi] = useState<DirectBookingApi[]>([]);
   const [paymentsApi, setPaymentsApi] = useState<PaymentApi[]>([]);
-  const [loyaltyRules, setLoyaltyRules] = useState<LoyaltyRule[]>([
-    {
-      id: 'rule-1',
-      ruleName: 'Weekend Coworking Earning Boost',
-      ruleType: 'EARNING',
-      pointsValue: 20,
-      monetaryValue: 100,
-      description: 'Award members 20 bonus points for every 100 SAR spent on weekend hot-desk and private office bookings.',
-      status: 'APPROVED',
-      proposedBy: 'user-p1',
-      proposerName: 'DeskFlow Workspace Co.',
-      approvedBy: 'admin-1',
-      approverName: 'Super Admin',
-      isActive: true,
-      bonusMultiplier: 2.0,
-      createdAt: '2026-09-08T09:00:00Z',
-    },
-    {
-      id: 'rule-2',
-      ruleName: 'Meeting Room 500 Pts Discount',
-      ruleType: 'REDEMPTION',
-      pointsValue: 500,
-      monetaryValue: 25,
-      description: 'Redeem 500 points for an instant SAR 25 voucher on any meeting hall or conference room reservation.',
-      status: 'PENDING_APPROVAL',
-      proposedBy: 'user-p1',
-      proposerName: 'DeskFlow Workspace Co.',
-      isActive: false,
-      createdAt: '2026-09-12T14:30:00Z',
-    },
-    {
-      id: 'rule-3',
-      ruleName: 'Monthly Pass Kickback Reward',
-      ruleType: 'EARNING',
-      pointsValue: 150,
-      monetaryValue: 1500,
-      description: 'Give users 150 points when purchasing or renewing an individual monthly pass.',
-      status: 'APPROVED',
-      proposedBy: 'user-p2',
-      proposerName: 'Oasis Tech Hub',
-      approvedBy: 'admin-1',
-      approverName: 'Super Admin',
-      isActive: true,
-      bonusMultiplier: 1.5,
-      createdAt: '2026-09-05T11:00:00Z',
-    },
-  ]);
+  const [loyaltyRules, setLoyaltyRules] = useState<LoyaltyRule[]>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('cp_loyaltyRules');
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) return parsed;
+        } catch (_) {}
+      }
+    }
+    return [];
+  });
+
+  const saveLoyaltyRulesToStorage = (rules: LoyaltyRule[]) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cp_loyaltyRules', JSON.stringify(rules));
+    }
+  };
+
+  useEffect(() => {
+    saveLoyaltyRulesToStorage(loyaltyRules);
+  }, [loyaltyRules]);
 
   const fetchLoyaltyRules = async (): Promise<LoyaltyRule[]> => {
     try {
@@ -638,8 +613,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }): Promise<{ success: boolean; rule?: LoyaltyRule; error?: string }> => {
     try {
       const proposerId = currentUser?.id || 'user-p1';
+      const tempId = `rule-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
       const newRule: LoyaltyRule = {
-        id: `rule-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        id: tempId,
         ruleName: proposalData.ruleName.trim(),
         ruleType: proposalData.ruleType,
         pointsValue: Number(proposalData.pointsValue),
@@ -668,8 +644,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
       });
 
       if (apiRes.success && apiRes.data?.id) {
-        newRule.id = apiRes.data.id;
-        setLoyaltyRules((prev) => prev.map((r) => (r.id === newRule.id ? { ...newRule, id: apiRes.data.id } : r)));
+        const savedRule: LoyaltyRule = {
+          ...newRule,
+          id: apiRes.data.id,
+          proposedBy: apiRes.data.proposedBy || proposerId,
+          proposerName: apiRes.data.proposer?.name || newRule.proposerName,
+          proposerEmail: apiRes.data.proposer?.email || newRule.proposerEmail,
+          status: apiRes.data.status || 'PENDING_APPROVAL',
+          createdAt: apiRes.data.createdAt ? new Date(apiRes.data.createdAt).toISOString() : newRule.createdAt,
+        };
+        setLoyaltyRules((prev) => [savedRule, ...prev.filter((r) => r.id !== tempId && r.id !== savedRule.id)]);
+        showToast('Loyalty proposal submitted for Admin review!', 'success');
+        return { success: true, rule: savedRule };
       }
 
       showToast('Loyalty proposal submitted for Admin review!', 'success');
@@ -705,12 +691,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
         )
       );
 
-      await updateLoyaltyRuleApi(ruleId, {
+      const apiRes = await updateLoyaltyRuleApi(ruleId, {
         status,
         approvedBy: approverId,
         isActive: status === 'APPROVED',
         adminFeedback: notes,
       });
+
+      if (apiRes.success && apiRes.data) {
+        const updated = apiRes.data;
+        setLoyaltyRules((prev) =>
+          prev.map((r) =>
+            r.id === ruleId
+              ? {
+                  ...r,
+                  status: updated.status || status,
+                  approvedBy: updated.approvedBy || approverId,
+                  approverName: updated.approver?.name || approverName,
+                  isActive: updated.isActive !== undefined ? updated.isActive : (status === 'APPROVED'),
+                  adminFeedback: notes || r.adminFeedback,
+                }
+              : r
+          )
+        );
+      }
 
       showToast(`Loyalty rule ${status === 'APPROVED' ? 'approved & activated' : 'rejected'}`, status === 'APPROVED' ? 'success' : 'info');
       return { success: true };

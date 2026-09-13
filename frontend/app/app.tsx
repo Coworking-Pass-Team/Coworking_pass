@@ -86,7 +86,7 @@ const providerNav: NavItem[] = [
   { label: 'Dashboard', screen: 'provider-dashboard', icon: LayoutDashboard },
   { label: 'My Spaces', screen: 'provider-spaces', icon: Building2 },
   { label: 'Bookings', screen: 'provider-bookings', icon: BookOpen },
-  { label: 'Loyalty Proposals', screen: 'provider-loyalty-proposals', icon: Sparkles },
+  { label: 'Loyalty', screen: 'provider-loyalty-proposals', icon: Sparkles },
   { label: 'Support', screen: 'contact', icon: HelpCircle },
   { label: 'Settings', screen: 'provider-settings', icon: Settings },
 ];
@@ -97,7 +97,6 @@ const adminNav: NavItem[] = [
   { label: 'Users', screen: 'admin-users', icon: Users },
   { label: 'Bookings', screen: 'admin-bookings', icon: BookOpen },
   { label: 'Payments', screen: 'admin-payments', icon: CreditCard },
-  { label: 'Loyalty Proposals', screen: 'admin-loyalty-proposals', icon: Sparkles },
   { label: 'Reports', screen: 'admin-reports', icon: BarChart3 },
 ];
 
@@ -506,6 +505,20 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
                 {adminDropdownOpen && (
                   <div className="absolute right-0 mt-2 w-56 bg-plaster-surface rounded-2xl border border-soot/15 shadow-xl p-1.5 z-50 animate-in fade-in-50 zoom-in-95 duration-100">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigate('admin-loyalty-proposals');
+                        setAdminDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-colors cursor-pointer ${
+                        nav.screen === 'admin-loyalty-proposals' ? 'bg-[#DDE6DF] text-soot shadow-2xs font-bold' : 'text-soot hover:bg-soot/5'
+                      }`}
+                    >
+                      <Sparkles size={15} className="text-moss shrink-0" />
+                      <span>Loyalty Proposals</span>
+                    </button>
+
                     <button
                       type="button"
                       onClick={() => {
