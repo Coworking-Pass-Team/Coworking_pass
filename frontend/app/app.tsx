@@ -44,6 +44,7 @@ import CompanyTeam from './organization/CompanyTeam';
 import ProviderDashboard from './provider/Dashboard';
 import ProviderMySpaces from './provider/MySpaces';
 import ProviderSpaceBookings from './provider/SpaceBookings';
+import ProviderLoyaltyProposals from './provider/LoyaltyProposals';
 import ProviderProfileSettings from './provider/ProfileSettings';
 
 // Admin screens
@@ -58,6 +59,7 @@ import MembershipPlansAdmin from './admin/MembershipPlansAdmin';
 import SubscriptionsAdmin from './admin/SubscriptionsAdmin';
 import PaymentsAdmin from './admin/PaymentsAdmin';
 import PayoutsAdmin from './admin/PayoutsAdmin';
+import LoyaltyProposalsAdmin from './admin/LoyaltyProposalsAdmin';
 
 interface NavItem {
   label: string;
@@ -83,6 +85,7 @@ const providerNav: NavItem[] = [
   { label: 'Dashboard', screen: 'provider-dashboard', icon: LayoutDashboard },
   { label: 'My Spaces', screen: 'provider-spaces', icon: Building2 },
   { label: 'Bookings', screen: 'provider-bookings', icon: BookOpen },
+  { label: 'Loyalty Proposals', screen: 'provider-loyalty-proposals', icon: Sparkles },
   { label: 'Support', screen: 'contact', icon: HelpCircle },
   { label: 'Settings', screen: 'provider-settings', icon: Settings },
 ];
@@ -93,8 +96,10 @@ const adminNav: NavItem[] = [
   { label: 'Users', screen: 'admin-users', icon: Users },
   { label: 'Bookings', screen: 'admin-bookings', icon: BookOpen },
   { label: 'Payments', screen: 'admin-payments', icon: CreditCard },
+  { label: 'Loyalty Proposals', screen: 'admin-loyalty-proposals', icon: Sparkles },
   { label: 'Reports', screen: 'admin-reports', icon: BarChart3 },
 ];
+
 
 function NotificationButton() {
   const { navigate, notifications, unreadNotificationsCount, markNotificationRead, markAllNotificationsRead } = useApp();
@@ -806,9 +811,11 @@ export function Router() {
         {screen === 'admin-subscriptions' && <SubscriptionsAdmin />}
         {screen === 'admin-payments' && <PaymentsAdmin />}
         {screen === 'admin-payouts' && <PayoutsAdmin />}
+        {screen === 'admin-loyalty-proposals' && <LoyaltyProposalsAdmin />}
         {screen === 'admin-support' && <SupportAdmin />}
         {screen === 'admin-reports' && <Reports />}
         {screen === 'admin-settings' && <AdminSettings />}
+
         {screen === 'notifications' && <Notifications />}
         {screen === 'browse' && <Browse />}
         {screen === 'space-details' && <SpaceDetails />}
@@ -850,6 +857,7 @@ export function Router() {
         {screen === 'provider-dashboard' && <ProviderDashboard />}
         {screen === 'provider-spaces' && <ProviderMySpaces />}
         {screen === 'provider-bookings' && <ProviderSpaceBookings />}
+        {screen === 'provider-loyalty-proposals' && <ProviderLoyaltyProposals />}
         {screen === 'provider-profile' && <ProviderProfileSettings />}
         {screen === 'provider-settings' && <ProviderProfileSettings />}
         {screen === 'notifications' && <Notifications />}

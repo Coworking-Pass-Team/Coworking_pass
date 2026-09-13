@@ -69,9 +69,11 @@ export default function Navbar() {
         { label: 'Dashboard', screen: 'provider-dashboard' as const },
         { label: 'My Spaces', screen: 'provider-spaces' as const },
         { label: 'Bookings', screen: 'provider-bookings' as const },
+        { label: 'Loyalty Proposals', screen: 'provider-loyalty-proposals' as const },
         { label: 'Support', screen: 'contact' as const },
       ];
     }
+
 
     if (role === 'admin') {
       return [
@@ -79,10 +81,12 @@ export default function Navbar() {
         { label: 'Spaces', screen: 'admin-spaces' as const },
         { label: 'Users', screen: 'admin-users' as const },
         { label: 'Bookings', screen: 'admin-bookings' as const },
+        { label: 'Loyalty Proposals', screen: 'admin-loyalty-proposals' as const },
         { label: 'Support', screen: 'admin-support' as const },
         { label: 'Reports', screen: 'admin-reports' as const },
       ];
     }
+
 
     // Default: Individual B2C User
     return [
