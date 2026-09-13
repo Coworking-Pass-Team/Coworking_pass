@@ -1007,3 +1007,45 @@ export async function getPointsTransactionsApi() {
     return { success: false, data: [] };
   }
 }
+
+export interface QrCheckInPayload {
+  userId: string;
+  workspaceId: string;
+  sectionId?: string;
+  status?: string;
+}
+
+export async function createQrCheckInApi(payload: QrCheckInPayload) {
+  const url = `${getAuthBaseUrl()}/api/qr-check-ins`;
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        userId: payload.userId,
+        workspaceId: payload.workspaceId,
+        sectionId: payload.sectionId || `sec-${payload.workspaceId}`,
+        status: payload.status || 'VALID',
+      }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to record QR check-in' };
+    }
+    return { success: true, data };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+export async function getQrCheckInsApi() {
+  const url = `${getAuthBaseUrl()}/api/qr-check-ins`;
+  try {
+    const response = await fetch(url, { method: 'GET', headers: getAuthHeaders() });
+    const data = await response.json().catch(() => ([]));
+    if (!response.ok) return { success: false, data: [] };
+    return { success: true, data: Array.isArray(data) ? data : [] };
+  } catch (_) {
+    return { success: false, data: [] };
+  }
+}

@@ -12,9 +12,11 @@ import {
   Sparkles,
   Building2,
   Presentation,
-  Clapperboard
+  Clapperboard,
+  QrCode,
 } from 'lucide-react';
 import { useApp } from '@/app/store';
+import BookingQrModal from '@/components/BookingQrModal';
 import {
   Space,
   getEffectiveSpacePrice,
@@ -29,6 +31,7 @@ import {
 export default function Dashboard() {
   const { currentUser, spaces, bookings, favorites, navigate } = useApp();
   const [selectedCategory, setSelectedCategory] = useState<'all' | SpaceCategory>('all');
+  const [selectedBookingForQr, setSelectedBookingForQr] = useState<Booking | null>(null);
 
   if (!currentUser) return null;
 
@@ -166,7 +169,7 @@ export default function Dashboard() {
               {activeBookings.slice(0, 3).map(b => (
                 <div
                   key={b.id}
-                  onClick={() => navigate('booking-details', { bookingId: b.id })}
+                  onClick={() => setSelectedBookingForQr(b)}
                   className="p-4 hover:bg-plaster-dark/30 transition-colors flex items-center justify-between gap-4 cursor-pointer group"
                 >
                   <div className="flex items-center gap-3.5 min-w-0">
@@ -179,16 +182,26 @@ export default function Dashboard() {
                         <span>•</span>
                         <span className="truncate">{b.startDate} {b.plan === 'hourly' && b.startTime ? `(${b.startTime} – ${b.endTime || ''})` : (b.endDate && b.endDate !== b.startDate ? `→ ${b.endDate}` : '')}</span>
                       </div>
-                      <div className="mt-1.5">
+                      <div className="mt-1.5 flex items-center gap-2">
                         <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-500/15 text-emerald-800 border border-emerald-500/30 uppercase tracking-wider">
                           {b.plan === 'hourly' ? `Hourly (${b.durationHours || 1} ${b.durationHours === 1 ? 'hr' : 'hrs'})` : `${b.plan} pass`} • {b.seats} seat{b.seats > 1 ? 's' : ''}
                         </span>
                       </div>
                     </div>
                   </div>
-                  <div className="text-right shrink-0">
+                  <div className="text-right shrink-0 flex flex-col items-end gap-1">
                     <div className="text-sm font-semibold text-soot">SAR {getBookingPrice(b, spaces).toLocaleString()}</div>
-                    <span className="text-[10px] text-emerald-800 font-bold uppercase tracking-wider">Confirmed</span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedBookingForQr(b);
+                      }}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-[#2F6144] hover:bg-[#254F37] text-white text-[11px] font-semibold transition-all shadow-2xs cursor-pointer"
+                    >
+                      <QrCode size={12} />
+                      <span>QR Pass</span>
+                    </button>
                   </div>
                 </div>
               ))}
@@ -395,6 +408,14 @@ export default function Dashboard() {
           })}
         </div>
       </div>
+
+      {/* Quick Access Entry QR Code Pass Modal */}
+      {selectedBookingForQr && (
+        <BookingQrModal
+          booking={selectedBookingForQr}
+          onClose={() => setSelectedBookingForQr(null)}
+        />
+      )}
     </div>
   );
 }
