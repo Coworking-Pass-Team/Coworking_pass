@@ -2,12 +2,43 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
+const DEFAULT_AMENITIES = [
+  'High-Speed Wi-Fi',
+  'Coffee Bar',
+  'Meeting Rooms',
+  'Printer',
+  'Parking',
+  'Prayer Room',
+  'Lounge',
+  'Showers',
+  'Kitchen',
+  'Reception',
+  'Event Space',
+  '4K Projector',
+  'Sound System',
+  'Interactive Smartboard',
+  'Auditorium Seating',
+  'Private Desks',
+  '24/7 Access',
+];
+
 // GET /api/amenities — عرض كل المرافق
 export async function GET(request: Request) {
   try {
     const user = getTokenFromRequest(request);
-if (!user) return unauthorizedResponse();
-    const amenities = await prisma.amenityCatalog.findMany();
+    if (!user) return unauthorizedResponse();
+
+    let amenities = await prisma.amenityCatalog.findMany();
+    if (amenities.length === 0) {
+      for (const name of DEFAULT_AMENITIES) {
+        try {
+          await prisma.amenityCatalog.create({
+            data: { name, isDefault: true, status: "APPROVED" }
+          });
+        } catch (_) {}
+      }
+      amenities = await prisma.amenityCatalog.findMany();
+    }
     return NextResponse.json(amenities);
   } catch (error) {
     console.error(error);

@@ -17,7 +17,8 @@ import {
   ShieldCheck,
   Receipt,
   ShoppingBag,
-  QrCode
+  QrCode,
+  Wallet
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { useApp } from '@/app/store';
@@ -92,7 +93,7 @@ function Row({ label, value }: { label: string; value: string | React.ReactNode 
 }
 
 export default function BookingFlow() {
-  const { nav, navigate, goBack, spaces, bookings, currentUser, addBooking, showToast, addToCart, updateCurrentUser } = useApp();
+  const { nav, navigate, goBack, spaces, bookings, currentUser, addBooking, showToast, addToCart, updateCurrentUser, withdrawFromWallet } = useApp();
   
   const urlId = typeof window !== 'undefined' ? window.location.pathname.split('/').pop() : '';
   const spaceId = nav?.params?.spaceId || (urlId && urlId !== 'page' && urlId !== 'booking-flow' ? urlId : '') || 'space-1';
@@ -141,6 +142,7 @@ export default function BookingFlow() {
   const [confirmationQrDataUrl, setConfirmationQrDataUrl] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [useLoyaltyPoints, setUseLoyaltyPoints] = useState(false);
+  const [useWalletBalance, setUseWalletBalance] = useState(false);
 
   useEffect(() => {
     if (confirmedBooking) {
@@ -215,6 +217,9 @@ export default function BookingFlow() {
   const rawPointsDiscount = useLoyaltyPoints && maxRedeemablePoints > 0 ? (maxRedeemablePoints / 100) * 25 : 0;
   const pointsDiscount = Math.min(rawTotalPrice, rawPointsDiscount);
   const totalPrice = Math.max(0, rawTotalPrice - pointsDiscount);
+  const userWalletBalance = currentUser?.walletBalance || 0;
+  const walletDeduction = useWalletBalance ? Math.min(userWalletBalance, totalPrice) : 0;
+  const finalPayablePrice = Math.max(0, totalPrice - walletDeduction);
 
   const priceLabel = isHourly
     ? `for ${durationHours} hour${durationHours > 1 ? 's' : ''}`
@@ -334,12 +339,16 @@ export default function BookingFlow() {
         }).catch((err: any) => console.warn('[Direct Booking API Sync]', err));
       }
 
+      if (useWalletBalance && walletDeduction > 0 && withdrawFromWallet) {
+        withdrawFromWallet(walletDeduction, `Booking payment for ${space.name}`);
+      }
+
       // Record payment transaction
-      if (totalPrice > 0) {
+      if (finalPayablePrice > 0) {
         createPaymentApi({
           userId: currentUser.id,
-          amount: totalPrice,
-          method: 'MADA',
+          amount: finalPayablePrice,
+          method: useWalletBalance && walletDeduction >= totalPrice ? 'WALLET' : 'MADA',
           paymentFor: isHourly ? 'HOURLY_BOOKING' : 'DIRECT_BOOKING',
           referenceId: booking.id,
           status: 'SUCCESS',
@@ -988,6 +997,36 @@ export default function BookingFlow() {
               )}
             </div>
 
+            {/* Digital Wallet Payment Widget */}
+            <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Wallet size={16} className="text-emerald-700 shrink-0" />
+                  <div>
+                    <div className="text-xs font-semibold text-soot">Digital Wallet Balance</div>
+                    <div className="text-[11px] text-moss">Available Balance: SAR {userWalletBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+                  </div>
+                </div>
+                {userWalletBalance > 0 && totalPrice > 0 && (
+                  <label className="flex items-center gap-2 text-xs font-semibold text-soot cursor-pointer bg-white/80 px-3 py-1.5 rounded-xl border border-emerald-500/30 hover:bg-white transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={useWalletBalance}
+                      onChange={(e) => setUseWalletBalance(e.target.checked)}
+                      className="rounded border-soot/20 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                    />
+                    <span>Use Wallet (SAR {walletDeduction.toLocaleString()})</span>
+                  </label>
+                )}
+              </div>
+              {useWalletBalance && walletDeduction > 0 && (
+                <div className="text-[11px] font-medium text-emerald-950 bg-emerald-500/15 px-3 py-1.5 rounded-xl border border-emerald-500/30 flex items-center justify-between">
+                  <span>Wallet Balance Applied</span>
+                  <span className="font-bold text-emerald-700">- SAR {walletDeduction.toLocaleString()}</span>
+                </div>
+              )}
+            </div>
+
             {/* Clear Itemized Price Breakdown */}
             <div className="p-5 rounded-2xl bg-white border-2 border-soot/10 space-y-3">
               <div className="flex items-center gap-2 pb-2 border-b border-soot/8">
@@ -1009,6 +1048,18 @@ export default function BookingFlow() {
                 label={`Subtotal`}
                 value={planInfo.isCovered ? 'Included in your Plan' : `SAR ${(planInfo.originalPrice * seats).toLocaleString()}`}
               />
+              {pointsDiscount > 0 && (
+                <Row
+                  label="Loyalty Points Discount"
+                  value={`- SAR ${pointsDiscount.toLocaleString()}`}
+                />
+              )}
+              {walletDeduction > 0 && (
+                <Row
+                  label="Wallet Balance Applied"
+                  value={`- SAR ${walletDeduction.toLocaleString()}`}
+                />
+              )}
               <Row
                 label="VAT (15% included in price)"
                 value={planInfo.isCovered ? 'SAR 0' : `SAR ${((planInfo.originalPrice * seats) * 0.15).toFixed(0)}`}
@@ -1022,30 +1073,23 @@ export default function BookingFlow() {
                 </div>
 
                 <div className="text-right">
-                  {totalPrice === 0 ? (
+                  {finalPayablePrice === 0 ? (
                     <div>
                       <span className="text-2xl font-bold text-soot">SAR 0 to Pay</span>
                       <div className="text-xs text-moss font-semibold bg-eucalyptus/25 border border-eucalyptus/30 px-2.5 py-0.5 rounded-full inline-block ml-2">
-                        Included in your Plan
+                        {walletDeduction >= totalPrice && totalPrice > 0 ? 'Paid with Wallet' : 'Included in your Plan'}
                       </div>
                     </div>
                   ) : planInfo.isPartiallyCovered ? (
                     <div>
-                      <span className="text-2xl font-bold text-soot">SAR {totalPrice.toLocaleString()} to Pay</span>
+                      <span className="text-2xl font-bold text-soot">SAR {finalPayablePrice.toLocaleString()} to Pay</span>
                       <div className="text-xs text-amber-900 font-semibold bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 rounded-full block mt-0.5">
                         {(planInfo.coveredSeats || 0) > 0 ? `${planInfo.coveredSeats} Seat Included in Plan` : `${planInfo.coveredHours || 0}h Included in Plan`}
                       </div>
                     </div>
-                  ) : planInfo.hasDiscount ? (
-                    <div>
-                      <span className="text-2xl font-bold text-soot">SAR {totalPrice.toLocaleString()}</span>
-                      <div className="text-xs text-amber-900 font-semibold bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 rounded-full block mt-0.5">
-                        {planInfo.discountPercentage}% Pass Discount
-                      </div>
-                    </div>
                   ) : (
                     <span className="text-2xl font-bold text-soot">
-                      SAR {totalPrice.toLocaleString()}
+                      SAR {finalPayablePrice.toLocaleString()}
                     </span>
                   )}
                 </div>

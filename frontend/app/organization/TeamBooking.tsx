@@ -14,7 +14,8 @@ import {
   Info,
   Receipt,
   ShoppingBag,
-  Sparkles
+  Sparkles,
+  Wallet
 } from 'lucide-react';
 import { useApp } from '@/app/store';
 import { createPointsTransactionApi, getLoyaltyPointsApi } from '@/services/authApi';
@@ -48,7 +49,7 @@ const STEPS = ['Type & Plan', 'Team', 'Schedule', 'Review'];
 const DURATION_OPTIONS = [1, 2, 3, 4, 6, 8];
 
 export default function TeamBooking() {
-  const { nav, goBack, spaces, bookings, currentUser, addBooking, navigate, showToast, addToCart, updateCurrentUser } = useApp();
+  const { nav, goBack, spaces, bookings, currentUser, addBooking, navigate, showToast, addToCart, updateCurrentUser, withdrawFromWallet } = useApp();
   const spaceId = nav.params?.spaceId;
   const space = spaces.find((s: Space) => s.id === spaceId);
 
@@ -69,6 +70,7 @@ export default function TeamBooking() {
   const [durationMonths, setDurationMonths] = useState<number>(initialMonths);
   const [startTime, setStartTime] = useState<string>(initialStartTime);
   const [endTime, setEndTime] = useState<string>(initialEndTime);
+  const [useWalletBalance, setUseWalletBalance] = useState(false);
 
   const durationHours = calculateDurationHours(startTime, endTime);
 
@@ -142,6 +144,9 @@ export default function TeamBooking() {
   const rawPointsDiscount = useLoyaltyPoints && maxRedeemablePoints > 0 ? (maxRedeemablePoints / 100) * 25 : 0;
   const pointsDiscount = Math.min(rawTotalPrice, rawPointsDiscount);
   const finalPayablePrice = Math.max(0, rawTotalPrice - pointsDiscount);
+  const userWalletBalance = currentUser?.walletBalance || 0;
+  const walletDeduction = useWalletBalance ? Math.min(userWalletBalance, finalPayablePrice) : 0;
+  const totalPriceToPay = Math.max(0, finalPayablePrice - walletDeduction);
 
   const planLabel = isHourly
     ? `for ${durationHours} hours`
@@ -235,9 +240,13 @@ export default function TeamBooking() {
         endDate,
         seats,
         employees: selectedEmployees,
-        totalPrice: finalPayablePrice,
+        totalPrice: totalPriceToPay,
         status: 'active',
       });
+
+      if (useWalletBalance && walletDeduction > 0 && withdrawFromWallet) {
+        withdrawFromWallet(walletDeduction, `Team booking payment for ${space.name}`);
+      }
 
       // تحديث نقاط الولاء للمؤسسة / المستخدم
       const pointsUsed = useLoyaltyPoints ? maxRedeemablePoints : 0;
@@ -884,6 +893,38 @@ export default function TeamBooking() {
               </div>
             </div>
 
+            {/* Digital Wallet Redemption Widget */}
+            {currentUser && userWalletBalance > 0 && (
+              <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Wallet size={16} className="text-emerald-700 shrink-0" />
+                    <div>
+                      <div className="text-xs font-semibold text-soot">Digital Wallet Balance</div>
+                      <div className="text-[11px] text-moss">Available Balance: SAR {userWalletBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+                    </div>
+                  </div>
+                  {userWalletBalance > 0 && finalPayablePrice > 0 && (
+                    <label className="flex items-center gap-2 text-xs font-semibold text-soot cursor-pointer bg-white/80 px-3 py-1.5 rounded-xl border border-emerald-500/30 hover:bg-white transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={useWalletBalance}
+                        onChange={(e) => setUseWalletBalance(e.target.checked)}
+                        className="rounded border-soot/20 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                      />
+                      <span>Use Wallet (SAR {walletDeduction.toLocaleString()})</span>
+                    </label>
+                  )}
+                </div>
+                {useWalletBalance && walletDeduction > 0 && (
+                  <div className="text-[11px] font-medium text-emerald-950 bg-emerald-500/15 px-3 py-1.5 rounded-xl border border-emerald-500/30 flex items-center justify-between">
+                    <span>Wallet Balance Applied</span>
+                    <span className="font-bold text-emerald-700">- SAR {walletDeduction.toLocaleString()}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Prominent Price Breakdown Box */}
             <div className="p-5 rounded-2xl bg-white border-2 border-soot/10 space-y-3">
               <div className="flex items-center gap-2 pb-2 border-b border-soot/8">
@@ -917,6 +958,12 @@ export default function TeamBooking() {
                   <span className="text-emerald-700 font-semibold">-SAR {pointsDiscount.toLocaleString()}</span>
                 </div>
               )}
+              {walletDeduction > 0 && (
+                <div className="flex justify-between text-xs sm:text-sm">
+                  <span className="text-moss">Wallet Balance Applied</span>
+                  <span className="text-emerald-700 font-semibold">-SAR {walletDeduction.toLocaleString()}</span>
+                </div>
+              )}
               <div className="flex justify-between text-xs sm:text-sm">
                 <span className="text-moss">VAT (15% included)</span>
                 <span className="text-soot font-medium">
@@ -930,22 +977,15 @@ export default function TeamBooking() {
                   <span className="text-xs text-moss">Corporate billing</span>
                 </div>
                 <div className="text-right">
-                  {finalPayablePrice === 0 ? (
+                  {totalPriceToPay === 0 ? (
                     <div>
                       <span className="text-2xl font-bold text-soot">SAR 0 to Pay</span>
                       <div className="text-xs text-moss font-semibold bg-eucalyptus/25 border border-eucalyptus/30 px-2.5 py-0.5 rounded-full inline-block ml-2">
-                        Included in your Plan
-                      </div>
-                    </div>
-                  ) : planInfo.isPartiallyCovered ? (
-                    <div>
-                      <span className="text-2xl font-bold text-soot">SAR {finalPayablePrice.toLocaleString()} to Pay</span>
-                      <div className="text-xs text-amber-900 font-semibold bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 rounded-full block mt-0.5">
-                        {(planInfo.coveredSeats || 0) > 0 ? `${planInfo.coveredSeats} Seats Included in Plan` : `${planInfo.coveredHours || 0}h Included in Plan`}
+                        {walletDeduction >= finalPayablePrice && finalPayablePrice > 0 ? 'Paid with Wallet' : 'Included in your Plan'}
                       </div>
                     </div>
                   ) : (
-                    <span className="text-2xl font-bold text-soot">SAR {finalPayablePrice.toLocaleString()}</span>
+                    <span className="text-2xl font-bold text-soot">SAR {totalPriceToPay.toLocaleString()}</span>
                   )}
                 </div>
               </div>

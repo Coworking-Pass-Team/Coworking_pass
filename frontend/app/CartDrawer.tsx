@@ -18,7 +18,8 @@ import {
   AlertCircle,
   Users,
   Award,
-  Sparkles
+  Sparkles,
+  Wallet
 } from 'lucide-react';
 import { useApp } from '@/app/store';
 import { formatHourlyTimeRange } from '@/types/types';
@@ -36,9 +37,10 @@ function formatDateNice(dateStr?: string) {
 }
 
 export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
-  const { cart, removeFromCart, updateCartItemSeats, clearCart, checkoutCart, currentUser, spaces, navigate } = useApp();
+  const { cart, removeFromCart, updateCartItemSeats, clearCart, checkoutCart, currentUser, spaces, navigate, withdrawFromWallet } = useApp();
   const [step, setStep] = useState<'cart' | 'review'>('cart');
   const [useLoyaltyPoints, setUseLoyaltyPoints] = useState(false);
+  const [useWalletBalance, setUseWalletBalance] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -48,10 +50,6 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
       document.body.style.overflow = '';
       document.documentElement.style.overflow = '';
     }
-    return () => {
-      document.body.style.overflow = '';
-      document.documentElement.style.overflow = '';
-    };
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -72,7 +70,12 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   const maxRedeemablePoints = Math.min(usableUserPoints, pointsNeededToCover);
   const rawPointsDiscount = useLoyaltyPoints && maxRedeemablePoints > 0 ? (maxRedeemablePoints / 100) * 25 : 0;
   const pointsDiscount = Math.min(totalAmount, rawPointsDiscount);
-  const finalTotalAmount = Math.max(0, totalAmount - pointsDiscount);
+  const amountAfterPoints = Math.max(0, totalAmount - pointsDiscount);
+
+  // Wallet calculation
+  const userWalletBalance = currentUser?.walletBalance || 0;
+  const walletDeduction = useWalletBalance ? Math.min(userWalletBalance, amountAfterPoints) : 0;
+  const finalTotalAmount = Math.max(0, amountAfterPoints - walletDeduction);
 
   const handleStartReview = () => {
     if (!currentUser) {
@@ -90,11 +93,16 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
       return;
     }
 
+    if (useWalletBalance && walletDeduction > 0 && withdrawFromWallet) {
+      withdrawFromWallet(walletDeduction, 'Cart Checkout Payment');
+    }
+
     const pointsToRedeem = useLoyaltyPoints ? maxRedeemablePoints : 0;
     const createdBookings = checkoutCart(pointsToRedeem);
     onClose();
     setStep('cart');
     setUseLoyaltyPoints(false);
+    setUseWalletBalance(false);
 
     if (createdBookings.length > 0) {
       if (currentUser.role === 'organization') {
@@ -419,6 +427,40 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
               </div>
             )}
 
+            {/* Digital Wallet Redemption Widget */}
+            {currentUser && userWalletBalance > 0 && (
+              <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Wallet size={18} className="text-emerald-700" />
+                    <div>
+                      <span className="font-semibold text-soot text-xs block">Digital Wallet Balance</span>
+                      <span className="text-[11px] text-moss">
+                        Available Balance: <strong>SAR {userWalletBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong>
+                      </span>
+                    </div>
+                  </div>
+
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={useWalletBalance}
+                      onChange={(e) => setUseWalletBalance(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-soot/20 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
+                  </label>
+                </div>
+
+                {useWalletBalance && walletDeduction > 0 && (
+                  <div className="pt-2 border-t border-emerald-500/20 text-xs text-emerald-950 flex items-center justify-between font-medium">
+                    <span>Wallet Amount Applied</span>
+                    <span className="text-emerald-700 font-semibold">- SAR {walletDeduction.toLocaleString()}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3.5 flex items-center gap-2.5 text-xs text-emerald-900">
               <CheckCircle2 size={16} className="text-emerald-700 shrink-0" />
               <span>All booking dates and seats ready for instant confirmation!</span>
@@ -451,6 +493,12 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                 <div className="flex justify-between text-emerald-900 bg-emerald-50 px-2 py-1 rounded-lg">
                   <span className="font-medium">Loyalty Discount</span>
                   <span className="font-bold">- SAR {pointsDiscount.toLocaleString()}</span>
+                </div>
+              )}
+              {walletDeduction > 0 && (
+                <div className="flex justify-between text-emerald-900 bg-emerald-50 px-2 py-1 rounded-lg">
+                  <span className="font-medium">Wallet Balance Applied</span>
+                  <span className="font-bold">- SAR {walletDeduction.toLocaleString()}</span>
                 </div>
               )}
               <div className="flex justify-between text-sm pt-2 border-t border-soot/10 font-bold items-center">
