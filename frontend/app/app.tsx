@@ -40,6 +40,7 @@ import AdminDashboard from './admin/Dashboard';
 import SpacesAdmin from './admin/SpacesAdmin';
 import UsersAdmin from './admin/UsersAdmin';
 import BookingsAdmin from './admin/BookingsAdmin';
+import HourlyBookingsAdmin from './admin/HourlyBookingsAdmin';
 import MembershipPlansAdmin from './admin/MembershipPlansAdmin';
 import SubscriptionsAdmin from './admin/SubscriptionsAdmin';
 import PaymentsAdmin from './admin/PaymentsAdmin';
@@ -49,7 +50,7 @@ import SupportAdmin from './admin/SupportAdmin';
 import Reports from './admin/Reports';
 import AdminSettings from './admin/AdminSettings';
 
-function AppLayout({ children }: { children: React.ReactNode }) {
+export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen flex flex-col bg-plaster">
       <Navbar />
@@ -58,6 +59,8 @@ function AppLayout({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
+
+export const DashboardLayout = AppLayout;
 
 export function Toast() {
   const { toast } = useApp();
@@ -114,11 +117,12 @@ function Router() {
   // Admin flow
   if (role === 'admin') {
     return (
-      <DashboardLayout>
+      <AppLayout>
         {screen === 'admin-dashboard' && <AdminDashboard />}
         {screen === 'admin-spaces' && <SpacesAdmin />}
         {screen === 'admin-users' && <UsersAdmin />}
         {screen === 'admin-bookings' && <BookingsAdmin />}
+        {screen === 'admin-hourly-bookings' && <HourlyBookingsAdmin />}
         {screen === 'admin-plans' && <MembershipPlansAdmin />}
         {screen === 'admin-subscriptions' && <SubscriptionsAdmin />}
         {screen === 'admin-payments' && <PaymentsAdmin />}
@@ -128,19 +132,20 @@ function Router() {
         {screen === 'admin-reports' && <Reports />}
         {screen === 'admin-settings' && <AdminSettings />}
         {screen === 'notifications' && <Notifications />}
+        {screen === 'loyalty' && <LoyaltyPage />}
         {screen === 'browse' && <Browse />}
         {screen === 'space-details' && <SpaceDetails />}
         {screen === 'pricing' && <Pricing />}
         {screen === 'contact' && <Contact />}
         {(screen === 'privacy-policy' || screen === 'terms-of-service' || screen === 'legal') && <LegalPage />}
-      </DashboardLayout>
+      </AppLayout>
     );
   }
 
   // Organization flow
   if (role === 'organization') {
     return (
-      <DashboardLayout>
+      <AppLayout>
         {screen === 'org-dashboard' && <OrgDashboard />}
         {screen === 'company-workspaces' && <OrgDashboard />}
         {screen === 'company-add-workspace' && <OrgDashboard />}
@@ -157,14 +162,14 @@ function Router() {
         {screen === 'pricing' && <Pricing />}
         {screen === 'contact' && <Contact />}
         {(screen === 'privacy-policy' || screen === 'terms-of-service' || screen === 'legal') && <LegalPage />}
-      </DashboardLayout>
+      </AppLayout>
     );
   }
 
-  // Space Provider flow
+  // Provider flow
   if (role === 'provider') {
     return (
-      <DashboardLayout>
+      <AppLayout>
         {screen === 'provider-dashboard' && <ProviderDashboard />}
         {screen === 'provider-spaces' && <ProviderMySpaces />}
         {screen === 'provider-bookings' && <ProviderSpaceBookings />}
@@ -178,13 +183,13 @@ function Router() {
         {screen === 'pricing' && <Pricing />}
         {screen === 'contact' && <Contact />}
         {(screen === 'privacy-policy' || screen === 'terms-of-service' || screen === 'legal') && <LegalPage />}
-      </DashboardLayout>
+      </AppLayout>
     );
   }
 
   // Individual Member flow
   return (
-    <DashboardLayout>
+    <AppLayout>
       {screen === 'ind-dashboard' && <IndividualDashboard />}
       {screen === 'browse' && <Browse />}
       {screen === 'space-details' && <SpaceDetails />}
@@ -199,7 +204,7 @@ function Router() {
       {screen === 'pricing' && <Pricing />}
       {screen === 'contact' && <Contact />}
       {(screen === 'privacy-policy' || screen === 'terms-of-service' || screen === 'legal') && <LegalPage />}
-    </DashboardLayout>
+    </AppLayout>
   );
 }
 
