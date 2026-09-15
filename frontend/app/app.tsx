@@ -40,7 +40,14 @@ import AdminDashboard from './admin/Dashboard';
 import SpacesAdmin from './admin/SpacesAdmin';
 import UsersAdmin from './admin/UsersAdmin';
 import BookingsAdmin from './admin/BookingsAdmin';
+import MembershipPlansAdmin from './admin/MembershipPlansAdmin';
+import SubscriptionsAdmin from './admin/SubscriptionsAdmin';
+import PaymentsAdmin from './admin/PaymentsAdmin';
+import PayoutsAdmin from './admin/PayoutsAdmin';
+import LoyaltyProposalsAdmin from './admin/LoyaltyProposalsAdmin';
+import SupportAdmin from './admin/SupportAdmin';
 import Reports from './admin/Reports';
+import AdminSettings from './admin/AdminSettings';
 
 function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -119,7 +126,13 @@ function Router() {
         {screen === 'admin-loyalty-proposals' && <LoyaltyProposalsAdmin />}
         {screen === 'admin-support' && <SupportAdmin />}
         {screen === 'admin-reports' && <Reports />}
-        {screen === 'admin-settings' && <AdminSettingsPage />}
+        {screen === 'admin-settings' && <AdminSettings />}
+        {screen === 'notifications' && <Notifications />}
+        {screen === 'browse' && <Browse />}
+        {screen === 'space-details' && <SpaceDetails />}
+        {screen === 'pricing' && <Pricing />}
+        {screen === 'contact' && <Contact />}
+        {(screen === 'privacy-policy' || screen === 'terms-of-service' || screen === 'legal') && <LegalPage />}
       </DashboardLayout>
     );
   }
@@ -137,6 +150,34 @@ function Router() {
         {screen === 'team-bookings' && <TeamBookings />}
         {screen === 'org-profile' && <OrgProfile />}
         {screen === 'org-settings' && <OrgProfile />}
+        {screen === 'notifications' && <Notifications />}
+        {screen === 'loyalty' && <LoyaltyPage />}
+        {screen === 'browse' && <Browse />}
+        {screen === 'space-details' && <SpaceDetails />}
+        {screen === 'pricing' && <Pricing />}
+        {screen === 'contact' && <Contact />}
+        {(screen === 'privacy-policy' || screen === 'terms-of-service' || screen === 'legal') && <LegalPage />}
+      </DashboardLayout>
+    );
+  }
+
+  // Space Provider flow
+  if (role === 'provider') {
+    return (
+      <DashboardLayout>
+        {screen === 'provider-dashboard' && <ProviderDashboard />}
+        {screen === 'provider-spaces' && <ProviderMySpaces />}
+        {screen === 'provider-bookings' && <ProviderSpaceBookings />}
+        {screen === 'provider-loyalty-proposals' && <ProviderLoyaltyProposals />}
+        {screen === 'provider-profile' && <ProviderProfileSettings />}
+        {screen === 'provider-settings' && <ProviderProfileSettings />}
+        {screen === 'notifications' && <Notifications />}
+        {screen === 'loyalty' && <LoyaltyPage />}
+        {screen === 'browse' && <Browse />}
+        {screen === 'space-details' && <SpaceDetails />}
+        {screen === 'pricing' && <Pricing />}
+        {screen === 'contact' && <Contact />}
+        {(screen === 'privacy-policy' || screen === 'terms-of-service' || screen === 'legal') && <LegalPage />}
       </DashboardLayout>
     );
   }
@@ -153,6 +194,11 @@ function Router() {
       {screen === 'booking-details' && <MyBookings />}
       {screen === 'ind-profile' && <ProfileSettings mode="profile" />}
       {screen === 'ind-settings' && <ProfileSettings mode="settings" />}
+      {screen === 'notifications' && <Notifications />}
+      {screen === 'loyalty' && <LoyaltyPage />}
+      {screen === 'pricing' && <Pricing />}
+      {screen === 'contact' && <Contact />}
+      {(screen === 'privacy-policy' || screen === 'terms-of-service' || screen === 'legal') && <LegalPage />}
     </DashboardLayout>
   );
 }
