@@ -1,19 +1,207 @@
-export type UserRole = 'individual' | 'organization' | 'admin';
+export type UserRole =
+  | 'individual'
+  | 'organization'
+  | 'provider'
+  | 'admin'
+  | 'B2C'
+  | 'HR_ADMIN'
+  | 'PARTNER_ADMIN'
+  | 'SUPER_ADMIN';
+
 export type BookingStatus = 'active' | 'previous' | 'cancelled';
-export type BookingType = 'hot-desk' | 'private-office' | 'meeting-room';
-export type BookingPlan = 'daily' | 'monthly' | 'yearly';
-export type SpaceType = 'hot-desk' | 'private-office' | 'meeting-room' | 'mixed';
+
+export type BookingPlan = 'hourly' | 'daily' | 'monthly' | 'yearly';
+
+export type SpaceCategory = 'office' | 'hall' | 'theater';
+
+export type SpaceType =
+  | 'hot-desk'
+  | 'shared-desk'
+  | 'private-office'
+  | 'meeting-room'
+  | 'meeting-hall'
+  | 'training-hall'
+  | 'conference-hall'
+  | 'workshop-hall'
+  | 'event-hall'
+  | 'lecture-hall'
+  | 'multipurpose-hall'
+  | 'theater'
+  | 'performance-theater'
+  | 'conference-theater'
+  | 'mixed';
+
+export type BookingType = SpaceType;
+
+export type BookingMode = 'subscription' | 'hourly';
+
+/**
+ * Derives or retrieves the main space category ('office' | 'hall' | 'theater').
+ */
+export function getSpaceCategory(spaceOrType?: Space | SpaceType | string): SpaceCategory {
+  if (!spaceOrType) return 'office';
+  if (typeof spaceOrType === 'object') {
+    if (spaceOrType.category) return spaceOrType.category;
+    return getSpaceCategory(spaceOrType.type);
+  }
+  const t = String(spaceOrType).toLowerCase().trim();
+  if (t === 'theater' || t === 'performance-theater' || t === 'conference-theater' || t.includes('theater')) {
+    return 'theater';
+  }
+  if (
+    t === 'meeting-hall' ||
+    t === 'training-hall' ||
+    t === 'conference-hall' ||
+    t === 'workshop-hall' ||
+    t === 'event-hall' ||
+    t === 'lecture-hall' ||
+    t === 'multipurpose-hall' ||
+    t === 'meeting-room' ||
+    t === 'event-space' ||
+    t.includes('hall')
+  ) {
+    return 'hall';
+  }
+  return 'office';
+}
+
+/**
+ * Checks if hourly bookings are permitted (only for Halls and Theaters).
+ */
+export function isHourlyAllowed(spaceOrType?: Space | SpaceType | string): boolean {
+  const cat = getSpaceCategory(spaceOrType);
+  return cat === 'hall' || cat === 'theater';
+}
+
+/**
+ * Helper to check if a space is a Hall or Theater that supports hourly duration booking.
+ */
+export function isHourlyOnlySpace(spaceType?: string): boolean {
+  return isHourlyAllowed(spaceType);
+}
+
+/**
+ * Checks if a space type is an Office (which does NOT support hourly booking).
+ */
+export function isOfficeSpace(spaceType?: string): boolean {
+  return getSpaceCategory(spaceType) === 'office';
+}
+
+/**
+ * Returns allowed booking plans based on space type:
+ * - Halls: ['hourly', 'daily', 'monthly', 'yearly']
+ * - Theaters: ['hourly', 'daily', 'monthly', 'yearly']
+ * - Offices: ['daily', 'monthly', 'yearly'] (NO hourly)
+ */
+export function getAllowedPlansForSpace(spaceOrType?: Space | string): BookingPlan[] {
+  const cat = getSpaceCategory(spaceOrType);
+  if (cat === 'hall' || cat === 'theater') {
+    return ['hourly', 'daily', 'monthly', 'yearly'];
+  }
+  return ['daily', 'monthly', 'yearly'];
+}
+
+/**
+ * Calculate the end date string given start date, plan, and month duration.
+ */
+export function calculateEndDate(
+  startDate: string,
+  plan: BookingPlan,
+  durationMonths: number = 1
+): string {
+  if (!startDate) return '';
+  if (plan === 'hourly' || plan === 'daily') return startDate;
+  const d = new Date(startDate);
+  if (isNaN(d.getTime())) return startDate;
+  if (plan === 'monthly') {
+    const months = Math.max(1, durationMonths);
+    d.setMonth(d.getMonth() + months);
+    return d.toISOString().split('T')[0];
+  }
+  if (plan === 'yearly') {
+    d.setFullYear(d.getFullYear() + 1);
+    return d.toISOString().split('T')[0];
+  }
+  return startDate;
+}
+
+export const ALL_SPACE_TYPES: { value: SpaceType; label: string; group: 'Offices' | 'Halls' | 'Theaters' | 'Desks & Workspaces' }[] = [
+  // Offices
+  { value: 'private-office', label: 'Private Office', group: 'Offices' },
+  
+  // Halls
+  { value: 'meeting-room', label: 'Meeting Room / Hall', group: 'Halls' },
+  { value: 'meeting-hall', label: 'Meeting Hall', group: 'Halls' },
+  { value: 'training-hall', label: 'Training Hall', group: 'Halls' },
+  { value: 'conference-hall', label: 'Conference Hall', group: 'Halls' },
+  { value: 'workshop-hall', label: 'Workshop Hall', group: 'Halls' },
+  { value: 'event-hall', label: 'Event Hall', group: 'Halls' },
+  { value: 'lecture-hall', label: 'Lecture Hall', group: 'Halls' },
+  { value: 'multipurpose-hall', label: 'Multi-purpose Hall', group: 'Halls' },
+  
+  // Theaters
+  { value: 'theater', label: 'Theater', group: 'Theaters' },
+  { value: 'performance-theater', label: 'Performance Theater', group: 'Theaters' },
+  { value: 'conference-theater', label: 'Conference & Event Theater', group: 'Theaters' },
+  
+  // Desks & Workspaces
+  { value: 'hot-desk', label: 'Hot Desk', group: 'Desks & Workspaces' },
+  { value: 'shared-desk', label: 'Shared Desk', group: 'Desks & Workspaces' },
+  { value: 'mixed', label: 'Mixed Workspace', group: 'Desks & Workspaces' },
+];
+
+export function getSpaceTypeLabel(type?: string): string {
+  if (!type) return 'Workspace';
+  const found = ALL_SPACE_TYPES.find(t => t.value === type);
+  if (found) return found.label;
+  return type.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+}
+
+export interface Notification {
+  id: string;
+  userId: string;
+  title: string;
+  message: string;
+  type: 'booking' | 'cancelled' | 'reminder' | 'info' | 'payment' | 'system';
+  read: boolean;
+  createdAt: string;
+  link?: string;
+}
+
+export interface SpaceBookingPackage {
+  id: string;
+  name: string;
+  period: 'day' | 'month';
+  hours: number;
+  price: number;
+}
+
+export interface HourlyTier {
+  hours: number;
+  price: number;
+}
+
+export interface MonthlyTier {
+  months: number;
+  price: number;
+}
 
 export interface SpacePricing {
+  hourly?: number; // Base 1-hour rate
+  hourlyTiers?: HourlyTier[]; // Specific duration pricing, e.g. [{hours: 1, price: 150}, {hours: 2, price: 280}]
   daily: number;
-  monthly: number;
+  monthly: number; // Base 1-month rate
+  monthlyTiers?: MonthlyTier[]; // Specific multi-month pricing, e.g. [{months: 1, price: 1800}, {months: 2, price: 3400}]
   yearly: number;
 }
 
 export interface Space {
   id: string;
   name: string;
+  category?: SpaceCategory;
   city: string;
+  region?: string;
+  district?: string;
   address: string;
   description: string;
   type: SpaceType;
@@ -22,6 +210,11 @@ export interface Space {
   totalCapacity: number;
   availableCapacity: number;
   pricing: SpacePricing;
+
+  bookingMode?: BookingMode;
+  bookingPackages?: SpaceBookingPackage[];
+  loyaltyPointsMultiplier?: number;
+
   rating: number;
   reviewCount: number;
   isVisible: boolean;
@@ -29,6 +222,131 @@ export interface Space {
   openHours: string;
   phone: string;
   email: string;
+  ownerId?: string;
+  status?: 'published' | 'draft' | 'hidden';
+  latitude?: number;
+  longitude?: number;
+  coordinates?: { lat: number; lng: number };
+}
+
+/**
+ * Haversine formula to calculate the great-circle distance between two geographic coordinates in kilometers.
+ * @param lat1 Latitude of first point in degrees
+ * @param lon1 Longitude of first point in degrees
+ * @param lat2 Latitude of second point in degrees
+ * @param lon2 Longitude of second point in degrees
+ * @returns Distance in kilometers
+ */
+export function calculateHaversineDistance(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+): number {
+  const R = 6371; // Radius of the earth in km
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+/**
+ * Formats distance with intuitive units:
+ * - If < 1 km: formatted in meters (e.g., "350 m", "850 m")
+ * - If >= 1 km: formatted in kilometers (e.g., "1.2 km", "4.8 km", "12.5 km")
+ */
+export function formatDistance(distanceInKm: number | null | undefined): string {
+  if (distanceInKm === null || distanceInKm === undefined || isNaN(distanceInKm)) return '';
+  if (distanceInKm < 1) {
+    const meters = Math.max(1, Math.round(distanceInKm * 1000));
+    return `${meters} m`;
+  }
+  return `${distanceInKm.toFixed(1)} km`;
+}
+
+/**
+ * Helper to safely extract coordinates from a Space object.
+ */
+export function getSpaceCoordinates(space?: Space | null): { lat: number; lng: number } | null {
+  if (!space) return null;
+  if (space.coordinates && typeof space.coordinates.lat === 'number' && typeof space.coordinates.lng === 'number') {
+    return space.coordinates;
+  }
+  if (typeof space.latitude === 'number' && typeof space.longitude === 'number') {
+    return { lat: space.latitude, lng: space.longitude };
+  }
+  return null;
+}
+
+export type CrowdingLevel = 'Quiet' | 'Moderate' | 'Busy';
+
+export interface SpaceCrowdingInfo {
+  scannedCount: number;
+  totalCapacity: number;
+  availableCapacity: number;
+  occupiedSeats: number;
+  occupancyPercentage: number;
+  level: CrowdingLevel;
+  badgeClass: string;
+  barColor: string;
+  textColor: string;
+  trackColor: string;
+}
+
+/**
+ * Calculates live crowding indicators based on total capacity, baseline availability,
+ * and real-time QR code check-in scans.
+ */
+export function calculateSpaceCrowding(
+  space: Space,
+  scannedCount: number = 0
+): SpaceCrowdingInfo {
+  const total = space.totalCapacity > 0 ? space.totalCapacity : 30;
+  const occupied = Math.min(total, Math.max(0, scannedCount));
+  const available = Math.max(0, total - occupied);
+  const occupancyPercentage = total > 0 ? Math.round((occupied / total) * 100) : 0;
+
+  let level: CrowdingLevel = 'Quiet';
+  let textColor = 'text-[#059669]';
+  let barColor = 'bg-[#059669]';
+  let badgeClass = 'bg-emerald-100/90 text-emerald-900 border-emerald-200/90';
+  let trackColor = 'bg-[#E5EBE7]';
+
+  if (available === 0 || occupancyPercentage >= 80) {
+    level = 'Busy';
+    textColor = 'text-[#DC2626]';
+    barColor = 'bg-[#DC2626]';
+    badgeClass = 'bg-rose-100/90 text-rose-800 border-rose-200/90';
+  } else if (occupancyPercentage >= 40) {
+    level = 'Moderate';
+    textColor = 'text-[#D97706]';
+    barColor = 'bg-[#D97706]';
+    badgeClass = 'bg-amber-100/90 text-amber-900 border-amber-200/90';
+  } else {
+    level = 'Quiet';
+    textColor = 'text-[#059669]';
+    barColor = 'bg-[#059669]';
+    badgeClass = 'bg-emerald-100/90 text-emerald-900 border-emerald-200/90';
+  }
+
+  return {
+    scannedCount,
+    totalCapacity: total,
+    availableCapacity: available,
+    occupiedSeats: occupied,
+    occupancyPercentage,
+    level,
+    badgeClass,
+    barColor,
+    textColor,
+    trackColor,
+  };
 }
 
 export interface Employee {
@@ -38,22 +356,694 @@ export interface Employee {
   department: string;
 }
 
+export interface PaymentCard {
+  id: string;
+  brand: 'Visa' | 'Mastercard' | 'Mada';
+  last4: string;
+  holderName: string;
+  expiry: string;
+}
+
 export interface User {
   id: string;
   name: string;
   email: string;
   password: string;
   role: UserRole;
+  erdRole?: 'B2C' | 'HR_ADMIN' | 'PARTNER_ADMIN' | 'SUPER_ADMIN';
   phone: string;
   avatar: string;
   isBlocked: boolean;
   joinDate: string;
+  username?: string;
+  university?: string;
+  bio?: string;
+  companyId?: string;
   orgName?: string;
   orgSize?: number;
   employees?: Employee[];
   orgDescription?: string;
   website?: string;
   industry?: string;
+  savedCards?: PaymentCard[];
+  businessName?: string;
+  crNumber?: string;
+  city?: string;
+  businessDescription?: string;
+  revenueShare?: number;
+  hasActivePass?: boolean;
+  membershipTier?: 'All-Access Pass' | 'Pro Pass' | 'Basic Pass' | 'Enterprise Pass' | string;
+  loyaltyPoints?: number;
+  walletBalance?: number;
+}
+
+export interface WalletTransaction {
+  id: string;
+  walletId: string;
+  userId: string;
+  amount: number;
+  type: 'DEPOSIT' | 'WITHDRAW' | 'REFUND';
+  description?: string | null;
+  referenceId?: string | null;
+  balanceAfter: number;
+  createdAt: string;
+}
+
+export function parseBookingDateTime(startDate?: string, startTime?: string): Date | null {
+  if (!startDate) return null;
+
+  let hours = 8;
+  let minutes = 0;
+
+  if (startTime) {
+    const isPM = /PM/i.test(startTime);
+    const isAM = /AM/i.test(startTime);
+    const cleanTime = startTime.replace(/(AM|PM|\s)/gi, '').trim();
+    const parts = cleanTime.split(':');
+    if (parts.length >= 1) {
+      let h = parseInt(parts[0], 10);
+      if (!isNaN(h)) {
+        if (isPM && h < 12) h += 12;
+        if (isAM && h === 12) h = 0;
+        hours = h;
+      }
+    }
+    if (parts.length >= 2) {
+      const m = parseInt(parts[1], 10);
+      if (!isNaN(m)) minutes = m;
+    }
+  }
+
+  const dateParts = startDate.split('-').map((p) => parseInt(p, 10));
+  if (dateParts.length === 3 && !dateParts.some(isNaN)) {
+    return new Date(dateParts[0], dateParts[1] - 1, dateParts[2], hours, minutes, 0);
+  }
+
+  const d = new Date(startDate);
+  if (!isNaN(d.getTime())) {
+    d.setHours(hours, minutes, 0, 0);
+    return d;
+  }
+
+  return null;
+}
+
+/**
+ * Check if a booking is eligible for a full refund upon cancellation.
+ * Individual (B2C) members must cancel 6+ hours in advance.
+ * Organization (B2B) members must cancel 24+ hours in advance.
+ */
+export function isCancellationRefundEligible(
+  startDate?: string,
+  startTime?: string,
+  role: UserRole = 'individual'
+): { eligible: boolean; hoursRemaining: number; requiredHours: number } {
+  const requiredHours = role === 'organization' ? 24 : 6;
+  if (!startDate) return { eligible: true, hoursRemaining: 999, requiredHours };
+
+  const bookingDate = parseBookingDateTime(startDate, startTime);
+  if (!bookingDate) return { eligible: false, hoursRemaining: 0, requiredHours };
+
+  const bookingTime = bookingDate.getTime();
+  const now = new Date().getTime();
+
+  const hoursRemaining = (bookingTime - now) / (1000 * 60 * 60);
+  const eligible = hoursRemaining >= requiredHours;
+
+  return { eligible, hoursRemaining: Math.max(0, hoursRemaining), requiredHours };
+}
+
+export function isUserPassHolder(user: User | null): boolean {
+  if (!user) return false;
+  if (user.hasActivePass !== undefined) return user.hasActivePass;
+  return (
+    user.role === 'individual' ||
+    user.role === 'organization' ||
+    user.role === 'B2C' ||
+    user.role === 'HR_ADMIN'
+  );
+}
+
+export type MembershipTier = 'all-access' | 'pro' | 'basic' | 'enterprise' | 'none';
+
+export interface PlanPricingResult {
+  isCovered: boolean;
+  isPartiallyCovered?: boolean;
+  effectivePrice: number;
+  originalPrice: number;
+  badgeLabel: string;
+  displayPriceLabel?: string;
+  totalPayableLabel?: string;
+  hasDiscount: boolean;
+  discountPercentage?: number;
+  coveredSeats?: number;
+  payableSeats?: number;
+  coveredHours?: number;
+  payableHours?: number;
+  coverageNote?: string;
+}
+
+/**
+ * Calculate the price for a specific duration in hours for a space.
+ * Checks for exact provider configured duration tier, otherwise computes based on base hourly rate.
+ */
+export function getHourlyPriceForDuration(space: Space, durationHours: number = 1): number {
+  if (!space || !space.pricing) return 50 * durationHours;
+  const hours = Math.max(1, Math.round(durationHours));
+
+  // 1. Check if an exact provider configured tier exists
+  if (space.pricing.hourlyTiers && space.pricing.hourlyTiers.length > 0) {
+    const tier = space.pricing.hourlyTiers.find(t => t.hours === hours);
+    if (tier && typeof tier.price === 'number' && tier.price > 0) {
+      return tier.price;
+    }
+  }
+
+  // 2. Base hourly rate fallback
+  const baseHourly = space.pricing.hourly || 150;
+  return baseHourly * hours;
+}
+
+/**
+ * Calculate the price for a specific duration in months for a space.
+ * Checks for exact provider configured monthly duration tier (e.g. 1, 2, 3, 6, 12 months),
+ * otherwise computes based on base monthly rate or yearly rate.
+ */
+export function getMonthlyPriceForDuration(space: Space, durationMonths: number = 1): number {
+  if (!space || !space.pricing) return 1800 * durationMonths;
+  const months = Math.max(1, Math.round(durationMonths));
+
+  // 1. Check if an exact provider configured monthly tier exists
+  if (space.pricing.monthlyTiers && space.pricing.monthlyTiers.length > 0) {
+    const tier = space.pricing.monthlyTiers.find(t => t.months === months);
+    if (tier && typeof tier.price === 'number' && tier.price > 0) {
+      return tier.price;
+    }
+  }
+
+  // 2. Check 12-month yearly rate if configured
+  if (months === 12 && space.pricing.yearly && space.pricing.yearly > 0) {
+    return space.pricing.yearly;
+  }
+
+  // 3. Base monthly rate * months
+  const baseMonthly = space.pricing.monthly || 1800;
+  return baseMonthly * months;
+}
+
+/**
+ * Standard Available Time Slots for Hourly Bookings (7:00 AM – 11:00 PM)
+ */
+export const START_TIMES = [
+  '07:00 AM',
+  '08:00 AM',
+  '09:00 AM',
+  '10:00 AM',
+  '11:00 AM',
+  '12:00 PM',
+  '01:00 PM',
+  '02:00 PM',
+  '03:00 PM',
+  '04:00 PM',
+  '05:00 PM',
+  '06:00 PM',
+  '07:00 PM',
+  '08:00 PM',
+  '09:00 PM',
+  '10:00 PM',
+];
+
+export const END_TIMES = [
+  '08:00 AM',
+  '09:00 AM',
+  '10:00 AM',
+  '11:00 AM',
+  '12:00 PM',
+  '01:00 PM',
+  '02:00 PM',
+  '03:00 PM',
+  '04:00 PM',
+  '05:00 PM',
+  '06:00 PM',
+  '07:00 PM',
+  '08:00 PM',
+  '09:00 PM',
+  '10:00 PM',
+  '11:00 PM',
+];
+
+/**
+ * Converts a time string (e.g. "09:00 AM", "9:00 AM", "14:30") to minutes from midnight.
+ */
+export function timeStringToMinutes(timeStr: string): number {
+  if (!timeStr) return 0;
+  const cleanStr = timeStr.trim().toUpperCase();
+  const isPM = cleanStr.includes('PM');
+  const isAM = cleanStr.includes('AM');
+  const timeOnly = cleanStr.replace(/[^\d:]/g, '');
+  const parts = timeOnly.split(':');
+  let h = parseInt(parts[0], 10) || 0;
+  const m = parts.length > 1 ? parseInt(parts[1], 10) || 0 : 0;
+  if (isPM && h < 12) h += 12;
+  if (isAM && h === 12) h = 0;
+  return h * 60 + m;
+}
+
+/**
+ * Calculates the exact duration in hours from start time and end time strings.
+ * Example: Start 9:00 AM, End 5:00 PM -> returns 8.
+ */
+export function calculateDurationHours(startTimeStr: string, endTimeStr: string): number {
+  if (!startTimeStr || !endTimeStr) return 1;
+  const startMin = timeStringToMinutes(startTimeStr);
+  const endMin = timeStringToMinutes(endTimeStr);
+  if (endMin <= startMin) return 1;
+  const diffHours = (endMin - startMin) / 60;
+  return Math.max(1, Math.round(diffHours * 10) / 10);
+}
+
+/**
+ * Returns available end times that are strictly after the selected start time.
+ */
+export function getAvailableEndTimes(startTimeStr: string): string[] {
+  const startMin = timeStringToMinutes(startTimeStr || '09:00 AM');
+  const filtered = END_TIMES.filter((t) => timeStringToMinutes(t) > startMin);
+  return filtered.length > 0 ? filtered : [END_TIMES[END_TIMES.length - 1]];
+}
+
+/**
+ * Formats an hourly time range consistently across all views (e.g., "9:00 AM – 5:00 PM (8 hours)").
+ */
+export function formatHourlyTimeRange(startTime?: string, endTime?: string, durationHours?: number): string {
+  const start = startTime || '09:00 AM';
+  const end = endTime || calculateEndTime(start, durationHours || 1);
+  const duration = durationHours || calculateDurationHours(start, end);
+  return `${start} – ${end} (${duration} ${duration === 1 ? 'hour' : 'hours'})`;
+}
+
+/**
+ * Formats a booking duration string for cards, modals, and tables.
+ */
+export function formatBookingTimeDisplay(booking: {
+  plan?: BookingPlan | string;
+  startTime?: string;
+  endTime?: string;
+  durationHours?: number;
+  durationMonths?: number;
+}): string {
+  if (booking.plan === 'hourly') {
+    return formatHourlyTimeRange(booking.startTime, booking.endTime, booking.durationHours);
+  }
+  if (booking.plan === 'monthly') {
+    const m = booking.durationMonths || 1;
+    return `${m} ${m === 1 ? 'Month' : 'Months'}`;
+  }
+  if (booking.plan === 'yearly') {
+    return '1 Year';
+  }
+  return '1 Day';
+}
+
+/**
+ * Automatically calculate the end time string (e.g. "12:00 PM") given a start time and duration hours.
+ */
+export function calculateEndTime(startTimeStr: string, durationHours: number = 1): string {
+  if (!startTimeStr) return '';
+  let hours = 9;
+  let minutes = 0;
+
+  const cleanStr = startTimeStr.trim().toUpperCase();
+  const isPM = cleanStr.includes('PM');
+  const isAM = cleanStr.includes('AM');
+  const timeOnly = cleanStr.replace(/[^\d:]/g, '');
+  const parts = timeOnly.split(':');
+
+  if (parts.length >= 1) {
+    hours = parseInt(parts[0], 10) || 9;
+    if (isPM && hours < 12) hours += 12;
+    if (isAM && hours === 12) hours = 0;
+  }
+  if (parts.length >= 2) {
+    minutes = parseInt(parts[1], 10) || 0;
+  }
+
+  const totalEndMinutes = (hours * 60 + minutes) + Math.round(durationHours * 60);
+  const endHours24 = Math.floor(totalEndMinutes / 60) % 24;
+  const endMinutes = totalEndMinutes % 60;
+
+  const period = endHours24 >= 12 ? 'PM' : 'AM';
+  const displayHours = endHours24 % 12 === 0 ? 12 : endHours24 % 12;
+  const displayMinutes = String(endMinutes).padStart(2, '0');
+
+  return `${String(displayHours).padStart(2, '0')}:${displayMinutes} ${period}`;
+}
+
+/**
+ * Validate whether the booking time falls inside the space's operating hours.
+ */
+export function isTimeWithinOpenHours(
+  dateStr: string,
+  startTime: string,
+  endTime: string,
+  openHoursStr?: string
+): { valid: boolean; reason?: string } {
+  if (!startTime || !endTime) return { valid: true };
+
+  const startMin = timeStringToMinutes(startTime);
+  const endMin = timeStringToMinutes(endTime);
+
+  if (endMin <= startMin) {
+    return { valid: false, reason: 'End time must be after start time.' };
+  }
+
+  let openMin = 420;  // 7:00 AM
+  let closeMin = 1380; // 11:00 PM
+
+  if (openHoursStr) {
+    const lower = openHoursStr.toLowerCase();
+    if (lower.includes('24/7') || lower.includes('24 hours')) {
+      return { valid: true };
+    }
+    if (dateStr) {
+      const dayOfWeek = new Date(dateStr).getDay();
+      if ((dayOfWeek === 5 || dayOfWeek === 6) && lower.includes('fri')) {
+        if (lower.includes('2pm') || lower.includes('14:00')) openMin = 14 * 60;
+        else if (lower.includes('9am')) openMin = 9 * 60;
+        else if (lower.includes('10am')) openMin = 10 * 60;
+      }
+    }
+    if (lower.includes('8am')) openMin = 8 * 60;
+    else if (lower.includes('7am')) openMin = 7 * 60;
+    else if (lower.includes('6am')) openMin = 6 * 60;
+    else if (lower.includes('9am')) openMin = 9 * 60;
+
+    if (lower.includes('11pm')) closeMin = 23 * 60;
+    else if (lower.includes('10pm')) closeMin = 22 * 60;
+    else if (lower.includes('9pm')) closeMin = 21 * 60;
+    else if (lower.includes('8pm')) closeMin = 20 * 60;
+    else if (lower.includes('6pm')) closeMin = 18 * 60;
+  }
+
+  if (startMin < openMin) {
+    const openH = Math.floor(openMin / 60);
+    const openPeriod = openH >= 12 ? 'PM' : 'AM';
+    const displayH = openH % 12 === 0 ? 12 : openH % 12;
+    return { valid: false, reason: `Space opens at ${displayH}:00 ${openPeriod}. Please select a later start time.` };
+  }
+
+  if (endMin > closeMin) {
+    const closeH = Math.floor(closeMin / 60);
+    const closePeriod = closeH >= 12 ? 'PM' : 'AM';
+    const displayH = closeH % 12 === 0 ? 12 : closeH % 12;
+    return { valid: false, reason: `Space closes at ${displayH}:00 ${closePeriod}. Reservation duration exceeds operating hours.` };
+  }
+
+  return { valid: true };
+}
+
+/**
+ * Check if the requested booking overlaps with existing active bookings for the same space.
+ */
+export function checkSpaceOverlap(
+  bookings: Booking[],
+  spaceId: string,
+  date: string,
+  startTime?: string,
+  endTime?: string,
+  totalCapacity: number = 20,
+  excludeBookingId?: string
+): { available: boolean; conflictCount: number; maxCapacity: number } {
+  if (!bookings || !spaceId || !date) return { available: true, conflictCount: 0, maxCapacity: totalCapacity };
+
+  const startMin = startTime ? timeStringToMinutes(startTime) : 0;
+  const endMin = endTime ? timeStringToMinutes(endTime) : 1440;
+
+  const conflictingBookings = bookings.filter(b => {
+    if (b.spaceId !== spaceId) return false;
+    if (b.status !== 'active') return false;
+    if (excludeBookingId && b.id === excludeBookingId) return false;
+
+    const bStart = b.startDate || '';
+    const bEnd = b.endDate || b.startDate || '';
+    if (date < bStart || date > bEnd) return false;
+
+    if (b.startTime && b.endTime && startTime && endTime) {
+      const bStartMin = timeStringToMinutes(b.startTime);
+      const bEndMin = timeStringToMinutes(b.endTime);
+      return startMin < bEndMin && endMin > bStartMin;
+    }
+
+    return true;
+  });
+
+  const bookedSeats = conflictingBookings.reduce((sum, b) => sum + (b.seats || 1), 0);
+  const isAvailable = (totalCapacity - bookedSeats) > 0;
+
+  return {
+    available: isAvailable,
+    conflictCount: bookedSeats,
+    maxCapacity: totalCapacity,
+  };
+}
+
+export function getEffectiveSpacePrice(
+  user: User | null,
+  space: Space,
+  planType: BookingPlan = 'daily',
+  deskType?: BookingType | SpaceType,
+  durationHours: number = 1,
+  durationMonths: number = 1,
+  seats: number = 1
+): PlanPricingResult {
+  if (!space) {
+    return {
+      isCovered: false,
+      effectivePrice: 150,
+      originalPrice: 150,
+      badgeLabel: 'SAR 150',
+      displayPriceLabel: 'SAR 150',
+      totalPayableLabel: 'SAR 150',
+      hasDiscount: false,
+    };
+  }
+
+  const effectiveSeats = Math.max(1, seats);
+  const targetCategory = getSpaceCategory(space);
+  const targetType = String(deskType || space.type || 'hot-desk').toLowerCase().trim();
+
+  // 1. Calculate standard price for a single seat
+  let singleOriginalPrice = 150;
+  if (planType === 'hourly') {
+    singleOriginalPrice = getHourlyPriceForDuration(space, durationHours);
+  } else if (planType === 'monthly') {
+    singleOriginalPrice = getMonthlyPriceForDuration(space, durationMonths);
+  } else if (planType === 'yearly') {
+    singleOriginalPrice = space.pricing?.yearly ?? ((space.pricing?.monthly ?? 1800) * 10);
+  } else {
+    singleOriginalPrice = space.pricing?.daily ?? 150;
+  }
+
+  const fullOriginalTotal = singleOriginalPrice * effectiveSeats;
+
+  // 2. Unsubscribed user -> full price as normal
+  if (!user || !user.hasActivePass) {
+    return {
+      isCovered: false,
+      isPartiallyCovered: false,
+      effectivePrice: fullOriginalTotal,
+      originalPrice: fullOriginalTotal,
+      badgeLabel: `SAR ${singleOriginalPrice.toLocaleString()}`,
+      displayPriceLabel: `SAR ${singleOriginalPrice.toLocaleString()}`,
+      totalPayableLabel: `SAR ${fullOriginalTotal.toLocaleString()}`,
+      hasDiscount: false,
+      coveredSeats: 0,
+      payableSeats: effectiveSeats,
+      coveredHours: 0,
+      payableHours: durationHours,
+    };
+  }
+
+  // 3. Subscribed user: determine plan tier
+  const tierStr = (user.membershipTier || '').toLowerCase().trim();
+  const isOrg = user.role === 'organization' || user.role === 'HR_ADMIN';
+
+  const isEnterprisePass = tierStr.includes('enterprise') || tierStr.includes('custom enterprise');
+  const isBusinessPass = tierStr.includes('business');
+  const isTeamPass = tierStr.includes('team') || tierStr.includes('corporate') || (isOrg && !isBusinessPass && !isEnterprisePass);
+  const isAnnualPass = tierStr.includes('annual') || tierStr.includes('yearly') || tierStr.includes('executive');
+  const isMonthlyPass = tierStr.includes('monthly') || tierStr.includes('pro') || tierStr.includes('all-access') || (!isOrg && !isAnnualPass && !tierStr.includes('day'));
+  const isDayPass = tierStr.includes('day') || tierStr.includes('daily') || tierStr.includes('basic');
+
+  // 4. Coverage by Plan Tier & Workspace Type
+  let isTypeIncluded = false;
+  let isPlanDurationAllowed = false;
+  let includedMeetingHours = 0;
+  let maxCoveredSeats = 1;
+  let planDisplayName = 'Your Plan';
+
+  if (isEnterprisePass) {
+    planDisplayName = 'Enterprise Pass';
+    isTypeIncluded = true; // All space types covered
+    isPlanDurationAllowed = true; // All durations covered
+    includedMeetingHours = 9999;
+    maxCoveredSeats = 9999;
+  } else if (isBusinessPass) {
+    planDisplayName = 'Business Pass';
+    isTypeIncluded = targetCategory !== 'theater' && !targetType.includes('theater');
+    isPlanDurationAllowed = planType === 'daily' || planType === 'monthly' || planType === 'yearly' || planType === 'hourly';
+    includedMeetingHours = 9999;
+    maxCoveredSeats = 50;
+  } else if (isTeamPass) {
+    planDisplayName = 'Team Pass';
+    isTypeIncluded = (targetType.includes('desk') || targetType === 'meeting-room' || targetCategory === 'office') && targetCategory !== 'theater';
+    isPlanDurationAllowed = planType === 'daily' || planType === 'monthly' || (planType === 'hourly' && targetType.includes('meeting'));
+    includedMeetingHours = 10;
+    maxCoveredSeats = 20;
+  } else if (isAnnualPass) {
+    planDisplayName = 'Annual Pass';
+    isTypeIncluded = targetCategory === 'office' || targetType.includes('desk') || targetType === 'private-office' || targetType === 'meeting-room';
+    isPlanDurationAllowed = planType === 'daily' || planType === 'monthly' || planType === 'yearly' || (planType === 'hourly' && targetType.includes('meeting'));
+    includedMeetingHours = 8;
+    maxCoveredSeats = 1;
+  } else if (isMonthlyPass) {
+    planDisplayName = 'Monthly Pass';
+    isTypeIncluded = (targetCategory === 'office' || targetType.includes('desk') || targetType === 'meeting-room') && targetType !== 'private-office' && targetCategory !== 'theater';
+    isPlanDurationAllowed = planType === 'daily' || planType === 'monthly' || (planType === 'hourly' && targetType.includes('meeting'));
+    includedMeetingHours = 2;
+    maxCoveredSeats = 1;
+  } else if (isDayPass) {
+    planDisplayName = 'Day Pass';
+    isTypeIncluded = targetType.includes('desk') || (targetCategory === 'office' && targetType !== 'private-office' && targetType !== 'meeting-room');
+    isPlanDurationAllowed = planType === 'daily';
+    includedMeetingHours = 0;
+    maxCoveredSeats = 1;
+  }
+
+  // Check meeting room hourly coverage
+  const isMeetingRoom = targetType === 'meeting-room' || targetType === 'meeting-hall';
+  if (isMeetingRoom && planType === 'hourly') {
+    if (includedMeetingHours > 0) {
+      const coveredHours = Math.min(durationHours, includedMeetingHours);
+      const payableHours = Math.max(0, durationHours - coveredHours);
+      const hourlyRate = space.pricing?.hourly || 150;
+      const payablePrice = payableHours * hourlyRate * effectiveSeats;
+
+      if (payableHours === 0) {
+        return {
+          isCovered: true,
+          isPartiallyCovered: false,
+          effectivePrice: 0,
+          originalPrice: fullOriginalTotal,
+          badgeLabel: 'Included in your Plan',
+          displayPriceLabel: 'Included in your Plan',
+          totalPayableLabel: 'SAR 0 to Pay',
+          hasDiscount: true,
+          discountPercentage: 100,
+          coveredSeats: effectiveSeats,
+          payableSeats: 0,
+          coveredHours,
+          payableHours: 0,
+          coverageNote: `Covered by ${planDisplayName} meeting room credits`,
+        };
+      } else {
+        return {
+          isCovered: false,
+          isPartiallyCovered: true,
+          effectivePrice: payablePrice,
+          originalPrice: fullOriginalTotal,
+          badgeLabel: `${coveredHours}h Included in Plan · SAR ${payablePrice.toLocaleString()} to Pay`,
+          displayPriceLabel: `${coveredHours}h Included in Plan · SAR ${payablePrice.toLocaleString()}`,
+          totalPayableLabel: `SAR ${payablePrice.toLocaleString()} to Pay`,
+          hasDiscount: true,
+          discountPercentage: Math.round(((fullOriginalTotal - payablePrice) / fullOriginalTotal) * 100),
+          coveredSeats: effectiveSeats,
+          payableSeats: 0,
+          coveredHours,
+          payableHours,
+          coverageNote: `${coveredHours}h included in pass, ${payableHours}h payable`,
+        };
+      }
+    } else {
+      // Meeting room not included in this plan
+      return {
+        isCovered: false,
+        isPartiallyCovered: false,
+        effectivePrice: fullOriginalTotal,
+        originalPrice: fullOriginalTotal,
+        badgeLabel: `SAR ${singleOriginalPrice.toLocaleString()}`,
+        displayPriceLabel: `SAR ${singleOriginalPrice.toLocaleString()}`,
+        totalPayableLabel: `SAR ${fullOriginalTotal.toLocaleString()}`,
+        hasDiscount: false,
+        coveredSeats: 0,
+        payableSeats: effectiveSeats,
+        coveredHours: 0,
+        payableHours: durationHours,
+        coverageNote: `Meeting rooms not included in ${planDisplayName}`,
+      };
+    }
+  }
+
+  // Not included workspace type or plan duration
+  if (!isTypeIncluded || !isPlanDurationAllowed) {
+    return {
+      isCovered: false,
+      isPartiallyCovered: false,
+      effectivePrice: fullOriginalTotal,
+      originalPrice: fullOriginalTotal,
+      badgeLabel: `SAR ${singleOriginalPrice.toLocaleString()}`,
+      displayPriceLabel: `SAR ${singleOriginalPrice.toLocaleString()}`,
+      totalPayableLabel: `SAR ${fullOriginalTotal.toLocaleString()}`,
+      hasDiscount: false,
+      coveredSeats: 0,
+      payableSeats: effectiveSeats,
+      coveredHours: 0,
+      payableHours: durationHours,
+      coverageNote: `Not included in ${planDisplayName}`,
+    };
+  }
+
+  // Evaluate seat coverage
+  const coveredSeats = Math.min(effectiveSeats, maxCoveredSeats);
+  const payableSeats = Math.max(0, effectiveSeats - coveredSeats);
+  const effectivePrice = payableSeats * singleOriginalPrice;
+
+  if (payableSeats === 0) {
+    // 100% Fully Covered
+    return {
+      isCovered: true,
+      isPartiallyCovered: false,
+      effectivePrice: 0,
+      originalPrice: fullOriginalTotal,
+      badgeLabel: 'Included in your Plan',
+      displayPriceLabel: 'Included in your Plan',
+      totalPayableLabel: 'SAR 0 to Pay',
+      hasDiscount: true,
+      discountPercentage: 100,
+      coveredSeats,
+      payableSeats: 0,
+      coveredHours: durationHours,
+      payableHours: 0,
+      coverageNote: `Covered by ${planDisplayName}`,
+    };
+  }
+
+  // Partially Covered (e.g. 1 seat covered by individual pass, 2 extra seats payable)
+  return {
+    isCovered: false,
+    isPartiallyCovered: true,
+    effectivePrice,
+    originalPrice: fullOriginalTotal,
+    badgeLabel: `${coveredSeats} Seat${coveredSeats > 1 ? 's' : ''} Included in Plan · SAR ${effectivePrice.toLocaleString()} to Pay`,
+    displayPriceLabel: `${coveredSeats} Seat${coveredSeats > 1 ? 's' : ''} Included in Plan`,
+    totalPayableLabel: `SAR ${effectivePrice.toLocaleString()} to Pay`,
+    hasDiscount: true,
+    discountPercentage: Math.round(((fullOriginalTotal - effectivePrice) / fullOriginalTotal) * 100),
+    coveredSeats,
+    payableSeats,
+    coveredHours: durationHours,
+    payableHours: 0,
+    coverageNote: `${coveredSeats} seat included in pass, ${payableSeats} seat${payableSeats > 1 ? 's' : ''} payable`,
+  };
 }
 
 export interface Booking {
@@ -64,16 +1054,87 @@ export interface Booking {
   spaceCity: string;
   spaceAddress: string;
   spaceImage: string;
+  category?: SpaceCategory;
   type: BookingType;
   plan: BookingPlan;
+
+  // Time & Duration for Hourly Reservations (Halls & Theaters only)
+  startTime?: string;
+  endTime?: string;
+  durationHours?: number;
+
+  // Duration for Monthly Reservations (Multi-month: 1, 2, 3, 6, 12)
+  durationMonths?: number;
+
+  bookingPackageId?: string;
+  bookingHours?: number;
+
   startDate: string;
   endDate: string;
   seats: number;
   employees: string[];
   totalPrice: number;
   status: BookingStatus;
-  createdAt: string;
+  createdAt?: string;
   notes?: string;
+}
+
+export type AmenityRequestStatus = 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
+
+export interface AmenityRequest {
+  id: string;
+  amenityName: string;
+  providerId: string;
+  providerName: string;
+  spaceId?: string;
+  spaceName?: string;
+  status: AmenityRequestStatus;
+  createdAt: string;
+  rejectionReason?: string;
+}
+
+
+export interface CartItem {
+  id: string;
+  spaceId: string;
+  spaceName: string;
+  spaceCity: string;
+  spaceAddress: string;
+  spaceImage: string;
+  type: BookingType | SpaceType;
+  plan: BookingPlan;
+  startTime?: string;
+  endTime?: string;
+  durationHours?: number;
+  durationMonths?: number;
+  startDate: string;
+  endDate: string;
+  seats: number;
+  employees?: string[];
+  pricePerSeat: number;
+  itemTotal: number;
+  notes?: string;
+}
+
+export function getBookingPrice(b: Booking, spaces: Space[] = []): number {
+  if (typeof b.totalPrice === 'number' && !isNaN(b.totalPrice) && b.totalPrice >= 0) {
+    return b.totalPrice;
+  }
+  const space = spaces.find(s => s.id === b.spaceId || s.name.toLowerCase() === b.spaceName.toLowerCase());
+  const seats = b.seats || 1;
+  if (!space) return 150 * seats;
+  if (b.plan === 'hourly') {
+    const hours = b.durationHours || 1;
+    return getHourlyPriceForDuration(space, hours) * seats;
+  }
+  if (b.plan === 'monthly') {
+    const months = b.durationMonths || 1;
+    return getMonthlyPriceForDuration(space, months) * seats;
+  }
+  if (b.plan === 'yearly') {
+    return (space.pricing?.yearly || ((space.pricing?.monthly || 1800) * 10)) * seats;
+  }
+  return (space.pricing?.daily || 150) * seats;
 }
 
 export type Screen =
@@ -81,10 +1142,13 @@ export type Screen =
   | 'browse'
   | 'space-details'
   | 'pricing'
-  | 'contact' 
+  | 'contact'
   | 'login'
   | 'signup'
   | 'choose-type'
+  | 'forgot-password'
+  | 'otp-verify'
+  | 'reset-password'
   | 'ind-dashboard'
   | 'booking-flow'
   | 'booking-confirm'
@@ -97,14 +1161,227 @@ export type Screen =
   | 'team-bookings'
   | 'org-profile'
   | 'org-settings'
+  | 'company-workspaces'
+  | 'company-add-workspace'
+  | 'company-bookings'
+  | 'company-team'
+  | 'company-workspace-details'
+  | 'company-reports'
   | 'admin-dashboard'
   | 'admin-spaces'
   | 'admin-users'
   | 'admin-bookings'
+  | 'admin-plans'
+  | 'admin-subscriptions'
+  | 'admin-payments'
+  | 'admin-payouts'
+  | 'admin-hourly-bookings'
   | 'admin-reports'
-  | 'admin-settings';
+  | 'admin-settings'
+  | 'admin-loyalty-proposals'
+  | 'admin-support'
+  | 'provider-dashboard'
+  | 'provider-spaces'
+  | 'provider-bookings'
+  | 'provider-loyalty-proposals'
+  | 'provider-profile'
+  | 'provider-settings'
+  | 'notifications'
+  | 'cart'
+  | 'loyalty'
+  | 'privacy-policy'
+  | 'terms-of-service'
+  | 'legal';
+
+export type TicketCategory = 'general' | 'complaint' | 'refund';
+export type TicketStatus = 'open' | 'in-progress' | 'resolved' | 'closed';
+export type TicketPriority = 'low' | 'medium' | 'high' | 'urgent';
+
+export interface SupportTicket {
+  id: string;
+  ticketNumber: string;
+  userName: string;
+  userEmail: string;
+  userId?: string;
+  category: TicketCategory;
+  subject: string;
+  message: string;
+  attachedImage?: string;
+  attachedFileName?: string;
+  status: TicketStatus;
+  priority: TicketPriority;
+  createdAt: string;
+  updatedAt?: string;
+  adminNotes?: string;
+  adminReply?: string;
+  bookingId?: string;
+}
+
+export interface OtpSession {
+  user: User;
+  targetEmailOrPhone: string;
+  mode: 'login' | 'signup' | 'forgot-password';
+  role?: UserRole;
+  extraData?: Partial<User>;
+  destinationScreen?: Screen;
+  destinationParams?: Record<string, any>;
+  userId?: string;
+  token?: string;
+  backendSynced?: boolean;
+  devOtp?: string;
+}
 
 export interface NavState {
   screen: Screen;
   params: Record<string, any>;
 }
+
+export interface Partner {
+  id: string;
+  brandName: string;
+  contactEmail: string;
+  taxNumber: string;
+  revenueSharePercentage: number;
+  workspaces?: any[];
+  payouts?: any[];
+  createdAt?: string;
+}
+
+export interface WorkspaceApi {
+  id: string;
+  partnerId: string;
+  name: string;
+  city: string;
+  locationMapUrl?: string;
+  dailyRate?: number;
+  monthlyRate?: number;
+  yearlyRate?: number;
+  passVisitValue: number;
+  totalCapacity: number;
+  images?: string[];
+  amenities?: string[];
+  createdAt?: string;
+  updatedAt?: string;
+  partner?: Partner;
+  sections?: any[];
+}
+export interface HourlyBookingApi {
+  id: string;
+  userId: string;
+  sectionId: string;
+  packageId: string;
+  startDate: string;
+  endDate: string;
+  hoursUsed: number;
+  status: string;
+  createdAt?: string;
+  updatedAt?: string;
+  user?: { name: string; email: string };
+  section?: any;
+  package?: any;
+}
+
+export interface PayoutApi {
+  id: string;
+  partnerId: string;
+  billingMonth: string;
+  totalVisitsReceived: number;
+  amountDue: number;
+  status: string;
+  paidAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  partner?: Partner;
+}
+
+export interface MembershipPlanApi {
+  id: string;
+  planName: string;
+  type: string;
+  totalVisitsAllowed: number;
+  price: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface SubscriptionApi {
+  id: string;
+  userId: string;
+  planId: string;
+  startDate: string;
+  endDate: string;
+  status: string;
+  visitsUsed?: number;
+  createdAt?: string;
+  updatedAt?: string;
+  user?: { name: string; email: string };
+  plan?: MembershipPlanApi;
+}
+
+export interface DirectBookingApi {
+  id: string;
+  userId: string;
+  workspaceId: string;
+  sectionId: string;
+  durationType: string;
+  bookingDate: string;
+  status: string;
+  createdAt?: string;
+  updatedAt?: string;
+  user?: { name: string; email: string };
+  workspace?: WorkspaceApi;
+  section?: any;
+}
+
+export interface PaymentApi {
+  id: string;
+  userId: string;
+  amount: number;
+  method: string;
+  paymentFor: string;
+  referenceId?: string;
+  status: string;
+  gatewayTransactionId?: string;
+  createdAt?: string;
+  user?: { name: string; email: string };
+}
+
+export type LoyaltyRuleType = 'EARNING' | 'REDEMPTION';
+export type ApprovalStatus = 'APPROVED' | 'PENDING_APPROVAL' | 'REJECTED';
+
+export interface LoyaltyRule {
+  id: string;
+  ruleName: string;
+  ruleType: LoyaltyRuleType;
+  pointsValue: number;
+  monetaryValue: number;
+  description?: string;
+  status: ApprovalStatus;
+  proposedBy: string;
+  proposerName?: string;
+  proposerEmail?: string;
+  approvedBy?: string;
+  approverName?: string;
+  isActive: boolean;
+  workspaceId?: string;
+  workspaceName?: string;
+  bonusMultiplier?: number;
+  adminFeedback?: string;
+  createdAt: string;
+  updatedAt?: string;
+  proposer?: { name: string; email: string };
+  approver?: { name: string; email: string };
+}
+
+export interface LoyaltyProposalForm {
+  ruleName: string;
+  ruleType: LoyaltyRuleType;
+  pointsValue: number;
+  monetaryValue: number;
+  description: string;
+  workspaceId?: string;
+  bonusMultiplier?: number;
+}
+
+
+

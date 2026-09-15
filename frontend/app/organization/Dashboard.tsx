@@ -1,92 +1,244 @@
 'use client';
-import { CalendarDays, Users, MapPin, ArrowRight, Search, TrendingUp, Briefcase } from 'lucide-react';
+import React, { useState } from 'react';
+import {
+  CalendarDays,
+  MapPin,
+  Star,
+  Clock,
+  ArrowRight,
+  Bookmark,
+  Check,
+  Users,
+  Building2,
+  Sparkles,
+  Presentation,
+  Clapperboard,
+  QrCode,
+  Search,
+  TrendingUp,
+  Briefcase,
+  Wallet,
+  Coins,
+  ArrowUpRight
+} from 'lucide-react';
 import { useApp } from '@/app/store';
+import BookingQrModal from '@/components/BookingQrModal';
+import SharedWalletModal from '@/components/ui/SharedWalletModal';
+import {
+  Space,
+  getEffectiveSpacePrice,
+  Booking,
+  getHourlyPriceForDuration,
+  Employee,
+  getBookingPrice,
+  getSpaceCategory,
+  SpaceCategory
+} from '@/types/types';
 
 export default function OrgDashboard() {
-  const { currentUser, bookings, spaces, navigate } = useApp();
+  const { currentUser, spaces, bookings, favorites, navigate, companyWalletBalance, companyData } = useApp();
+  const [selectedCategory, setSelectedCategory] = useState<'all' | SpaceCategory>('all');
+  const [selectedBookingForQr, setSelectedBookingForQr] = useState<Booking | null>(null);
+  const [isSharedWalletOpen, setIsSharedWalletOpen] = useState(false);
+
   if (!currentUser) return null;
 
-  const orgBookings = bookings.filter(b => b.userId === currentUser.id);
-  const activeBookings = orgBookings.filter(b => b.status === 'active');
-  const totalSeats = activeBookings.reduce((sum, b) => sum + b.seats, 0);
-  const totalSpend = orgBookings.filter(b => b.status !== 'cancelled').reduce((sum, b) => sum + b.totalPrice, 0);
+  const orgBookings = bookings.filter((b: Booking) => b.userId === currentUser.id);
+  const activeBookings = orgBookings.filter((b: Booking) => b.status === 'active');
+  const favoriteSpaces = spaces.filter((s: Space) => favorites.includes(s.id) && s.isVisible);
+  const visibleSpaces = spaces.filter((s: Space) => s.isVisible);
   const employees = currentUser.employees || [];
 
+  const categoryFilteredSpaces = selectedCategory === 'all'
+    ? visibleSpaces
+    : visibleSpaces.filter(s => getSpaceCategory(s) === selectedCategory);
+
+  const greeting = () => {
+    const h = new Date().getHours();
+    if (h < 12) return 'Good morning';
+    if (h < 17) return 'Good afternoon';
+    return 'Good evening';
+  };
+
+  const getEmpName = (id: string) => employees.find((e: Employee) => e.id === id)?.name || id;
+
+  const orgTierName = currentUser.membershipTier || (currentUser.hasActivePass ? 'Enterprise Pass' : 'Corporate Plan');
+
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Header */}
-      <div className="flex items-start justify-between mb-8 flex-wrap gap-4">
+      <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
-          <p className="text-moss text-sm mb-1">Organization dashboard</p>
-          <h1 className="text-3xl text-soot" style={{ fontFamily: 'DM Serif Display, serif' }}>{currentUser.orgName || currentUser.name}</h1>
-          <p className="text-moss text-sm mt-1">{currentUser.industry || 'Organization'} · {currentUser.orgSize || 0} employees</p>
+          <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
+            <span className="text-xs font-semibold tracking-wider uppercase text-moss block">
+              Enterprise HR & Corporate Portal
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E2E8E4] border border-[#2D3536]/15 text-soot text-xs font-semibold shadow-2xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
+              <span>{orgTierName}</span>
+            </span>
+          </div>
+          <h1 className="text-3xl sm:text-4xl text-soot font-normal font-serif-display">
+            {currentUser.orgName || currentUser.name}
+          </h1>
+          <p className="text-moss text-sm mt-1">
+            {currentUser.industry || 'Enterprise Solutions'} · {employees.length || currentUser.orgSize || 15} team members on pass
+          </p>
         </div>
-        <button
-          onClick={() => navigate('browse')}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-eucalyptus text-soot font-medium text-sm hover:bg-eucalyptus-dark transition-colors"
-        >
-          <Search size={15} />
-          Book workspace
-        </button>
+
+        {/* Corporate Shared Wallet Card */}
+        <div className="bg-plaster-surface rounded-3xl border border-soot/12 p-4 sm:p-5 shadow-xs flex items-center gap-4 group">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-800 shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+            <Wallet size={24} />
+          </div>
+          <div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-semibold text-moss">المحفظة المشتركة</span>
+              <span className="text-[10px] px-2 py-0.2 rounded-full font-bold bg-emerald-500/15 text-emerald-800 border border-emerald-500/30">
+                Shared Wallet
+              </span>
+            </div>
+            <div className="text-2xl font-serif-display font-normal text-soot tracking-tight">
+              SAR {(companyWalletBalance || companyData?.balance || 0).toLocaleString()}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsSharedWalletOpen(true)}
+            className="ml-2 px-3 py-2 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-semibold shadow-2xs transition-all flex items-center gap-1 cursor-pointer shrink-0"
+          >
+            <span>شحن المحفظة</span>
+            <ArrowUpRight size={13} />
+          </button>
+        </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+      {/* Stats Cards مع بطاقة نقاط الولاء المدمجة */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {[
-          { label: 'Active bookings', value: activeBookings.length, icon: CalendarDays, color: 'text-eucalyptus' },
-          { label: 'Seats booked', value: totalSeats, icon: Users, color: 'text-moss' },
-          { label: 'Team members', value: employees.length, icon: Briefcase, color: 'text-soot' },
-          { label: 'Total spend', value: `SAR ${totalSpend.toLocaleString()}`, icon: TrendingUp, color: 'text-mist' },
-        ].map(s => (
-          <div key={s.label} className="bg-white rounded-2xl p-5 border border-soot/8">
-            <div className={`${s.color} mb-3`}><s.icon size={18} /></div>
-            <div className="text-xl font-semibold text-soot">{s.value}</div>
-            <div className="text-xs text-moss mt-0.5">{s.label}</div>
+          {
+            label: 'Active Bookings',
+            count: activeBookings.length,
+            badge: 'bg-emerald-500/15 text-emerald-800 border border-emerald-500/30',
+            icon: CalendarDays,
+            iconBg: 'bg-emerald-500/15 text-emerald-800 border-emerald-500/30',
+          },
+          {
+            label: 'Total Bookings',
+            count: orgBookings.length,
+            badge: 'bg-soot/10 text-soot border border-soot/15',
+            icon: Bookmark,
+            iconBg: 'bg-soot text-plaster border-soot/20',
+          },
+          {
+            label: 'Team Members',
+            count: employees.length || 1,
+            badge: 'bg-amber-500/15 text-amber-800 border border-amber-500/30',
+            icon: Users,
+            iconBg: 'bg-amber-500/15 text-amber-800 border-amber-500/30',
+          },
+          {
+            label: 'Days Booked',
+            count: orgBookings.filter(b => b.status !== 'cancelled').length * 4,
+            badge: 'bg-blue-500/15 text-blue-800 border border-blue-500/30',
+            icon: Clock,
+            iconBg: 'bg-blue-500/15 text-blue-800 border-blue-500/30',
+          },
+          {
+            label: 'Loyalty Points',
+            count: currentUser.loyaltyPoints || 0,
+            badge: 'bg-amber-500/20 text-amber-900 border border-amber-500/40',
+            icon: Sparkles,
+            iconBg: 'bg-amber-500/15 text-amber-600 border border-amber-500/30',
+          },
+        ].map((stat) => (
+          <div
+            key={stat.label}
+            onClick={() => stat.label === 'Loyalty Points' ? navigate('loyalty') : undefined}
+            className={`bg-plaster-surface rounded-3xl border border-soot/12 p-5 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between group ${stat.label === 'Loyalty Points' ? 'cursor-pointer hover:border-amber-500/40' : ''}`}
+          >
+            <div className="flex items-center gap-3.5">
+              <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs ${stat.iconBg}`}>
+                <stat.icon size={20} />
+              </div>
+              <div>
+                <div className="text-3xl font-normal text-soot tracking-tight font-serif-display">{stat.count}</div>
+                <div className="text-xs font-medium text-moss mt-0.5">{stat.label}</div>
+              </div>
+            </div>
           </div>
         ))}
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-8">
-        {/* Active bookings */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-soot">Active bookings</h2>
-            <button onClick={() => navigate('team-bookings')} className="text-xs text-moss hover:text-soot flex items-center gap-1">
-              View all <ArrowRight size={12} />
+      {/* Main Grid: Active bookings & Saved spaces */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+        {/* Active bookings column */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-serif-display text-soot">Active Team Bookings</h2>
+            <button
+              onClick={() => navigate('team-bookings')}
+              className="text-xs font-semibold text-moss hover:text-soot flex items-center gap-1 cursor-pointer transition-colors"
+            >
+              <span>View all</span>
+              <ArrowRight size={13} />
             </button>
           </div>
 
           {activeBookings.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-soot/8 p-8 text-center">
-              <CalendarDays size={28} className="text-moss mx-auto mb-3" />
-              <div className="text-sm text-moss mb-3">No active team bookings</div>
-              <button onClick={() => navigate('browse')} className="px-4 py-2 rounded-xl bg-eucalyptus text-soot text-sm font-medium">
-                Book a space
+            <div className="bg-plaster-surface rounded-3xl border border-soot/10 p-8 text-center shadow-2xs min-h-[200px] flex flex-col items-center justify-center">
+              <CalendarDays size={32} className="text-moss mx-auto mb-3" />
+              <div className="text-sm font-semibold text-soot mb-1">No active team bookings</div>
+              <button
+                onClick={() => navigate('browse')}
+                className="text-xs font-semibold text-moss hover:text-soot flex items-center gap-1 transition-colors cursor-pointer mt-2"
+              >
+                Browse workspaces →
               </button>
             </div>
           ) : (
-            <div className="space-y-3">
-              {activeBookings.map(booking => (
-                <div key={booking.id} className="bg-white rounded-2xl border border-soot/8 p-4">
-                  <div className="flex items-start gap-3">
-                    <img src={booking.spaceImage} alt={booking.spaceName} className="w-12 h-12 rounded-xl object-cover" />
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium text-soot text-sm">{booking.spaceName}</div>
-                      <div className="flex items-center gap-1 text-xs text-moss mt-0.5">
-                        <MapPin size={10} />
-                        {booking.spaceCity}
+            <div className="bg-plaster-surface rounded-3xl border border-soot/10 overflow-hidden shadow-2xs divide-y divide-soot/8">
+              {activeBookings.slice(0, 3).map(b => (
+                <div
+                  key={b.id}
+                  onClick={() => setSelectedBookingForQr(b)}
+                  className="p-4 hover:bg-plaster-dark/30 transition-colors flex items-center justify-between gap-4 cursor-pointer group"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <img src={b.spaceImage} alt={b.spaceName} className="w-12 h-12 rounded-xl object-cover border border-soot/10 shrink-0 shadow-2xs group-hover:scale-105 transition-transform" />
+                    <div className="min-w-0">
+                      <h4 className="font-semibold text-soot text-sm truncate group-hover:text-emerald-900 transition-colors">{b.spaceName}</h4>
+                      <div className="flex items-center gap-1.5 text-xs text-moss mt-0.5 font-medium">
+                        <MapPin size={12} className="shrink-0" />
+                        <span className="truncate">{b.spaceCity}</span>
+                        <span>•</span>
+                        <span className="truncate">{b.startDate} {b.plan === 'hourly' && b.startTime ? `(${b.startTime} – ${b.endTime || ''})` : (b.endDate && b.endDate !== b.startDate ? `→ ${b.endDate}` : '')}</span>
                       </div>
-                      <div className="flex items-center gap-3 mt-2 text-xs text-moss">
-                        <span>{booking.seats} seats</span>
-                        <span className="capitalize bg-eucalyptus/15 px-2 py-0.5 rounded-full text-moss">{booking.plan}</span>
-                        <span>{booking.type.replace('-', ' ')}</span>
+                      <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+                        <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-500/15 text-emerald-800 border border-emerald-500/30 uppercase tracking-wider">
+                          {b.plan === 'hourly' ? `Hourly (${b.durationHours || 1} ${b.durationHours === 1 ? 'hr' : 'hrs'})` : `${b.plan} pass`} • {b.seats} seat{b.seats > 1 ? 's' : ''}
+                        </span>
+                        {b.employees && b.employees.length > 0 && (
+                          <span className="text-[10px] text-moss bg-soot/5 px-2 py-0.5 rounded-full border border-soot/8 font-medium">
+                            {getEmpName(b.employees[0]).split(' ')[0]} {b.employees.length > 1 ? `+${b.employees.length - 1}` : ''}
+                          </span>
+                        )}
                       </div>
-                      {booking.employees.length > 0 && (
-                        <div className="mt-2 text-xs text-moss">
-                          {booking.employees.length} employee{booking.employees.length > 1 ? 's' : ''} assigned
-                        </div>
-                      )}
                     </div>
+                  </div>
+                  <div className="text-right shrink-0 flex flex-col items-end gap-1">
+                    <div className="text-sm font-semibold text-soot">SAR {getBookingPrice(b).toLocaleString()}</div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedBookingForQr(b);
+                      }}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-[#2F6144] hover:bg-[#254F37] text-white text-[11px] font-semibold transition-all shadow-2xs cursor-pointer"
+                    >
+                      <QrCode size={12} />
+                      <span>QR Pass</span>
+                    </button>
                   </div>
                 </div>
               ))}
@@ -94,59 +246,246 @@ export default function OrgDashboard() {
           )}
         </div>
 
-        {/* Team members */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-soot">Team members</h2>
-            <button onClick={() => navigate('org-profile')} className="text-xs text-moss hover:text-soot flex items-center gap-1">
-              Manage <ArrowRight size={12} />
+        {/* Saved spaces column */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-serif-display text-soot">Saved Workspaces</h2>
+            <button
+              onClick={() => navigate('browse')}
+              className="text-xs font-semibold text-moss hover:text-soot flex items-center gap-1 cursor-pointer transition-colors"
+            >
+              <span>Browse more</span>
+              <ArrowRight size={13} />
             </button>
           </div>
 
-          {employees.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-soot/8 p-8 text-center">
-              <Users size={28} className="text-moss mx-auto mb-3" />
-              <div className="text-sm text-moss">No team members added yet</div>
+          {favoriteSpaces.length === 0 ? (
+            <div className="bg-plaster-surface rounded-3xl border border-soot/10 p-8 text-center shadow-2xs min-h-[200px] flex flex-col items-center justify-center">
+              <Star size={32} className="text-moss mx-auto mb-3" />
+              <div className="text-sm font-semibold text-soot mb-1">No saved spaces yet</div>
+              <button
+                onClick={() => navigate('browse')}
+                className="text-xs font-semibold text-moss hover:text-soot flex items-center gap-1 transition-colors cursor-pointer mt-2"
+              >
+                Browse workspaces →
+              </button>
             </div>
           ) : (
-            <div className="bg-white rounded-2xl border border-soot/8 divide-y divide-soot/5">
-              {employees.slice(0, 5).map(emp => (
-                <div key={emp.id} className="flex items-center gap-3 px-4 py-3">
-                  <div className="w-8 h-8 rounded-full bg-eucalyptus/20 flex items-center justify-center text-sm font-medium text-moss">
-                    {emp.name.charAt(0)}
+            <div className="bg-plaster-surface rounded-3xl border border-soot/10 overflow-hidden shadow-2xs divide-y divide-soot/8">
+              {favoriteSpaces.map(space => (
+                <div
+                  key={space.id}
+                  onClick={() => navigate('space-details', { spaceId: space.id })}
+                  className="p-4 hover:bg-plaster-dark/30 transition-colors flex items-center justify-between gap-4 cursor-pointer group"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <img
+                      src={space.images[0]}
+                      alt={space.name}
+                      className="w-12 h-12 rounded-xl object-cover border border-soot/10 shrink-0 shadow-2xs group-hover:scale-105 transition-transform"
+                    />
+                    <div className="min-w-0">
+                      <h4 className="font-semibold text-soot text-sm truncate group-hover:text-emerald-900 transition-colors">{space.name}</h4>
+                      <div className="flex items-center gap-1.5 text-xs text-moss mt-0.5 font-medium">
+                        <MapPin size={12} className="shrink-0" />
+                        <span>{space.city}</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-moss mt-1 font-medium">
+                        <Star size={12} className="fill-amber-400 text-amber-400" />
+                        <span>{space.rating}</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-soot truncate">{emp.name}</div>
-                    <div className="text-xs text-moss truncate">{emp.department}</div>
+                  <div className="text-right shrink-0">
+                    {(() => {
+                      const planInfo = getEffectiveSpacePrice(currentUser, space, 'daily');
+                      if (planInfo.isCovered) {
+                        return (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-800 font-bold text-[10px] border border-emerald-500/30 uppercase tracking-wider shadow-2xs">
+                            <Check size={11} className="text-emerald-800 shrink-0" />
+                            <span>Corporate Pass</span>
+                          </span>
+                        );
+                      }
+                      if (planInfo.hasDiscount) {
+                        return (
+                          <div>
+                            <div className="text-sm font-semibold text-soot">SAR {planInfo.effectivePrice}/day</div>
+                            <div className="text-[10px] text-amber-800 font-bold">{planInfo.discountPercentage}% Pass Discount</div>
+                          </div>
+                        );
+                      }
+                      return <div className="text-sm font-semibold text-soot">SAR {space.pricing.daily}/day</div>;
+                    })()}
                   </div>
                 </div>
               ))}
-              {employees.length > 5 && (
-                <div className="px-4 py-3 text-xs text-moss text-center">
-                  +{employees.length - 5} more members
-                </div>
-              )}
             </div>
           )}
         </div>
       </div>
 
-      {/* Quick book */}
-      <div className="mt-8 bg-soot rounded-2xl p-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      {/* Explore Spaces by Type Section */}
+      <div className="space-y-4 pt-4 border-t border-soot/8">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
           <div>
-            <h2 className="text-white text-lg font-semibold mb-1" style={{ fontFamily: 'DM Serif Display, serif' }}>Book for your team</h2>
-            <p className="text-white/60 text-sm">Hot desks, private offices, and meeting rooms for your entire team.</p>
+            <span className="text-xs font-semibold tracking-wider uppercase text-moss block mb-1">
+              Corporate Reservation & Discovery
+            </span>
+            <h2 className="text-2xl font-serif-display text-soot">Book Workspaces for Your Team</h2>
           </div>
           <button
             onClick={() => navigate('browse')}
-            className="shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-xl bg-eucalyptus text-soot font-medium text-sm"
+            className="text-xs font-semibold text-moss hover:text-soot flex items-center gap-1 cursor-pointer transition-colors"
           >
-            Browse spaces
-            <ArrowRight size={14} />
+            <span>Open workspace directory</span>
+            <ArrowRight size={13} />
           </button>
         </div>
+
+        {/* Category Filter Tabs */}
+        <div className="flex flex-wrap gap-2">
+          {[
+            { id: 'all', label: 'All Spaces' },
+            { id: 'office', label: 'Offices' },
+            { id: 'hall', label: 'Halls' },
+            { id: 'theater', label: 'Theaters' },
+          ].map(cat => {
+            const isSelected = selectedCategory === cat.id;
+            const count = cat.id === 'all'
+              ? visibleSpaces.length
+              : visibleSpaces.filter(s => getSpaceCategory(s) === cat.id).length;
+            return (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => setSelectedCategory(cat.id as any)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-semibold transition-all cursor-pointer ${
+                  isSelected
+                    ? 'bg-soot text-plaster shadow-xs'
+                    : 'bg-plaster-surface border border-soot/10 text-moss hover:text-soot hover:border-soot/25'
+                }`}
+              >
+                <span>{cat.label}</span>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                  isSelected ? 'bg-plaster/20 text-plaster' : 'bg-plaster-dark/60 text-soot'
+                }`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Grid of Categorized Spaces */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 pt-2">
+          {categoryFilteredSpaces.slice(0, 6).map(space => {
+            const cat = getSpaceCategory(space);
+            const planInfo = getEffectiveSpacePrice(currentUser, space, cat === 'office' ? 'daily' : 'hourly');
+            const isHourly = cat === 'hall' || cat === 'theater';
+            return (
+              <div
+                key={space.id}
+                onClick={() => navigate('space-details', { spaceId: space.id })}
+                className="bg-plaster-surface hover:bg-plaster-dark/30 rounded-3xl border border-soot/12 overflow-hidden shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer group flex flex-col justify-between"
+              >
+                <div className="relative h-44 overflow-hidden">
+                  <img
+                    src={space.images[0]}
+                    alt={space.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-soot/70 via-transparent to-transparent" />
+                  
+                  {/* Category & Type Badges */}
+                  <div className="absolute top-3 left-3 flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-white/95 text-soot backdrop-blur-md shadow-xs capitalize">
+                      {cat}
+                    </span>
+                    <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-soot/80 text-white backdrop-blur-md shadow-xs capitalize">
+                      {space.type.replace('-', ' ')}
+                    </span>
+                  </div>
+
+                  <div className="absolute bottom-3 left-3 right-3 text-white">
+                    <h3 className="font-semibold text-base truncate font-serif-display">{space.name}</h3>
+                    <div className="flex items-center gap-1 text-xs text-plaster/90 mt-0.5">
+                      <MapPin size={11} className="text-eucalyptus shrink-0" />
+                      <span className="truncate">{space.city} • {space.address}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-4 flex items-center justify-between gap-3 border-t border-soot/6">
+                  <div>
+                    <div className="text-xs text-moss">
+                      {isHourly ? 'Hourly Rate' : 'Daily Pass'}
+                    </div>
+                    <div className="font-bold text-soot text-sm">
+                      {planInfo.isCovered ? (
+                        <span className="text-emerald-800 font-semibold">Included in Plan</span>
+                      ) : (
+                        <span>SAR {planInfo.originalPrice.toLocaleString()} {isHourly ? '/h' : '/seat'}</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate('team-booking', { spaceId: space.id });
+                    }}
+                    className="px-3.5 py-1.5 rounded-xl bg-[#DDE6DF] hover:bg-[#D0DDD3] text-soot font-semibold text-xs transition-colors shadow-2xs border border-soot/10 cursor-pointer"
+                  >
+                    Book for Team
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
+
+      {/* Admin-Matching Action Cards */}
+      <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: 'Browse Workspaces', desc: 'Find and reserve desks, halls & theaters', action: () => navigate('browse'), icon: Building2 },
+          { label: 'Team Bookings', desc: 'Manage active company reservations', action: () => navigate('team-bookings'), icon: CalendarDays },
+          { label: 'Manage Team', desc: 'Add colleagues to enterprise pass', action: () => navigate('company-team'), icon: Users },
+          {
+            label: 'المحفظة المشتركة',
+            desc: `رصيد: SAR ${(companyWalletBalance || companyData?.balance || 0).toLocaleString()} · شحن وإدارة رصيد الفريق`,
+            action: () => setIsSharedWalletOpen(true),
+            icon: Wallet
+          },
+        ].map(a => (
+          <button
+            key={a.label}
+            onClick={a.action}
+            className="bg-plaster-surface rounded-3xl border border-soot/12 p-5 text-left hover:border-eucalyptus/40 hover:shadow-md transition-all group cursor-pointer"
+          >
+            <div className="w-11 h-11 rounded-2xl bg-soot text-plaster flex items-center justify-center mb-3 shadow-2xs group-hover:scale-105 transition-transform">
+              <a.icon size={20} />
+            </div>
+            <div className="font-semibold text-soot text-base">{a.label}</div>
+            <div className="text-xs text-moss mt-1 font-medium">{a.desc}</div>
+          </button>
+        ))}
+      </div>
+
+      {/* Corporate Shared Wallet Modal */}
+      <SharedWalletModal
+        isOpen={isSharedWalletOpen}
+        onClose={() => setIsSharedWalletOpen(false)}
+      />
+
+      {/* Quick Access Entry QR Code Pass Modal */}
+      {selectedBookingForQr && (
+        <BookingQrModal
+          booking={selectedBookingForQr}
+          onClose={() => setSelectedBookingForQr(null)}
+        />
+      )}
     </div>
   );
 }

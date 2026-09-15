@@ -2,10 +2,11 @@
 import { useState } from 'react';
 import { TrendingUp, CalendarDays, Users, Building2, BarChart3 } from 'lucide-react';
 import { useApp } from '@/app/store';
+import { getBookingPrice } from '@/types/types';
 
 const PERIODS = ['Today', 'This week', 'This month', 'This year'];
 
-// Simple bar chart using CSS
+// Simple bar chart using CSS (أحجام خطوط أكبر للرسم البياني)
 function BarChart({
   data,
   color = '#98AA9D',
@@ -17,7 +18,7 @@ function BarChart({
 
   return (
     <div className="mt-4">
-      <div className="flex items-end gap-3 h-40 border-b border-soot/10">
+      <div className="flex items-end gap-3 h-48 border-b border-soot/10 pb-1">
         {data.map(d => {
           const barHeight =
             d.value === 0
@@ -29,7 +30,7 @@ function BarChart({
               key={d.label}
               className="flex-1 h-full min-w-0 flex flex-col items-center justify-end gap-1"
             >
-              <div className="text-[10px] text-moss font-medium">
+              <div className="text-xs text-moss font-semibold">
                 {d.value.toLocaleString()}
               </div>
 
@@ -43,7 +44,7 @@ function BarChart({
                 title={`${d.label}: ${d.value.toLocaleString()}`}
               />
 
-              <div className="text-[10px] text-moss truncate w-full text-center mt-1">
+              <div className="text-xs text-moss font-medium truncate w-full text-center mt-1">
                 {d.label}
               </div>
             </div>
@@ -54,7 +55,6 @@ function BarChart({
   );
 }
 
-
 export default function Reports() {
   const { bookings, users, spaces } = useApp();
   const [period, setPeriod] = useState('This month');
@@ -62,7 +62,7 @@ export default function Reports() {
   const nonAdminUsers = users.filter(u => u.role !== 'admin');
   const activeBookings = bookings.filter(b => b.status === 'active');
   const cancelledBookings = bookings.filter(b => b.status === 'cancelled');
-  const totalRevenue = bookings.filter(b => b.status !== 'cancelled').reduce((sum, b) => sum + b.totalPrice, 0);
+  const totalRevenue = bookings.filter(b => b.status !== 'cancelled').reduce((sum, b) => sum + getBookingPrice(b, spaces), 0);
 
   // Mock period-based data
   const periodMultiplier = period === 'Today' ? 0.03 : period === 'This week' ? 0.2 : period === 'This month' ? 1 : 12;
@@ -100,25 +100,25 @@ export default function Reports() {
   const userGrowth = period === 'Today'
     ? [{ label: '9am', value: 1 }, { label: '12pm', value: 2 }, { label: '3pm', value: 1 }, { label: '6pm', value: 0 }]
     : period === 'This week'
-    ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d, i) => ({ label: d, value: Math.floor(Math.random() * 3) + 1 }))
+    ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => ({ label: d, value: Math.floor(Math.random() * 3) + 1 }))
     : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'].map((m, i) => ({ label: m, value: Math.floor(i * 1.5 + 2) }));
 
   const topSpaces = spaces.map(s => ({
     ...s,
     bookingCount: bookings.filter(b => b.spaceId === s.id && b.status !== 'cancelled').length,
-    revenue: bookings.filter(b => b.spaceId === s.id && b.status !== 'cancelled').reduce((sum, b) => sum + b.totalPrice, 0),
+    revenue: bookings.filter(b => b.spaceId === s.id && b.status !== 'cancelled').reduce((sum, b) => sum + getBookingPrice(b, spaces), 0),
   })).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
       <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
-        <h1 className="text-3xl text-soot" style={{ fontFamily: 'DM Serif Display, serif' }}>Reports & Analytics</h1>
-        <div className="flex gap-1 bg-white border border-soot/8 rounded-xl p-1">
+        <h1 className="text-4xl text-soot" style={{ fontFamily: 'DM Serif Display, serif' }}>Reports & Analytics</h1>
+        <div className="flex gap-1 bg-white border border-soot/8 rounded-xl p-1 shadow-xs">
           {PERIODS.map(p => (
             <button
               key={p}
               onClick={() => setPeriod(p)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${period === p ? 'bg-soot text-plaster' : 'text-moss hover:text-soot'}`}
+              className={`px-3.5 py-2 rounded-lg text-sm font-semibold transition-all ${period === p ? 'bg-soot text-plaster' : 'text-moss hover:text-soot'}`}
             >
               {p}
             </button>
@@ -129,85 +129,85 @@ export default function Reports() {
       {/* Stats grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {stats.map(s => (
-          <div key={s.label} className="bg-white rounded-2xl p-5 border border-soot/8">
+          <div key={s.label} className="bg-white rounded-2xl p-5 border border-soot/8 shadow-2xs">
             <div className="flex items-center justify-between mb-3">
-              <div className={s.color}><s.icon size={17} /></div>
-              <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${s.change.startsWith('-') ? 'bg-red-50 text-red-400' : 'bg-eucalyptus/15 text-moss'}`}>
+              <div className={s.color}><s.icon size={20} /></div>
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${s.change.startsWith('-') ? 'bg-red-50 text-red-500' : 'bg-eucalyptus/15 text-moss'}`}>
                 {s.change}
               </span>
             </div>
-            <div className="text-xl font-semibold text-soot">{s.value}</div>
-            <div className="text-xs text-moss mt-0.5">{s.label}</div>
+            <div className="text-2xl font-bold text-soot">{s.value}</div>
+            <div className="text-sm font-medium text-moss mt-1">{s.label}</div>
           </div>
         ))}
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6 mb-6">
         {/* Revenue by city */}
-        <div className="bg-white rounded-2xl border border-soot/8 p-5">
+        <div className="bg-white rounded-2xl border border-soot/8 p-6 shadow-2xs">
           <div className="flex items-center gap-2 mb-1">
-            <BarChart3 size={15} className="text-moss" />
-            <h2 className="font-semibold text-soot text-sm">Revenue by city</h2>
+            <BarChart3 size={18} className="text-moss" />
+            <h2 className="font-bold text-soot text-base">Revenue by city</h2>
           </div>
-          <p className="text-xs text-moss mb-1">{period}</p>
+          <p className="text-sm text-moss mb-2">{period}</p>
           <BarChart data={revenueData} color="#98AA9D" />
         </div>
 
         {/* Bookings by plan */}
-        <div className="bg-white rounded-2xl border border-soot/8 p-5">
+        <div className="bg-white rounded-2xl border border-soot/8 p-6 shadow-2xs">
           <div className="flex items-center gap-2 mb-1">
-            <CalendarDays size={15} className="text-moss" />
-            <h2 className="font-semibold text-soot text-sm">Bookings by plan</h2>
+            <CalendarDays size={18} className="text-moss" />
+            <h2 className="font-bold text-soot text-base">Bookings by plan</h2>
           </div>
-          <p className="text-xs text-moss mb-1">{period}</p>
+          <p className="text-sm text-moss mb-2">{period}</p>
           <BarChart data={bookingsByPlan} color="#697C70" />
         </div>
 
         {/* Space occupancy */}
-        <div className="bg-white rounded-2xl border border-soot/8 p-5">
+        <div className="bg-white rounded-2xl border border-soot/8 p-6 shadow-2xs">
           <div className="flex items-center gap-2 mb-1">
-            <Building2 size={15} className="text-moss" />
-            <h2 className="font-semibold text-soot text-sm">Space occupancy (%)</h2>
+            <Building2 size={18} className="text-moss" />
+            <h2 className="font-bold text-soot text-base">Space occupancy (%)</h2>
           </div>
-          <p className="text-xs text-moss mb-1">Current status</p>
+          <p className="text-sm text-moss mb-2">Current status</p>
           <BarChart data={occupancyData} color="#B3C9D6" />
         </div>
 
         {/* User growth */}
-        <div className="bg-white rounded-2xl border border-soot/8 p-5">
+        <div className="bg-white rounded-2xl border border-soot/8 p-6 shadow-2xs">
           <div className="flex items-center gap-2 mb-1">
-            <Users size={15} className="text-moss" />
-            <h2 className="font-semibold text-soot text-sm">New user signups</h2>
+            <Users size={18} className="text-moss" />
+            <h2 className="font-bold text-soot text-base">New user signups</h2>
           </div>
-          <p className="text-xs text-moss mb-1">{period}</p>
+          <p className="text-sm text-moss mb-2">{period}</p>
           <BarChart data={userGrowth} color="#2D3536" />
         </div>
       </div>
 
       {/* Top spaces table */}
-      <div className="bg-white rounded-2xl border border-soot/8 p-5">
-        <h2 className="font-semibold text-soot mb-4">Top performing spaces</h2>
+      <div className="bg-white rounded-2xl border border-soot/8 p-6 shadow-2xs">
+        <h2 className="font-bold text-soot text-lg mb-5">Top performing spaces</h2>
         <div className="divide-y divide-soot/5">
           {topSpaces.map((space, i) => (
-            <div key={space.id} className="flex items-center gap-4 py-3">
-              <div className="w-6 h-6 rounded-full bg-soot/8 flex items-center justify-center text-xs font-semibold text-moss shrink-0">
+            <div key={space.id} className="flex items-center gap-4 py-4">
+              <div className="w-8 h-8 rounded-full bg-soot/8 flex items-center justify-center text-sm font-bold text-moss shrink-0">
                 {i + 1}
               </div>
-              <img src={space.images[0]} alt={space.name} className="w-9 h-9 rounded-xl object-cover shrink-0" />
+              <img src={space.images[0]} alt={space.name} className="w-12 h-12 rounded-xl object-cover shrink-0" />
               <div className="flex-1 min-w-0">
-                <div className="font-medium text-soot text-sm truncate">{space.name}</div>
-                <div className="text-xs text-moss">{space.city}</div>
+                <div className="font-semibold text-soot text-base truncate">{space.name}</div>
+                <div className="text-sm text-moss">{space.city}</div>
               </div>
               <div className="text-right shrink-0">
-                <div className="font-semibold text-soot text-sm">SAR {space.revenue.toLocaleString()}</div>
-                <div className="text-xs text-moss">{space.bookingCount} bookings</div>
+                <div className="font-bold text-soot text-base">SAR {space.revenue.toLocaleString()}</div>
+                <div className="text-sm text-moss">{space.bookingCount} bookings</div>
               </div>
-              <div className="w-20 shrink-0">
-                <div className="flex justify-between text-[10px] text-moss mb-1">
+              <div className="w-28 shrink-0 hidden sm:block">
+                <div className="flex justify-between text-xs text-moss mb-1">
                   <span>Occupancy</span>
-                  <span>{Math.round(((space.totalCapacity - space.availableCapacity) / space.totalCapacity) * 100)}%</span>
+                  <span className="font-semibold">{Math.round(((space.totalCapacity - space.availableCapacity) / space.totalCapacity) * 100)}%</span>
                 </div>
-                <div className="h-1.5 bg-soot/8 rounded-full">
+                <div className="h-2 bg-soot/8 rounded-full">
                   <div
                     className="h-full bg-eucalyptus rounded-full"
                     style={{ width: `${((space.totalCapacity - space.availableCapacity) / space.totalCapacity) * 100}%` }}

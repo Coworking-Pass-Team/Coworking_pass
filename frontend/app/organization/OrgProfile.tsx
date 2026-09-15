@@ -1,156 +1,555 @@
 'use client';
-import { useState } from 'react';
-import { Building2, Settings, Users, Globe, Phone, Mail, Plus, Trash2 } from 'lucide-react';
+
+import React, { useState, useRef } from 'react';
+import {
+  Building2,
+  Settings,
+  Users,
+  Globe,
+  Phone,
+  Mail,
+  Plus,
+  Trash2,
+  Upload,
+  Check,
+  Shield,
+  Calendar,
+  Briefcase,
+  FileText,
+  MapPin,
+  Lock,
+  Edit3,
+  AlertCircle,
+  ArrowRight,
+  Sparkles,
+  Clock,
+  Wallet,
+  ArrowUpRight
+} from 'lucide-react';
 import { useApp } from '@/app/store';
 import { Employee } from '@/types/types';
 import Modal from '@/components/ui/Modal';
+import UserAvatar from '@/components/ui/UserAvatar';
+import SharedWalletModal from '@/components/ui/SharedWalletModal';
 
 export default function OrgProfile() {
-  const { currentUser, navigate, nav, updateCurrentUser, showToast } = useApp();
-  if (!currentUser) return null;
+  const { currentUser, navigate, nav, updateCurrentUser, showToast, bookings, companyWalletBalance, companyData } = useApp();
 
-  const activeMode = nav.screen === 'org-settings' ? 'settings' : 'profile';
+  const [activeTab, setActiveTab] = useState<'profile' | 'settings'>(
+    nav.screen === 'org-settings' ? 'settings' : 'profile'
+  );
 
-  const [orgName, setOrgName] = useState(currentUser.orgName || '');
-  const [orgSize, setOrgSize] = useState(String(currentUser.orgSize || ''));
-  const [industry, setIndustry] = useState(currentUser.industry || '');
-  const [website, setWebsite] = useState(currentUser.website || '');
-  const [orgDescription, setOrgDescription] = useState(currentUser.orgDescription || '');
-  const [saved, setSaved] = useState(false);
+  // Edit Profile Modal State
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isSharedWalletOpen, setIsSharedWalletOpen] = useState(false);
 
-  const [employees, setEmployees] = useState<Employee[]>(currentUser.employees || []);
+  // Edit Form Fields (Exact existing Organization fields preserved)
+  const [editOrgName, setEditOrgName] = useState(currentUser?.orgName || currentUser?.name || '');
+  const [editIndustry, setEditIndustry] = useState(currentUser?.industry || 'Technology & Digital Solutions');
+  const [editOrgSize, setEditOrgSize] = useState(String(currentUser?.orgSize || '15'));
+  const [editWebsite, setEditWebsite] = useState(currentUser?.website || 'https://sauditech.sa');
+  const [editPhone, setEditPhone] = useState(currentUser?.phone || '+966 56 456 7890');
+  const [editCrNumber, setEditCrNumber] = useState(currentUser?.crNumber || '1010874921');
+  const [editCity, setEditCity] = useState(currentUser?.city || 'Riyadh, Saudi Arabia');
+  const [editOrgDescription, setEditOrgDescription] = useState(
+    currentUser?.orgDescription ||
+      'Leading enterprise technology and consulting firm specializing in distributed workspace solutions across Saudi Arabia.'
+  );
+  const [editAvatar, setEditAvatar] = useState(currentUser?.avatar || '');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSaving, setIsSaving] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Employees State
+  const [employees, setEmployees] = useState<Employee[]>(currentUser?.employees || [
+    { id: 'emp-1', name: 'Sara Al-Ghamdi', email: 'sara@sauditech.sa', department: 'Product Design' },
+    { id: 'emp-2', name: 'Fahad Al-Dosari', email: 'fahad@sauditech.sa', department: 'Engineering' },
+    { id: 'emp-3', name: 'Noura Al-Mutairi', email: 'noura@sauditech.sa', department: 'Operations' },
+  ]);
   const [addEmpModal, setAddEmpModal] = useState(false);
   const [newEmp, setNewEmp] = useState({ name: '', email: '', department: '' });
+  const [empErrors, setEmpErrors] = useState<Record<string, string>>({});
 
-  const handleSaveProfile = () => {
-    updateCurrentUser({ orgName, orgSize: parseInt(orgSize) || 0, industry, website, orgDescription });
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  // Password Security Form State
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordSaved, setPasswordSaved] = useState(false);
+  const [passwordErrors, setPasswordErrors] = useState<Record<string, string>>({});
+
+  // Notifications & Privacy Settings
+  const [notifications, setNotifications] = useState({
+    teamBookings: true,
+    monthlyInvoices: true,
+    spaceAlerts: true,
+    passUsage: false,
+  });
+  const [privacy, setPrivacy] = useState({ allowTeamSelfBooking: true, centralBilling: true });
+
+  if (!currentUser) return null;
+
+  const orgBookings = bookings.filter(b => b.userId === currentUser.id);
+
+  const handleOpenEdit = () => {
+    setEditOrgName(currentUser.orgName || currentUser.name || '');
+    setEditIndustry(currentUser.industry || 'Technology & Digital Solutions');
+    setEditOrgSize(String(currentUser.orgSize || '15'));
+    setEditWebsite(currentUser.website || 'https://sauditech.sa');
+    setEditPhone(currentUser.phone || '+966 56 456 7890');
+    setEditCrNumber(currentUser.crNumber || '1010874921');
+    setEditCity(currentUser.city || 'Riyadh, Saudi Arabia');
+    setEditOrgDescription(
+      currentUser.orgDescription ||
+        'Leading enterprise technology and consulting firm specializing in distributed workspace solutions across Saudi Arabia.'
+    );
+    setEditAvatar(currentUser.avatar || '');
+    setErrors({});
+    setIsEditModalOpen(true);
   };
 
-  const handleAddEmployee = () => {
-    if (!newEmp.name || !newEmp.email) { showToast('Name and email are required.', 'error'); return; }
-    const emp: Employee = { id: `emp-${Date.now()}`, ...newEmp };
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('Logo file size must be less than 5MB', 'error');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (typeof reader.result === 'string') {
+        setEditAvatar(reader.result);
+        showToast('Logo selected. Click "Save Changes" to apply.', 'info');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemovePhoto = () => {
+    setEditAvatar('');
+    showToast('Company logo reset to default.', 'info');
+  };
+
+  const validate = () => {
+    const newErrors: Record<string, string> = {};
+    if (!editOrgName.trim()) newErrors.orgName = 'Organization name is required';
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSaveProfile = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validate()) return;
+
+    setIsSaving(true);
+    setTimeout(() => {
+      updateCurrentUser({
+        orgName: editOrgName.trim(),
+        name: editOrgName.trim(),
+        industry: editIndustry.trim(),
+        orgSize: parseInt(editOrgSize) || 0,
+        website: editWebsite.trim(),
+        phone: editPhone.trim(),
+        crNumber: editCrNumber.trim(),
+        city: editCity.trim(),
+        orgDescription: editOrgDescription.trim(),
+        avatar: editAvatar,
+      });
+      setIsSaving(false);
+      setIsEditModalOpen(false);
+      showToast('Organization profile updated successfully!', 'success');
+    }, 350);
+  };
+
+  const handleAddEmployee = (e: React.FormEvent) => {
+    e.preventDefault();
+    const eErrs: Record<string, string> = {};
+    if (!newEmp.name.trim()) eErrs.name = 'Employee name is required';
+    if (!newEmp.email.trim()) eErrs.email = 'Corporate email is required';
+
+    setEmpErrors(eErrs);
+    if (Object.keys(eErrs).length > 0) return;
+
+    const emp: Employee = {
+      id: `emp-${Date.now()}`,
+      name: newEmp.name.trim(),
+      email: newEmp.email.trim(),
+      department: newEmp.department.trim() || 'General',
+    };
     const updated = [...employees, emp];
     setEmployees(updated);
     updateCurrentUser({ employees: updated });
     setNewEmp({ name: '', email: '', department: '' });
+    setEmpErrors({});
     setAddEmpModal(false);
+    showToast(`${emp.name} added to team roster!`, 'success');
   };
 
-  const handleRemoveEmployee = (id: string) => {
-    const updated = employees.filter(e => e.id !== id);
+  const handleRemoveEmployee = (empId: string) => {
+    const updated = employees.filter(e => e.id !== empId);
     setEmployees(updated);
     updateCurrentUser({ employees: updated });
-    showToast('Employee removed.');
+    showToast('Team member removed', 'info');
+  };
+
+  const handlePasswordChangeSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const pErrs: Record<string, string> = {};
+    if (!currentPassword) pErrs.current = 'Current password is required';
+    if (!newPassword) pErrs.new = 'New password is required';
+    else if (newPassword.length < 6) pErrs.new = 'New password must be at least 6 characters';
+    if (!confirmPassword) pErrs.confirm = 'Please confirm new password';
+    else if (newPassword && newPassword !== confirmPassword) pErrs.confirm = 'New passwords do not match';
+
+    setPasswordErrors(pErrs);
+    if (Object.keys(pErrs).length > 0) return;
+
+    setPasswordSaved(true);
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setPasswordErrors({});
+    showToast('Organization security password updated!', 'success');
+    setTimeout(() => setPasswordSaved(false), 3000);
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
-      <h1 className="text-3xl text-soot mb-8" style={{ fontFamily: 'DM Serif Display, serif' }}>
-        {activeMode === 'profile' ? 'Organization Profile' : 'Settings'}
-      </h1>
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+      {/* Top Header Controls */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-3xl sm:text-4xl text-soot font-normal" style={{ fontFamily: 'DM Serif Display, serif' }}>
+            {activeTab === 'profile' ? 'Organization Profile' : 'Organization Settings'}
+          </h1>
+          <p className="text-moss text-xs sm:text-sm mt-1 font-normal">
+            Manage your company identity, corporate pass credentials, and team workspace access
+          </p>
+        </div>
 
-      {/* Tab toggle */}
-      <div className="flex gap-1 bg-white border border-soot/8 rounded-xl p-1 mb-8 w-fit">
-        {[
-          { label: 'Profile', screen: 'org-profile' as const, icon: Building2 },
-          { label: 'Settings', screen: 'org-settings' as const, icon: Settings },
-        ].map(t => (
+        {/* Tab Toggle */}
+        <div className="inline-flex items-center gap-2 bg-white rounded-full p-1.5 border border-soot/8 shadow-xs self-start sm:self-auto">
           <button
-            key={t.screen}
-            onClick={() => navigate(t.screen)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${nav.screen === t.screen ? 'bg-soot text-plaster' : 'text-moss hover:text-soot'}`}
+            type="button"
+            onClick={() => {
+              setActiveTab('profile');
+              navigate('org-profile');
+            }}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all ${
+              activeTab === 'profile'
+                ? 'bg-[#DDE6DF] text-soot shadow-xs border border-soot/5'
+                : 'text-moss hover:text-soot'
+            }`}
           >
-            <t.icon size={14} />
-            {t.label}
+            <Building2 size={15} />
+            <span>Company Profile</span>
           </button>
-        ))}
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('settings');
+              navigate('org-settings');
+            }}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all ${
+              activeTab === 'settings'
+                ? 'bg-[#DDE6DF] text-soot shadow-xs border border-soot/5'
+                : 'text-moss hover:text-soot'
+            }`}
+          >
+            <Settings size={15} />
+            <span>Settings</span>
+          </button>
+        </div>
       </div>
 
-      {nav.screen === 'org-profile' && (
-        <div className="space-y-6">
-          {/* Org info */}
-          <div className="bg-white rounded-2xl border border-soot/8 p-6">
-            <h2 className="font-semibold text-soot mb-4">Organization information</h2>
-
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-16 h-16 rounded-2xl bg-eucalyptus/20 flex items-center justify-center">
-                <Building2 size={28} className="text-moss" />
-              </div>
-              <div>
-                <div className="font-semibold text-soot">{currentUser.orgName || currentUser.name}</div>
-                <div className="text-sm text-moss">{currentUser.email}</div>
-              </div>
+      {activeTab === 'profile' ? (
+        <div className="space-y-7">
+          {/* Card 1: Main Organization Header Card */}
+          <div className="bg-white rounded-3xl border border-soot/8 shadow-sm overflow-hidden">
+            {/* Top Patterned Decorative Banner */}
+            <div className="h-32 sm:h-40 w-full relative bg-gradient-to-r from-[#E5ECE9] via-[#E2EBE5] to-[#D9E5E0] border-b border-soot/6 overflow-hidden">
+              <div
+                className="absolute inset-0 opacity-15"
+                style={{
+                  backgroundImage: `radial-gradient(#2D3536 1px, transparent 1px)`,
+                  backgroundSize: '16px 16px',
+                }}
+              />
             </div>
 
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-moss mb-1.5">Organization name</label>
-                <input value={orgName} onChange={e => setOrgName(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-soot/12 bg-plaster text-soot text-sm outline-none focus:border-eucalyptus" />
+            {/* Profile Content Details */}
+            <div className="px-6 sm:px-8 pb-8 pt-0 relative">
+              {/* Header Row: Avatar / Logo & Actions */}
+              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 -mt-16 sm:-mt-20 mb-6">
+                <div className="relative inline-block self-start">
+                  <UserAvatar
+                    src={currentUser.avatar}
+                    name={currentUser.orgName || currentUser.name}
+                    size="2xl"
+                    ring={true}
+                  />
+                </div>
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => setIsSharedWalletOpen(true)}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-emerald-800 hover:bg-emerald-900 text-white text-xs sm:text-sm font-semibold shadow-xs transition-all cursor-pointer"
+                  >
+                    <Wallet size={15} />
+                    <span>المحفظة المشتركة: SAR {(companyWalletBalance || companyData?.balance || 0).toLocaleString()}</span>
+                    <ArrowUpRight size={13} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleOpenEdit}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-soot/15 text-soot text-xs sm:text-sm font-medium hover:bg-plaster transition-all cursor-pointer bg-white shadow-2xs"
+                  >
+                    <Edit3 size={14} />
+                    <span>Edit Profile</span>
+                  </button>
+                </div>
               </div>
-              <div>
-                <label className="block text-xs font-medium text-moss mb-1.5">Industry</label>
-                <input value={industry} onChange={e => setIndustry(e.target.value)} placeholder="e.g. Technology" className="w-full px-4 py-2.5 rounded-xl border border-soot/12 bg-plaster text-soot text-sm outline-none focus:border-eucalyptus" />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-moss mb-1.5">Team size</label>
-                <input type="number" value={orgSize} onChange={e => setOrgSize(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-soot/12 bg-plaster text-soot text-sm outline-none focus:border-eucalyptus" />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-moss mb-1.5 flex items-center gap-1"><Globe size={11} />Website</label>
-                <input value={website} onChange={e => setWebsite(e.target.value)} placeholder="https://company.sa" className="w-full px-4 py-2.5 rounded-xl border border-soot/12 bg-plaster text-soot text-sm outline-none focus:border-eucalyptus" />
-              </div>
-              <div className="sm:col-span-2">
-                <label className="block text-xs font-medium text-moss mb-1.5">Description</label>
-                <textarea value={orgDescription} onChange={e => setOrgDescription(e.target.value)} rows={3} className="w-full px-4 py-2.5 rounded-xl border border-soot/12 bg-plaster text-soot text-sm outline-none focus:border-eucalyptus resize-none" />
+
+              {/* Organization Name, Role Badge, Location */}
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center gap-3">
+                  <h2
+                    className="text-2xl sm:text-3xl font-normal text-soot tracking-tight"
+                    style={{ fontFamily: 'DM Serif Display, serif' }}
+                  >
+                    {currentUser.orgName || currentUser.name}
+                  </h2>
+
+                  {/* Account Role Badge */}
+                  <span className="inline-flex items-center px-3.5 py-1 rounded-full text-xs font-medium bg-[#DDE6DF] text-soot border border-soot/6">
+                    Organization Account
+                  </span>
+
+                  {/* Pass Membership Badge */}
+                  <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-medium bg-white text-moss border border-soot/10">
+                    <Check size={12} className="text-moss" />
+                    <span>{currentUser.membershipTier || 'Enterprise Pass Holder'}</span>
+                  </span>
+
+                  {/* Team Members Count Badge */}
+                  <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-medium bg-white text-moss border border-soot/10">
+                    <Users size={12} />
+                    <span>{employees.length} Team Members</span>
+                  </span>
+                </div>
+
+                <div className="text-xs sm:text-sm text-moss font-normal flex flex-wrap items-center gap-3">
+                  <span>{currentUser.industry || 'Technology & Digital Solutions'}</span>
+                  <span>•</span>
+                  <span>{currentUser.city || 'Riyadh, Saudi Arabia'}</span>
+                  {currentUser.website && (
+                    <>
+                      <span>•</span>
+                      <a
+                        href={currentUser.website.startsWith('http') ? currentUser.website : `https://${currentUser.website}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-soot hover:underline inline-flex items-center gap-1"
+                      >
+                        <Globe size={13} />
+                        <span>{currentUser.website.replace(/^https?:\/\//, '')}</span>
+                      </a>
+                    </>
+                  )}
+                  <span>•</span>
+                  <span>{orgBookings.length} Total Bookings</span>
+                </div>
+
+                {currentUser.orgDescription && (
+                  <p className="text-xs sm:text-sm text-soot/80 font-normal pt-2 max-w-2xl leading-relaxed">
+                    {currentUser.orgDescription}
+                  </p>
+                )}
               </div>
             </div>
-
-            <button
-              onClick={handleSaveProfile}
-              className={`mt-5 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${saved ? 'bg-eucalyptus text-soot' : 'bg-soot text-plaster hover:bg-soot-light'}`}
-            >
-              {saved ? '✓ Saved' : 'Save changes'}
-            </button>
           </div>
 
-          {/* Team members */}
-          <div className="bg-white rounded-2xl border border-soot/8 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Users size={16} className="text-moss" />
-                <h2 className="font-semibold text-soot">Team members ({employees.length})</h2>
+          {/* Card 2: Organization Information Section Card */}
+          <div className="bg-white rounded-3xl border border-soot/8 p-6 sm:p-8 shadow-sm">
+            <div className="flex items-center justify-between mb-6 pb-4 border-b border-soot/8 gap-4 flex-wrap">
+              <div>
+                <h3 className="text-xl font-normal text-soot" style={{ fontFamily: 'DM Serif Display, serif' }}>
+                  Organization Information
+                </h3>
+                <p className="text-moss text-xs mt-0.5 font-normal">Official corporate entity credentials and business profile</p>
               </div>
               <button
-                onClick={() => setAddEmpModal(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-eucalyptus text-soot text-xs font-medium hover:bg-eucalyptus-dark transition-colors"
+                type="button"
+                onClick={handleOpenEdit}
+                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#DDE6DF] text-soot hover:bg-[#D0DDD3] text-xs sm:text-sm font-medium transition-all shadow-xs border border-soot/8 cursor-pointer active:scale-98"
               >
-                <Plus size={12} />
-                Add
+                <Edit3 size={15} />
+                <span>Edit Profile</span>
+              </button>
+            </div>
+
+            {/* Information Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+              {/* Organization Name */}
+              <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 transition-all hover:border-soot/12">
+                <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
+                  <Building2 size={13} className="text-moss/80" />
+                  Organization / Company Name
+                </div>
+                <div className="text-sm sm:text-base font-normal text-soot">
+                  {currentUser.orgName || currentUser.name}
+                </div>
+              </div>
+
+              {/* Industry & Sector */}
+              <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 transition-all hover:border-soot/12">
+                <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
+                  <Briefcase size={13} className="text-moss/80" />
+                  Industry & Sector
+                </div>
+                <div className="text-sm sm:text-base font-normal text-soot">
+                  {currentUser.industry || 'Technology & Digital Solutions'}
+                </div>
+              </div>
+
+              {/* Registered Email */}
+              <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 transition-all hover:border-soot/12">
+                <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
+                  <Mail size={13} className="text-moss/80" />
+                  Corporate Billing Email
+                </div>
+                <div className="text-sm sm:text-base font-normal text-soot truncate" title={currentUser.email}>
+                  {currentUser.email}
+                </div>
+              </div>
+
+              {/* Contact Phone Number */}
+              <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 transition-all hover:border-soot/12">
+                <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
+                  <Phone size={13} className="text-moss/80" />
+                  Contact Phone Number
+                </div>
+                <div className="text-sm sm:text-base font-normal text-soot">
+                  {currentUser.phone || '+966 56 456 7890'}
+                </div>
+              </div>
+
+              {/* CR Number */}
+              <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 transition-all hover:border-soot/12">
+                <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
+                  <FileText size={13} className="text-moss/80" />
+                  Commercial Registration (CR)
+                </div>
+                <div className="text-sm sm:text-base font-normal text-soot">
+                  {currentUser.crNumber || '1010874921'}
+                </div>
+              </div>
+
+              {/* Organization Size */}
+              <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 transition-all hover:border-soot/12">
+                <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
+                  <Users size={13} className="text-moss/80" />
+                  Total Company Size
+                </div>
+                <div className="text-sm sm:text-base font-normal text-soot">
+                  {currentUser.orgSize || employees.length || 15} Employees
+                </div>
+              </div>
+
+              {/* Headquarters Location */}
+              <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 transition-all hover:border-soot/12">
+                <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
+                  <MapPin size={13} className="text-moss/80" />
+                  Headquarters City
+                </div>
+                <div className="text-sm sm:text-base font-normal text-soot">
+                  {currentUser.city || 'Riyadh, Saudi Arabia'}
+                </div>
+              </div>
+
+              {/* Official Website */}
+              <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 transition-all hover:border-soot/12">
+                <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
+                  <Globe size={13} className="text-moss/80" />
+                  Official Website URL
+                </div>
+                <div className="text-sm sm:text-base font-normal text-soot truncate">
+                  {currentUser.website || 'https://sauditech.sa'}
+                </div>
+              </div>
+
+              {/* Company Overview */}
+              <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 sm:col-span-2 transition-all hover:border-soot/12">
+                <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
+                  <FileText size={13} className="text-moss/80" />
+                  Company Description & Overview
+                </div>
+                <div className="text-sm font-normal text-soot leading-relaxed">
+                  {currentUser.orgDescription ||
+                    'Leading enterprise technology and consulting firm specializing in distributed workspace solutions across Saudi Arabia.'}
+                </div>
+              </div>
+
+              {/* Account Member Since */}
+              <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 sm:col-span-2 transition-all hover:border-soot/12">
+                <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
+                  <Calendar size={13} className="text-moss/80" />
+                  Corporate Account Member Since
+                </div>
+                <div className="text-sm font-normal text-soot">
+                  {currentUser.joinDate || 'November 2023'}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 3: Team Roster Overview */}
+          <div className="bg-white rounded-3xl border border-soot/8 p-6 sm:p-8 shadow-sm">
+            <div className="flex items-center justify-between mb-6 pb-4 border-b border-soot/8 gap-4 flex-wrap">
+              <div>
+                <h3 className="text-xl font-normal text-soot" style={{ fontFamily: 'DM Serif Display, serif' }}>
+                  Team Members Roster ({employees.length})
+                </h3>
+                <p className="text-moss text-xs mt-0.5 font-normal">Colleagues and team members authorized to book workspaces</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAddEmpModal(true)}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#DDE6DF] text-soot hover:bg-[#D0DDD3] text-xs sm:text-sm font-medium transition-all shadow-xs border border-soot/8 cursor-pointer active:scale-98"
+              >
+                <Plus size={15} />
+                <span>Add Team Member</span>
               </button>
             </div>
 
             {employees.length === 0 ? (
-              <div className="text-center py-8 text-sm text-moss">
-                No team members yet. Add employees to assign them to bookings.
+              <div className="text-center py-10 text-moss text-sm">
+                No team members added yet. Click &quot;Add Team Member&quot; to invite your team.
               </div>
             ) : (
-              <div className="divide-y divide-soot/5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {employees.map(emp => (
-                  <div key={emp.id} className="flex items-center gap-3 py-3">
-                    <div className="w-8 h-8 rounded-full bg-eucalyptus/20 flex items-center justify-center text-sm font-medium text-moss shrink-0">
-                      {emp.name.charAt(0)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-soot">{emp.name}</div>
-                      <div className="text-xs text-moss truncate">{emp.department} · {emp.email}</div>
+                  <div
+                    key={emp.id}
+                    className="flex items-center justify-between p-4 rounded-2xl bg-[#F9F8F5] border border-soot/6 hover:border-soot/12 transition-all"
+                  >
+                    <div className="flex items-center gap-3.5 min-w-0">
+                      <div className="w-10 h-10 rounded-2xl bg-white border border-soot/8 flex items-center justify-center font-bold text-xs text-soot shadow-2xs shrink-0">
+                        {emp.name.charAt(0)}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-soot truncate">{emp.name}</div>
+                        <div className="text-xs text-moss truncate">{emp.department} · {emp.email}</div>
+                      </div>
                     </div>
                     <button
+                      type="button"
                       onClick={() => handleRemoveEmployee(emp.id)}
-                      className="p-1.5 rounded-lg hover:bg-red-50 text-moss hover:text-red-500 transition-colors"
+                      className="p-2 text-moss/60 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors cursor-pointer shrink-0 ml-2"
+                      title="Remove member"
                     >
-                      <Trash2 size={13} />
+                      <Trash2 size={14} />
                     </button>
                   </div>
                 ))}
@@ -158,57 +557,510 @@ export default function OrgProfile() {
             )}
           </div>
         </div>
-      )}
-
-      {nav.screen === 'org-settings' && (
+      ) : (
+        /* Organization Settings Tab */
         <div className="space-y-6">
-          <div className="bg-white rounded-2xl border border-soot/8 p-6">
-            <h2 className="font-semibold text-soot mb-4">Contact information</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-moss mb-1.5 flex items-center gap-1"><Phone size={11} />Phone</label>
-                <input value={currentUser.phone} className="w-full px-4 py-2.5 rounded-xl border border-soot/12 bg-plaster text-soot text-sm outline-none focus:border-eucalyptus" />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-moss mb-1.5 flex items-center gap-1"><Mail size={11} />Email</label>
-                <input value={currentUser.email} disabled className="w-full px-4 py-2.5 rounded-xl border border-soot/8 bg-soot/5 text-moss text-sm" />
-              </div>
+          {/* Notification Preferences */}
+          <div className="bg-white rounded-3xl border border-soot/8 p-6 sm:p-8 shadow-sm">
+            <h3 className="text-xl font-normal text-soot mb-1" style={{ fontFamily: 'DM Serif Display, serif' }}>
+              Corporate Notification Preferences
+            </h3>
+            <p className="text-moss text-xs mb-6 font-normal">Configure alerts for team reservations, billing summaries, and workspace access</p>
+
+            <div className="space-y-4 divide-y divide-soot/6">
+              {[
+                { key: 'teamBookings', label: 'Team booking notifications', desc: 'Get notified when an employee reserves desks or meeting rooms' },
+                { key: 'monthlyInvoices', label: 'Monthly billing & VAT invoices', desc: 'Consolidated corporate invoice delivered at the end of each billing cycle' },
+                { key: 'spaceAlerts', label: 'Corporate workspace announcements', desc: 'Alerts regarding new corporate pass venues and enterprise amenities' },
+                { key: 'passUsage', label: 'Individual employee check-in alerts', desc: 'Real-time notifications for every desk badge scan' },
+              ].map(item => (
+                <div key={item.key} className="flex items-center justify-between pt-4 first:pt-0">
+                  <div className="pr-4">
+                    <div className="text-sm font-medium text-soot">{item.label}</div>
+                    <div className="text-xs text-moss mt-0.5 font-normal">{item.desc}</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setNotifications(prev => ({
+                        ...prev,
+                        [item.key]: !prev[item.key as keyof typeof notifications],
+                      }))
+                    }
+                    className={`relative w-12 h-6 rounded-full transition-colors cursor-pointer shrink-0 ${
+                      notifications[item.key as keyof typeof notifications] ? 'bg-soot' : 'bg-soot/15'
+                    }`}
+                  >
+                    <div
+                      className={`w-4 h-4 rounded-full bg-white transition-transform ${
+                        notifications[item.key as keyof typeof notifications] ? 'translate-x-7' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+              ))}
             </div>
-            <button className="mt-4 px-5 py-2.5 rounded-xl bg-soot text-plaster text-sm font-semibold">Save</button>
           </div>
 
-          <div className="bg-white rounded-2xl border border-red-100 p-6">
-            <h2 className="font-semibold text-red-600 mb-3">Danger zone</h2>
-            <p className="text-sm text-moss mb-4">Deleting your organization account will remove all team data, bookings, and settings.</p>
-            <button className="px-4 py-2 rounded-xl border border-red-200 text-red-500 text-sm font-medium">Delete organization</button>
+          {/* Security & Password */}
+          <div className="bg-white rounded-3xl border border-soot/8 p-6 sm:p-8 shadow-sm">
+            <h3 className="text-xl font-normal text-soot mb-1" style={{ fontFamily: 'DM Serif Display, serif' }}>
+              Corporate Security & Password
+            </h3>
+            <p className="text-moss text-xs mb-6 font-normal">Update the administrative password for your organization account</p>
+
+            <form onSubmit={handlePasswordChangeSubmit} className="space-y-4 max-w-lg">
+              <div>
+                <label className="block text-xs font-medium text-soot mb-1.5">
+                  Current Administrator Password <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={e => {
+                    setCurrentPassword(e.target.value);
+                    if (passwordErrors.current) setPasswordErrors(p => ({ ...p, current: '' }));
+                  }}
+                  placeholder="••••••••"
+                  className={`w-full px-4 py-2.5 rounded-2xl border ${
+                    passwordErrors.current ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/20' : 'border-soot/12 bg-white'
+                  } text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs font-normal`}
+                />
+                {passwordErrors.current && (
+                  <p className="text-rose-600 text-xs mt-1 font-medium flex items-center gap-1">
+                    <span>*</span> {passwordErrors.current}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-soot mb-1.5">
+                  New Administrator Password <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={e => {
+                    setNewPassword(e.target.value);
+                    if (passwordErrors.new) setPasswordErrors(p => ({ ...p, new: '' }));
+                  }}
+                  placeholder="••••••••"
+                  className={`w-full px-4 py-2.5 rounded-2xl border ${
+                    passwordErrors.new ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/20' : 'border-soot/12 bg-white'
+                  } text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs font-normal`}
+                />
+                {passwordErrors.new && (
+                  <p className="text-rose-600 text-xs mt-1 font-medium flex items-center gap-1">
+                    <span>*</span> {passwordErrors.new}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-soot mb-1.5">
+                  Confirm New Password <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={e => {
+                    setConfirmPassword(e.target.value);
+                    if (passwordErrors.confirm) setPasswordErrors(p => ({ ...p, confirm: '' }));
+                  }}
+                  placeholder="••••••••"
+                  className={`w-full px-4 py-2.5 rounded-2xl border ${
+                    passwordErrors.confirm ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/20' : 'border-soot/12 bg-white'
+                  } text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs font-normal`}
+                />
+                {passwordErrors.confirm && (
+                  <p className="text-rose-600 text-xs mt-1 font-medium flex items-center gap-1">
+                    <span>*</span> {passwordErrors.confirm}
+                  </p>
+                )}
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#DDE6DF] text-soot hover:bg-[#D0DDD3] text-xs sm:text-sm font-medium transition-all shadow-xs border border-soot/8 cursor-pointer active:scale-98"
+                >
+                  <Lock size={14} />
+                  <span>Update Password</span>
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Corporate Workspace Access & Billing Policies */}
+          <div className="bg-white rounded-3xl border border-soot/8 p-6 sm:p-8 shadow-sm">
+            <h3 className="text-xl font-normal text-soot mb-1" style={{ fontFamily: 'DM Serif Display, serif' }}>
+              Corporate Workspace Policies
+            </h3>
+            <p className="text-moss text-xs mb-6 font-normal">Manage permissions for team reservations and automated billing</p>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between py-2">
+                <div>
+                  <div className="text-sm font-medium text-soot">Team Self-Booking Permission</div>
+                  <div className="text-xs text-moss font-normal">Allow rostered team members to book hot desks directly under the enterprise pass</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPrivacy(p => ({ ...p, allowTeamSelfBooking: !p.allowTeamSelfBooking }))}
+                  className={`relative w-12 h-6 rounded-full transition-colors cursor-pointer shrink-0 ${
+                    privacy.allowTeamSelfBooking ? 'bg-soot' : 'bg-soot/15'
+                  }`}
+                >
+                  <div
+                    className={`w-4 h-4 rounded-full bg-white transition-transform ${
+                      privacy.allowTeamSelfBooking ? 'translate-x-7' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between py-2 border-t border-soot/6 pt-4">
+                <div>
+                  <div className="text-sm font-medium text-soot">Centralized Corporate Billing</div>
+                  <div className="text-xs text-moss font-normal">Automatically charge all team bookings to the primary organization invoice</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPrivacy(p => ({ ...p, centralBilling: !p.centralBilling }))}
+                  className={`relative w-12 h-6 rounded-full transition-colors cursor-pointer shrink-0 ${
+                    privacy.centralBilling ? 'bg-soot' : 'bg-soot/15'
+                  }`}
+                >
+                  <div
+                    className={`w-4 h-4 rounded-full bg-white transition-transform ${
+                      privacy.centralBilling ? 'translate-x-7' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Danger Zone */}
+          <div className="bg-white rounded-3xl border border-red-200 p-6 sm:p-8 shadow-sm">
+            <h3 className="text-xl font-normal text-red-600 mb-1" style={{ fontFamily: 'DM Serif Display, serif' }}>
+              Danger Zone
+            </h3>
+            <p className="text-moss text-xs mb-6 font-normal">
+              Deleting your corporate organization account will immediately terminate all team passes and workspace bookings.
+            </p>
+            <button
+              type="button"
+              onClick={() => showToast('To close your organization account, please contact corporate account management.', 'error')}
+              className="btn-danger"
+            >
+              <AlertCircle size={15} />
+              <span>Delete Organization Account</span>
+            </button>
           </div>
         </div>
       )}
 
-      {/* Add employee modal */}
-      <Modal open={addEmpModal} onClose={() => setAddEmpModal(false)} title="Add Employee" size="sm">
-        <div className="p-6 space-y-4">
-          {[
-            { label: 'Full name', key: 'name', placeholder: 'Ahmed Al-Dosari' },
-            { label: 'Email', key: 'email', placeholder: 'ahmed@company.sa' },
-            { label: 'Department', key: 'department', placeholder: 'Engineering' },
-          ].map(f => (
-            <div key={f.key}>
-              <label className="block text-xs font-medium text-moss mb-1.5">{f.label}</label>
-              <input
-                value={(newEmp as any)[f.key]}
-                onChange={e => setNewEmp(prev => ({ ...prev, [f.key]: e.target.value }))}
-                placeholder={f.placeholder}
-                className="w-full px-4 py-2.5 rounded-xl border border-soot/12 bg-plaster text-soot text-sm outline-none focus:border-eucalyptus"
+      {/* Edit Organization Profile Modal */}
+      <Modal
+        open={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        title="Edit Organization Profile"
+        size="lg"
+      >
+        <form onSubmit={handleSaveProfile} className="space-y-6">
+          {/* Avatar Section */}
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 p-5 rounded-2xl bg-[#F9F8F5] border border-soot/8">
+            <div className="relative shrink-0">
+              <UserAvatar
+                src={editAvatar}
+                name={editOrgName || currentUser.name}
+                size="xl"
+                ring={true}
               />
             </div>
-          ))}
-          <div className="flex gap-3 pt-2">
-            <button onClick={() => setAddEmpModal(false)} className="flex-1 py-2.5 rounded-xl border border-soot/15 text-soot text-sm font-medium">Cancel</button>
-            <button onClick={handleAddEmployee} className="flex-1 py-2.5 rounded-xl bg-eucalyptus text-soot text-sm font-semibold">Add employee</button>
+
+            <div className="flex-1 min-w-0 text-center sm:text-left space-y-2.5">
+              <div>
+                <div className="text-sm font-medium text-soot">Company Logo</div>
+                <p className="text-xs text-moss font-normal mt-0.5">
+                  Upload your corporate brand logo or use the clean default avatar.
+                </p>
+              </div>
+
+              {/* Side-by-Side Action Buttons */}
+              <div className="flex flex-row items-center justify-center sm:justify-start gap-3 pt-1 flex-nowrap">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleImageUpload}
+                  accept="image/png,image/jpeg,image/jpg,image/webp"
+                  className="hidden"
+                />
+
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="h-10 px-5 rounded-full bg-[#DDE6DF] text-soot hover:bg-[#D0DDD3] text-xs sm:text-sm font-medium transition-all shadow-xs border border-soot/8 cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap shrink-0"
+                >
+                  <Upload size={14} className="shrink-0" />
+                  <span>Upload Logo</span>
+                </button>
+
+                {editAvatar && (
+                  <button
+                    type="button"
+                    onClick={handleRemovePhoto}
+                    className="h-10 px-4 rounded-full border border-red-200 text-red-600 hover:bg-red-50 text-xs sm:text-sm font-medium transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0"
+                  >
+                    <Trash2 size={14} className="shrink-0" />
+                    <span>Remove</span>
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
+
+          {/* Form Fields Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Organization Name */}
+            <div>
+              <label className="block text-xs font-medium text-soot mb-1.5">
+                Organization Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={editOrgName}
+                onChange={e => setEditOrgName(e.target.value)}
+                placeholder="e.g. Saudi Tech Solutions"
+                className={`w-full px-4 py-3 rounded-2xl border ${
+                  errors.orgName ? 'border-red-400 bg-red-50/20' : 'border-soot/12 bg-white'
+                } text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs font-normal`}
+              />
+              {errors.orgName && <p className="text-red-500 text-xs mt-1 font-normal">{errors.orgName}</p>}
+            </div>
+
+            {/* Industry */}
+            <div>
+              <label className="block text-xs font-medium text-soot mb-1.5">
+                Industry & Sector
+              </label>
+              <input
+                type="text"
+                value={editIndustry}
+                onChange={e => setEditIndustry(e.target.value)}
+                placeholder="e.g. Technology & Digital Solutions"
+                className="w-full px-4 py-3 rounded-2xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs font-normal"
+              />
+            </div>
+
+            {/* Registered Email (Disabled) */}
+            <div>
+              <label className="block text-xs font-medium text-soot mb-1.5">
+                Corporate Billing Email
+              </label>
+              <input
+                type="email"
+                value={currentUser.email}
+                disabled
+                className="w-full px-4 py-3 rounded-2xl border border-soot/8 bg-soot/5 text-moss text-sm cursor-not-allowed shadow-2xs font-normal"
+              />
+            </div>
+
+            {/* Phone Number */}
+            <div>
+              <label className="block text-xs font-medium text-soot mb-1.5">
+                Contact Phone Number
+              </label>
+              <input
+                type="text"
+                value={editPhone}
+                onChange={e => setEditPhone(e.target.value)}
+                placeholder="+966 56 456 7890"
+                className="w-full px-4 py-3 rounded-2xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs font-normal"
+              />
+            </div>
+
+            {/* CR Number */}
+            <div>
+              <label className="block text-xs font-medium text-soot mb-1.5">
+                Commercial Registration (CR)
+              </label>
+              <input
+                type="text"
+                value={editCrNumber}
+                onChange={e => setEditCrNumber(e.target.value)}
+                placeholder="1010874921"
+                className="w-full px-4 py-3 rounded-2xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs font-normal"
+              />
+            </div>
+
+            {/* Organization Size */}
+            <div>
+              <label className="block text-xs font-medium text-soot mb-1.5">
+                Team Size (Employees)
+              </label>
+              <input
+                type="number"
+                min="1"
+                value={editOrgSize}
+                onChange={e => setEditOrgSize(e.target.value)}
+                placeholder="15"
+                className="w-full px-4 py-3 rounded-2xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs font-normal"
+              />
+            </div>
+
+            {/* HQ City */}
+            <div>
+              <label className="block text-xs font-medium text-soot mb-1.5">
+                Headquarters City
+              </label>
+              <input
+                type="text"
+                value={editCity}
+                onChange={e => setEditCity(e.target.value)}
+                placeholder="Riyadh, Saudi Arabia"
+                className="w-full px-4 py-3 rounded-2xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs font-normal"
+              />
+            </div>
+
+            {/* Official Website */}
+            <div>
+              <label className="block text-xs font-medium text-soot mb-1.5">
+                Official Website
+              </label>
+              <input
+                type="text"
+                value={editWebsite}
+                onChange={e => setEditWebsite(e.target.value)}
+                placeholder="https://sauditech.sa"
+                className="w-full px-4 py-3 rounded-2xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs font-normal"
+              />
+            </div>
+
+            {/* Company Description */}
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-medium text-soot mb-1.5">
+                Company Description & Overview
+              </label>
+              <textarea
+                value={editOrgDescription}
+                onChange={e => setEditOrgDescription(e.target.value)}
+                rows={3}
+                placeholder="Briefly describe your company's core operations and workspace requirements..."
+                className="w-full px-4 py-3 rounded-2xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs resize-none font-normal"
+              />
+            </div>
+          </div>
+
+          {/* Modal Actions */}
+          <div className="flex items-center justify-end gap-3 pt-5 border-t border-soot/8">
+            <button
+              type="button"
+              onClick={() => setIsEditModalOpen(false)}
+              className="px-6 py-3 rounded-full border border-soot/15 text-soot text-xs sm:text-sm font-medium hover:bg-soot/5 transition-all bg-white cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="px-7 py-3 rounded-full bg-[#DDE6DF] text-soot hover:bg-[#D0DDD3] text-xs sm:text-sm font-medium transition-all shadow-xs border border-soot/8 cursor-pointer disabled:opacity-50 active:scale-98"
+            >
+              {isSaving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        </form>
       </Modal>
+
+      {/* Add Employee Modal */}
+      <Modal
+        open={addEmpModal}
+        onClose={() => setAddEmpModal(false)}
+        title="Add Team Member"
+        size="md"
+      >
+        <form onSubmit={handleAddEmployee} className="space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-soot mb-1.5">
+              Full Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={newEmp.name}
+              onChange={e => {
+                setNewEmp(p => ({ ...p, name: e.target.value }));
+                if (empErrors.name) setEmpErrors(p => ({ ...p, name: '' }));
+              }}
+              placeholder="e.g. Sara Al-Ghamdi"
+              className={`w-full px-4 py-2.5 rounded-2xl border ${
+                empErrors.name ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/20' : 'border-soot/12 bg-white'
+              } text-soot text-sm outline-none focus:border-soot`}
+            />
+            {empErrors.name && (
+              <p className="text-rose-600 text-xs mt-1 font-medium flex items-center gap-1">
+                <span>*</span> {empErrors.name}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-soot mb-1.5">
+              Corporate Email <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="email"
+              value={newEmp.email}
+              onChange={e => {
+                setNewEmp(p => ({ ...p, email: e.target.value }));
+                if (empErrors.email) setEmpErrors(p => ({ ...p, email: '' }));
+              }}
+              placeholder="sara@sauditech.sa"
+              className={`w-full px-4 py-2.5 rounded-2xl border ${
+                empErrors.email ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/20' : 'border-soot/12 bg-white'
+              } text-soot text-sm outline-none focus:border-soot`}
+            />
+            {empErrors.email && (
+              <p className="text-rose-600 text-xs mt-1 font-medium flex items-center gap-1">
+                <span>*</span> {empErrors.email}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-soot mb-1.5">Department / Role</label>
+            <input
+              type="text"
+              value={newEmp.department}
+              onChange={e => setNewEmp(p => ({ ...p, department: e.target.value }))}
+              placeholder="e.g. Engineering, Design, Operations"
+              className="w-full px-4 py-2.5 rounded-2xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-soot"
+            />
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-soot/8">
+            <button
+              type="button"
+              onClick={() => setAddEmpModal(false)}
+              className="px-5 py-2.5 rounded-full border border-soot/15 text-soot text-xs font-medium hover:bg-soot/5 bg-white cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-6 py-2.5 rounded-full bg-[#DDE6DF] text-soot hover:bg-[#D0DDD3] text-xs font-medium shadow-xs border border-soot/8 cursor-pointer"
+            >
+              Add Member
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Corporate Shared Wallet Modal */}
+      <SharedWalletModal
+        isOpen={isSharedWalletOpen}
+        onClose={() => setIsSharedWalletOpen(false)}
+      />
     </div>
   );
 }

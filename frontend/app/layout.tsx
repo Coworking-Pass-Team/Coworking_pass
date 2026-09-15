@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
-import './globals.css';
-import { AppProvider } from './store';
+import '@/app/globals.css';
+import { AppProvider } from '@/app/store';
 
 export const metadata: Metadata = {
   title: 'Coworking Pass - Saudi Arabia\'s Coworking Platform',

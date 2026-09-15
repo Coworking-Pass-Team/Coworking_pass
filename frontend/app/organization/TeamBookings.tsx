@@ -1,246 +1,452 @@
 'use client';
-import { useState } from 'react';
-import { MapPin, Calendar, Users, AlertCircle, X } from 'lucide-react';
-import { useApp } from '@/app/store';
-import { Booking, BookingStatus } from '@/types/types';
-import Modal from '@/components/ui/Modal';
 
-const TABS: { label: string; status: BookingStatus }[] = [
-  { label: 'Active', status: 'active' },
-  { label: 'Previous', status: 'previous' },
-  { label: 'Cancelled', status: 'cancelled' },
-];
+import { useState, useRef, useEffect } from 'react';
+import {
+  Search,
+  ChevronDown,
+  MapPin,
+  Calendar,
+  Users,
+  Check,
+  CalendarDays,
+  Clock,
+  Ban,
+  DollarSign,
+  Eye,
+  X,
+  CreditCard,
+  Building2,
+  Plus,
+  AlertCircle,
+  Zap,
+  Wallet,
+  QrCode
+} from 'lucide-react';
+import { useApp } from '@/app/store';
+import { Booking, BookingStatus, Employee, getHourlyPriceForDuration, getBookingPrice, isCancellationRefundEligible } from '@/types/types';
+import Modal from '@/components/ui/Modal';
+import BookingQrModal from '@/components/BookingQrModal';
 
 export default function TeamBookings() {
-  const { bookings, currentUser, navigate, cancelBooking } = useApp();
+  const { bookings, spaces, currentUser, navigate, cancelBooking, showToast } = useApp();
   const [activeTab, setActiveTab] = useState<BookingStatus>('active');
+  const [query, setQuery] = useState('');
+
+  // Dropdown states for filters
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+  const statusDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Detail Modal State
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
-  const [cancelModal, setCancelModal] = useState(false);
-  const [detailsModal, setDetailsModal] = useState(false);
+  const [cancelModal, setCancelModal] = useState<Booking | null>(null);
+  const [refundMethod, setRefundMethod] = useState<'wallet' | 'card'>('wallet');
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target as Node)) {
+        setStatusDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   if (!currentUser) return null;
 
-  const orgBookings = bookings.filter(b => b.userId === currentUser.id);
-  const filtered = orgBookings.filter(b => b.status === activeTab);
+  const orgBookings = bookings.filter((b: Booking) => b.userId === currentUser.id);
   const employees = currentUser.employees || [];
 
-  const counts = {
-    active: orgBookings.filter(b => b.status === 'active').length,
-    previous: orgBookings.filter(b => b.status === 'previous').length,
-    cancelled: orgBookings.filter(b => b.status === 'cancelled').length,
-  };
+  const filtered = orgBookings
+    .filter((b: Booking) => {
+      const q = query.trim().toLowerCase();
+      if (
+        q &&
+        !b.spaceName.toLowerCase().includes(q) &&
+        !b.spaceCity.toLowerCase().includes(q)
+      ) {
+        return false;
+      }
+      if (activeTab && b.status !== activeTab) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return timeB - timeA;
+    });
 
-  const getEmpName = (id: string) => employees.find(e => e.id === id)?.name || id;
+  const activeCount = orgBookings.filter((b) => b.status === 'active').length;
+  const previousCount = orgBookings.filter((b) => b.status === 'previous').length;
+  const cancelledCount = orgBookings.filter((b) => b.status === 'cancelled').length;
 
-  const handleCancel = () => {
-    if (selectedBooking) {
-      cancelBooking(selectedBooking.id);
-      setCancelModal(false);
-      setDetailsModal(false);
+  const totalSpend = orgBookings
+    .filter((b) => b.status !== 'cancelled')
+    .reduce((sum, b) => sum + getBookingPrice(b), 0);
+
+  const getEmpName = (id: string) => employees.find((e: Employee) => e.id === id)?.name || id;
+
+  const handleCancelConfirm = () => {
+    if (!cancelModal) return;
+    cancelBooking(cancelModal.id, refundMethod);
+    setCancelModal(null);
+    if (selectedBooking && selectedBooking.id === cancelModal.id) {
       setSelectedBooking(null);
     }
   };
 
-  const statusColor = (s: BookingStatus) => {
-    if (s === 'active') return 'bg-eucalyptus/15 text-moss';
-    if (s === 'previous') return 'bg-mist/40 text-soot';
-    return 'bg-red-50 text-red-500';
-  };
-
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
-      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-        <h1 className="text-3xl text-soot" style={{ fontFamily: 'DM Serif Display, serif' }}>Team Bookings</h1>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <span className="text-xs font-semibold tracking-wider uppercase text-moss block mb-1">
+            Enterprise Booking & Workspace Activity
+          </span>
+          <h1 className="text-3xl sm:text-4xl text-soot font-normal font-serif-display">
+            Team Bookings
+          </h1>
+          <p className="text-moss text-sm mt-1">
+            {orgBookings.length} total team reservations across corporate locations.
+          </p>
+        </div>
+
         <button
+          type="button"
           onClick={() => navigate('browse')}
-          className="px-4 py-2 rounded-xl bg-eucalyptus text-soot text-sm font-medium hover:bg-eucalyptus-dark"
+          className="btn-primary"
         >
-          + New booking
+          <Plus size={16} />
+          <span>New booking</span>
         </button>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 bg-white border border-soot/8 rounded-xl p-1 mb-6 w-fit">
-        {TABS.map(tab => (
-          <button
-            key={tab.status}
-            onClick={() => setActiveTab(tab.status)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              activeTab === tab.status ? 'bg-soot text-plaster' : 'text-moss hover:text-soot'
-            }`}
+      {/* Admin-Matching Elevated Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          {
+            label: 'Active Bookings',
+            count: activeCount,
+            badge: 'bg-emerald-500/15 text-emerald-800 border border-emerald-500/30',
+            icon: CalendarDays,
+            iconBg: 'bg-emerald-500/15 text-emerald-800 border-emerald-500/30',
+          },
+          {
+            label: 'Completed Visits',
+            count: previousCount,
+            badge: 'bg-soot/10 text-soot border border-soot/15',
+            icon: Clock,
+            iconBg: 'bg-soot text-plaster border-soot/20',
+          },
+          {
+            label: 'Cancelled',
+            count: cancelledCount,
+            badge: 'bg-red-500/15 text-red-700 border border-red-500/30',
+            icon: Ban,
+            iconBg: 'bg-red-500/15 text-red-700 border-red-500/30',
+          },
+          {
+            label: 'Total Spend',
+            count: `SAR ${totalSpend.toLocaleString()}`,
+            badge: 'bg-blue-500/15 text-blue-800 border border-blue-500/30',
+            icon: DollarSign,
+            iconBg: 'bg-blue-500/15 text-blue-800 border-blue-500/30',
+          },
+        ].map((stat) => (
+          <div
+            key={stat.label}
+            className="bg-plaster-surface rounded-3xl border border-soot/12 p-5 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between group"
           >
-            {tab.label}
-            <span className={`text-xs px-1.5 py-0.5 rounded-full ${activeTab === tab.status ? 'bg-white/20' : 'bg-soot/8'}`}>
-              {counts[tab.status]}
-            </span>
-          </button>
+            <div className="flex items-center gap-3.5">
+              <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs ${stat.iconBg}`}>
+                <stat.icon size={20} />
+              </div>
+              <div>
+                <div className="text-2xl sm:text-3xl font-normal text-soot tracking-tight font-serif-display">{stat.count}</div>
+                <div className="text-xs font-medium text-moss mt-0.5">{stat.label}</div>
+              </div>
+            </div>
+          </div>
         ))}
       </div>
 
-      {filtered.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-soot/8 p-12 text-center">
-          <Calendar size={32} className="text-moss mx-auto mb-3" />
-          <div className="font-medium text-soot mb-1">No {activeTab} bookings</div>
-          <div className="text-sm text-moss mb-4">
-            {activeTab === 'active' ? "Your team doesn't have any active bookings." : `No ${activeTab} team bookings to show.`}
-          </div>
-          {activeTab === 'active' && (
-            <button onClick={() => navigate('browse')} className="px-4 py-2 rounded-xl bg-eucalyptus text-soot text-sm font-medium">
-              Book a space
-            </button>
-          )}
+      {/* Admin-Matching Search & Tab Filter Bar */}
+      <div className="flex flex-col sm:flex-row gap-3 bg-plaster-surface p-3 rounded-2xl border border-soot/10 shadow-2xs items-center justify-between">
+        <div className="relative flex-1 w-full">
+          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-moss" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search by workspace name or city..."
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-soot/12 bg-plaster-dark/30 text-soot text-sm placeholder:text-moss/70 outline-none focus:border-eucalyptus focus:bg-plaster-surface transition-all"
+          />
         </div>
-      ) : (
-        <div className="space-y-4">
-          {filtered.map(booking => (
-            <div
-              key={booking.id}
-              onClick={() => { setSelectedBooking(booking); setDetailsModal(true); }}
-              className="bg-white rounded-2xl border border-soot/8 overflow-hidden hover:border-eucalyptus/30 transition-colors cursor-pointer"
+
+        {/* Tab Buttons */}
+        <div className="flex items-center gap-1 bg-plaster-dark/30 p-1 rounded-xl border border-soot/10 shrink-0 w-full sm:w-auto overflow-x-auto">
+          {[
+            { id: 'active', label: 'Active', count: activeCount },
+            { id: 'previous', label: 'Previous', count: previousCount },
+            { id: 'cancelled', label: 'Cancelled', count: cancelledCount },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as BookingStatus)}
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                activeTab === tab.id
+                  ? 'bg-soot text-plaster shadow-2xs'
+                  : 'text-moss hover:text-soot hover:bg-soot/5'
+              }`}
             >
-              <div className="flex">
-                <img src={booking.spaceImage} alt={booking.spaceName} className="w-28 object-cover hidden sm:block" />
-                <div className="flex-1 p-5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <h3 className="font-semibold text-soot">{booking.spaceName}</h3>
-                      <div className="flex items-center gap-1 text-xs text-moss mt-0.5">
-                        <MapPin size={10} />
-                        {booking.spaceCity}
-                      </div>
-                    </div>
-                    <span className={`shrink-0 text-xs font-medium px-2.5 py-1 rounded-full capitalize ${statusColor(booking.status)}`}>
-                      {booking.status}
-                    </span>
-                  </div>
-
-                  <div className="flex flex-wrap gap-3 mt-3 text-xs text-moss">
-                    <div className="flex items-center gap-1.5">
-                      <Calendar size={11} />
-                      {booking.startDate}
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <Users size={11} />
-                      {booking.seats} seat{booking.seats > 1 ? 's' : ''}
-                    </div>
-                    <span className="capitalize bg-soot/5 px-2 py-0.5 rounded-full">{booking.plan}</span>
-                    <span className="capitalize">{booking.type.replace('-', ' ')}</span>
-                  </div>
-
-                  {booking.employees.length > 0 && (
-                    <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                      {booking.employees.slice(0, 3).map(eId => (
-                        <span key={eId} className="text-[11px] bg-eucalyptus/15 text-moss px-2 py-0.5 rounded-full">
-                          {getEmpName(eId).split(' ')[0]}
-                        </span>
-                      ))}
-                      {booking.employees.length > 3 && (
-                        <span className="text-[11px] text-moss">+{booking.employees.length - 3}</span>
-                      )}
-                    </div>
-                  )}
-
-                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-soot/5">
-                    <span className="font-semibold text-soot">SAR {booking.totalPrice.toLocaleString()}</span>
-                    {booking.status === 'active' && (
-                      <button
-                        onClick={e => { e.stopPropagation(); setSelectedBooking(booking); setCancelModal(true); }}
-                        className="text-xs text-red-500 hover:underline"
-                      >
-                        Cancel
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
+              <span>{tab.label}</span>
+              <span className={`px-1.5 py-0.2 text-[10px] rounded-full ${
+                activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-soot/10 text-soot'
+              }`}>
+                {tab.count}
+              </span>
+            </button>
           ))}
         </div>
+      </div>
+
+      {/* Admin-Matching 12-Column Table Layout */}
+      <div className="bg-plaster-surface rounded-3xl border border-soot/10 overflow-hidden shadow-2xs relative z-10">
+        <div className="hidden lg:grid grid-cols-12 gap-6 px-6 py-4 border-b border-soot/10 text-xs font-semibold uppercase tracking-wider text-moss bg-plaster-dark/40 items-center">
+          <div className="col-span-4">Workspace & Location</div>
+          <div className="col-span-2">Assigned Team Member</div>
+          <div className="col-span-2">Booking Period</div>
+          <div className="col-span-2">Plan & Seats</div>
+          <div className="col-span-1">Amount</div>
+          <div className="col-span-1 text-right">Actions</div>
+        </div>
+
+        {filtered.length === 0 ? (
+          <div className="py-16 text-center text-moss">
+            <CalendarDays size={32} className="mx-auto mb-3 opacity-50" />
+            <p className="text-sm">No team reservations found in this section.</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-soot/8">
+            {filtered.map((b) => (
+              <div
+                key={b.id}
+                onClick={() => setSelectedBooking(b)}
+                className="px-6 py-4 hover:bg-plaster-dark/30 transition-colors flex flex-col lg:grid lg:grid-cols-12 lg:gap-6 lg:items-center cursor-pointer group"
+              >
+                {/* Workspace Name & Image */}
+                <div className="col-span-4 flex items-center gap-3.5 min-w-0">
+                  <img
+                    src={b.spaceImage}
+                    alt={b.spaceName}
+                    className="w-11 h-11 rounded-xl object-cover border border-soot/10 shrink-0 shadow-2xs group-hover:scale-105 transition-transform"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-semibold text-soot group-hover:text-emerald-900 transition-colors truncate">
+                      {b.spaceName}
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs text-moss mt-0.5 font-medium">
+                      <MapPin size={12} className="text-moss shrink-0" />
+                      <span className="truncate">{b.spaceCity}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Assigned Member */}
+                <div className="col-span-2 mt-2 lg:mt-0 text-xs font-semibold text-soot truncate">
+                  {b.employees && b.employees.length > 0
+                    ? getEmpName(b.employees[0])
+                    : (currentUser.orgName || currentUser.name)}
+                  {b.employees && b.employees.length > 1 && (
+                    <span className="block text-[10px] text-moss font-normal">
+                      +{b.employees.length - 1} other member{b.employees.length > 2 ? 's' : ''}
+                    </span>
+                  )}
+                </div>
+
+                {/* Booking Period */}
+                <div className="col-span-2 mt-2 lg:mt-0 text-xs text-soot font-medium">
+                  <div className="flex items-center gap-1">
+                    <Calendar size={12} className="text-moss shrink-0" />
+                    <span>{b.startDate}</span>
+                  </div>
+                  {b.startDate !== b.endDate && (
+                    <div className="text-moss text-[11px] mt-0.5 pl-4">to {b.endDate}</div>
+                  )}
+                </div>
+
+                {/* Plan & Seats */}
+                <div className="col-span-2 mt-2 lg:mt-0 text-xs font-semibold text-soot capitalize">
+                  {b.plan === 'hourly'
+                    ? `Hourly (${b.durationHours || 1} ${b.durationHours === 1 ? 'hr' : 'hrs'})`
+                    : b.plan === 'monthly'
+                    ? `${b.durationMonths || 1}mo Monthly`
+                    : `${b.plan} pass`}
+                  {b.plan === 'hourly' && (b.startTime || b.endTime) && (
+                    <span className="block text-[10px] font-medium text-moss normal-case">
+                      {b.startTime} – {b.endTime}
+                    </span>
+                  )}
+                  <span className="block text-[11px] font-normal text-moss">
+                    {b.seats} seat{b.seats > 1 ? 's' : ''}
+                  </span>
+                </div>
+                {/* Revenue Amount */}
+                <div className="col-span-1 mt-2 lg:mt-0 text-sm font-semibold text-soot">
+                  {getBookingPrice(b) === 0 ? (
+                    <span className="text-xs font-bold text-moss bg-eucalyptus/30 px-2.5 py-1 rounded-full border border-eucalyptus/40 inline-flex items-center gap-1">
+                      <Check size={11} className="text-moss" />
+                      <span>Included in Plan</span>
+                    </span>
+                  ) : (
+                    `SAR ${getBookingPrice(b).toLocaleString()}`
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div className="col-span-1 mt-4 lg:mt-0 flex items-center justify-end gap-1.5">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedBooking(b);
+                    }}
+                    className="p-2 rounded-xl text-moss hover:text-soot hover:bg-plaster-surface border border-transparent hover:border-soot/10 transition-all cursor-pointer"
+                    title="View Details"
+                  >
+                    <Eye size={15} />
+                  </button>
+                  {b.status === 'active' && (() => {
+                    const { eligible, requiredHours } = isCancellationRefundEligible(b.startDate, b.startTime, 'organization');
+                    return (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCancelModal(b);
+                        }}
+                        className="p-2 rounded-xl text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-all cursor-pointer"
+                        title={
+                          eligible
+                            ? 'Cancel Reservation (Eligible for Full Refund)'
+                            : `Cancel Reservation (Non-refundable: within ${requiredHours}h of start)`
+                        }
+                      >
+                        <X size={15} />
+                      </button>
+                    );
+                  })()}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Booking QR Code & Pass Details Modal */}
+      {selectedBooking && (
+        <BookingQrModal
+          booking={selectedBooking}
+          onClose={() => setSelectedBooking(null)}
+          onCancelClick={(b) => {
+            setSelectedBooking(null);
+            setCancelModal(b);
+          }}
+        />
       )}
 
-      {/* Details modal */}
-      <Modal open={detailsModal} onClose={() => { setDetailsModal(false); setSelectedBooking(null); }} title="Booking Details" size="md">
-        {selectedBooking && (
-          <div className="p-6">
-            <div className="flex items-start gap-3 mb-5 pb-4 border-b border-soot/8">
-              <img src={selectedBooking.spaceImage} alt={selectedBooking.spaceName} className="w-14 h-14 rounded-xl object-cover" />
-              <div>
-                <div className="font-semibold text-soot">{selectedBooking.spaceName}</div>
-                <div className="flex items-center gap-1 text-xs text-moss mt-0.5">
-                  <MapPin size={10} />
-                  {selectedBooking.spaceCity}
-                </div>
-                <span className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize mt-1 inline-block ${statusColor(selectedBooking.status)}`}>
-                  {selectedBooking.status}
-                </span>
-              </div>
-            </div>
+      {/* Cancel Confirmation Modal */}
+      {cancelModal && (() => {
+        const { eligible, requiredHours } = isCancellationRefundEligible(cancelModal.startDate, cancelModal.startTime, 'organization');
+        const bookingPrice = getBookingPrice(cancelModal, spaces);
 
-            <div className="space-y-2.5 text-sm mb-5">
-              {[
-                { l: 'ID', v: selectedBooking.id.slice(-8).toUpperCase() },
-                { l: 'Type', v: selectedBooking.type.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase()) },
-                { l: 'Plan', v: selectedBooking.plan.charAt(0).toUpperCase() + selectedBooking.plan.slice(1) },
-                { l: 'Seats', v: selectedBooking.seats.toString() },
-                { l: 'Period', v: `${selectedBooking.startDate} → ${selectedBooking.endDate}` },
-              ].map(r => (
-                <div key={r.l} className="flex justify-between">
-                  <span className="text-moss">{r.l}</span>
-                  <span className="text-soot font-medium">{r.v}</span>
+        return (
+          <Modal
+            open={!!cancelModal}
+            onClose={() => setCancelModal(null)}
+            title="Cancel Team Reservation"
+            size="sm"
+            footer={
+              <>
+                <button type="button" onClick={() => setCancelModal(null)} className="btn-secondary">
+                  Keep Booking
+                </button>
+                <button type="button" onClick={handleCancelConfirm} className="btn-danger">
+                  Confirm Cancel
+                </button>
+              </>
+            }
+          >
+            <div className="text-sm text-soot space-y-3 py-2">
+              <p>
+                Are you sure you want to cancel the team reservation for <span className="font-semibold">{cancelModal.spaceName}</span>?
+              </p>
+
+              {/* Legal Refund Status Banner */}
+              {eligible ? (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs text-emerald-900 space-y-1">
+                  <div className="font-semibold flex items-center gap-1.5 text-emerald-950">
+                    <Check size={14} className="text-emerald-700" />
+                    <span>Eligible for Full Corporate Refund (SAR {bookingPrice.toLocaleString()})</span>
+                  </div>
+                  <p className="text-emerald-800 text-[11px]">
+                    Cancelled at least {requiredHours} hours in advance as per Corporate Legal Terms.
+                  </p>
                 </div>
-              ))}
-              {selectedBooking.employees.length > 0 && (
-                <div>
-                  <div className="text-moss mb-1.5">Assigned team</div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {selectedBooking.employees.map(eId => (
-                      <span key={eId} className="text-xs bg-eucalyptus/15 text-moss px-2 py-0.5 rounded-full">
-                        {getEmpName(eId)}
+              ) : (
+                <div className="bg-rose-50 border border-rose-200 rounded-xl p-3 text-xs text-rose-900 space-y-1">
+                  <div className="font-semibold flex items-center gap-1.5 text-rose-950">
+                    <AlertCircle size={14} className="text-rose-700" />
+                    <span>Non-Refundable Cancellation</span>
+                  </div>
+                  <p className="text-rose-800 text-[11px]">
+                    Per Corporate Legal Terms (Section 5), cancellations within {requiredHours} hours of start time are non-refundable. Reserved seats will still be released.
+                  </p>
+                </div>
+              )}
+
+              {/* Refund Destination Selection if Eligible */}
+              {eligible && (
+                <div className="space-y-2 pt-1 border-t border-soot/8">
+                  <label className="text-xs font-semibold text-soot block">Choose Refund Destination:</label>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setRefundMethod('wallet')}
+                      className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
+                        refundMethod === 'wallet'
+                          ? 'border-emerald-600 bg-emerald-50/50 text-emerald-950 ring-1 ring-emerald-600'
+                          : 'border-soot/12 bg-white text-soot hover:bg-plaster-dark/20'
+                      }`}
+                    >
+                      <span className="font-semibold text-[11px] flex items-center gap-1.5">
+                        <Zap size={13} className="text-amber-600 shrink-0" />
+                        <span>Instant Wallet</span>
                       </span>
-                    ))}
+                      <span className="text-[10px] text-moss mt-1">Available immediately</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setRefundMethod('card')}
+                      className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
+                        refundMethod === 'card'
+                          ? 'border-emerald-600 bg-emerald-50/50 text-emerald-950 ring-1 ring-emerald-600'
+                          : 'border-soot/12 bg-white text-soot hover:bg-plaster-dark/20'
+                      }`}
+                    >
+                      <span className="font-semibold text-[11px] flex items-center gap-1.5">
+                        <CreditCard size={13} className="text-soot shrink-0" />
+                        <span>Original Card</span>
+                      </span>
+                      <span className="text-[10px] text-moss mt-1">5-14 business days</span>
+                    </button>
                   </div>
                 </div>
               )}
-              <div className="pt-2 border-t border-soot/8 flex justify-between font-semibold">
-                <span className="text-soot">Total</span>
-                <span className="text-soot">SAR {selectedBooking.totalPrice.toLocaleString()}</span>
-              </div>
             </div>
-
-            {selectedBooking.status === 'active' && (
-              <button
-                onClick={() => { setDetailsModal(false); setCancelModal(true); }}
-                className="w-full py-2.5 rounded-xl border border-red-200 text-red-500 text-sm font-medium flex items-center justify-center gap-2"
-              >
-                <X size={14} />
-                Cancel booking
-              </button>
-            )}
-          </div>
-        )}
-      </Modal>
-
-      {/* Cancel modal */}
-      <Modal open={cancelModal} onClose={() => setCancelModal(false)} title="Cancel Booking" size="sm">
-        <div className="p-6">
-          <div className="flex items-start gap-3 mb-5">
-            <div className="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center shrink-0">
-              <AlertCircle size={18} className="text-red-500" />
-            </div>
-            <p className="text-sm text-moss leading-relaxed">
-              Cancel this team booking at <strong className="text-soot">{selectedBooking?.spaceName}</strong>? All assigned team members will be notified.
-            </p>
-          </div>
-          <div className="flex gap-3">
-            <button onClick={() => setCancelModal(false)} className="flex-1 py-2.5 rounded-xl border border-soot/15 text-soot text-sm font-medium">
-              Keep booking
-            </button>
-            <button onClick={handleCancel} className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold">
-              Yes, cancel
-            </button>
-          </div>
-        </div>
-      </Modal>
+          </Modal>
+        );
+      })()}
     </div>
   );
 }
