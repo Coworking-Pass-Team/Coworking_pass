@@ -88,26 +88,26 @@ export default function OrgDashboard() {
 
         {/* Corporate Shared Wallet Card */}
         <div className="bg-plaster-surface rounded-3xl border border-soot/12 p-4 sm:p-5 shadow-xs flex items-center gap-4 group">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-800 shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
-            <Wallet size={24} />
+          <div className="w-12 h-12 rounded-2xl bg-[#DDE6DF] border border-soot/10 flex items-center justify-center text-soot shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+            <Wallet size={22} />
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <span className="text-xs font-semibold text-moss">المحفظة المشتركة</span>
-              <span className="text-[10px] px-2 py-0.2 rounded-full font-bold bg-emerald-500/15 text-emerald-800 border border-emerald-500/30">
-                Shared Wallet
+              <span className="text-xs font-semibold text-moss">Corporate Shared Wallet</span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-[#DDE6DF] text-soot border border-soot/10">
+                Shared Pool
               </span>
             </div>
             <div className="text-2xl font-serif-display font-normal text-soot tracking-tight">
-              SAR {(companyWalletBalance || companyData?.balance || 0).toLocaleString()}
+              SAR {(companyWalletBalance ?? companyData?.balance ?? 0).toLocaleString()}
             </div>
           </div>
           <button
             type="button"
             onClick={() => setIsSharedWalletOpen(true)}
-            className="ml-2 px-3 py-2 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-semibold shadow-2xs transition-all flex items-center gap-1 cursor-pointer shrink-0"
+            className="ml-2 px-3.5 py-2 rounded-xl bg-soot hover:bg-soot-light text-plaster text-xs font-semibold shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
           >
-            <span>شحن المحفظة</span>
+            <span>Top Up</span>
             <ArrowUpRight size={13} />
           </button>
         </div>
@@ -453,8 +453,8 @@ export default function OrgDashboard() {
           { label: 'Team Bookings', desc: 'Manage active company reservations', action: () => navigate('team-bookings'), icon: CalendarDays },
           { label: 'Manage Team', desc: 'Add colleagues to enterprise pass', action: () => navigate('company-team'), icon: Users },
           {
-            label: 'المحفظة المشتركة',
-            desc: `رصيد: SAR ${(companyWalletBalance || companyData?.balance || 0).toLocaleString()} · شحن وإدارة رصيد الفريق`,
+            label: 'Corporate Shared Wallet',
+            desc: `Balance: SAR ${(companyWalletBalance ?? companyData?.balance ?? 0).toLocaleString()} · Top up & manage team funds`,
             action: () => setIsSharedWalletOpen(true),
             icon: Wallet
           },
