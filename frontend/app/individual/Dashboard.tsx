@@ -4,33 +4,29 @@ import React, { useState } from 'react';
 import {
   CalendarDays,
   MapPin,
+  Search,
   Star,
   Clock,
   ArrowRight,
   Bookmark,
   Check,
   Sparkles,
-  Building2,
-  Presentation,
-  Clapperboard,
-  QrCode,
-  Wallet,
+  QrCode
 } from 'lucide-react';
 import { useApp } from '@/app/store';
 import BookingQrModal from '@/components/BookingQrModal';
 import {
   Space,
-  getEffectiveSpacePrice,
   Booking,
-  getHourlyPriceForDuration,
+  SpaceCategory,
   BookingPlan,
+  getEffectiveSpacePrice,
   getBookingPrice,
-  getSpaceCategory,
-  SpaceCategory
+  getSpaceCategory
 } from '@/types/types';
 
-export default function Dashboard() {
-  const { currentUser, spaces, bookings, favorites, navigate } = useApp();
+export default function IndividualDashboard() {
+  const { currentUser, bookings, spaces, navigate, favorites } = useApp();
   const [selectedCategory, setSelectedCategory] = useState<'all' | SpaceCategory>('all');
   const [selectedBookingForQr, setSelectedBookingForQr] = useState<Booking | null>(null);
 

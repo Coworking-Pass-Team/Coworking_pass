@@ -3,12 +3,11 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { sendOtpEmail } from "@/lib/mailer";
 
-const VALID_ROLES = ["GUEST", "B2C", "HR_ADMIN", "PARTNER_ADMIN"];
+const VALID_ROLES = ["GUEST", "B2C", "HR_ADMIN", "PARTNER_ADMIN", "SUPER_ADMIN"];
 
 function generateOtp() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
-
 
 /**
  * @swagger
@@ -21,7 +20,7 @@ function generateOtp() {
  *         application/json:
  *           schema:
  *             type: object
- *             required: [name, email, password, role]
+ *             required: [name, email, password]
  *             properties:
  *               name:
  *                 type: string
@@ -31,37 +30,57 @@ function generateOtp() {
  *                 type: string
  *               role:
  *                 type: string
- *                 enum: [GUEST, B2C]
+ *                 enum: [GUEST, B2C, HR_ADMIN, PARTNER_ADMIN]
+ *               companyId:
+ *                 type: string
  *     responses:
  *       201:
- *         description: تم إنشاء الحساب بنجاح
+ *         description: تم إنشاء الحساب بنجاح وإرسال رمز التحقق
  */
-
 export async function POST(request: Request) {
   try {
-    const { name, email, password, role } = await request.json();
+    const { name, email, password, role, companyId } = await request.json();
 
-    if (!name || !email || !password || !role) {
-      return NextResponse.json({ error: "جميع الحقول مطلوبة" }, { status: 400 });
-    }
-
-    if (!VALID_ROLES.includes(role)) {
+    if (!name || !email || !password) {
       return NextResponse.json(
-        { error: `نوع الحساب غير صحيح. القيم المسموحة: ${VALID_ROLES.join(", ")}` },
+        { error: "الاسم والإيميل وكلمة المرور مطلوبة" },
         { status: 400 }
       );
     }
 
-    const existingUser = await prisma.user.findUnique({ where: { email } });
+    const cleanEmail = email.trim().toLowerCase();
+    const existingUser = await prisma.user.findUnique({
+      where: { email: cleanEmail },
+    });
+
     if (existingUser) {
-      return NextResponse.json({ error: "هذا الإيميل مسجل مسبقاً" }, { status: 409 });
+      return NextResponse.json(
+        { error: "يوجد حساب مسجل بهذا الإيميل مسبقاً" },
+        { status: 400 }
+      );
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
+    const assignedRole = (role && VALID_ROLES.includes(role)) ? role : "B2C";
 
     const user = await prisma.user.create({
-      data: { name, email, passwordHash, role },
+      data: {
+        name: name.trim(),
+        email: cleanEmail,
+        passwordHash,
+        role: assignedRole as any,
+        companyId: companyId || null,
+        emailVerified: false,
+      },
     });
+
+    // إنشاء محفظة للمستخدم الجديد
+    await prisma.wallet.create({
+      data: {
+        userId: user.id,
+        balance: 0,
+      },
+    }).catch(() => {});
 
     const otp = generateOtp();
     const otpHash = await bcrypt.hash(otp, 10);
@@ -75,17 +94,17 @@ export async function POST(request: Request) {
       },
     });
 
-    await sendOtpEmail(email, otp);
+    await sendOtpEmail(cleanEmail, otp).catch(() => {});
 
     return NextResponse.json(
       {
-        message: "تم إنشاء الحساب. تم إرسال رمز التحقق إلى إيميلك",
+        message: "تم إنشاء الحساب بنجاح. تم إرسال رمز التحقق إلى بريدك الإلكتروني",
         userId: user.id,
       },
       { status: 201 }
     );
   } catch (error) {
-    console.error(error);
-    return NextResponse.json({ error: "حدث خطأ في السيرفر" }, { status: 500 });
+    console.error("❌ Error registering user:", error);
+    return NextResponse.json({ error: "حدث خطأ في السيرفر أثناء تسجيل الحساب" }, { status: 500 });
   }
 }

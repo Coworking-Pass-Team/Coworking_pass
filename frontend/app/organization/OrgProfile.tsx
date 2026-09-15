@@ -22,15 +22,18 @@ import {
   AlertCircle,
   ArrowRight,
   Sparkles,
-  Clock
+  Clock,
+  Wallet,
+  ArrowUpRight
 } from 'lucide-react';
 import { useApp } from '@/app/store';
 import { Employee } from '@/types/types';
 import Modal from '@/components/ui/Modal';
 import UserAvatar from '@/components/ui/UserAvatar';
+import SharedWalletModal from '@/components/ui/SharedWalletModal';
 
 export default function OrgProfile() {
-  const { currentUser, navigate, nav, updateCurrentUser, showToast, bookings } = useApp();
+  const { currentUser, navigate, nav, updateCurrentUser, showToast, bookings, companyWalletBalance, companyData } = useApp();
 
   const [activeTab, setActiveTab] = useState<'profile' | 'settings'>(
     nav.screen === 'org-settings' ? 'settings' : 'profile'
@@ -38,6 +41,7 @@ export default function OrgProfile() {
 
   // Edit Profile Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isSharedWalletOpen, setIsSharedWalletOpen] = useState(false);
 
   // Edit Form Fields (Exact existing Organization fields preserved)
   const [editOrgName, setEditOrgName] = useState(currentUser?.orgName || currentUser?.name || '');
@@ -276,8 +280,8 @@ export default function OrgProfile() {
 
             {/* Profile Content Details */}
             <div className="px-6 sm:px-8 pb-8 pt-0 relative">
-              {/* Header Row: Avatar / Logo */}
-              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 -mt-16 sm:-mt-20 mb-6">
+              {/* Header Row: Avatar / Logo & Actions */}
+              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 -mt-16 sm:-mt-20 mb-6">
                 <div className="relative inline-block self-start">
                   <UserAvatar
                     src={currentUser.avatar}
@@ -285,6 +289,25 @@ export default function OrgProfile() {
                     size="2xl"
                     ring={true}
                   />
+                </div>
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => setIsSharedWalletOpen(true)}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-emerald-800 hover:bg-emerald-900 text-white text-xs sm:text-sm font-semibold shadow-xs transition-all cursor-pointer"
+                  >
+                    <Wallet size={15} />
+                    <span>المحفظة المشتركة: SAR {(companyWalletBalance || companyData?.balance || 0).toLocaleString()}</span>
+                    <ArrowUpRight size={13} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleOpenEdit}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-soot/15 text-soot text-xs sm:text-sm font-medium hover:bg-plaster transition-all cursor-pointer bg-white shadow-2xs"
+                  >
+                    <Edit3 size={14} />
+                    <span>Edit Profile</span>
+                  </button>
                 </div>
               </div>
 
@@ -1032,6 +1055,12 @@ export default function OrgProfile() {
           </div>
         </form>
       </Modal>
+
+      {/* Corporate Shared Wallet Modal */}
+      <SharedWalletModal
+        isOpen={isSharedWalletOpen}
+        onClose={() => setIsSharedWalletOpen(false)}
+      />
     </div>
   );
 }

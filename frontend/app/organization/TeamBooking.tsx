@@ -49,7 +49,7 @@ const STEPS = ['Type & Plan', 'Team', 'Schedule', 'Review'];
 const DURATION_OPTIONS = [1, 2, 3, 4, 6, 8];
 
 export default function TeamBooking() {
-  const { nav, goBack, spaces, bookings, currentUser, addBooking, navigate, showToast, addToCart, updateCurrentUser, withdrawFromWallet } = useApp();
+  const { nav, goBack, spaces, bookings, currentUser, addBooking, navigate, showToast, addToCart, updateCurrentUser, withdrawFromWallet, companyWalletBalance, fetchCompanyWallet } = useApp();
   const spaceId = nav.params?.spaceId;
   const space = spaces.find((s: Space) => s.id === spaceId);
 
@@ -144,7 +144,8 @@ export default function TeamBooking() {
   const rawPointsDiscount = useLoyaltyPoints && maxRedeemablePoints > 0 ? (maxRedeemablePoints / 100) * 25 : 0;
   const pointsDiscount = Math.min(rawTotalPrice, rawPointsDiscount);
   const finalPayablePrice = Math.max(0, rawTotalPrice - pointsDiscount);
-  const userWalletBalance = currentUser?.walletBalance || 0;
+  const isUsingCompanyWallet = (companyWalletBalance || 0) > 0;
+  const userWalletBalance = isUsingCompanyWallet ? companyWalletBalance : (currentUser?.walletBalance || 0);
   const walletDeduction = useWalletBalance ? Math.min(userWalletBalance, finalPayablePrice) : 0;
   const totalPriceToPay = Math.max(0, finalPayablePrice - walletDeduction);
 
@@ -244,8 +245,12 @@ export default function TeamBooking() {
         status: 'active',
       });
 
-      if (useWalletBalance && walletDeduction > 0 && withdrawFromWallet) {
-        withdrawFromWallet(walletDeduction, `Team booking payment for ${space.name}`);
+      if (useWalletBalance && walletDeduction > 0) {
+        if (!isUsingCompanyWallet && withdrawFromWallet) {
+          withdrawFromWallet(walletDeduction, `Team booking payment for ${space.name}`);
+        } else if (fetchCompanyWallet) {
+          setTimeout(() => fetchCompanyWallet(currentUser.companyId), 1200);
+        }
       }
 
       // تحديث نقاط الولاء للمؤسسة / المستخدم
@@ -893,14 +898,16 @@ export default function TeamBooking() {
               </div>
             </div>
 
-            {/* Digital Wallet Redemption Widget */}
+            {/* Digital Wallet / Corporate Shared Wallet Redemption Widget */}
             {currentUser && userWalletBalance > 0 && (
               <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Wallet size={16} className="text-emerald-700 shrink-0" />
                     <div>
-                      <div className="text-xs font-semibold text-soot">Digital Wallet Balance</div>
+                      <div className="text-xs font-semibold text-soot">
+                        {isUsingCompanyWallet ? 'المحفظة المشتركة (Corporate Shared Wallet)' : 'Digital Wallet Balance'}
+                      </div>
                       <div className="text-[11px] text-moss">Available Balance: SAR {userWalletBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
                     </div>
                   </div>
@@ -912,13 +919,13 @@ export default function TeamBooking() {
                         onChange={(e) => setUseWalletBalance(e.target.checked)}
                         className="rounded border-soot/20 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
                       />
-                      <span>Use Wallet (SAR {walletDeduction.toLocaleString()})</span>
+                      <span>Use {isUsingCompanyWallet ? 'Shared Wallet' : 'Wallet'} (SAR {walletDeduction.toLocaleString()})</span>
                     </label>
                   )}
                 </div>
                 {useWalletBalance && walletDeduction > 0 && (
                   <div className="text-[11px] font-medium text-emerald-950 bg-emerald-500/15 px-3 py-1.5 rounded-xl border border-emerald-500/30 flex items-center justify-between">
-                    <span>Wallet Balance Applied</span>
+                    <span>{isUsingCompanyWallet ? 'Corporate Shared Wallet Applied' : 'Wallet Balance Applied'}</span>
                     <span className="font-bold text-emerald-700">- SAR {walletDeduction.toLocaleString()}</span>
                   </div>
                 )}

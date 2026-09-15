@@ -41,7 +41,6 @@ const AMENITY_OPTIONS = [
   '4K Projector',
   'Sound System',
   'Interactive Smartboard',
-  'Auditorium Seating',
 ];
 
 const CITIES = ['Riyadh', 'Jeddah', 'Dammam', 'Khobar', 'Madinah', 'Makkah'];

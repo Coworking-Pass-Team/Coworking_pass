@@ -1168,6 +1168,50 @@ export async function getCompaniesApi() {
   }
 }
 
+export async function getCompanyApi(id: string) {
+  const url = `${getAuthBaseUrl()}/api/companies/${id}`;
+  try {
+    const response = await fetch(url, { method: 'GET', headers: getAuthHeaders() });
+    const data = await response.json().catch(() => null);
+    if (!response.ok) return { success: false, error: data?.error || 'Failed to fetch company' };
+    return { success: true, data };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+export async function depositCompanyWalletApi(companyId: string, amount: number) {
+  const url = `${getAuthBaseUrl()}/api/companies/${companyId}/deposit`;
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ amount }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) return { success: false, error: data.error || 'Failed to deposit to company wallet' };
+    return { success: true, data };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+export async function updateCompanyApi(id: string, data: any) {
+  const url = `${getAuthBaseUrl()}/api/companies/${id}`;
+  try {
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    const resData = await response.json().catch(() => ({}));
+    if (!response.ok) return { success: false, error: resData.error || 'Failed to update company' };
+    return { success: true, data: resData };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
 export async function createTicketApi(payload: { companyId: string; userId: string; subject: string }) {
   const url = `${getAuthBaseUrl()}/api/tickets`;
   try {

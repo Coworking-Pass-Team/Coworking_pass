@@ -1,5 +1,4 @@
 'use client';
-
 import { useState, useRef, useEffect } from 'react';
 import { Menu, X, User as UserIcon, LogOut, ChevronDown, Calendar, Building2, Users, Settings, CreditCard, HelpCircle } from 'lucide-react';
 import { useApp } from '@/app/store';
