@@ -1,5 +1,4 @@
 'use client';
-
 import React, { useState } from 'react';
 import {
   CalendarDays,
@@ -15,9 +14,16 @@ import {
   Presentation,
   Clapperboard,
   QrCode,
+  Search,
+  TrendingUp,
+  Briefcase,
+  Wallet,
+  Coins,
+  ArrowUpRight
 } from 'lucide-react';
 import { useApp } from '@/app/store';
 import BookingQrModal from '@/components/BookingQrModal';
+import SharedWalletModal from '@/components/ui/SharedWalletModal';
 import {
   Space,
   getEffectiveSpacePrice,
@@ -30,9 +36,10 @@ import {
 } from '@/types/types';
 
 export default function OrgDashboard() {
-  const { currentUser, spaces, bookings, favorites, navigate } = useApp();
+  const { currentUser, spaces, bookings, favorites, navigate, companyWalletBalance, companyData } = useApp();
   const [selectedCategory, setSelectedCategory] = useState<'all' | SpaceCategory>('all');
   const [selectedBookingForQr, setSelectedBookingForQr] = useState<Booking | null>(null);
+  const [isSharedWalletOpen, setIsSharedWalletOpen] = useState(false);
 
   if (!currentUser) return null;
 
@@ -77,6 +84,32 @@ export default function OrgDashboard() {
           <p className="text-moss text-sm mt-1">
             {currentUser.industry || 'Enterprise Solutions'} · {employees.length || currentUser.orgSize || 15} team members on pass
           </p>
+        </div>
+
+        {/* Corporate Shared Wallet Card */}
+        <div className="bg-plaster-surface rounded-3xl border border-soot/12 p-4 sm:p-5 shadow-xs flex items-center gap-4 group">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-800 shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+            <Wallet size={24} />
+          </div>
+          <div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-semibold text-moss">المحفظة المشتركة</span>
+              <span className="text-[10px] px-2 py-0.2 rounded-full font-bold bg-emerald-500/15 text-emerald-800 border border-emerald-500/30">
+                Shared Wallet
+              </span>
+            </div>
+            <div className="text-2xl font-serif-display font-normal text-soot tracking-tight">
+              SAR {(companyWalletBalance || companyData?.balance || 0).toLocaleString()}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsSharedWalletOpen(true)}
+            className="ml-2 px-3 py-2 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-semibold shadow-2xs transition-all flex items-center gap-1 cursor-pointer shrink-0"
+          >
+            <span>شحن المحفظة</span>
+            <ArrowUpRight size={13} />
+          </button>
         </div>
       </div>
 
@@ -414,11 +447,17 @@ export default function OrgDashboard() {
       </div>
 
       {/* Admin-Matching Action Cards */}
-      <div className="mt-10 grid sm:grid-cols-3 gap-4">
+      <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: 'Browse Workspaces', desc: 'Find and reserve desks, halls & theaters', action: () => navigate('browse'), icon: Building2 },
           { label: 'Team Bookings', desc: 'Manage active company reservations', action: () => navigate('team-bookings'), icon: CalendarDays },
           { label: 'Manage Team', desc: 'Add colleagues to enterprise pass', action: () => navigate('company-team'), icon: Users },
+          {
+            label: 'المحفظة المشتركة',
+            desc: `رصيد: SAR ${(companyWalletBalance || companyData?.balance || 0).toLocaleString()} · شحن وإدارة رصيد الفريق`,
+            action: () => setIsSharedWalletOpen(true),
+            icon: Wallet
+          },
         ].map(a => (
           <button
             key={a.label}
@@ -433,6 +472,12 @@ export default function OrgDashboard() {
           </button>
         ))}
       </div>
+
+      {/* Corporate Shared Wallet Modal */}
+      <SharedWalletModal
+        isOpen={isSharedWalletOpen}
+        onClose={() => setIsSharedWalletOpen(false)}
+      />
 
       {/* Quick Access Entry QR Code Pass Modal */}
       {selectedBookingForQr && (

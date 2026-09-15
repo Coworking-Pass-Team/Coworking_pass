@@ -55,6 +55,9 @@ import {
   getQrCheckInsApi,
   createQrCheckInApi,
   getCompaniesApi,
+  getCompanyApi,
+  depositCompanyWalletApi,
+  updateCompanyApi,
   createTicketApi,
   createTicketReplyApi,
   getTicketsApi,
@@ -487,6 +490,11 @@ interface AppContextType {
   depositToWallet: (amount: number, description?: string) => Promise<{ success: boolean; message: string; balance?: number }>;
   withdrawFromWallet: (amount: number, description?: string) => Promise<{ success: boolean; message: string; balance?: number }>;
 
+  companyWalletBalance: number;
+  companyData: any | null;
+  fetchCompanyWallet: (companyId?: string) => Promise<{ balance: number; company?: any } | null>;
+  depositToCompanyWallet: (amount: number, companyId?: string) => Promise<{ success: boolean; message: string; balance?: number }>;
+
   loyaltyRules: LoyaltyRule[];
   fetchLoyaltyRules: () => Promise<LoyaltyRule[]>;
   createLoyaltyProposal: (proposalData: {
@@ -535,6 +543,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [toast, setToast] = useState<AppContextType['toast']>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [walletTransactions, setWalletTransactions] = useState<WalletTransaction[]>([]);
+  const [companyWalletBalance, setCompanyWalletBalance] = useState<number>(0);
+  const [companyData, setCompanyData] = useState<any | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [amenityRequests, setAmenityRequests] = useState<AmenityRequest[]>([
     {
@@ -1414,6 +1424,68 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const fetchCompanyWallet = async (companyId?: string): Promise<{ balance: number; company?: any } | null> => {
+    try {
+      let targetCompId = companyId || currentUser?.companyId;
+      if (!targetCompId) {
+        const compRes = await getCompaniesApi();
+        if (compRes.success && Array.isArray(compRes.data) && compRes.data.length > 0) {
+          const userCompany = compRes.data.find((c: any) => c.hrAdminId === currentUser?.id || c.id === currentUser?.companyId) || compRes.data[0];
+          targetCompId = userCompany?.id;
+          if (userCompany) {
+            const bal = typeof userCompany.balance === 'number' ? userCompany.balance : 0;
+            setCompanyWalletBalance(bal);
+            setCompanyData(userCompany);
+            return { balance: bal, company: userCompany };
+          }
+        }
+      }
+      if (targetCompId) {
+        const res = await getCompanyApi(targetCompId);
+        if (res.success && res.data) {
+          const bal = typeof res.data.balance === 'number' ? res.data.balance : 0;
+          setCompanyWalletBalance(bal);
+          setCompanyData(res.data);
+          return { balance: bal, company: res.data };
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to fetch company wallet:', err);
+    }
+    return null;
+  };
+
+  const depositToCompanyWallet = async (amount: number, companyId?: string): Promise<{ success: boolean; message: string; balance?: number }> => {
+    if (amount <= 0) return { success: false, message: 'Invalid deposit amount' };
+    let targetCompId = companyId || currentUser?.companyId || companyData?.id;
+    if (!targetCompId) {
+      const compRes = await getCompaniesApi();
+      if (compRes.success && Array.isArray(compRes.data) && compRes.data.length > 0) {
+        const userCompany = compRes.data.find((c: any) => c.hrAdminId === currentUser?.id || c.id === currentUser?.companyId) || compRes.data[0];
+        targetCompId = userCompany?.id;
+      }
+    }
+    if (!targetCompId) {
+      return { success: false, message: 'Company ID not found' };
+    }
+
+    try {
+      const res = await depositCompanyWalletApi(targetCompId, amount);
+      if (!res.success) {
+        throw new Error(res.error || 'Failed to deposit to company wallet');
+      }
+      const newBal = res.data?.company?.newBalance ?? (companyWalletBalance + amount);
+      setCompanyWalletBalance(newBal);
+      setCompanyData((prev: any) => prev ? { ...prev, balance: newBal } : { id: targetCompId, balance: newBal });
+      showToast(`تم إيداع ${amount.toLocaleString()} ر.س في المحفظة المشتركة بنجاح`, 'success');
+      return { success: true, message: 'Deposit successful', balance: newBal };
+    } catch (err: any) {
+      const msg = err.message || 'Error depositing to company wallet';
+      showToast(msg, 'error');
+      return { success: false, message: msg };
+    }
+  };
+
   const fetchTickets = async (): Promise<SupportTicket[]> => {
     try {
       const res = await getTicketsApi();
@@ -2164,8 +2236,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (currentUser?.id) {
       fetchWallet(currentUser.id).catch(() => {});
+      if (currentUser.role === 'organization' || currentUser.companyId) {
+        fetchCompanyWallet(currentUser.companyId).catch(() => {});
+      }
     }
-  }, [currentUser?.id]);
+  }, [currentUser?.id, currentUser?.companyId, currentUser?.role]);
 
   const sanitizeBookings = (list: Booking[]): Booking[] => {
     const seen = new Set<string>();
@@ -2316,6 +2391,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
     }
   }, [currentUser, partners]);
+
+  useEffect(() => {
+    if (currentUser) {
+      fetchWallet(currentUser.id).catch(() => {});
+      if (currentUser.role === 'organization' || (currentUser as any).role === 'HR_ADMIN' || currentUser.companyId) {
+        fetchCompanyWallet(currentUser.companyId).catch(() => {});
+      }
+    }
+  }, [currentUser?.id, currentUser?.role, currentUser?.companyId]);
 
   const navigate = (screen: Screen, params: Record<string, any> = {}) => {
     setHistory(prev => [...prev.slice(-9), nav]);
@@ -4384,6 +4468,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       cart, addToCart, removeFromCart, updateCartItemSeats, updateCartItem, clearCart, checkoutCart,
       applyLoyaltyDiscount,
       walletTransactions, fetchWallet, depositToWallet, withdrawFromWallet,
+      companyWalletBalance, companyData, fetchCompanyWallet, depositToCompanyWallet,
       loyaltyRules, fetchLoyaltyRules, createLoyaltyProposal, updateLoyaltyRuleStatus, deleteLoyaltyRule,
       qrScans, fetchQrCheckIns, recordQrScan, getSpaceCrowding,
       toast, showToast, updateCurrentUser, completeSignup,

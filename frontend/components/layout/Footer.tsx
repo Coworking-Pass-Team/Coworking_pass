@@ -4,6 +4,7 @@ import LogoImage from './logo';
 import { useApp } from '@/app/store';
 
 export default function Footer() {
+
   const { navigate, currentUser } = useApp();
 
   const role = currentUser?.role;

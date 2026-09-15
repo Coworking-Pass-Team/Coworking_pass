@@ -69,6 +69,36 @@ if (!user) return unauthorizedResponse();
       )
     }
 
+    const pkg = await prisma.hourlyPackage.findUnique({
+      where: { id: packageId },
+    });
+
+    const bookingCost = pkg ? pkg.price : 50;
+
+    // فحص المحفظة المشتركة للشركات إذا كان المستخدم يتبع لشركة
+    const bookingUser = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { company: true },
+    });
+
+    if (bookingUser?.companyId) {
+      const company = await prisma.company.findUnique({
+        where: { id: bookingUser.companyId },
+      });
+
+      if (!company || company.balance < bookingCost) {
+        return NextResponse.json(
+          { error: 'رصيد المحفظة المشتركة للشركة غير كافٍ لهذا الحجز' },
+          { status: 400 }
+        );
+      }
+
+      await prisma.company.update({
+        where: { id: bookingUser.companyId },
+        data: { balance: { decrement: bookingCost } },
+      });
+    }
+
     const booking = await prisma.hourlyBooking.create({
       data: {
         userId,        

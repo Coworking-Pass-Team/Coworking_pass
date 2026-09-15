@@ -1,5 +1,4 @@
 'use client';
-
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Search, SlidersHorizontal, X, MapPin, ChevronDown, Check, ArrowUpDown, Sparkles, Building2, Presentation, Clapperboard, LayoutGrid, Navigation, Loader2 } from 'lucide-react';
 import { useApp } from '@/app/store';
