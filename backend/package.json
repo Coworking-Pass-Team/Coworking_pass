@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3001",
-    "build": "next build",
-    "start": "next start -p 3001",
+    "build": "prisma generate && next build",
+    "start": "next start",
     "lint": "eslint",
     "db:start": "powershell -ExecutionPolicy Bypass -File ./scripts/start-db.ps1",
     "db:stop": "powershell -ExecutionPolicy Bypass -File ./scripts/stop-db.ps1",
