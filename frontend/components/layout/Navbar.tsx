@@ -1,11 +1,152 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
-import { Menu, X, User as UserIcon, LogOut, ChevronDown, Calendar, Building2, Users, Settings, CreditCard, HelpCircle, Wallet } from 'lucide-react';
+import { Menu, X, User as UserIcon, LogOut, ChevronDown, Calendar, Building2, Users, Settings, CreditCard, HelpCircle, Wallet, Bell, CheckCheck, ChevronRight, Sparkles } from 'lucide-react';
 import { useApp } from '@/app/store';
 import Logo from './logo';
 
+export function LoyaltyButton() {
+  const { navigate, currentUser } = useApp();
+  if (!currentUser) return null;
+  const points = currentUser.loyaltyPoints || 0;
+
+  return (
+    <button
+      type="button"
+      onClick={() => navigate('loyalty')}
+      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#E2E8E4] hover:bg-[#DDE6DF] border border-[#2D3536]/15 text-soot text-xs font-semibold shadow-2xs transition-all cursor-pointer shrink-0"
+      title="Loyalty Rewards Hub"
+    >
+      <Sparkles size={14} className="text-moss shrink-0" />
+      <span>{points.toLocaleString()} pts</span>
+    </button>
+  );
+}
+
+export function NotificationButton() {
+  const { navigate, notifications, unreadNotificationsCount, markNotificationRead, markAllNotificationsRead } = useApp();
+  const [isOpen, setIsOpen] = useState(false);
+  const notifRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
+
+  return (
+    <div className="relative" ref={notifRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        aria-label="Notifications"
+        className="relative p-2 sm:p-2.5 rounded-2xl text-moss hover:text-soot hover:bg-soot/5 transition-colors cursor-pointer shrink-0"
+        title="Notifications"
+      >
+        <Bell size={19} />
+        {unreadNotificationsCount > 0 && (
+          <span className="absolute top-1.5 right-1.5 min-w-4 h-4 px-1 rounded-full bg-red-500 text-white text-[9px] leading-4 text-center font-semibold animate-pulse">
+            {unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}
+          </span>
+        )}
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-soot/10 z-50 overflow-hidden divide-y divide-soot/5 animate-in fade-in-50 zoom-in-95 duration-100">
+          {/* Header with Moss background */}
+          <div className="p-3.5 bg-moss text-[#FAF8F5] flex items-center justify-between shadow-2xs border-b border-white/10">
+            <div className="flex items-center gap-2">
+              <Bell size={16} className="text-[#DDE6DF]" />
+              <span className="text-xs font-bold tracking-wide text-[#FAF8F5]">Notifications</span>
+              {unreadNotificationsCount > 0 && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#DDE6DF] text-soot shadow-2xs">
+                  {unreadNotificationsCount} unread
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              {unreadNotificationsCount > 0 && (
+                <button
+                  type="button"
+                  onClick={markAllNotificationsRead}
+                  className="px-2.5 py-1 rounded-lg bg-white/15 hover:bg-white/25 text-[#FAF8F5] transition-colors cursor-pointer flex items-center gap-1.5 text-[11px] font-medium border border-white/20"
+                  title="Mark all as read"
+                >
+                  <CheckCheck size={13} className="text-[#DDE6DF]" />
+                  <span>Mark all read</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Notification List */}
+          <div className="max-h-80 overflow-y-auto divide-y divide-soot/5">
+            {notifications.length === 0 ? (
+              <div className="p-6 text-center text-moss">
+                <Bell size={24} className="mx-auto opacity-40 mb-2 text-moss" />
+                <p className="text-xs font-medium">No notifications yet.</p>
+              </div>
+            ) : (
+              notifications.slice(0, 5).map((n) => (
+                <div
+                  key={n.id}
+                  onClick={() => {
+                    markNotificationRead(n.id);
+                    setIsOpen(false);
+                    navigate('notifications');
+                  }}
+                  className={`p-3.5 hover:bg-soot/3 transition-colors cursor-pointer flex gap-3 items-start ${
+                    n.read ? 'bg-white' : 'bg-[#EAF1F5]/70'
+                  }`}
+                >
+                  <span
+                    className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${
+                      n.read ? 'bg-transparent' : 'bg-eucalyptus'
+                    }`}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className={`text-xs ${n.read ? 'font-medium text-soot' : 'font-bold text-soot'} truncate`}>
+                        {n.title}
+                      </p>
+                      <span className="text-[10px] text-moss/80 shrink-0 font-medium">{n.createdAt}</span>
+                    </div>
+                    <p className="text-xs text-moss line-clamp-2 mt-0.5 leading-snug">{n.message}</p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Footer link */}
+          <div className="p-2.5 bg-plaster-dark/25 text-center">
+            <button
+              type="button"
+              onClick={() => {
+                setIsOpen(false);
+                navigate('notifications');
+              }}
+              className="text-xs font-semibold text-soot hover:text-eucalyptus flex items-center justify-center gap-1 w-full py-1 cursor-pointer transition-colors"
+            >
+              <span>View all notifications</span>
+              <ChevronRight size={13} className="text-moss" />
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Navbar() {
-  const { navigate, nav, currentUser, logout, companyWalletBalance } = useApp();
+  const { navigate, nav, currentUser, logout, companyWalletBalance, unreadNotificationsCount } = useApp();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -265,7 +406,15 @@ export default function Navbar() {
         </nav>
 
         {/* Desktop Auth / User Profile Menu */}
-        <div className="hidden lg:flex items-center gap-3 shrink-0">
+        <div className="hidden lg:flex items-center gap-2.5 shrink-0">
+          {currentUser && currentUser.role !== 'admin' && (
+            <LoyaltyButton />
+          )}
+
+          {currentUser && (
+            <NotificationButton />
+          )}
+
           {currentUser?.role === 'organization' && (
             <button
               onClick={() => navigate('org-dashboard')}
@@ -325,6 +474,42 @@ export default function Navbar() {
                       <UserIcon size={15} className="text-moss" />
                       <span>My Profile & Account</span>
                     </button>
+
+                    <button
+                      onClick={() => {
+                        navigate('notifications');
+                        setDropdownOpen(false);
+                      }}
+                      className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold text-soot hover:bg-plaster-dark/50 flex items-center justify-between transition-colors cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Bell size={15} className="text-moss" />
+                        <span>Notifications</span>
+                      </div>
+                      {unreadNotificationsCount > 0 && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500 text-white">
+                          {unreadNotificationsCount}
+                        </span>
+                      )}
+                    </button>
+
+                    {currentUser.role !== 'admin' && (
+                      <button
+                        onClick={() => {
+                          navigate('loyalty');
+                          setDropdownOpen(false);
+                        }}
+                        className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold text-soot hover:bg-plaster-dark/50 flex items-center justify-between transition-colors cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <Sparkles size={15} className="text-moss" />
+                          <span>Loyalty Rewards Hub</span>
+                        </div>
+                        <span className="font-bold text-[11px] text-soot bg-[#DDE6DF] px-2 py-0.5 rounded-md border border-soot/10">
+                          {(currentUser.loyaltyPoints || 0).toLocaleString()} pts
+                        </span>
+                      </button>
+                    )}
 
                     {currentUser.role === 'individual' && (
                       <button
@@ -414,14 +599,24 @@ export default function Navbar() {
           )}
         </div>
 
-        {/* Mobile Menu Button */}
-        <button
-          className="lg:hidden p-2 rounded-xl text-soot hover:bg-plaster-dark/50 active:scale-95 transition-all focus:outline-none cursor-pointer shrink-0"
-          onClick={() => setMobileOpen(!mobileOpen)}
-          aria-label="Toggle Navigation Menu"
-        >
-          {mobileOpen ? <X size={22} /> : <Menu size={22} />}
-        </button>
+        {/* Mobile Header Buttons (Notifications + Loyalty + Menu) */}
+        <div className="flex lg:hidden items-center gap-1.5 shrink-0">
+          {currentUser && currentUser.role !== 'admin' && (
+            <LoyaltyButton />
+          )}
+
+          {currentUser && (
+            <NotificationButton />
+          )}
+
+          <button
+            className="p-2 rounded-xl text-soot hover:bg-plaster-dark/50 active:scale-95 transition-all focus:outline-none cursor-pointer shrink-0"
+            onClick={() => setMobileOpen(!mobileOpen)}
+            aria-label="Toggle Navigation Menu"
+          >
+            {mobileOpen ? <X size={22} /> : <Menu size={22} />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile Menu Dropdown */}
@@ -466,20 +661,58 @@ export default function Navbar() {
             })}
 
             {currentUser && (
-              <button
-                onClick={() => {
-                  navigate(profileScreen);
-                  setMobileOpen(false);
-                }}
-                className={`w-full text-left px-4 py-3 rounded-xl text-base font-medium transition-all duration-150 cursor-pointer flex items-center justify-between ${
-                  nav.screen === profileScreen
-                    ? 'bg-soot text-plaster font-semibold'
-                    : 'text-moss hover:text-soot hover:bg-plaster-dark/40'
-                }`}
-              >
-                <span>My Profile & Settings</span>
-                <UserIcon size={18} />
-              </button>
+              <>
+                <button
+                  onClick={() => {
+                    navigate('notifications');
+                    setMobileOpen(false);
+                  }}
+                  className="w-full text-left px-4 py-3 rounded-xl text-base font-medium transition-all duration-150 cursor-pointer flex items-center justify-between text-moss hover:text-soot hover:bg-plaster-dark/40"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Bell size={18} />
+                    <span>Notifications</span>
+                  </div>
+                  {unreadNotificationsCount > 0 && (
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-500 text-white">
+                      {unreadNotificationsCount}
+                    </span>
+                  )}
+                </button>
+
+                {currentUser.role !== 'admin' && (
+                  <button
+                    onClick={() => {
+                      navigate('loyalty');
+                      setMobileOpen(false);
+                    }}
+                    className="w-full text-left px-4 py-3 rounded-xl text-base font-medium transition-all duration-150 cursor-pointer flex items-center justify-between text-moss hover:text-soot hover:bg-plaster-dark/40"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Sparkles size={18} />
+                      <span>Loyalty Points</span>
+                    </div>
+                    <span className="font-bold text-xs text-soot bg-[#DDE6DF] px-2.5 py-0.5 rounded-md border border-soot/10">
+                      {(currentUser.loyaltyPoints || 0).toLocaleString()} pts
+                    </span>
+                  </button>
+                )}
+
+                <button
+                  onClick={() => {
+                    navigate(profileScreen);
+                    setMobileOpen(false);
+                  }}
+                  className={`w-full text-left px-4 py-3 rounded-xl text-base font-medium transition-all duration-150 cursor-pointer flex items-center justify-between ${
+                    nav.screen === profileScreen
+                      ? 'bg-soot text-plaster font-semibold'
+                      : 'text-moss hover:text-soot hover:bg-plaster-dark/40'
+                  }`}
+                >
+                  <span>My Profile & Settings</span>
+                  <UserIcon size={18} />
+                </button>
+              </>
             )}
           </nav>
 
