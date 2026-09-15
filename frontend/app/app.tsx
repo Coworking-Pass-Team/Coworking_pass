@@ -129,13 +129,6 @@ function Router() {
         {screen === 'admin-support' && <SupportAdmin />}
         {screen === 'admin-reports' && <Reports />}
         {screen === 'admin-settings' && <AdminSettingsPage />}
-        {screen === 'browse' && <Browse />}
-        {screen === 'space-details' && <SpaceDetails />}
-        {screen === 'pricing' && <Pricing />}
-        {screen === 'contact' && <Contact />}
-        {screen === 'notifications' && <Notifications />}
-        {screen === 'loyalty' && <LoyaltyPage />}
-        {screen === 'legal' && <LegalPage />}
       </AppLayout>
     );
   }
@@ -153,34 +146,6 @@ function Router() {
         {screen === 'team-bookings' && <TeamBookings />}
         {screen === 'org-profile' && <OrgProfile />}
         {screen === 'org-settings' && <OrgProfile />}
-        {screen === 'browse' && <Browse />}
-        {screen === 'space-details' && <SpaceDetails />}
-        {screen === 'pricing' && <Pricing />}
-        {screen === 'contact' && <Contact />}
-        {screen === 'notifications' && <Notifications />}
-        {screen === 'loyalty' && <LoyaltyPage />}
-        {screen === 'legal' && <LegalPage />}
-      </AppLayout>
-    );
-  }
-
-  // Provider flow
-  if (role === 'provider') {
-    return (
-      <AppLayout>
-        {screen === 'provider-dashboard' && <ProviderDashboard />}
-        {screen === 'provider-spaces' && <ProviderMySpaces />}
-        {screen === 'provider-bookings' && <ProviderSpaceBookings />}
-        {screen === 'provider-loyalty-proposals' && <ProviderLoyaltyProposals />}
-        {screen === 'provider-profile' && <ProviderProfileSettings />}
-        {screen === 'provider-settings' && <ProviderProfileSettings />}
-        {screen === 'browse' && <Browse />}
-        {screen === 'space-details' && <SpaceDetails />}
-        {screen === 'pricing' && <Pricing />}
-        {screen === 'contact' && <Contact />}
-        {screen === 'notifications' && <Notifications />}
-        {screen === 'loyalty' && <LoyaltyPage />}
-        {screen === 'legal' && <LegalPage />}
       </AppLayout>
     );
   }
@@ -197,11 +162,6 @@ function Router() {
       {screen === 'booking-details' && <MyBookings />}
       {screen === 'ind-profile' && <ProfileSettings mode="profile" />}
       {screen === 'ind-settings' && <ProfileSettings mode="settings" />}
-      {screen === 'pricing' && <Pricing />}
-      {screen === 'contact' && <Contact />}
-      {screen === 'notifications' && <Notifications />}
-      {screen === 'loyalty' && <LoyaltyPage />}
-      {screen === 'legal' && <LegalPage />}
     </AppLayout>
   );
 }
