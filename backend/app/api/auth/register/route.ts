@@ -3,6 +3,8 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { sendOtpEmail } from "@/lib/mailer";
 
+const VALID_ROLES = ["GUEST", "B2C", "HR_ADMIN", "PARTNER_ADMIN", "SUPER_ADMIN"];
+
 function generateOtp() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
@@ -33,9 +35,7 @@ function generateOtp() {
  *                 type: string
  *     responses:
  *       201:
- *         description: تم إنشاء الحساب وإرسال رمز التحقق
- *       400:
- *         description: بيانات غير صحيحة أو الإيميل مستخدم مسبقاً
+ *         description: تم إنشاء الحساب بنجاح وإرسال رمز التحقق
  */
 export async function POST(request: Request) {
   try {
@@ -61,8 +61,7 @@ export async function POST(request: Request) {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const validRoles = ["GUEST", "B2C", "HR_ADMIN", "PARTNER_ADMIN", "SUPER_ADMIN"];
-    const assignedRole = validRoles.includes(role) ? role : "B2C";
+    const assignedRole = (role && VALID_ROLES.includes(role)) ? role : "B2C";
 
     const user = await prisma.user.create({
       data: {
@@ -75,7 +74,7 @@ export async function POST(request: Request) {
       },
     });
 
-    // Create empty wallet for the new user
+    // إنشاء محفظة للمستخدم الجديد
     await prisma.wallet.create({
       data: {
         userId: user.id,
@@ -106,9 +105,6 @@ export async function POST(request: Request) {
     );
   } catch (error) {
     console.error("❌ Error registering user:", error);
-    return NextResponse.json(
-      { error: "حدث خطأ في السيرفر أثناء تسجيل الحساب" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "حدث خطأ في السيرفر أثناء تسجيل الحساب" }, { status: 500 });
   }
 }

@@ -5,7 +5,7 @@ import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 
 // Guest screens
-import Landing from './page';
+import Landing from './Landing';
 import Browse from './spaces/page';
 import SpaceDetails from './spaces/[id]/page';
 import Pricing from './Pricing';
@@ -49,7 +49,7 @@ import LoyaltyProposalsAdmin from './admin/LoyaltyProposalsAdmin';
 import SupportAdmin from './admin/SupportAdmin';
 import Reports from './admin/Reports';
 
-function AppLayout({ children }: { children: React.ReactNode }) {
+export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen flex flex-col bg-plaster">
       <Navbar />
