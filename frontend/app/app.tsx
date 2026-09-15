@@ -5,7 +5,7 @@ import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 
 // Guest screens
-import Landing from './page';
+import Landing from './Landing';
 import Browse from './spaces/page';
 import SpaceDetails from './spaces/[id]/page';
 import Pricing from './Pricing';
@@ -40,9 +40,16 @@ import AdminDashboard from './admin/Dashboard';
 import SpacesAdmin from './admin/SpacesAdmin';
 import UsersAdmin from './admin/UsersAdmin';
 import BookingsAdmin from './admin/BookingsAdmin';
+import HourlyBookingsAdmin from './admin/HourlyBookingsAdmin';
+import MembershipPlansAdmin from './admin/MembershipPlansAdmin';
+import SubscriptionsAdmin from './admin/SubscriptionsAdmin';
+import PaymentsAdmin from './admin/PaymentsAdmin';
+import PayoutsAdmin from './admin/PayoutsAdmin';
+import LoyaltyProposalsAdmin from './admin/LoyaltyProposalsAdmin';
+import SupportAdmin from './admin/SupportAdmin';
 import Reports from './admin/Reports';
 
-function AppLayout({ children }: { children: React.ReactNode }) {
+export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen flex flex-col bg-plaster">
       <Navbar />
@@ -51,6 +58,8 @@ function AppLayout({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
+
+export const DashboardLayout = AppLayout;
 
 export function Toast() {
   const { toast } = useApp();
@@ -107,7 +116,7 @@ function Router() {
   // Admin flow
   if (role === 'admin') {
     return (
-      <DashboardLayout>
+      <AppLayout>
         {screen === 'admin-dashboard' && <AdminDashboard />}
         {screen === 'admin-spaces' && <SpacesAdmin />}
         {screen === 'admin-users' && <UsersAdmin />}
@@ -120,6 +129,13 @@ function Router() {
         {screen === 'admin-support' && <SupportAdmin />}
         {screen === 'admin-reports' && <Reports />}
         {screen === 'admin-settings' && <AdminSettingsPage />}
+        {screen === 'browse' && <Browse />}
+        {screen === 'space-details' && <SpaceDetails />}
+        {screen === 'pricing' && <Pricing />}
+        {screen === 'contact' && <Contact />}
+        {screen === 'notifications' && <Notifications />}
+        {screen === 'loyalty' && <LoyaltyPage />}
+        {screen === 'legal' && <LegalPage />}
       </AppLayout>
     );
   }
@@ -127,7 +143,7 @@ function Router() {
   // Organization flow
   if (role === 'organization') {
     return (
-      <DashboardLayout>
+      <AppLayout>
         {screen === 'org-dashboard' && <OrgDashboard />}
         {screen === 'company-workspaces' && <OrgDashboard />}
         {screen === 'company-add-workspace' && <OrgDashboard />}
@@ -137,13 +153,41 @@ function Router() {
         {screen === 'team-bookings' && <TeamBookings />}
         {screen === 'org-profile' && <OrgProfile />}
         {screen === 'org-settings' && <OrgProfile />}
+        {screen === 'browse' && <Browse />}
+        {screen === 'space-details' && <SpaceDetails />}
+        {screen === 'pricing' && <Pricing />}
+        {screen === 'contact' && <Contact />}
+        {screen === 'notifications' && <Notifications />}
+        {screen === 'loyalty' && <LoyaltyPage />}
+        {screen === 'legal' && <LegalPage />}
+      </AppLayout>
+    );
+  }
+
+  // Provider flow
+  if (role === 'provider') {
+    return (
+      <AppLayout>
+        {screen === 'provider-dashboard' && <ProviderDashboard />}
+        {screen === 'provider-spaces' && <ProviderMySpaces />}
+        {screen === 'provider-bookings' && <ProviderSpaceBookings />}
+        {screen === 'provider-loyalty-proposals' && <ProviderLoyaltyProposals />}
+        {screen === 'provider-profile' && <ProviderProfileSettings />}
+        {screen === 'provider-settings' && <ProviderProfileSettings />}
+        {screen === 'browse' && <Browse />}
+        {screen === 'space-details' && <SpaceDetails />}
+        {screen === 'pricing' && <Pricing />}
+        {screen === 'contact' && <Contact />}
+        {screen === 'notifications' && <Notifications />}
+        {screen === 'loyalty' && <LoyaltyPage />}
+        {screen === 'legal' && <LegalPage />}
       </AppLayout>
     );
   }
 
   // Individual Member flow
   return (
-    <DashboardLayout>
+    <AppLayout>
       {screen === 'ind-dashboard' && <IndividualDashboard />}
       {screen === 'browse' && <Browse />}
       {screen === 'space-details' && <SpaceDetails />}
@@ -153,6 +197,11 @@ function Router() {
       {screen === 'booking-details' && <MyBookings />}
       {screen === 'ind-profile' && <ProfileSettings mode="profile" />}
       {screen === 'ind-settings' && <ProfileSettings mode="settings" />}
+      {screen === 'pricing' && <Pricing />}
+      {screen === 'contact' && <Contact />}
+      {screen === 'notifications' && <Notifications />}
+      {screen === 'loyalty' && <LoyaltyPage />}
+      {screen === 'legal' && <LegalPage />}
     </AppLayout>
   );
 }
