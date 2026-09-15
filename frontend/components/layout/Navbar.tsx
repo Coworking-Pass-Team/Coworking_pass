@@ -1,11 +1,11 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
-import { Menu, X, User as UserIcon, LogOut, ChevronDown, Calendar, Building2, Users, Settings, CreditCard, HelpCircle } from 'lucide-react';
+import { Menu, X, User as UserIcon, LogOut, ChevronDown, Calendar, Building2, Users, Settings, CreditCard, HelpCircle, Wallet } from 'lucide-react';
 import { useApp } from '@/app/store';
 import Logo from './logo';
 
 export default function Navbar() {
-  const { navigate, nav, currentUser, logout } = useApp();
+  const { navigate, nav, currentUser, logout, companyWalletBalance } = useApp();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -266,6 +266,20 @@ export default function Navbar() {
 
         {/* Desktop Auth / User Profile Menu */}
         <div className="hidden lg:flex items-center gap-3 shrink-0">
+          {currentUser?.role === 'organization' && (
+            <button
+              onClick={() => navigate('org-dashboard')}
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#DDE6DF] hover:bg-[#CFDDD2] border border-soot/10 text-soot transition-all text-xs font-medium cursor-pointer shadow-2xs group"
+              title="Corporate Shared Wallet"
+            >
+              <div className="w-6 h-6 rounded-full bg-soot text-plaster flex items-center justify-center">
+                <Wallet size={13} />
+              </div>
+              <span className="font-semibold text-soot">Wallet:</span>
+              <span className="font-bold text-soot">SAR {(companyWalletBalance ?? 0).toLocaleString()}</span>
+            </button>
+          )}
+
           {currentUser ? (
             /* Logged-In User Profile Dropdown Menu */
             <div className="relative" ref={dropdownRef}>
@@ -327,6 +341,21 @@ export default function Navbar() {
 
                     {currentUser.role === 'organization' && (
                       <>
+                        <button
+                          onClick={() => {
+                            navigate('org-dashboard');
+                            setDropdownOpen(false);
+                          }}
+                          className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold text-soot hover:bg-plaster-dark/50 flex items-center justify-between transition-colors cursor-pointer"
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <Wallet size={15} className="text-moss" />
+                            <span>Corporate Shared Wallet</span>
+                          </div>
+                          <span className="font-bold text-[11px] text-soot bg-[#DDE6DF] px-2 py-0.5 rounded-md border border-soot/10">
+                            SAR {(companyWalletBalance ?? 0).toLocaleString()}
+                          </span>
+                        </button>
                         <button
                           onClick={() => {
                             navigate('pricing');

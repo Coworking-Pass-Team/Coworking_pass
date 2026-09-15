@@ -30,10 +30,9 @@ import { useApp } from '@/app/store';
 import { Employee } from '@/types/types';
 import Modal from '@/components/ui/Modal';
 import UserAvatar from '@/components/ui/UserAvatar';
-import SharedWalletModal from '@/components/ui/SharedWalletModal';
 
 export default function OrgProfile() {
-  const { currentUser, navigate, nav, updateCurrentUser, showToast, bookings, companyWalletBalance, companyData } = useApp();
+  const { currentUser, navigate, nav, updateCurrentUser, showToast, bookings } = useApp();
 
   const [activeTab, setActiveTab] = useState<'profile' | 'settings'>(
     nav.screen === 'org-settings' ? 'settings' : 'profile'
@@ -41,7 +40,6 @@ export default function OrgProfile() {
 
   // Edit Profile Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isSharedWalletOpen, setIsSharedWalletOpen] = useState(false);
 
   // Edit Form Fields (Exact existing Organization fields preserved)
   const [editOrgName, setEditOrgName] = useState(currentUser?.orgName || currentUser?.name || '');
@@ -291,15 +289,6 @@ export default function OrgProfile() {
                   />
                 </div>
                 <div className="flex items-center gap-2.5 flex-wrap">
-                  <button
-                    type="button"
-                    onClick={() => setIsSharedWalletOpen(true)}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-emerald-800 hover:bg-emerald-900 text-white text-xs sm:text-sm font-semibold shadow-xs transition-all cursor-pointer"
-                  >
-                    <Wallet size={15} />
-                    <span>المحفظة المشتركة: SAR {(companyWalletBalance || companyData?.balance || 0).toLocaleString()}</span>
-                    <ArrowUpRight size={13} />
-                  </button>
                   <button
                     type="button"
                     onClick={handleOpenEdit}
@@ -1055,12 +1044,6 @@ export default function OrgProfile() {
           </div>
         </form>
       </Modal>
-
-      {/* Corporate Shared Wallet Modal */}
-      <SharedWalletModal
-        isOpen={isSharedWalletOpen}
-        onClose={() => setIsSharedWalletOpen(false)}
-      />
     </div>
   );
 }
