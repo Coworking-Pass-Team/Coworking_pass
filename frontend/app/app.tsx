@@ -5,7 +5,7 @@ import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 
 // Guest screens
-import Landing from './page';
+import Landing from './Landing';
 import Browse from './spaces/page';
 import SpaceDetails from './spaces/[id]/page';
 import Pricing from './Pricing';
@@ -120,7 +120,7 @@ function Router() {
         {screen === 'admin-support' && <SupportAdmin />}
         {screen === 'admin-reports' && <Reports />}
         {screen === 'admin-settings' && <AdminSettingsPage />}
-      </AppLayout>
+      </DashboardLayout>
     );
   }
 
@@ -137,7 +137,7 @@ function Router() {
         {screen === 'team-bookings' && <TeamBookings />}
         {screen === 'org-profile' && <OrgProfile />}
         {screen === 'org-settings' && <OrgProfile />}
-      </AppLayout>
+      </DashboardLayout>
     );
   }
 
@@ -153,7 +153,7 @@ function Router() {
       {screen === 'booking-details' && <MyBookings />}
       {screen === 'ind-profile' && <ProfileSettings mode="profile" />}
       {screen === 'ind-settings' && <ProfileSettings mode="settings" />}
-    </AppLayout>
+    </DashboardLayout>
   );
 }
 
