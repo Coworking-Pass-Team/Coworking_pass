@@ -3,7 +3,7 @@ export default function Logo({ className = '' }: { className?: string }) {
     <img
       src="/logo.png"
       alt="Coworking Pass"
-      className={`w-8 h-8 object-contain ${className}`}
+      className={`h-11 sm:h-12 w-auto object-contain shrink-0 transition-transform duration-200 group-hover:scale-105 ${className}`}
     />
   );
 }

@@ -1,62 +1,88 @@
-'use client';
 import { X } from 'lucide-react';
 import { ReactNode, useEffect } from 'react';
 
-interface ModalProps {
+export interface ModalProps {
   open: boolean;
   onClose: () => void;
   title?: string;
+  subtitle?: string;
   children: ReactNode;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  footer?: ReactNode;
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 }
 
-export default function Modal({ open, onClose, title, children, size = 'md' }: ModalProps) {
+export default function Modal({ open, onClose, title, subtitle, children, footer, size = 'md' }: ModalProps) {
   useEffect(() => {
     if (open) {
       document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
     }
-    return () => { document.body.style.overflow = ''; };
+    return () => {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    };
   }, [open]);
 
   if (!open) return null;
 
   const widths = {
-  sm: 'max-w-sm',
-  md: 'max-w-md',
-  lg: 'max-w-lg',
-  xl: 'max-w-xl',};
-
+    sm: 'max-w-sm',
+    md: 'max-w-md',
+    lg: 'max-w-lg',
+    xl: 'max-w-xl',
+    '2xl': 'max-w-2xl',
+  };
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ backgroundColor: 'rgba(45,53,54,0.5)', backdropFilter: 'blur(4px)' }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-soot/70 backdrop-blur-sm animate-in fade-in duration-200"
       onClick={onClose}
     >
       <div
-        className={`bg-plaster rounded-2xl shadow-2xl w-full ${widths[size]} max-h-[90vh] overflow-y-auto`}
-        onClick={e => e.stopPropagation()}
+        className={`bg-plaster-surface rounded-3xl border border-soot/15 shadow-2xl w-full ${widths[size]} max-h-[90vh] flex flex-col overflow-hidden relative z-10 animate-in zoom-in-95 duration-200`}
+        onClick={(e) => e.stopPropagation()}
       >
-        {title && (
-          <div className="flex items-center justify-between px-6 py-4 border-b border-soot/10">
-            <h3 className="text-lg font-semibold text-soot" style={{ fontFamily: 'DM Serif Display, serif' }}>{title}</h3>
-            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-soot/10 transition-colors text-moss hover:text-soot">
+        {/* Header Section */}
+        {title ? (
+          <div className="px-6 sm:px-8 py-5 border-b border-soot/10 flex items-center justify-between bg-plaster-dark/30 shrink-0 rounded-t-3xl">
+            <div>
+              <h3 className="text-xl font-serif-display font-normal text-soot tracking-tight">{title}</h3>
+              {subtitle && <p className="text-xs text-moss mt-0.5">{subtitle}</p>}
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 rounded-full text-moss hover:text-soot hover:bg-soot/8 transition-colors cursor-pointer focus:outline-none"
+              aria-label="Close modal"
+            >
+              <X size={18} />
+            </button>
+          </div>
+        ) : (
+          <div className="absolute top-4 right-4 z-20">
+            <button
+              onClick={onClose}
+              className="p-2 rounded-full text-moss hover:text-soot hover:bg-soot/8 transition-colors cursor-pointer focus:outline-none"
+              aria-label="Close modal"
+            >
               <X size={18} />
             </button>
           </div>
         )}
-        {!title && (
-          <div className="absolute top-4 right-4">
-            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-soot/10 transition-colors text-moss hover:text-soot">
-              <X size={18} />
-            </button>
-          </div>
-        )}
-        <div className={title ? '' : 'pt-2'}>
+
+        {/* Scrollable Body Section */}
+        <div className="p-6 sm:p-8 overflow-y-auto space-y-4 flex-1">
           {children}
         </div>
+
+        {/* Footer Section */}
+        {footer && (
+          <div className="px-6 sm:px-8 py-4 border-t border-soot/10 bg-plaster-dark/30 flex items-center justify-end gap-3 shrink-0 rounded-b-3xl">
+            {footer}
+          </div>
+        )}
       </div>
     </div>
   );

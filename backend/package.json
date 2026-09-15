@@ -3,24 +3,42 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "next dev -p 3001",
+    "build": "prisma generate && next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:start": "powershell -ExecutionPolicy Bypass -File ./scripts/start-db.ps1",
+    "db:stop": "powershell -ExecutionPolicy Bypass -File ./scripts/stop-db.ps1",
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio"
   },
   "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "bcryptjs": "^3.0.3",
+    "jsonwebtoken": "^9.0.3",
     "next": "16.3.3",
+    "next-swagger-doc": "^0.5.0",
+    "nextjs-auto-swagger": "^1.0.1",
+    "node-cron": "^4.6.0",
+    "nodemailer": "^9.1.1",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "resend": "^6.26.0",
+    "swagger-ui-react": "^5.32.15"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "20.19.43",
+    "@types/nodemailer": "^8.0.1",
+    "@types/react": "19.2.18",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.3",
+    "prisma": "^6.19.3",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "tsx": "^4.23.13",
+    "typescript": "5.9.3"
   }
 }
