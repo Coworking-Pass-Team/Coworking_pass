@@ -13,13 +13,15 @@ import {
   Building, 
   AlertCircle, 
   CalendarX,
-  HelpCircle
+  HelpCircle,
+  Sparkles
 } from 'lucide-react';
 import { useApp } from '@/app/store';
 import { getBookingPrice } from '@/types/types';
 
 export default function AdminDashboard() {
-  const { spaces, users, bookings, navigate } = useApp();
+  const { spaces, users, bookings, loyaltyRules, navigate } = useApp();
+
 
   const nonAdminUsers = users.filter(u => u.role !== 'admin');
   const totalRevenue = bookings.filter(b => b.status !== 'cancelled').reduce((sum, b) => sum + getBookingPrice(b, spaces), 0);
@@ -295,11 +297,18 @@ export default function AdminDashboard() {
             icon: HelpCircle 
           },
           { 
+            label: 'Loyalty Proposals', 
+            desc: 'Review and moderate partner loyalty points rules', 
+            screen: 'admin-loyalty-proposals' as const,
+            icon: Sparkles 
+          },
+          { 
             label: 'Analytics & Reports', 
             desc: 'Export VAT statements and utilization insights', 
             screen: 'admin-reports' as const,
             icon: BarChart3 
           },
+
         ].map(l => (
           <button
             key={l.screen}

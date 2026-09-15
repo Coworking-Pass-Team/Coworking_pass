@@ -64,7 +64,7 @@ export default function Notifications() {
   };
 
   // Filtered notifications logic
-  const filteredNotifications = notifications.filter(n => {
+  const filteredNotifications = notifications.filter((n: any) => {
     if (activeTab === 'unread') return !n.read;
     if (activeTab === 'bookings') return n.type === 'booking' || n.type === 'cancelled';
     if (activeTab === 'reminders') return n.type === 'reminder' || n.type === 'payment';
@@ -72,7 +72,7 @@ export default function Notifications() {
     return true;
   });
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter((n: any) => !n.read).length;
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6">
@@ -121,9 +121,9 @@ export default function Notifications() {
         {[
           { id: 'all', label: 'All', count: notifications.length },
           { id: 'unread', label: 'Unread', count: unreadCount },
-          { id: 'bookings', label: 'Bookings', count: notifications.filter(n => n.type === 'booking' || n.type === 'cancelled').length },
-          { id: 'reminders', label: 'Reminders & Payments', count: notifications.filter(n => n.type === 'reminder' || n.type === 'payment').length },
-          { id: 'system', label: 'System & Info', count: notifications.filter(n => n.type === 'system' || n.type === 'info').length },
+          { id: 'bookings', label: 'Bookings', count: notifications.filter((n: any) => n.type === 'booking' || n.type === 'cancelled').length },
+          { id: 'reminders', label: 'Reminders & Payments', count: notifications.filter((n: any) => n.type === 'reminder' || n.type === 'payment').length },
+          { id: 'system', label: 'System & Info', count: notifications.filter((n: any) => n.type === 'system' || n.type === 'info').length },
         ].map(tab => (
           <button
             key={tab.id}
@@ -158,7 +158,8 @@ export default function Notifications() {
           </div>
         ) : (
           <div className="divide-y divide-soot/5">
-            {filteredNotifications.map(notification => (
+            {filteredNotifications.map((notification: any) => (
+
               <div
                 key={notification.id}
                 className={`group flex items-start gap-3.5 p-4 sm:p-5 transition-all ${

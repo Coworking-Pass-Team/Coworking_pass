@@ -1,6 +1,6 @@
 'use client';
 
-import { Warehouse, CalendarDays, TrendingUp, Percent, ArrowRight, MapPin, Building2, CheckCircle2 } from 'lucide-react';
+import { Warehouse, CalendarDays, TrendingUp, Percent, ArrowRight, MapPin, Building2, CheckCircle2, Sparkles } from 'lucide-react';
 import { useApp } from '@/app/store';
 import { getBookingPrice, getSpaceCategory, isHourlyAllowed } from '@/types/types';
 
@@ -233,6 +233,36 @@ export default function ProviderDashboard() {
           )}
         </div>
       </div>
+
+      {/* Loyalty Proposals Quick Section */}
+      <div className="bg-gradient-to-r from-[#E2EBE5] via-[#EAF0EC] to-[#FAF8F5] rounded-3xl border border-soot/12 p-6 sm:p-7 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+          <div className="space-y-1.5 max-w-xl">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-800/10 text-emerald-900 text-xs font-semibold">
+              <Sparkles size={13} className="text-emerald-700" />
+              <span>Partner Loyalty Program</span>
+            </div>
+            <h3 className="text-xl sm:text-2xl font-serif-display text-soot font-normal">
+              Propose Custom Loyalty & Discount Rules
+            </h3>
+            <p className="text-moss text-xs sm:text-sm">
+              Reward members with custom bonus point multipliers and redemption discounts on your coworking spaces to maximize occupancy.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3 shrink-0">
+            <button
+              type="button"
+              onClick={() => navigate('provider-loyalty-proposals')}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-soot text-plaster hover:bg-soot/90 text-sm font-semibold shadow-xs transition-all cursor-pointer group"
+            >
+              <span>Manage Proposals</span>
+              <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
+

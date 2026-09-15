@@ -19,11 +19,13 @@ import {
   Plus,
   AlertCircle,
   Zap,
-  Wallet
+  Wallet,
+  QrCode
 } from 'lucide-react';
 import { useApp } from '@/app/store';
 import { Booking, BookingStatus, Employee, getHourlyPriceForDuration, getBookingPrice, isCancellationRefundEligible } from '@/types/types';
 import Modal from '@/components/ui/Modal';
+import BookingQrModal from '@/components/BookingQrModal';
 
 export default function TeamBookings() {
   const { bookings, spaces, currentUser, navigate, cancelBooking, showToast } = useApp();
@@ -301,7 +303,7 @@ export default function TeamBookings() {
                 </div>
 
                 {/* Actions */}
-                <div className="col-span-1 mt-4 lg:mt-0 flex items-center justify-end gap-2">
+                <div className="col-span-1 mt-4 lg:mt-0 flex items-center justify-end gap-1.5">
                   <button
                     type="button"
                     onClick={(e) => {
@@ -340,132 +342,16 @@ export default function TeamBookings() {
         )}
       </div>
 
-      {/* Admin-Matching Booking Detail Drawer Modal */}
+      {/* Booking QR Code & Pass Details Modal */}
       {selectedBooking && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-soot/40 backdrop-blur-xs animate-in fade-in-50 duration-200">
-          <div className="relative w-full max-w-xl bg-plaster-surface rounded-3xl border border-soot/15 shadow-2xl overflow-hidden divide-y divide-soot/10 animate-in zoom-in-95 duration-150">
-            {/* Header */}
-            <div className="p-6 bg-plaster-dark/30 flex items-start justify-between">
-              <div className="flex items-center gap-3">
-                <img
-                  src={selectedBooking.spaceImage}
-                  alt={selectedBooking.spaceName}
-                  className="w-14 h-14 rounded-2xl object-cover border border-soot/12 shadow-2xs"
-                />
-                <div>
-                  <h3 className="text-xl font-normal text-soot font-serif-display">
-                    {selectedBooking.spaceName}
-                  </h3>
-                  <div className="flex items-center gap-2 text-xs text-moss mt-0.5 font-medium">
-                    <MapPin size={13} />
-                    <span>{selectedBooking.spaceCity}</span>
-                    <span>·</span>
-                    <span className="capitalize">{selectedBooking.type.replace('-', ' ')}</span>
-                  </div>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setSelectedBooking(null)}
-                className="p-2 rounded-full hover:bg-soot/10 text-moss hover:text-soot transition-colors"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* Details Content */}
-            <div className="p-6 space-y-6 text-sm text-soot">
-              <div className="grid grid-cols-2 gap-4 bg-white/60 p-4 rounded-2xl border border-soot/8">
-                <div>
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-moss block mb-0.5">
-                    Organization
-                  </span>
-                  <span className="font-semibold text-soot text-base">{currentUser.orgName || currentUser.name}</span>
-                </div>
-                <div>
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-moss block mb-0.5">
-                    Booking ID
-                  </span>
-                  <span className="font-mono text-xs text-soot">{selectedBooking.id}</span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                <div className="p-3 bg-white/60 rounded-xl border border-soot/8">
-                  <span className="text-moss block mb-1">Plan / Duration</span>
-                  <span className="font-semibold text-soot text-xs capitalize">
-                    {selectedBooking.plan === 'hourly'
-                      ? `Hourly (${selectedBooking.durationHours || 1} ${selectedBooking.durationHours === 1 ? 'Hour' : 'Hours'})`
-                      : selectedBooking.plan === 'monthly'
-                      ? `${selectedBooking.durationMonths || 1} Months`
-                      : `${selectedBooking.plan} Pass`}
-                  </span>
-                </div>
-                <div className="p-3 bg-white/60 rounded-xl border border-soot/8">
-                  <span className="text-moss block mb-1">Date</span>
-                  <span className="font-semibold text-soot text-xs">{selectedBooking.startDate}</span>
-                </div>
-                <div className="p-3 bg-white/60 rounded-xl border border-soot/8">
-                  <span className="text-moss block mb-1">
-                    {selectedBooking.plan === 'hourly' ? 'Time Window' : 'End Date'}
-                  </span>
-                  <span className="font-semibold text-soot text-xs">
-                    {selectedBooking.plan === 'hourly'
-                      ? `${selectedBooking.startTime || '09:00 AM'} – ${selectedBooking.endTime || '05:00 PM'}`
-                      : selectedBooking.endDate}
-                  </span>
-                </div>
-                <div className="p-3 bg-white/60 rounded-xl border border-soot/8">
-                  <span className="text-moss block mb-1">Seats Reserved</span>
-                  <span className="font-semibold text-soot text-xs">{selectedBooking.seats} Seats</span>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between p-4 bg-soot text-plaster rounded-2xl">
-                <div>
-                  <span className="text-xs text-plaster/70 block">Total Corporate Fee</span>
-                  <span className="text-xl sm:text-2xl font-serif-display font-normal">
-                    {getBookingPrice(selectedBooking) === 0 ? 'Included in your Plan · SAR 0 Paid' : `SAR ${getBookingPrice(selectedBooking).toLocaleString()}`}
-                  </span>
-                </div>
-                <span
-                  className={`text-xs px-3 py-1 rounded-full font-bold uppercase tracking-wider ${
-                    selectedBooking.status === 'active'
-                      ? 'bg-emerald-500 text-slate-950'
-                      : selectedBooking.status === 'previous'
-                      ? 'bg-plaster-dark text-soot'
-                      : 'bg-red-500 text-white'
-                  }`}
-                >
-                  {selectedBooking.status}
-                </span>
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="p-4 bg-plaster-dark/20 flex items-center justify-between">
-              {selectedBooking.status === 'active' ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCancelModal(selectedBooking);
-                  }}
-                  className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-semibold cursor-pointer transition-colors"
-                >
-                  Cancel Booking
-                </button>
-              ) : <div />}
-              <button
-                type="button"
-                onClick={() => setSelectedBooking(null)}
-                className="px-5 py-2 rounded-xl bg-soot text-plaster text-xs font-semibold cursor-pointer"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
+        <BookingQrModal
+          booking={selectedBooking}
+          onClose={() => setSelectedBooking(null)}
+          onCancelClick={(b) => {
+            setSelectedBooking(null);
+            setCancelModal(b);
+          }}
+        />
       )}
 
       {/* Cancel Confirmation Modal */}

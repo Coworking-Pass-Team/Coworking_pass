@@ -284,6 +284,71 @@ export function getSpaceCoordinates(space?: Space | null): { lat: number; lng: n
   return null;
 }
 
+export type CrowdingLevel = 'Quiet' | 'Moderate' | 'Busy';
+
+export interface SpaceCrowdingInfo {
+  scannedCount: number;
+  totalCapacity: number;
+  availableCapacity: number;
+  occupiedSeats: number;
+  occupancyPercentage: number;
+  level: CrowdingLevel;
+  badgeClass: string;
+  barColor: string;
+  textColor: string;
+  trackColor: string;
+}
+
+/**
+ * Calculates live crowding indicators based on total capacity, baseline availability,
+ * and real-time QR code check-in scans.
+ */
+export function calculateSpaceCrowding(
+  space: Space,
+  scannedCount: number = 0
+): SpaceCrowdingInfo {
+  const total = space.totalCapacity > 0 ? space.totalCapacity : 30;
+  const occupied = Math.min(total, Math.max(0, scannedCount));
+  const available = Math.max(0, total - occupied);
+  const occupancyPercentage = total > 0 ? Math.round((occupied / total) * 100) : 0;
+
+  let level: CrowdingLevel = 'Quiet';
+  let textColor = 'text-[#059669]';
+  let barColor = 'bg-[#059669]';
+  let badgeClass = 'bg-emerald-100/90 text-emerald-900 border-emerald-200/90';
+  let trackColor = 'bg-[#E5EBE7]';
+
+  if (available === 0 || occupancyPercentage >= 80) {
+    level = 'Busy';
+    textColor = 'text-[#DC2626]';
+    barColor = 'bg-[#DC2626]';
+    badgeClass = 'bg-rose-100/90 text-rose-800 border-rose-200/90';
+  } else if (occupancyPercentage >= 40) {
+    level = 'Moderate';
+    textColor = 'text-[#D97706]';
+    barColor = 'bg-[#D97706]';
+    badgeClass = 'bg-amber-100/90 text-amber-900 border-amber-200/90';
+  } else {
+    level = 'Quiet';
+    textColor = 'text-[#059669]';
+    barColor = 'bg-[#059669]';
+    badgeClass = 'bg-emerald-100/90 text-emerald-900 border-emerald-200/90';
+  }
+
+  return {
+    scannedCount,
+    totalCapacity: total,
+    availableCapacity: available,
+    occupiedSeats: occupied,
+    occupancyPercentage,
+    level,
+    badgeClass,
+    barColor,
+    textColor,
+    trackColor,
+  };
+}
+
 export interface Employee {
   id: string;
   name: string;
@@ -330,6 +395,18 @@ export interface User {
   membershipTier?: 'All-Access Pass' | 'Pro Pass' | 'Basic Pass' | 'Enterprise Pass' | string;
   loyaltyPoints?: number;
   walletBalance?: number;
+}
+
+export interface WalletTransaction {
+  id: string;
+  walletId: string;
+  userId: string;
+  amount: number;
+  type: 'DEPOSIT' | 'WITHDRAW' | 'REFUND';
+  description?: string | null;
+  referenceId?: string | null;
+  balanceAfter: number;
+  createdAt: string;
 }
 
 export function parseBookingDateTime(startDate?: string, startTime?: string): Date | null {
@@ -1101,10 +1178,12 @@ export type Screen =
   | 'admin-hourly-bookings'
   | 'admin-reports'
   | 'admin-settings'
+  | 'admin-loyalty-proposals'
   | 'admin-support'
   | 'provider-dashboard'
   | 'provider-spaces'
   | 'provider-bookings'
+  | 'provider-loyalty-proposals'
   | 'provider-profile'
   | 'provider-settings'
   | 'notifications'
@@ -1179,6 +1258,8 @@ export interface WorkspaceApi {
   yearlyRate?: number;
   passVisitValue: number;
   totalCapacity: number;
+  images?: string[];
+  amenities?: string[];
   createdAt?: string;
   updatedAt?: string;
   partner?: Partner;
@@ -1264,5 +1345,43 @@ export interface PaymentApi {
   createdAt?: string;
   user?: { name: string; email: string };
 }
+
+export type LoyaltyRuleType = 'EARNING' | 'REDEMPTION';
+export type ApprovalStatus = 'APPROVED' | 'PENDING_APPROVAL' | 'REJECTED';
+
+export interface LoyaltyRule {
+  id: string;
+  ruleName: string;
+  ruleType: LoyaltyRuleType;
+  pointsValue: number;
+  monetaryValue: number;
+  description?: string;
+  status: ApprovalStatus;
+  proposedBy: string;
+  proposerName?: string;
+  proposerEmail?: string;
+  approvedBy?: string;
+  approverName?: string;
+  isActive: boolean;
+  workspaceId?: string;
+  workspaceName?: string;
+  bonusMultiplier?: number;
+  adminFeedback?: string;
+  createdAt: string;
+  updatedAt?: string;
+  proposer?: { name: string; email: string };
+  approver?: { name: string; email: string };
+}
+
+export interface LoyaltyProposalForm {
+  ruleName: string;
+  ruleType: LoyaltyRuleType;
+  pointsValue: number;
+  monetaryValue: number;
+  description: string;
+  workspaceId?: string;
+  bonusMultiplier?: number;
+}
+
 
 
