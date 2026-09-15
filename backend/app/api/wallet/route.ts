@@ -18,7 +18,7 @@ import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-tok
 export async function GET(request: NextRequest) {
   try {
     const user = getTokenFromRequest(request);
-if (!user) return unauthorizedResponse();
+    if (!user) return unauthorizedResponse();
 
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('userId')
@@ -32,7 +32,12 @@ if (!user) return unauthorizedResponse();
 
     // جلب أو إنشاء محفظة للمستخدم
     let wallet = await prisma.wallet.findUnique({
-      where: { userId }
+      where: { userId },
+      include: {
+        transactions: {
+          orderBy: { createdAt: 'desc' }
+        }
+      }
     })
 
     if (!wallet) {
@@ -40,6 +45,9 @@ if (!user) return unauthorizedResponse();
         data: {
           userId,
           balance: 0
+        },
+        include: {
+          transactions: true
         }
       })
     }
@@ -47,7 +55,8 @@ if (!user) return unauthorizedResponse();
     return NextResponse.json({
       userId,
       balance: wallet.balance,
-      currency: 'SAR'
+      currency: 'SAR',
+      transactions: wallet.transactions || []
     })
 
   } catch (error) {
@@ -59,11 +68,11 @@ if (!user) return unauthorizedResponse();
   }
 }
 
-// POST: إيداع/سحب من المحفظة
+// POST: إيداع/سحب/استرجاع من المحفظة
 export async function POST(request: NextRequest) {
   try {
     const user = getTokenFromRequest(request);
-if (!user) return unauthorizedResponse();
+    if (!user) return unauthorizedResponse();
 
     const { userId, amount, type, description, referenceId } = await request.json()
 
@@ -73,6 +82,9 @@ if (!user) return unauthorizedResponse();
         { status: 400 }
       )
     }
+
+    const typeUpper = (type || '').toString().toUpperCase();
+    const isCredit = typeUpper === 'DEPOSIT' || typeUpper === 'REFUND';
 
     // جلب أو إنشاء محفظة
     let wallet = await prisma.wallet.findUnique({
@@ -86,7 +98,7 @@ if (!user) return unauthorizedResponse();
     }
 
     // التحقق من الرصيد في حالة السحب
-    if (type === 'WITHDRAW' && wallet.balance < amount) {
+    if (!isCredit && wallet.balance < amount) {
       return NextResponse.json(
         { error: 'رصيد غير كافٍ' },
         { status: 400 }
@@ -94,7 +106,7 @@ if (!user) return unauthorizedResponse();
     }
 
     // تحديث الرصيد
-    const newBalance = type === 'DEPOSIT'
+    const newBalance = isCredit
       ? wallet.balance + amount
       : wallet.balance - amount
 
@@ -104,20 +116,22 @@ if (!user) return unauthorizedResponse();
     })
 
     // تسجيل المعاملة
-    await prisma.walletTransaction.create({
+    const transaction = await prisma.walletTransaction.create({
       data: {
+        walletId: wallet.id,
         userId,
         amount,
-        type,
-        description: description || (type === 'DEPOSIT' ? 'إيداع' : 'سحب'),
+        type: typeUpper,
+        description: description || (typeUpper === 'DEPOSIT' ? 'Deposit' : typeUpper === 'REFUND' ? 'Refund' : 'Withdrawal'),
         referenceId: referenceId || null,
         balanceAfter: newBalance
       }
     })
 
     return NextResponse.json({
-      message: type === 'DEPOSIT' ? 'تم الإيداع بنجاح' : 'تم السحب بنجاح',
-      balance: updatedWallet.balance
+      message: isCredit ? 'Amount credited successfully' : 'Amount debited successfully',
+      balance: updatedWallet.balance,
+      transaction
     }, { status: 201 })
 
   } catch (error) {

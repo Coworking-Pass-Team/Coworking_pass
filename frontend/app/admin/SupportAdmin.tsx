@@ -26,7 +26,13 @@ import { SupportTicket, TicketCategory, TicketStatus, TicketPriority } from '@/t
 import Modal from '@/components/ui/Modal';
 
 export default function SupportAdmin() {
-  const { supportTickets, updateTicketStatus, replyToTicket } = useApp();
+  const { supportTickets, updateTicketStatus, replyToTicket, fetchTickets } = useApp();
+
+  useEffect(() => {
+    if (fetchTickets) {
+      fetchTickets().catch(() => {});
+    }
+  }, []);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<'all' | TicketCategory>('all');

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Shield,
   Settings,
@@ -22,7 +22,13 @@ import {
   LogOut,
   UserCheck,
   CreditCard,
-  DollarSign
+  DollarSign,
+  Sparkles,
+  Coins,
+  Gift,
+  CheckCircle2,
+  XCircle,
+  Building2
 } from 'lucide-react';
 import { useApp } from '@/app/store';
 import UserAvatar from '@/components/ui/UserAvatar';
@@ -34,9 +40,17 @@ import PaymentsAdmin from './PaymentsAdmin';
 import PayoutsAdmin from './PayoutsAdmin';
 
 export default function AdminSettings() {
-  const { currentUser, updateCurrentUser, logout, showToast, navigate, nav } = useApp();
+  const { currentUser, updateCurrentUser, logout, showToast, navigate, nav, loyaltyRules, fetchLoyaltyRules, updateLoyaltyRuleStatus, deleteLoyaltyRule } = useApp();
 
-  const [activeTab, setActiveTab] = useState<'profile' | 'plans' | 'subscriptions' | 'payments' | 'payouts' | 'settings'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'plans' | 'subscriptions' | 'payments' | 'payouts' | 'loyalty' | 'settings'>('profile');
+  const [adminFeedbackInput, setAdminFeedbackInput] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (activeTab === 'loyalty') {
+      fetchLoyaltyRules().catch(() => {});
+    }
+  }, [activeTab]);
+
 
   // Edit Profile Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -214,6 +228,18 @@ export default function AdminSettings() {
           </button>
           <button
             type="button"
+            onClick={() => setActiveTab('loyalty')}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all cursor-pointer ${
+              activeTab === 'loyalty'
+                ? 'bg-[#DDE6DF] text-soot shadow-xs border border-soot/5 font-semibold'
+                : 'text-moss hover:text-soot'
+            }`}
+          >
+            <Sparkles size={15} />
+            <span>Loyalty Proposals</span>
+          </button>
+          <button
+            type="button"
             onClick={() => setActiveTab('settings')}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all cursor-pointer ${
               activeTab === 'settings'
@@ -235,8 +261,151 @@ export default function AdminSettings() {
         <PaymentsAdmin />
       ) : activeTab === 'payouts' ? (
         <PayoutsAdmin />
+      ) : activeTab === 'loyalty' ? (
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-soot/8 shadow-sm">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xs font-semibold text-moss uppercase tracking-wider bg-soot/5 px-2 py-0.5 rounded">
+                  Super Admin Portal
+                </span>
+                <span className="text-xs text-emerald-800 bg-emerald-500/10 px-2 py-0.5 rounded-full font-medium">
+                  {loyaltyRules.filter((r) => r.status === 'PENDING_APPROVAL').length} Pending Review
+                </span>
+              </div>
+              <h2 className="text-2xl font-serif-display text-soot font-normal">
+                Provider Loyalty Rules & Proposals Review
+              </h2>
+              <p className="text-moss text-xs sm:text-sm mt-1">
+                Review, approve, or reject point-earning and redemption discount rules submitted by space partners.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {loyaltyRules.map((rule) => {
+              const isPending = rule.status === 'PENDING_APPROVAL';
+              const isApproved = rule.status === 'APPROVED';
+              const isRejected = rule.status === 'REJECTED';
+              const isEarning = rule.ruleType === 'EARNING';
+
+              return (
+                <div
+                  key={rule.id}
+                  className="bg-white rounded-3xl border border-soot/10 p-6 shadow-sm flex flex-col justify-between space-y-4"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <span
+                        className={`text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider flex items-center gap-1 ${
+                          isEarning
+                            ? 'bg-emerald-500/15 text-emerald-800 border border-emerald-500/20'
+                            : 'bg-blue-500/15 text-blue-800 border border-blue-500/20'
+                        }`}
+                      >
+                        {isEarning ? <Coins size={12} /> : <Gift size={12} />}
+                        {isEarning ? 'Earning Rule' : 'Redemption Rule'}
+                      </span>
+
+                      <span
+                        className={`text-xs px-2.5 py-0.5 rounded-full font-semibold ${
+                          isPending
+                            ? 'bg-amber-500/15 text-amber-900 border border-amber-500/30'
+                            : isApproved
+                            ? 'bg-emerald-600 text-white'
+                            : 'bg-rose-500/15 text-rose-800 border border-rose-500/30'
+                        }`}
+                      >
+                        {isPending ? 'Pending Review' : isApproved ? 'Approved & Active' : 'Rejected'}
+                      </span>
+                    </div>
+
+                    <div>
+                      <h3 className="text-lg font-serif-display text-soot font-medium">{rule.ruleName}</h3>
+                      <p className="text-xs text-moss mt-1 line-clamp-2">{rule.description || 'No description provided.'}</p>
+                    </div>
+
+                    <div className="p-3 bg-plaster-surface rounded-2xl border border-soot/8 text-xs space-y-1">
+                      <div className="flex justify-between text-soot">
+                        <span className="text-moss">Exchange Rate:</span>
+                        <span className="font-bold">
+                          {isEarning
+                            ? `+${rule.pointsValue} pts / SAR ${rule.monetaryValue}`
+                            : `${rule.pointsValue} pts = SAR ${rule.monetaryValue} off`}
+                        </span>
+                      </div>
+                      {rule.bonusMultiplier && rule.bonusMultiplier > 1 && (
+                        <div className="flex justify-between text-emerald-800 pt-1 border-t border-soot/6">
+                          <span>Multiplier:</span>
+                          <span className="font-bold">{rule.bonusMultiplier}× Boost</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between text-moss pt-1 border-t border-soot/6">
+                        <span>Proposed By:</span>
+                        <span className="text-soot font-medium">{rule.proposerName || 'Space Provider'}</span>
+                      </div>
+                    </div>
+
+                    {isPending && (
+                      <div className="space-y-1.5 pt-1">
+                        <label className="text-[11px] text-moss font-medium block">Admin Feedback / Note (Optional):</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Approved with standard platform rate..."
+                          value={adminFeedbackInput[rule.id] || ''}
+                          onChange={(e) =>
+                            setAdminFeedbackInput((prev: any) => ({ ...prev, [rule.id]: e.target.value }))
+                          }
+                          className="w-full px-3 py-1.5 rounded-xl bg-plaster-surface border border-soot/15 text-xs text-soot focus:outline-none focus:ring-1 focus:ring-soot/20"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="pt-3 border-t border-soot/8 flex items-center justify-between gap-2">
+                    {isPending ? (
+                      <div className="flex items-center gap-2 w-full">
+                        <button
+                          type="button"
+                          onClick={() => updateLoyaltyRuleStatus(rule.id, 'APPROVED', adminFeedbackInput[rule.id])}
+                          className="flex-1 py-2 px-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold shadow-xs transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                        >
+                          <CheckCircle2 size={13} />
+                          <span>Approve & Activate</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => updateLoyaltyRuleStatus(rule.id, 'REJECTED', adminFeedbackInput[rule.id])}
+                          className="py-2 px-3 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-800 text-xs font-semibold transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                        >
+                          <XCircle size={13} />
+                          <span>Reject</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between w-full">
+                        <span className="text-[11px] text-moss">
+                          {isApproved ? 'Status: Active on platform' : 'Status: Rejected'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => deleteLoyaltyRule(rule.id)}
+                          className="p-1.5 text-rose-700 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                          title="Delete rule"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       ) : activeTab === 'profile' ? (
         <div className="space-y-7">
+
           {/* Card 1: Main Admin Header Card */}
           <div className="bg-white rounded-3xl border border-soot/8 shadow-sm overflow-hidden">
             {/* Decorative Header Banner */}

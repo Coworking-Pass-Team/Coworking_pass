@@ -13,9 +13,11 @@ import {
   Building2,
   Sparkles,
   Presentation,
-  Clapperboard
+  Clapperboard,
+  QrCode,
 } from 'lucide-react';
 import { useApp } from '@/app/store';
+import BookingQrModal from '@/components/BookingQrModal';
 import {
   Space,
   getEffectiveSpacePrice,
@@ -30,6 +32,7 @@ import {
 export default function OrgDashboard() {
   const { currentUser, spaces, bookings, favorites, navigate } = useApp();
   const [selectedCategory, setSelectedCategory] = useState<'all' | SpaceCategory>('all');
+  const [selectedBookingForQr, setSelectedBookingForQr] = useState<Booking | null>(null);
 
   if (!currentUser) return null;
 
@@ -165,7 +168,7 @@ export default function OrgDashboard() {
               {activeBookings.slice(0, 3).map(b => (
                 <div
                   key={b.id}
-                  onClick={() => navigate('team-bookings')}
+                  onClick={() => setSelectedBookingForQr(b)}
                   className="p-4 hover:bg-plaster-dark/30 transition-colors flex items-center justify-between gap-4 cursor-pointer group"
                 >
                   <div className="flex items-center gap-3.5 min-w-0">
@@ -190,9 +193,19 @@ export default function OrgDashboard() {
                       </div>
                     </div>
                   </div>
-                  <div className="text-right shrink-0">
+                  <div className="text-right shrink-0 flex flex-col items-end gap-1">
                     <div className="text-sm font-semibold text-soot">SAR {getBookingPrice(b).toLocaleString()}</div>
-                    <span className="text-[10px] text-emerald-800 font-bold uppercase tracking-wider">Confirmed</span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedBookingForQr(b);
+                      }}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-[#2F6144] hover:bg-[#254F37] text-white text-[11px] font-semibold transition-all shadow-2xs cursor-pointer"
+                    >
+                      <QrCode size={12} />
+                      <span>QR Pass</span>
+                    </button>
                   </div>
                 </div>
               ))}
@@ -420,6 +433,14 @@ export default function OrgDashboard() {
           </button>
         ))}
       </div>
+
+      {/* Quick Access Entry QR Code Pass Modal */}
+      {selectedBookingForQr && (
+        <BookingQrModal
+          booking={selectedBookingForQr}
+          onClose={() => setSelectedBookingForQr(null)}
+        />
+      )}
     </div>
   );
 }

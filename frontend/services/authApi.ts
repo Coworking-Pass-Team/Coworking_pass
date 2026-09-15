@@ -1007,3 +1007,227 @@ export async function getPointsTransactionsApi() {
     return { success: false, data: [] };
   }
 }
+
+export interface QrCheckInPayload {
+  userId: string;
+  workspaceId: string;
+  sectionId?: string;
+  status?: string;
+}
+
+export async function createQrCheckInApi(payload: QrCheckInPayload) {
+  try {
+    const localRes = await fetch('/api/qr-check-ins', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: payload.userId,
+        workspaceId: payload.workspaceId,
+        sectionId: payload.sectionId || `sec-${payload.workspaceId}`,
+        status: payload.status || 'VALID',
+      }),
+    });
+    if (localRes.ok) {
+      const data = await localRes.json();
+      return { success: true, data: data.data || data };
+    }
+  } catch (_) {}
+
+  const url = `${getAuthBaseUrl()}/api/qr-check-ins`;
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        userId: payload.userId,
+        workspaceId: payload.workspaceId,
+        sectionId: payload.sectionId || `sec-${payload.workspaceId}`,
+        status: payload.status || 'VALID',
+      }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to record QR check-in' };
+    }
+    return { success: true, data };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+export async function getQrCheckInsApi() {
+  try {
+    const localRes = await fetch('/api/qr-check-ins', { 
+      method: 'GET', 
+      headers: { 'Content-Type': 'application/json' }, 
+      cache: 'no-store' 
+    });
+    if (localRes.ok) {
+      const list = await localRes.json();
+      if (Array.isArray(list)) return { success: true, data: list };
+    }
+  } catch (_) {}
+
+  const url = `${getAuthBaseUrl()}/api/qr-check-ins`;
+  try {
+    const response = await fetch(url, { method: 'GET', headers: getAuthHeaders(), cache: 'no-store' });
+    const data = await response.json().catch(() => ([]));
+    if (!response.ok) return { success: false, data: [] };
+    return { success: true, data: Array.isArray(data) ? data : [] };
+  } catch (_) {
+    return { success: false, data: [] };
+  }
+}
+
+export interface LoyaltyRulePayload {
+  ruleName: string;
+  ruleType: 'EARNING' | 'REDEMPTION';
+  pointsValue: number;
+  monetaryValue: number;
+  description?: string;
+  proposedBy: string;
+  status?: string;
+  workspaceId?: string;
+  bonusMultiplier?: number;
+}
+
+export async function getLoyaltyRulesApi() {
+  const url = `${getAuthBaseUrl()}/api/loyalty-rules`;
+  try {
+    const response = await fetch(url, { method: 'GET', headers: getAuthHeaders() });
+    const data = await response.json().catch(() => ([]));
+    if (!response.ok) return { success: false, data: [] };
+    return { success: true, data: Array.isArray(data) ? data : [] };
+  } catch (_) {
+    return { success: false, data: [] };
+  }
+}
+
+export async function createLoyaltyRuleApi(payload: LoyaltyRulePayload) {
+  const url = `${getAuthBaseUrl()}/api/loyalty-rules`;
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to submit loyalty proposal' };
+    }
+    return { success: true, data };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+export async function updateLoyaltyRuleApi(id: string, payload: { status: string; approvedBy?: string; isActive?: boolean; adminFeedback?: string }) {
+  const url = `${getAuthBaseUrl()}/api/loyalty-rules/${encodeURIComponent(id)}`;
+  try {
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to update loyalty rule' };
+    }
+    return { success: true, data };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+export async function deleteLoyaltyRuleApi(id: string) {
+  const url = `${getAuthBaseUrl()}/api/loyalty-rules/${encodeURIComponent(id)}`;
+  try {
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Failed to delete loyalty rule' };
+    }
+    return { success: true, data };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+export async function getCompaniesApi() {
+  const url = `${getAuthBaseUrl()}/api/companies`;
+  try {
+    const response = await fetch(url, { method: 'GET', headers: getAuthHeaders() });
+    const data = await response.json().catch(() => ([]));
+    if (!response.ok) return { success: false, data: [] };
+    return { success: true, data: Array.isArray(data) ? data : [] };
+  } catch (_) {
+    return { success: false, data: [] };
+  }
+}
+
+export async function createTicketApi(payload: { companyId: string; userId: string; subject: string }) {
+  const url = `${getAuthBaseUrl()}/api/tickets`;
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) return { success: false, error: data.error || 'Failed to create ticket' };
+    return { success: true, data: data.ticket || data };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+export async function createTicketReplyApi(payload: { ticketId: string; userId: string; message: string }) {
+  const url = `${getAuthBaseUrl()}/api/ticket-replies`;
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) return { success: false, error: data.error || 'Failed to add reply' };
+    return { success: true, data: data.reply || data };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+export async function getTicketsApi() {
+  const url = `${getAuthBaseUrl()}/api/tickets`;
+  try {
+    const response = await fetch(url, {
+      headers: getAuthHeaders(),
+    });
+    const data = await response.json().catch(() => ([]));
+    if (!response.ok) return { success: false, data: [] };
+    return { success: true, data: Array.isArray(data) ? data : [] };
+  } catch (_) {
+    return { success: false, data: [] };
+  }
+}
+
+export async function updateTicketStatusApi(id: string, status: string) {
+  const url = `${getAuthBaseUrl()}/api/tickets/${id}`;
+  try {
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ status }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) return { success: false, error: data.error || 'Failed to update ticket status' };
+    return { success: true, data: data.ticket || data };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+

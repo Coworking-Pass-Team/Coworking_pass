@@ -1,9 +1,65 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, Space, SpaceType, Booking, Screen, NavState, UserRole, BookingType, PaymentCard, Notification, CartItem, AmenityRequest, AmenityRequestStatus, calculateEndDate, isCancellationRefundEligible, getBookingPrice, getEffectiveSpacePrice, OtpSession, SupportTicket, TicketStatus, Partner, WorkspaceApi, HourlyBookingApi, PayoutApi, MembershipPlanApi, SubscriptionApi, DirectBookingApi, PaymentApi } from '@/types/types';
+import { 
+  User, 
+  Space, 
+  SpaceType, 
+  Booking, 
+  Screen, 
+  NavState, 
+  UserRole, 
+  BookingType, 
+  PaymentCard, 
+  Notification, 
+  CartItem, 
+  AmenityRequest, 
+  AmenityRequestStatus, 
+  calculateEndDate, 
+  isCancellationRefundEligible, 
+  getBookingPrice, 
+  getEffectiveSpacePrice, 
+  OtpSession, 
+  SupportTicket, 
+  TicketStatus, 
+  Partner, 
+  WorkspaceApi, 
+  HourlyBookingApi, 
+  PayoutApi, 
+  MembershipPlanApi, 
+  SubscriptionApi, 
+  DirectBookingApi, 
+  PaymentApi, 
+  WalletTransaction,
+  LoyaltyRule, 
+  LoyaltyRuleType, 
+  ApprovalStatus,
+  CrowdingLevel,
+  SpaceCrowdingInfo,
+  calculateSpaceCrowding
+} from '@/types/types';
 import { INITIAL_SPACES, INITIAL_USERS, INITIAL_BOOKINGS, INITIAL_NOTIFICATIONS, INITIAL_SUPPORT_TICKETS } from '@/data/data';
-import { registerUserApi, verifyEmailApi, loginUserApi, verifyLoginApi, mapRoleToFrontend, createCompanyApi, createPointsTransactionApi, getLoyaltyPointsApi, getPointsTransactionsApi } from '@/services/authApi';
+import { 
+  registerUserApi, 
+  verifyEmailApi, 
+  loginUserApi, 
+  verifyLoginApi, 
+  mapRoleToFrontend, 
+  createCompanyApi, 
+  createPointsTransactionApi, 
+  getLoyaltyRulesApi, 
+  createLoyaltyRuleApi, 
+  updateLoyaltyRuleApi, 
+  deleteLoyaltyRuleApi,
+  getLoyaltyPointsApi,
+  getQrCheckInsApi,
+  createQrCheckInApi,
+  getCompaniesApi,
+  createTicketApi,
+  createTicketReplyApi,
+  getTicketsApi,
+  updateTicketStatusApi
+} from '@/services/authApi';
 
 export function getApiBaseUrl(): string {
   const envUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -15,7 +71,6 @@ export function getApiBaseUrl(): string {
 }
 
 export const API_BASE_URL = getApiBaseUrl();
-
 
 export function mapFrontendTypeToDbSectionType(type: string): 'DESK' | 'MEETING_ROOM' | 'THEATER' {
   const t = (type || '').toLowerCase();
@@ -179,12 +234,10 @@ async function fetchPaymentsFromApi(token?: string): Promise<PaymentApi[]> {
 }
 
 interface AppContextType {
-  // Navigation
   nav: NavState;
   navigate: (screen: Screen, params?: Record<string, any>) => void;
   goBack: () => void;
 
-  // Partners / Providers (GET, POST, PUT http://localhost:3001/api/partners)
   partners: Partner[];
   fetchPartners: () => Promise<Partner[]>;
   createPartner: (partnerData: {
@@ -204,7 +257,6 @@ interface AppContextType {
   ) => Promise<{ success: boolean; partner?: Partner; error?: string }>;
   deletePartner: (partnerId: string) => Promise<{ success: boolean; error?: string }>;
 
-  // Workspaces API (GET, POST, PUT, DELETE http://localhost:3001/api/workspaces)
   workspacesApi: WorkspaceApi[];
   fetchWorkspaces: () => Promise<WorkspaceApi[]>;
   createWorkspace: (workspaceData: {
@@ -217,6 +269,8 @@ interface AppContextType {
     yearlyRate?: number;
     passVisitValue: number;
     totalCapacity: number;
+    amenities?: string[];
+    images?: string[];
   }) => Promise<{ success: boolean; workspace?: WorkspaceApi; error?: string }>;
   updateWorkspace: (
     workspaceId: string,
@@ -230,11 +284,12 @@ interface AppContextType {
       yearlyRate: number;
       passVisitValue: number;
       totalCapacity: number;
+      amenities: string[];
+      images: string[];
     }>
   ) => Promise<{ success: boolean; workspace?: WorkspaceApi; error?: string }>;
   deleteWorkspace: (workspaceId: string) => Promise<{ success: boolean; error?: string }>;
 
-  // Hourly Bookings API (GET, POST, PUT, DELETE http://localhost:3001/api/hourly-bookings)
   hourlyBookingsApi: HourlyBookingApi[];
   fetchHourlyBookings: () => Promise<HourlyBookingApi[]>;
   createHourlyBooking: (bookingData: {
@@ -259,7 +314,6 @@ interface AppContextType {
   ) => Promise<{ success: boolean; booking?: HourlyBookingApi; error?: string }>;
   deleteHourlyBooking: (bookingId: string) => Promise<{ success: boolean; error?: string }>;
 
-  // Payouts API (GET, POST, PUT, DELETE /api/payouts)
   payoutsApi: PayoutApi[];
   fetchPayouts: () => Promise<PayoutApi[]>;
   createPayout: (payoutData: {
@@ -282,7 +336,6 @@ interface AppContextType {
   ) => Promise<{ success: boolean; payout?: PayoutApi; error?: string }>;
   deletePayout: (payoutId: string) => Promise<{ success: boolean; error?: string }>;
 
-  // Membership Plans API (GET, POST, PUT, DELETE /api/membership-plans)
   membershipPlansApi: MembershipPlanApi[];
   fetchMembershipPlans: () => Promise<MembershipPlanApi[]>;
   createMembershipPlan: (planData: {
@@ -297,7 +350,6 @@ interface AppContextType {
   ) => Promise<{ success: boolean; plan?: MembershipPlanApi; error?: string }>;
   deleteMembershipPlan: (planId: string) => Promise<{ success: boolean; error?: string }>;
 
-  // Subscriptions API (GET, POST, PUT, DELETE /api/subscriptions)
   subscriptionsApi: SubscriptionApi[];
   fetchSubscriptions: () => Promise<SubscriptionApi[]>;
   createSubscription: (subData: {
@@ -313,7 +365,6 @@ interface AppContextType {
   ) => Promise<{ success: boolean; subscription?: SubscriptionApi; error?: string }>;
   deleteSubscription: (subscriptionId: string) => Promise<{ success: boolean; error?: string }>;
 
-  // Direct Bookings API (GET, POST, PUT, DELETE /api/direct-bookings)
   directBookingsApi: DirectBookingApi[];
   fetchDirectBookings: () => Promise<DirectBookingApi[]>;
   createDirectBooking: (bookingData: {
@@ -330,7 +381,6 @@ interface AppContextType {
   ) => Promise<{ success: boolean; booking?: DirectBookingApi; error?: string }>;
   deleteDirectBooking: (bookingId: string) => Promise<{ success: boolean; error?: string }>;
 
-  // Payments API (GET, POST, PUT, DELETE /api/payments)
   paymentsApi: PaymentApi[];
   fetchPayments: () => Promise<PaymentApi[]>;
   createPayment: (paymentData: {
@@ -347,14 +397,12 @@ interface AppContextType {
   ) => Promise<{ success: boolean; payment?: PaymentApi; error?: string }>;
   deletePayment: (paymentId: string) => Promise<{ success: boolean; error?: string }>;
 
-
-  // Support Tickets & Inquiries
   supportTickets: SupportTicket[];
+  fetchTickets: () => Promise<SupportTicket[]>;
   addSupportTicket: (ticketData: Omit<SupportTicket, 'id' | 'ticketNumber' | 'createdAt' | 'status' | 'priority'> & { status?: TicketStatus; priority?: SupportTicket['priority'] }) => SupportTicket;
   updateTicketStatus: (id: string, status: TicketStatus, notes?: string) => void;
   replyToTicket: (id: string, reply: string, newStatus?: TicketStatus) => void;
 
-  // Auth & 2FA OTP
   currentUser: User | null;
   otpSession: OtpSession | null;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string; requireOtp?: boolean }>;
@@ -373,12 +421,10 @@ interface AppContextType {
   pendingResetUser: User | null;
   updateCurrentUser: (updates: Partial<User>) => void;
 
-  // Location & Geolocation
   userLocation: { lat: number; lng: number } | null;
   locationStatus: 'idle' | 'loading' | 'granted' | 'denied' | 'unsupported';
   requestUserLocation: () => Promise<{ lat: number; lng: number } | null>;
 
-  // Spaces
   spaces: Space[];
   favorites: string[];
   toggleFavorite: (spaceId: string) => void;
@@ -387,14 +433,12 @@ interface AppContextType {
   toggleSpaceVisibility: (id: string) => void;
   deleteSpace: (id: string) => void;
 
-  // Bookings
   bookings: Booking[];
   addBooking: (booking: Omit<Booking, 'id' | 'createdAt'>) => Booking;
   cancelBooking: (id: string, refundMethod?: 'wallet' | 'card') => void;
   updateBookingStatus: (id: string, status: Booking['status']) => void;
   deleteBooking: (bookingId: string) => void;
 
-  // Amenity Requests (Provider -> Admin)
   amenityRequests: AmenityRequest[];
   approvedCustomAmenities: string[];
   requestCustomAmenity: (amenityName: string, spaceId?: string, spaceName?: string) => { success: boolean; message: string; request?: AmenityRequest };
@@ -403,7 +447,6 @@ interface AppContextType {
   deleteAmenityRequest: (requestId: string) => void;
   getApprovedAmenities: () => string[];
 
-  // Notifications
   notifications: Notification[];
   unreadNotificationsCount: number;
   markNotificationRead: (id: string) => void;
@@ -414,13 +457,11 @@ interface AppContextType {
   addNotification: (notif: Omit<Notification, 'id' | 'createdAt' | 'read'> & { read?: boolean }) => Notification;
   generateFakeNotification: (presetType?: string, customTitle?: string, customMessage?: string) => Notification;
 
-  // Users (admin)
   users: User[];
   blockUser: (id: string) => void;
   unblockUser: (id: string) => void;
   changeUserRole: (id: string, role: UserRole) => void;
 
-  // Waitlist & Auto-booking
   waitlist: Record<string, boolean>;
   autobooking: Record<string, boolean>;
   autobookingCard: Record<string, string>;
@@ -429,10 +470,8 @@ interface AppContextType {
   enableAutoBooking: (spaceId: string, cardId: string) => void;
   disableAutoBooking: (spaceId: string) => void;
 
-  // Payment cards
   addPaymentCard: (card: Omit<PaymentCard, 'id'>) => PaymentCard;
 
-  // Shopping Cart (نفس كودك الأصلي تماماً)
   cart: CartItem[];
   addToCart: (item: Omit<CartItem, 'id'>) => void;
   removeFromCart: (cartItemId: string) => void;
@@ -441,10 +480,36 @@ interface AppContextType {
   clearCart: () => void;
   checkoutCart: (pointsToUse?: number) => Booking[];
 
-  // Loyalty Points (الميزة المضافة من كودهم)
   applyLoyaltyDiscount: (pointsToUse: number) => { discount: number; safePoints: number };
 
-  // Toast
+  walletTransactions: WalletTransaction[];
+  fetchWallet: (userId?: string) => Promise<{ balance: number; transactions: WalletTransaction[] } | null>;
+  depositToWallet: (amount: number, description?: string) => Promise<{ success: boolean; message: string; balance?: number }>;
+  withdrawFromWallet: (amount: number, description?: string) => Promise<{ success: boolean; message: string; balance?: number }>;
+
+  loyaltyRules: LoyaltyRule[];
+  fetchLoyaltyRules: () => Promise<LoyaltyRule[]>;
+  createLoyaltyProposal: (proposalData: {
+    ruleName: string;
+    ruleType: LoyaltyRuleType;
+    pointsValue: number;
+    monetaryValue: number;
+    description?: string;
+    workspaceId?: string;
+    bonusMultiplier?: number;
+  }) => Promise<{ success: boolean; rule?: LoyaltyRule; error?: string }>;
+  updateLoyaltyRuleStatus: (
+    ruleId: string,
+    status: ApprovalStatus,
+    notes?: string
+  ) => Promise<{ success: boolean; rule?: LoyaltyRule; error?: string }>;
+  deleteLoyaltyRule: (ruleId: string) => Promise<{ success: boolean; error?: string }>;
+
+  qrScans: Record<string, number>;
+  fetchQrCheckIns: () => Promise<Record<string, number>>;
+  recordQrScan: (spaceId: string) => Promise<void>;
+  getSpaceCrowding: (space: Space) => SpaceCrowdingInfo;
+
   toast: { message: string; type: 'success' | 'error' | 'info' } | null;
   showToast: (message: string, type?: 'success' | 'error' | 'info') => void;
 }
@@ -469,6 +534,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [autobookingCard, setAutobookingCard] = useState<Record<string, string>>({});
   const [toast, setToast] = useState<AppContextType['toast']>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [walletTransactions, setWalletTransactions] = useState<WalletTransaction[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [amenityRequests, setAmenityRequests] = useState<AmenityRequest[]>([
     {
@@ -493,7 +559,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     },
   ]);
   const [approvedCustomAmenities, setApprovedCustomAmenities] = useState<string[]>(['Podcast Recording Studio']);
-  const [supportTickets, setSupportTickets] = useState<SupportTicket[]>(INITIAL_SUPPORT_TICKETS);
+  const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([]);
   const [partners, setPartners] = useState<Partner[]>([]);
   const [workspacesApi, setWorkspacesApi] = useState<WorkspaceApi[]>([]);
   const [hourlyBookingsApi, setHourlyBookingsApi] = useState<HourlyBookingApi[]>([]);
@@ -502,6 +568,278 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [subscriptionsApi, setSubscriptionsApi] = useState<SubscriptionApi[]>([]);
   const [directBookingsApi, setDirectBookingsApi] = useState<DirectBookingApi[]>([]);
   const [paymentsApi, setPaymentsApi] = useState<PaymentApi[]>([]);
+  const [loyaltyRules, setLoyaltyRules] = useState<LoyaltyRule[]>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('cp_loyaltyRules');
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) return parsed;
+        } catch (_) {}
+      }
+    }
+    return [];
+  });
+
+  const saveLoyaltyRulesToStorage = (rules: LoyaltyRule[]) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cp_loyaltyRules', JSON.stringify(rules));
+    }
+  };
+
+  useEffect(() => {
+    saveLoyaltyRulesToStorage(loyaltyRules);
+  }, [loyaltyRules]);
+
+  // QR Code check-in scans tracked per workspace (purely driven by real-time database scans)
+  const [qrScans, setQrScans] = useState<Record<string, number>>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('cp_qr_scans');
+        if (stored) return JSON.parse(stored);
+      } catch (_) {}
+    }
+    return {};
+  });
+
+  const fetchQrCheckIns = async (): Promise<Record<string, number>> => {
+    try {
+      const res = await getQrCheckInsApi();
+      if (res.success && Array.isArray(res.data)) {
+        const dbCounts: Record<string, number> = {};
+        for (const checkIn of res.data) {
+          const wId = checkIn.workspaceId || checkIn.workspace?.id;
+          if (wId) {
+            dbCounts[wId] = (dbCounts[wId] || 0) + 1;
+          }
+        }
+        setQrScans(dbCounts);
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem('cp_qr_scans', JSON.stringify(dbCounts));
+          } catch (_) {}
+        }
+        return dbCounts;
+      }
+      return qrScans;
+    } catch (err) {
+      console.warn('Failed to fetch QR check-ins from database:', err);
+      return qrScans;
+    }
+  };
+
+  useEffect(() => {
+    fetchQrCheckIns();
+    const interval = setInterval(() => {
+      fetchQrCheckIns();
+    }, 4000);
+
+    const onFocus = () => fetchQrCheckIns();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('focus', onFocus);
+    }
+
+    return () => {
+      clearInterval(interval);
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('focus', onFocus);
+      }
+    };
+  }, []);
+
+  const recordQrScan = async (spaceId: string) => {
+    setQrScans(prev => {
+      const next = { ...prev, [spaceId]: (prev[spaceId] || 0) + 1 };
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('cp_qr_scans', JSON.stringify(next));
+        } catch (_) {}
+      }
+      return next;
+    });
+
+    try {
+      await createQrCheckInApi({
+        userId: currentUser?.id || 'guest',
+        workspaceId: spaceId,
+        sectionId: `sec-${spaceId}`,
+        status: 'VALID',
+      });
+      fetchQrCheckIns();
+    } catch (err) {
+      console.warn('Could not persist QR check-in to database:', err);
+    }
+  };
+
+  const getSpaceCrowding = (space: Space): SpaceCrowdingInfo => {
+    const scanned = qrScans[space.id] || 0;
+    return calculateSpaceCrowding(space, scanned);
+  };
+
+  const fetchLoyaltyRules = async (): Promise<LoyaltyRule[]> => {
+    try {
+      const res = await getLoyaltyRulesApi();
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        const mapped: LoyaltyRule[] = res.data.map((r: any) => ({
+          id: r.id,
+          ruleName: r.ruleName,
+          ruleType: r.ruleType,
+          pointsValue: r.pointsValue,
+          monetaryValue: r.monetaryValue,
+          description: r.description,
+          status: r.status,
+          proposedBy: r.proposedBy,
+          proposerName: r.proposer?.name || 'Space Partner',
+          proposerEmail: r.proposer?.email,
+          approvedBy: r.approvedBy,
+          approverName: r.approver?.name,
+          isActive: r.isActive,
+          createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : new Date().toISOString(),
+        }));
+        setLoyaltyRules(mapped);
+        return mapped;
+      }
+      return loyaltyRules;
+    } catch (err) {
+      console.error('Failed to fetch loyalty rules:', err);
+      return loyaltyRules;
+    }
+  };
+
+  const createLoyaltyProposal = async (proposalData: {
+    ruleName: string;
+    ruleType: LoyaltyRuleType;
+    pointsValue: number;
+    monetaryValue: number;
+    description?: string;
+    workspaceId?: string;
+    bonusMultiplier?: number;
+  }): Promise<{ success: boolean; rule?: LoyaltyRule; error?: string }> => {
+    try {
+      const proposerId = currentUser?.id || 'user-p1';
+      const tempId = `rule-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+      const newRule: LoyaltyRule = {
+        id: tempId,
+        ruleName: proposalData.ruleName.trim(),
+        ruleType: proposalData.ruleType,
+        pointsValue: Number(proposalData.pointsValue),
+        monetaryValue: Number(proposalData.monetaryValue),
+        description: proposalData.description?.trim(),
+        status: 'PENDING_APPROVAL',
+        proposedBy: proposerId,
+        proposerName: currentUser?.businessName || currentUser?.name || 'Space Partner',
+        proposerEmail: currentUser?.email,
+        isActive: false,
+        workspaceId: proposalData.workspaceId,
+        bonusMultiplier: proposalData.bonusMultiplier,
+        createdAt: new Date().toISOString(),
+      };
+
+      setLoyaltyRules((prev) => [newRule, ...prev]);
+
+      const apiRes = await createLoyaltyRuleApi({
+        ruleName: newRule.ruleName,
+        ruleType: newRule.ruleType,
+        pointsValue: newRule.pointsValue,
+        monetaryValue: newRule.monetaryValue,
+        description: newRule.description,
+        proposedBy: proposerId,
+        status: 'PENDING_APPROVAL',
+      });
+
+      if (apiRes.success && apiRes.data?.id) {
+        const savedRule: LoyaltyRule = {
+          ...newRule,
+          id: apiRes.data.id,
+          proposedBy: apiRes.data.proposedBy || proposerId,
+          proposerName: apiRes.data.proposer?.name || newRule.proposerName,
+          proposerEmail: apiRes.data.proposer?.email || newRule.proposerEmail,
+          status: apiRes.data.status || 'PENDING_APPROVAL',
+          createdAt: apiRes.data.createdAt ? new Date(apiRes.data.createdAt).toISOString() : newRule.createdAt,
+        };
+        setLoyaltyRules((prev) => [savedRule, ...prev.filter((r) => r.id !== tempId && r.id !== savedRule.id)]);
+        showToast('Loyalty proposal submitted for Admin review!', 'success');
+        return { success: true, rule: savedRule };
+      }
+
+      showToast('Loyalty proposal submitted for Admin review!', 'success');
+      return { success: true, rule: newRule };
+    } catch (err: any) {
+      console.error('Error creating loyalty proposal:', err);
+      showToast(err.message || 'Failed to submit proposal', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const updateLoyaltyRuleStatus = async (
+    ruleId: string,
+    status: ApprovalStatus,
+    notes?: string
+  ): Promise<{ success: boolean; rule?: LoyaltyRule; error?: string }> => {
+    try {
+      const approverId = currentUser?.id || 'admin-1';
+      const approverName = currentUser?.name || 'Super Admin';
+
+      setLoyaltyRules((prev) =>
+        prev.map((r) =>
+          r.id === ruleId
+            ? {
+                ...r,
+                status,
+                approvedBy: approverId,
+                approverName,
+                isActive: status === 'APPROVED',
+                adminFeedback: notes || r.adminFeedback,
+              }
+            : r
+        )
+      );
+
+      const apiRes = await updateLoyaltyRuleApi(ruleId, {
+        status,
+        approvedBy: approverId,
+        isActive: status === 'APPROVED',
+        adminFeedback: notes,
+      });
+
+      if (apiRes.success && apiRes.data) {
+        const updated = apiRes.data;
+        setLoyaltyRules((prev) =>
+          prev.map((r) =>
+            r.id === ruleId
+              ? {
+                  ...r,
+                  status: updated.status || status,
+                  approvedBy: updated.approvedBy || approverId,
+                  approverName: updated.approver?.name || approverName,
+                  isActive: updated.isActive !== undefined ? updated.isActive : (status === 'APPROVED'),
+                  adminFeedback: notes || r.adminFeedback,
+                }
+              : r
+          )
+        );
+      }
+
+      showToast(`Loyalty rule ${status === 'APPROVED' ? 'approved & activated' : 'rejected'}`, status === 'APPROVED' ? 'success' : 'info');
+      return { success: true };
+    } catch (err: any) {
+      console.error('Error updating loyalty rule status:', err);
+      showToast(err.message || 'Failed to update rule status', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const deleteLoyaltyRule = async (ruleId: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      setLoyaltyRules((prev) => prev.filter((r) => r.id !== ruleId));
+      await deleteLoyaltyRuleApi(ruleId);
+      showToast('Loyalty proposal removed', 'info');
+      return { success: true };
+    } catch (err: any) {
+      console.error('Error deleting loyalty rule:', err);
+      return { success: false, error: err.message };
+    }
+  };
 
   const fetchMembershipPlans = async (): Promise<MembershipPlanApi[]> => {
     try {
@@ -956,6 +1294,169 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const fetchWallet = async (targetUserId?: string): Promise<{ balance: number; transactions: WalletTransaction[] } | null> => {
+    const uid = targetUserId || currentUser?.id;
+    if (!uid) return null;
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const storedToken = getStoredToken();
+      if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+
+      const response = await fetch(`${getApiBaseUrl()}/wallet?userId=${encodeURIComponent(uid)}`, {
+        method: 'GET',
+        headers,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const balance = typeof data.balance === 'number' ? data.balance : 0;
+        const txs: WalletTransaction[] = Array.isArray(data.transactions) ? data.transactions : [];
+
+        setWalletTransactions(txs);
+        setCurrentUser((prev) => (prev && prev.id === uid ? { ...prev, walletBalance: balance } : prev));
+        return { balance, transactions: txs };
+      }
+    } catch (err) {
+      console.warn('Failed to fetch wallet:', err);
+    }
+    return null;
+  };
+
+  const depositToWallet = async (amount: number, description?: string): Promise<{ success: boolean; message: string; balance?: number }> => {
+    if (!currentUser) return { success: false, message: 'User is not logged in' };
+    if (amount <= 0) return { success: false, message: 'Invalid amount' };
+
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const storedToken = getStoredToken();
+      if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+
+      const response = await fetch(`${getApiBaseUrl()}/wallet`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          userId: currentUser.id,
+          amount,
+          type: 'DEPOSIT',
+          description: description || 'Wallet Top-up',
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to top-up wallet');
+      }
+
+      setCurrentUser((prev) => (prev ? { ...prev, walletBalance: data.balance } : null));
+      const newTx: WalletTransaction = data.transaction || {
+        id: `tx-${Date.now()}`,
+        walletId: currentUser.id,
+        userId: currentUser.id,
+        amount,
+        type: 'DEPOSIT',
+        description: description || 'Wallet Top-up',
+        balanceAfter: data.balance,
+        createdAt: new Date().toISOString(),
+      };
+      setWalletTransactions((prev) => [newTx, ...prev]);
+      showToast('Wallet topped up successfully', 'success');
+      return { success: true, message: data.message || 'Wallet topped up successfully', balance: data.balance };
+    } catch (err: any) {
+      const msg = err.message || 'An error occurred while topping up wallet';
+      showToast(msg, 'error');
+      return { success: false, message: msg };
+    }
+  };
+
+  const withdrawFromWallet = async (amount: number, description?: string): Promise<{ success: boolean; message: string; balance?: number }> => {
+    if (!currentUser) return { success: false, message: 'User is not logged in' };
+    if (amount <= 0) return { success: false, message: 'Invalid amount' };
+
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const storedToken = getStoredToken();
+      if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+
+      const response = await fetch(`${getApiBaseUrl()}/wallet`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          userId: currentUser.id,
+          amount,
+          type: 'WITHDRAW',
+          description: description || 'Wallet Withdrawal',
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to withdraw from wallet');
+      }
+
+      setCurrentUser((prev) => (prev ? { ...prev, walletBalance: data.balance } : null));
+      const newTx: WalletTransaction = data.transaction || {
+        id: `tx-${Date.now()}`,
+        walletId: currentUser.id,
+        userId: currentUser.id,
+        amount,
+        type: 'WITHDRAW',
+        description: description || 'Wallet Withdrawal',
+        balanceAfter: data.balance,
+        createdAt: new Date().toISOString(),
+      };
+      setWalletTransactions((prev) => [newTx, ...prev]);
+      showToast('Wallet debited successfully', 'success');
+      return { success: true, message: data.message || 'Wallet debited successfully', balance: data.balance };
+    } catch (err: any) {
+      const msg = err.message || 'An error occurred while withdrawing';
+      showToast(msg, 'error');
+      return { success: false, message: msg };
+    }
+  };
+
+  const fetchTickets = async (): Promise<SupportTicket[]> => {
+    try {
+      const res = await getTicketsApi();
+      if (res.success && Array.isArray(res.data)) {
+        const mapped: SupportTicket[] = res.data.map((dbT: any) => {
+          const statusLower = (dbT.status || 'OPEN').toLowerCase();
+          const validStatus: TicketStatus = 
+            statusLower === 'in_progress' || statusLower === 'in-progress' || statusLower === 'pending'
+              ? 'in-progress'
+              : statusLower === 'resolved'
+              ? 'resolved'
+              : statusLower === 'closed'
+              ? 'closed'
+              : 'open';
+
+          const replies = Array.isArray(dbT.replies) ? dbT.replies : [];
+          const lastReplyMessage = replies.length > 0 ? replies[replies.length - 1].message : undefined;
+
+          return {
+            id: dbT.id,
+            ticketNumber: `TK-${dbT.id.slice(-4).toUpperCase()}`,
+            userName: dbT.user?.name || dbT.company?.name || 'مستخدم',
+            userEmail: dbT.user?.email || dbT.company?.email || 'user@coworkingpass.sa',
+            userId: dbT.userId,
+            category: 'general',
+            subject: dbT.subject || 'تذكرة دعم',
+            message: dbT.subject || '',
+            status: validStatus,
+            priority: 'medium',
+            createdAt: dbT.createdAt ? new Date(dbT.createdAt).toLocaleString('ar-SA') : new Date().toLocaleString('ar-SA'),
+            updatedAt: dbT.updatedAt ? new Date(dbT.updatedAt).toLocaleString('ar-SA') : undefined,
+            adminReply: lastReplyMessage,
+          };
+        });
+        setSupportTickets(mapped);
+        return mapped;
+      }
+    } catch (err) {
+      console.error('Failed to fetch tickets from /api/tickets:', err);
+    }
+    return supportTickets;
+  };
+
   const fetchPartners = async (): Promise<Partner[]> => {
     try {
       const data = await fetchPartnersFromApi();
@@ -1262,10 +1763,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const userPartnerId = userPartner?.id;
 
         let savedTypes: Record<string, string> = {};
+        let savedAmenities: Record<string, string[]> = {};
         if (typeof window !== 'undefined') {
           try {
             const rawMap = localStorage.getItem('cp_space_types');
             if (rawMap) savedTypes = JSON.parse(rawMap);
+            const rawAmenityMap = localStorage.getItem('cp_space_amenities');
+            if (rawAmenityMap) savedAmenities = JSON.parse(rawAmenityMap);
           } catch (_) {}
         }
 
@@ -1278,7 +1782,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
           const existing = spaces.find(s => s.id === w.id || s.name.toLowerCase() === w.name.toLowerCase())
             || INITIAL_SPACES.find(s => s.id === w.id || s.name.toLowerCase() === w.name.toLowerCase());
           
-          const savedType = savedTypes[w.id] || savedTypes[w.name.toLowerCase()];
+          const nameKey = (w.name || '').trim().toLowerCase();
+          const savedType = savedTypes[w.id] || savedTypes[nameKey] || savedTypes[w.name.toLowerCase()];
+          const savedAmenityList = savedAmenities[w.id] || savedAmenities[nameKey] || savedAmenities[w.name.toLowerCase()];
 
           const nameLower = (w.name || '').toLowerCase();
           const isNameHall = nameLower.includes('hall') || nameLower.includes('قاعة') || nameLower.includes('majlis') || nameLower.includes('conference') || nameLower.includes('training') || nameLower.includes('meeting') || nameLower.includes('room');
@@ -1303,7 +1809,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
           const preservedType = (savedType || sectionType || inferredType || existing?.type || (w as any).type || 'private-office') as SpaceType;
 
-          // Asynchronously sync section to PostgreSQL backend DB if section was stored as DESK but space is actually hall or theater
           if (Array.isArray(w.sections) && w.sections.length > 0) {
             const sec = w.sections[0];
             const targetDbSecType = mapFrontendTypeToDbSectionType(preservedType);
@@ -1322,6 +1827,33 @@ export function AppProvider({ children }: { children: ReactNode }) {
             }
           }
 
+          const backendAmenityList = (w as any).amenities !== undefined && Array.isArray((w as any).amenities)
+            ? (w as any).amenities.map((a: any) => typeof a === 'string' ? a : (a.amenity?.name || a.name)).filter(Boolean)
+            : undefined;
+
+          const finalAmenities = savedAmenityList !== undefined
+            ? savedAmenityList
+            : (backendAmenityList !== undefined
+              ? backendAmenityList
+              : (existing?.amenities !== undefined ? existing.amenities : []));
+
+          let savedImagesList: string[] | undefined = undefined;
+          if (typeof window !== 'undefined') {
+            try {
+              const rawImgMap = localStorage.getItem('cp_space_images');
+              if (rawImgMap) {
+                const imgMap = JSON.parse(rawImgMap);
+                savedImagesList = imgMap[w.id] || imgMap[w.name.toLowerCase()];
+              }
+            } catch (_) {}
+          }
+
+          const dbImages = (w as any).images && Array.isArray((w as any).images) && (w as any).images.length > 0
+            ? (w as any).images
+            : undefined;
+
+          const finalImages = dbImages || savedImagesList || (existing?.images && existing.images.length > 0 ? existing.images : ['https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80']);
+
           return {
             id: w.id,
             name: w.name,
@@ -1330,8 +1862,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
             address: w.city,
             description: existing?.description || `Workspace managed by ${w.partner?.brandName || 'Partner'}`,
             type: preservedType,
-            images: existing?.images && existing.images.length > 0 ? existing.images : ['https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80'],
-            amenities: existing?.amenities && existing.amenities.length > 0 ? existing.amenities : ['High-Speed Wi-Fi', 'Coffee Bar', 'Meeting Rooms'],
+            images: finalImages,
+            amenities: finalAmenities,
             totalCapacity: w.totalCapacity || existing?.totalCapacity || 50,
             availableCapacity: w.totalCapacity || existing?.availableCapacity || 50,
             pricing: {
@@ -1372,6 +1904,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     yearlyRate?: number;
     passVisitValue: number;
     totalCapacity: number;
+    amenities?: string[];
+    images?: string[];
   }): Promise<{ success: boolean; workspace?: WorkspaceApi; error?: string }> => {
     try {
       const headers: Record<string, string> = {
@@ -1416,6 +1950,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       yearlyRate: number;
       passVisitValue: number;
       totalCapacity: number;
+      amenities: string[];
+      images: string[];
     }>
   ): Promise<{ success: boolean; workspace?: WorkspaceApi; error?: string }> => {
     try {
@@ -1433,9 +1969,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify(updates),
       });
 
-      const resData = await response.json();
+      const resData = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(resData.error || 'Failed to update workspace');
+        console.warn(`Workspace PUT notice (${workspaceId}):`, resData.error || 'Failed to update workspace in DB');
+        return { success: false, error: resData.error || 'Failed to update workspace' };
       }
 
       const updatedWorkspace: WorkspaceApi = resData.workspace || resData;
@@ -1446,7 +1983,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return { success: true, workspace: updatedWorkspace };
     } catch (err: any) {
       console.error(`Error updating workspace via PUT /api/workspaces/${workspaceId}:`, err);
-      showToast(err.message || 'Failed to update workspace', 'error');
       return { success: false, error: err.message };
     }
   };
@@ -1596,6 +2132,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     fetchWorkspaces().catch(() => {});
     fetchMembershipPlans().catch(() => {});
     fetchAmenities().catch(() => {});
+    fetchLoyaltyRules().catch(() => {});
 
     const storedToken = getStoredToken();
     if (storedToken) {
@@ -1607,6 +2144,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       fetchPayments().catch(() => {});
       fetchNotifications().catch(() => {});
       if (currentUser) {
+        fetchWallet(currentUser.id).catch(() => {});
         getLoyaltyPointsApi(currentUser.id).then(ptsRes => {
           if (ptsRes.success && Array.isArray(ptsRes.data)) {
             const uPts = ptsRes.data.find((p: any) => p.userId === currentUser.id);
@@ -1622,6 +2160,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
     }
   }, []);
+
+  useEffect(() => {
+    if (currentUser?.id) {
+      fetchWallet(currentUser.id).catch(() => {});
+    }
+  }, [currentUser?.id]);
 
   const sanitizeBookings = (list: Booking[]): Booking[] => {
     const seen = new Set<string>();
@@ -1747,18 +2291,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      const savedTickets = localStorage.getItem('cp_support_tickets');
-      if (savedTickets) {
-        try {
-          setSupportTickets(JSON.parse(savedTickets));
-        } catch (e) {
-          setSupportTickets(INITIAL_SUPPORT_TICKETS);
-        }
-      } else {
-        localStorage.setItem('cp_support_tickets', JSON.stringify(INITIAL_SUPPORT_TICKETS));
-      }
-
-      // Initial DB load for workspaces & partners
+      fetchTickets().catch(() => {});
       fetchPartners().catch(() => {});
       fetchWorkspaces().catch(() => {});
     } catch (e) {
@@ -1766,7 +2299,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Auto-sync Partner record in PostgreSQL Partner table for logged in provider
   useEffect(() => {
     if (currentUser && (currentUser.role === 'provider' || currentUser.role === 'admin')) {
       const storedToken = getStoredToken();
@@ -1810,7 +2342,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string; requireOtp?: boolean }> => {
-    // 1. Attempt login with backend API: POST http://localhost:3001/api/auth/login
     const apiRes = await loginUserApi({ email, password });
     if (apiRes.success && apiRes.userId) {
       let user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
@@ -1843,7 +2374,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return { success: true, requireOtp: true };
     }
 
-    // 2. Fallback to local stored user / mock authentication
     let user = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
     if (!user) {
       user = INITIAL_USERS.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
@@ -1894,7 +2424,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const requestSignupOtp = async (newUser: User, role: UserRole, extraData?: Partial<User>): Promise<{ success: boolean; error?: string; message?: string }> => {
-    // 1. Call Backend API: POST http://localhost:3001/api/auth/register
     const apiRes = await registerUserApi({
       name: newUser.name,
       email: newUser.email,
@@ -1974,7 +2503,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (otpSession.mode === 'login') {
       let user = otpSession.user;
       if (otpSession.userId) {
-        // Backend Login OTP Verification: POST http://localhost:3001/api/auth/verify-login
         const apiRes = await verifyLoginApi({ userId: otpSession.userId, code: cleanCode });
         if (!apiRes.success && (!isDemo || cleanCode !== '123456')) {
           return { success: false, error: apiRes.error || 'Invalid verification code. Please try again.' };
@@ -2006,7 +2534,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('cp_currentUser', JSON.stringify(user));
       }
 
-      // Auto-create Company record in DB via frontend API call if logged in as Organization/Company
       if (user.role === 'organization') {
         createCompanyApi({
           companyName: user.orgName || user.name || 'New Organization',
@@ -2038,9 +2565,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return { success: true };
     }
 
-    // signup mode
     if (otpSession.userId) {
-      // Backend Email OTP Verification: POST http://localhost:3001/api/auth/verify-email
       const apiRes = await verifyEmailApi({ userId: otpSession.userId, code: cleanCode });
       if (!apiRes.success && (!isDemo || cleanCode !== '123456')) {
         return { success: false, error: apiRes.error || 'Invalid verification code. Please try again.' };
@@ -2066,7 +2591,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('cp_users', JSON.stringify(updatedUsers));
     }
 
-    // Auto-create Company record in DB via frontend API call if registered as Organization/Company
     if (updated.role === 'organization') {
       const hrAdminId = updated.id || otpSession.userId || '';
       const companyName = updated.orgName || updated.name || 'New Organization';
@@ -2103,7 +2627,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       })();
     }
 
-    // Automatically transition to login to complete authentication and receive JWT token
     const loginRes = await login(updated.email, updated.password);
     if (loginRes.success) {
       showToast('Account email verified successfully! Please enter the security code sent to your email to log in.', 'success');
@@ -2258,7 +2781,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         error => {
           console.warn('Geolocation error:', error);
           setLocationStatus('denied');
-          if (error.code === 1) { // PERMISSION_DENIED
+          if (error.code === 1) {
             showToast('Location permission was denied. Workspaces will be sorted without distance.', 'info');
           } else {
             showToast('Unable to determine your current location.', 'info');
@@ -2305,7 +2828,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setSpaces(prev => [...prev, newSpace]);
     showToast('Space added successfully.');
 
-    // Persist new workspace to backend database with valid partnerId
     (async () => {
       try {
         const storedToken = getStoredToken();
@@ -2340,10 +2862,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
             yearlyRate: space.pricing?.yearly || 8000,
             passVisitValue: 15,
             totalCapacity: space.totalCapacity || 30,
+            amenities: space.amenities || [],
+            images: space.images || [],
           });
 
           if (createRes.success && createRes.workspace) {
-            // Also create corresponding section in database (MEETING_ROOM for halls, THEATER for theaters, DESK for offices)
             const dbSecType = mapFrontendTypeToDbSectionType(newSpace.type);
             const headers: Record<string, string> = { 'Content-Type': 'application/json' };
             if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
@@ -2363,13 +2886,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
               });
             } catch (_) {}
 
-            if (typeof window !== 'undefined' && newSpace.type) {
+            if (typeof window !== 'undefined') {
               try {
-                const rawMap = localStorage.getItem('cp_space_types');
-                const typeMap = rawMap ? JSON.parse(rawMap) : {};
-                typeMap[createRes.workspace.id] = newSpace.type;
-                typeMap[createRes.workspace.name.toLowerCase()] = newSpace.type;
-                localStorage.setItem('cp_space_types', JSON.stringify(typeMap));
+                if (newSpace.type) {
+                  const rawMap = localStorage.getItem('cp_space_types');
+                  const typeMap = rawMap ? JSON.parse(rawMap) : {};
+                  typeMap[createRes.workspace.id] = newSpace.type;
+                  typeMap[createRes.workspace.name.toLowerCase()] = newSpace.type;
+                  localStorage.setItem('cp_space_types', JSON.stringify(typeMap));
+                }
+                if (space.amenities) {
+                  const rawAmenityMap = localStorage.getItem('cp_space_amenities');
+                  const amenitiesMap = rawAmenityMap ? JSON.parse(rawAmenityMap) : {};
+                  amenitiesMap[createRes.workspace.id] = space.amenities;
+                  amenitiesMap[createRes.workspace.name.toLowerCase()] = space.amenities;
+                  localStorage.setItem('cp_space_amenities', JSON.stringify(amenitiesMap));
+                }
+                if (space.images) {
+                  const rawImgMap = localStorage.getItem('cp_space_images');
+                  const imgMap = rawImgMap ? JSON.parse(rawImgMap) : {};
+                  imgMap[createRes.workspace.id] = space.images;
+                  imgMap[createRes.workspace.name.toLowerCase()] = space.images;
+                  localStorage.setItem('cp_space_images', JSON.stringify(imgMap));
+                }
               } catch (_) {}
             }
             await fetchWorkspaces();
@@ -2382,24 +2921,61 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const updateSpace = (id: string, updates: Partial<Space>) => {
-    if (typeof window !== 'undefined' && updates.type) {
+    const targetSpace = spaces.find(s => s.id === id);
+    const updatedSpaceObj = targetSpace ? { ...targetSpace, ...updates } : updates;
+
+    if (typeof window !== 'undefined') {
       try {
-        const rawMap = localStorage.getItem('cp_space_types');
-        const typeMap = rawMap ? JSON.parse(rawMap) : {};
-        typeMap[id] = updates.type;
-        if (updates.name) typeMap[updates.name.toLowerCase()] = updates.type;
-        localStorage.setItem('cp_space_types', JSON.stringify(typeMap));
+        if (updates.type) {
+          const rawMap = localStorage.getItem('cp_space_types');
+          const typeMap = rawMap ? JSON.parse(rawMap) : {};
+          typeMap[id] = updates.type;
+          if (updates.name) typeMap[updates.name.toLowerCase()] = updates.type;
+          localStorage.setItem('cp_space_types', JSON.stringify(typeMap));
+        }
+        if (updates.amenities !== undefined) {
+          const rawMap = localStorage.getItem('cp_space_amenities');
+          const amenitiesMap = rawMap ? JSON.parse(rawMap) : {};
+          amenitiesMap[id] = updates.amenities;
+          if (updates.name || targetSpace?.name) {
+            const rawName = updates.name || targetSpace?.name || '';
+            const nameKey = rawName.trim().toLowerCase();
+            if (nameKey) {
+              amenitiesMap[nameKey] = updates.amenities;
+              amenitiesMap[rawName.toLowerCase()] = updates.amenities;
+            }
+          }
+          localStorage.setItem('cp_space_amenities', JSON.stringify(amenitiesMap));
+        }
+        if (updates.images !== undefined) {
+          const rawMap = localStorage.getItem('cp_space_images');
+          const imgMap = rawMap ? JSON.parse(rawMap) : {};
+          imgMap[id] = updates.images;
+          if (updates.name || targetSpace?.name) {
+            const rawName = updates.name || targetSpace?.name || '';
+            const nameKey = rawName.trim().toLowerCase();
+            if (nameKey) {
+              imgMap[nameKey] = updates.images;
+              imgMap[rawName.toLowerCase()] = updates.images;
+            }
+          }
+          localStorage.setItem('cp_space_images', JSON.stringify(imgMap));
+        }
       } catch (_) {}
     }
 
     setSpaces(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
     showToast('Space updated successfully.');
 
-    // Sync update with backend database if logged in
     (async () => {
       try {
         const storedToken = getStoredToken();
         if (!storedToken) return;
+
+        const matchedDbWorkspace = workspacesApi.find(
+          w => w.id === id || (targetSpace && w.name.toLowerCase() === targetSpace.name.toLowerCase())
+        );
+        const targetDbId = matchedDbWorkspace?.id;
 
         const payload: Record<string, any> = {};
         if (updates.name !== undefined) payload.name = updates.name;
@@ -2408,10 +2984,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (updates.pricing?.daily !== undefined) payload.dailyRate = updates.pricing.daily;
         if (updates.pricing?.monthly !== undefined) payload.monthlyRate = updates.pricing.monthly;
         if (updates.pricing?.yearly !== undefined) payload.yearlyRate = updates.pricing.yearly;
+        if (updates.amenities !== undefined) payload.amenities = updates.amenities;
+        if (updates.images !== undefined) payload.images = updates.images;
 
-        if (Object.keys(payload).length > 0 || updates.type) {
+        if (targetDbId && (Object.keys(payload).length > 0 || updates.type)) {
           if (Object.keys(payload).length > 0) {
-            await updateWorkspace(id, payload);
+            await updateWorkspace(targetDbId, payload);
           }
 
           if (updates.type) {
@@ -2423,7 +3001,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               if (secRes.ok) {
                 const sections = await secRes.json();
                 if (Array.isArray(sections)) {
-                  const existingSec = sections.find((s: any) => s.workspaceId === id);
+                  const existingSec = sections.find((s: any) => s.workspaceId === targetDbId);
                   if (existingSec) {
                     await fetch(`${getApiBaseUrl()}/workspace-sections/${existingSec.id}`, {
                       method: 'PUT',
@@ -2435,10 +3013,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
                       method: 'POST',
                       headers,
                       body: JSON.stringify({
-                        workspaceId: id,
+                        workspaceId: targetDbId,
                         type: dbSecType,
                         name: `Section - ${dbSecType}`,
-                        capacity: updates.totalCapacity || 30,
+                        capacity: (updatedSpaceObj as any).totalCapacity || 30,
                       }),
                     });
                   }
@@ -2447,6 +3025,53 @@ export function AppProvider({ children }: { children: ReactNode }) {
             } catch (_) {}
           }
           await fetchWorkspaces();
+        } else if (!targetDbId && (Object.keys(payload).length > 0 || updates.type)) {
+          let currentPartners = partners;
+          if (currentPartners.length === 0) {
+            currentPartners = await fetchPartners();
+          }
+
+          const userEmail = currentUser?.email?.toLowerCase();
+          let validPartnerId = currentPartners.find(p => p.id === (targetSpace as any)?.ownerId)?.id ||
+            (userEmail ? currentPartners.find(p => p.contactEmail.toLowerCase() === userEmail)?.id : undefined) ||
+            currentPartners[0]?.id;
+
+          if (validPartnerId) {
+            const createRes = await createWorkspace({
+              partnerId: validPartnerId,
+              name: (updatedSpaceObj as any).name || 'Workspace',
+              city: (updatedSpaceObj as any).city || 'Riyadh',
+              dailyRate: (updatedSpaceObj as any).pricing?.daily || 50,
+              monthlyRate: (updatedSpaceObj as any).pricing?.monthly || 800,
+              yearlyRate: (updatedSpaceObj as any).pricing?.yearly || 8000,
+              passVisitValue: 15,
+              totalCapacity: (updatedSpaceObj as any).totalCapacity || 30,
+              amenities: (updatedSpaceObj as any).amenities || [],
+              images: (updatedSpaceObj as any).images || [],
+            });
+
+            if (createRes.success && createRes.workspace) {
+              const dbSecType = mapFrontendTypeToDbSectionType((updatedSpaceObj as any).type || 'mixed');
+              const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+              headers['Authorization'] = `Bearer ${storedToken}`;
+              try {
+                await fetch(`${getApiBaseUrl()}/workspace-sections`, {
+                  method: 'POST',
+                  headers,
+                  body: JSON.stringify({
+                    workspaceId: createRes.workspace.id,
+                    type: dbSecType,
+                    name: `${(updatedSpaceObj as any).name || 'Workspace'} Section`,
+                    capacity: (updatedSpaceObj as any).totalCapacity || 30,
+                    dailyRate: (updatedSpaceObj as any).pricing?.daily || 50,
+                    monthlyRate: (updatedSpaceObj as any).pricing?.monthly || 800,
+                    yearlyRate: (updatedSpaceObj as any).pricing?.yearly || 8000,
+                  }),
+                });
+              } catch (_) {}
+              await fetchWorkspaces();
+            }
+          }
         }
       } catch (err) {
         console.warn('Failed to save space update to database:', err);
@@ -2462,7 +3087,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setSpaces(prev => prev.filter(s => s.id !== id));
     showToast('Space deleted.');
 
-    // Delete from backend database if logged in
     (async () => {
       try {
         const storedToken = getStoredToken();
@@ -2485,7 +3109,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
     setBookings(prev => [...prev, newBooking]);
     
-    // Auto-calculate loyalty points earned (at least 10 pts per booking or 10% of total price)
     const space = spaces.find(s => s.id === booking.spaceId);
     const multiplier = space?.loyaltyPointsMultiplier || 1;
     const rawPrice = booking.totalPrice || 0;
@@ -2502,7 +3125,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('cp_currentUser', JSON.stringify(updatedUser));
       }
 
-      // Record EARNED points in PostgreSQL DB & sync DB balance
       createPointsTransactionApi({
         userId: currentUser.id,
         type: 'EARNED',
@@ -2541,7 +3163,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         : s
     ));
 
-    // Persist booking to backend PostgreSQL database
     (async () => {
       try {
         const storedToken = getStoredToken();
@@ -2707,7 +3328,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       )
     );
 
-    // Sync cancellation to PostgreSQL database
     (async () => {
       try {
         const storedToken = getStoredToken();
@@ -2734,6 +3354,44 @@ export function AppProvider({ children }: { children: ReactNode }) {
           const currentWallet = currentUser.walletBalance || 0;
           updatedUser = { ...currentUser, walletBalance: currentWallet + price };
           msg = `Booking cancelled. SAR ${price.toLocaleString()} refunded to your wallet balance.`;
+
+          if (price > 0) {
+            (async () => {
+              try {
+                const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+                const storedToken = getStoredToken();
+                if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+                const response = await fetch(`${getApiBaseUrl()}/wallet`, {
+                  method: 'POST',
+                  headers,
+                  body: JSON.stringify({
+                    userId: currentUser.id,
+                    amount: price,
+                    type: 'REFUND',
+                    description: `Refund for cancelled booking (${booking.spaceName})`,
+                    referenceId: booking.id,
+                  }),
+                });
+                if (response.ok) {
+                  const data = await response.json();
+                  setCurrentUser((prev) => (prev ? { ...prev, walletBalance: data.balance } : null));
+                  const refundTx: WalletTransaction = data.transaction || {
+                    id: `tx-${Date.now()}`,
+                    walletId: currentUser.id,
+                    userId: currentUser.id,
+                    amount: price,
+                    type: 'REFUND',
+                    description: `Refund for cancelled booking (${booking.spaceName})`,
+                    balanceAfter: data.balance ?? (currentWallet + price),
+                    createdAt: new Date().toISOString(),
+                  };
+                  setWalletTransactions((prev) => [refundTx, ...prev.filter(t => t.id !== refundTx.id)]);
+                }
+              } catch (err) {
+                console.warn('Wallet refund DB sync notice:', err);
+              }
+            })();
+          }
         } else {
           msg = `Booking cancelled. Refund of SAR ${price.toLocaleString()} initiated to original card (5-14 business days).`;
         }
@@ -2774,7 +3432,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       });
     }
 
-    // Sync status update to PostgreSQL database
     (async () => {
       try {
         const storedToken = getStoredToken();
@@ -2952,7 +3609,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return updated;
     });
 
-    // Save notification to PostgreSQL database
     (async () => {
       try {
         const storedToken = getStoredToken();
@@ -3118,7 +3774,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return newCard;
   };
 
-  // دوال السلة الخاصة بك
   const saveCartToStorage = (newCart: CartItem[]) => {
     if (typeof window !== 'undefined') {
       try {
@@ -3157,7 +3812,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (i.id === cartItemId) {
         const newItem = { ...i, ...updates };
 
-        // Recalculate end date if start date, plan or durationMonths updated
         if (updates.startDate !== undefined || updates.plan !== undefined || updates.durationMonths !== undefined) {
           const sDate = updates.startDate ?? i.startDate;
           const plan = updates.plan ?? i.plan;
@@ -3165,7 +3819,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
           newItem.endDate = calculateEndDate(sDate, plan, durM);
         }
 
-        // Recalculate end time for hourly plan if startTime or durationHours changed
         if (newItem.plan === 'hourly' && newItem.startTime) {
           const durH = newItem.durationHours || 1;
           const [h, m] = newItem.startTime.split(':').map(Number);
@@ -3175,7 +3828,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
           }
         }
 
-        // Recalculate item total price
         const seats = newItem.seats || 1;
         const targetSpace = spaces.find((s) => s.id === newItem.spaceId);
         if (targetSpace && currentUser?.hasActivePass) {
@@ -3220,16 +3872,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // دالة استخدام النقاط كخصم (من كودهم)
   const applyLoyaltyDiscount = (pointsToUse: number) => {
     if (!currentUser) return { discount: 0, safePoints: 0 };
     const availablePoints = currentUser.loyaltyPoints || 0;
     const safePoints = Math.max(0, Math.min(Math.floor(pointsToUse / 100) * 100, availablePoints));
-    const discount = (safePoints / 100) * 25; // كل 100 نقطة = 25 ريالاً
+    const discount = (safePoints / 100) * 25;
     return { discount, safePoints };
   };
 
-  // دالة الدفع مع إبقاء التوقيع نفسه، وتحديث النقاط المكتسبة تلقائياً
   const checkoutCart = (pointsToUse: number = 0): Booking[] => {
     if (!currentUser || cart.length === 0) return [];
 
@@ -3273,7 +3923,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       newBookings.push(b);
     });
 
-    // احتساب نقاط الولاء المكتسبة بناءً على كودهم
     const earned = cart.reduce((sum, item) => {
       const space = spaces.find((s) => s.id === item.spaceId);
       const multiplier = space?.loyaltyPointsMultiplier || 1;
@@ -3291,7 +3940,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('cp_users', JSON.stringify(updatedUsers));
     }
 
-    // Record REDEEMED points in PostgreSQL DB if user used loyalty discount & sync DB balance
     if (currentUser && safePointsToUse > 0) {
       createPointsTransactionApi({
         userId: currentUser.id,
@@ -3397,7 +4045,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('cp_amenity_requests', JSON.stringify(updated));
     }
 
-    // Persist custom amenity request to PostgreSQL Database
     (async () => {
       try {
         const storedToken = getStoredToken();
@@ -3426,7 +4073,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
     })();
 
-    // Notify Admin
     addNotification({
       userId: 'admin',
       title: 'New Custom Amenity Request',
@@ -3462,7 +4108,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    // Persist approval to PostgreSQL DB via PUT /api/amenities/:id
     (async () => {
       try {
         const storedToken = getStoredToken();
@@ -3529,7 +4174,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     );
     setAmenityRequests(updatedReqs);
 
-    // Persist rejection to PostgreSQL DB via PUT /api/amenities/:id
     (async () => {
       try {
         const storedToken = getStoredToken();
@@ -3598,6 +4242,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (typeof window !== 'undefined') {
       localStorage.setItem('cp_support_tickets', JSON.stringify(updated));
     }
+
+    // Sync to PostgreSQL DB Ticket table
+    (async () => {
+      try {
+        const compRes = await getCompaniesApi();
+        const companies = compRes.success && Array.isArray(compRes.data) ? compRes.data : [];
+        const compId = currentUser?.companyId || companies[0]?.id;
+        if (compId) {
+          await createTicketApi({
+            companyId: compId,
+            userId: currentUser?.id || newTicket.userId || 'user-1',
+            subject: newTicket.subject || newTicket.message || 'Support Inquiry',
+          });
+        }
+      } catch (err) {
+        console.warn('DB Ticket sync notice:', err);
+      }
+    })();
+
     showToast(`Support ticket ${newTicket.ticketNumber} logged successfully`, 'success');
     return newTicket;
   };
@@ -3614,9 +4277,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         : t
     );
     setSupportTickets(updated);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('cp_support_tickets', JSON.stringify(updated));
-    }
+
+    const dbStatus = status === 'in-progress' ? 'IN_PROGRESS' : status === 'closed' || status === 'resolved' ? 'CLOSED' : 'OPEN';
+    updateTicketStatusApi(id, dbStatus).catch((err) => console.warn('DB Ticket status sync notice:', err));
+
     showToast(`Ticket status updated to ${status}`, 'success');
   };
 
@@ -3636,6 +4300,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (typeof window !== 'undefined') {
       localStorage.setItem('cp_support_tickets', JSON.stringify(updated));
     }
+
+    // Sync reply to PostgreSQL DB TicketReply table
+    (async () => {
+      try {
+        await createTicketReplyApi({
+          ticketId: id,
+          userId: currentUser?.id || 'admin-1',
+          message: reply,
+        });
+      } catch (err) {
+        console.warn('DB TicketReply sync notice:', err);
+      }
+    })();
 
     if (ticket && ticket.userId) {
       addNotification({
@@ -3697,7 +4374,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       spaces, favorites, toggleFavorite, addSpace, updateSpace, toggleSpaceVisibility, deleteSpace,
       bookings, addBooking, cancelBooking, updateBookingStatus, deleteBooking,
       amenityRequests, approvedCustomAmenities, requestCustomAmenity, approveAmenityRequest, rejectAmenityRequest, deleteAmenityRequest, getApprovedAmenities,
-      supportTickets, addSupportTicket, updateTicketStatus, replyToTicket,
+      supportTickets, fetchTickets, addSupportTicket, updateTicketStatus, replyToTicket,
       notifications: userNotifications,
       unreadNotificationsCount: userNotifications.filter(n => !n.read).length,
       markNotificationRead, toggleNotificationRead, markAllNotificationsRead, deleteNotification, clearAllNotifications, addNotification, generateFakeNotification,
@@ -3706,6 +4383,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addPaymentCard,
       cart, addToCart, removeFromCart, updateCartItemSeats, updateCartItem, clearCart, checkoutCart,
       applyLoyaltyDiscount,
+      walletTransactions, fetchWallet, depositToWallet, withdrawFromWallet,
+      loyaltyRules, fetchLoyaltyRules, createLoyaltyProposal, updateLoyaltyRuleStatus, deleteLoyaltyRule,
+      qrScans, fetchQrCheckIns, recordQrScan, getSpaceCrowding,
       toast, showToast, updateCurrentUser, completeSignup,
       otpSession, startOtpVerification, requestSignupOtp, requestForgotPasswordOtp, resetPassword, pendingResetUser, verifyOtp, resendOtp, cancelOtp,
     }}>

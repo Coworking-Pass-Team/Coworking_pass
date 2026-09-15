@@ -48,7 +48,7 @@ import Modal from '@/components/ui/Modal';
 import Badge from '@/components/ui/Badge';
 
 export default function SpaceDetails() {
-  const { nav, navigate, goBack, spaces, currentUser, favorites, toggleFavorite, waitlist, autobooking, joinWaitlist, leaveWaitlist, enableAutoBooking, disableAutoBooking, addToCart } = useApp();
+  const { nav, navigate, goBack, spaces, currentUser, favorites, toggleFavorite, waitlist, autobooking, joinWaitlist, leaveWaitlist, enableAutoBooking, disableAutoBooking, addToCart, getSpaceCrowding } = useApp();
   const passActive = isUserPassHolder(currentUser);
 
   const urlId = typeof window !== 'undefined' ? window.location.pathname.split('/').pop() : '';
@@ -103,10 +103,7 @@ export default function SpaceDetails() {
 
   if (!space) {
     return (
-      <div className="min-h-[70vh] flex flex-col items-center justify-center py-20 px-4 bg-plaster text-soot">
-        <div className="w-14 h-14 rounded-2xl bg-soot/5 flex items-center justify-center mb-4">
-          <Info size={24} className="text-moss" />
-        </div>
+      <div className="min-h-screen bg-plaster text-soot flex flex-col items-center justify-center p-8">
         <h2 className="text-2xl font-serif-display text-soot mb-2">Space not found</h2>
         <button
           onClick={() => navigate('browse')}
@@ -118,8 +115,21 @@ export default function SpaceDetails() {
     );
   }
 
+  const crowding = getSpaceCrowding ? getSpaceCrowding(space) : {
+    scannedCount: 0,
+    totalCapacity: space.totalCapacity || 30,
+    availableCapacity: space.availableCapacity ?? 15,
+    occupiedSeats: (space.totalCapacity || 30) - (space.availableCapacity ?? 15),
+    occupancyPercentage: 50,
+    level: 'Moderate' as const,
+    badgeClass: 'bg-amber-100/90 text-amber-900 border-amber-200/90',
+    barColor: 'bg-[#D97706]',
+    textColor: 'text-[#D97706]',
+    trackColor: 'bg-[#E5EBE7]',
+  };
+
   const isFav = favorites.includes(space.id);
-  const isFullyBooked = space.availableCapacity === 0;
+  const isFullyBooked = crowding.availableCapacity === 0 || crowding.level === 'Busy';
   const inWaitlist = Boolean(currentUser && waitlist[`${currentUser.id}_${space.id}`]);
   const autoBookOn = Boolean(currentUser && autobooking[`${currentUser.id}_${space.id}`]);
 
@@ -147,10 +157,10 @@ export default function SpaceDetails() {
   };
 
   const availabilityInfo = isFullyBooked
-    ? { label: 'Fully Booked', color: 'text-rose-800 bg-rose-100/90 border-rose-200/90 backdrop-blur-md font-semibold' }
-    : space.availableCapacity <= 5
-    ? { label: space.availableCapacity <= 3 ? `Only ${space.availableCapacity} spots left!` : 'Almost Full', color: 'text-amber-900 bg-amber-100/90 border-amber-200/90 backdrop-blur-md font-semibold' }
-    : { label: `${space.availableCapacity} spots available`, color: 'text-emerald-900 bg-emerald-100/90 border-emerald-200/90 backdrop-blur-md font-semibold' };
+    ? { label: 'Limited Spots', color: 'text-rose-800 bg-rose-100/90 border-rose-200/90 backdrop-blur-md font-semibold' }
+    : crowding.availableCapacity <= 5
+    ? { label: `Only ${crowding.availableCapacity} left!`, color: 'text-amber-900 bg-amber-100/90 border-amber-200/90 backdrop-blur-md font-semibold' }
+    : { label: `${crowding.availableCapacity} seats available`, color: 'text-emerald-900 bg-emerald-100/90 border-emerald-200/90 backdrop-blur-md font-semibold' };
 
   const currentPlanInfo = getEffectiveSpacePrice(currentUser, space, selectedPlan, undefined, durationHours, durationMonths);
   const planPrice = currentPlanInfo.effectivePrice;
@@ -309,15 +319,22 @@ export default function SpaceDetails() {
                 Included Amenities
               </h2>
               <div className="flex flex-wrap gap-2">
-                {space.amenities.map(a => (
-                  <div
-                    key={a}
-                    className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-plaster-surface border border-soot/12 text-xs font-medium text-soot shadow-xs"
-                  >
-                    <Check size={13} className="text-eucalyptus stroke-[2.5]" />
-                    <span>{a}</span>
-                  </div>
-                ))}
+                {Array.isArray(space.amenities) && space.amenities.length > 0 ? (
+                  space.amenities.map(a => {
+                    const amenityName = typeof a === 'string' ? a : (a as any)?.amenity?.name || (a as any)?.name || String(a);
+                    return (
+                      <div
+                        key={amenityName}
+                        className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-plaster-surface border border-soot/12 text-xs font-medium text-soot shadow-xs"
+                      >
+                        <Check size={13} className="text-eucalyptus stroke-[2.5]" />
+                        <span>{amenityName}</span>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <p className="text-xs text-moss font-medium">No specific amenities added to this workspace yet.</p>
+                )}
               </div>
             </div>
 
@@ -563,19 +580,31 @@ export default function SpaceDetails() {
                 )}
               </div>
 
-              {/* Capacity Progress Bar */}
-              <div className="mb-6">
-                <div className="flex justify-between text-xs text-moss mb-1.5 font-medium">
-                  <span>Capacity Status</span>
-                  <span className="text-soot font-semibold">{space.availableCapacity} of {space.totalCapacity} open</span>
+              {/* Live Crowding Indicator (Connected to QR Code Scans) */}
+              <div className="mb-6 p-4 rounded-2xl bg-[#FAF7F2] border border-soot/10 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-moss font-normal">Capacity</span>
+                  <span className={`font-semibold ${crowding.textColor}`}>
+                    {crowding.level}
+                  </span>
                 </div>
-                <div className="h-2 bg-soot/10 rounded-full overflow-hidden">
+                <div className="w-full h-2 rounded-full bg-[#E5EBE7] overflow-hidden">
                   <div
-                    className={`h-full rounded-full transition-all duration-300 ${
-                      isFullyBooked ? 'bg-red-500' : space.availableCapacity <= 5 ? 'bg-amber-500' : 'bg-eucalyptus'
-                    }`}
-                    style={{ width: `${(space.availableCapacity / space.totalCapacity) * 100}%` }}
+                    className={`h-full rounded-full transition-all duration-500 ${crowding.barColor}`}
+                    style={{
+                      width: `${
+                        crowding.level === 'Busy'
+                          ? 100
+                          : Math.min(100, Math.max(10, crowding.occupancyPercentage))
+                      }%`,
+                    }}
                   />
+                </div>
+                <div className="flex items-center justify-between text-[11px] text-moss pt-0.5">
+                  <span>{crowding.availableCapacity} / {crowding.totalCapacity} available</span>
+                  <span className="text-[10px] font-medium text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60">
+                    {crowding.scannedCount} QR Check-ins Today
+                  </span>
                 </div>
               </div>
 
