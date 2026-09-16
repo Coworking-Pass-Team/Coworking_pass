@@ -355,6 +355,7 @@ export default function BookingFlow() {
           createDirectBookingApi({
             userId: currentUser.id,
             workspaceId: space.id,
+            spaceName: space.name,
             sectionId: (space as any).sectionId || `sec-${space.id}`,
             durationType,
             bookingDate: new Date(startDate).toISOString(),
