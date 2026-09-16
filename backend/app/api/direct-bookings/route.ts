@@ -131,10 +131,10 @@ export async function POST(request: NextRequest) {
       if (!partner) {
         partner = await prisma.partner.create({
           data: {
-            companyName: 'Coworking Main Partner',
+            brandName: 'Coworking Main Partner',
             contactEmail: 'partner@coworkingpass.com',
-            phone: '0500000000',
-            status: 'ACTIVE',
+            taxNumber: '0000000000',
+            revenueSharePercentage: 0,
           }
         });
       }
@@ -143,12 +143,16 @@ export async function POST(request: NextRequest) {
           partnerId: partner.id,
           name: 'The Hub Riyadh',
           city: 'Riyadh',
-          address: 'Al Olaya District',
+          passVisitValue: 1,
           totalCapacity: 50,
           dailyRate: 100,
         },
         include: { sections: true }
       });
+    }
+
+    if (!ws) {
+      return NextResponse.json({ error: 'لا يمكن تهيئة مساحة عمل' }, { status: 500 });
     }
 
     targetWorkspaceId = ws.id;
