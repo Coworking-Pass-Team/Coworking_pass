@@ -302,17 +302,18 @@ export interface MembershipPlan {
 
 export async function createDirectBookingApi(payload: {
   userId: string;
-  workspaceId: string;
+  workspaceId?: string;   // اختياري — الـ backend يبحث بـ spaceName لو لم يُرسَل UUID صحيح
   sectionId: string;
   durationType: string;
   bookingDate: string;
   status?: string;
-  spaceName?: string;
+  spaceName?: string;     // الاسم الأساسي لإيجاد الـ workspace في الداتابيس
 }) {
   const url = `${getAuthBaseUrl()}/api/direct-bookings`;
   try {
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+    // حل userId — نحاول نجيب UUID صحيح من localStorage أو API
     let targetUserId = payload.userId;
     if (!uuidRegex.test(targetUserId)) {
       if (typeof window !== 'undefined') {
@@ -334,38 +335,14 @@ export async function createDirectBookingApi(payload: {
       }
     }
 
-    let targetWorkspaceId = payload.workspaceId;
-    let targetSectionId = payload.sectionId;
-
-    if (!uuidRegex.test(targetWorkspaceId)) {
-      try {
-        const wsRes = await fetch(`${getAuthBaseUrl()}/api/workspaces`, { headers: getAuthHeaders() });
-        if (wsRes.ok) {
-          const wsList = await wsRes.json();
-          if (Array.isArray(wsList) && wsList.length > 0) {
-            targetWorkspaceId = wsList[0].id;
-            if (Array.isArray(wsList[0].sections) && wsList[0].sections.length > 0) {
-              targetSectionId = wsList[0].sections[0].id;
-            }
-          }
-        }
-      } catch (_) {}
-    }
-
-    if (!uuidRegex.test(targetSectionId)) {
-      try {
-        const secRes = await getWorkspaceSectionsApi();
-        if (secRes.success && Array.isArray(secRes.data) && secRes.data.length > 0) {
-          targetSectionId = secRes.data[0].id;
-        }
-      } catch (_) {}
-    }
-
+    // نرسل spaceName للـ backend وهو يتولى إيجاد/إنشاء الـ workspace والـ section
     const finalPayload = {
-      ...payload,
       userId: targetUserId,
-      workspaceId: targetWorkspaceId,
-      sectionId: targetSectionId,
+      spaceName: payload.spaceName,
+      sectionId: payload.sectionId,   // backend سيتجاهله لو كان وهمياً وسيبحث بـ spaceName
+      durationType: payload.durationType,
+      bookingDate: payload.bookingDate,
+      status: payload.status || 'CONFIRMED',
     };
 
     const response = await fetch(url, {
@@ -860,7 +837,6 @@ export async function createHourlyBookingApi(payload: {
   startDate: string;
   endDate: string;
   status?: string;
-  workspaceId?: string;
   spaceName?: string;
   sectionType?: 'DESK' | 'MEETING_ROOM' | 'THEATER';
 }) {
@@ -868,6 +844,7 @@ export async function createHourlyBookingApi(payload: {
   try {
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+    // حل userId — نحاول نجيب UUID صحيح من localStorage أو API
     let targetUserId = payload.userId;
     if (!uuidRegex.test(targetUserId)) {
       if (typeof window !== 'undefined') {
@@ -889,32 +866,16 @@ export async function createHourlyBookingApi(payload: {
       }
     }
 
-    let targetSectionId = payload.sectionId;
-    if (!uuidRegex.test(targetSectionId) || targetSectionId.includes('PASTE') || targetSectionId.startsWith('sec_') || targetSectionId.startsWith('sec-')) {
-      const secRes = await getWorkspaceSectionsApi();
-      if (secRes.success && Array.isArray(secRes.data) && secRes.data.length > 0) {
-        const matchingSec = payload.sectionType 
-          ? secRes.data.find((s: any) => s.type === payload.sectionType)
-          : secRes.data.find((s: any) => ['MEETING_ROOM', 'THEATER'].includes(s.type));
-        if (matchingSec) {
-          targetSectionId = matchingSec.id;
-        }
-      }
-    }
-
-    let targetPackageId = payload.packageId;
-    if (!uuidRegex.test(targetPackageId) || targetPackageId.includes('PASTE') || targetPackageId.startsWith('pkg_')) {
-      const pkgRes = await getHourlyPackagesApi();
-      if (pkgRes.success && Array.isArray(pkgRes.data) && pkgRes.data.length > 0) {
-        targetPackageId = pkgRes.data[0].id;
-      }
-    }
-
+    // نرسل spaceName و sectionType للـ backend وهو يتولى إيجاد/إنشاء الـ workspace والـ section والـ package
     const finalPayload = {
-      ...payload,
       userId: targetUserId,
-      sectionId: targetSectionId,
-      packageId: targetPackageId,
+      sectionId: payload.sectionId,   // backend سيتجاهله لو كان وهمياً وسيبحث بـ spaceName + sectionType
+      packageId: payload.packageId,   // backend سيتجاهله لو كان وهمياً وسينشئ واحداً
+      startDate: payload.startDate,
+      endDate: payload.endDate,
+      status: payload.status || 'ACTIVE',
+      spaceName: payload.spaceName,
+      sectionType: payload.sectionType,
     };
 
     const response = await fetch(url, {
