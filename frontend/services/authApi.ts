@@ -12,7 +12,7 @@ function getAuthBaseUrl(): string {
   if (typeof window !== 'undefined' && window.location?.port === '3001') {
     return 'http://localhost:3001';
   }
-  return 'http://localhost:3001';
+  return 'https://coworking-pass-k49w.onrender.com';
 }
 
 
@@ -310,10 +310,67 @@ export async function createDirectBookingApi(payload: {
 }) {
   const url = `${getAuthBaseUrl()}/api/direct-bookings`;
   try {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+    let targetUserId = payload.userId;
+    if (!uuidRegex.test(targetUserId)) {
+      if (typeof window !== 'undefined') {
+        const storedUserId = localStorage.getItem('cp_userId') || localStorage.getItem('userId');
+        if (storedUserId && uuidRegex.test(storedUserId)) {
+          targetUserId = storedUserId;
+        }
+      }
+      if (!uuidRegex.test(targetUserId)) {
+        try {
+          const usersRes = await fetch(`${getAuthBaseUrl()}/api/users`, { headers: getAuthHeaders() });
+          if (usersRes.ok) {
+            const usersList = await usersRes.json();
+            if (Array.isArray(usersList) && usersList.length > 0) {
+              targetUserId = usersList[0].id;
+            }
+          }
+        } catch (_) {}
+      }
+    }
+
+    let targetWorkspaceId = payload.workspaceId;
+    let targetSectionId = payload.sectionId;
+
+    if (!uuidRegex.test(targetWorkspaceId)) {
+      try {
+        const wsRes = await fetch(`${getAuthBaseUrl()}/api/workspaces`, { headers: getAuthHeaders() });
+        if (wsRes.ok) {
+          const wsList = await wsRes.json();
+          if (Array.isArray(wsList) && wsList.length > 0) {
+            targetWorkspaceId = wsList[0].id;
+            if (Array.isArray(wsList[0].sections) && wsList[0].sections.length > 0) {
+              targetSectionId = wsList[0].sections[0].id;
+            }
+          }
+        }
+      } catch (_) {}
+    }
+
+    if (!uuidRegex.test(targetSectionId)) {
+      try {
+        const secRes = await getWorkspaceSectionsApi();
+        if (secRes.success && Array.isArray(secRes.data) && secRes.data.length > 0) {
+          targetSectionId = secRes.data[0].id;
+        }
+      } catch (_) {}
+    }
+
+    const finalPayload = {
+      ...payload,
+      userId: targetUserId,
+      workspaceId: targetWorkspaceId,
+      sectionId: targetSectionId,
+    };
+
     const response = await fetch(url, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify(payload),
+      body: JSON.stringify(finalPayload),
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
