@@ -355,6 +355,7 @@ export default function BookingFlow() {
           createDirectBookingApi({
             userId: currentUser.id,
             spaceName: space.name,
+            city: space.city,
             sectionId: (space as any).sectionId || `sec-${space.id}`,
             durationType,
             bookingDate: new Date(startDate).toISOString(),
@@ -372,6 +373,7 @@ export default function BookingFlow() {
           createHourlyBookingApi({
             userId: currentUser.id,
             spaceName: space.name,
+            city: space.city,
             sectionType: computedSectionType,
             sectionId: `sec-${space.id}`,
             packageId: `pkg-default`,
