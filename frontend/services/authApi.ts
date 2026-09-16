@@ -859,6 +859,9 @@ export async function createHourlyBookingApi(payload: {
   startDate: string;
   endDate: string;
   status?: string;
+  workspaceId?: string;
+  spaceName?: string;
+  sectionType?: 'DESK' | 'MEETING_ROOM' | 'THEATER';
 }) {
   const url = `${getAuthBaseUrl()}/api/hourly-bookings`;
   try {
