@@ -1957,7 +1957,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
           };
         });
 
-        setSpaces(dbSpaces);
+        // دمج مساحات الداتابيز مع مساحات النظام الأساسية (INITIAL_SPACES) حتى لا تختفي القاعات والمسارح
+        const mergedSpaces = [
+          ...dbSpaces,
+          ...INITIAL_SPACES.filter(init => !dbSpaces.some(db => db.id === init.id || db.name.toLowerCase() === init.name.toLowerCase()))
+        ];
+
+        setSpaces(mergedSpaces);
       }
       return data;
     } catch (err) {
