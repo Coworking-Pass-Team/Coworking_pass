@@ -105,10 +105,10 @@ export async function POST(request: NextRequest) {
         if (!partner) {
           partner = await prisma.partner.create({
             data: {
-              companyName: 'Coworking Main Partner',
+              brandName: 'Coworking Main Partner',
               contactEmail: 'partner@coworkingpass.com',
-              phone: '0500000000',
-              status: 'ACTIVE',
+              taxNumber: '0000000000',
+              revenueSharePercentage: 0,
             }
           });
         }
@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
             partnerId: partner.id,
             name: 'The Hub Riyadh',
             city: 'Riyadh',
-            address: 'Al Olaya District',
+            passVisitValue: 1,
             totalCapacity: 50,
             dailyRate: 100,
           }
@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
           sectionId: sec.id,
           packageName: '1 Hour Meeting Package',
           hoursAmount: 1,
-          periodType: 'CUSTOM',
+          periodType: 'PER_DAY',
           price: 50,
         }
       });
