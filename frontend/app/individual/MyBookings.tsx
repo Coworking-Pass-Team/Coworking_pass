@@ -28,7 +28,7 @@ import BookingQrModal from '@/components/BookingQrModal';
 import { deleteDirectBookingApi, getHourlyBookingsApi, updateHourlyBookingApi, HourlyBookingItemApi } from '@/services/authApi';
 
 export default function MyBookings() {
-  const { bookings, spaces, currentUser, navigate, cancelBooking, nav, showToast } = useApp();
+  const { bookings, spaces, currentUser, navigate, cancelBooking, nav, showToast, fetchDirectBookings } = useApp();
   const [bookingCategory, setBookingCategory] = useState<'direct' | 'hourly'>('direct');
   const [hourlyBookings, setHourlyBookings] = useState<HourlyBookingItemApi[]>([]);
   const [loadingHourly, setLoadingHourly] = useState(false);
@@ -37,6 +37,12 @@ export default function MyBookings() {
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [cancelModal, setCancelModal] = useState<Booking | null>(null);
   const [refundMethod, setRefundMethod] = useState<'wallet' | 'card'>('wallet');
+
+  useEffect(() => {
+    if (fetchDirectBookings) {
+      fetchDirectBookings().catch(() => {});
+    }
+  }, [fetchDirectBookings]);
 
   useEffect(() => {
     if (bookingCategory === 'hourly') {

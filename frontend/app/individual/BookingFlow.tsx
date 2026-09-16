@@ -23,7 +23,7 @@ import {
 import QRCode from 'qrcode';
 import { useApp } from '@/app/store';
 import BookingQrModal from '@/components/BookingQrModal';
-import { createDirectBookingApi, createPaymentApi, createPointsTransactionApi, getLoyaltyPointsApi } from '@/services/authApi';
+import { createDirectBookingApi, createHourlyBookingApi, createPaymentApi, createPointsTransactionApi, getLoyaltyPointsApi } from '@/services/authApi';
 import {
   BookingPlan,
   BookingType,
@@ -326,7 +326,7 @@ export default function BookingFlow() {
         notes,
       });
 
-      // Synchronize direct booking (daily, monthly, yearly) with backend API
+      // Synchronize direct booking (daily, monthly, yearly) or hourly booking with backend API
       if (plan !== 'hourly') {
         const durationType = plan === 'monthly' ? 'MONTHLY' : plan === 'yearly' ? 'YEARLY' : 'DAILY';
         createDirectBookingApi({
@@ -337,6 +337,15 @@ export default function BookingFlow() {
           bookingDate: new Date(startDate).toISOString(),
           status: 'CONFIRMED',
         }).catch((err: any) => console.warn('[Direct Booking API Sync]', err));
+      } else {
+        createHourlyBookingApi({
+          userId: currentUser.id,
+          sectionId: (space as any).sectionId || `sec-${space.id}`,
+          packageId: (space as any).packageId || 'pkg-default',
+          startDate: new Date(`${startDate}T${startTime.replace(' ', '')}`).toISOString(),
+          endDate: new Date(`${endDate || startDate}T${endTime.replace(' ', '')}`).toISOString(),
+          status: 'CONFIRMED',
+        }).catch((err: any) => console.warn('[Hourly Booking API Sync]', err));
       }
 
       if (useWalletBalance && walletDeduction > 0 && withdrawFromWallet) {
@@ -353,6 +362,27 @@ export default function BookingFlow() {
           referenceId: booking.id,
           status: 'SUCCESS',
         }).catch((err: any) => console.warn('[Payment Record Sync]', err));
+      }
+
+      // Award earned loyalty points from this booking transaction
+      if (earnedPoints > 0 && currentUser) {
+        createPointsTransactionApi({
+          userId: currentUser.id,
+          type: 'EARNED',
+          points: earnedPoints,
+          description: `Earned points for booking at ${space.name}`,
+        }).then((res) => {
+          if (res.success) {
+            getLoyaltyPointsApi(currentUser.id).then((ptsRes) => {
+              if (ptsRes.success && Array.isArray(ptsRes.data)) {
+                const uPts = ptsRes.data.find((p: any) => p.userId === currentUser.id);
+                if (uPts && typeof uPts.availableBalance === 'number') {
+                  updateCurrentUser({ loyaltyPoints: uPts.availableBalance });
+                }
+              }
+            }).catch(() => {});
+          }
+        }).catch((err) => console.warn('[Points Award Sync]', err));
       }
 
       setConfirmedBooking(booking);
