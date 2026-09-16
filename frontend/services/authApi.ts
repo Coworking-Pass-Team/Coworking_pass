@@ -12,7 +12,7 @@ function getAuthBaseUrl(): string {
   if (typeof window !== 'undefined' && window.location?.port === '3001') {
     return 'http://localhost:3001';
   }
-  return 'http://localhost:3001';
+  return 'https://coworking-pass-k49w.onrender.com';
 }
 
 
@@ -305,18 +305,55 @@ export interface MembershipPlan {
 
 export async function createDirectBookingApi(payload: {
   userId: string;
-  workspaceId: string;
+  workspaceId?: string;   // اختياري — الـ backend يبحث بـ spaceName لو لم يُرسَل UUID صحيح
   sectionId: string;
   durationType: string;
   bookingDate: string;
   status?: string;
+  spaceName?: string;     // الاسم الأساسي لإيجاد الـ workspace في الداتابيس
+  city?: string;          // المدينة الصحيحة للمساحة
 }) {
   const url = `${getAuthBaseUrl()}/api/direct-bookings`;
   try {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+    // حل userId — نحاول نجيب UUID صحيح من localStorage أو API
+    let targetUserId = payload.userId;
+    if (!uuidRegex.test(targetUserId)) {
+      if (typeof window !== 'undefined') {
+        const storedUserId = localStorage.getItem('cp_userId') || localStorage.getItem('userId');
+        if (storedUserId && uuidRegex.test(storedUserId)) {
+          targetUserId = storedUserId;
+        }
+      }
+      if (!uuidRegex.test(targetUserId)) {
+        try {
+          const usersRes = await fetch(`${getAuthBaseUrl()}/api/users`, { headers: getAuthHeaders() });
+          if (usersRes.ok) {
+            const usersList = await usersRes.json();
+            if (Array.isArray(usersList) && usersList.length > 0) {
+              targetUserId = usersList[0].id;
+            }
+          }
+        } catch (_) {}
+      }
+    }
+
+    // نرسل spaceName و city للـ backend وهو يتولى إيجاد/إنشاء الـ workspace والـ section
+    const finalPayload = {
+      userId: targetUserId,
+      spaceName: payload.spaceName,
+      city: payload.city,             // المدينة الصحيحة للمساحة
+      sectionId: payload.sectionId,   // backend سيتجاهله لو كان وهمياً وسيبحث بـ spaceName
+      durationType: payload.durationType,
+      bookingDate: payload.bookingDate,
+      status: payload.status || 'CONFIRMED',
+    };
+
     const response = await fetch(url, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify(payload),
+      body: JSON.stringify(finalPayload),
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
@@ -800,16 +837,21 @@ export async function getHourlyBookingsApi() {
 
 export async function createHourlyBookingApi(payload: {
   userId: string;
+  workspaceId?: string;   // اختياري — الـ backend يطابق بالـ ID لو كان UUID صحيح
   sectionId: string;
   packageId: string;
   startDate: string;
   endDate: string;
   status?: string;
+  spaceName?: string;
+  city?: string;          // مدينة المساحة لتسجيلها بشكل صحيح في الداتابيس
+  sectionType?: 'DESK' | 'MEETING_ROOM' | 'THEATER';
 }) {
   const url = `${getAuthBaseUrl()}/api/hourly-bookings`;
   try {
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+    // حل userId — نحاول نجيب UUID صحيح من localStorage أو API
     let targetUserId = payload.userId;
     if (!uuidRegex.test(targetUserId)) {
       if (typeof window !== 'undefined') {
@@ -831,28 +873,18 @@ export async function createHourlyBookingApi(payload: {
       }
     }
 
-    let targetSectionId = payload.sectionId;
-    if (!uuidRegex.test(targetSectionId) || targetSectionId.includes('PASTE') || targetSectionId.startsWith('sec_')) {
-      const secRes = await getWorkspaceSectionsApi();
-      if (secRes.success && Array.isArray(secRes.data) && secRes.data.length > 0) {
-        const meetingSec = secRes.data.find((s: any) => ['MEETING_ROOM', 'THEATER'].includes(s.type)) || secRes.data[0];
-        targetSectionId = meetingSec.id;
-      }
-    }
-
-    let targetPackageId = payload.packageId;
-    if (!uuidRegex.test(targetPackageId) || targetPackageId.includes('PASTE') || targetPackageId.startsWith('pkg_')) {
-      const pkgRes = await getHourlyPackagesApi();
-      if (pkgRes.success && Array.isArray(pkgRes.data) && pkgRes.data.length > 0) {
-        targetPackageId = pkgRes.data[0].id;
-      }
-    }
-
+    // نرسل workspaceId و spaceName و sectionType و city للـ backend
     const finalPayload = {
-      ...payload,
       userId: targetUserId,
-      sectionId: targetSectionId,
-      packageId: targetPackageId,
+      workspaceId: payload.workspaceId,
+      sectionId: payload.sectionId,
+      packageId: payload.packageId,
+      startDate: payload.startDate,
+      endDate: payload.endDate,
+      status: payload.status || 'ACTIVE',
+      spaceName: payload.spaceName,
+      city: payload.city,
+      sectionType: payload.sectionType,
     };
 
     const response = await fetch(url, {
@@ -972,10 +1004,36 @@ export interface PointsTransactionPayload {
 export async function createPointsTransactionApi(payload: PointsTransactionPayload) {
   const url = `${getAuthBaseUrl()}/api/points-transactions`;
   try {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    let targetUserId = payload.userId;
+
+    if (!uuidRegex.test(targetUserId)) {
+      if (typeof window !== 'undefined') {
+        const storedUserId = localStorage.getItem('cp_userId') || localStorage.getItem('userId');
+        if (storedUserId && uuidRegex.test(storedUserId)) {
+          targetUserId = storedUserId;
+        }
+      }
+      if (!uuidRegex.test(targetUserId)) {
+        try {
+          const usersRes = await fetch(`${getAuthBaseUrl()}/api/users`, { headers: getAuthHeaders() });
+          if (usersRes.ok) {
+            const usersList = await usersRes.json();
+            if (Array.isArray(usersList) && usersList.length > 0) {
+              targetUserId = usersList[0].id;
+            }
+          }
+        } catch (_) {}
+      }
+    }
+
     const response = await fetch(url, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        ...payload,
+        userId: targetUserId,
+      }),
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {

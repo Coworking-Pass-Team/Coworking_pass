@@ -29,9 +29,6 @@ import { calculateDistance } from "@/lib/haversine";
  */
 export async function GET(request: Request) {
   try {
-    const user = getTokenFromRequest(request);
-    if (!user) return unauthorizedResponse();
-
     const { searchParams } = new URL(request.url);
     const lat = searchParams.get("lat");
     const lng = searchParams.get("lng");
@@ -54,11 +51,11 @@ export async function GET(request: Request) {
     });
 
     const withDistance = workspaces
-      .map((ws) => ({
+      .map((ws: typeof workspaces[0]) => ({
         ...ws,
         distanceKm: calculateDistance(userLat, userLng, ws.latitude!, ws.longitude!),
       }))
-      .sort((a, b) => a.distanceKm - b.distanceKm);
+      .sort((a: { distanceKm: number }, b: { distanceKm: number }) => a.distanceKm - b.distanceKm);
 
     return NextResponse.json(withDistance);
   } catch (error) {

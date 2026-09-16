@@ -71,7 +71,7 @@ export function getApiBaseUrl(): string {
     const cleaned = envUrl.replace(/\/$/, '');
     return cleaned.endsWith('/api') ? cleaned : `${cleaned}/api`;
   }
-  return 'http://localhost:3001/api';
+  return 'https://coworking-pass-k49w.onrender.com/api';
 }
 
 export const API_BASE_URL = getApiBaseUrl();
@@ -1965,7 +1965,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
           };
         });
 
-        setSpaces(dbSpaces);
+        // دمج مساحات الداتابيز مع مساحات النظام الأساسية (INITIAL_SPACES) حتى لا تختفي القاعات والمسارح
+        const mergedSpaces = [
+          ...dbSpaces,
+          ...INITIAL_SPACES.filter(init => !dbSpaces.some(db => db.id === init.id || db.name.toLowerCase() === init.name.toLowerCase()))
+        ];
+
+        setSpaces(mergedSpaces);
       }
       return data;
     } catch (err) {

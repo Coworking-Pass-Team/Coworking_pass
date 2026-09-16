@@ -23,7 +23,7 @@ import {
 import QRCode from 'qrcode';
 import { useApp } from '@/app/store';
 import BookingQrModal from '@/components/BookingQrModal';
-import { createDirectBookingApi, createPaymentApi, createPointsTransactionApi, getLoyaltyPointsApi } from '@/services/authApi';
+import { createDirectBookingApi, createHourlyBookingApi, createPaymentApi, createPointsTransactionApi, getLoyaltyPointsApi } from '@/services/authApi';
 import {
   BookingPlan,
   BookingType,
@@ -384,39 +384,109 @@ export default function BookingFlow() {
         notes,
       });
 
-      // Synchronize direct booking (daily, monthly, yearly) with backend API
-      if (plan !== 'hourly') {
-        const durationType = plan === 'monthly' ? 'MONTHLY' : plan === 'yearly' ? 'YEARLY' : 'DAILY';
-        createDirectBookingApi({
-          userId: currentUser.id,
-          workspaceId: space.id,
-          sectionId: (space as any).sectionId || `sec-${space.id}`,
-          durationType,
-          bookingDate: new Date(startDate).toISOString(),
-          status: 'CONFIRMED',
-        }).catch((err: any) => console.warn('[Direct Booking API Sync]', err));
-      }
+      // Convert time string (e.g. '09:00 AM') safely to ISO Date string
+      const parseTimeToIso = (baseDateStr: string, timeStr?: string) => {
+        try {
+          if (!timeStr) return new Date(baseDateStr).toISOString();
+          const cleanStr = timeStr.trim().toUpperCase();
+          const isPM = cleanStr.includes('PM');
+          const isAM = cleanStr.includes('AM');
+          const timeOnly = cleanStr.replace(/[^\d:]/g, '');
+          const parts = timeOnly.split(':');
+          let h = parseInt(parts[0], 10) || 0;
+          const m = parts.length > 1 ? parseInt(parts[1], 10) || 0 : 0;
+          if (isPM && h < 12) h += 12;
+          if (isAM && h === 12) h = 0;
+          
+          const d = new Date(baseDateStr);
+          d.setHours(h, m, 0, 0);
+          return d.toISOString();
+        } catch {
+          return new Date(baseDateStr).toISOString();
+        }
+      };
 
-      if (useWalletBalance && walletDeduction > 0 && withdrawFromWallet) {
-        withdrawFromWallet(walletDeduction, `Booking payment for ${space.name}`);
-      }
+      try {
+        // Synchronize direct booking (daily, monthly, yearly) or hourly booking with backend API
+        if (plan !== 'hourly') {
+          const durationType = plan === 'monthly' ? 'MONTHLY' : plan === 'yearly' ? 'YEARLY' : 'DAILY';
+          createDirectBookingApi({
+            userId: currentUser.id,
+            workspaceId: space.id,
+            spaceName: space.name,
+            city: space.city,
+            sectionId: (space as any).sectionId || `sec-${space.id}`,
+            durationType,
+            bookingDate: new Date(startDate).toISOString(),
+            status: 'CONFIRMED',
+          }).catch((err: any) => console.warn('[Direct Booking API Sync]', err));
+        } else {
+          // حساب نوع القسم الصحيح بناءً على نوع المساحة
+          const computedSectionType = (() => {
+            const t = (deskType || '').toLowerCase();
+            if (t === 'theater' || t.includes('theater') || t.includes('auditorium')) return 'THEATER' as const;
+            if (t.includes('hall') || t.includes('meeting') || t.includes('room') || t.includes('conference') || t.includes('training') || t.includes('workshop') || t.includes('event') || t.includes('lecture')) return 'MEETING_ROOM' as const;
+            return 'DESK' as const;
+          })();
 
-      // Record payment transaction
-      if (finalPayablePrice > 0) {
-        createPaymentApi({
-          userId: currentUser.id,
-          amount: finalPayablePrice,
-          method: useWalletBalance && walletDeduction >= totalPrice ? 'WALLET' : 'MADA',
-          paymentFor: isHourly ? 'HOURLY_BOOKING' : 'DIRECT_BOOKING',
-          referenceId: booking.id,
-          status: 'SUCCESS',
-        }).catch((err: any) => console.warn('[Payment Record Sync]', err));
-      }
+          createHourlyBookingApi({
+            userId: currentUser.id,
+            workspaceId: space.id,
+            spaceName: space.name,
+            city: space.city,
+            sectionType: computedSectionType,
+            sectionId: `sec-${space.id}`,
+            packageId: `pkg-default`,
+            startDate: parseTimeToIso(startDate, startTime),
+            endDate: parseTimeToIso(endDate || startDate, endTime),
+            status: 'ACTIVE',
+          }).catch((err: any) => console.warn('[Hourly Booking API Sync]', err));
+        }
 
-      setConfirmedBooking(booking);
-      setStep(3);
-      setLoading(false);
-      showToast('Workspace booked successfully!', 'success');
+        if (useWalletBalance && walletDeduction > 0 && withdrawFromWallet) {
+          withdrawFromWallet(walletDeduction, `Booking payment for ${space.name}`);
+        }
+
+        // Record payment transaction
+        if (finalPayablePrice > 0) {
+          createPaymentApi({
+            userId: currentUser.id,
+            amount: finalPayablePrice,
+            method: useWalletBalance && walletDeduction >= totalPrice ? 'WALLET' : 'MADA',
+            paymentFor: isHourly ? 'HOURLY_BOOKING' : 'DIRECT_BOOKING',
+            referenceId: booking.id,
+            status: 'SUCCESS',
+          }).catch((err: any) => console.warn('[Payment Record Sync]', err));
+        }
+
+        // Award earned loyalty points from this booking transaction
+        if (earnedPoints > 0 && currentUser) {
+          createPointsTransactionApi({
+            userId: currentUser.id,
+            type: 'EARNED',
+            points: earnedPoints,
+            description: `Earned points for booking at ${space.name}`,
+          }).then((res) => {
+            if (res.success) {
+              getLoyaltyPointsApi(currentUser.id).then((ptsRes) => {
+                if (ptsRes.success && Array.isArray(ptsRes.data)) {
+                  const uPts = ptsRes.data.find((p: any) => p.userId === currentUser.id);
+                  if (uPts && typeof uPts.availableBalance === 'number') {
+                    updateCurrentUser({ loyaltyPoints: uPts.availableBalance });
+                  }
+                }
+              }).catch(() => {});
+            }
+          }).catch((err) => console.warn('[Points Award Sync]', err));
+        }
+      } catch (syncErr) {
+        console.warn('[Sync background error]', syncErr);
+      } finally {
+        setConfirmedBooking(booking);
+        setStep(3);
+        setLoading(false);
+        showToast('Workspace booked successfully!', 'success');
+      }
     }, 900);
   };
 
