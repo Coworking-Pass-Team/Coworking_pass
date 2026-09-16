@@ -354,7 +354,6 @@ export default function BookingFlow() {
           const durationType = plan === 'monthly' ? 'MONTHLY' : plan === 'yearly' ? 'YEARLY' : 'DAILY';
           createDirectBookingApi({
             userId: currentUser.id,
-            workspaceId: space.id,
             spaceName: space.name,
             sectionId: (space as any).sectionId || `sec-${space.id}`,
             durationType,
@@ -362,16 +361,23 @@ export default function BookingFlow() {
             status: 'CONFIRMED',
           }).catch((err: any) => console.warn('[Direct Booking API Sync]', err));
         } else {
+          // حساب نوع القسم الصحيح بناءً على نوع المساحة
+          const computedSectionType = (() => {
+            const t = (deskType || '').toLowerCase();
+            if (t === 'theater' || t.includes('theater') || t.includes('auditorium')) return 'THEATER' as const;
+            if (t.includes('hall') || t.includes('meeting') || t.includes('room') || t.includes('conference') || t.includes('training') || t.includes('workshop') || t.includes('event') || t.includes('lecture')) return 'MEETING_ROOM' as const;
+            return 'DESK' as const;
+          })();
+
           createHourlyBookingApi({
             userId: currentUser.id,
-            workspaceId: space.id,
             spaceName: space.name,
-            sectionType: deskType === 'theater' ? 'THEATER' : deskType === 'meeting-room' || (deskType as string).includes('hall') ? 'MEETING_ROOM' : 'DESK',
-            sectionId: (space as any).sectionId || `sec-${space.id}`,
-            packageId: (space as any).packageId || 'pkg-default',
+            sectionType: computedSectionType,
+            sectionId: `sec-${space.id}`,
+            packageId: `pkg-default`,
             startDate: parseTimeToIso(startDate, startTime),
             endDate: parseTimeToIso(endDate || startDate, endTime),
-            status: 'CONFIRMED',
+            status: 'ACTIVE',
           }).catch((err: any) => console.warn('[Hourly Booking API Sync]', err));
         }
 

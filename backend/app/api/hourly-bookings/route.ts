@@ -64,7 +64,13 @@ export async function POST(request: NextRequest) {
     const user = getTokenFromRequest(request);
 
     const body = await request.json();
-    const { userId, sectionId, packageId, startDate, endDate, status = 'ACTIVE', sectionType, spaceName, workspaceId } = body;
+    const { userId, sectionId, packageId, startDate, endDate, status, sectionType, spaceName, workspaceId } = body;
+
+    // تطبيع status — HourlyBooking يستخدم LifecycleStatus: ACTIVE, EXPIRED, CANCELLED
+    const validStatuses = ['ACTIVE', 'EXPIRED', 'CANCELLED'];
+    const normalizedStatus = validStatuses.includes((status || '').toUpperCase())
+      ? (status || '').toUpperCase()
+      : 'ACTIVE';
 
     let effectiveUserId = userId || (user ? user.userId : null);
 
@@ -186,7 +192,7 @@ export async function POST(request: NextRequest) {
         packageId: targetPackageId,
         startDate: startDate ? new Date(startDate) : new Date(),
         endDate: endDate ? new Date(endDate) : new Date(Date.now() + 3600000),
-        status,
+        status: normalizedStatus as any,
         hoursUsed: 0,
       },
       include: {

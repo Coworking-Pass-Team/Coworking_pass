@@ -4,13 +4,20 @@ import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-tok
 
 const VALID_TYPES = ["DESK", "MEETING_ROOM", "THEATER"];
 
-// GET /api/workspace-sections — عرض كل الأقسام
+// GET /api/workspace-sections — عرض كل الأقسام (public - لا يحتاج توثيق)
 export async function GET(request: Request) {
   try {
-    const user = getTokenFromRequest(request);
-if (!user) return unauthorizedResponse();
+    const { searchParams } = new URL(request.url);
+    const workspaceId = searchParams.get('workspaceId');
+    const type = searchParams.get('type');
+
+    const whereClause: any = {};
+    if (workspaceId) whereClause.workspaceId = workspaceId;
+    if (type && VALID_TYPES.includes(type)) whereClause.type = type;
+
     const sections = await prisma.workspaceSection.findMany({
-      include: { workspace: true },
+      where: whereClause,
+      include: { workspace: true, hourlyPackages: true },
     });
     return NextResponse.json(sections);
   } catch (error) {
