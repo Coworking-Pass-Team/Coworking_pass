@@ -23,7 +23,7 @@ import {
   QrCode
 } from 'lucide-react';
 import { useApp } from '@/app/store';
-import { Booking, BookingStatus, Employee, getHourlyPriceForDuration, getBookingPrice, isCancellationRefundEligible } from '@/types/types';
+import { Booking, BookingStatus, Employee, getHourlyPriceForDuration, getBookingPrice, isCancellationRefundEligible, calculateDailyDurationDays } from '@/types/types';
 import Modal from '@/components/ui/Modal';
 import BookingQrModal from '@/components/BookingQrModal';
 
@@ -255,7 +255,7 @@ export default function TeamBookings() {
                 <div className="col-span-2 mt-2 lg:mt-0 text-xs font-semibold text-soot truncate">
                   {b.employees && b.employees.length > 0
                     ? getEmpName(b.employees[0])
-                    : (currentUser.orgName || currentUser.name)}
+                    : (currentUser.orgName || 'Organization Pass')}
                   {b.employees && b.employees.length > 1 && (
                     <span className="block text-[10px] text-moss font-normal">
                       +{b.employees.length - 1} other member{b.employees.length > 2 ? 's' : ''}
@@ -278,11 +278,13 @@ export default function TeamBookings() {
                 <div className="col-span-2 mt-2 lg:mt-0 text-xs font-semibold text-soot capitalize">
                   {b.plan === 'hourly'
                     ? `Hourly (${b.durationHours || 1} ${b.durationHours === 1 ? 'hr' : 'hrs'})`
+                    : b.plan === 'daily'
+                    ? `Daily Pass (${b.durationDays || (b.startDate && b.endDate ? calculateDailyDurationDays(b.startDate, b.endDate) : 1)} ${(b.durationDays || 1) === 1 ? 'day' : 'days'})`
                     : b.plan === 'monthly'
                     ? `${b.durationMonths || 1}mo Monthly`
                     : `${b.plan} pass`}
-                  {b.plan === 'hourly' && (b.startTime || b.endTime) && (
-                    <span className="block text-[10px] font-medium text-moss normal-case">
+                  {(b.startTime || b.endTime) && (
+                    <span className="block text-[10px] font-medium text-emerald-800 normal-case">
                       {b.startTime} – {b.endTime}
                     </span>
                   )}

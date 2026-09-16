@@ -16,6 +16,7 @@ import {
   AmenityRequest, 
   AmenityRequestStatus, 
   calculateEndDate, 
+  calculateDailyDurationDays,
   isCancellationRefundEligible, 
   getBookingPrice, 
   getEffectiveSpacePrice, 
@@ -425,8 +426,9 @@ interface AppContextType {
   updateCurrentUser: (updates: Partial<User>) => void;
 
   userLocation: { lat: number; lng: number } | null;
-  locationStatus: 'idle' | 'loading' | 'granted' | 'denied' | 'unsupported';
-  requestUserLocation: () => Promise<{ lat: number; lng: number } | null>;
+  locationStatus: 'idle' | 'loading' | 'granted' | 'denied' | 'unavailable' | 'unsupported';
+  locationErrorMessage: string | null;
+  requestUserLocation: (force?: boolean) => Promise<{ lat: number; lng: number } | null>;
 
   spaces: Space[];
   favorites: string[];
@@ -476,6 +478,10 @@ interface AppContextType {
   addPaymentCard: (card: Omit<PaymentCard, 'id'>) => PaymentCard;
 
   cart: CartItem[];
+  isCartOpen: boolean;
+  setIsCartOpen: (open: boolean) => void;
+  openCart: () => void;
+  closeCart: () => void;
   addToCart: (item: Omit<CartItem, 'id'>) => void;
   removeFromCart: (cartItemId: string) => void;
   updateCartItemSeats: (cartItemId: string, seats: number) => void;
@@ -533,7 +539,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [otpSession, setOtpSession] = useState<OtpSession | null>(null);
   const [spaces, setSpaces] = useState<Space[]>(INITIAL_SPACES);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [locationStatus, setLocationStatus] = useState<'idle' | 'loading' | 'granted' | 'denied' | 'unsupported'>('idle');
+  const [locationStatus, setLocationStatus] = useState<'idle' | 'loading' | 'granted' | 'denied' | 'unavailable' | 'unsupported'>('idle');
+  const [locationErrorMessage, setLocationErrorMessage] = useState<string | null>(null);
   const [bookings, setBookings] = useState<Booking[]>(INITIAL_BOOKINGS);
   const [users, setUsers] = useState<User[]>(INITIAL_USERS);
   const [favorites, setFavorites] = useState<string[]>(['space-1', 'space-3']);
@@ -546,6 +553,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [companyWalletBalance, setCompanyWalletBalance] = useState<number>(0);
   const [companyData, setCompanyData] = useState<any | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
   const [amenityRequests, setAmenityRequests] = useState<AmenityRequest[]>([
     {
       id: 'req-1',
@@ -2596,12 +2604,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
         if (apiRes.user) {
           const userRole = mapRoleToFrontend(apiRes.user.role);
+          const returnedOrgName = apiRes.user.orgName || apiRes.user.companyName;
           user = {
             ...user,
             id: apiRes.user.id || user.id,
             name: apiRes.user.name || user.name,
             email: apiRes.user.email || user.email,
             role: userRole,
+            companyId: apiRes.user.companyId || user.companyId,
+            orgName: returnedOrgName || user.orgName,
           };
           const updatedUsers = users.some(u => u.id === user.id || u.email.toLowerCase() === user.email.toLowerCase())
             ? users.map(u => (u.id === user.id || u.email.toLowerCase() === user.email.toLowerCase()) ? user : u)
@@ -2619,8 +2630,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
 
       if (user.role === 'organization') {
+        const orgCompanyName = user.orgName || 'New Organization';
         createCompanyApi({
-          companyName: user.orgName || user.name || 'New Organization',
+          companyName: orgCompanyName,
           hrAdminId: user.id,
         }).then(res => {
           if (res.success) {
@@ -2677,7 +2689,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     if (updated.role === 'organization') {
       const hrAdminId = updated.id || otpSession.userId || '';
-      const companyName = updated.orgName || updated.name || 'New Organization';
+      const companyName = updated.orgName || 'New Organization';
       if (hrAdminId) {
         createCompanyApi({ companyName, hrAdminId }).then(res => {
           if (res.success) {
@@ -2839,18 +2851,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
     );
   };
 
-  const requestUserLocation = async (): Promise<{ lat: number; lng: number } | null> => {
+  const requestUserLocation = async (force: boolean = false): Promise<{ lat: number; lng: number } | null> => {
     if (typeof window === 'undefined' || !navigator?.geolocation) {
       setLocationStatus('unsupported');
+      setLocationErrorMessage('Geolocation is not supported by your browser or device.');
       showToast('Geolocation is not supported by your browser.', 'error');
+      try { sessionStorage.setItem('coworking_location_status', 'unsupported'); } catch {}
       return null;
     }
 
-    if (userLocation) {
+    if (userLocation && !force) {
       return userLocation;
     }
 
+    // If permission has already been determined (denied/unavailable/unsupported) and not forcing a re-request, don't re-prompt
+    if (!force && (locationStatus === 'denied' || locationStatus === 'unavailable' || locationStatus === 'unsupported')) {
+      return null;
+    }
+
     setLocationStatus('loading');
+    setLocationErrorMessage(null);
+
     return new Promise(resolve => {
       navigator.geolocation.getCurrentPosition(
         position => {
@@ -2860,14 +2881,34 @@ export function AppProvider({ children }: { children: ReactNode }) {
           };
           setUserLocation(coords);
           setLocationStatus('granted');
+          setLocationErrorMessage(null);
+          try { sessionStorage.setItem('coworking_location_status', 'granted'); } catch {}
           resolve(coords);
         },
         error => {
           console.warn('Geolocation error:', error);
-          setLocationStatus('denied');
           if (error.code === 1) {
-            showToast('Location permission was denied. Workspaces will be sorted without distance.', 'info');
+            // PERMISSION_DENIED
+            setLocationStatus('denied');
+            setLocationErrorMessage('Location permission was denied. Enabling location access is required to calculate accurate distances and sort workspaces nearest to you.');
+            try { sessionStorage.setItem('coworking_location_status', 'denied'); } catch {}
+            showToast('Location permission was denied. Workspaces are shown in default order.', 'info');
+          } else if (error.code === 2) {
+            // POSITION_UNAVAILABLE
+            setLocationStatus('unavailable');
+            setLocationErrorMessage('Location services are disabled or unavailable on your device. Please ensure GPS or device location is turned on.');
+            try { sessionStorage.setItem('coworking_location_status', 'unavailable'); } catch {}
+            showToast('Location services are disabled or unavailable.', 'info');
+          } else if (error.code === 3) {
+            // TIMEOUT
+            setLocationStatus('unavailable');
+            setLocationErrorMessage('Location request timed out. Please check your connection or signal and try again.');
+            try { sessionStorage.setItem('coworking_location_status', 'unavailable'); } catch {}
+            showToast('Location request timed out.', 'info');
           } else {
+            setLocationStatus('unavailable');
+            setLocationErrorMessage(error.message || 'Unable to determine your current location.');
+            try { sessionStorage.setItem('coworking_location_status', 'unavailable'); } catch {}
             showToast('Unable to determine your current location.', 'info');
           }
           resolve(null);
@@ -3868,6 +3909,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const openCart = () => setIsCartOpen(true);
+  const closeCart = () => setIsCartOpen(false);
+
   const addToCart = (item: Omit<CartItem, 'id'>) => {
     const newItem: CartItem = {
       ...item,
@@ -3876,6 +3920,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const updated = [...cart, newItem];
     setCart(updated);
     saveCartToStorage(updated);
+    setIsCartOpen(true);
     showToast(`Added ${item.spaceName} to your cart!`, 'success');
   };
 
@@ -3896,11 +3941,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (i.id === cartItemId) {
         const newItem = { ...i, ...updates };
 
-        if (updates.startDate !== undefined || updates.plan !== undefined || updates.durationMonths !== undefined) {
+        if (updates.startDate !== undefined || updates.endDate !== undefined || updates.plan !== undefined || updates.durationMonths !== undefined) {
           const sDate = updates.startDate ?? i.startDate;
           const plan = updates.plan ?? i.plan;
           const durM = updates.durationMonths ?? i.durationMonths ?? 1;
-          newItem.endDate = calculateEndDate(sDate, plan, durM);
+          if (plan === 'daily') {
+            const eDate = updates.endDate ?? i.endDate ?? sDate;
+            newItem.endDate = eDate >= sDate ? eDate : sDate;
+            newItem.durationDays = calculateDailyDurationDays(sDate, newItem.endDate);
+          } else {
+            newItem.endDate = calculateEndDate(sDate, plan, durM);
+          }
         }
 
         if (newItem.plan === 'hourly' && newItem.startTime) {
@@ -3914,6 +3965,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
         const seats = newItem.seats || 1;
         const targetSpace = spaces.find((s) => s.id === newItem.spaceId);
+        const durationDays = newItem.plan === 'daily' ? (newItem.durationDays || calculateDailyDurationDays(newItem.startDate, newItem.endDate || newItem.startDate)) : 1;
         if (targetSpace && currentUser?.hasActivePass) {
           const coverage = getEffectiveSpacePrice(
             currentUser,
@@ -3922,13 +3974,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
             newItem.type,
             newItem.durationHours || 1,
             newItem.durationMonths || 1,
-            seats
+            seats,
+            durationDays
           );
           newItem.itemTotal = coverage.effectivePrice;
           newItem.pricePerSeat = coverage.isCovered ? 0 : Math.round(coverage.effectivePrice / seats);
         } else if (newItem.plan === 'hourly') {
           const hours = newItem.durationHours || 1;
           newItem.itemTotal = newItem.pricePerSeat * hours * seats;
+        } else if (newItem.plan === 'daily') {
+          newItem.itemTotal = newItem.pricePerSeat * durationDays * seats;
         } else if (newItem.plan === 'monthly') {
           const months = newItem.durationMonths || 1;
           newItem.itemTotal = newItem.pricePerSeat * months * seats;
@@ -3996,6 +4051,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         startTime: item.startTime,
         endTime: item.endTime,
         durationHours: item.durationHours,
+        durationDays: item.durationDays,
+        durationMonths: item.durationMonths,
         startDate: item.startDate,
         endDate: item.endDate,
         seats: item.seats,
@@ -4454,7 +4511,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       directBookingsApi, fetchDirectBookings, createDirectBooking, updateDirectBooking, deleteDirectBooking,
       paymentsApi, fetchPayments, createPayment, updatePayment, deletePayment,
       currentUser, login, signup, logout, setPendingUser, pendingUser,
-      userLocation, locationStatus, requestUserLocation,
+      userLocation, locationStatus, locationErrorMessage, requestUserLocation,
       spaces, favorites, toggleFavorite, addSpace, updateSpace, toggleSpaceVisibility, deleteSpace,
       bookings, addBooking, cancelBooking, updateBookingStatus, deleteBooking,
       amenityRequests, approvedCustomAmenities, requestCustomAmenity, approveAmenityRequest, rejectAmenityRequest, deleteAmenityRequest, getApprovedAmenities,
@@ -4465,7 +4522,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       users, blockUser, unblockUser, changeUserRole,
       waitlist, autobooking, autobookingCard, joinWaitlist, leaveWaitlist, enableAutoBooking, disableAutoBooking,
       addPaymentCard,
-      cart, addToCart, removeFromCart, updateCartItemSeats, updateCartItem, clearCart, checkoutCart,
+      cart, isCartOpen, setIsCartOpen, openCart, closeCart, addToCart, removeFromCart, updateCartItemSeats, updateCartItem, clearCart, checkoutCart,
       applyLoyaltyDiscount,
       walletTransactions, fetchWallet, depositToWallet, withdrawFromWallet,
       companyWalletBalance, companyData, fetchCompanyWallet, depositToCompanyWallet,

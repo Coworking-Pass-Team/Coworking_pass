@@ -1,6 +1,6 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
-import { Menu, X, User as UserIcon, LogOut, ChevronDown, Calendar, Building2, Users, Settings, CreditCard, HelpCircle, Wallet, Bell, CheckCheck, ChevronRight, Sparkles } from 'lucide-react';
+import { Menu, X, User as UserIcon, LogOut, ChevronDown, Calendar, Building2, Users, Settings, CreditCard, HelpCircle, Wallet, Bell, CheckCheck, ChevronRight, Sparkles, ShoppingBag } from 'lucide-react';
 import { useApp } from '@/app/store';
 import Logo from './logo';
 
@@ -145,8 +145,32 @@ export function NotificationButton() {
   );
 }
 
+export function CartButton({ className = '' }: { className?: string }) {
+  const { cart, openCart, currentUser } = useApp();
+  if (!currentUser) return null;
+
+  const itemCount = cart.length;
+
+  return (
+    <button
+      type="button"
+      onClick={openCart}
+      aria-label={`Shopping Cart (${itemCount} reservation${itemCount !== 1 ? 's' : ''})`}
+      className={`relative p-2 sm:p-2.5 rounded-2xl text-moss hover:text-soot hover:bg-soot/5 transition-colors cursor-pointer shrink-0 flex items-center justify-center ${className}`}
+      title={itemCount > 0 ? `Shopping Cart (${itemCount} item${itemCount !== 1 ? 's' : ''})` : 'Shopping Cart (Empty)'}
+    >
+      <ShoppingBag size={19} />
+      {itemCount > 0 && (
+        <span className="absolute top-1 right-1 min-w-4 h-4 px-1 rounded-full bg-soot text-plaster text-[9px] leading-4 text-center font-bold shadow-2xs flex items-center justify-center">
+          {itemCount > 9 ? '9+' : itemCount}
+        </span>
+      )}
+    </button>
+  );
+}
+
 export default function Navbar() {
-  const { navigate, nav, currentUser, logout, companyWalletBalance, unreadNotificationsCount } = useApp();
+  const { navigate, nav, currentUser, logout, companyWalletBalance, unreadNotificationsCount, openCart, cart } = useApp();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -406,7 +430,11 @@ export default function Navbar() {
         </nav>
 
         {/* Desktop Auth / User Profile Menu */}
-        <div className="hidden lg:flex items-center gap-2.5 shrink-0">
+        <div className="hidden lg:flex items-center gap-2 xl:gap-2.5 shrink-0">
+          {currentUser && (
+            <CartButton />
+          )}
+
           {currentUser && currentUser.role !== 'admin' && (
             <LoyaltyButton />
           )}
@@ -474,55 +502,6 @@ export default function Navbar() {
                       <UserIcon size={15} className="text-moss" />
                       <span>My Profile & Account</span>
                     </button>
-
-                    <button
-                      onClick={() => {
-                        navigate('notifications');
-                        setDropdownOpen(false);
-                      }}
-                      className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold text-soot hover:bg-plaster-dark/50 flex items-center justify-between transition-colors cursor-pointer"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <Bell size={15} className="text-moss" />
-                        <span>Notifications</span>
-                      </div>
-                      {unreadNotificationsCount > 0 && (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500 text-white">
-                          {unreadNotificationsCount}
-                        </span>
-                      )}
-                    </button>
-
-                    {currentUser.role !== 'admin' && (
-                      <button
-                        onClick={() => {
-                          navigate('loyalty');
-                          setDropdownOpen(false);
-                        }}
-                        className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold text-soot hover:bg-plaster-dark/50 flex items-center justify-between transition-colors cursor-pointer"
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <Sparkles size={15} className="text-moss" />
-                          <span>Loyalty Rewards Hub</span>
-                        </div>
-                        <span className="font-bold text-[11px] text-soot bg-[#DDE6DF] px-2 py-0.5 rounded-md border border-soot/10">
-                          {(currentUser.loyaltyPoints || 0).toLocaleString()} pts
-                        </span>
-                      </button>
-                    )}
-
-                    {currentUser.role === 'individual' && (
-                      <button
-                        onClick={() => {
-                          navigate('my-bookings');
-                          setDropdownOpen(false);
-                        }}
-                        className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold text-soot hover:bg-plaster-dark/50 flex items-center gap-2.5 transition-colors cursor-pointer"
-                      >
-                        <Calendar size={15} className="text-moss" />
-                        <span>My Bookings</span>
-                      </button>
-                    )}
 
                     {currentUser.role === 'organization' && (
                       <>
@@ -599,10 +578,16 @@ export default function Navbar() {
           )}
         </div>
 
-        {/* Mobile Header Buttons (Notifications + Loyalty + Menu) */}
-        <div className="flex lg:hidden items-center gap-1.5 shrink-0">
+        {/* Mobile Header Buttons (Cart + Notifications + Loyalty + Menu) */}
+        <div className="flex lg:hidden items-center gap-1 sm:gap-2 shrink-0">
+          {currentUser && (
+            <CartButton />
+          )}
+
           {currentUser && currentUser.role !== 'admin' && (
-            <LoyaltyButton />
+            <div className="hidden sm:block">
+              <LoyaltyButton />
+            </div>
           )}
 
           {currentUser && (
@@ -659,6 +644,28 @@ export default function Navbar() {
                 </button>
               );
             })}
+
+            {currentUser && (
+              <>
+                <button
+                  onClick={() => {
+                    setMobileOpen(false);
+                    openCart();
+                  }}
+                  className="w-full text-left px-4 py-3 rounded-xl text-base font-medium transition-all duration-150 cursor-pointer flex items-center justify-between text-moss hover:text-soot hover:bg-plaster-dark/40"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <ShoppingBag size={18} />
+                    <span>Shopping Cart</span>
+                  </div>
+                  {cart.length > 0 && (
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-soot text-plaster">
+                      {cart.length} {cart.length === 1 ? 'item' : 'items'}
+                    </span>
+                  )}
+                </button>
+              </>
+            )}
 
             {currentUser && (
               <>

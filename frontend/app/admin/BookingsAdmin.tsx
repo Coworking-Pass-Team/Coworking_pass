@@ -18,7 +18,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useApp } from '@/app/store';
-import { Booking, BookingStatus, getBookingPrice } from '@/types/types';
+import { Booking, BookingStatus, getBookingPrice, calculateDailyDurationDays } from '@/types/types';
 import { updateDirectBookingApi } from '@/services/authApi';
 import HourlyBookingsAdmin from './HourlyBookingsAdmin';
 
@@ -336,11 +336,12 @@ export default function BookingsAdmin() {
               {/* Booking Period */}
               <div className="col-span-2 mt-2 lg:mt-0 text-xs text-moss font-medium">
                 <div className="text-soot font-semibold">{b.startDate}</div>
-                {b.startTime ? (
-                  <div className="text-[11px] text-soot font-medium mt-0.5">{b.startTime} – {b.endTime}</div>
-                ) : b.endDate !== b.startDate ? (
-                  <div className="text-[11px]">→ {b.endDate}</div>
-                ) : null}
+                {b.endDate !== b.startDate && (
+                  <div className="text-[11px] text-moss">→ {b.endDate}</div>
+                )}
+                {b.startTime && (
+                  <div className="text-[11px] text-emerald-800 font-medium mt-0.5">{b.startTime} – {b.endTime}</div>
+                )}
               </div>
 
               {/* Plan & Seats */}
@@ -348,12 +349,14 @@ export default function BookingsAdmin() {
                 <div className="text-xs font-semibold text-soot capitalize">
                   {b.plan === 'hourly'
                     ? `Hourly (${b.durationHours || 1} ${b.durationHours === 1 ? 'hr' : 'hrs'})`
+                    : b.plan === 'daily'
+                    ? `Daily Pass (${b.durationDays || (b.startDate && b.endDate ? calculateDailyDurationDays(b.startDate, b.endDate) : 1)} ${(b.durationDays || 1) === 1 ? 'day' : 'days'})`
                     : b.plan === 'monthly'
                     ? `${b.durationMonths || 1}mo Monthly`
                     : `${b.plan} pass`}
                 </div>
-                {b.plan === 'hourly' && (b.startTime || b.endTime) && (
-                  <div className="text-[10px] text-moss font-medium">
+                {(b.startTime || b.endTime) && (
+                  <div className="text-[10px] text-emerald-800 font-medium">
                     {b.startTime} – {b.endTime}
                   </div>
                 )}
@@ -489,6 +492,12 @@ export default function BookingsAdmin() {
                     ? [{
                         label: 'Time Window',
                         value: `${selectedBooking.startTime || '09:00 AM'} – ${selectedBooking.endTime || '05:00 PM'} (${selectedBooking.durationHours || 1} ${selectedBooking.durationHours === 1 ? 'hour' : 'hours'})`,
+                        icon: Clock,
+                      }]
+                    : selectedBooking.startTime
+                    ? [{
+                        label: 'Daily Allowed Hours',
+                        value: `${selectedBooking.startTime} – ${selectedBooking.endTime}`,
                         icon: Clock,
                       }]
                     : []),

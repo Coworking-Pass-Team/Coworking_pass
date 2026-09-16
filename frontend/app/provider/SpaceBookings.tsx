@@ -16,7 +16,7 @@ import {
   Building2,
 } from 'lucide-react';
 import { useApp } from '@/app/store';
-import { Booking, BookingStatus, getBookingPrice } from '@/types/types';
+import { Booking, BookingStatus, getBookingPrice, calculateDailyDurationDays } from '@/types/types';
 
 export default function ProviderSpaceBookings() {
   const { currentUser, spaces, partners, bookings, users, updateBookingStatus, showToast } = useApp();
@@ -349,11 +349,11 @@ export default function ProviderSpaceBookings() {
                     <Calendar size={12} className="text-moss shrink-0" />
                     <span>{b.startDate}</span>
                   </div>
-                  {b.startTime && (
-                    <div className="text-[11px] text-soot font-medium mt-0.5 pl-4">{b.startTime} – {b.endTime}</div>
-                  )}
-                  {!b.startTime && b.startDate !== b.endDate && (
+                  {b.startDate !== b.endDate && (
                     <div className="text-moss text-[11px] mt-0.5 pl-4">to {b.endDate}</div>
+                  )}
+                  {b.startTime && (
+                    <div className="text-[11px] text-emerald-800 font-medium mt-0.5 pl-4">{b.startTime} – {b.endTime}</div>
                   )}
                 </div>
 
@@ -361,6 +361,8 @@ export default function ProviderSpaceBookings() {
                 <div className="col-span-1 mt-2 lg:mt-0 text-xs font-semibold text-soot capitalize">
                   {b.plan === 'hourly'
                     ? `Hourly (${b.durationHours || 1} ${b.durationHours === 1 ? 'hr' : 'hrs'})`
+                    : b.plan === 'daily'
+                    ? `Daily Pass (${b.durationDays || (b.startDate && b.endDate ? calculateDailyDurationDays(b.startDate, b.endDate) : 1)} ${(b.durationDays || 1) === 1 ? 'day' : 'days'})`
                     : b.plan === 'monthly'
                     ? `${b.durationMonths || 1}mo Monthly`
                     : `${b.plan} pass`}
@@ -473,14 +475,21 @@ export default function ProviderSpaceBookings() {
                 </div>
               </div>
 
-              {selectedBooking.plan === 'hourly' && (
+              {selectedBooking.plan === 'hourly' ? (
                 <div className="p-3 bg-white/60 rounded-xl border border-soot/8 text-xs">
                   <span className="text-moss block mb-1">Time Window & Duration</span>
                   <span className="font-semibold text-soot text-sm">
                     {selectedBooking.startTime || '09:00 AM'} – {selectedBooking.endTime || '05:00 PM'} ({selectedBooking.durationHours || 1} {selectedBooking.durationHours === 1 ? 'Hour' : 'Hours'})
                   </span>
                 </div>
-              )}
+              ) : selectedBooking.startTime ? (
+                <div className="p-3 bg-white/60 rounded-xl border border-soot/8 text-xs">
+                  <span className="text-moss block mb-1">Daily Allowed Operating Hours</span>
+                  <span className="font-semibold text-soot text-sm">
+                    {selectedBooking.startTime} – {selectedBooking.endTime}
+                  </span>
+                </div>
+              ) : null}
 
               <div className="flex items-center justify-between p-4 bg-soot text-plaster rounded-2xl">
                 <div>

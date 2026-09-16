@@ -42,7 +42,8 @@ export default function OrgProfile() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   // Edit Form Fields (Exact existing Organization fields preserved)
-  const [editOrgName, setEditOrgName] = useState(currentUser?.orgName || currentUser?.name || '');
+  const [editOrgName, setEditOrgName] = useState(currentUser?.orgName || '');
+  const [editOwnerName, setEditOwnerName] = useState(currentUser?.name || '');
   const [editIndustry, setEditIndustry] = useState(currentUser?.industry || 'Technology & Digital Solutions');
   const [editOrgSize, setEditOrgSize] = useState(String(currentUser?.orgSize || '15'));
   const [editWebsite, setEditWebsite] = useState(currentUser?.website || 'https://sauditech.sa');
@@ -90,7 +91,8 @@ export default function OrgProfile() {
   const orgBookings = bookings.filter(b => b.userId === currentUser.id);
 
   const handleOpenEdit = () => {
-    setEditOrgName(currentUser.orgName || currentUser.name || '');
+    setEditOrgName(currentUser.orgName || '');
+    setEditOwnerName(currentUser.name || '');
     setEditIndustry(currentUser.industry || 'Technology & Digital Solutions');
     setEditOrgSize(String(currentUser.orgSize || '15'));
     setEditWebsite(currentUser.website || 'https://sauditech.sa');
@@ -133,6 +135,7 @@ export default function OrgProfile() {
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!editOrgName.trim()) newErrors.orgName = 'Organization name is required';
+    if (!editOwnerName.trim()) newErrors.ownerName = 'Owner / Representative name is required';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -145,7 +148,7 @@ export default function OrgProfile() {
     setTimeout(() => {
       updateCurrentUser({
         orgName: editOrgName.trim(),
-        name: editOrgName.trim(),
+        name: editOwnerName.trim() || currentUser.name,
         industry: editIndustry.trim(),
         orgSize: parseInt(editOrgSize) || 0,
         website: editWebsite.trim(),
@@ -283,7 +286,7 @@ export default function OrgProfile() {
                 <div className="relative inline-block self-start">
                   <UserAvatar
                     src={currentUser.avatar}
-                    name={currentUser.orgName || currentUser.name}
+                    name={currentUser.orgName || 'Organization'}
                     size="2xl"
                     ring={true}
                   />
@@ -307,7 +310,7 @@ export default function OrgProfile() {
                     className="text-2xl sm:text-3xl font-normal text-soot tracking-tight"
                     style={{ fontFamily: 'DM Serif Display, serif' }}
                   >
-                    {currentUser.orgName || currentUser.name}
+                    {currentUser.orgName || 'Organization'}
                   </h2>
 
                   {/* Account Role Badge */}
@@ -387,7 +390,21 @@ export default function OrgProfile() {
                   Organization / Company Name
                 </div>
                 <div className="text-sm sm:text-base font-normal text-soot">
-                  {currentUser.orgName || currentUser.name}
+                  {currentUser.orgName || 'Not Set'}
+                </div>
+              </div>
+
+              {/* Account Owner / Representative */}
+              <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 transition-all hover:border-soot/12">
+                <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
+                  <Shield size={13} className="text-moss/80" />
+                  Company Owner / Representative
+                </div>
+                <div className="text-sm sm:text-base font-normal text-soot flex items-center justify-between">
+                  <span>{currentUser.name}</span>
+                  <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-[#DDE6DF] text-soot">
+                    HR Admin
+                  </span>
                 </div>
               </div>
 
@@ -763,7 +780,7 @@ export default function OrgProfile() {
             <div className="relative shrink-0">
               <UserAvatar
                 src={editAvatar}
-                name={editOrgName || currentUser.name}
+                name={editOrgName || 'Organization'}
                 size="xl"
                 ring={true}
               />
@@ -815,7 +832,7 @@ export default function OrgProfile() {
             {/* Organization Name */}
             <div>
               <label className="block text-xs font-medium text-soot mb-1.5">
-                Organization Name <span className="text-red-500">*</span>
+                Organization / Company Name <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -827,6 +844,23 @@ export default function OrgProfile() {
                 } text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs font-normal`}
               />
               {errors.orgName && <p className="text-red-500 text-xs mt-1 font-normal">{errors.orgName}</p>}
+            </div>
+
+            {/* Account Owner / Representative Name */}
+            <div>
+              <label className="block text-xs font-medium text-soot mb-1.5">
+                Owner / Representative Full Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={editOwnerName}
+                onChange={e => setEditOwnerName(e.target.value)}
+                placeholder="e.g. Mohammad Al-Zahrani"
+                className={`w-full px-4 py-3 rounded-2xl border ${
+                  errors.ownerName ? 'border-red-400 bg-red-50/20' : 'border-soot/12 bg-white'
+                } text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs font-normal`}
+              />
+              {errors.ownerName && <p className="text-red-500 text-xs mt-1 font-normal">{errors.ownerName}</p>}
             </div>
 
             {/* Industry */}
