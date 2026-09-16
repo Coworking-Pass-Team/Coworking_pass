@@ -363,6 +363,9 @@ export default function BookingFlow() {
         } else {
           createHourlyBookingApi({
             userId: currentUser.id,
+            workspaceId: space.id,
+            spaceName: space.name,
+            sectionType: deskType === 'theater' ? 'THEATER' : deskType === 'meeting-room' || (deskType as string).includes('hall') ? 'MEETING_ROOM' : 'DESK',
             sectionId: (space as any).sectionId || `sec-${space.id}`,
             packageId: (space as any).packageId || 'pkg-default',
             startDate: parseTimeToIso(startDate, startTime),

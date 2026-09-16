@@ -10,7 +10,11 @@ if (!user) return unauthorizedResponse();
     const bookings = await prisma.hourlyBooking.findMany({
       include: {
         user: { select: { name: true, email: true } },
-        section: true,
+        section: {
+          include: {
+            workspace: true
+          }
+        },
         package: true
       }
     })
@@ -60,7 +64,7 @@ export async function POST(request: NextRequest) {
     const user = getTokenFromRequest(request);
 
     const body = await request.json();
-    const { userId, sectionId, packageId, startDate, endDate, status = 'ACTIVE' } = body;
+    const { userId, sectionId, packageId, startDate, endDate, status = 'ACTIVE', sectionType, spaceName, workspaceId } = body;
 
     let effectiveUserId = userId || (user ? user.userId : null);
 
@@ -82,24 +86,33 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // تحديد نوع القسم المطلوب (THEATER, MEETING_ROOM, DESK)
+    const validSectionTypes = ['DESK', 'MEETING_ROOM', 'THEATER'];
+    const requestedType = validSectionTypes.includes(sectionType) ? sectionType : 'MEETING_ROOM';
+
     // التحقق من وجود القسم والباقة في قاعدة بيانات Neon
     let targetSectionId = sectionId;
     let targetPackageId = packageId;
 
     let sec = targetSectionId ? await prisma.workspaceSection.findUnique({
       where: { id: targetSectionId },
-      include: { hourlyPackages: true }
+      include: { hourlyPackages: true, workspace: true }
     }) : null;
 
-    if (!sec) {
+    // إذا لم يتطابق القسم أو لم يكن موجوداً، ابحث عن قسم بالنوع المطلوب
+    if (!sec || (sectionType && sec.type !== requestedType)) {
       sec = await prisma.workspaceSection.findFirst({
-        include: { hourlyPackages: true }
+        where: { type: requestedType },
+        include: { hourlyPackages: true, workspace: true }
       });
     }
 
     if (!sec) {
-      // إنشاء مساحة وقسم وباقة إذا كانت الجداول فارغة
-      let ws = await prisma.workspace.findFirst();
+      // إنشاء أو العثور على المساحة المناسبة
+      let ws = workspaceId ? await prisma.workspace.findUnique({ where: { id: workspaceId } }) : null;
+      if (!ws) {
+        ws = await prisma.workspace.findFirst();
+      }
       if (!ws) {
         let partner = await prisma.partner.findFirst();
         if (!partner) {
@@ -115,7 +128,7 @@ export async function POST(request: NextRequest) {
         ws = await prisma.workspace.create({
           data: {
             partnerId: partner.id,
-            name: 'The Hub Riyadh',
+            name: spaceName || 'The Hub Riyadh',
             city: 'Riyadh',
             passVisitValue: 1,
             totalCapacity: 50,
@@ -124,15 +137,21 @@ export async function POST(request: NextRequest) {
         });
       }
 
+      const sectionName = requestedType === 'THEATER' 
+        ? `${spaceName || 'Main'} Auditorium / Theater`
+        : requestedType === 'MEETING_ROOM'
+        ? `${spaceName || 'Main'} Meeting Hall`
+        : `${spaceName || 'Main'} Desk Area`;
+
       sec = await prisma.workspaceSection.create({
         data: {
           workspaceId: ws.id,
-          type: 'MEETING_ROOM',
-          name: 'Main Meeting Room',
-          capacity: 10,
-          dailyRate: 200,
+          type: requestedType as any,
+          name: sectionName,
+          capacity: requestedType === 'THEATER' ? 100 : 20,
+          dailyRate: requestedType === 'THEATER' ? 1500 : 200,
         },
-        include: { hourlyPackages: true }
+        include: { hourlyPackages: true, workspace: true }
       });
     }
 
@@ -141,13 +160,13 @@ export async function POST(request: NextRequest) {
     // التأكد من وجود باقة ساعات
     let pkg = sec.hourlyPackages && sec.hourlyPackages.length > 0
       ? sec.hourlyPackages.find((p: any) => p.id === targetPackageId) || sec.hourlyPackages[0]
-      : await prisma.hourlyPackage.findFirst();
+      : await prisma.hourlyPackage.findFirst({ where: { sectionId: sec.id } });
 
     if (!pkg) {
       pkg = await prisma.hourlyPackage.create({
         data: {
           sectionId: sec.id,
-          packageName: '1 Hour Meeting Package',
+          packageName: requestedType === 'THEATER' ? '1 Hour Theater Package' : '1 Hour Hourly Package',
           hoursAmount: 1,
           periodType: 'PER_DAY',
           price: 50,
@@ -169,7 +188,11 @@ export async function POST(request: NextRequest) {
       },
       include: {
         user: { select: { name: true, email: true } },
-        section: true,
+        section: {
+          include: {
+            workspace: true
+          }
+        },
         package: true,
       }
     });
