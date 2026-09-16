@@ -79,10 +79,10 @@ export default function OrgDashboard() {
             </span>
           </div>
           <h1 className="text-3xl sm:text-4xl text-soot font-normal font-serif-display">
-            {currentUser.orgName || currentUser.name}
+            {currentUser.orgName || 'Organization Dashboard'}
           </h1>
           <p className="text-moss text-sm mt-1">
-            {currentUser.industry || 'Enterprise Solutions'} · {employees.length || currentUser.orgSize || 15} team members on pass
+            Welcome, <span className="text-soot font-medium">{currentUser.name}</span> (HR Admin) · {currentUser.industry || 'Enterprise Solutions'} · {employees.length || currentUser.orgSize || 15} team members on pass
           </p>
         </div>
 

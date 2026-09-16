@@ -47,7 +47,7 @@ export default function SharedWalletModal({ isOpen, onClose }: SharedWalletModal
   if (!isOpen || !currentUser) return null;
 
   const currentBalance = companyWalletBalance ?? companyData?.balance ?? 0;
-  const companyName = companyData?.companyName || currentUser.orgName || currentUser.name || 'Corporate Account';
+  const companyName = companyData?.companyName || currentUser.orgName || 'Corporate Account';
   const employeeCount = (companyData?.employees?.length) || (currentUser.employees?.length) || 1;
   const totalPassesAllocated = companyData?.totalPassesAllocated || (employeeCount * 5);
 

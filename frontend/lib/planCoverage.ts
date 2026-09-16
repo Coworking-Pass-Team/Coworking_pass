@@ -128,7 +128,8 @@ export function evaluateReservationCoverage(
   deskType?: BookingType | SpaceType,
   durationHours: number = 1,
   durationMonths: number = 1,
-  seats: number = 1
+  seats: number = 1,
+  durationDays: number = 1
 ): ReservationCoverageResult {
   const effectiveSeats = Math.max(1, seats);
   const targetCategory: SpaceCategory = getSpaceCategory(space);
@@ -143,7 +144,7 @@ export function evaluateReservationCoverage(
   } else if (planType === 'yearly') {
     singleOriginalPrice = space.pricing?.yearly ?? ((space.pricing?.monthly ?? 1800) * 10);
   } else {
-    singleOriginalPrice = space.pricing?.daily ?? 150;
+    singleOriginalPrice = (space.pricing?.daily ?? 150) * Math.max(1, durationDays);
   }
 
   const fullOriginalTotal = singleOriginalPrice * effectiveSeats;

@@ -71,6 +71,9 @@ export interface VerifyLoginResponse {
     name: string;
     email: string;
     role: string;
+    companyId?: string | null;
+    companyName?: string | null;
+    orgName?: string | null;
   };
   error?: string;
 }
