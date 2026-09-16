@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
+import { seedStandardWorkspaces } from '@/lib/seed-data';
 
 
 export async function GET(request: Request) {
@@ -113,7 +114,7 @@ export async function POST(request: NextRequest) {
     let targetSectionId = sectionId;
     let targetPackageId = packageId;
 
-    // التحقق أولاً من وجود مساحة تطابق الاسم أو المعرف المطلوب
+    // البحث عن مساحة العمل المعتمدة مسبقاً (لا ننشئ Workspace جديد عند الحجز أبداً)
     let ws = workspaceId ? await prisma.workspace.findUnique({ where: { id: workspaceId } }) : null;
     if (!ws && spaceName) {
       ws = await prisma.workspace.findFirst({
@@ -122,27 +123,21 @@ export async function POST(request: NextRequest) {
     }
 
     if (!ws) {
-      let partner = await prisma.partner.findFirst();
-      if (!partner) {
-        partner = await prisma.partner.create({
-          data: {
-            brandName: 'Coworking Main Partner',
-            contactEmail: 'partner@coworkingpass.com',
-            taxNumber: '0000000000',
-            revenueSharePercentage: 0,
-          }
+      const count = await prisma.workspace.count();
+      if (count === 0) {
+        await seedStandardWorkspaces();
+        ws = await prisma.workspace.findFirst({
+          where: spaceName ? { name: { equals: spaceName, mode: 'insensitive' } } : undefined
         });
       }
-      ws = await prisma.workspace.create({
-        data: {
-          partnerId: partner.id,
-          name: spaceName || 'The Hub Riyadh',
-          city: resolveCity(spaceName, city),
-          passVisitValue: 1,
-          totalCapacity: 50,
-          dailyRate: 100,
-        }
-      });
+    }
+
+    if (!ws) {
+      ws = await prisma.workspace.findFirst();
+    }
+
+    if (!ws) {
+      return NextResponse.json({ error: 'مساحة العمل غير موجودة' }, { status: 404 });
     }
 
     // التحقق من وجود القسم المطلوب داخل هذه المساحة المحددة

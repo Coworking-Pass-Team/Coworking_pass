@@ -354,6 +354,7 @@ export default function BookingFlow() {
           const durationType = plan === 'monthly' ? 'MONTHLY' : plan === 'yearly' ? 'YEARLY' : 'DAILY';
           createDirectBookingApi({
             userId: currentUser.id,
+            workspaceId: space.id,
             spaceName: space.name,
             city: space.city,
             sectionId: (space as any).sectionId || `sec-${space.id}`,
@@ -372,6 +373,7 @@ export default function BookingFlow() {
 
           createHourlyBookingApi({
             userId: currentUser.id,
+            workspaceId: space.id,
             spaceName: space.name,
             city: space.city,
             sectionType: computedSectionType,
