@@ -83,7 +83,20 @@ export async function POST(request: NextRequest) {
     const user = getTokenFromRequest(request);
 
     const body = await request.json();
-    const { userId, workspaceId, sectionId, durationType, bookingDate, status = 'CONFIRMED', spaceName } = body;
+    const { userId, workspaceId, sectionId, durationType, bookingDate, status = 'CONFIRMED', spaceName, city } = body;
+
+    // تطبيع المدينة — استخدم المدينة المُرسَلة أو استنتجها من اسم المساحة
+    const resolveCity = (name?: string, sentCity?: string): string => {
+      if (sentCity && sentCity.trim()) return sentCity.trim();
+      const n = (name || '').toLowerCase();
+      if (n.includes('jeddah') || n.includes('جدة')) return 'Jeddah';
+      if (n.includes('dammam') || n.includes('الدمام')) return 'Dammam';
+      if (n.includes('riyadh') || n.includes('الرياض')) return 'Riyadh';
+      if (n.includes('khobar') || n.includes('الخبر')) return 'Al Khobar';
+      if (n.includes('mecca') || n.includes('مكة')) return 'Mecca';
+      if (n.includes('medina') || n.includes('المدينة')) return 'Medina';
+      return 'Riyadh';
+    };
 
     let effectiveUserId = userId || (user ? user.userId : null);
 
@@ -142,7 +155,7 @@ export async function POST(request: NextRequest) {
         data: {
           partnerId: partner.id,
           name: spaceName || 'The Hub Riyadh',
-          city: 'Riyadh',
+          city: resolveCity(spaceName, city),
           passVisitValue: 1,
           totalCapacity: 50,
           dailyRate: 100,

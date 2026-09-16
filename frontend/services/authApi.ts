@@ -308,6 +308,7 @@ export async function createDirectBookingApi(payload: {
   bookingDate: string;
   status?: string;
   spaceName?: string;     // الاسم الأساسي لإيجاد الـ workspace في الداتابيس
+  city?: string;          // المدينة الصحيحة للمساحة
 }) {
   const url = `${getAuthBaseUrl()}/api/direct-bookings`;
   try {
@@ -335,10 +336,11 @@ export async function createDirectBookingApi(payload: {
       }
     }
 
-    // نرسل spaceName للـ backend وهو يتولى إيجاد/إنشاء الـ workspace والـ section
+    // نرسل spaceName و city للـ backend وهو يتولى إيجاد/إنشاء الـ workspace والـ section
     const finalPayload = {
       userId: targetUserId,
       spaceName: payload.spaceName,
+      city: payload.city,             // المدينة الصحيحة للمساحة
       sectionId: payload.sectionId,   // backend سيتجاهله لو كان وهمياً وسيبحث بـ spaceName
       durationType: payload.durationType,
       bookingDate: payload.bookingDate,
@@ -838,6 +840,7 @@ export async function createHourlyBookingApi(payload: {
   endDate: string;
   status?: string;
   spaceName?: string;
+  city?: string;          // مدينة المساحة لتسجيلها بشكل صحيح في الداتابيس
   sectionType?: 'DESK' | 'MEETING_ROOM' | 'THEATER';
 }) {
   const url = `${getAuthBaseUrl()}/api/hourly-bookings`;
@@ -866,7 +869,7 @@ export async function createHourlyBookingApi(payload: {
       }
     }
 
-    // نرسل spaceName و sectionType للـ backend وهو يتولى إيجاد/إنشاء الـ workspace والـ section والـ package
+    // نرسل spaceName و sectionType و city للـ backend وهو يتولى إيجاد/إنشاء الـ workspace والـ section والـ package
     const finalPayload = {
       userId: targetUserId,
       sectionId: payload.sectionId,   // backend سيتجاهله لو كان وهمياً وسيبحث بـ spaceName + sectionType
@@ -875,6 +878,7 @@ export async function createHourlyBookingApi(payload: {
       endDate: payload.endDate,
       status: payload.status || 'ACTIVE',
       spaceName: payload.spaceName,
+      city: payload.city,             // المدينة الصحيحة للمساحة
       sectionType: payload.sectionType,
     };
 
