@@ -326,69 +326,95 @@ export default function BookingFlow() {
         notes,
       });
 
-      // Synchronize direct booking (daily, monthly, yearly) or hourly booking with backend API
-      if (plan !== 'hourly') {
-        const durationType = plan === 'monthly' ? 'MONTHLY' : plan === 'yearly' ? 'YEARLY' : 'DAILY';
-        createDirectBookingApi({
-          userId: currentUser.id,
-          workspaceId: space.id,
-          sectionId: (space as any).sectionId || `sec-${space.id}`,
-          durationType,
-          bookingDate: new Date(startDate).toISOString(),
-          status: 'CONFIRMED',
-        }).catch((err: any) => console.warn('[Direct Booking API Sync]', err));
-      } else {
-        createHourlyBookingApi({
-          userId: currentUser.id,
-          sectionId: (space as any).sectionId || `sec-${space.id}`,
-          packageId: (space as any).packageId || 'pkg-default',
-          startDate: new Date(`${startDate}T${startTime.replace(' ', '')}`).toISOString(),
-          endDate: new Date(`${endDate || startDate}T${endTime.replace(' ', '')}`).toISOString(),
-          status: 'CONFIRMED',
-        }).catch((err: any) => console.warn('[Hourly Booking API Sync]', err));
-      }
+      // Convert time string (e.g. '09:00 AM') safely to ISO Date string
+      const parseTimeToIso = (baseDateStr: string, timeStr?: string) => {
+        try {
+          if (!timeStr) return new Date(baseDateStr).toISOString();
+          const cleanStr = timeStr.trim().toUpperCase();
+          const isPM = cleanStr.includes('PM');
+          const isAM = cleanStr.includes('AM');
+          const timeOnly = cleanStr.replace(/[^\d:]/g, '');
+          const parts = timeOnly.split(':');
+          let h = parseInt(parts[0], 10) || 0;
+          const m = parts.length > 1 ? parseInt(parts[1], 10) || 0 : 0;
+          if (isPM && h < 12) h += 12;
+          if (isAM && h === 12) h = 0;
+          
+          const d = new Date(baseDateStr);
+          d.setHours(h, m, 0, 0);
+          return d.toISOString();
+        } catch {
+          return new Date(baseDateStr).toISOString();
+        }
+      };
 
-      if (useWalletBalance && walletDeduction > 0 && withdrawFromWallet) {
-        withdrawFromWallet(walletDeduction, `Booking payment for ${space.name}`);
-      }
+      try {
+        // Synchronize direct booking (daily, monthly, yearly) or hourly booking with backend API
+        if (plan !== 'hourly') {
+          const durationType = plan === 'monthly' ? 'MONTHLY' : plan === 'yearly' ? 'YEARLY' : 'DAILY';
+          createDirectBookingApi({
+            userId: currentUser.id,
+            workspaceId: space.id,
+            sectionId: (space as any).sectionId || `sec-${space.id}`,
+            durationType,
+            bookingDate: new Date(startDate).toISOString(),
+            status: 'CONFIRMED',
+          }).catch((err: any) => console.warn('[Direct Booking API Sync]', err));
+        } else {
+          createHourlyBookingApi({
+            userId: currentUser.id,
+            sectionId: (space as any).sectionId || `sec-${space.id}`,
+            packageId: (space as any).packageId || 'pkg-default',
+            startDate: parseTimeToIso(startDate, startTime),
+            endDate: parseTimeToIso(endDate || startDate, endTime),
+            status: 'CONFIRMED',
+          }).catch((err: any) => console.warn('[Hourly Booking API Sync]', err));
+        }
 
-      // Record payment transaction
-      if (finalPayablePrice > 0) {
-        createPaymentApi({
-          userId: currentUser.id,
-          amount: finalPayablePrice,
-          method: useWalletBalance && walletDeduction >= totalPrice ? 'WALLET' : 'MADA',
-          paymentFor: isHourly ? 'HOURLY_BOOKING' : 'DIRECT_BOOKING',
-          referenceId: booking.id,
-          status: 'SUCCESS',
-        }).catch((err: any) => console.warn('[Payment Record Sync]', err));
-      }
+        if (useWalletBalance && walletDeduction > 0 && withdrawFromWallet) {
+          withdrawFromWallet(walletDeduction, `Booking payment for ${space.name}`);
+        }
 
-      // Award earned loyalty points from this booking transaction
-      if (earnedPoints > 0 && currentUser) {
-        createPointsTransactionApi({
-          userId: currentUser.id,
-          type: 'EARNED',
-          points: earnedPoints,
-          description: `Earned points for booking at ${space.name}`,
-        }).then((res) => {
-          if (res.success) {
-            getLoyaltyPointsApi(currentUser.id).then((ptsRes) => {
-              if (ptsRes.success && Array.isArray(ptsRes.data)) {
-                const uPts = ptsRes.data.find((p: any) => p.userId === currentUser.id);
-                if (uPts && typeof uPts.availableBalance === 'number') {
-                  updateCurrentUser({ loyaltyPoints: uPts.availableBalance });
+        // Record payment transaction
+        if (finalPayablePrice > 0) {
+          createPaymentApi({
+            userId: currentUser.id,
+            amount: finalPayablePrice,
+            method: useWalletBalance && walletDeduction >= totalPrice ? 'WALLET' : 'MADA',
+            paymentFor: isHourly ? 'HOURLY_BOOKING' : 'DIRECT_BOOKING',
+            referenceId: booking.id,
+            status: 'SUCCESS',
+          }).catch((err: any) => console.warn('[Payment Record Sync]', err));
+        }
+
+        // Award earned loyalty points from this booking transaction
+        if (earnedPoints > 0 && currentUser) {
+          createPointsTransactionApi({
+            userId: currentUser.id,
+            type: 'EARNED',
+            points: earnedPoints,
+            description: `Earned points for booking at ${space.name}`,
+          }).then((res) => {
+            if (res.success) {
+              getLoyaltyPointsApi(currentUser.id).then((ptsRes) => {
+                if (ptsRes.success && Array.isArray(ptsRes.data)) {
+                  const uPts = ptsRes.data.find((p: any) => p.userId === currentUser.id);
+                  if (uPts && typeof uPts.availableBalance === 'number') {
+                    updateCurrentUser({ loyaltyPoints: uPts.availableBalance });
+                  }
                 }
-              }
-            }).catch(() => {});
-          }
-        }).catch((err) => console.warn('[Points Award Sync]', err));
+              }).catch(() => {});
+            }
+          }).catch((err) => console.warn('[Points Award Sync]', err));
+        }
+      } catch (syncErr) {
+        console.warn('[Sync background error]', syncErr);
+      } finally {
+        setConfirmedBooking(booking);
+        setStep(3);
+        setLoading(false);
+        showToast('Workspace booked successfully!', 'success');
       }
-
-      setConfirmedBooking(booking);
-      setStep(3);
-      setLoading(false);
-      showToast('Workspace booked successfully!', 'success');
     }, 900);
   };
 

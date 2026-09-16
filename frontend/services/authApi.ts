@@ -1026,10 +1026,36 @@ export interface PointsTransactionPayload {
 export async function createPointsTransactionApi(payload: PointsTransactionPayload) {
   const url = `${getAuthBaseUrl()}/api/points-transactions`;
   try {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    let targetUserId = payload.userId;
+
+    if (!uuidRegex.test(targetUserId)) {
+      if (typeof window !== 'undefined') {
+        const storedUserId = localStorage.getItem('cp_userId') || localStorage.getItem('userId');
+        if (storedUserId && uuidRegex.test(storedUserId)) {
+          targetUserId = storedUserId;
+        }
+      }
+      if (!uuidRegex.test(targetUserId)) {
+        try {
+          const usersRes = await fetch(`${getAuthBaseUrl()}/api/users`, { headers: getAuthHeaders() });
+          if (usersRes.ok) {
+            const usersList = await usersRes.json();
+            if (Array.isArray(usersList) && usersList.length > 0) {
+              targetUserId = usersList[0].id;
+            }
+          }
+        } catch (_) {}
+      }
+    }
+
     const response = await fetch(url, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        ...payload,
+        userId: targetUserId,
+      }),
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {

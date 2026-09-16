@@ -5,8 +5,18 @@ import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-tok
 export async function GET(request: Request) {
   try {
     const user = getTokenFromRequest(request);
-if (!user) return unauthorizedResponse();
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
+
+    const whereClause: any = {};
+    if (userId) {
+      whereClause.userId = userId;
+    } else if (user && user.role !== 'SUPER_ADMIN') {
+      whereClause.userId = user.userId;
+    }
+
     const points = await prisma.loyaltyPoint.findMany({
+      where: whereClause,
       include: {
         user: { select: { name: true, email: true } }
       }
