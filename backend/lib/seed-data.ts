@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import bcrypt from 'bcryptjs';
 
 export interface StandardSpaceSeed {
   name: string;
@@ -503,7 +504,84 @@ export async function seedStandardWorkspaces() {
     }
   }
 
+  // 5. Ensure Default Loyalty Rules exist
+  await seedLoyaltyRules();
+
   return await prisma.workspace.findMany({
     include: { partner: true, sections: { include: { hourlyPackages: true } }, amenities: { include: { amenity: true } } },
+  });
+}
+
+export async function seedLoyaltyRules() {
+  // 1. Find or create an admin user for proposedBy / approvedBy
+  let admin = await prisma.user.findFirst({
+    where: { role: 'SUPER_ADMIN' },
+  });
+
+  if (!admin) {
+    admin = await prisma.user.findFirst();
+  }
+
+  if (!admin) {
+    const passwordHash = await bcrypt.hash('Admin@123456', 10);
+    admin = await prisma.user.create({
+      data: {
+        name: 'Super Admin',
+        email: 'admin@coworkingpass.sa',
+        passwordHash,
+        role: 'SUPER_ADMIN',
+        emailVerified: true,
+      },
+    });
+  }
+
+  // 2. Rule 1: كسب 10 نقاط لكل 100 ريال تُدفع
+  const existingEarning = await prisma.loyaltyRule.findFirst({
+    where: { ruleType: 'EARNING' },
+  });
+
+  if (!existingEarning) {
+    await prisma.loyaltyRule.create({
+      data: {
+        ruleName: 'قاعدة الكسب الافتراضية (10 نقاط لكل 100 ريال)',
+        ruleType: 'EARNING',
+        pointsValue: 10,
+        monetaryValue: 100,
+        description: 'كسب 10 نقاط ولاء لكل 100 ريال يتم إنفاقها على الحجوزات',
+        status: 'APPROVED',
+        isActive: true,
+        proposedBy: admin.id,
+        approvedBy: admin.id,
+      },
+    });
+  }
+
+  // 3. Rule 2: استبدال 100 نقطة بخصم 25 ريال
+  const existingRedemption = await prisma.loyaltyRule.findFirst({
+    where: { ruleType: 'REDEMPTION' },
+  });
+
+  if (!existingRedemption) {
+    await prisma.loyaltyRule.create({
+      data: {
+        ruleName: 'قاعدة الاستبدال الافتراضية (100 نقطة = 25 ريال)',
+        ruleType: 'REDEMPTION',
+        pointsValue: 100,
+        monetaryValue: 25,
+        description: 'استبدال كل 100 نقطة ولاء بخصم قدره 25 ريال عند الدفع',
+        status: 'APPROVED',
+        isActive: true,
+        proposedBy: admin.id,
+        approvedBy: admin.id,
+      },
+    });
+  }
+
+  return await prisma.loyaltyRule.findMany({
+    include: {
+      proposer: { select: { name: true, email: true } },
+      approver: { select: { name: true, email: true } },
+    },
+    orderBy: { createdAt: 'desc' },
   });
 }

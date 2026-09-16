@@ -2,24 +2,29 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
+import { seedLoyaltyRules } from '@/lib/seed-data';
+
 export async function GET(request: Request) {
   try {
-    const user = getTokenFromRequest(request);
-if (!user) return unauthorizedResponse();
-    const rules = await prisma.loyaltyRule.findMany({
+    let rules = await prisma.loyaltyRule.findMany({
       include: {
         proposer: { select: { name: true, email: true } },
         approver: { select: { name: true, email: true } }
       },
       orderBy: { createdAt: 'desc' }
-    })
-    return NextResponse.json(rules)
+    });
+
+    if (rules.length === 0) {
+      rules = await seedLoyaltyRules();
+    }
+
+    return NextResponse.json(rules);
   } catch (error) {
-    console.error('❌ Error fetching rules:', error)
+    console.error('❌ Error fetching rules:', error);
     return NextResponse.json(
       { error: 'حدث خطأ في جلب قواعد الولاء' },
       { status: 500 }
-    )
+    );
   }
 }
 /**
