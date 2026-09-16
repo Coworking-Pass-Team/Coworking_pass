@@ -70,7 +70,7 @@ export function getApiBaseUrl(): string {
     const cleaned = envUrl.replace(/\/$/, '');
     return cleaned.endsWith('/api') ? cleaned : `${cleaned}/api`;
   }
-  return 'http://localhost:3001/api';
+  return 'https://coworking-pass-k49w.onrender.com/api';
 }
 
 export const API_BASE_URL = getApiBaseUrl();
