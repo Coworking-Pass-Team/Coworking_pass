@@ -58,24 +58,31 @@ async function syncWorkspaceAmenities(workspaceId: string, amenities: string[]) 
   }
 }
 
+import { seedStandardWorkspaces } from "@/lib/seed-data";
+
 export async function GET(request: Request) {
   try {
-    const user = getTokenFromRequest(request);
-    if (!user) return unauthorizedResponse();
-
     const { searchParams } = new URL(request.url);
     const city = searchParams.get("city");
     const minPrice = searchParams.get("minPrice");
     const maxPrice = searchParams.get("maxPrice");
 
-    const workspaces = await prisma.workspace.findMany({
+    let workspaces = await prisma.workspace.findMany({
       where: {
         ...(city && { city: { equals: city, mode: "insensitive" } }),
         ...(minPrice && { dailyRate: { gte: Number(minPrice) } }),
         ...(maxPrice && { dailyRate: { lte: Number(maxPrice) } }),
       },
-      include: { partner: true, sections: true, amenities: { include: { amenity: true } } },
+      include: { partner: true, sections: { include: { hourlyPackages: true } }, amenities: { include: { amenity: true } } },
     });
+
+    // إذا كانت قاعدة البيانات جديدة وخالية، نغذيها تلقائياً بجميع مساحات الشبكة الرسمية
+    if (workspaces.length === 0 && !city && !minPrice && !maxPrice) {
+      await seedStandardWorkspaces();
+      workspaces = await prisma.workspace.findMany({
+        include: { partner: true, sections: { include: { hourlyPackages: true } }, amenities: { include: { amenity: true } } },
+      });
+    }
 
     const formatted = workspaces.map((w: any) => ({
       ...w,
