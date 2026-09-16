@@ -125,6 +125,34 @@ export function calculateEndDate(
   return startDate;
 }
 
+/**
+ * Calculate the number of days between startDate and endDate (inclusive).
+ * If endDate is missing, same as startDate, or earlier, returns 1.
+ */
+export function calculateDailyDurationDays(startDate: string, endDate?: string): number {
+  if (!startDate) return 1;
+  if (!endDate || endDate === startDate) return 1;
+  const [y1, m1, d1] = startDate.split('-').map(Number);
+  const [y2, m2, d2] = endDate.split('-').map(Number);
+  if (!y1 || !m1 || !d1 || !y2 || !m2 || !d2) return 1;
+  const utc1 = Date.UTC(y1, m1 - 1, d1);
+  const utc2 = Date.UTC(y2, m2 - 1, d2);
+  const diffDays = Math.round((utc2 - utc1) / (1000 * 60 * 60 * 24));
+  return diffDays < 0 ? 1 : diffDays + 1;
+}
+
+/**
+ * Format a human-readable date range with duration label.
+ */
+export function formatDateRange(startDate: string, endDate?: string): string {
+  if (!startDate) return '';
+  if (!endDate || endDate === startDate) {
+    return `${startDate} (1 day)`;
+  }
+  const days = calculateDailyDurationDays(startDate, endDate);
+  return `${startDate} → ${endDate} (${days} ${days === 1 ? 'day' : 'days'})`;
+}
+
 export const ALL_SPACE_TYPES: { value: SpaceType; label: string; group: 'Offices' | 'Halls' | 'Theaters' | 'Desks & Workspaces' }[] = [
   // Offices
   { value: 'private-office', label: 'Private Office', group: 'Offices' },
@@ -270,6 +298,15 @@ export function formatDistance(distanceInKm: number | null | undefined): string 
   return `${distanceInKm.toFixed(1)} km`;
 }
 
+export const CITY_COORDINATES: Record<string, { lat: number; lng: number }> = {
+  Riyadh: { lat: 24.7136, lng: 46.6753 },
+  Jeddah: { lat: 21.5433, lng: 39.1728 },
+  Dammam: { lat: 26.4207, lng: 50.0888 },
+  Khobar: { lat: 26.2810, lng: 50.2080 },
+  Madinah: { lat: 24.4672, lng: 39.6111 },
+  Makkah: { lat: 21.3891, lng: 39.8579 },
+};
+
 /**
  * Helper to safely extract coordinates from a Space object.
  */
@@ -280,6 +317,9 @@ export function getSpaceCoordinates(space?: Space | null): { lat: number; lng: n
   }
   if (typeof space.latitude === 'number' && typeof space.longitude === 'number') {
     return { lat: space.latitude, lng: space.longitude };
+  }
+  if (space.city && CITY_COORDINATES[space.city]) {
+    return CITY_COORDINATES[space.city];
   }
   return null;
 }
@@ -650,18 +690,23 @@ export function formatBookingTimeDisplay(booking: {
   endTime?: string;
   durationHours?: number;
   durationMonths?: number;
+  durationDays?: number;
+  startDate?: string;
+  endDate?: string;
 }): string {
   if (booking.plan === 'hourly') {
     return formatHourlyTimeRange(booking.startTime, booking.endTime, booking.durationHours);
   }
+  const timeWindow = booking.startTime && booking.endTime ? ` (${booking.startTime} – ${booking.endTime})` : '';
   if (booking.plan === 'monthly') {
     const m = booking.durationMonths || 1;
-    return `${m} ${m === 1 ? 'Month' : 'Months'}`;
+    return `${m} ${m === 1 ? 'Month' : 'Months'}${timeWindow}`;
   }
   if (booking.plan === 'yearly') {
-    return '1 Year';
+    return `1 Year${timeWindow}`;
   }
-  return '1 Day';
+  const d = booking.durationDays || (booking.startDate && booking.endDate ? calculateDailyDurationDays(booking.startDate, booking.endDate) : 1);
+  return `${d} ${d === 1 ? 'Day' : 'Days'}${timeWindow}`;
 }
 
 /**
@@ -698,6 +743,113 @@ export function calculateEndTime(startTimeStr: string, durationHours: number = 1
   return `${String(displayHours).padStart(2, '0')}:${displayMinutes} ${period}`;
 }
 
+export interface OperatingHoursRange {
+  openMinutes: number;
+  closeMinutes: number;
+  openDisplay: string;
+  closeDisplay: string;
+  is24_7: boolean;
+}
+
+/**
+ * Extracts numeric open & close minutes from midnight and display strings from openHours.
+ */
+export function getOperatingHoursRange(openHoursStr?: string, dateStr?: string): OperatingHoursRange {
+  let openMin = 420;  // 7:00 AM default
+  let closeMin = 1380; // 11:00 PM default
+
+  if (!openHoursStr) {
+    return {
+      openMinutes: openMin,
+      closeMinutes: closeMin,
+      openDisplay: '07:00 AM',
+      closeDisplay: '11:00 PM',
+      is24_7: false,
+    };
+  }
+
+  const lower = openHoursStr.toLowerCase();
+  if (lower.includes('24/7') || lower.includes('24 hours')) {
+    return {
+      openMinutes: 0,
+      closeMinutes: 1440,
+      openDisplay: '12:00 AM',
+      closeDisplay: '11:59 PM',
+      is24_7: true,
+    };
+  }
+
+  if (dateStr) {
+    const dayOfWeek = new Date(dateStr).getDay();
+    if ((dayOfWeek === 5 || dayOfWeek === 6) && (lower.includes('fri') || lower.includes('sat'))) {
+      if (lower.includes('2pm') || lower.includes('14:00')) openMin = 14 * 60;
+      else if (lower.includes('10am')) openMin = 10 * 60;
+      else if (lower.includes('9am')) openMin = 9 * 60;
+    }
+  }
+
+  if (openMin === 420) {
+    if (lower.includes('6am')) openMin = 6 * 60;
+    else if (lower.includes('7am')) openMin = 7 * 60;
+    else if (lower.includes('8am')) openMin = 8 * 60;
+    else if (lower.includes('9am')) openMin = 9 * 60;
+    else if (lower.includes('10am')) openMin = 10 * 60;
+  }
+
+  if (lower.includes('11pm')) closeMin = 23 * 60;
+  else if (lower.includes('10pm')) closeMin = 22 * 60;
+  else if (lower.includes('9pm')) closeMin = 21 * 60;
+  else if (lower.includes('8pm')) closeMin = 20 * 60;
+  else if (lower.includes('6pm')) closeMin = 18 * 60;
+
+  const formatMin = (mins: number) => {
+    const h24 = Math.floor(mins / 60) % 24;
+    const period = h24 >= 12 ? 'PM' : 'AM';
+    const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+    const m = mins % 60;
+    return `${String(h12).padStart(2, '0')}:${String(m).padStart(2, '0')} ${period}`;
+  };
+
+  return {
+    openMinutes: openMin,
+    closeMinutes: closeMin,
+    openDisplay: formatMin(openMin),
+    closeDisplay: formatMin(closeMin),
+    is24_7: false,
+  };
+}
+
+/**
+ * Returns available start times filtered strictly to the workspace's open hours.
+ */
+export function getFilteredStartTimes(openHoursStr?: string, dateStr?: string): string[] {
+  const range = getOperatingHoursRange(openHoursStr, dateStr);
+  if (range.is24_7) return START_TIMES;
+
+  const filtered = START_TIMES.filter((t) => {
+    const min = timeStringToMinutes(t);
+    return min >= range.openMinutes && min < range.closeMinutes;
+  });
+
+  return filtered.length > 0 ? filtered : START_TIMES;
+}
+
+/**
+ * Returns available end times strictly after startTime and within the workspace's open hours.
+ */
+export function getFilteredEndTimes(startTimeStr: string, openHoursStr?: string, dateStr?: string): string[] {
+  const startMin = timeStringToMinutes(startTimeStr || '09:00 AM');
+  const range = getOperatingHoursRange(openHoursStr, dateStr);
+
+  const filtered = END_TIMES.filter((t) => {
+    const min = timeStringToMinutes(t);
+    return min > startMin && (range.is24_7 || min <= range.closeMinutes);
+  });
+
+  if (filtered.length > 0) return filtered;
+  return getAvailableEndTimes(startTimeStr);
+}
+
 /**
  * Validate whether the booking time falls inside the space's operating hours.
  */
@@ -716,46 +868,21 @@ export function isTimeWithinOpenHours(
     return { valid: false, reason: 'End time must be after start time.' };
   }
 
-  let openMin = 420;  // 7:00 AM
-  let closeMin = 1380; // 11:00 PM
+  const range = getOperatingHoursRange(openHoursStr, dateStr);
+  if (range.is24_7) return { valid: true };
 
-  if (openHoursStr) {
-    const lower = openHoursStr.toLowerCase();
-    if (lower.includes('24/7') || lower.includes('24 hours')) {
-      return { valid: true };
-    }
-    if (dateStr) {
-      const dayOfWeek = new Date(dateStr).getDay();
-      if ((dayOfWeek === 5 || dayOfWeek === 6) && lower.includes('fri')) {
-        if (lower.includes('2pm') || lower.includes('14:00')) openMin = 14 * 60;
-        else if (lower.includes('9am')) openMin = 9 * 60;
-        else if (lower.includes('10am')) openMin = 10 * 60;
-      }
-    }
-    if (lower.includes('8am')) openMin = 8 * 60;
-    else if (lower.includes('7am')) openMin = 7 * 60;
-    else if (lower.includes('6am')) openMin = 6 * 60;
-    else if (lower.includes('9am')) openMin = 9 * 60;
-
-    if (lower.includes('11pm')) closeMin = 23 * 60;
-    else if (lower.includes('10pm')) closeMin = 22 * 60;
-    else if (lower.includes('9pm')) closeMin = 21 * 60;
-    else if (lower.includes('8pm')) closeMin = 20 * 60;
-    else if (lower.includes('6pm')) closeMin = 18 * 60;
+  if (startMin < range.openMinutes) {
+    return {
+      valid: false,
+      reason: `Space opens at ${range.openDisplay}. Please select a start time within operating hours.`,
+    };
   }
 
-  if (startMin < openMin) {
-    const openH = Math.floor(openMin / 60);
-    const openPeriod = openH >= 12 ? 'PM' : 'AM';
-    const displayH = openH % 12 === 0 ? 12 : openH % 12;
-    return { valid: false, reason: `Space opens at ${displayH}:00 ${openPeriod}. Please select a later start time.` };
-  }
-
-  if (endMin > closeMin) {
-    const closeH = Math.floor(closeMin / 60);
-    const closePeriod = closeH >= 12 ? 'PM' : 'AM';
-    const displayH = closeH % 12 === 0 ? 12 : closeH % 12;
-    return { valid: false, reason: `Space closes at ${displayH}:00 ${closePeriod}. Reservation duration exceeds operating hours.` };
+  if (endMin > range.closeMinutes) {
+    return {
+      valid: false,
+      reason: `Space closes at ${range.closeDisplay}. Selected reservation duration exceeds operating hours.`,
+    };
   }
 
   return { valid: true };
@@ -813,7 +940,8 @@ export function getEffectiveSpacePrice(
   deskType?: BookingType | SpaceType,
   durationHours: number = 1,
   durationMonths: number = 1,
-  seats: number = 1
+  seats: number = 1,
+  durationDays: number = 1
 ): PlanPricingResult {
   if (!space) {
     return {
@@ -840,7 +968,8 @@ export function getEffectiveSpacePrice(
   } else if (planType === 'yearly') {
     singleOriginalPrice = space.pricing?.yearly ?? ((space.pricing?.monthly ?? 1800) * 10);
   } else {
-    singleOriginalPrice = space.pricing?.daily ?? 150;
+    const dailyRate = space.pricing?.daily ?? 150;
+    singleOriginalPrice = dailyRate * Math.max(1, durationDays);
   }
 
   const fullOriginalTotal = singleOriginalPrice * effectiveSeats;
@@ -1002,6 +1131,30 @@ export function getEffectiveSpacePrice(
     };
   }
 
+  // Special case: Single-day Day Pass booking multiple daily days
+  if (isDayPass && planType === 'daily' && durationDays > 1) {
+    const dailyRate = space.pricing?.daily ?? 150;
+    const coveredAmount = dailyRate * 1; // 1 day covered for 1 seat
+    const payablePrice = Math.max(0, fullOriginalTotal - coveredAmount);
+    const payableDays = durationDays - 1;
+    return {
+      isCovered: false,
+      isPartiallyCovered: true,
+      effectivePrice: payablePrice,
+      originalPrice: fullOriginalTotal,
+      badgeLabel: `1 Day Included in Pass · SAR ${payablePrice.toLocaleString()} to Pay`,
+      displayPriceLabel: `1 Day Included in Pass`,
+      totalPayableLabel: `SAR ${payablePrice.toLocaleString()} to Pay`,
+      hasDiscount: true,
+      discountPercentage: Math.round(((fullOriginalTotal - payablePrice) / fullOriginalTotal) * 100),
+      coveredSeats: Math.min(1, effectiveSeats),
+      payableSeats: Math.max(0, effectiveSeats - 1),
+      coveredHours: durationHours,
+      payableHours: 0,
+      coverageNote: `1 day included in Day Pass, ${payableDays} day${payableDays > 1 ? 's' : ''} payable`,
+    };
+  }
+
   // Evaluate seat coverage
   const coveredSeats = Math.min(effectiveSeats, maxCoveredSeats);
   const payableSeats = Math.max(0, effectiveSeats - coveredSeats);
@@ -1066,6 +1219,9 @@ export interface Booking {
   // Duration for Monthly Reservations (Multi-month: 1, 2, 3, 6, 12)
   durationMonths?: number;
 
+  // Duration for Daily Reservations (in days: Start Date to End Date)
+  durationDays?: number;
+
   bookingPackageId?: string;
   bookingHours?: number;
 
@@ -1107,6 +1263,7 @@ export interface CartItem {
   endTime?: string;
   durationHours?: number;
   durationMonths?: number;
+  durationDays?: number;
   startDate: string;
   endDate: string;
   seats: number;
@@ -1134,7 +1291,8 @@ export function getBookingPrice(b: Booking, spaces: Space[] = []): number {
   if (b.plan === 'yearly') {
     return (space.pricing?.yearly || ((space.pricing?.monthly || 1800) * 10)) * seats;
   }
-  return (space.pricing?.daily || 150) * seats;
+  const days = b.durationDays || calculateDailyDurationDays(b.startDate, b.endDate);
+  return (space.pricing?.daily || 150) * seats * days;
 }
 
 export type Screen =

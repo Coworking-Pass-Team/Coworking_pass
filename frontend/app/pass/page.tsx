@@ -17,6 +17,11 @@ function PassVerificationContent() {
   const spaceName = searchParams.get('spaceName') || 'Coworking Pass Space';
   const plan = searchParams.get('plan') || 'Daily Pass';
   const seats = searchParams.get('seats') || '1';
+  const startDate = searchParams.get('startDate');
+  const endDate = searchParams.get('endDate');
+  const durationDays = searchParams.get('durationDays');
+  const startTime = searchParams.get('startTime');
+  const endTime = searchParams.get('endTime');
 
   const matchedSpace = spaces.find(s => s.id === spaceId);
   const displayName = matchedSpace?.name || spaceName;
@@ -116,6 +121,35 @@ function PassVerificationContent() {
             <span className="text-moss">Pass Type</span>
             <span className="font-semibold text-soot capitalize">{plan}</span>
           </div>
+
+          {startDate && (
+            <div className="flex items-center justify-between pb-3 border-b border-soot/8">
+              <span className="text-moss">
+                {plan.toLowerCase().includes('daily') || plan === 'daily' ? 'Date Range' : 'Booking Date'}
+              </span>
+              <span className="font-semibold text-soot text-right">
+                {endDate && endDate !== startDate ? `${startDate} to ${endDate}` : startDate}
+              </span>
+            </div>
+          )}
+
+          {durationDays && (plan.toLowerCase().includes('daily') || plan === 'daily') && (
+            <div className="flex items-center justify-between pb-3 border-b border-soot/8">
+              <span className="text-moss">Duration</span>
+              <span className="font-semibold text-soot">
+                {durationDays} {Number(durationDays) === 1 ? 'Day' : 'Days'}
+              </span>
+            </div>
+          )}
+
+          {startTime && endTime && (
+            <div className="flex items-center justify-between pb-3 border-b border-soot/8">
+              <span className="text-moss">Allowed Hours</span>
+              <span className="font-semibold text-emerald-800 text-right">
+                {startTime} – {endTime}
+              </span>
+            </div>
+          )}
 
           <div className="flex items-center justify-between pb-3 border-b border-soot/8">
             <span className="text-moss">Pass Allocated</span>

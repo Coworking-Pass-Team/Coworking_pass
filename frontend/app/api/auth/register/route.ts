@@ -3,7 +3,7 @@ import { usersDb, otpsDb, hashPassword, generateOtp, StoredUser } from '../_stor
 
 export async function POST(request: Request) {
   try {
-    const { name, email, password, role } = await request.json();
+    const { name, email, password, role, companyName, orgName } = await request.json();
 
     if (!name || !email || !password) {
       return NextResponse.json({ error: 'Name, email, and password are required.' }, { status: 400 });
@@ -16,12 +16,16 @@ export async function POST(request: Request) {
     }
 
     const userId = `usr_${Date.now()}`;
+    const finalCompanyName = (companyName || orgName || '').trim();
     const newUser: StoredUser = {
       id: userId,
       name: name.trim(),
       email: cleanEmail,
       passwordHash: hashPassword(password),
       role: role || 'B2C',
+      companyName: finalCompanyName || undefined,
+      orgName: finalCompanyName || undefined,
+      companyId: finalCompanyName ? `comp_${Date.now()}` : undefined,
       emailVerified: false,
       createdAt: new Date(),
     };

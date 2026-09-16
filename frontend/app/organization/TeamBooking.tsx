@@ -15,6 +15,7 @@ import {
   Receipt,
   ShoppingBag,
   Sparkles,
+  ShieldCheck,
   Wallet
 } from 'lucide-react';
 import { useApp } from '@/app/store';
@@ -29,6 +30,8 @@ import {
   getMonthlyPriceForDuration,
   calculateEndTime,
   calculateEndDate,
+  calculateDailyDurationDays,
+  formatDateRange,
   isTimeWithinOpenHours,
   checkSpaceOverlap,
   isHourlyOnlySpace,
@@ -41,6 +44,8 @@ import {
   END_TIMES,
   calculateDurationHours,
   getAvailableEndTimes,
+  getFilteredStartTimes,
+  getFilteredEndTimes,
   formatHourlyTimeRange,
   timeStringToMinutes
 } from '@/types/types';
@@ -61,25 +66,36 @@ export default function TeamBooking() {
     ? 'daily'
     : (nav?.params?.plan as BookingPlan) || (isHourlySpace ? 'hourly' : 'daily');
   const initialMonths = (nav?.params?.durationMonths as number) || 1;
-  const initialStartTime = (nav?.params?.startTime as string) || '09:00 AM';
-  const initialEndTime = (nav?.params?.endTime as string) || (nav?.params?.durationHours ? calculateEndTime(initialStartTime, nav.params.durationHours as number) : '05:00 PM');
+  const initialStartDate = (nav?.params?.startDate as string) || new Date().toISOString().split('T')[0];
+  const initialEndDate = (nav?.params?.endDate as string) || initialStartDate;
+
+  const defaultAvailableStarts = isHourlySpace ? getFilteredStartTimes(space?.openHours, initialStartDate) : START_TIMES;
+  const initialStartTime = (nav?.params?.startTime as string) || (defaultAvailableStarts.includes('09:00 AM') ? '09:00 AM' : (defaultAvailableStarts[0] || '09:00 AM'));
+  const defaultAvailableEnds = isHourlySpace ? getFilteredEndTimes(initialStartTime, space?.openHours, initialStartDate) : getAvailableEndTimes(initialStartTime);
+  const initialEndTime = (nav?.params?.endTime as string) || (nav?.params?.durationHours ? calculateEndTime(initialStartTime, nav.params.durationHours as number) : (defaultAvailableEnds.includes('05:00 PM') ? '05:00 PM' : (defaultAvailableEnds[0] || '05:00 PM')));
 
   const [step, setStep] = useState(0);
   const [bookingType, setBookingType] = useState<BookingType>(space?.type || 'hot-desk');
   const [plan, setPlan] = useState<BookingPlan>(defaultInitialPlan);
   const [durationMonths, setDurationMonths] = useState<number>(initialMonths);
+  const [startDate, setStartDate] = useState(initialStartDate);
+  const [dailyEndDate, setDailyEndDate] = useState(initialEndDate);
   const [startTime, setStartTime] = useState<string>(initialStartTime);
   const [endTime, setEndTime] = useState<string>(initialEndTime);
   const [useWalletBalance, setUseWalletBalance] = useState(false);
+
+  const availableStartTimes = isHourlySpace ? getFilteredStartTimes(space?.openHours, startDate) : START_TIMES;
+  const availableEndTimes = isHourlySpace ? getFilteredEndTimes(startTime, space?.openHours, startDate) : getAvailableEndTimes(startTime);
 
   const durationHours = calculateDurationHours(startTime, endTime);
 
   const handleStartTimeChange = (newStart: string) => {
     setStartTime(newStart);
+    const validEnds = isHourlySpace ? getFilteredEndTimes(newStart, space?.openHours, startDate) : getAvailableEndTimes(newStart);
     const startMin = timeStringToMinutes(newStart);
     const endMin = timeStringToMinutes(endTime);
-    if (endMin <= startMin) {
-      setEndTime(calculateEndTime(newStart, 1));
+    if (endMin <= startMin || !validEnds.includes(endTime)) {
+      setEndTime(validEnds[0] || calculateEndTime(newStart, 1));
     }
   };
 
@@ -89,9 +105,24 @@ export default function TeamBooking() {
 
   const [seats, setSeats] = useState(2);
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
-  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [confirmedBooking, setConfirmedBooking] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+
+  const handleStartDateChange = (newStart: string) => {
+    setStartDate(newStart);
+    if (dailyEndDate && newStart > dailyEndDate) {
+      setDailyEndDate(newStart);
+    }
+  };
+
+  const handleEndDateChange = (newEnd: string) => {
+    if (newEnd < startDate) {
+      showToast('End date cannot be earlier than start date.', 'error');
+      setDailyEndDate(startDate);
+      return;
+    }
+    setDailyEndDate(newEnd);
+  };
 
   // Loyalty Points State
   const [useLoyaltyPoints, setUseLoyaltyPoints] = useState(false);
@@ -103,6 +134,9 @@ export default function TeamBooking() {
     }
     if (nav?.params?.startDate) {
       setStartDate(nav.params.startDate as string);
+    }
+    if (nav?.params?.endDate) {
+      setDailyEndDate(nav.params.endDate as string);
     }
     if (nav?.params?.startTime) {
       setStartTime(nav.params.startTime as string);
@@ -118,19 +152,25 @@ export default function TeamBooking() {
     if (nav?.params?.bookingType) {
       setBookingType(nav.params.bookingType as BookingType);
     }
-  }, [nav?.params?.spaceId, nav?.params?.plan, nav?.params?.startTime, nav?.params?.endTime, nav?.params?.durationHours, nav?.params?.durationMonths, nav?.params?.bookingType]);
+  }, [nav?.params?.spaceId, nav?.params?.plan, nav?.params?.startDate, nav?.params?.endDate, nav?.params?.startTime, nav?.params?.endTime, nav?.params?.durationHours, nav?.params?.durationMonths, nav?.params?.bookingType]);
 
   const employees = currentUser?.employees || [];
 
   if (!space || !currentUser) return null;
 
   const isHourly = isHourlySpace && plan === 'hourly';
+  const hasActiveSubscription = Boolean(currentUser?.hasActivePass);
 
-  const endDate = isHourly || plan === 'daily'
+  const effectiveDailyEndDate = dailyEndDate && dailyEndDate >= startDate ? dailyEndDate : startDate;
+  const durationDays = plan === 'daily' ? calculateDailyDurationDays(startDate, effectiveDailyEndDate) : 1;
+
+  const endDate = isHourly
     ? startDate
+    : plan === 'daily'
+    ? effectiveDailyEndDate
     : calculateEndDate(startDate, plan, durationMonths);
 
-  const planInfo = getEffectiveSpacePrice(currentUser, space, plan, bookingType, durationHours, durationMonths, seats);
+  const planInfo = getEffectiveSpacePrice(currentUser, space, plan, bookingType, durationHours, durationMonths, seats, durationDays);
   const pricePerSeat = planInfo.isCovered ? 0 : Math.round(planInfo.effectivePrice / seats);
   const rawTotalPrice = planInfo.effectivePrice;
 
@@ -187,9 +227,19 @@ export default function TeamBooking() {
         showToast('Please select a booking date.', 'error');
         return false;
       }
-      if (isHourly) {
-        if (!startTime) {
-          showToast('Please select a start time.', 'error');
+      if (plan === 'daily') {
+        if (!dailyEndDate) {
+          showToast('Please select an end date.', 'error');
+          return false;
+        }
+        if (dailyEndDate < startDate) {
+          showToast('End date must be the same day or later than start date.', 'error');
+          return false;
+        }
+      }
+      if (isHourlySpace || isHourly) {
+        if (!startTime || !endTime) {
+          showToast('Please select both a start time and an end time.', 'error');
           return false;
         }
         const hoursCheck = isTimeWithinOpenHours(startDate, startTime, endTime, space.openHours);
@@ -214,7 +264,13 @@ export default function TeamBooking() {
 
   const back = () => {
     if (step === 0) {
-      goBack();
+      if (nav?.params?.fromScreen) {
+        navigate(nav.params.fromScreen, nav.params.fromParams || {});
+      } else if (space?.id) {
+        navigate('space-details', { spaceId: space.id });
+      } else {
+        navigate('company-bookings');
+      }
       return;
     }
     setStep(s => s - 1);
@@ -233,9 +289,10 @@ export default function TeamBooking() {
         category: getSpaceCategory(space),
         type: bookingType,
         plan,
-        startTime: isHourly ? startTime : undefined,
-        endTime: isHourly ? endTime : undefined,
-        durationHours: isHourly ? durationHours : undefined,
+        startTime: (isHourlySpace || isHourly) ? startTime : undefined,
+        endTime: (isHourlySpace || isHourly) ? endTime : undefined,
+        durationHours: (isHourlySpace || isHourly) ? durationHours : undefined,
+        durationDays: plan === 'daily' ? durationDays : undefined,
         durationMonths: plan === 'monthly' ? durationMonths : undefined,
         startDate,
         endDate,
@@ -321,16 +378,28 @@ export default function TeamBooking() {
               </div>
               <div className="flex justify-between">
                 <span className="text-moss text-xs">Plan</span>
-                <span className="text-soot font-medium text-xs">{isHourly ? `Hourly Reservation (${durationHours} ${durationHours === 1 ? 'hour' : 'hours'})` : `${plan} pass`}</span>
+                <span className="text-soot font-medium text-xs">
+                  {isHourly
+                    ? `Hourly Reservation (${durationHours} ${durationHours === 1 ? 'hour' : 'hours'})`
+                    : plan === 'daily'
+                    ? `Daily Pass (${durationDays} ${durationDays === 1 ? 'Day' : 'Days'})`
+                    : `${plan} pass`}
+                </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-moss text-xs">{isHourly ? 'Booking Date' : 'Start Date'}</span>
-                <span className="text-soot font-medium text-xs">{startDate}</span>
+                <span className="text-moss text-xs">{isHourly ? 'Booking Date' : plan === 'daily' ? 'Date Range' : 'Start Date'}</span>
+                <span className="text-soot font-medium text-xs">{plan === 'daily' ? formatDateRange(startDate, endDate) : startDate}</span>
               </div>
-              {isHourly && (
+              {plan === 'daily' && (
                 <div className="flex justify-between">
-                  <span className="text-moss text-xs">Time Window</span>
-                  <span className="text-soot font-medium text-xs">{startTime} – {endTime} ({durationHours} {durationHours === 1 ? 'hour' : 'hours'})</span>
+                  <span className="text-moss text-xs">Duration</span>
+                  <span className="text-soot font-medium text-xs">{durationDays} {durationDays === 1 ? 'day' : 'days'}</span>
+                </div>
+              )}
+              {(isHourlySpace || isHourly) && (
+                <div className="flex justify-between">
+                  <span className="text-moss text-xs">{isHourly ? 'Time Window' : 'Daily Allowed Hours'}</span>
+                  <span className="text-soot font-medium text-xs">{startTime} – {endTime} ({durationHours} {durationHours === 1 ? 'hour' : 'hours'}{isHourly ? '' : '/day'})</span>
                 </div>
               )}
               <div className="flex justify-between">
@@ -339,13 +408,13 @@ export default function TeamBooking() {
               </div>
 
               {/* تفاصيل نقاط الولاء في شاشة التأكيد */}
-              {pointsDiscount > 0 && (
+              {!hasActiveSubscription && pointsDiscount > 0 && (
                 <div className="flex justify-between">
                   <span className="text-moss text-xs">Points Redeemed</span>
                   <span className="text-emerald-700 font-semibold text-xs">-{maxRedeemablePoints} pts (SAR {pointsDiscount})</span>
                 </div>
               )}
-              {earnedPoints > 0 && (
+              {!hasActiveSubscription && earnedPoints > 0 && (
                 <div className="flex justify-between">
                   <span className="text-moss text-xs">Points Earned</span>
                   <span className="inline-flex items-center gap-1 text-emerald-700 font-bold text-xs">
@@ -356,8 +425,12 @@ export default function TeamBooking() {
               )}
 
               <div className="pt-3 border-t border-soot/8 flex justify-between items-center font-semibold text-base">
-                <span className="text-soot">Total Paid (incl. VAT)</span>
-                {finalPayablePrice === 0 ? (
+                <span className="text-soot">{hasActiveSubscription ? 'Corporate Plan Status' : 'Total Paid (incl. VAT)'}</span>
+                {hasActiveSubscription ? (
+                  <span className="text-moss font-bold text-xs sm:text-sm bg-eucalyptus/25 px-3 py-1 rounded-full border border-eucalyptus/30">
+                    Covered by Corporate Subscription Pass
+                  </span>
+                ) : finalPayablePrice === 0 ? (
                   <span className="text-moss font-bold text-xs sm:text-sm bg-eucalyptus/25 px-3 py-1 rounded-full border border-eucalyptus/30">
                     Included in your Plan · SAR 0 Paid
                   </span>
@@ -389,12 +462,21 @@ export default function TeamBooking() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
-      <button
-        onClick={back}
-        className="flex items-center gap-2 text-moss hover:text-soot text-sm font-medium mb-6 transition-colors cursor-pointer"
-      >
-        <ArrowLeft size={15} /> Back
-      </button>
+      <div className="flex items-center justify-between mb-6">
+        <button
+          type="button"
+          onClick={back}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-soot/12 bg-white hover:bg-plaster-dark/40 text-soot text-xs sm:text-sm font-semibold transition-all cursor-pointer shadow-2xs group active:scale-98"
+          title={step === 0 ? 'Back to Workspace Details' : `Back to Step ${step}`}
+        >
+          <ArrowLeft size={15} className="group-hover:-translate-x-0.5 transition-transform" />
+          <span>{step === 0 ? 'Back to Workspace' : 'Previous Step'}</span>
+        </button>
+
+        <span className="text-xs font-semibold text-moss">
+          Step {step + 1} of {STEPS.length}
+        </span>
+      </div>
 
       {/* Step Indicator */}
       <div className="flex items-center gap-1.5 mb-8">
@@ -432,15 +514,31 @@ export default function TeamBooking() {
 
         {/* Dynamic Price Box */}
         <div className="text-right shrink-0 bg-plaster-dark/40 px-3.5 py-2 rounded-2xl border border-soot/10">
-          <span className="text-[9px] font-bold uppercase tracking-wider text-moss block">
-            Total ({seats} seats)
-          </span>
-          <div className="font-bold text-soot text-base">
-            {planInfo.isCovered ? 'SAR 0' : `SAR ${finalPayablePrice.toLocaleString()}`}
-          </div>
-          <div className="text-[10px] text-moss">
-            {planInfo.isCovered ? 'Included in Pass · SAR 0 to Pay' : `SAR ${pricePerSeat.toLocaleString()}/seat`}
-          </div>
+          {hasActiveSubscription ? (
+            <>
+              <span className="text-[9px] font-bold uppercase tracking-wider text-moss block">
+                Corporate Subscription
+              </span>
+              <div className="font-bold text-emerald-800 text-xs sm:text-sm mt-0.5">
+                Active Corporate Pass
+              </div>
+              <div className="text-[10px] text-moss">
+                Included in your Plan ({seats} seats)
+              </div>
+            </>
+          ) : (
+            <>
+              <span className="text-[9px] font-bold uppercase tracking-wider text-moss block">
+                Total ({seats} seats)
+              </span>
+              <div className="font-bold text-soot text-base">
+                {planInfo.isCovered ? 'SAR 0' : `SAR ${finalPayablePrice.toLocaleString()}`}
+              </div>
+              <div className="text-[10px] text-moss">
+                {planInfo.isCovered ? 'Included in Pass · SAR 0 to Pay' : `SAR ${pricePerSeat.toLocaleString()}/seat`}
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -497,7 +595,7 @@ export default function TeamBooking() {
                     >
                       <div className="text-xs capitalize font-semibold">{p}</div>
                       <div className="text-[10px] text-moss mt-0.5">
-                        {pInfo.isCovered ? 'Included in Plan' : `SAR ${pInfo.effectivePrice}/seat`}
+                        {hasActiveSubscription || pInfo.isCovered ? 'Included in Plan' : `SAR ${pInfo.effectivePrice}/seat`}
                       </div>
                     </button>
                   );
@@ -513,7 +611,9 @@ export default function TeamBooking() {
                     <Calendar size={12} />
                     <span>Select Number of Months</span>
                   </span>
-                  <span className="text-xs font-bold text-soot">{durationMonths} Month{durationMonths > 1 ? 's' : ''} ({planInfo.isCovered ? 'Included in your Plan · SAR 0 to Pay' : `SAR ${getMonthlyPriceForDuration(space, durationMonths).toLocaleString()}/seat`})</span>
+                  <span className="text-xs font-bold text-soot">
+                    {durationMonths} Month{durationMonths > 1 ? 's' : ''} ({hasActiveSubscription || planInfo.isCovered ? 'Included in Corporate Plan' : `SAR ${getMonthlyPriceForDuration(space, durationMonths).toLocaleString()}/seat`})
+                  </span>
                 </div>
                 <div className="grid grid-cols-5 gap-2">
                   {[1, 2, 3, 6, 12].map(m => (
@@ -528,7 +628,9 @@ export default function TeamBooking() {
                       }`}
                     >
                       <div>{m} Mo{m > 1 ? 's' : ''}</div>
-                      <div className="text-[10px] font-bold text-soot mt-0.5">SAR {getMonthlyPriceForDuration(space, m).toLocaleString()}</div>
+                      <div className="text-[10px] font-bold text-soot mt-0.5">
+                        {hasActiveSubscription ? 'Included' : `SAR ${getMonthlyPriceForDuration(space, m).toLocaleString()}`}
+                      </div>
                     </button>
                   ))}
                 </div>
@@ -543,7 +645,9 @@ export default function TeamBooking() {
                     <Clock size={12} className="shrink-0" />
                     <span>Specify Reservation Date & Time</span>
                   </span>
-                  <span className="text-xs font-bold text-soot whitespace-nowrap shrink-0">{durationHours} {durationHours === 1 ? 'Hour' : 'Hours'} (SAR {getHourlyPriceForDuration(space, durationHours)}/seat)</span>
+                  <span className="text-xs font-bold text-soot whitespace-nowrap shrink-0">
+                    {durationHours} {durationHours === 1 ? 'Hour' : 'Hours'} {hasActiveSubscription ? '(Included in Corporate Plan)' : `(SAR ${getHourlyPriceForDuration(space, durationHours)}/seat)`}
+                  </span>
                 </div>
 
                 {/* Booking Date Input */}
@@ -716,35 +820,101 @@ export default function TeamBooking() {
           </div>
 
           <div className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1.5 flex items-center gap-1.5">
-                <Calendar size={13} />
-                <span>{isHourly ? 'Booking Date' : 'Start Date'}</span>
-              </label>
-              <input
-                type="date"
-                value={startDate}
-                min={new Date().toISOString().split('T')[0]}
-                onChange={e => setStartDate(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-eucalyptus font-medium"
-              />
-            </div>
-
-            {/* Hourly Start Time & End Time Controls */}
-            {isHourly && (
+            {plan === 'daily' ? (
               <div className="space-y-4 p-5 rounded-2xl bg-[#F9F8F5] border border-soot/8">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1.5 flex items-center gap-1.5">
+                      <Calendar size={13} />
+                      <span>Start Date</span>
+                    </label>
+                    <input
+                      type="date"
+                      value={startDate}
+                      min={new Date().toISOString().split('T')[0]}
+                      onChange={e => handleStartDateChange(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-eucalyptus font-medium shadow-2xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1.5 flex items-center gap-1.5">
+                      <Calendar size={13} />
+                      <span>End Date</span>
+                    </label>
+                    <input
+                      type="date"
+                      value={dailyEndDate}
+                      min={startDate || new Date().toISOString().split('T')[0]}
+                      onChange={e => handleEndDateChange(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-eucalyptus font-medium shadow-2xs"
+                    />
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl p-4 border border-soot/8 flex items-center justify-between text-xs">
+                  <div>
+                    <span className="text-moss block text-[10px] uppercase font-semibold">Selected Date Range</span>
+                    <span className="font-semibold text-soot text-sm">{formatDateRange(startDate, effectiveDailyEndDate)}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-moss block text-[10px] uppercase font-semibold">Total Duration</span>
+                    <span className="font-semibold text-soot text-sm">{durationDays} {durationDays === 1 ? 'Day' : 'Days'}</span>
+                  </div>
+                </div>
+
+                <div className="text-[11px] text-moss flex items-center gap-1.5">
+                  <Info size={13} className="shrink-0 text-moss/80" />
+                  <span>Daily passes apply continuously across all selected calendar days.</span>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1.5 flex items-center gap-1.5">
+                  <Calendar size={13} />
+                  <span>{isHourly ? 'Booking Date' : 'Start Date'}</span>
+                </label>
+                <input
+                  type="date"
+                  value={startDate}
+                  min={new Date().toISOString().split('T')[0]}
+                  onChange={e => setStartDate(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-eucalyptus font-medium"
+                />
+              </div>
+            )}
+
+            {/* Start Time & End Time Controls for Theaters, Halls, and Hourly Bookings */}
+            {(isHourlySpace || isHourly) && (
+              <div className="space-y-4 p-5 rounded-2xl bg-[#F9F8F5] border border-soot/8">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-moss flex items-center gap-1.5">
                       <Clock size={13} />
-                      <span>Start Time</span>
+                      <span>{isHourly ? 'Specify Reservation Date & Time' : 'Allowed Daily Hours Window (No 24/7 Access)'}</span>
+                    </h4>
+                    <p className="text-xs text-moss mt-0.5">
+                      {isHourly
+                        ? 'Select booking date, start time, and end time'
+                        : `Select daily allowed hours within workspace operating hours (${space.openHours || 'Operating hours apply'})`}
+                    </p>
+                  </div>
+                  <div className="text-xs font-bold text-soot bg-white px-3 py-1 rounded-full border border-soot/10 shadow-2xs whitespace-nowrap">
+                    {durationHours} {durationHours === 1 ? 'Hour' : 'Hours'}{isHourly ? '' : '/day'}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1.5 flex items-center gap-1.5">
+                      <Clock size={13} />
+                      <span>{isHourly ? 'Start Time' : 'Daily Start Time'}</span>
                     </label>
                     <select
                       value={startTime}
                       onChange={(e) => handleStartTimeChange(e.target.value)}
                       className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-soot/12 text-soot text-sm font-medium focus:outline-none focus:border-eucalyptus cursor-pointer shadow-2xs"
                     >
-                      {START_TIMES.map((t) => (
+                      {availableStartTimes.map((t) => (
                         <option key={t} value={t}>
                           {t}
                         </option>
@@ -755,14 +925,14 @@ export default function TeamBooking() {
                   <div>
                     <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1.5 flex items-center gap-1.5">
                       <Clock size={13} />
-                      <span>End Time</span>
+                      <span>{isHourly ? 'End Time' : 'Daily End Time'}</span>
                     </label>
                     <select
                       value={endTime}
                       onChange={(e) => handleEndTimeChange(e.target.value)}
                       className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-soot/12 text-soot text-sm font-medium focus:outline-none focus:border-eucalyptus cursor-pointer shadow-2xs"
                     >
-                      {getAvailableEndTimes(startTime).map((t) => (
+                      {availableEndTimes.map((t) => (
                         <option key={t} value={t}>
                           {t}
                         </option>
@@ -771,41 +941,64 @@ export default function TeamBooking() {
                   </div>
                 </div>
 
-                <div className="bg-white rounded-2xl p-4 border border-soot/8 flex items-center justify-between text-xs">
+                <div className="bg-white rounded-2xl p-4 border border-soot/8 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                   <div>
-                    <span className="text-moss block text-[10px] uppercase font-semibold">Scheduled Date & Time</span>
-                    <span className="font-semibold text-soot text-sm">{startDate} · {startTime} – {endTime}</span>
+                    <span className="text-moss block text-[10px] uppercase font-semibold">
+                      {isHourly ? 'Scheduled Date & Time' : 'Daily Allowed Window'}
+                    </span>
+                    <span className="font-semibold text-soot text-sm">
+                      {isHourly ? `${startDate} · ${startTime} – ${endTime}` : `${startTime} – ${endTime} each day`}
+                    </span>
                   </div>
-                  <div className="text-right">
-                    <span className="text-moss block text-[10px] uppercase font-semibold">Total Duration</span>
-                    <span className="font-semibold text-soot text-sm">{durationHours} {durationHours === 1 ? 'Hour' : 'Hours'}</span>
+                  <div className="text-left sm:text-right">
+                    <span className="text-moss block text-[10px] uppercase font-semibold">Workspace Operating Hours</span>
+                    <span className="font-semibold text-soot text-sm">{space.openHours || 'Standard Operating Hours'}</span>
                   </div>
                 </div>
 
                 <div className="text-[11px] text-moss flex items-center gap-1.5">
                   <Info size={13} className="shrink-0 text-moss/80" />
-                  <span>Operating hours: {space.openHours || 'Daily: 8am–10pm'}</span>
+                  <span>Access is granted strictly during your selected hours for each day of the reservation period.</span>
                 </div>
               </div>
             )}
 
             {/* Pricing Box in Schedule Step */}
-            <div className="p-4 rounded-2xl bg-plaster-dark/40 border border-soot/10 flex items-center justify-between">
-              <div>
-                <span className="text-xs font-semibold text-soot block">Calculated Total</span>
-                <span className="text-[11px] text-moss">
-                  {seats} seats × SAR {planInfo.originalPrice.toLocaleString()} {planLabel}
-                </span>
+            {hasActiveSubscription ? (
+              <div className="p-4 rounded-2xl bg-[#E5ECE9]/60 border border-eucalyptus/40 flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-semibold text-soot block">Corporate Subscription Plan</span>
+                  <span className="text-[11px] text-moss">
+                    All {seats} {seats === 1 ? 'seat' : 'seats'} fully covered under active corporate membership
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-eucalyptus/40 text-soot font-semibold text-xs border border-eucalyptus/50">
+                    <Check size={12} className="text-moss shrink-0" />
+                    <span>Covered by Pass</span>
+                  </span>
+                </div>
               </div>
-              <div className="text-right">
-                <span className="text-lg font-bold text-soot">
-                  {planInfo.isCovered ? 'SAR 0' : `SAR ${finalPayablePrice.toLocaleString()}`}
-                </span>
-                {planInfo.isCovered && (
-                  <span className="text-[10px] text-emerald-800 font-semibold block">Included in Pass</span>
-                )}
+            ) : (
+              <div className="p-4 rounded-2xl bg-plaster-dark/40 border border-soot/10 flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-semibold text-soot block">Calculated Total</span>
+                  <span className="text-[11px] text-moss">
+                    {plan === 'daily'
+                      ? `${seats} seats × SAR ${((space.pricing?.daily ?? 150) * durationDays).toLocaleString()} (SAR ${space.pricing?.daily ?? 150}/day × ${durationDays} ${durationDays === 1 ? 'day' : 'days'})`
+                      : `${seats} seats × SAR ${planInfo.originalPrice.toLocaleString()} ${planLabel}`}
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="text-lg font-bold text-soot">
+                    {planInfo.isCovered ? 'SAR 0' : `SAR ${finalPayablePrice.toLocaleString()}`}
+                  </span>
+                  {planInfo.isCovered && (
+                    <span className="text-[10px] text-emerald-800 font-semibold block">Included in Pass</span>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       )}
@@ -815,9 +1008,13 @@ export default function TeamBooking() {
         <div className="bg-white rounded-3xl border border-soot/8 p-6 shadow-sm space-y-6">
           <div>
             <h2 className="text-xl font-normal text-soot" style={{ fontFamily: 'DM Serif Display, serif' }}>
-              Review Team Reservation & Payment
+              {hasActiveSubscription ? 'Review Team Reservation' : 'Review Team Reservation & Payment'}
             </h2>
-            <p className="text-moss text-xs">Confirm your reservation details and total price breakdown</p>
+            <p className="text-moss text-xs">
+              {hasActiveSubscription
+                ? 'Confirm your reservation details and team workspace allocation'
+                : 'Confirm your reservation details and total price breakdown'}
+            </p>
           </div>
 
           <div className="space-y-4">
@@ -834,16 +1031,28 @@ export default function TeamBooking() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-moss">Plan</span>
-                  <span className="text-soot font-medium">{isHourly ? `Hourly Reservation (${durationHours} ${durationHours === 1 ? 'hour' : 'hours'})` : `${plan} pass`}</span>
+                  <span className="text-soot font-medium">
+                    {isHourly
+                      ? `Hourly Reservation (${durationHours} ${durationHours === 1 ? 'hour' : 'hours'})`
+                      : plan === 'daily'
+                      ? `Daily Pass (${durationDays} ${durationDays === 1 ? 'Day' : 'Days'})`
+                      : `${plan} pass`}
+                  </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-moss">{isHourly ? 'Booking Date' : 'Start Date'}</span>
-                  <span className="text-soot font-medium">{startDate}</span>
+                  <span className="text-moss">{isHourly ? 'Booking Date' : plan === 'daily' ? 'Date Range' : 'Start Date'}</span>
+                  <span className="text-soot font-medium">{plan === 'daily' ? formatDateRange(startDate, endDate) : startDate}</span>
                 </div>
-                {isHourly && (
+                {plan === 'daily' && (
                   <div className="flex justify-between">
-                    <span className="text-moss">Time Window</span>
-                    <span className="text-soot font-medium">{startTime} – {endTime} ({durationHours} {durationHours === 1 ? 'hour' : 'hours'})</span>
+                    <span className="text-moss">Duration</span>
+                    <span className="text-soot font-medium">{durationDays} {durationDays === 1 ? 'day' : 'days'}</span>
+                  </div>
+                )}
+                {(isHourlySpace || isHourly) && (
+                  <div className="flex justify-between">
+                    <span className="text-moss">{isHourly ? 'Time Window' : 'Daily Allowed Hours'}</span>
+                    <span className="text-soot font-medium">{startTime} – {endTime} ({durationHours} {durationHours === 1 ? 'hour' : 'hours'}{isHourly ? '' : '/day'})</span>
                   </div>
                 )}
                 <div className="flex justify-between">
@@ -859,144 +1068,183 @@ export default function TeamBooking() {
               </div>
             </div>
 
-            {/* قسم نقاط الولاء (Redeem Loyalty Points) */}
-            <div className="p-5 rounded-2xl bg-plaster-dark/40 border border-soot/10 space-y-3">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-start gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0 mt-0.5">
-                    <Sparkles size={16} className="text-amber-600" />
-                  </div>
-                  <div>
-                    <div className="text-sm font-semibold text-soot">Loyalty Points Rewards</div>
-                    <div className="text-xs text-moss mt-0.5">
-                      You have <strong className="text-soot">{availablePoints}</strong> points. (100 pts = SAR 25 discount)
-                    </div>
-                  </div>
-                </div>
-
-                {availablePoints >= 100 && maxRedeemablePoints >= 100 && (
-                  <label className="flex items-center gap-2 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={useLoyaltyPoints}
-                      onChange={e => setUseLoyaltyPoints(e.target.checked)}
-                      className="w-4 h-4 rounded accent-soot cursor-pointer"
-                    />
-                    <span className="text-xs font-semibold text-soot">
-                      Use {maxRedeemablePoints} pts (-SAR {(maxRedeemablePoints / 100) * 25})
-                    </span>
-                  </label>
-                )}
-              </div>
-
-              <div className="pt-2 border-t border-soot/8 flex items-center justify-between text-xs">
-                <span className="text-moss">Points to be earned from this booking:</span>
-                <span className="font-bold text-emerald-800 flex items-center gap-1">
-                  <Sparkles size={11} className="text-amber-500" />
-                  +{earnedPoints} points {multiplier > 1 ? `(${multiplier}× promotion)` : ''}
-                </span>
-              </div>
-            </div>
-
-            {/* Digital Wallet / Corporate Shared Wallet Redemption Widget */}
-            {currentUser && userWalletBalance > 0 && (
-              <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 space-y-2">
-                <div className="flex items-center justify-between">
+            {hasActiveSubscription ? (
+              /* Corporate Subscription Plan Coverage Card (No Prices Displayed) */
+              <div className="p-5 rounded-2xl bg-[#E5ECE9]/60 border-2 border-eucalyptus/40 space-y-3.5">
+                <div className="flex items-center justify-between pb-2.5 border-b border-soot/8">
                   <div className="flex items-center gap-2">
-                    <Wallet size={16} className="text-emerald-700 shrink-0" />
-                    <div>
-                      <div className="text-xs font-semibold text-soot">
-                        {isUsingCompanyWallet ? 'المحفظة المشتركة (Corporate Shared Wallet)' : 'Digital Wallet Balance'}
-                      </div>
-                      <div className="text-[11px] text-moss">Available Balance: SAR {userWalletBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
-                    </div>
+                    <ShieldCheck size={18} className="text-emerald-700" />
+                    <span className="text-xs font-semibold uppercase tracking-wider text-soot">
+                      Corporate Subscription Plan Coverage
+                    </span>
                   </div>
-                  {userWalletBalance > 0 && finalPayablePrice > 0 && (
-                    <label className="flex items-center gap-2 text-xs font-semibold text-soot cursor-pointer bg-white/80 px-3 py-1.5 rounded-xl border border-emerald-500/30 hover:bg-white transition-colors">
-                      <input
-                        type="checkbox"
-                        checked={useWalletBalance}
-                        onChange={(e) => setUseWalletBalance(e.target.checked)}
-                        className="rounded border-soot/20 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
-                      />
-                      <span>Use {isUsingCompanyWallet ? 'Shared Wallet' : 'Wallet'} (SAR {walletDeduction.toLocaleString()})</span>
-                    </label>
-                  )}
+                  <span className="text-xs font-bold text-emerald-800 bg-white px-2.5 py-0.5 rounded-full border border-emerald-300 shadow-2xs">
+                    Active Pass
+                  </span>
                 </div>
-                {useWalletBalance && walletDeduction > 0 && (
-                  <div className="text-[11px] font-medium text-emerald-950 bg-emerald-500/15 px-3 py-1.5 rounded-xl border border-emerald-500/30 flex items-center justify-between">
-                    <span>{isUsingCompanyWallet ? 'Corporate Shared Wallet Applied' : 'Wallet Balance Applied'}</span>
-                    <span className="font-bold text-emerald-700">- SAR {walletDeduction.toLocaleString()}</span>
+
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between items-center">
+                    <span className="text-moss">Covered by</span>
+                    <span className="font-semibold text-soot">{currentUser?.orgName || currentUser?.businessName || currentUser?.membershipTier || 'Corporate Pass'}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-moss">Allocated Team Seats</span>
+                    <span className="font-semibold text-soot">{seats} {seats > 1 ? 'Seats' : 'Seat'} (Included)</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-moss">Payment Required</span>
+                    <span className="font-semibold text-emerald-800">None · Covered by Corporate Plan</span>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-soot/8 flex items-center gap-2 text-[11px] text-moss">
+                  <Info size={13} className="shrink-0 text-emerald-700" />
+                  <span>All team seats are fully covered under your active corporate subscription pass. No billing will occur.</span>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* قسم نقاط الولاء (Redeem Loyalty Points) */}
+                <div className="p-5 rounded-2xl bg-plaster-dark/40 border border-soot/10 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0 mt-0.5">
+                        <Sparkles size={16} className="text-amber-600" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-semibold text-soot">Loyalty Points Rewards</div>
+                        <div className="text-xs text-moss mt-0.5">
+                          You have <strong className="text-soot">{availablePoints}</strong> points. (100 pts = SAR 25 discount)
+                        </div>
+                      </div>
+                    </div>
+
+                    {availablePoints >= 100 && maxRedeemablePoints >= 100 && (
+                      <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={useLoyaltyPoints}
+                          onChange={e => setUseLoyaltyPoints(e.target.checked)}
+                          className="w-4 h-4 rounded accent-soot cursor-pointer"
+                        />
+                        <span className="text-xs font-semibold text-soot">
+                          Use {maxRedeemablePoints} pts (-SAR {(maxRedeemablePoints / 100) * 25})
+                        </span>
+                      </label>
+                    )}
+                  </div>
+
+                  <div className="pt-2 border-t border-soot/8 flex items-center justify-between text-xs">
+                    <span className="text-moss">Points to be earned from this booking:</span>
+                    <span className="font-bold text-emerald-800 flex items-center gap-1">
+                      <Sparkles size={11} className="text-amber-500" />
+                      +{earnedPoints} points {multiplier > 1 ? `(${multiplier}× promotion)` : ''}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Digital Wallet / Corporate Shared Wallet Redemption Widget */}
+                {currentUser && userWalletBalance > 0 && (
+                  <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Wallet size={16} className="text-emerald-700 shrink-0" />
+                        <div>
+                          <div className="text-xs font-semibold text-soot">
+                            {isUsingCompanyWallet ? 'المحفظة المشتركة (Corporate Shared Wallet)' : 'Digital Wallet Balance'}
+                          </div>
+                          <div className="text-[11px] text-moss">Available Balance: SAR {userWalletBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+                        </div>
+                      </div>
+                      {userWalletBalance > 0 && finalPayablePrice > 0 && (
+                        <label className="flex items-center gap-2 text-xs font-semibold text-soot cursor-pointer bg-white/80 px-3 py-1.5 rounded-xl border border-emerald-500/30 hover:bg-white transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={useWalletBalance}
+                            onChange={(e) => setUseWalletBalance(e.target.checked)}
+                            className="rounded border-soot/20 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                          />
+                          <span>Use {isUsingCompanyWallet ? 'Shared Wallet' : 'Wallet'} (SAR {walletDeduction.toLocaleString()})</span>
+                        </label>
+                      )}
+                    </div>
+                    {useWalletBalance && walletDeduction > 0 && (
+                      <div className="text-[11px] font-medium text-emerald-950 bg-emerald-500/15 px-3 py-1.5 rounded-xl border border-emerald-500/30 flex items-center justify-between">
+                        <span>{isUsingCompanyWallet ? 'Corporate Shared Wallet Applied' : 'Wallet Balance Applied'}</span>
+                        <span className="font-bold text-emerald-700">- SAR {walletDeduction.toLocaleString()}</span>
+                      </div>
+                    )}
                   </div>
                 )}
-              </div>
-            )}
 
-            {/* Prominent Price Breakdown Box */}
-            <div className="p-5 rounded-2xl bg-white border-2 border-soot/10 space-y-3">
-              <div className="flex items-center gap-2 pb-2 border-b border-soot/8">
-                <Receipt size={16} className="text-moss" />
-                <span className="text-xs font-semibold uppercase tracking-wider text-soot">
-                  Price Breakdown & Payment Receipt
-                </span>
-              </div>
+                {/* Prominent Price Breakdown Box */}
+                <div className="p-5 rounded-2xl bg-white border-2 border-soot/10 space-y-3">
+                  <div className="flex items-center gap-2 pb-2 border-b border-soot/8">
+                    <Receipt size={16} className="text-moss" />
+                    <span className="text-xs font-semibold uppercase tracking-wider text-soot">
+                      Price Breakdown & Payment Receipt
+                    </span>
+                  </div>
 
-              <div className="flex justify-between text-xs sm:text-sm">
-                <span className="text-moss">
-                  Rate per Seat ({isHourly ? `${startTime} – ${endTime} (${durationHours}h)` : plan === 'monthly' ? `${durationMonths} Mo Monthly` : `${plan} pass`})
-                </span>
-                <span className="text-soot font-medium">
-                  {planInfo.isCovered ? 'Included in your Plan' : `SAR ${planInfo.originalPrice.toLocaleString()}`}
-                </span>
-              </div>
-              <div className="flex justify-between text-xs sm:text-sm">
-                <span className="text-moss">Seats</span>
-                <span className="text-soot font-medium">× {seats}</span>
-              </div>
-              <div className="flex justify-between text-xs sm:text-sm">
-                <span className="text-moss">Subtotal</span>
-                <span className="text-soot font-medium">
-                  {planInfo.isCovered ? 'Included in your Plan' : `SAR ${(planInfo.originalPrice * seats).toLocaleString()}`}
-                </span>
-              </div>
-              {pointsDiscount > 0 && (
-                <div className="flex justify-between text-xs sm:text-sm">
-                  <span className="text-moss">Loyalty Points Discount ({maxRedeemablePoints} pts)</span>
-                  <span className="text-emerald-700 font-semibold">-SAR {pointsDiscount.toLocaleString()}</span>
-                </div>
-              )}
-              {walletDeduction > 0 && (
-                <div className="flex justify-between text-xs sm:text-sm">
-                  <span className="text-moss">Wallet Balance Applied</span>
-                  <span className="text-emerald-700 font-semibold">-SAR {walletDeduction.toLocaleString()}</span>
-                </div>
-              )}
-              <div className="flex justify-between text-xs sm:text-sm">
-                <span className="text-moss">VAT (15% included)</span>
-                <span className="text-soot font-medium">
-                  {planInfo.isCovered ? 'SAR 0' : `SAR ${((finalPayablePrice) * 0.15).toFixed(0)}`}
-                </span>
-              </div>
-
-              <div className="pt-3 border-t border-soot/10 flex justify-between items-center bg-plaster-dark/30 -mx-5 -mb-5 p-5 rounded-b-2xl">
-                <div>
-                  <span className="text-sm font-bold text-soot block">Total Payable Amount</span>
-                  <span className="text-xs text-moss">Corporate billing</span>
-                </div>
-                <div className="text-right">
-                  {totalPriceToPay === 0 ? (
-                    <div>
-                      <span className="text-2xl font-bold text-soot">SAR 0 to Pay</span>
-                      <div className="text-xs text-moss font-semibold bg-eucalyptus/25 border border-eucalyptus/30 px-2.5 py-0.5 rounded-full inline-block ml-2">
-                        {walletDeduction >= finalPayablePrice && finalPayablePrice > 0 ? 'Paid with Wallet' : 'Included in your Plan'}
-                      </div>
+                  <div className="flex justify-between text-xs sm:text-sm">
+                    <span className="text-moss">
+                      Rate per Seat ({isHourly ? `${startTime} – ${endTime} (${durationHours}h)` : plan === 'monthly' ? `${durationMonths} Mo Monthly` : plan === 'daily' ? `${durationDays} ${durationDays === 1 ? 'day' : 'days'} (SAR ${space.pricing?.daily ?? 150}/day)` : `${plan} pass`})
+                    </span>
+                    <span className="text-soot font-medium">
+                      {planInfo.isCovered ? 'Included in your Plan' : `SAR ${planInfo.originalPrice.toLocaleString()}`}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-xs sm:text-sm">
+                    <span className="text-moss">Seats</span>
+                    <span className="text-soot font-medium">× {seats}</span>
+                  </div>
+                  <div className="flex justify-between text-xs sm:text-sm">
+                    <span className="text-moss">Subtotal</span>
+                    <span className="text-soot font-medium">
+                      {planInfo.isCovered ? 'Included in your Plan' : `SAR ${(planInfo.originalPrice * seats).toLocaleString()}`}
+                    </span>
+                  </div>
+                  {pointsDiscount > 0 && (
+                    <div className="flex justify-between text-xs sm:text-sm">
+                      <span className="text-moss">Loyalty Points Discount ({maxRedeemablePoints} pts)</span>
+                      <span className="text-emerald-700 font-semibold">-SAR {pointsDiscount.toLocaleString()}</span>
                     </div>
-                  ) : (
-                    <span className="text-2xl font-bold text-soot">SAR {totalPriceToPay.toLocaleString()}</span>
                   )}
+                  {walletDeduction > 0 && (
+                    <div className="flex justify-between text-xs sm:text-sm">
+                      <span className="text-moss">Wallet Balance Applied</span>
+                      <span className="text-emerald-700 font-semibold">-SAR {walletDeduction.toLocaleString()}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-xs sm:text-sm">
+                    <span className="text-moss">VAT (15% included)</span>
+                    <span className="text-soot font-medium">
+                      {planInfo.isCovered ? 'SAR 0' : `SAR ${((finalPayablePrice) * 0.15).toFixed(0)}`}
+                    </span>
+                  </div>
+
+                  <div className="pt-3 border-t border-soot/10 flex justify-between items-center bg-plaster-dark/30 -mx-5 -mb-5 p-5 rounded-b-2xl">
+                    <div>
+                      <span className="text-sm font-bold text-soot block">Total Payable Amount</span>
+                      <span className="text-xs text-moss">Corporate billing</span>
+                    </div>
+                    <div className="text-right">
+                      {totalPriceToPay === 0 ? (
+                        <div>
+                          <span className="text-2xl font-bold text-soot">SAR 0 to Pay</span>
+                          <div className="text-xs text-moss font-semibold bg-eucalyptus/25 border border-eucalyptus/30 px-2.5 py-0.5 rounded-full inline-block ml-2">
+                            {walletDeduction >= finalPayablePrice && finalPayablePrice > 0 ? 'Paid with Wallet' : 'Included in your Plan'}
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-2xl font-bold text-soot">SAR {totalPriceToPay.toLocaleString()}</span>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -1032,6 +1280,7 @@ export default function TeamBooking() {
                   type: bookingType,
                   plan: plan,
                   durationHours: isHourly ? durationHours : undefined,
+                  durationDays: plan === 'daily' ? durationDays : undefined,
                   durationMonths: plan === 'monthly' ? durationMonths : undefined,
                   startTime: isHourly ? startTime : undefined,
                   endTime: isHourly ? endTime : undefined,
@@ -1039,15 +1288,15 @@ export default function TeamBooking() {
                   endDate: endDate,
                   seats: seats,
                   employees: selectedEmployees,
-                  pricePerSeat: pricePerSeat,
-                  itemTotal: finalPayablePrice,
+                  pricePerSeat: hasActiveSubscription ? 0 : pricePerSeat,
+                  itemTotal: hasActiveSubscription ? 0 : finalPayablePrice,
                 });
                 navigate('browse');
               }}
               className="py-3 px-5 rounded-full border border-soot/15 text-soot font-medium text-sm hover:bg-soot/5 transition-all bg-white flex items-center justify-center gap-2 cursor-pointer shadow-2xs"
             >
               <ShoppingBag size={15} />
-              <span>{finalPayablePrice === 0 ? 'Add to Cart (Included · SAR 0)' : 'Add to Cart'}</span>
+              <span>{hasActiveSubscription ? 'Add to Cart (Covered by Pass)' : finalPayablePrice === 0 ? 'Add to Cart (Included · SAR 0)' : 'Add to Cart'}</span>
             </button>
 
             <button
@@ -1057,6 +1306,11 @@ export default function TeamBooking() {
             >
               {loading ? (
                 <span>Confirming...</span>
+              ) : hasActiveSubscription ? (
+                <>
+                  <Check size={15} className="text-moss" />
+                  <span>Confirm Reservation (Covered by Corporate Pass)</span>
+                </>
               ) : finalPayablePrice === 0 ? (
                 <>
                   <Check size={15} className="text-moss" />

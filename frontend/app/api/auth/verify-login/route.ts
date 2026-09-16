@@ -45,6 +45,9 @@ export async function POST(request: Request) {
         name: foundUser?.name || 'Member User',
         email: foundUser?.email || 'user@example.com',
         role,
+        companyId: foundUser?.companyId || null,
+        companyName: foundUser?.companyName || null,
+        orgName: foundUser?.orgName || foundUser?.companyName || null,
       },
     });
   } catch (error) {

@@ -1,8 +1,10 @@
 'use client';
 
+import { useEffect } from 'react';
 import { AppProvider, useApp } from './store';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
+import CartDrawer from './CartDrawer';
 
 // Guest screens
 import Landing from './Landing';
@@ -238,10 +240,25 @@ function AdminSettingsPage() {
 }
 
 export default function App() {
+  const { isCartOpen, closeCart, openCart, nav, currentUser, navigate } = useApp();
+
+  useEffect(() => {
+    if (nav?.screen === 'cart') {
+      if (currentUser) {
+        openCart();
+      } else {
+        navigate('login');
+      }
+    }
+  }, [nav?.screen, openCart, currentUser, navigate]);
+
   return (
     <>
       <Router />
       <Toast />
+      {currentUser && (
+        <CartDrawer isOpen={isCartOpen} onClose={closeCart} />
+      )}
     </>
   );
 }
