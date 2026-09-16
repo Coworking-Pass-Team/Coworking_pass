@@ -307,6 +307,7 @@ export async function createDirectBookingApi(payload: {
   durationType: string;
   bookingDate: string;
   status?: string;
+  spaceName?: string;
 }) {
   const url = `${getAuthBaseUrl()}/api/direct-bookings`;
   try {
@@ -889,11 +890,15 @@ export async function createHourlyBookingApi(payload: {
     }
 
     let targetSectionId = payload.sectionId;
-    if (!uuidRegex.test(targetSectionId) || targetSectionId.includes('PASTE') || targetSectionId.startsWith('sec_')) {
+    if (!uuidRegex.test(targetSectionId) || targetSectionId.includes('PASTE') || targetSectionId.startsWith('sec_') || targetSectionId.startsWith('sec-')) {
       const secRes = await getWorkspaceSectionsApi();
       if (secRes.success && Array.isArray(secRes.data) && secRes.data.length > 0) {
-        const meetingSec = secRes.data.find((s: any) => ['MEETING_ROOM', 'THEATER'].includes(s.type)) || secRes.data[0];
-        targetSectionId = meetingSec.id;
+        const matchingSec = payload.sectionType 
+          ? secRes.data.find((s: any) => s.type === payload.sectionType)
+          : secRes.data.find((s: any) => ['MEETING_ROOM', 'THEATER'].includes(s.type));
+        if (matchingSec) {
+          targetSectionId = matchingSec.id;
+        }
       }
     }
 

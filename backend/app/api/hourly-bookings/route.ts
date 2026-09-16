@@ -94,54 +94,57 @@ export async function POST(request: NextRequest) {
     let targetSectionId = sectionId;
     let targetPackageId = packageId;
 
+    // التحقق أولاً من وجود مساحة تطابق الاسم أو المعرف المطلوب
+    let ws = workspaceId ? await prisma.workspace.findUnique({ where: { id: workspaceId } }) : null;
+    if (!ws && spaceName) {
+      ws = await prisma.workspace.findFirst({
+        where: { name: { equals: spaceName, mode: 'insensitive' } }
+      });
+    }
+
+    if (!ws) {
+      let partner = await prisma.partner.findFirst();
+      if (!partner) {
+        partner = await prisma.partner.create({
+          data: {
+            brandName: 'Coworking Main Partner',
+            contactEmail: 'partner@coworkingpass.com',
+            taxNumber: '0000000000',
+            revenueSharePercentage: 0,
+          }
+        });
+      }
+      ws = await prisma.workspace.create({
+        data: {
+          partnerId: partner.id,
+          name: spaceName || 'The Hub Riyadh',
+          city: 'Riyadh',
+          passVisitValue: 1,
+          totalCapacity: 50,
+          dailyRate: 100,
+        }
+      });
+    }
+
+    // التحقق من وجود القسم المطلوب داخل هذه المساحة المحددة
     let sec = targetSectionId ? await prisma.workspaceSection.findUnique({
       where: { id: targetSectionId },
       include: { hourlyPackages: true, workspace: true }
     }) : null;
 
-    // إذا لم يتطابق القسم أو لم يكن موجوداً، ابحث عن قسم بالنوع المطلوب
-    if (!sec || (sectionType && sec.type !== requestedType)) {
+    if (!sec || sec.workspaceId !== ws.id || (sectionType && sec.type !== requestedType)) {
       sec = await prisma.workspaceSection.findFirst({
-        where: { type: requestedType },
+        where: { workspaceId: ws.id, type: requestedType },
         include: { hourlyPackages: true, workspace: true }
       });
     }
 
     if (!sec) {
-      // إنشاء أو العثور على المساحة المناسبة
-      let ws = workspaceId ? await prisma.workspace.findUnique({ where: { id: workspaceId } }) : null;
-      if (!ws) {
-        ws = await prisma.workspace.findFirst();
-      }
-      if (!ws) {
-        let partner = await prisma.partner.findFirst();
-        if (!partner) {
-          partner = await prisma.partner.create({
-            data: {
-              brandName: 'Coworking Main Partner',
-              contactEmail: 'partner@coworkingpass.com',
-              taxNumber: '0000000000',
-              revenueSharePercentage: 0,
-            }
-          });
-        }
-        ws = await prisma.workspace.create({
-          data: {
-            partnerId: partner.id,
-            name: spaceName || 'The Hub Riyadh',
-            city: 'Riyadh',
-            passVisitValue: 1,
-            totalCapacity: 50,
-            dailyRate: 100,
-          }
-        });
-      }
-
       const sectionName = requestedType === 'THEATER' 
-        ? `${spaceName || 'Main'} Auditorium / Theater`
+        ? `${ws.name} - Theater`
         : requestedType === 'MEETING_ROOM'
-        ? `${spaceName || 'Main'} Meeting Hall`
-        : `${spaceName || 'Main'} Desk Area`;
+        ? `${ws.name} - Meeting Room`
+        : `${ws.name} - Desk Area`;
 
       sec = await prisma.workspaceSection.create({
         data: {

@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
     const user = getTokenFromRequest(request);
 
     const body = await request.json();
-    const { userId, workspaceId, sectionId, durationType, bookingDate, status = 'CONFIRMED' } = body;
+    const { userId, workspaceId, sectionId, durationType, bookingDate, status = 'CONFIRMED', spaceName } = body;
 
     let effectiveUserId = userId || (user ? user.userId : null);
 
@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
     const normalizedDuration = (durationType || 'DAILY').toUpperCase();
     const finalDuration = validDurations.includes(normalizedDuration) ? normalizedDuration : 'DAILY';
 
-    // التحقق من وجود المساحة والقسم في Neon أو ربطها تلقائياً بأول مساحة صالحة
+    // التحقق من وجود المساحة والقسم في Neon أو إنشائها بالاسم الصحيح
     let targetWorkspaceId = workspaceId;
     let targetSectionId = sectionId;
 
@@ -119,14 +119,14 @@ export async function POST(request: NextRequest) {
       include: { sections: true }
     }) : null;
 
-    if (!ws) {
+    if (!ws && spaceName) {
       ws = await prisma.workspace.findFirst({
+        where: { name: { equals: spaceName, mode: 'insensitive' } },
         include: { sections: true }
       });
     }
 
     if (!ws) {
-      // إذا لم تكن هناك مساحات مسجلة في الداتابيز، ننشئ مساحة افتراضية وشريك لتمكين الحجز
       let partner = await prisma.partner.findFirst();
       if (!partner) {
         partner = await prisma.partner.create({
@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
       ws = await prisma.workspace.create({
         data: {
           partnerId: partner.id,
-          name: 'The Hub Riyadh',
+          name: spaceName || 'The Hub Riyadh',
           city: 'Riyadh',
           passVisitValue: 1,
           totalCapacity: 50,
