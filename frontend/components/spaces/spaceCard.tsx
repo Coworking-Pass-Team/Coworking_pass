@@ -47,16 +47,6 @@ export default function SpaceCard({ space, distance, onSelect }: SpaceCardProps)
 
   const formattedDist = distance !== undefined && distance !== null && !isNaN(distance)
     ? formatDistance(distance)
-    : space.id === 'space-1'
-    ? '4.3 km away'
-    : space.id === 'space-2'
-    ? '8.7 km away'
-    : space.id === 'space-3'
-    ? '3.9 km away'
-    : space.id === 'space-4'
-    ? '6.1 km away'
-    : space.id === 'space-5'
-    ? '7.4 km away'
     : '';
 
   return (

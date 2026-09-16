@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Search, SlidersHorizontal, X, MapPin, ChevronDown, Check, ArrowUpDown, Sparkles, Building2, Presentation, Clapperboard, LayoutGrid, Navigation, Loader2 } from 'lucide-react';
+import { Search, SlidersHorizontal, X, MapPin, ChevronDown, Check, ArrowUpDown, Sparkles, Building2, Presentation, Clapperboard, LayoutGrid, Navigation, Loader2, MapPinOff, Info } from 'lucide-react';
 import { useApp } from '@/app/store';
 import SpaceCard from '@/components/spaces/spaceCard';
 import Badge from '@/components/ui/Badge';
@@ -59,7 +59,7 @@ const SORT_OPTIONS = [
 ];
 
 export default function Browse() {
-  const { spaces, navigate, currentUser, nav, userLocation, locationStatus, requestUserLocation } = useApp();
+  const { spaces, navigate, currentUser, nav, userLocation, locationStatus, locationErrorMessage, requestUserLocation } = useApp();
   const initialCity = nav?.params?.city || (typeof window !== 'undefined' ? (window as any).__browseCity || '' : '');
   const initialCategory = (nav?.params?.category as ('all' | SpaceCategory)) || 'all';
 
@@ -69,9 +69,34 @@ export default function Browse() {
   const [spaceType, setSpaceType] = useState('all');
   const [maxPrice, setMaxPrice] = useState(5000);
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
-  const [sort, setSort] = useState('Recommended');
+  const [sort, setSort] = useState(userLocation ? 'Nearest to Me' : 'Recommended');
   const [showFilters, setShowFilters] = useState(false);
   const [availableOnly, setAvailableOnly] = useState(false);
+  const [dismissedLocationBanner, setDismissedLocationBanner] = useState(false);
+
+  const hasAutoPromptedRef = useRef(false);
+
+  // Automatically request location permission immediately when user enters the browse page
+  useEffect(() => {
+    if (hasAutoPromptedRef.current) return;
+    hasAutoPromptedRef.current = true;
+
+    if (userLocation) {
+      setSort('Nearest to Me');
+      return;
+    }
+
+    const storedStatus = typeof window !== 'undefined' ? sessionStorage.getItem('coworking_location_status') : null;
+    if (storedStatus === 'denied' || storedStatus === 'unavailable' || storedStatus === 'unsupported') {
+      return;
+    }
+
+    requestUserLocation(false).then(coords => {
+      if (coords) {
+        setSort('Nearest to Me');
+      }
+    });
+  }, [userLocation]);
 
   // Sync navigation params if navigated from another page
   useEffect(() => {
@@ -138,8 +163,14 @@ export default function Browse() {
   const handleSortChange = async (option: string) => {
     setSort(option);
     setSortDropdownOpen(false);
-    if (option === 'Nearest to Me' && !userLocation) {
-      await requestUserLocation();
+    if (option === 'Nearest to Me') {
+      setDismissedLocationBanner(false);
+      if (!userLocation) {
+        const coords = await requestUserLocation(true);
+        if (coords) {
+          setSort('Nearest to Me');
+        }
+      }
     }
   };
 
@@ -390,43 +421,114 @@ export default function Browse() {
           </div>
         </div>
 
-        {/* Location Status Feedback Banner when sorting by Nearest to Me */}
-        {sort === 'Nearest to Me' && (
+        {/* Location Status Feedback Banner */}
+        {!dismissedLocationBanner && (
           <div className="mb-6">
             {locationStatus === 'loading' ? (
-              <div className="px-4 py-3 bg-plaster-dark/50 border border-soot/10 rounded-2xl flex items-center gap-3 text-xs sm:text-sm text-soot animate-pulse">
-                <Loader2 size={16} className="animate-spin text-moss shrink-0" />
-                <span>Locating your current position to calculate distance to workspaces...</span>
+              <div className="px-4 py-3 bg-white border border-soot/12 rounded-2xl flex items-center justify-between gap-3 text-xs sm:text-sm text-soot shadow-2xs animate-pulse">
+                <div className="flex items-center gap-2.5">
+                  <Loader2 size={16} className="animate-spin text-eucalyptus shrink-0" />
+                  <span>Locating your current position to calculate accurate distances to workspaces...</span>
+                </div>
               </div>
-            ) : userLocation ? (
+            ) : locationStatus === 'granted' && userLocation && sort === 'Nearest to Me' ? (
               <div className="px-4 py-2.5 bg-emerald-50/90 border border-emerald-200/80 rounded-2xl flex items-center justify-between gap-3 text-xs sm:text-sm text-emerald-900 shadow-2xs">
                 <div className="flex items-center gap-2">
                   <Navigation size={14} className="fill-emerald-700 text-emerald-700 shrink-0" />
-                  <span className="font-medium">Sorted by distance from your current location</span>
+                  <span className="font-medium">Accurate GPS distances enabled · Sorted by nearest distance</span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => requestUserLocation()}
-                  className="text-[11px] font-semibold text-emerald-800 hover:text-emerald-950 underline cursor-pointer shrink-0"
-                >
-                  Refresh Location
-                </button>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => requestUserLocation(true)}
+                    className="text-[11px] font-semibold text-emerald-800 hover:text-emerald-950 underline cursor-pointer"
+                  >
+                    Refresh
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDismissedLocationBanner(true)}
+                    className="text-emerald-800/70 hover:text-emerald-950 p-0.5 cursor-pointer"
+                    aria-label="Dismiss banner"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
               </div>
-            ) : (
-              <div className="px-4 py-2.5 bg-amber-50/90 border border-amber-200/80 rounded-2xl flex items-center justify-between gap-3 text-xs sm:text-sm text-amber-900 shadow-2xs">
+            ) : locationStatus === 'denied' ? (
+              <div className="p-4 bg-amber-50/95 border border-amber-200/90 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs sm:text-sm text-amber-950 shadow-2xs">
+                <div className="flex items-start gap-2.5">
+                  <MapPinOff size={16} className="text-amber-700 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-semibold block text-amber-950">Location Permission Denied</span>
+                    <span className="text-amber-900/90 text-xs leading-relaxed">
+                      Enabling location access is required to calculate accurate distances and sort workspaces by nearest to you. All workspaces remain fully functional and searchable in standard order.
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => requestUserLocation(true)}
+                    className="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs transition-colors cursor-pointer shadow-2xs"
+                  >
+                    Enable Location
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDismissedLocationBanner(true)}
+                    className="text-amber-800 hover:text-amber-950 p-1 cursor-pointer"
+                    aria-label="Dismiss banner"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              </div>
+            ) : locationStatus === 'unavailable' ? (
+              <div className="p-4 bg-amber-50/95 border border-amber-200/90 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs sm:text-sm text-amber-950 shadow-2xs">
+                <div className="flex items-start gap-2.5">
+                  <MapPinOff size={16} className="text-amber-700 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-semibold block text-amber-950">Location Services Unavailable</span>
+                    <span className="text-amber-900/90 text-xs leading-relaxed">
+                      {locationErrorMessage || 'Location services or GPS appear to be disabled or unavailable on your device. Please ensure location services are enabled for accurate distance results.'}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => requestUserLocation(true)}
+                    className="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs transition-colors cursor-pointer shadow-2xs"
+                  >
+                    Try Again
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDismissedLocationBanner(true)}
+                    className="text-amber-800 hover:text-amber-950 p-1 cursor-pointer"
+                    aria-label="Dismiss banner"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              </div>
+            ) : locationStatus === 'unsupported' ? (
+              <div className="px-4 py-3 bg-soot/5 border border-soot/10 rounded-2xl flex items-center justify-between gap-3 text-xs sm:text-sm text-soot shadow-2xs">
                 <div className="flex items-center gap-2">
-                  <MapPin size={14} className="text-amber-700 shrink-0" />
-                  <span>Location access unavailable. Showing standard order without distance sorting.</span>
+                  <Info size={15} className="text-moss shrink-0" />
+                  <span>Geolocation is not supported by your browser or device. Workspaces are shown in default order.</span>
                 </div>
                 <button
                   type="button"
-                  onClick={() => requestUserLocation()}
-                  className="text-[11px] font-semibold text-amber-800 hover:text-amber-950 underline cursor-pointer shrink-0"
+                  onClick={() => setDismissedLocationBanner(true)}
+                  className="text-moss hover:text-soot p-0.5 cursor-pointer"
+                  aria-label="Dismiss banner"
                 >
-                  Enable Location
+                  <X size={14} />
                 </button>
               </div>
-            )}
+            ) : null}
           </div>
         )}
 

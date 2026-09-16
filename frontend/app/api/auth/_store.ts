@@ -6,6 +6,9 @@ export interface StoredUser {
   email: string;
   passwordHash: string;
   role: string;
+  companyName?: string;
+  orgName?: string;
+  companyId?: string;
   emailVerified: boolean;
   createdAt: Date;
 }
@@ -55,6 +58,8 @@ if (!globalAuth.__cp_users) {
       email: 'hr@aramco.com',
       passwordHash: hashPassword('password123'),
       role: 'HR_ADMIN',
+      companyName: 'Aramco Services',
+      orgName: 'Aramco Services',
       emailVerified: true,
       createdAt: new Date(),
     },

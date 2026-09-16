@@ -41,6 +41,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   const [step, setStep] = useState<'cart' | 'review'>('cart');
   const [useLoyaltyPoints, setUseLoyaltyPoints] = useState(false);
   const [useWalletBalance, setUseWalletBalance] = useState(false);
+  const hasActiveSubscription = Boolean(currentUser?.hasActivePass);
 
   useEffect(() => {
     if (isOpen) {
@@ -243,7 +244,11 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                   <div>
                     <span className="text-moss block">Pass Plan</span>
                     <span className="font-semibold text-soot capitalize">
-                      {item.plan === 'hourly' ? `Hourly (${item.durationHours || 1} hrs)` : `${item.plan} pass`}
+                      {item.plan === 'hourly'
+                        ? `Hourly (${item.durationHours || 1} hrs)`
+                        : item.plan === 'daily'
+                        ? `Daily (${item.durationDays || 1} ${(item.durationDays || 1) === 1 ? 'day' : 'days'})`
+                        : `${item.plan} pass`}
                     </span>
                   </div>
                   <div>
@@ -259,6 +264,11 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                     {item.plan !== 'hourly' && item.endDate && item.endDate !== item.startDate && (
                       <span className="text-[10px] text-moss block">
                         → {item.endDate}
+                      </span>
+                    )}
+                    {item.plan !== 'hourly' && item.startTime && item.endTime && (
+                      <span className="text-[10px] text-emerald-800 font-medium block">
+                        Allowed: {item.startTime} – {item.endTime}
                       </span>
                     )}
                   </div>
@@ -292,10 +302,12 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                       </div>
 
                       <div className="text-right">
-                        <span className="text-xs text-moss block">Subtotal</span>
-                        {item.itemTotal === 0 ? (
+                        <span className="text-xs text-moss block">
+                          {hasActiveSubscription ? 'Pass Coverage' : 'Subtotal'}
+                        </span>
+                        {hasActiveSubscription || item.itemTotal === 0 ? (
                           <span className="text-xs font-bold text-moss bg-eucalyptus/30 px-2 py-0.5 rounded-full border border-eucalyptus/40">
-                            Included in your Plan (SAR 0)
+                            Covered by Pass
                           </span>
                         ) : (
                           <span className="text-sm font-semibold text-soot">
@@ -340,7 +352,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                       </h4>
                     </div>
                     <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-moss/10 text-moss">
-                      {item.plan} Pass
+                      {item.plan === 'daily' ? `Daily (${item.durationDays || 1} ${(item.durationDays || 1) === 1 ? 'Day' : 'Days'})` : `${item.plan} Pass`}
                     </span>
                   </div>
 
@@ -364,13 +376,24 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                     </div>
                   </div>
 
-                  {item.plan === 'hourly' && item.startTime && (
+                  {item.plan === 'daily' && (
                     <div className="bg-plaster-dark/20 p-2.5 rounded-xl border border-soot/6 flex items-center justify-between text-xs">
                       <span className="text-[10px] text-moss font-medium flex items-center gap-1">
-                        <Clock size={11} /> Time Window
+                        <Clock size={11} /> Duration
                       </span>
                       <span className="font-semibold text-soot">
-                        {item.startTime} → {item.endTime || 'End'} ({item.durationHours || 1} hrs)
+                        {item.durationDays || 1} {(item.durationDays || 1) === 1 ? 'Day' : 'Days'}
+                      </span>
+                    </div>
+                  )}
+
+                  {item.startTime && (
+                    <div className="bg-plaster-dark/20 p-2.5 rounded-xl border border-soot/6 flex items-center justify-between text-xs">
+                      <span className="text-[10px] text-moss font-medium flex items-center gap-1">
+                        <Clock size={11} /> {item.plan === 'hourly' ? 'Time Window' : 'Daily Allowed Hours'}
+                      </span>
+                      <span className="font-semibold text-soot">
+                        {item.startTime} → {item.endTime || 'End'} ({item.durationHours || 1} hrs{item.plan === 'hourly' ? '' : '/day'})
                       </span>
                     </div>
                   )}
@@ -379,9 +402,9 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                     <span className="text-moss font-medium flex items-center gap-1">
                       <Users size={12} /> {item.seats} Seat{item.seats > 1 ? 's' : ''} Reserved
                     </span>
-                    {item.itemTotal === 0 ? (
+                    {hasActiveSubscription || item.itemTotal === 0 ? (
                       <span className="text-xs font-bold text-moss bg-eucalyptus/30 px-2 py-0.5 rounded-full border border-eucalyptus/40">
-                        Included in your Plan (SAR 0)
+                        Covered by Pass
                       </span>
                     ) : (
                       <span className="font-semibold text-soot">
@@ -394,7 +417,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
             </div>
 
             {/* Loyalty Points Redemption Widget */}
-            {currentUser && availablePoints >= 100 && maxRedeemablePoints >= 100 && (
+            {!hasActiveSubscription && currentUser && availablePoints >= 100 && maxRedeemablePoints >= 100 && (
               <div className="bg-gradient-to-r from-amber-500/10 to-amber-600/10 border border-amber-500/30 rounded-2xl p-4 space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -428,7 +451,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
             )}
 
             {/* Digital Wallet Redemption Widget */}
-            {currentUser && userWalletBalance > 0 && (
+            {!hasActiveSubscription && currentUser && userWalletBalance > 0 && (
               <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4 space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -480,7 +503,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                 <span className="text-moss">Total Reserved Seats</span>
                 <span className="font-semibold">{totalSeats} Seats</span>
               </div>
-              {earnedLoyaltyPoints > 0 && (
+              {!hasActiveSubscription && earnedLoyaltyPoints > 0 && (
                 <div className="flex justify-between text-amber-900 bg-amber-50 px-2 py-1 rounded-lg">
                   <span className="font-medium flex items-center gap-1">
                     <Sparkles size={12} className="text-amber-700" />
@@ -489,23 +512,25 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                   <span className="font-bold">+{earnedLoyaltyPoints} Pts</span>
                 </div>
               )}
-              {pointsDiscount > 0 && (
+              {!hasActiveSubscription && pointsDiscount > 0 && (
                 <div className="flex justify-between text-emerald-900 bg-emerald-50 px-2 py-1 rounded-lg">
                   <span className="font-medium">Loyalty Discount</span>
                   <span className="font-bold">- SAR {pointsDiscount.toLocaleString()}</span>
                 </div>
               )}
-              {walletDeduction > 0 && (
+              {!hasActiveSubscription && walletDeduction > 0 && (
                 <div className="flex justify-between text-emerald-900 bg-emerald-50 px-2 py-1 rounded-lg">
                   <span className="font-medium">Wallet Balance Applied</span>
                   <span className="font-bold">- SAR {walletDeduction.toLocaleString()}</span>
                 </div>
               )}
               <div className="flex justify-between text-sm pt-2 border-t border-soot/10 font-bold items-center">
-                <span className="text-soot font-serif-display text-base">Total Amount</span>
-                {finalTotalAmount === 0 ? (
+                <span className="text-soot font-serif-display text-base">
+                  {hasActiveSubscription ? 'Pass Coverage' : 'Total Amount'}
+                </span>
+                {hasActiveSubscription || finalTotalAmount === 0 ? (
                   <span className="text-moss font-bold text-xs sm:text-sm bg-eucalyptus/30 px-3 py-1 rounded-full border border-eucalyptus/40">
-                    SAR 0 to Pay (Covered by Plan)
+                    {hasActiveSubscription ? 'Covered by Active Subscription Pass' : 'SAR 0 to Pay (Covered by Plan)'}
                   </span>
                 ) : (
                   <span className="text-soot font-serif-display text-lg text-emerald-900">
@@ -539,10 +564,10 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                 <button
                   type="button"
                   onClick={() => setStep('cart')}
-                  className="px-4 py-3 rounded-xl border border-soot/15 text-soot text-xs font-semibold hover:bg-soot/5 transition-colors cursor-pointer flex items-center gap-1"
+                  className="px-4 py-3 rounded-xl border border-soot/15 text-soot text-xs font-semibold hover:bg-soot/5 transition-colors cursor-pointer flex items-center gap-1.5"
                 >
-                  <Edit3 size={14} />
-                  <span>Edit Dates</span>
+                  <ArrowLeft size={14} />
+                  <span>Back to Cart</span>
                 </button>
                 <button
                   type="button"
@@ -550,7 +575,13 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                   className="flex-1 btn-primary justify-center py-3 text-sm shadow-md cursor-pointer bg-emerald-900 hover:bg-emerald-950 text-white"
                 >
                   <CreditCard size={16} />
-                  <span>{finalTotalAmount === 0 ? 'Confirm Reservations (Included in Pass · SAR 0 to Pay)' : `Confirm Dates & Pay SAR ${finalTotalAmount.toLocaleString()}`}</span>
+                  <span>
+                    {hasActiveSubscription
+                      ? 'Confirm Reservations (Covered by Pass)'
+                      : finalTotalAmount === 0
+                      ? 'Confirm Reservations (Included in Pass · SAR 0 to Pay)'
+                      : `Confirm Dates & Pay SAR ${finalTotalAmount.toLocaleString()}`}
+                  </span>
                 </button>
               </div>
             )}
