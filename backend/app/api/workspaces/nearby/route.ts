@@ -29,9 +29,6 @@ import { calculateDistance } from "@/lib/haversine";
  */
 export async function GET(request: Request) {
   try {
-    const user = getTokenFromRequest(request);
-    if (!user) return unauthorizedResponse();
-
     const { searchParams } = new URL(request.url);
     const lat = searchParams.get("lat");
     const lng = searchParams.get("lng");

@@ -834,6 +834,7 @@ export async function getHourlyBookingsApi() {
 
 export async function createHourlyBookingApi(payload: {
   userId: string;
+  workspaceId?: string;   // اختياري — الـ backend يطابق بالـ ID لو كان UUID صحيح
   sectionId: string;
   packageId: string;
   startDate: string;
@@ -869,16 +870,17 @@ export async function createHourlyBookingApi(payload: {
       }
     }
 
-    // نرسل spaceName و sectionType و city للـ backend وهو يتولى إيجاد/إنشاء الـ workspace والـ section والـ package
+    // نرسل workspaceId و spaceName و sectionType و city للـ backend
     const finalPayload = {
       userId: targetUserId,
-      sectionId: payload.sectionId,   // backend سيتجاهله لو كان وهمياً وسيبحث بـ spaceName + sectionType
-      packageId: payload.packageId,   // backend سيتجاهله لو كان وهمياً وسينشئ واحداً
+      workspaceId: payload.workspaceId,
+      sectionId: payload.sectionId,
+      packageId: payload.packageId,
       startDate: payload.startDate,
       endDate: payload.endDate,
       status: payload.status || 'ACTIVE',
       spaceName: payload.spaceName,
-      city: payload.city,             // المدينة الصحيحة للمساحة
+      city: payload.city,
       sectionType: payload.sectionType,
     };
 

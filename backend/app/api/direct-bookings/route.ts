@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getTokenFromRequest, unauthorizedResponse } from '@/lib/auth/verify-token';
+import { seedStandardWorkspaces } from '@/lib/seed-data';
 
 export async function GET(request: Request) {
   try {
@@ -123,10 +124,10 @@ export async function POST(request: NextRequest) {
     const normalizedDuration = (durationType || 'DAILY').toUpperCase();
     const finalDuration = validDurations.includes(normalizedDuration) ? normalizedDuration : 'DAILY';
 
-    // التحقق من وجود المساحة والقسم في Neon أو إنشائها بالاسم الصحيح
     let targetWorkspaceId = workspaceId;
     let targetSectionId = sectionId;
 
+    // البحث عن مساحة العمل المعتمدة مسبقاً (لا ننشئ Workspace جديد عند الحجز أبداً)
     let ws = targetWorkspaceId ? await prisma.workspace.findUnique({
       where: { id: targetWorkspaceId },
       include: { sections: true }
@@ -140,32 +141,22 @@ export async function POST(request: NextRequest) {
     }
 
     if (!ws) {
-      let partner = await prisma.partner.findFirst();
-      if (!partner) {
-        partner = await prisma.partner.create({
-          data: {
-            brandName: 'Coworking Main Partner',
-            contactEmail: 'partner@coworkingpass.com',
-            taxNumber: '0000000000',
-            revenueSharePercentage: 0,
-          }
+      const count = await prisma.workspace.count();
+      if (count === 0) {
+        await seedStandardWorkspaces();
+        ws = await prisma.workspace.findFirst({
+          where: spaceName ? { name: { equals: spaceName, mode: 'insensitive' } } : undefined,
+          include: { sections: true }
         });
       }
-      ws = await prisma.workspace.create({
-        data: {
-          partnerId: partner.id,
-          name: spaceName || 'The Hub Riyadh',
-          city: resolveCity(spaceName, city),
-          passVisitValue: 1,
-          totalCapacity: 50,
-          dailyRate: 100,
-        },
-        include: { sections: true }
-      });
     }
 
     if (!ws) {
-      return NextResponse.json({ error: 'لا يمكن تهيئة مساحة عمل' }, { status: 500 });
+      ws = await prisma.workspace.findFirst({ include: { sections: true } });
+    }
+
+    if (!ws) {
+      return NextResponse.json({ error: 'مساحة العمل غير موجودة' }, { status: 404 });
     }
 
     targetWorkspaceId = ws.id;
