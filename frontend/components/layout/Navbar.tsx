@@ -287,8 +287,11 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-2 sm:gap-4">
         {/* Brand Logo & Name */}
         <button
-          onClick={() => navigate(currentUser ? (currentUser.role === 'admin' ? 'admin-dashboard' : currentUser.role === 'organization' ? 'org-dashboard' : currentUser.role === 'provider' ? 'provider-dashboard' : 'ind-dashboard') : 'landing')}
+          type="button"
+          onClick={() => navigate('landing')}
           className="flex items-center gap-2.5 sm:gap-3 group focus:outline-none focus-visible:ring-2 focus-visible:ring-soot/30 rounded-xl p-1 transition-all shrink-0 cursor-pointer"
+          title="Go to Home"
+          aria-label="Coworking Pass Home"
         >
           <Logo className="h-9 sm:h-11 w-auto" />
           <span className="font-serif-display font-normal text-soot text-xl sm:text-2xl lg:text-3xl tracking-tight group-hover:text-soot-light transition-colors hidden sm:block">
