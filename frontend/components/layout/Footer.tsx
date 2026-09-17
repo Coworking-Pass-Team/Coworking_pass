@@ -17,8 +17,11 @@ export default function Footer() {
           {/* Brand & Role Column */}
           <div className="lg:col-span-2 space-y-4">
             <button
-              onClick={() => navigate(currentUser ? (role === 'admin' ? 'admin-dashboard' : role === 'organization' ? 'org-dashboard' : role === 'provider' ? 'provider-dashboard' : 'ind-dashboard') : 'landing')}
-              className="flex items-center gap-3 group text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus rounded-xl p-0.5"
+              type="button"
+              onClick={() => navigate('landing')}
+              className="flex items-center gap-3 group text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus rounded-xl p-0.5 cursor-pointer"
+              title="Go to Home"
+              aria-label="Coworking Pass Home"
             >
               <LogoImage className="h-8 w-auto" />
               <span className="font-serif-display font-normal text-plaster text-xl sm:text-2xl tracking-tight group-hover:text-eucalyptus transition-colors duration-200">
