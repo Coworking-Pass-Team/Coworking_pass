@@ -88,17 +88,39 @@ export async function POST(request: Request) {
       );
     }
 
-    const company = await prisma.company.create({
-      data: {
-        companyName,
-        hrAdminId,
-        totalPassesAllocated: totalPassesAllocated ?? 0,
-      },
+    const existingCompany = await prisma.company.findUnique({
+      where: { hrAdminId },
     });
 
+    let company;
+    if (existingCompany) {
+      company = await prisma.company.update({
+        where: { hrAdminId },
+        data: {
+          companyName: companyName.trim(),
+          ...(totalPassesAllocated !== undefined ? { totalPassesAllocated } : {}),
+        },
+      });
+    } else {
+      company = await prisma.company.create({
+        data: {
+          companyName: companyName.trim(),
+          hrAdminId,
+          totalPassesAllocated: totalPassesAllocated ?? 0,
+        },
+      });
+    }
+
+    if (!userExists.companyId) {
+      await prisma.user.update({
+        where: { id: hrAdminId },
+        data: { companyId: company.id },
+      }).catch(() => {});
+    }
+
     return NextResponse.json(
-      { message: "تم إنشاء الشركة بنجاح", company },
-      { status: 201 }
+      { message: existingCompany ? "تم تحديث الشركة بنجاح" : "تم إنشاء الشركة بنجاح", company },
+      { status: existingCompany ? 200 : 201 }
     );
   } catch (error) {
     console.error(error);

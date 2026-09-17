@@ -89,9 +89,11 @@ function Router() {
   const { nav, currentUser } = useApp();
   const screen = nav.screen;
 
+  // Home / Landing page (accessible to both guests and authenticated users)
+  if (screen === 'landing') return <Landing />;
+
   // Unauthenticated / Guest flow
   if (!currentUser) {
-    if (screen === 'landing') return <Landing />;
 
     return (
       <div className="min-h-screen flex flex-col bg-plaster">

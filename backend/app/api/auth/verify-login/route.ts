@@ -63,18 +63,38 @@ export async function POST(request: Request) {
       });
     }
 
-    const user = await prisma.user.findUnique({ where: { id: userId } });
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        hrAdminOf: true,
+        company: true,
+      },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: "المستخدم غير موجود" }, { status: 404 });
+    }
 
     const token = jwt.sign(
-      { userId: user!.id, role: user!.role },
+      { userId: user.id, role: user.role },
       process.env.JWT_SECRET!,
       { expiresIn: "7d" }
     );
 
+    const associatedCompany = user.hrAdminOf || user.company;
+
     return NextResponse.json({
       message: "تم تسجيل الدخول بنجاح",
       token,
-      user: { id: user!.id, name: user!.name, email: user!.email, role: user!.role },
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        companyId: associatedCompany?.id || user.companyId || null,
+        companyName: associatedCompany?.companyName || null,
+        orgName: associatedCompany?.companyName || null,
+      },
     });
   } catch (error) {
     console.error(error);

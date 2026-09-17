@@ -39,7 +39,7 @@ function generateOtp() {
  */
 export async function POST(request: Request) {
   try {
-    const { name, email, password, role, companyId } = await request.json();
+    const { name, email, password, role, companyId, companyName, orgName } = await request.json();
 
     if (!name || !email || !password) {
       return NextResponse.json(
@@ -73,6 +73,27 @@ export async function POST(request: Request) {
         emailVerified: false,
       },
     });
+
+    // إنشاء سجل الشركة للمنظمة بشكل منفصل عن اسم المالك الشخصي
+    if (assignedRole === "HR_ADMIN") {
+      const finalCompanyName = (companyName || orgName || 'New Organization').trim();
+      try {
+        const company = await prisma.company.create({
+          data: {
+            companyName: finalCompanyName,
+            hrAdminId: user.id,
+            totalPassesAllocated: 0,
+            balance: 0,
+          },
+        });
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { companyId: company.id },
+        });
+      } catch (companyErr) {
+        console.error("❌ Error creating company for HR_ADMIN on register:", companyErr);
+      }
+    }
 
     // إنشاء محفظة للمستخدم الجديد
     await prisma.wallet.create({
