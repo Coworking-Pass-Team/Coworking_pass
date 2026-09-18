@@ -563,29 +563,6 @@ export default function SpaceDetails() {
                       </span>
                     </div>
 
-                    {/* Quick Duration Selection */}
-                    <div className="flex flex-wrap gap-1.5 items-center">
-                      {[1, 2, 3, 4, 5, 6, 7, 14, 30].map(days => (
-                        <button
-                          key={days}
-                          type="button"
-                          onClick={() => {
-                            const base = bookingDate || new Date().toISOString().split('T')[0];
-                            const [y, m, d] = base.split('-').map(Number);
-                            const dt = new Date(Date.UTC(y, m - 1, d + (days - 1)));
-                            setBookingEndDate(dt.toISOString().split('T')[0]);
-                          }}
-                          className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer border ${
-                            dailyDurationDays === days
-                              ? 'bg-soot text-white border-soot shadow-xs scale-105'
-                              : 'bg-white text-soot border-soot/12 hover:bg-soot/5'
-                          }`}
-                        >
-                          {days} {days === 1 ? 'Day' : 'Days'}
-                        </button>
-                      ))}
-                    </div>
-
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-[11px] font-semibold text-moss mb-1 flex items-center gap-1">

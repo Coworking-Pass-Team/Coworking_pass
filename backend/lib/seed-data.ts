@@ -84,15 +84,15 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
   },
   {
     name: 'Oasis Coworking',
-    city: 'Riyadh',
+    city: 'Al Khobar',
     category: 'office',
     type: 'private-office',
     dailyRate: 130,
     monthlyRate: 1600,
     yearlyRate: 16000,
     totalCapacity: 40,
-    latitude: 24.7136,
-    longitude: 46.6753,
+    latitude: 26.4485,
+    longitude: 50.1165,
     images: [
       'https://images.unsplash.com/photo-1497215842964-222b430dc094?w=1200&h=800&fit=crop&auto=format'
     ],

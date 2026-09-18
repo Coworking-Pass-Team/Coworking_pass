@@ -167,7 +167,7 @@ export const INITIAL_SPACES: Space[] = [
   },
   {
     id: 'space-5',
-    name: 'Oasis Cowork',
+    name: 'Oasis Coworking',
     category: 'office',
     city: 'Khobar',
     address: 'King Fahd Causeway Road, Al Khobar 34446',
@@ -1152,7 +1152,7 @@ export const INITIAL_BOOKINGS: Booking[] = [
     id: 'booking-6',
     userId: 'user-2',
     spaceId: 'space-5',
-    spaceName: 'Oasis Cowork',
+    spaceName: 'Oasis Coworking',
     spaceCity: 'Khobar',
     spaceAddress: 'King Fahd Causeway Road',
     spaceImage: 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=600&h=400&fit=crop&auto=format',
