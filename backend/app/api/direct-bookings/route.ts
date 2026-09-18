@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
     const user = getTokenFromRequest(request);
 
     const body = await request.json();
-    const { userId, workspaceId, sectionId, durationType, bookingDate, status = 'CONFIRMED', spaceName, city } = body;
+    const { userId, workspaceId, sectionId, durationType, durationDetails, durationDays, durationMonths, bookingDate, status = 'CONFIRMED', spaceName, city } = body;
 
     // تطبيع المدينة — استخدم المدينة المُرسَلة أو استنتجها من اسم المساحة
     const resolveCity = (name?: string, sentCity?: string): string => {
@@ -200,6 +200,26 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    let finalDurationDetails = durationDetails;
+    if (!finalDurationDetails) {
+      if (finalDuration === 'DAILY') {
+        const d = Number(durationDays) || 1;
+        finalDurationDetails = `${d} ${d === 1 ? 'Day' : 'Days'}`;
+      } else if (finalDuration === 'MONTHLY') {
+        const m = Number(durationMonths) || 1;
+        finalDurationDetails = `${m} ${m === 1 ? 'Month' : 'Months'}`;
+      } else if (finalDuration === 'YEARLY') {
+        finalDurationDetails = '1 Year';
+      } else {
+        finalDurationDetails = '1 Day';
+      }
+    }
+
+    // تأكد من وجود العمود في قاعدة البيانات
+    await prisma.$executeRawUnsafe(
+      'ALTER TABLE "DirectBooking" ADD COLUMN IF NOT EXISTS "durationDetails" TEXT;'
+    ).catch(() => {});
+
     // إنشاء الحجز في قاعدة بيانات Neon
     const booking = await prisma.directBooking.create({
       data: {
@@ -207,6 +227,7 @@ export async function POST(request: NextRequest) {
         workspaceId: targetWorkspaceId,
         sectionId: targetSectionId,
         durationType: finalDuration as any,
+        durationDetails: finalDurationDetails,
         bookingDate: bookingDate ? new Date(bookingDate) : new Date(),
         status: (status as any) || 'CONFIRMED',
       },

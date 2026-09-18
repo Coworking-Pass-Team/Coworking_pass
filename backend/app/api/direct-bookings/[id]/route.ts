@@ -98,11 +98,12 @@ export async function PUT(
 
     const updateData: any = {};
     if (body.durationType) updateData.durationType = body.durationType.toUpperCase();
+    if (body.durationDetails) updateData.durationDetails = body.durationDetails;
     if (body.bookingDate) updateData.bookingDate = new Date(body.bookingDate);
     if (body.status) updateData.status = body.status;
     if (body.workspaceId) updateData.workspaceId = body.workspaceId;
     if (body.sectionId) updateData.sectionId = body.sectionId;
-6
+
     const booking = await prisma.directBooking.update({
       where: { id },
       data: updateData,

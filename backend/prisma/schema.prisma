@@ -297,8 +297,9 @@ model DirectBooking {
   userId       String
   workspaceId  String
   sectionId    String
-  durationType DurationType
-  bookingDate  DateTime
+  durationType    DurationType
+  durationDetails String?
+  bookingDate     DateTime
   status       DirectBookingStatus
   createdAt    DateTime            @default(now())
 

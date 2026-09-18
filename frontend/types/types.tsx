@@ -1221,6 +1221,7 @@ export interface Booking {
 
   // Duration for Daily Reservations (in days: Start Date to End Date)
   durationDays?: number;
+  durationDetails?: string;
 
   bookingPackageId?: string;
   bookingHours?: number;

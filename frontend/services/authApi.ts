@@ -308,6 +308,9 @@ export async function createDirectBookingApi(payload: {
   workspaceId?: string;   // اختياري — الـ backend يبحث بـ spaceName لو لم يُرسَل UUID صحيح
   sectionId: string;
   durationType: string;
+  durationDetails?: string;
+  durationDays?: number;
+  durationMonths?: number;
   bookingDate: string;
   status?: string;
   spaceName?: string;     // الاسم الأساسي لإيجاد الـ workspace في الداتابيس
@@ -346,6 +349,9 @@ export async function createDirectBookingApi(payload: {
       city: payload.city,             // المدينة الصحيحة للمساحة
       sectionId: payload.sectionId,   // backend سيتجاهله لو كان وهمياً وسيبحث بـ spaceName
       durationType: payload.durationType,
+      durationDetails: payload.durationDetails,
+      durationDays: payload.durationDays,
+      durationMonths: payload.durationMonths,
       bookingDate: payload.bookingDate,
       status: payload.status || 'CONFIRMED',
     };
