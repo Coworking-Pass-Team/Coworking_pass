@@ -612,9 +612,9 @@ export async function deduplicateWorkspaces() {
       const duplicates = workspacesList.slice(1);
 
       const primarySection = primaryWs.sections[0];
-      let primaryPkg = primarySection?.hourlyPackages?.[0];
+      let primaryPkg: any = primarySection?.hourlyPackages?.[0];
       if (!primaryPkg && primarySection) {
-        primaryPkg = await prisma.hourlyPackage.findFirst({ where: { sectionId: primarySection.id } }) || undefined;
+        primaryPkg = await prisma.hourlyPackage.findFirst({ where: { sectionId: primarySection.id } });
       }
 
       for (const dup of duplicates) {
