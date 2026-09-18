@@ -633,12 +633,20 @@ export async function deduplicateWorkspaces() {
 
           for (const sec of dup.sections) {
             try {
+              const secPackages = await prisma.hourlyPackage.findMany({ where: { sectionId: sec.id } });
+              const secPkgIds = secPackages.map((p: any) => p.id);
+
               if (primarySection) {
                 const updateData: any = { sectionId: primarySection.id };
                 if (primaryPkg) updateData.packageId = primaryPkg.id;
 
                 await prisma.hourlyBooking.updateMany({
-                  where: { sectionId: sec.id },
+                  where: {
+                    OR: [
+                      { sectionId: sec.id },
+                      ...(secPkgIds.length > 0 ? [{ packageId: { in: secPkgIds } }] : []),
+                    ],
+                  },
                   data: updateData,
                 });
 
@@ -652,7 +660,14 @@ export async function deduplicateWorkspaces() {
                   data: { sectionId: primarySection.id, workspaceId: primaryWs.id },
                 });
               } else {
-                await prisma.hourlyBooking.deleteMany({ where: { sectionId: sec.id } });
+                await prisma.hourlyBooking.deleteMany({
+                  where: {
+                    OR: [
+                      { sectionId: sec.id },
+                      ...(secPkgIds.length > 0 ? [{ packageId: { in: secPkgIds } }] : []),
+                    ],
+                  },
+                });
                 await prisma.directBooking.deleteMany({ where: { sectionId: sec.id } });
                 await prisma.qrCheckIn.deleteMany({ where: { sectionId: sec.id } });
               }
