@@ -22,7 +22,22 @@ export async function GET() {
     }
 
     const primarySection = primaryWs.sections[0];
-    const primaryPkg = primarySection?.hourlyPackages?.[0];
+    let primaryPkg: any = primarySection?.hourlyPackages?.[0];
+    if (!primaryPkg && primarySection) {
+      primaryPkg = await prisma.hourlyPackage.findFirst({ where: { sectionId: primarySection.id } });
+    }
+    if (!primaryPkg && primarySection) {
+      primaryPkg = await prisma.hourlyPackage.create({
+        data: {
+          sectionId: primarySection.id,
+          packageName: '1 Hour Pass',
+          hoursAmount: 1,
+          periodType: 'PER_DAY',
+          price: 25,
+        },
+      });
+      logs.push(`Created fallback primary package ${primaryPkg.id}`);
+    }
 
     for (const dupId of deleteIds) {
       logs.push(`Processing duplicate ${dupId}...`);
@@ -37,31 +52,59 @@ export async function GET() {
         continue;
       }
 
-      // Re-link direct bookings
-      const dbUpdate = await prisma.directBooking.updateMany({
-        where: { workspaceId: dupId },
-        data: { workspaceId: keepId, sectionId: primarySection.id },
-      });
-      logs.push(`Re-linked ${dbUpdate.count} direct bookings.`);
+      // Re-link direct bookings by workspaceId
+      if (primarySection) {
+        const dbUpdate = await prisma.directBooking.updateMany({
+          where: { workspaceId: dupId },
+          data: { workspaceId: keepId, sectionId: primarySection.id },
+        });
+        logs.push(`Re-linked ${dbUpdate.count} direct bookings by workspaceId.`);
 
-      // Re-link qrCheckIns
-      const qrUpdate = await prisma.qrCheckIn.updateMany({
-        where: { workspaceId: dupId },
-        data: { workspaceId: keepId, sectionId: primarySection.id },
-      });
-      logs.push(`Re-linked ${qrUpdate.count} QR checkins.`);
+        const qrUpdate = await prisma.qrCheckIn.updateMany({
+          where: { workspaceId: dupId },
+          data: { workspaceId: keepId, sectionId: primarySection.id },
+        });
+        logs.push(`Re-linked ${qrUpdate.count} QR checkins by workspaceId.`);
+      }
 
       for (const sec of dupWs.sections) {
-        // Re-link or delete hourly bookings
-        if (primaryPkg) {
+        // Find all packages for this section
+        const secPackages = await prisma.hourlyPackage.findMany({ where: { sectionId: sec.id } });
+        const secPkgIds = secPackages.map((p: any) => p.id);
+
+        if (primarySection && primaryPkg) {
           const hbUpdate = await prisma.hourlyBooking.updateMany({
-            where: { sectionId: sec.id },
+            where: {
+              OR: [
+                { sectionId: sec.id },
+                ...(secPkgIds.length > 0 ? [{ packageId: { in: secPkgIds } }] : []),
+              ],
+            },
             data: { sectionId: primarySection.id, packageId: primaryPkg.id },
           });
-          logs.push(`Re-linked ${hbUpdate.count} hourly bookings for section ${sec.id}.`);
+          logs.push(`Re-linked ${hbUpdate.count} hourly bookings for section ${sec.id} and its packages.`);
+
+          const dbSecUpdate = await prisma.directBooking.updateMany({
+            where: { sectionId: sec.id },
+            data: { workspaceId: keepId, sectionId: primarySection.id },
+          });
+          logs.push(`Re-linked ${dbSecUpdate.count} direct bookings for section ${sec.id}.`);
+
+          const qrSecUpdate = await prisma.qrCheckIn.updateMany({
+            where: { sectionId: sec.id },
+            data: { workspaceId: keepId, sectionId: primarySection.id },
+          });
+          logs.push(`Re-linked ${qrSecUpdate.count} QR checkins for section ${sec.id}.`);
         } else {
-          const hbDel = await prisma.hourlyBooking.deleteMany({ where: { sectionId: sec.id } });
-          logs.push(`Deleted ${hbDel.count} hourly bookings for section ${sec.id}.`);
+          const hbDel = await prisma.hourlyBooking.deleteMany({
+            where: {
+              OR: [
+                { sectionId: sec.id },
+                ...(secPkgIds.length > 0 ? [{ packageId: { in: secPkgIds } }] : []),
+              ],
+            },
+          });
+          logs.push(`Deleted ${hbDel.count} hourly bookings.`);
         }
 
         // Delete hourly packages for this section
