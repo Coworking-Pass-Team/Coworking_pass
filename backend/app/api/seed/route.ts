@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
-import { seedStandardWorkspaces } from '@/lib/seed-data';
+import { seedStandardWorkspaces, deduplicateWorkspaces } from '@/lib/seed-data';
 
 export async function GET() {
   try {
+    await deduplicateWorkspaces();
     const workspaces = await seedStandardWorkspaces();
     return NextResponse.json({
       success: true,
