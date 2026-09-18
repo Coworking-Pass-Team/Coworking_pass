@@ -3,6 +3,11 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET() {
   try {
+    // Ensure durationDetails column exists in Neon DB
+    await prisma.$executeRawUnsafe(
+      'ALTER TABLE "DirectBooking" ADD COLUMN IF NOT EXISTS "durationDetails" TEXT;'
+    ).catch((err: any) => console.warn('Alter table column warning:', err));
+
     const directBookingsCountBefore = await prisma.directBooking.count();
     const paymentsCountBefore = await prisma.payment.count();
 

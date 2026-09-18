@@ -410,6 +410,12 @@ export default function BookingFlow() {
         // Synchronize direct booking (daily, monthly, yearly) or hourly booking with backend API
         if (plan !== 'hourly') {
           const durationType = plan === 'monthly' ? 'MONTHLY' : plan === 'yearly' ? 'YEARLY' : 'DAILY';
+          const durationDetails = plan === 'daily'
+            ? `${durationDays} ${durationDays === 1 ? 'Day' : 'Days'}`
+            : plan === 'monthly'
+            ? `${durationMonths} ${durationMonths === 1 ? 'Month' : 'Months'}`
+            : '1 Year';
+
           createDirectBookingApi({
             userId: currentUser.id,
             workspaceId: space.id,
@@ -417,6 +423,9 @@ export default function BookingFlow() {
             city: space.city,
             sectionId: (space as any).sectionId || `sec-${space.id}`,
             durationType,
+            durationDetails,
+            durationDays: plan === 'daily' ? durationDays : undefined,
+            durationMonths: plan === 'monthly' ? durationMonths : undefined,
             bookingDate: new Date(startDate).toISOString(),
             status: 'CONFIRMED',
           }).catch((err: any) => console.warn('[Direct Booking API Sync]', err));
