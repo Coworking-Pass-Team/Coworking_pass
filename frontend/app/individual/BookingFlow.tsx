@@ -158,13 +158,8 @@ export default function BookingFlow() {
   const [useWalletBalance, setUseWalletBalance] = useState(false);
 
   const handleStartDateChange = (newStart: string) => {
-    const currentDays = durationDays;
     setStartDate(newStart);
-    if (currentDays > 1) {
-      const [y, m, d] = newStart.split('-').map(Number);
-      const dt = new Date(Date.UTC(y, m - 1, d + (currentDays - 1)));
-      setDailyEndDate(dt.toISOString().split('T')[0]);
-    } else if (dailyEndDate && newStart > dailyEndDate) {
+    if (dailyEndDate && newStart > dailyEndDate) {
       setDailyEndDate(newStart);
     }
   };
@@ -919,34 +914,6 @@ export default function BookingFlow() {
                   </div>
                   <div className="text-xs font-bold text-soot bg-white px-3 py-1 rounded-full border border-soot/10 shadow-2xs whitespace-nowrap">
                     {durationDays} {durationDays === 1 ? 'Day' : 'Days'} Duration
-                  </div>
-                </div>
-
-                {/* Quick Days Selector */}
-                <div className="space-y-1.5 pt-1">
-                  <label className="block text-[11px] font-semibold uppercase tracking-wider text-moss">
-                    Quick Duration Selection
-                  </label>
-                  <div className="flex flex-wrap gap-2 items-center">
-                    {[1, 2, 3, 4, 5, 6, 7, 14, 30].map(days => (
-                      <button
-                        key={days}
-                        type="button"
-                        onClick={() => {
-                          const base = startDate || new Date().toISOString().split('T')[0];
-                          const [y, m, d] = base.split('-').map(Number);
-                          const dt = new Date(Date.UTC(y, m - 1, d + (days - 1)));
-                          setDailyEndDate(dt.toISOString().split('T')[0]);
-                        }}
-                        className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer border ${
-                          durationDays === days
-                            ? 'bg-soot text-white border-soot shadow-xs scale-105'
-                            : 'bg-white text-soot border-soot/12 hover:bg-soot/5'
-                        }`}
-                      >
-                        {days} {days === 1 ? 'Day' : 'Days'}
-                      </button>
-                    ))}
                   </div>
                 </div>
 

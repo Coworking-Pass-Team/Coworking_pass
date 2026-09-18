@@ -3315,27 +3315,67 @@ export function AppProvider({ children }: { children: ReactNode }) {
           headers['Authorization'] = `Bearer ${storedToken}`;
         }
 
-        let validWorkspaceId = booking.spaceId;
-        const matchedW = workspacesApi.find(w => w.id === booking.spaceId || w.name.toLowerCase() === booking.spaceName.toLowerCase());
-        if (matchedW) {
-          validWorkspaceId = matchedW.id;
-        } else if (workspacesApi.length > 0) {
-          validWorkspaceId = workspacesApi[0].id;
+        // 1. Identify the target space from spaces state using the original booking.spaceId / spaceName
+        const targetSpace = spaces.find(s => s.id === booking.spaceId)
+          || spaces.find(s => s.name?.toLowerCase().trim() === booking.spaceName?.toLowerCase().trim());
+
+        const effectiveSpaceName = targetSpace?.name || booking.spaceName;
+        const effectiveCity = targetSpace?.city || booking.spaceCity;
+        const cleanName = (effectiveSpaceName || '').trim().toLowerCase();
+        const cleanCity = (effectiveCity || '').trim().toLowerCase().replace('al ', '');
+
+        // 2. Find matching workspace in workspacesApi
+        let matchedW = workspacesApi.find(w => w.id === booking.spaceId);
+
+        if (!matchedW && cleanName) {
+          // Exact name match
+          matchedW = workspacesApi.find(w => (w.name || '').trim().toLowerCase() === cleanName);
         }
 
-        const targetSpace = spaces.find(s => s.id === validWorkspaceId);
+        if (!matchedW && cleanName) {
+          // Partial name match (e.g. "Oasis Cowork" matches "Oasis Coworking")
+          matchedW = workspacesApi.find(w => {
+            const wName = (w.name || '').trim().toLowerCase();
+            return wName.includes(cleanName) || cleanName.includes(wName);
+          });
+        }
+
+        if (!matchedW && cleanName) {
+          // First word match (e.g. "Oasis")
+          const firstWord = cleanName.split(/\s+/)[0];
+          if (firstWord && firstWord.length > 2) {
+            matchedW = workspacesApi.find(w => (w.name || '').trim().toLowerCase().includes(firstWord));
+          }
+        }
+
+        if (!matchedW && cleanCity) {
+          // Match by city
+          matchedW = workspacesApi.find(w => {
+            const wCity = (w.city || '').trim().toLowerCase().replace('al ', '');
+            return wCity && (wCity === cleanCity || wCity.includes(cleanCity) || cleanCity.includes(wCity));
+          });
+        }
+
+        // Never fallback to workspacesApi[0]!
+        const validWorkspaceId = matchedW ? matchedW.id : (booking.spaceId && booking.spaceId.includes('-') && booking.spaceId.length > 20 ? booking.spaceId : null);
 
         let sectionId: string | null = null;
-        try {
-          const secRes = await fetch(`${getApiBaseUrl()}/workspace-sections`, { headers });
-          if (secRes.ok) {
-            const sections = await secRes.json();
-            if (Array.isArray(sections)) {
-              const matchedSec = sections.find((sec: any) => sec.workspaceId === validWorkspaceId);
-              if (matchedSec) sectionId = matchedSec.id;
+        if (matchedW && Array.isArray((matchedW as any).sections) && (matchedW as any).sections.length > 0) {
+          sectionId = (matchedW as any).sections[0].id;
+        }
+
+        if (!sectionId && validWorkspaceId) {
+          try {
+            const secRes = await fetch(`${getApiBaseUrl()}/workspace-sections`, { headers });
+            if (secRes.ok) {
+              const sections = await secRes.json();
+              if (Array.isArray(sections)) {
+                const matchedSec = sections.find((sec: any) => sec.workspaceId === validWorkspaceId);
+                if (matchedSec) sectionId = matchedSec.id;
+              }
             }
-          }
-        } catch (e) {}
+          } catch (e) {}
+        }
 
         if (!sectionId && validWorkspaceId) {
           try {
@@ -3347,7 +3387,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               body: JSON.stringify({
                 workspaceId: validWorkspaceId,
                 type: dbSecType,
-                name: `${targetSpace?.name || 'Workspace'} Section`,
+                name: `${effectiveSpaceName || 'Workspace'} Section`,
                 capacity: targetSpace?.totalCapacity || 50,
                 dailyRate: booking.totalPrice || 50,
               }),
@@ -3359,11 +3399,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
           } catch (e) {}
         }
 
-        if (sectionId && validWorkspaceId) {
-          const bookingPlanStr = (booking.plan || (booking as any).type || '') as string;
-          const isHourly = bookingPlanStr === 'hourly' || (targetSpace && targetSpace.bookingMode === 'hourly');
-          const durationType = bookingPlanStr === 'monthly' ? 'MONTHLY' : bookingPlanStr === 'yearly' ? 'YEARLY' : 'DAILY';
-          const bookingDate = booking.startDate || new Date().toISOString().split('T')[0];
+        const bookingPlanStr = (booking.plan || (booking as any).type || '') as string;
+        const isHourly = bookingPlanStr === 'hourly' || (targetSpace && targetSpace.bookingMode === 'hourly');
+        const durationType = bookingPlanStr === 'monthly' ? 'MONTHLY' : bookingPlanStr === 'yearly' ? 'YEARLY' : 'DAILY';
+        const bookingDate = booking.startDate || new Date().toISOString().split('T')[0];
 
           if (!isHourly) {
             const computedDays = booking.durationDays || (booking.startDate && booking.endDate ? calculateDailyDurationDays(booking.startDate, booking.endDate) : 1);
@@ -3381,10 +3420,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
               headers,
               body: JSON.stringify({
                 userId: currentUser?.id || booking.userId,
-                workspaceId: validWorkspaceId,
-                spaceName: targetSpace?.name,
-                city: targetSpace?.city,
-                sectionId,
+                workspaceId: validWorkspaceId || undefined,
+                spaceName: effectiveSpaceName,
+                city: effectiveCity,
+                sectionId: sectionId || undefined,
                 durationType,
                 durationDetails: computedDetails,
                 durationDays: computedDays,
@@ -3466,7 +3505,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
               } catch (_) {}
             }
           }
-        }
       } catch (err) {
         console.warn('Booking DB persistence notice:', err);
       }

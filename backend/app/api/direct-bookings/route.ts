@@ -134,8 +134,39 @@ export async function POST(request: NextRequest) {
     }) : null;
 
     if (!ws && spaceName) {
+      const trimmedName = spaceName.trim();
+      // 1. Exact match (case-insensitive)
       ws = await prisma.workspace.findFirst({
-        where: { name: { equals: spaceName, mode: 'insensitive' } },
+        where: { name: { equals: trimmedName, mode: 'insensitive' } },
+        include: { sections: true }
+      });
+
+      // 2. Contains match (e.g. "Oasis Cowork" matches "Oasis Coworking")
+      if (!ws) {
+        ws = await prisma.workspace.findFirst({
+          where: { name: { contains: trimmedName, mode: 'insensitive' } },
+          include: { sections: true }
+        });
+      }
+
+      // 3. First word match (e.g. "Oasis")
+      if (!ws) {
+        const firstWord = trimmedName.split(/\s+/)[0];
+        if (firstWord && firstWord.length > 2) {
+          ws = await prisma.workspace.findFirst({
+            where: { name: { contains: firstWord, mode: 'insensitive' } },
+            include: { sections: true }
+          });
+        }
+      }
+    }
+
+    // 4. City match if spaceName alone wasn't enough (e.g., Khobar)
+    if (!ws && (city || spaceName)) {
+      const resolved = resolveCity(spaceName, city);
+      const cleanCity = resolved.replace(/al\s+/i, '').trim();
+      ws = await prisma.workspace.findFirst({
+        where: { city: { contains: cleanCity, mode: 'insensitive' } },
         include: { sections: true }
       });
     }
@@ -145,25 +176,21 @@ export async function POST(request: NextRequest) {
       if (count === 0) {
         await seedStandardWorkspaces();
         ws = await prisma.workspace.findFirst({
-          where: spaceName ? { name: { equals: spaceName, mode: 'insensitive' } } : undefined,
+          where: spaceName ? { name: { contains: spaceName.trim(), mode: 'insensitive' } } : undefined,
           include: { sections: true }
         });
       }
     }
 
     if (!ws) {
-      ws = await prisma.workspace.findFirst({ include: { sections: true } });
-    }
-
-    if (!ws) {
-      return NextResponse.json({ error: 'مساحة العمل غير موجودة' }, { status: 404 });
+      return NextResponse.json({ error: 'مساحة العمل المطلوبة غير موجودة' }, { status: 404 });
     }
 
     targetWorkspaceId = ws.id;
 
     // التأكد من وجود القسم
     let sec = ws.sections && ws.sections.length > 0
-      ? ws.sections.find((s: any) => s.id === targetSectionId) || ws.sections[0]
+      ? (targetSectionId ? ws.sections.find((s: any) => s.id === targetSectionId) : null) || ws.sections[0]
       : null;
 
     if (!sec) {
@@ -171,7 +198,7 @@ export async function POST(request: NextRequest) {
         data: {
           workspaceId: ws.id,
           type: 'DESK',
-          name: 'General Desk Area',
+          name: `${ws.name} - General Desk Area`,
           capacity: ws.totalCapacity || 30,
           dailyRate: ws.dailyRate || 100,
         }
