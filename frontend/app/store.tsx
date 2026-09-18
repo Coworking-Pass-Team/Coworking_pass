@@ -3361,37 +3361,55 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
         if (sectionId && validWorkspaceId) {
           const bookingPlanStr = (booking.plan || (booking as any).type || '') as string;
+          const isHourly = bookingPlanStr === 'hourly' || (targetSpace && targetSpace.bookingMode === 'hourly');
           const durationType = bookingPlanStr === 'monthly' ? 'MONTHLY' : bookingPlanStr === 'yearly' ? 'YEARLY' : 'DAILY';
           const bookingDate = booking.startDate || new Date().toISOString().split('T')[0];
 
-          const directRes = await fetch(`${getApiBaseUrl()}/direct-bookings`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({
-              userId: currentUser?.id || booking.userId,
-              workspaceId: validWorkspaceId,
-              sectionId,
-              durationType,
-              bookingDate,
-              status: 'CONFIRMED',
-            }),
-          });
+          if (!isHourly) {
+            const computedDays = booking.durationDays || (booking.startDate && booking.endDate ? calculateDailyDurationDays(booking.startDate, booking.endDate) : 1);
+            const computedMonths = booking.durationMonths || 1;
+            const computedDetails = booking.durationDetails || (
+              durationType === 'DAILY'
+                ? `${computedDays} ${computedDays === 1 ? 'Day' : 'Days'}`
+                : durationType === 'MONTHLY'
+                ? `${computedMonths} ${computedMonths === 1 ? 'Month' : 'Months'}`
+                : '1 Year'
+            );
 
-          if (directRes.ok) {
-            const dbBooking = await directRes.json();
-            setDirectBookingsApi(prev => [dbBooking, ...prev]);
-
-            await fetch(`${getApiBaseUrl()}/payments`, {
+            const directRes = await fetch(`${getApiBaseUrl()}/direct-bookings`, {
               method: 'POST',
               headers,
               body: JSON.stringify({
                 userId: currentUser?.id || booking.userId,
-                amount: booking.totalPrice || 50,
-                method: 'VISA',
-                paymentFor: 'DIRECT_BOOKING',
-                referenceId: dbBooking.id || newBooking.id,
+                workspaceId: validWorkspaceId,
+                spaceName: targetSpace?.name,
+                city: targetSpace?.city,
+                sectionId,
+                durationType,
+                durationDetails: computedDetails,
+                durationDays: computedDays,
+                durationMonths: computedMonths,
+                bookingDate,
+                status: 'CONFIRMED',
               }),
-            }).catch(() => {});
+            });
+
+            if (directRes.ok) {
+              const dbBooking = await directRes.json();
+              setDirectBookingsApi(prev => [dbBooking, ...prev]);
+
+              await fetch(`${getApiBaseUrl()}/payments`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({
+                  userId: currentUser?.id || booking.userId,
+                  amount: booking.totalPrice || 50,
+                  method: 'MADA',
+                  paymentFor: 'DIRECT_BOOKING',
+                  referenceId: dbBooking.id || newBooking.id,
+                }),
+              }).catch(() => {});
+            }
           }
 
           if (booking.plan === 'hourly' || (targetSpace && targetSpace.bookingMode === 'hourly')) {

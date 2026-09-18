@@ -158,8 +158,13 @@ export default function BookingFlow() {
   const [useWalletBalance, setUseWalletBalance] = useState(false);
 
   const handleStartDateChange = (newStart: string) => {
+    const currentDays = durationDays;
     setStartDate(newStart);
-    if (dailyEndDate && newStart > dailyEndDate) {
+    if (currentDays > 1) {
+      const [y, m, d] = newStart.split('-').map(Number);
+      const dt = new Date(Date.UTC(y, m - 1, d + (currentDays - 1)));
+      setDailyEndDate(dt.toISOString().split('T')[0]);
+    } else if (dailyEndDate && newStart > dailyEndDate) {
       setDailyEndDate(newStart);
     }
   };
@@ -360,6 +365,16 @@ export default function BookingFlow() {
         }
       }
 
+      const computedDurationDays = plan === 'daily'
+        ? (durationDays || calculateDailyDurationDays(startDate, effectiveDailyEndDate))
+        : undefined;
+
+      const durationDetailsText = plan === 'daily'
+        ? `${computedDurationDays} ${computedDurationDays === 1 ? 'Day' : 'Days'}`
+        : plan === 'monthly'
+        ? `${durationMonths} ${durationMonths === 1 ? 'Month' : 'Months'}`
+        : '1 Year';
+
       const booking = addBooking({
         userId: currentUser.id,
         spaceId: space.id,
@@ -374,7 +389,8 @@ export default function BookingFlow() {
         endTime: (isHourlySpace || isHourly) ? endTime : undefined,
         durationHours: (isHourlySpace || isHourly) ? durationHours : undefined,
         durationMonths: plan === 'monthly' ? durationMonths : undefined,
-        durationDays: plan === 'daily' ? durationDays : undefined,
+        durationDays: computedDurationDays,
+        durationDetails: durationDetailsText,
         startDate,
         endDate: endDate || startDate,
         seats,
@@ -384,88 +400,9 @@ export default function BookingFlow() {
         notes,
       });
 
-      // Convert time string (e.g. '09:00 AM') safely to ISO Date string
-      const parseTimeToIso = (baseDateStr: string, timeStr?: string) => {
-        try {
-          if (!timeStr) return new Date(baseDateStr).toISOString();
-          const cleanStr = timeStr.trim().toUpperCase();
-          const isPM = cleanStr.includes('PM');
-          const isAM = cleanStr.includes('AM');
-          const timeOnly = cleanStr.replace(/[^\d:]/g, '');
-          const parts = timeOnly.split(':');
-          let h = parseInt(parts[0], 10) || 0;
-          const m = parts.length > 1 ? parseInt(parts[1], 10) || 0 : 0;
-          if (isPM && h < 12) h += 12;
-          if (isAM && h === 12) h = 0;
-          
-          const d = new Date(baseDateStr);
-          d.setHours(h, m, 0, 0);
-          return d.toISOString();
-        } catch {
-          return new Date(baseDateStr).toISOString();
-        }
-      };
-
       try {
-        // Synchronize direct booking (daily, monthly, yearly) or hourly booking with backend API
-        if (plan !== 'hourly') {
-          const durationType = plan === 'monthly' ? 'MONTHLY' : plan === 'yearly' ? 'YEARLY' : 'DAILY';
-          const durationDetails = plan === 'daily'
-            ? `${durationDays} ${durationDays === 1 ? 'Day' : 'Days'}`
-            : plan === 'monthly'
-            ? `${durationMonths} ${durationMonths === 1 ? 'Month' : 'Months'}`
-            : '1 Year';
-
-          createDirectBookingApi({
-            userId: currentUser.id,
-            workspaceId: space.id,
-            spaceName: space.name,
-            city: space.city,
-            sectionId: (space as any).sectionId || `sec-${space.id}`,
-            durationType,
-            durationDetails,
-            durationDays: plan === 'daily' ? durationDays : undefined,
-            durationMonths: plan === 'monthly' ? durationMonths : undefined,
-            bookingDate: new Date(startDate).toISOString(),
-            status: 'CONFIRMED',
-          }).catch((err: any) => console.warn('[Direct Booking API Sync]', err));
-        } else {
-          // حساب نوع القسم الصحيح بناءً على نوع المساحة
-          const computedSectionType = (() => {
-            const t = (deskType || '').toLowerCase();
-            if (t === 'theater' || t.includes('theater') || t.includes('auditorium')) return 'THEATER' as const;
-            if (t.includes('hall') || t.includes('meeting') || t.includes('room') || t.includes('conference') || t.includes('training') || t.includes('workshop') || t.includes('event') || t.includes('lecture')) return 'MEETING_ROOM' as const;
-            return 'DESK' as const;
-          })();
-
-          createHourlyBookingApi({
-            userId: currentUser.id,
-            workspaceId: space.id,
-            spaceName: space.name,
-            city: space.city,
-            sectionType: computedSectionType,
-            sectionId: `sec-${space.id}`,
-            packageId: `pkg-default`,
-            startDate: parseTimeToIso(startDate, startTime),
-            endDate: parseTimeToIso(endDate || startDate, endTime),
-            status: 'ACTIVE',
-          }).catch((err: any) => console.warn('[Hourly Booking API Sync]', err));
-        }
-
         if (useWalletBalance && walletDeduction > 0 && withdrawFromWallet) {
           withdrawFromWallet(walletDeduction, `Booking payment for ${space.name}`);
-        }
-
-        // Record payment transaction
-        if (finalPayablePrice > 0) {
-          createPaymentApi({
-            userId: currentUser.id,
-            amount: finalPayablePrice,
-            method: useWalletBalance && walletDeduction >= totalPrice ? 'WALLET' : 'MADA',
-            paymentFor: isHourly ? 'HOURLY_BOOKING' : 'DIRECT_BOOKING',
-            referenceId: booking.id,
-            status: 'SUCCESS',
-          }).catch((err: any) => console.warn('[Payment Record Sync]', err));
         }
 
         // Award earned loyalty points from this booking transaction
@@ -474,10 +411,10 @@ export default function BookingFlow() {
             userId: currentUser.id,
             type: 'EARNED',
             points: earnedPoints,
-            description: `Earned points for booking at ${space.name}`,
-          }).then((res) => {
+            description: `Earned points from booking at ${space.name}`,
+          }).then(res => {
             if (res.success) {
-              getLoyaltyPointsApi(currentUser.id).then((ptsRes) => {
+              getLoyaltyPointsApi(currentUser.id).then(ptsRes => {
                 if (ptsRes.success && Array.isArray(ptsRes.data)) {
                   const uPts = ptsRes.data.find((p: any) => p.userId === currentUser.id);
                   if (uPts && typeof uPts.availableBalance === 'number') {
@@ -486,7 +423,7 @@ export default function BookingFlow() {
                 }
               }).catch(() => {});
             }
-          }).catch((err) => console.warn('[Points Award Sync]', err));
+          }).catch(err => console.warn('[Points Award Sync]', err));
         }
       } catch (syncErr) {
         console.warn('[Sync background error]', syncErr);
@@ -982,6 +919,34 @@ export default function BookingFlow() {
                   </div>
                   <div className="text-xs font-bold text-soot bg-white px-3 py-1 rounded-full border border-soot/10 shadow-2xs whitespace-nowrap">
                     {durationDays} {durationDays === 1 ? 'Day' : 'Days'} Duration
+                  </div>
+                </div>
+
+                {/* Quick Days Selector */}
+                <div className="space-y-1.5 pt-1">
+                  <label className="block text-[11px] font-semibold uppercase tracking-wider text-moss">
+                    Quick Duration Selection
+                  </label>
+                  <div className="flex flex-wrap gap-2 items-center">
+                    {[1, 2, 3, 4, 5, 6, 7, 14, 30].map(days => (
+                      <button
+                        key={days}
+                        type="button"
+                        onClick={() => {
+                          const base = startDate || new Date().toISOString().split('T')[0];
+                          const [y, m, d] = base.split('-').map(Number);
+                          const dt = new Date(Date.UTC(y, m - 1, d + (days - 1)));
+                          setDailyEndDate(dt.toISOString().split('T')[0]);
+                        }}
+                        className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer border ${
+                          durationDays === days
+                            ? 'bg-soot text-white border-soot shadow-xs scale-105'
+                            : 'bg-white text-soot border-soot/12 hover:bg-soot/5'
+                        }`}
+                      >
+                        {days} {days === 1 ? 'Day' : 'Days'}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
