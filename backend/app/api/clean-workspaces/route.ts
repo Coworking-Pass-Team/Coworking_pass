@@ -125,9 +125,64 @@ export async function GET() {
       logs.push(`Deleted workspace ${dupId} successfully!`);
     }
 
-    // Return remaining workspaces
+    // Ensure all sections belonging to The Hub Riyadh have clear names matching all other workspaces
+    const hubSections = await prisma.workspaceSection.findMany({
+      where: { workspaceId: keepId },
+      include: { hourlyPackages: true },
+    });
+
+    for (const sec of hubSections) {
+      if (sec.type === 'DESK') {
+        await prisma.workspaceSection.update({
+          where: { id: sec.id },
+          data: {
+            name: 'The Hub Riyadh - Open Desks Area',
+            capacity: 50,
+            dailyRate: 150,
+            monthlyRate: 1800,
+            yearlyRate: 18000,
+          },
+        });
+        await prisma.hourlyPackage.updateMany({
+          where: { sectionId: sec.id },
+          data: { packageName: 'The Hub Riyadh - 1 Hour Desk Pass' },
+        });
+        logs.push(`Standardized DESK section ${sec.id} to 'The Hub Riyadh - Open Desks Area'`);
+      } else if (sec.type === 'MEETING_ROOM') {
+        await prisma.workspaceSection.update({
+          where: { id: sec.id },
+          data: {
+            name: 'The Hub Riyadh - Meeting Room',
+            capacity: 10,
+            dailyRate: 300,
+          },
+        });
+        await prisma.hourlyPackage.updateMany({
+          where: { sectionId: sec.id },
+          data: { packageName: 'The Hub Riyadh - 1 Hour Meeting Pass' },
+        });
+        logs.push(`Standardized MEETING_ROOM section ${sec.id} to 'The Hub Riyadh - Meeting Room'`);
+      } else if (sec.type === 'THEATER') {
+        await prisma.workspaceSection.update({
+          where: { id: sec.id },
+          data: {
+            name: 'The Hub Riyadh - Event Space / Theater',
+            capacity: 60,
+            dailyRate: 1000,
+          },
+        });
+        await prisma.hourlyPackage.updateMany({
+          where: { sectionId: sec.id },
+          data: { packageName: 'The Hub Riyadh - 1 Hour Event Pass' },
+        });
+        logs.push(`Standardized THEATER section ${sec.id} to 'The Hub Riyadh - Event Space / Theater'`);
+      }
+    }
+
+    // Return remaining workspaces and updated sections
     const remaining = await prisma.workspace.findMany({
       where: { name: { contains: 'The Hub', mode: 'insensitive' } },
+      include: { sections: { include: { hourlyPackages: true } } },
     });
 
     return NextResponse.json({
