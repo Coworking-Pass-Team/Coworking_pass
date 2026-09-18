@@ -62,9 +62,6 @@ import { seedStandardWorkspaces, deduplicateWorkspaces } from "@/lib/seed-data";
 
 export async function GET(request: Request) {
   try {
-    // تنظيف وحذف أي مساحات عمل مكررة بالداتابيس تلقائياً
-    await deduplicateWorkspaces();
-
     const { searchParams } = new URL(request.url);
     const city = searchParams.get("city");
     const minPrice = searchParams.get("minPrice");
@@ -96,9 +93,9 @@ export async function GET(request: Request) {
     }));
 
     return NextResponse.json(formatted);
-  } catch (error) {
+  } catch (error: any) {
     console.error(error);
-    return NextResponse.json({ error: "حدث خطأ في السيرفر" }, { status: 500 });
+    return NextResponse.json({ error: "حدث خطأ في السيرفر", details: error?.message || String(error) }, { status: 500 });
   }
 }
 
