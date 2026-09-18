@@ -585,3 +585,80 @@ export async function seedLoyaltyRules() {
     orderBy: { createdAt: 'desc' },
   });
 }
+
+export async function deduplicateWorkspaces() {
+  const allWorkspaces = await prisma.workspace.findMany({
+    include: {
+      sections: { include: { hourlyPackages: true } },
+    },
+  });
+
+  const groupedByName = new Map<string, typeof allWorkspaces>();
+  for (const w of allWorkspaces) {
+    const key = w.name.trim().toLowerCase();
+    if (!groupedByName.has(key)) {
+      groupedByName.set(key, []);
+    }
+    groupedByName.get(key)!.push(w);
+  }
+
+  for (const [, workspacesList] of groupedByName.entries()) {
+    if (workspacesList.length <= 1) continue;
+
+    // احتفظ بالمساحة التي تحتوي على أكبر عدد من الأقسام
+    workspacesList.sort((a: any, b: any) => b.sections.length - a.sections.length);
+    const primaryWs = workspacesList[0];
+    const duplicates = workspacesList.slice(1);
+
+    const primarySection = primaryWs.sections[0];
+
+    for (const dup of duplicates) {
+      if (primarySection) {
+        await prisma.directBooking.updateMany({
+          where: { workspaceId: dup.id },
+          data: { workspaceId: primaryWs.id, sectionId: primarySection.id },
+        });
+
+        await prisma.qrCheckIn.updateMany({
+          where: { workspaceId: dup.id },
+          data: { workspaceId: primaryWs.id, sectionId: primarySection.id },
+        });
+      }
+
+      for (const sec of dup.sections) {
+        if (primarySection) {
+          await prisma.hourlyBooking.updateMany({
+            where: { sectionId: sec.id },
+            data: { sectionId: primarySection.id },
+          });
+
+          await prisma.directBooking.updateMany({
+            where: { sectionId: sec.id },
+            data: { sectionId: primarySection.id },
+          });
+
+          await prisma.qrCheckIn.updateMany({
+            where: { sectionId: sec.id },
+            data: { sectionId: primarySection.id },
+          });
+        }
+
+        await prisma.hourlyPackage.deleteMany({
+          where: { sectionId: sec.id },
+        });
+
+        await prisma.workspaceSection.delete({
+          where: { id: sec.id },
+        });
+      }
+
+      await prisma.workspaceAmenity.deleteMany({
+        where: { workspaceId: dup.id },
+      });
+
+      await prisma.workspace.delete({
+        where: { id: dup.id },
+      });
+    }
+  }
+}

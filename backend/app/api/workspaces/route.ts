@@ -58,10 +58,13 @@ async function syncWorkspaceAmenities(workspaceId: string, amenities: string[]) 
   }
 }
 
-import { seedStandardWorkspaces } from "@/lib/seed-data";
+import { seedStandardWorkspaces, deduplicateWorkspaces } from "@/lib/seed-data";
 
 export async function GET(request: Request) {
   try {
+    // تنظيف وحذف أي مساحات عمل مكررة بالداتابيس تلقائياً
+    await deduplicateWorkspaces();
+
     const { searchParams } = new URL(request.url);
     const city = searchParams.get("city");
     const minPrice = searchParams.get("minPrice");

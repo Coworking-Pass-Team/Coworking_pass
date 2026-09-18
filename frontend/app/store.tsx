@@ -1965,10 +1965,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
           };
         });
 
-        // دمج مساحات الداتابيز مع مساحات النظام الأساسية (INITIAL_SPACES) حتى لا تختفي القاعات والمسارح
+        // استبعاد أي تكرار بالاسم لضمان ظهور كل مساحة عمل مرة واحدة فقط
+        const uniqueDbSpaces: Space[] = [];
+        const seenNames = new Set<string>();
+        for (const s of dbSpaces) {
+          const key = (s.name || '').trim().toLowerCase();
+          if (!seenNames.has(key)) {
+            seenNames.add(key);
+            uniqueDbSpaces.push(s);
+          }
+        }
+
+        // دمج مساحات الداتابيز مع مساحات النظام الأساسية (INITIAL_SPACES) مع ضمان عدم التكرار
         const mergedSpaces = [
-          ...dbSpaces,
-          ...INITIAL_SPACES.filter(init => !dbSpaces.some(db => db.id === init.id || db.name.toLowerCase() === init.name.toLowerCase()))
+          ...uniqueDbSpaces,
+          ...INITIAL_SPACES.filter(init => !seenNames.has(init.name.trim().toLowerCase()))
         ];
 
         setSpaces(mergedSpaces);
