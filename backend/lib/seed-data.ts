@@ -557,8 +557,8 @@ export async function seedStandardWorkspaces() {
         await prisma.hourlyPackage.createMany({
           data: [
             { sectionId: theaterSec.id, packageName: '1 Hour Theater Pass', hoursAmount: 1, periodType: 'PER_DAY', price: Math.round(s.dailyRate / 6) },
-            { sectionId: theaterSec.id, packageName: '4 Hours Half-Day Theater', hoursAmount: 4, periodType: 'PER_DAY', price: Math.round(s.dailyRate * 0.6) },
-            { sectionId: theaterSec.id, packageName: '8 Hours Full-Day Theater', hoursAmount: 8, periodType: 'PER_DAY', price: s.dailyRate },
+            { sectionId: theaterSec.id, packageName: '2 Hours Theater Pass', hoursAmount: 2, periodType: 'PER_DAY', price: Math.round(s.dailyRate * 0.4) },
+            { sectionId: theaterSec.id, packageName: '4 Hours Theater Package', hoursAmount: 4, periodType: 'PER_DAY', price: Math.round(s.dailyRate * 0.7) },
           ],
         });
       }

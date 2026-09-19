@@ -41,6 +41,22 @@ if (!user) return unauthorizedResponse();
     const { id } = await params;
     const data = await request.json();
 
+    const existing = await prisma.hourlyPackage.findUnique({ where: { id } });
+    if (!existing) {
+      return NextResponse.json({ error: "الباقة غير موجودة" }, { status: 404 });
+    }
+
+    const effectivePeriod = data.periodType || existing.periodType;
+    const effectiveHours = data.hoursAmount !== undefined ? Number(data.hoursAmount) : existing.hoursAmount;
+
+    if (effectivePeriod === 'PER_DAY' && effectiveHours > 4) {
+      return NextResponse.json({ error: "الساعات اليومية لا يمكن أن تتجاوز 4 ساعات" }, { status: 400 });
+    }
+
+    if (effectivePeriod === 'PER_MONTH' && effectiveHours > 12) {
+      return NextResponse.json({ error: "الساعات الشهرية لا يمكن أن تتجاوز 12 ساعة" }, { status: 400 });
+    }
+
     const hourlyPackage = await prisma.hourlyPackage.update({
       where: { id },
       data,

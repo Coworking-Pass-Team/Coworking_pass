@@ -7,19 +7,22 @@ import { seedStandardWorkspaces } from '@/lib/seed-data';
 export async function GET(request: Request) {
   try {
     const user = getTokenFromRequest(request);
-if (!user) return unauthorizedResponse();
+    if (!user) return unauthorizedResponse();
+
     const bookings = await prisma.hourlyBooking.findMany({
+      orderBy: { createdAt: 'desc' },
       include: {
-        user: { select: { name: true, email: true } },
+        user: { select: { id: true, name: true, email: true } },
+        workspace: { select: { id: true, name: true, city: true, images: true } },
         section: {
           include: {
-            workspace: true
+            workspace: { select: { id: true, name: true, city: true } }
           }
         },
         package: true
       }
-    })
-    return NextResponse.json(bookings)
+    });
+    return NextResponse.json(bookings);
   } catch (error) {
     console.error('❌ Error fetching hourly bookings:', error)
     return NextResponse.json(
@@ -65,7 +68,20 @@ export async function POST(request: NextRequest) {
     const user = getTokenFromRequest(request);
 
     const body = await request.json();
-    const { userId, sectionId, packageId, startDate, endDate, status, sectionType, spaceName, workspaceId, city } = body;
+    const {
+      userId,
+      workspaceId,
+      sectionId,
+      packageId,
+      startDate,
+      endDate,
+      status,
+      sectionType,
+      spaceName,
+      city,
+      durationHours,
+      durationDetails
+    } = body;
 
     // تطبيع status — HourlyBooking يستخدم LifecycleStatus: ACTIVE, EXPIRED, CANCELLED
     const validStatuses = ['ACTIVE', 'EXPIRED', 'CANCELLED'];
@@ -73,7 +89,7 @@ export async function POST(request: NextRequest) {
       ? (status || '').toUpperCase()
       : 'ACTIVE';
 
-    // تطبيع المدينة — استخدم المدينة المُرسَلة أو استنتجها من اسم المساحة
+    // تطبيع المدينة — استنتج المدينة من اسم المساحة أو القيمة المُرسَلة
     const resolveCity = (name?: string, sentCity?: string): string => {
       if (sentCity && sentCity.trim()) return sentCity.trim();
       const n = (name || '').toLowerCase();
@@ -110,37 +126,126 @@ export async function POST(request: NextRequest) {
     const validSectionTypes = ['DESK', 'MEETING_ROOM', 'THEATER'];
     const requestedType = validSectionTypes.includes(sectionType) ? sectionType : 'MEETING_ROOM';
 
-    // التحقق من وجود القسم والباقة في قاعدة بيانات Neon
-    let targetSectionId = sectionId;
-    let targetPackageId = packageId;
+    // البحث عن مساحة العمل المعتمدة مسبقاً بدقة (تماماً مثل DirectBooking)
+    let ws = workspaceId ? await prisma.workspace.findUnique({
+      where: { id: workspaceId },
+      include: { sections: true }
+    }) : null;
 
-    // البحث عن مساحة العمل المعتمدة مسبقاً (لا ننشئ Workspace جديد عند الحجز أبداً)
-    let ws = workspaceId ? await prisma.workspace.findUnique({ where: { id: workspaceId } }) : null;
     if (!ws && spaceName) {
+      const trimmedName = spaceName.trim();
+
+      // 1. Exact match (case-insensitive)
       ws = await prisma.workspace.findFirst({
-        where: { name: { equals: spaceName, mode: 'insensitive' } }
+        where: { name: { equals: trimmedName, mode: 'insensitive' } },
+        include: { sections: true }
+      });
+
+      // 2. Contains match (e.g. "Oasis Cowork" matches "Oasis Coworking")
+      if (!ws) {
+        ws = await prisma.workspace.findFirst({
+          where: { name: { contains: trimmedName, mode: 'insensitive' } },
+          include: { sections: true }
+        });
+      }
+
+      // 3. First word match (e.g. "Oasis")
+      if (!ws) {
+        const firstWord = trimmedName.split(/\s+/)[0];
+        if (firstWord && firstWord.length > 2) {
+          ws = await prisma.workspace.findFirst({
+            where: { name: { contains: firstWord, mode: 'insensitive' } },
+            include: { sections: true }
+          });
+        }
+      }
+    }
+
+    // 4. City match if spaceName alone wasn't enough (e.g., Khobar)
+    if (!ws && (city || spaceName)) {
+      const resolved = resolveCity(spaceName, city);
+      const cleanCity = resolved.replace(/al\s+/i, '').trim();
+      ws = await prisma.workspace.findFirst({
+        where: { city: { contains: cleanCity, mode: 'insensitive' } },
+        include: { sections: true }
       });
     }
 
+    // 5. Seed standard workspaces if none found
     if (!ws) {
-      const count = await prisma.workspace.count();
-      if (count === 0) {
-        await seedStandardWorkspaces();
+      await seedStandardWorkspaces();
+      if (spaceName) {
         ws = await prisma.workspace.findFirst({
-          where: spaceName ? { name: { equals: spaceName, mode: 'insensitive' } } : undefined
+          where: { name: { contains: spaceName.trim(), mode: 'insensitive' } },
+          include: { sections: true },
         });
       }
     }
 
+    // 6. Self-healing fallback: Create the workspace with exact name and city (NEVER pick random wrong space!)
+    if (!ws && (spaceName || workspaceId)) {
+      let partner = await prisma.partner.findFirst();
+      if (!partner) {
+        partner = await prisma.partner.create({
+          data: {
+            brandName: 'Coworking Partner Network',
+            contactEmail: 'partner@coworkingpass.sa',
+            taxNumber: '310000000000003',
+            revenueSharePercentage: 15,
+          },
+        });
+      }
+
+      const wsName = spaceName ? spaceName.trim() : 'Coworking Space';
+      const wsCity = resolveCity(spaceName, city);
+      ws = await prisma.workspace.create({
+        data: {
+          partnerId: partner.id,
+          name: wsName,
+          city: wsCity,
+          dailyRate: 60,
+          monthlyRate: 750,
+          passVisitValue: 60,
+          totalCapacity: 30,
+        },
+        include: { sections: true },
+      });
+    }
+
     if (!ws) {
-      ws = await prisma.workspace.findFirst();
+      ws = await prisma.workspace.findFirst({ include: { sections: true } });
     }
 
     if (!ws) {
       return NextResponse.json({ error: 'مساحة العمل غير موجودة' }, { status: 404 });
     }
 
+    // حساب الساعات وتطبيق قيد الـ 4 ساعات كحد أقصى يومياً
+    const startObj = startDate ? new Date(startDate) : new Date();
+    let endObj = endDate ? new Date(endDate) : new Date(startObj.getTime() + 3600000);
+
+    let computedHours = durationHours ? Number(durationHours) : 0;
+    if (!computedHours) {
+      const diffMs = endObj.getTime() - startObj.getTime();
+      const diffHrs = Math.round((diffMs / (1000 * 60 * 60)) * 10) / 10;
+      computedHours = diffHrs > 0 ? Math.round(diffHrs) : 1;
+    }
+
+    // تطبيق الحد الأقصى للساعات اليومية (4 ساعات كحد أقصى)
+    if (computedHours > 4) {
+      computedHours = 4;
+      endObj = new Date(startObj.getTime() + computedHours * 3600000);
+    }
+    if (computedHours < 1) {
+      computedHours = 1;
+    }
+
+    const computedDetails = durationDetails || `${computedHours} ${computedHours === 1 ? 'Hour' : 'Hours'}`;
+
     // التحقق من وجود القسم المطلوب داخل هذه المساحة المحددة
+    let targetSectionId = sectionId;
+    let targetPackageId = packageId;
+
     let sec = targetSectionId ? await prisma.workspaceSection.findUnique({
       where: { id: targetSectionId },
       include: { hourlyPackages: true, workspace: true }
@@ -174,7 +279,7 @@ export async function POST(request: NextRequest) {
 
     targetSectionId = sec.id;
 
-    // التأكد من وجود باقة ساعات
+    // التأكد من وجود باقة ساعات متوافقة
     let pkg = sec.hourlyPackages && sec.hourlyPackages.length > 0
       ? sec.hourlyPackages.find((p: any) => p.id === targetPackageId) || sec.hourlyPackages[0]
       : await prisma.hourlyPackage.findFirst({ where: { sectionId: sec.id } });
@@ -183,31 +288,36 @@ export async function POST(request: NextRequest) {
       pkg = await prisma.hourlyPackage.create({
         data: {
           sectionId: sec.id,
-          packageName: requestedType === 'THEATER' ? '1 Hour Theater Package' : '1 Hour Hourly Package',
-          hoursAmount: 1,
+          packageName: requestedType === 'THEATER' ? `${computedHours} Hour Theater Package` : `${computedHours} Hour Package`,
+          hoursAmount: Math.min(4, computedHours),
           periodType: 'PER_DAY',
-          price: 50,
+          price: Math.max(35, Math.round((sec.dailyRate || 100) / 4 * computedHours)),
         }
       });
     }
 
     targetPackageId = pkg.id;
 
+    // إنشاء الحجز الساعي مع ربط مساحة العمل وعدد الساعات وتفاصيلها بدقة
     const booking = await prisma.hourlyBooking.create({
       data: {
         userId: effectiveUserId,
+        workspaceId: ws.id,
         sectionId: targetSectionId,
         packageId: targetPackageId,
-        startDate: startDate ? new Date(startDate) : new Date(),
-        endDate: endDate ? new Date(endDate) : new Date(Date.now() + 3600000),
+        startDate: startObj,
+        endDate: endObj,
+        durationHours: computedHours,
+        durationDetails: computedDetails,
         status: normalizedStatus as any,
-        hoursUsed: 0,
+        hoursUsed: computedHours,
       },
       include: {
-        user: { select: { name: true, email: true } },
+        user: { select: { id: true, name: true, email: true } },
+        workspace: { select: { id: true, name: true, city: true, images: true } },
         section: {
           include: {
-            workspace: true
+            workspace: { select: { id: true, name: true, city: true } }
           }
         },
         package: true,

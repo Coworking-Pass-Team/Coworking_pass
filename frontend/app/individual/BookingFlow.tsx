@@ -117,7 +117,11 @@ export default function BookingFlow() {
   const defaultAvailableStarts = isHourlySpace ? getFilteredStartTimes(space?.openHours, initialStartDate) : START_TIMES;
   const initialStartTime = (nav?.params?.startTime as string) || (defaultAvailableStarts.includes('09:00 AM') ? '09:00 AM' : (defaultAvailableStarts[0] || '09:00 AM'));
   const defaultAvailableEnds = isHourlySpace ? getFilteredEndTimes(initialStartTime, space?.openHours, initialStartDate) : getAvailableEndTimes(initialStartTime);
-  const initialEndTime = (nav?.params?.endTime as string) || (nav?.params?.durationHours ? calculateEndTime(initialStartTime, nav.params.durationHours as number) : (defaultAvailableEnds.includes('05:00 PM') ? '05:00 PM' : (defaultAvailableEnds[0] || '05:00 PM')));
+  const initialEndTime = (nav?.params?.endTime as string) || (nav?.params?.durationHours
+    ? calculateEndTime(initialStartTime, Math.min(4, nav.params.durationHours as number))
+    : isHourlySpace
+    ? (defaultAvailableEnds.includes('01:00 PM') ? '01:00 PM' : (defaultAvailableEnds[defaultAvailableEnds.length - 1] || '01:00 PM'))
+    : (defaultAvailableEnds.includes('05:00 PM') ? '05:00 PM' : (defaultAvailableEnds[0] || '05:00 PM')));
 
   const [step, setStep] = useState(0); 
   const [plan, setPlan] = useState<BookingPlan>(defaultInitialPlan);

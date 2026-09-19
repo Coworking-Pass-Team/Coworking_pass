@@ -81,6 +81,21 @@ if (!user) return unauthorizedResponse();
       return NextResponse.json({ error: "القسم (sectionId) غير موجود" }, { status: 404 });
     }
 
+    const parsedHours = Number(hoursAmount);
+    if (periodType === 'PER_DAY' && parsedHours > 4) {
+      return NextResponse.json(
+        { error: "الساعات اليومية لا يمكن أن تتجاوز 4 ساعات" },
+        { status: 400 }
+      );
+    }
+
+    if (periodType === 'PER_MONTH' && parsedHours > 12) {
+      return NextResponse.json(
+        { error: "الساعات الشهرية لا يمكن أن تتجاوز 12 ساعة" },
+        { status: 400 }
+      );
+    }
+
     if (!["MEETING_ROOM", "THEATER"].includes(sectionExists.type)) {
       return NextResponse.json(
         { error: "باقات الساعات تنطبق فقط على قاعات الاجتماعات أو المسارح" },
