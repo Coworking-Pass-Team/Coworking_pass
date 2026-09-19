@@ -3437,6 +3437,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
               const dbBooking = await directRes.json();
               setDirectBookingsApi(prev => [dbBooking, ...prev]);
 
+              if (dbBooking && dbBooking.id) {
+                setBookings(prev => prev.map(b => b.id === newBooking.id ? {
+                  ...b,
+                  id: dbBooking.id,
+                  spaceId: dbBooking.workspaceId || b.spaceId,
+                  spaceName: dbBooking.workspace?.name || b.spaceName,
+                  spaceCity: dbBooking.workspace?.city || b.spaceCity,
+                } : b));
+              }
+
               await fetch(`${getApiBaseUrl()}/payments`, {
                 method: 'POST',
                 headers,

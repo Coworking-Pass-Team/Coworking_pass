@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { seedStandardWorkspaces } from '@/lib/seed-data';
 
 export async function GET() {
   try {
@@ -17,6 +18,9 @@ export async function GET() {
       where: { name: { contains: 'Al Khobar Multi-Purpose Event Hall', mode: 'insensitive' } },
       data: { city: 'Al Khobar' }
     });
+
+    // Seed / sync all standard spaces into Neon DB (including Madinah Tech Hub)
+    await seedStandardWorkspaces();
 
     const directBookingsCountBefore = await prisma.directBooking.count();
     const paymentsCountBefore = await prisma.payment.count();
