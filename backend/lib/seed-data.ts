@@ -338,6 +338,159 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
       'https://images.unsplash.com/photo-1527192491265-7e15c55b1ed2?w=1200&h=800&fit=crop&auto=format'
     ],
     amenities: ['High-Speed WiFi', 'Coffee', 'Locker Access', 'Quiet Zone']
+  },
+  {
+    name: 'Madinah Tech Hub',
+    city: 'Madinah',
+    category: 'office',
+    type: 'mixed',
+    dailyRate: 110,
+    monthlyRate: 1400,
+    yearlyRate: 13200,
+    totalCapacity: 40,
+    latitude: 24.4672,
+    longitude: 39.6111,
+    images: [
+      'https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=1200&h=800&fit=crop&auto=format',
+      'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=1200&h=800&fit=crop&auto=format'
+    ],
+    amenities: ['Fiber WiFi', 'Coffee', '3D Printer', 'Hackspace', 'Server Room', 'Prayer Room']
+  },
+  {
+    name: 'Creative Colony',
+    city: 'Jeddah',
+    category: 'office',
+    type: 'hot-desk',
+    dailyRate: 140,
+    monthlyRate: 1700,
+    yearlyRate: 16800,
+    totalCapacity: 20,
+    latitude: 21.5433,
+    longitude: 39.1728,
+    images: [
+      'https://images.unsplash.com/photo-1527192491265-7e15c55b1ed2?w=1200&h=800&fit=crop&auto=format',
+      'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=1200&h=800&fit=crop&auto=format'
+    ],
+    amenities: ['WiFi', 'Artisan Coffee', 'Photo Studio', 'Podcast Room', 'Event Space', 'Art Gallery']
+  },
+  {
+    name: 'Gateway Business Center',
+    city: 'Riyadh',
+    category: 'office',
+    type: 'private-office',
+    dailyRate: 200,
+    monthlyRate: 2500,
+    yearlyRate: 25000,
+    totalCapacity: 20,
+    latitude: 24.6800,
+    longitude: 46.6230,
+    images: [
+      'https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&h=800&fit=crop&auto=format',
+      'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=1200&h=800&fit=crop&auto=format'
+    ],
+    amenities: ['Gigabit WiFi', 'Gourmet Coffee', 'Secretarial Services', 'Mail Handling', 'Valet Parking', 'Executive Lounge', 'Boardroom']
+  },
+  {
+    name: 'Red Sea Cultural Performance Theater',
+    city: 'Jeddah',
+    category: 'theater',
+    type: 'performance-theater',
+    dailyRate: 2600,
+    monthlyRate: 38000,
+    yearlyRate: 380000,
+    totalCapacity: 150,
+    latitude: 21.5510,
+    longitude: 39.1550,
+    images: [
+      'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=1200&h=800&fit=crop&auto=format',
+      'https://images.unsplash.com/photo-1514306191717-452ec28c7814?w=1200&h=800&fit=crop&auto=format'
+    ],
+    amenities: ['Cinema Screen', 'Stage Setup', 'Wireless Audio System', 'Red Carpet Foyer', 'WiFi', 'Parking', 'Refreshment Lounge']
+  },
+  {
+    name: 'Al Faisaliah Executive Meeting Hall',
+    city: 'Riyadh',
+    category: 'hall',
+    type: 'meeting-hall',
+    dailyRate: 1000,
+    monthlyRate: 15000,
+    yearlyRate: 150000,
+    totalCapacity: 45,
+    latitude: 24.6900,
+    longitude: 46.6845,
+    images: [
+      'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?w=1200&h=800&fit=crop&auto=format',
+      'https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=1200&h=800&fit=crop&auto=format'
+    ],
+    amenities: ['4K Smart Display', 'Video Conferencing', 'High-Speed WiFi', 'Executive Seating', 'Coffee & Refreshments', 'Parking', 'Whiteboard']
+  },
+  {
+    name: 'Silicon Oasis Tech Workshop Hall',
+    city: 'Al Khobar',
+    category: 'hall',
+    type: 'workshop-hall',
+    dailyRate: 1100,
+    monthlyRate: 16000,
+    yearlyRate: 160000,
+    totalCapacity: 55,
+    latitude: 26.3050,
+    longitude: 50.1450,
+    images: [
+      'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=1200&h=800&fit=crop&auto=format',
+      'https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=1200&h=800&fit=crop&auto=format'
+    ],
+    amenities: ['Digital Whiteboards', 'Modular Desks', 'Fiber WiFi', 'Dual Projectors', 'Power at Every Seat', 'Coffee Lounge', 'Breakout Booths']
+  },
+  {
+    name: 'Dammam Tech Summit Conference Theater',
+    city: 'Dammam',
+    category: 'theater',
+    type: 'conference-theater',
+    dailyRate: 3200,
+    monthlyRate: 45000,
+    yearlyRate: 450000,
+    totalCapacity: 300,
+    latitude: 26.4560,
+    longitude: 50.1280,
+    images: [
+      'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&h=800&fit=crop&auto=format',
+      'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&h=800&fit=crop&auto=format'
+    ],
+    amenities: ['4K Laser Projection', 'Line-Array Surround Audio', 'Live Stream Broadcast Suite', 'Stage Lighting', 'Translation Booths', 'VIP Backstage Suites', 'High-Speed WiFi']
+  },
+  {
+    name: 'Makkah Cultural Arts Performance Theater',
+    city: 'Mecca',
+    category: 'theater',
+    type: 'performance-theater',
+    dailyRate: 2700,
+    monthlyRate: 39000,
+    yearlyRate: 390000,
+    totalCapacity: 200,
+    latitude: 21.3891,
+    longitude: 39.8150,
+    images: [
+      'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=1200&h=800&fit=crop&auto=format',
+      'https://images.unsplash.com/photo-1514306191717-452ec28c7814?w=1200&h=800&fit=crop&auto=format'
+    ],
+    amenities: ['Acoustic Shell', 'Theatrical Stage Lighting', 'Cinema Screen', 'Wireless Microphones', 'Prayer Room', 'VIP Foyer', 'Dedicated Parking']
+  },
+  {
+    name: 'The Hive Dedicated & Shared Desks',
+    city: 'Riyadh',
+    category: 'office',
+    type: 'shared-desk',
+    dailyRate: 130,
+    monthlyRate: 1600,
+    yearlyRate: 16000,
+    totalCapacity: 40,
+    latitude: 24.6900,
+    longitude: 46.6845,
+    images: [
+      'https://images.unsplash.com/photo-1527192491265-7e15c55b1ed2?w=1200&h=800&fit=crop&auto=format',
+      'https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&h=800&fit=crop&auto=format'
+    ],
+    amenities: ['High-Speed WiFi', 'Dedicated Lockers', 'Specialty Coffee', 'Phone Booths', 'Meeting Rooms', '24/7 Access', 'Printer']
   }
 ];
 

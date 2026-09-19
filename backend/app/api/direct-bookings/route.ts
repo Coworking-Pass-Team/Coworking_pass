@@ -172,14 +172,44 @@ export async function POST(request: NextRequest) {
     }
 
     if (!ws) {
-      const count = await prisma.workspace.count();
-      if (count === 0) {
-        await seedStandardWorkspaces();
+      await seedStandardWorkspaces();
+      if (spaceName) {
         ws = await prisma.workspace.findFirst({
-          where: spaceName ? { name: { contains: spaceName.trim(), mode: 'insensitive' } } : undefined,
-          include: { sections: true }
+          where: { name: { contains: spaceName.trim(), mode: 'insensitive' } },
+          include: { sections: true },
         });
       }
+    }
+
+    if (!ws && (spaceName || targetWorkspaceId)) {
+      let partner = await prisma.partner.findFirst();
+      if (!partner) {
+        partner = await prisma.partner.create({
+          data: {
+            brandName: 'Coworking Partner Network',
+            contactEmail: 'partner@coworkingpass.sa',
+            taxNumber: '310000000000003',
+            revenueSharePercentage: 15,
+          },
+        });
+      }
+
+      const wsName = spaceName ? spaceName.trim() : 'Coworking Space';
+      const wsCity = resolveCity(spaceName, city);
+      ws = await prisma.workspace.create({
+        data: {
+          partnerId: partner.id,
+          name: wsName,
+          city: wsCity,
+          dailyRate: 110,
+          monthlyRate: 1400,
+          yearlyRate: 14000,
+          passVisitValue: 1,
+          totalCapacity: 40,
+          locationMapUrl: `https://maps.google.com/?q=${encodeURIComponent(wsCity)}`,
+        },
+        include: { sections: true },
+      });
     }
 
     if (!ws) {
