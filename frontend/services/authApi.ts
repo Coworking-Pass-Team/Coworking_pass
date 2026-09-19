@@ -818,7 +818,6 @@ export interface HourlyBookingItemApi {
   startDate: string;
   endDate: string;
   hoursUsed?: number;
-  durationHours?: number;
   durationDetails?: string;
   status: string;
   createdAt?: string;
@@ -852,7 +851,6 @@ export async function createHourlyBookingApi(payload: {
   packageId: string;
   startDate: string;
   endDate: string;
-  durationHours?: number;
   durationDetails?: string;
   status?: string;
   spaceName?: string;
@@ -885,7 +883,7 @@ export async function createHourlyBookingApi(payload: {
       }
     }
 
-    // نرسل workspaceId و spaceName و sectionType و city و durationHours للـ backend
+    // نرسل workspaceId و spaceName و sectionType و city للـ backend
     const finalPayload = {
       userId: targetUserId,
       workspaceId: payload.workspaceId,
@@ -893,7 +891,6 @@ export async function createHourlyBookingApi(payload: {
       packageId: payload.packageId,
       startDate: payload.startDate,
       endDate: payload.endDate,
-      durationHours: payload.durationHours,
       durationDetails: payload.durationDetails,
       status: payload.status || 'ACTIVE',
       spaceName: payload.spaceName,

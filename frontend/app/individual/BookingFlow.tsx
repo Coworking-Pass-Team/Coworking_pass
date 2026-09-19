@@ -368,7 +368,9 @@ export default function BookingFlow() {
         ? (durationDays || calculateDailyDurationDays(startDate, effectiveDailyEndDate))
         : undefined;
 
-      const durationDetailsText = plan === 'daily'
+      const durationDetailsText = (isHourlySpace || isHourly || plan === 'hourly')
+        ? `${durationHours} ${durationHours === 1 ? 'Hour' : 'Hours'}`
+        : plan === 'daily'
         ? `${computedDurationDays} ${computedDurationDays === 1 ? 'Day' : 'Days'}`
         : plan === 'monthly'
         ? `${durationMonths} ${durationMonths === 1 ? 'Month' : 'Months'}`
