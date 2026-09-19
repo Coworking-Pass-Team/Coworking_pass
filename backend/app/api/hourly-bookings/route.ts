@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 import { seedStandardWorkspaces } from '@/lib/seed-data';
+import { getKsaNow, parseDateAndTimeToKsaDate } from '@/lib/time-utils';
 
 
 export async function GET(request: Request) {
@@ -80,7 +81,9 @@ export async function POST(request: NextRequest) {
       spaceName,
       city,
       durationHours,
-      durationDetails
+      durationDetails,
+      startTime,
+      endTime
     } = body;
 
     // تطبيع status — HourlyBooking يستخدم LifecycleStatus: ACTIVE, EXPIRED, CANCELLED
@@ -247,17 +250,27 @@ export async function POST(request: NextRequest) {
     }
 
     // حساب الساعات وتطبيق قيد الـ 4 ساعات كحد أقصى يومياً
-    const startObj = startDate ? new Date(startDate) : new Date();
-    let endObj = endDate ? new Date(endDate) : new Date(startObj.getTime() + 3600000);
-
     let computedHours = durationHours ? Number(durationHours) : 0;
-    if (!computedHours) {
-      const diffMs = endObj.getTime() - startObj.getTime();
-      const diffHrs = Math.round((diffMs / (1000 * 60 * 60)) * 10) / 10;
-      computedHours = diffHrs > 0 ? Math.round(diffHrs) : 1;
+    if (computedHours > 4) computedHours = 4;
+    if (computedHours < 1) computedHours = 1;
+
+    // دمج التاريخ والوقت بدقة لمنع التصفير إلى منتصف الليل 00:00:00 وحفظ التوقيت السعودي الفعلي
+    const startObj = parseDateAndTimeToKsaDate(startDate, startTime, 9);
+    let endObj: Date;
+    if (endTime) {
+      endObj = parseDateAndTimeToKsaDate(endDate || startDate, endTime, 9 + computedHours);
+    } else if (endDate && !String(endDate).endsWith('00:00:00.000Z') && endDate !== startDate) {
+      endObj = parseDateAndTimeToKsaDate(endDate, null, 9 + computedHours);
+    } else {
+      endObj = new Date(startObj.getTime() + computedHours * 3600000);
     }
 
-    // تطبيق الحد الأقصى للساعات اليومية (4 ساعات كحد أقصى)
+    if (!durationHours) {
+      const diffMs = endObj.getTime() - startObj.getTime();
+      const diffHrs = Math.round((diffMs / (1000 * 60 * 60)) * 10) / 10;
+      computedHours = diffHrs > 0 ? Math.min(4, Math.round(diffHrs)) : 1;
+    }
+
     if (computedHours > 4) {
       computedHours = 4;
       endObj = new Date(startObj.getTime() + computedHours * 3600000);
@@ -336,6 +349,7 @@ export async function POST(request: NextRequest) {
         durationDetails: computedDetails,
         status: normalizedStatus as any,
         hoursUsed: computedHours,
+        createdAt: getKsaNow(),
       },
       include: {
         user: { select: { id: true, name: true, email: true } },

@@ -408,8 +408,17 @@ export default function HourlyBookingsAdmin() {
           {filteredBookings.map(b => {
             const isCancelled = b.status === 'CANCELLED';
             const isExpired = b.status === 'EXPIRED';
-            const startStr = b.startDate ? new Date(b.startDate).toLocaleDateString() : 'N/A';
-            const endStr = b.endDate ? new Date(b.endDate).toLocaleDateString() : 'N/A';
+            const formatBookingDateWithTime = (dateIso?: string) => {
+              if (!dateIso) return 'N/A';
+              const d = new Date(dateIso);
+              if (isNaN(d.getTime())) return dateIso;
+              const datePart = d.toISOString().split('T')[0];
+              const timePart = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+              return `${datePart} · ${timePart}`;
+            };
+
+            const startStr = formatBookingDateWithTime(b.startDate);
+            const endStr = formatBookingDateWithTime(b.endDate);
 
             return (
               <div 
@@ -518,6 +527,12 @@ export default function HourlyBookingsAdmin() {
                       <span className="flex items-center gap-1.5"><Calendar size={13} /> End Date:</span>
                       <span className="font-semibold text-soot">{endStr}</span>
                     </div>
+                    {b.createdAt && (
+                      <div className="flex items-center justify-between text-[11px] text-moss/70 pt-1 border-t border-soot/4">
+                        <span className="flex items-center gap-1.5"><Clock size={12} /> Booked At:</span>
+                        <span className="font-medium text-soot/80">{formatBookingDateWithTime(b.createdAt)}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 

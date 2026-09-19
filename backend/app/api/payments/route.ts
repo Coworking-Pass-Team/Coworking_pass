@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getTokenFromRequest, unauthorizedResponse } from '@/lib/auth/verify-token';
+import { getKsaNow } from '@/lib/time-utils';
 
 export async function GET(request: Request) {
   try {
@@ -30,8 +31,9 @@ export async function GET(request: Request) {
       where: whereClause,
       include: {
         user: { select: { id: true, name: true, email: true, role: true } },
+        workspace: { select: { id: true, name: true, city: true } },
       },
-      orderBy: { id: 'desc' },
+      orderBy: { createdAt: 'desc' },
     });
 
     return NextResponse.json(payments);
@@ -83,7 +85,16 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { userId, amount, method, paymentFor, referenceId, status = 'SUCCESS', gatewayTransactionId } = body;
+    const {
+      userId,
+      workspaceId,
+      amount,
+      method,
+      paymentFor,
+      referenceId,
+      status = 'SUCCESS',
+      gatewayTransactionId,
+    } = body;
 
     const effectiveUserId = userId || (user ? user.userId : null);
 
@@ -112,22 +123,54 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Auto-resolve workspaceId from referenceId if not explicitly provided
+    let resolvedWorkspaceId = workspaceId || null;
+    if (!resolvedWorkspaceId && referenceId) {
+      if (normalizedPaymentFor === 'DIRECT_BOOKING') {
+        const db = await prisma.directBooking.findUnique({
+          where: { id: referenceId },
+          select: { workspaceId: true },
+        }).catch(() => null);
+        if (db?.workspaceId) resolvedWorkspaceId = db.workspaceId;
+      } else if (normalizedPaymentFor === 'HOURLY_BOOKING') {
+        const hb = await prisma.hourlyBooking.findUnique({
+          where: { id: referenceId },
+          select: { workspaceId: true },
+        }).catch(() => null);
+        if (hb?.workspaceId) resolvedWorkspaceId = hb.workspaceId;
+      }
+    }
+
+    // Verify workspace exists in DB to prevent foreign key errors
+    if (resolvedWorkspaceId) {
+      const wsExists = await prisma.workspace.findUnique({
+        where: { id: resolvedWorkspaceId },
+        select: { id: true },
+      }).catch(() => null);
+      if (!wsExists) resolvedWorkspaceId = null;
+    }
+
+    const ksaCurrentTime = getKsaNow();
+
     const payment = await prisma.payment.create({
       data: {
         userId: effectiveUserId,
+        workspaceId: resolvedWorkspaceId,
         amount: Number(amount),
         method: normalizedMethod as any,
         paymentFor: normalizedPaymentFor as any,
         referenceId: referenceId || null,
         status: status === 'FAILED' ? 'FAILED' : 'SUCCESS',
         gatewayTransactionId: gatewayTransactionId || `TX-${Date.now()}`,
+        createdAt: ksaCurrentTime,
       },
       include: {
         user: { select: { id: true, name: true, email: true, role: true } },
+        workspace: { select: { id: true, name: true, city: true } },
       },
     });
 
-    //  إرسال إشعار للمستخدم عند نجاح الدفع 
+    // إرسال إشعار للمستخدم عند نجاح الدفع
     if (payment.status === 'SUCCESS') {
       await prisma.notification.create({
         data: {
@@ -136,8 +179,8 @@ export async function POST(request: NextRequest) {
           title: 'تم الدفع بنجاح',
           message: `تم استلام دفعتك بمبلغ ${amount} ريال بنجاح`,
           channel: 'IN_APP',
-          sentAt: new Date()
-        }
+          sentAt: ksaCurrentTime,
+        },
       });
     }
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getTokenFromRequest, unauthorizedResponse } from '@/lib/auth/verify-token';
 import { seedStandardWorkspaces } from '@/lib/seed-data';
+import { getKsaNow, parseDateAndTimeToKsaDate } from '@/lib/time-utils';
 
 export async function GET(request: Request) {
   try {
@@ -312,8 +313,9 @@ export async function POST(request: NextRequest) {
         sectionId: targetSectionId,
         durationType: finalDuration as any,
         durationDetails: finalDurationDetails,
-        bookingDate: bookingDate ? new Date(bookingDate) : new Date(),
+        bookingDate: parseDateAndTimeToKsaDate(bookingDate, null, 9),
         status: (status as any) || 'CONFIRMED',
+        createdAt: getKsaNow(),
       },
       include: {
         user: { select: { id: true, name: true, email: true, role: true, companyId: true } },
@@ -330,7 +332,7 @@ export async function POST(request: NextRequest) {
         title: 'تم تأكيد حجزك',
         message: `تم تأكيد حجزك في ${booking.workspace.name} بنجاح`,
         channel: 'IN_APP',
-        sentAt: new Date()
+        sentAt: getKsaNow()
       }
     }).catch(() => {});
 

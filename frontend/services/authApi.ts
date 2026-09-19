@@ -432,6 +432,7 @@ export async function createCompanyApi(payload: { companyName: string; hrAdminId
 export interface PaymentItemApi {
   id: string;
   userId: string;
+  workspaceId?: string;
   amount: number;
   method: string;
   paymentFor: string;
@@ -440,6 +441,7 @@ export interface PaymentItemApi {
   status: 'SUCCESS' | 'FAILED' | string;
   createdAt?: string;
   user?: { id?: string; name?: string; email?: string; role?: string };
+  workspace?: { id?: string; name?: string; city?: string };
 }
 
 export async function getPaymentsApi() {
@@ -461,6 +463,7 @@ export async function getPaymentsApi() {
 
 export async function createPaymentApi(payload: {
   userId: string;
+  workspaceId?: string;
   amount: number;
   method: string;
   paymentFor: string;
