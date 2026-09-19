@@ -9,7 +9,6 @@ export interface HourlyBookingItem {
   startDate: string;
   endDate: string;
   hoursUsed: number;
-  durationHours?: number;
   durationDetails?: string;
   status: 'ACTIVE' | 'EXPIRED' | 'CANCELLED';
   user?: {
@@ -100,7 +99,6 @@ export async function POST(request: Request) {
       startDate: isNaN(startObj.getTime()) ? startDate : startObj.toISOString(),
       endDate: isNaN(endObj.getTime()) ? endDate : endObj.toISOString(),
       hoursUsed: durationHours,
-      durationHours,
       durationDetails,
       status: status === 'ACTIVE' || status === 'EXPIRED' || status === 'CANCELLED' ? status : 'ACTIVE',
       user: {

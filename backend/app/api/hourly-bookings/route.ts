@@ -333,7 +333,6 @@ export async function POST(request: NextRequest) {
         packageId: targetPackageId,
         startDate: startObj,
         endDate: endObj,
-        durationHours: computedHours,
         durationDetails: computedDetails,
         status: normalizedStatus as any,
         hoursUsed: computedHours,

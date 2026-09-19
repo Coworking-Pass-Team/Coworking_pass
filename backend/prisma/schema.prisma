@@ -318,7 +318,6 @@ model HourlyBooking {
   startDate       DateTime
   endDate         DateTime
   hoursUsed       Float           @default(0)
-  durationHours   Int?
   durationDetails String?
   status          LifecycleStatus
   createdAt       DateTime        @default(now())

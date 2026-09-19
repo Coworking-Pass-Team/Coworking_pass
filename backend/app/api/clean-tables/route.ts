@@ -9,18 +9,19 @@ export async function GET() {
       'ALTER TABLE "DirectBooking" ADD COLUMN IF NOT EXISTS "durationDetails" TEXT;'
     ).catch((err: any) => console.warn('Alter table column warning:', err));
 
-    // Ensure workspaceId, durationHours, durationDetails columns exist in HourlyBooking on Neon DB
+    // Ensure workspaceId and durationDetails columns exist in HourlyBooking on Neon DB
     await prisma.$executeRawUnsafe(
       'ALTER TABLE "HourlyBooking" ADD COLUMN IF NOT EXISTS "workspaceId" TEXT;'
     ).catch((err: any) => console.warn('Alter table HourlyBooking workspaceId warning:', err));
 
     await prisma.$executeRawUnsafe(
-      'ALTER TABLE "HourlyBooking" ADD COLUMN IF NOT EXISTS "durationHours" INTEGER;'
-    ).catch((err: any) => console.warn('Alter table HourlyBooking durationHours warning:', err));
-
-    await prisma.$executeRawUnsafe(
       'ALTER TABLE "HourlyBooking" ADD COLUMN IF NOT EXISTS "durationDetails" TEXT;'
     ).catch((err: any) => console.warn('Alter table HourlyBooking durationDetails warning:', err));
+
+    // Drop redundant durationHours column if it exists
+    await prisma.$executeRawUnsafe(
+      'ALTER TABLE "HourlyBooking" DROP COLUMN IF EXISTS "durationHours";'
+    ).catch((err: any) => console.warn('Drop table HourlyBooking durationHours warning:', err));
 
     // Fix workspace cities for Khobar spaces
     await prisma.workspace.updateMany({

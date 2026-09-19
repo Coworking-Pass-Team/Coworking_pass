@@ -102,7 +102,6 @@ export default function HourlyBookingsAdmin() {
           startDate: b.startDate || new Date().toISOString(),
           endDate: b.endDate || b.startDate || new Date().toISOString(),
           hoursUsed: b.durationHours || 1,
-          durationHours: b.durationHours || 1,
           durationDetails: b.durationDetails || `${b.durationHours || 1} Hours`,
           status: b.status === 'cancelled' ? 'CANCELLED' : (b.status as string) === 'completed' || b.status === 'previous' ? 'EXPIRED' : 'ACTIVE',
           createdAt: b.createdAt || new Date().toISOString(),
@@ -455,7 +454,7 @@ export default function HourlyBookingsAdmin() {
                   {(() => {
                     const spaceName = b.workspace?.name || (b.section as any)?.workspace?.name || b.section?.name || 'Coworking Space';
                     const spaceCity = b.workspace?.city || (b.section as any)?.workspace?.city || '';
-                    const hoursAmount = b.durationHours || b.package?.hoursAmount || 1;
+                    const hoursAmount = b.hoursUsed || b.package?.hoursAmount || 1;
                     const hoursText = b.durationDetails || `${hoursAmount} ${hoursAmount === 1 ? 'Hour' : 'Hours'}`;
 
                     return (
@@ -496,7 +495,7 @@ export default function HourlyBookingsAdmin() {
                     <div className="flex items-center justify-between">
                       <span className="flex items-center gap-1.5"><Clock size={13} className="text-emerald-700" /> Booked Hours:</span>
                       <span className="font-semibold text-emerald-900 bg-emerald-100/80 px-2 py-0.5 rounded-md text-[11px]">
-                        {b.durationDetails || `${b.durationHours || b.package?.hoursAmount || 1} Hours`}
+                        {b.durationDetails || `${b.hoursUsed || b.package?.hoursAmount || 1} Hours`}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">

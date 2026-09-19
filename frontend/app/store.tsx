@@ -3511,7 +3511,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                     packageId: pkgId,
                     startDate: booking.startDate ? new Date(booking.startDate).toISOString() : new Date().toISOString(),
                     endDate: booking.endDate ? new Date(booking.endDate).toISOString() : new Date().toISOString(),
-                    durationHours: hourlyDuration,
+                    hoursUsed: hourlyDuration,
                     durationDetails: hourlyDetails,
                     status: 'ACTIVE',
                   }),
