@@ -3,21 +3,34 @@ import { NextResponse } from 'next/server';
 export interface HourlyBookingItem {
   id: string;
   userId: string;
+  workspaceId?: string;
   sectionId: string;
   packageId: string;
   startDate: string;
   endDate: string;
   hoursUsed: number;
+  durationHours?: number;
+  durationDetails?: string;
   status: 'ACTIVE' | 'EXPIRED' | 'CANCELLED';
   user?: {
     id?: string;
     name?: string;
     email?: string;
   };
+  workspace?: {
+    id?: string;
+    name?: string;
+    city?: string;
+  };
   section?: {
     id?: string;
     name?: string;
     type?: string;
+    workspace?: {
+      id?: string;
+      name?: string;
+      city?: string;
+    };
   };
   package?: {
     id?: string;
@@ -27,31 +40,7 @@ export interface HourlyBookingItem {
   };
 }
 
-const DEFAULT_HOURLY_BOOKINGS: HourlyBookingItem[] = [
-  {
-    id: 'hb_001',
-    userId: 'usr_b2c',
-    sectionId: 'sec_room_1',
-    packageId: 'pkg_10h',
-    startDate: '2026-09-05T09:00:00.000Z',
-    endDate: '2026-09-05T19:00:00.000Z',
-    hoursUsed: 2,
-    status: 'ACTIVE',
-    user: {
-      name: 'Sarah Al-Otaibi',
-      email: 'sarah@example.com',
-    },
-    section: {
-      name: 'Executive Meeting Room A',
-      type: 'MEETING_ROOM',
-    },
-    package: {
-      packageName: '10-Hour Executive Package',
-      hoursAmount: 10,
-      price: 500,
-    },
-  },
-];
+const DEFAULT_HOURLY_BOOKINGS: HourlyBookingItem[] = [];
 
 const globalHourlyBookings = global as unknown as {
   __cp_hourly_bookings?: HourlyBookingItem[];
@@ -99,30 +88,46 @@ export async function POST(request: Request) {
     const startObj = new Date(startDate);
     const endObj = new Date(endDate);
 
+    const durationHours = Math.min(4, Math.max(1, Number(body.durationHours || 1)));
+    const durationDetails = body.durationDetails || `${durationHours} ${durationHours === 1 ? 'Hour' : 'Hours'}`;
+
     const newBooking: HourlyBookingItem = {
       id: `hb_${Date.now()}`,
       userId: String(userId),
+      workspaceId: body.workspaceId ? String(body.workspaceId) : undefined,
       sectionId: String(sectionId),
       packageId: String(packageId),
       startDate: isNaN(startObj.getTime()) ? startDate : startObj.toISOString(),
       endDate: isNaN(endObj.getTime()) ? endDate : endObj.toISOString(),
-      hoursUsed: 0,
+      hoursUsed: durationHours,
+      durationHours,
+      durationDetails,
       status: status === 'ACTIVE' || status === 'EXPIRED' || status === 'CANCELLED' ? status : 'ACTIVE',
       user: {
         id: String(userId),
         name: body.userName || 'Member User',
         email: body.userEmail || 'user@example.com',
       },
+      workspace: {
+        id: body.workspaceId || 'ws-default',
+        name: body.spaceName || 'Coworking Space',
+        city: body.city || 'Riyadh',
+      },
       section: {
         id: String(sectionId),
-        name: body.sectionName || 'Meeting Room 1',
+        name: body.sectionName || `${body.spaceName || 'Space'} - Meeting Room`,
         type: body.sectionType || 'MEETING_ROOM',
+        workspace: {
+          id: body.workspaceId || 'ws-default',
+          name: body.spaceName || 'Coworking Space',
+          city: body.city || 'Riyadh',
+        },
       },
       package: {
         id: String(packageId),
-        packageName: body.packageName || 'Hourly Pack',
-        hoursAmount: Number(body.hoursAmount || 10),
-        price: Number(body.price || 400),
+        packageName: body.packageName || `${durationHours} Hour Package`,
+        hoursAmount: durationHours,
+        price: Number(body.price || 50 * durationHours),
       },
     };
 

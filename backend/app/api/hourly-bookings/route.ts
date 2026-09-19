@@ -126,6 +126,9 @@ export async function POST(request: NextRequest) {
     const validSectionTypes = ['DESK', 'MEETING_ROOM', 'THEATER'];
     const requestedType = validSectionTypes.includes(sectionType) ? sectionType : 'MEETING_ROOM';
 
+    const resolvedCity = resolveCity(spaceName, city);
+    const cleanCity = resolvedCity.replace(/al\s+/i, '').trim();
+
     // البحث عن مساحة العمل المعتمدة مسبقاً بدقة (تماماً مثل DirectBooking)
     let ws = workspaceId ? await prisma.workspace.findUnique({
       where: { id: workspaceId },
@@ -135,36 +138,59 @@ export async function POST(request: NextRequest) {
     if (!ws && spaceName) {
       const trimmedName = spaceName.trim();
 
-      // 1. Exact match (case-insensitive)
+      // 1. Exact match in city (case-insensitive)
       ws = await prisma.workspace.findFirst({
-        where: { name: { equals: trimmedName, mode: 'insensitive' } },
+        where: {
+          name: { equals: trimmedName, mode: 'insensitive' },
+          city: { contains: cleanCity, mode: 'insensitive' }
+        },
         include: { sections: true }
       });
 
-      // 2. Contains match (e.g. "Oasis Cowork" matches "Oasis Coworking")
+      // 2. Contains match in city (e.g. "Oasis Cowork" matches "Oasis Coworking" in Al Khobar)
+      if (!ws) {
+        ws = await prisma.workspace.findFirst({
+          where: {
+            name: { contains: trimmedName, mode: 'insensitive' },
+            city: { contains: cleanCity, mode: 'insensitive' }
+          },
+          include: { sections: true }
+        });
+      }
+
+      // 3. First word match in city (e.g. "Oasis" in Al Khobar)
+      if (!ws) {
+        const firstWord = trimmedName.split(/\s+/)[0];
+        if (firstWord && firstWord.length > 2) {
+          ws = await prisma.workspace.findFirst({
+            where: {
+              name: { contains: firstWord, mode: 'insensitive' },
+              city: { contains: cleanCity, mode: 'insensitive' }
+            },
+            include: { sections: true }
+          });
+        }
+      }
+
+      // 4. Exact match overall
+      if (!ws) {
+        ws = await prisma.workspace.findFirst({
+          where: { name: { equals: trimmedName, mode: 'insensitive' } },
+          include: { sections: true }
+        });
+      }
+
+      // 5. Contains match overall
       if (!ws) {
         ws = await prisma.workspace.findFirst({
           where: { name: { contains: trimmedName, mode: 'insensitive' } },
           include: { sections: true }
         });
       }
-
-      // 3. First word match (e.g. "Oasis")
-      if (!ws) {
-        const firstWord = trimmedName.split(/\s+/)[0];
-        if (firstWord && firstWord.length > 2) {
-          ws = await prisma.workspace.findFirst({
-            where: { name: { contains: firstWord, mode: 'insensitive' } },
-            include: { sections: true }
-          });
-        }
-      }
     }
 
-    // 4. City match if spaceName alone wasn't enough (e.g., Khobar)
-    if (!ws && (city || spaceName)) {
-      const resolved = resolveCity(spaceName, city);
-      const cleanCity = resolved.replace(/al\s+/i, '').trim();
+    // 6. City match if spaceName alone wasn't enough (e.g., Khobar)
+    if (!ws && cleanCity) {
       ws = await prisma.workspace.findFirst({
         where: { city: { contains: cleanCity, mode: 'insensitive' } },
         include: { sections: true }
