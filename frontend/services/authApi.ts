@@ -812,15 +812,19 @@ export async function deleteMembershipPlanApi(planId: string) {
 export interface HourlyBookingItemApi {
   id: string;
   userId: string;
+  workspaceId?: string;
   sectionId: string;
   packageId: string;
   startDate: string;
   endDate: string;
   hoursUsed?: number;
+  durationHours?: number;
+  durationDetails?: string;
   status: string;
   createdAt?: string;
-  user?: { name: string; email: string };
-  section?: { id: string; name: string; type: string };
+  user?: { id?: string; name: string; email: string };
+  workspace?: { id: string; name: string; city: string; images?: string[] };
+  section?: { id: string; name: string; type: string; workspace?: { id: string; name: string; city: string } };
   package?: { id: string; packageName: string; hoursAmount: number; price: number };
 }
 
@@ -848,6 +852,8 @@ export async function createHourlyBookingApi(payload: {
   packageId: string;
   startDate: string;
   endDate: string;
+  durationHours?: number;
+  durationDetails?: string;
   status?: string;
   spaceName?: string;
   city?: string;          // مدينة المساحة لتسجيلها بشكل صحيح في الداتابيس
@@ -879,7 +885,7 @@ export async function createHourlyBookingApi(payload: {
       }
     }
 
-    // نرسل workspaceId و spaceName و sectionType و city للـ backend
+    // نرسل workspaceId و spaceName و sectionType و city و durationHours للـ backend
     const finalPayload = {
       userId: targetUserId,
       workspaceId: payload.workspaceId,
@@ -887,6 +893,8 @@ export async function createHourlyBookingApi(payload: {
       packageId: payload.packageId,
       startDate: payload.startDate,
       endDate: payload.endDate,
+      durationHours: payload.durationHours,
+      durationDetails: payload.durationDetails,
       status: payload.status || 'ACTIVE',
       spaceName: payload.spaceName,
       city: payload.city,

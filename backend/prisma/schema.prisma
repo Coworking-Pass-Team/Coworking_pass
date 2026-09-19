@@ -209,9 +209,10 @@ model Workspace {
 
   partner    Partner            @relation(fields: [partnerId], references: [id])
   sections   WorkspaceSection[]
-  amenities  WorkspaceAmenity[]
-  bookings   DirectBooking[]
-  qrCheckIns QrCheckIn[]
+  amenities      WorkspaceAmenity[]
+  bookings       DirectBooking[]
+  hourlyBookings HourlyBooking[]
+  qrCheckIns     QrCheckIn[]
 }
 
 model WorkspaceSection {
@@ -309,19 +310,23 @@ model DirectBooking {
 }
 
 model HourlyBooking {
-  id        String          @id @default(uuid())
-  userId    String
-  sectionId String
-  packageId String
-  startDate DateTime
-  endDate   DateTime
-  hoursUsed Float           @default(0)
-  status    LifecycleStatus
-  createdAt DateTime        @default(now())
+  id              String          @id @default(uuid())
+  userId          String
+  workspaceId     String?
+  sectionId       String
+  packageId       String
+  startDate       DateTime
+  endDate         DateTime
+  hoursUsed       Float           @default(0)
+  durationHours   Int?
+  durationDetails String?
+  status          LifecycleStatus
+  createdAt       DateTime        @default(now())
 
-  user    User             @relation(fields: [userId], references: [id])
-  section WorkspaceSection @relation(fields: [sectionId], references: [id])
-  package HourlyPackage    @relation(fields: [packageId], references: [id])
+  user      User             @relation(fields: [userId], references: [id])
+  workspace Workspace?       @relation(fields: [workspaceId], references: [id])
+  section   WorkspaceSection @relation(fields: [sectionId], references: [id])
+  package   HourlyPackage    @relation(fields: [packageId], references: [id])
 }
 
 // ============ 5. Financial ============

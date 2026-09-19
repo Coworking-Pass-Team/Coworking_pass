@@ -659,15 +659,20 @@ export function calculateDurationHours(startTimeStr: string, endTimeStr: string)
   const endMin = timeStringToMinutes(endTimeStr);
   if (endMin <= startMin) return 1;
   const diffHours = (endMin - startMin) / 60;
-  return Math.max(1, Math.round(diffHours * 10) / 10);
+  const hours = Math.max(1, Math.round(diffHours * 10) / 10);
+  return Math.min(4, hours);
 }
 
 /**
- * Returns available end times that are strictly after the selected start time.
+ * Returns available end times that are strictly after the selected start time,
+ * capped at a maximum of 4 hours daily.
  */
 export function getAvailableEndTimes(startTimeStr: string): string[] {
   const startMin = timeStringToMinutes(startTimeStr || '09:00 AM');
-  const filtered = END_TIMES.filter((t) => timeStringToMinutes(t) > startMin);
+  const filtered = END_TIMES.filter((t) => {
+    const min = timeStringToMinutes(t);
+    return min > startMin && min <= startMin + 4 * 60;
+  });
   return filtered.length > 0 ? filtered : [END_TIMES[END_TIMES.length - 1]];
 }
 
@@ -843,7 +848,7 @@ export function getFilteredEndTimes(startTimeStr: string, openHoursStr?: string,
 
   const filtered = END_TIMES.filter((t) => {
     const min = timeStringToMinutes(t);
-    return min > startMin && (range.is24_7 || min <= range.closeMinutes);
+    return min > startMin && min <= startMin + 4 * 60 && (range.is24_7 || min <= range.closeMinutes);
   });
 
   if (filtered.length > 0) return filtered;

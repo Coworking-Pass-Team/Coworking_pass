@@ -96,14 +96,18 @@ export default function HourlyBookingsAdmin() {
         return {
           id: b.id,
           userId: b.userId,
+          workspaceId: matchedSpace?.id || b.spaceId,
           sectionId: matchedSpace?.id || 'sec-default',
           packageId: 'pkg-default',
           startDate: b.startDate || new Date().toISOString(),
           endDate: b.endDate || b.startDate || new Date().toISOString(),
           hoursUsed: b.durationHours || 1,
+          durationHours: b.durationHours || 1,
+          durationDetails: b.durationDetails || `${b.durationHours || 1} Hours`,
           status: b.status === 'cancelled' ? 'CANCELLED' : (b.status as string) === 'completed' || b.status === 'previous' ? 'EXPIRED' : 'ACTIVE',
           createdAt: b.createdAt || new Date().toISOString(),
           user: { name: userObj?.name || (b as any).userName || 'User', email: userObj?.email || 'user@coworkingpass.sa' },
+          workspace: { id: matchedSpace?.id || b.spaceId || 'ws-1', name: b.spaceName || matchedSpace?.name || 'Workspace', city: b.spaceCity || matchedSpace?.city || 'Riyadh' },
           section: { id: matchedSpace?.id || 'sec-1', name: b.spaceName || matchedSpace?.name || 'Meeting Room', type: 'MEETING_ROOM' },
           package: { id: 'pkg-1', packageName: `${b.durationHours || 1} Hour Package`, hoursAmount: b.durationHours || 1, price: b.totalPrice || 45 },
         };
@@ -447,10 +451,30 @@ export default function HourlyBookingsAdmin() {
                     </div>
                   </div>
 
-                  {/* Title & Package Info */}
-                  <h3 className="text-lg font-semibold text-soot font-serif-display leading-snug">
-                    {b.package?.packageName || b.section?.name || 'Hourly Package Booking'}
-                  </h3>
+                  {/* Workspace & Title Info */}
+                  {(() => {
+                    const spaceName = b.workspace?.name || (b.section as any)?.workspace?.name || b.section?.name || 'Coworking Space';
+                    const spaceCity = b.workspace?.city || (b.section as any)?.workspace?.city || '';
+                    const hoursAmount = b.durationHours || b.package?.hoursAmount || 1;
+                    const hoursText = b.durationDetails || `${hoursAmount} ${hoursAmount === 1 ? 'Hour' : 'Hours'}`;
+
+                    return (
+                      <>
+                        <div className="flex items-center gap-1.5 text-xs text-moss mb-1">
+                          <Building2 size={13} className="text-emerald-700 shrink-0" />
+                          <span className="font-semibold text-soot truncate">{spaceName}</span>
+                          {spaceCity && (
+                            <span className="bg-soot/6 text-soot text-[10px] font-medium px-2 py-0.5 rounded-md shrink-0">
+                              {spaceCity}
+                            </span>
+                          )}
+                        </div>
+                        <h3 className="text-lg font-semibold text-soot font-serif-display leading-snug">
+                          {b.package?.packageName || b.section?.name || `${hoursText} Booking`}
+                        </h3>
+                      </>
+                    );
+                  })()}
 
                   {/* User Section */}
                   <div className="mt-3 p-3 rounded-2xl bg-[#FAFAF7] border border-soot/8 space-y-1">
@@ -469,6 +493,12 @@ export default function HourlyBookingsAdmin() {
 
                   {/* Booking Metadata Details */}
                   <div className="mt-4 pt-3 border-t border-soot/8 space-y-2 text-xs text-moss">
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-1.5"><Clock size={13} className="text-emerald-700" /> Booked Hours:</span>
+                      <span className="font-semibold text-emerald-900 bg-emerald-100/80 px-2 py-0.5 rounded-md text-[11px]">
+                        {b.durationDetails || `${b.durationHours || b.package?.hoursAmount || 1} Hours`}
+                      </span>
+                    </div>
                     <div className="flex items-center justify-between">
                       <span className="flex items-center gap-1.5"><Layers size={13} className="text-emerald-700" /> Section:</span>
                       <span className="font-mono text-[11px] text-soot bg-soot/5 px-2 py-0.5 rounded-md">

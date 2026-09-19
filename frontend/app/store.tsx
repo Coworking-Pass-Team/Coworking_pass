@@ -3474,6 +3474,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
               }
             } catch (_) {}
 
+            const hourlyDuration = Math.min(4, Math.max(1, booking.durationHours || 1));
+            const hourlyDetails = booking.durationDetails || `${hourlyDuration} ${hourlyDuration === 1 ? 'Hour' : 'Hours'}`;
+
             if (!pkgId && sectionId) {
               try {
                 const pkgCreateRes = await fetch(`${getApiBaseUrl()}/hourly-packages`, {
@@ -3481,8 +3484,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
                   headers,
                   body: JSON.stringify({
                     sectionId,
-                    packageName: `${booking.durationHours || 1} Hour Package`,
-                    hoursAmount: booking.durationHours || 1,
+                    packageName: `${hourlyDuration} Hour Package`,
+                    hoursAmount: hourlyDuration,
                     periodType: 'PER_DAY',
                     price: booking.totalPrice || 45,
                   }),
@@ -3501,16 +3504,43 @@ export function AppProvider({ children }: { children: ReactNode }) {
                   headers,
                   body: JSON.stringify({
                     userId: currentUser?.id || booking.userId,
+                    workspaceId: validWorkspaceId || undefined,
+                    spaceName: effectiveSpaceName,
+                    city: effectiveCity,
                     sectionId,
                     packageId: pkgId,
                     startDate: booking.startDate ? new Date(booking.startDate).toISOString() : new Date().toISOString(),
                     endDate: booking.endDate ? new Date(booking.endDate).toISOString() : new Date().toISOString(),
+                    durationHours: hourlyDuration,
+                    durationDetails: hourlyDetails,
                     status: 'ACTIVE',
                   }),
                 });
                 if (hbRes.ok) {
                   const hbData = await hbRes.json();
                   setHourlyBookingsApi(prev => [hbData, ...prev]);
+
+                  if (hbData && hbData.id) {
+                    setBookings(prev => prev.map(b => b.id === newBooking.id ? {
+                      ...b,
+                      id: hbData.id,
+                      spaceId: hbData.workspaceId || b.spaceId,
+                      spaceName: hbData.workspace?.name || hbData.section?.workspace?.name || b.spaceName,
+                      spaceCity: hbData.workspace?.city || hbData.section?.workspace?.city || b.spaceCity,
+                    } : b));
+                  }
+
+                  await fetch(`${getApiBaseUrl()}/payments`, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({
+                      userId: currentUser?.id || booking.userId,
+                      amount: booking.totalPrice || 50,
+                      method: 'MADA',
+                      paymentFor: 'HOURLY_BOOKING',
+                      referenceId: hbData.id || newBooking.id,
+                    }),
+                  }).catch(() => {});
                 }
               } catch (_) {}
             }
