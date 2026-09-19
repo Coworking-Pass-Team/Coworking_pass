@@ -11,7 +11,9 @@ import {
   Sparkles,
   ShieldCheck,
   Tag,
-  Clock
+  Clock,
+  Building2,
+  Calendar
 } from 'lucide-react';
 import { useApp } from '@/app/store';
 import { getPaymentsApi, PaymentItemApi } from '@/services/authApi';
@@ -52,6 +54,8 @@ export default function PaymentsAdmin() {
 
     const userName = p.user?.name || '';
     const userEmail = p.user?.email || '';
+    const wsName = p.workspace?.name || '';
+    const wsCity = p.workspace?.city || '';
     const refId = p.referenceId || '';
     const search = searchQuery.toLowerCase();
 
@@ -60,6 +64,8 @@ export default function PaymentsAdmin() {
       p.userId.toLowerCase().includes(search) ||
       userName.toLowerCase().includes(search) ||
       userEmail.toLowerCase().includes(search) ||
+      wsName.toLowerCase().includes(search) ||
+      wsCity.toLowerCase().includes(search) ||
       refId.toLowerCase().includes(search) ||
       p.method.toLowerCase().includes(search);
 
@@ -230,16 +236,21 @@ export default function PaymentsAdmin() {
                 <tr>
                   <th className="py-3.5 px-4">Payment ID</th>
                   <th className="py-3.5 px-4">User</th>
+                  <th className="py-3.5 px-4">Workspace</th>
                   <th className="py-3.5 px-4">Amount</th>
                   <th className="py-3.5 px-4">Method</th>
                   <th className="py-3.5 px-4">Payment For</th>
                   <th className="py-3.5 px-4">Reference ID</th>
+                  <th className="py-3.5 px-4">Date & Time</th>
                   <th className="py-3.5 px-4">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-soot/8 text-soot font-medium">
                 {filteredPayments.map(p => {
                   const isSuccess = p.status === 'SUCCESS';
+                  const dateStr = p.createdAt ? new Date(p.createdAt).toISOString().split('T')[0] : 'N/A';
+                  const timeStr = p.createdAt ? new Date(p.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : '';
+
                   return (
                     <tr key={p.id} className="hover:bg-plaster-dark/20 transition-colors">
                       <td className="py-3.5 px-4 font-mono font-bold text-soot">
@@ -250,6 +261,21 @@ export default function PaymentsAdmin() {
                         <div className="text-[11px] text-moss font-mono truncate max-w-[170px]">
                           {p.user?.email || p.userId}
                         </div>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center gap-1.5 font-semibold text-soot">
+                          <Building2 size={13} className="text-emerald-700 shrink-0" />
+                          <span className="truncate max-w-[170px]">
+                            {p.workspace?.name || (p.paymentFor === 'SUBSCRIPTION' ? 'Subscription (Pass)' : 'Coworking Space')}
+                          </span>
+                        </div>
+                        {p.workspace?.city && (
+                          <div className="pl-5 mt-0.5">
+                            <span className="bg-soot/6 text-soot text-[10px] font-medium px-2 py-0.5 rounded-md">
+                              {p.workspace.city}
+                            </span>
+                          </div>
+                        )}
                       </td>
                       <td className="py-3.5 px-4 font-bold text-soot">
                         SAR {p.amount}
@@ -268,6 +294,17 @@ export default function PaymentsAdmin() {
                       </td>
                       <td className="py-3.5 px-4 font-mono text-xs text-moss">
                         {p.referenceId || 'N/A'}
+                      </td>
+                      <td className="py-3.5 px-4 text-xs">
+                        <div className="font-semibold text-soot flex items-center gap-1">
+                          <Calendar size={12} className="text-moss shrink-0" />
+                          <span>{dateStr}</span>
+                        </div>
+                        {timeStr && (
+                          <div className="text-[11px] text-moss/80 font-mono pl-4 mt-0.5">
+                            {timeStr}
+                          </div>
+                        )}
                       </td>
                       <td className="py-3.5 px-4">
                         <span

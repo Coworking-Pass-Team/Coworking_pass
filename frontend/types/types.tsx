@@ -1500,6 +1500,7 @@ export interface DirectBookingApi {
 export interface PaymentApi {
   id: string;
   userId: string;
+  workspaceId?: string;
   amount: number;
   method: string;
   paymentFor: string;
@@ -1508,6 +1509,7 @@ export interface PaymentApi {
   gatewayTransactionId?: string;
   createdAt?: string;
   user?: { name: string; email: string };
+  workspace?: { id: string; name: string; city: string };
 }
 
 export type LoyaltyRuleType = 'EARNING' | 'REDEMPTION';

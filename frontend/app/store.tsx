@@ -1234,6 +1234,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const createPayment = async (paymentData: {
     userId: string;
+    workspaceId?: string;
     amount: number;
     method: string;
     paymentFor: string;
@@ -3452,6 +3453,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 headers,
                 body: JSON.stringify({
                   userId: currentUser?.id || booking.userId,
+                  workspaceId: validWorkspaceId || dbBooking.workspaceId || undefined,
                   amount: booking.totalPrice || 50,
                   method: 'MADA',
                   paymentFor: 'DIRECT_BOOKING',
@@ -3497,6 +3499,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
               } catch (_) {}
             }
 
+            const formatIsoWithTime = (dateStr?: string, timeStr?: string, defaultHour: number = 9) => {
+              const d = dateStr ? dateStr.split('T')[0] : new Date().toISOString().split('T')[0];
+              const parts = d.split('-').map(Number);
+              const year = parts[0] || new Date().getFullYear();
+              const month = parts[1] || (new Date().getMonth() + 1);
+              const day = parts[2] || new Date().getDate();
+              let hours = defaultHour;
+              let minutes = 0;
+              if (timeStr) {
+                const isPM = /PM/i.test(timeStr);
+                const isAM = /AM/i.test(timeStr);
+                const cleanTime = timeStr.replace(/(AM|PM|\s)/gi, '').trim();
+                const tparts = cleanTime.split(':');
+                let h = parseInt(tparts[0], 10) || 0;
+                if (isPM && h < 12) h += 12;
+                if (isAM && h === 12) h = 0;
+                hours = h;
+                minutes = tparts.length > 1 ? (parseInt(tparts[1], 10) || 0) : 0;
+              }
+              const pad = (n: number) => String(n).padStart(2, '0');
+              return `${year}-${pad(month)}-${pad(day)}T${pad(hours)}:${pad(minutes)}:00.000Z`;
+            };
+
+            const isoStart = formatIsoWithTime(booking.startDate, booking.startTime, 9);
+            const isoEnd = formatIsoWithTime(booking.endDate || booking.startDate, booking.endTime, 9 + hourlyDuration);
+
             if (sectionId && pkgId) {
               try {
                 const hbRes = await fetch(`${getApiBaseUrl()}/hourly-bookings`, {
@@ -3509,8 +3537,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
                     city: effectiveCity,
                     sectionId,
                     packageId: pkgId,
-                    startDate: booking.startDate ? new Date(booking.startDate).toISOString() : new Date().toISOString(),
-                    endDate: booking.endDate ? new Date(booking.endDate).toISOString() : new Date().toISOString(),
+                    startDate: isoStart,
+                    endDate: isoEnd,
+                    startTime: booking.startTime,
+                    endTime: booking.endTime,
                     hoursUsed: hourlyDuration,
                     durationDetails: hourlyDetails,
                     status: 'ACTIVE',
@@ -3535,6 +3565,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                     headers,
                     body: JSON.stringify({
                       userId: currentUser?.id || booking.userId,
+                      workspaceId: validWorkspaceId || hbData.workspaceId || undefined,
                       amount: booking.totalPrice || 50,
                       method: 'MADA',
                       paymentFor: 'HOURLY_BOOKING',

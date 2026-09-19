@@ -213,6 +213,7 @@ model Workspace {
   bookings       DirectBooking[]
   hourlyBookings HourlyBooking[]
   qrCheckIns     QrCheckIn[]
+  payments       Payment[]
 }
 
 model WorkspaceSection {
@@ -333,14 +334,17 @@ model HourlyBooking {
 model Payment {
   id                   String        @id @default(uuid())
   userId               String
+  workspaceId          String?
   amount               Float
   method               PaymentMethod
   gatewayTransactionId String?
   paymentFor           PaymentFor
   referenceId          String?
   status               PaymentStatus
+  createdAt            DateTime      @default(now())
 
-  user User @relation(fields: [userId], references: [id])
+  user      User       @relation(fields: [userId], references: [id])
+  workspace Workspace? @relation(fields: [workspaceId], references: [id])
 }
 
 model Payout {

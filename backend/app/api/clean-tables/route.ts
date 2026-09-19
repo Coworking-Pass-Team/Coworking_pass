@@ -23,6 +23,27 @@ export async function GET() {
       'ALTER TABLE "HourlyBooking" DROP COLUMN IF EXISTS "durationHours";'
     ).catch((err: any) => console.warn('Drop table HourlyBooking durationHours warning:', err));
 
+    // Ensure Payment has workspaceId and createdAt columns in Neon DB
+    await prisma.$executeRawUnsafe(
+      'ALTER TABLE "Payment" ADD COLUMN IF NOT EXISTS "workspaceId" TEXT;'
+    ).catch((err: any) => console.warn('Alter table Payment workspaceId warning:', err));
+
+    await prisma.$executeRawUnsafe(
+      'ALTER TABLE "Payment" ADD COLUMN IF NOT EXISTS "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;'
+    ).catch((err: any) => console.warn('Alter table Payment createdAt warning:', err));
+
+    await prisma.$executeRawUnsafe(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint WHERE conname = 'Payment_workspaceId_fkey'
+        ) THEN
+          ALTER TABLE "Payment" ADD CONSTRAINT "Payment_workspaceId_fkey"
+          FOREIGN KEY ("workspaceId") REFERENCES "Workspace"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+        END IF;
+      END $$;
+    `).catch((err: any) => console.warn('Foreign key Payment_workspaceId_fkey warning:', err));
+
     // Fix workspace cities for Khobar spaces
     await prisma.workspace.updateMany({
       where: { name: { contains: 'Oasis Coworking', mode: 'insensitive' } },
