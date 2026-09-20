@@ -81,7 +81,7 @@ export default function TeamBookings() {
 
   const totalSpend = orgBookings
     .filter((b) => b.status !== 'cancelled')
-    .reduce((sum, b) => sum + getBookingPrice(b), 0);
+    .reduce((sum, b) => sum + getBookingPrice(b, spaces), 0);
 
   const getEmpName = (id: string) => employees.find((e: Employee) => e.id === id)?.name || id;
 
@@ -294,13 +294,13 @@ export default function TeamBookings() {
                 </div>
                 {/* Revenue Amount */}
                 <div className="col-span-1 mt-2 lg:mt-0 text-sm font-semibold text-soot">
-                  {getBookingPrice(b) === 0 ? (
+                  {getBookingPrice(b, spaces) === 0 ? (
                     <span className="text-xs font-bold text-moss bg-eucalyptus/30 px-2.5 py-1 rounded-full border border-eucalyptus/40 inline-flex items-center gap-1">
                       <Check size={11} className="text-moss" />
                       <span>Included in Plan</span>
                     </span>
                   ) : (
-                    `SAR ${getBookingPrice(b).toLocaleString()}`
+                    `SAR ${getBookingPrice(b, spaces).toLocaleString()}`
                   )}
                 </div>
 
