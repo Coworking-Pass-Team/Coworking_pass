@@ -438,6 +438,21 @@ export interface User {
   remainingHours?: number;
   totalPlanHours?: number;
   planCycleStart?: string;
+  passPurchaseDate?: string;
+  passPricePaid?: number;
+  passUsed?: boolean;
+}
+
+export interface PassRefundEligibility {
+  isEligible: boolean;
+  isWithin3Days: boolean;
+  isUsed: boolean;
+  hoursPassed: number;
+  daysPassed: number;
+  hoursRemainingInWindow: number;
+  refundAmount: number;
+  usedReasons: string[];
+  ineligibleReasons: string[];
 }
 
 /**

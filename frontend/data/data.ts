@@ -918,6 +918,9 @@ export const INITIAL_USERS: User[] = [
     membershipTier: 'Monthly Pass',
     remainingHours: 8,
     totalPlanHours: 8,
+    passPurchaseDate: new Date().toISOString(),
+    passPricePaid: 1700,
+    passUsed: false,
   },
   {
     id: 'user-yearly',
@@ -933,6 +936,9 @@ export const INITIAL_USERS: User[] = [
     membershipTier: 'Yearly Pass',
     remainingHours: 12,
     totalPlanHours: 12,
+    passPurchaseDate: '2026-01-01T00:00:00.000Z',
+    passPricePaid: 17000,
+    passUsed: false,
   },
   {
     id: 'user-1',
@@ -948,6 +954,9 @@ export const INITIAL_USERS: User[] = [
     membershipTier: 'Yearly Pass',
     remainingHours: 12,
     totalPlanHours: 12,
+    passPurchaseDate: '2026-01-01T00:00:00.000Z',
+    passPricePaid: 17000,
+    passUsed: false,
   },
   {
     id: 'provider-1',
