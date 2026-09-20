@@ -13,11 +13,12 @@ export function LoyaltyButton() {
     <button
       type="button"
       onClick={() => navigate('loyalty')}
-      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#E2E8E4] hover:bg-[#DDE6DF] border border-[#2D3536]/15 text-soot text-xs font-semibold shadow-2xs transition-all cursor-pointer shrink-0"
+      className="flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 rounded-full bg-[#E2E8E4] hover:bg-[#DDE6DF] border border-[#2D3536]/15 text-soot text-xs font-semibold shadow-2xs transition-all cursor-pointer shrink-0"
       title="Loyalty Rewards Hub"
     >
       <Sparkles size={14} className="text-moss shrink-0" />
-      <span>{points.toLocaleString()} pts</span>
+      <span className="hidden xl:inline">{points.toLocaleString()} pts</span>
+      <span className="xl:hidden">{points.toLocaleString()}</span>
     </button>
   );
 }
@@ -59,7 +60,7 @@ export function NotificationButton() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-soot/10 z-50 overflow-hidden divide-y divide-soot/5 animate-in fade-in-50 zoom-in-95 duration-100">
+        <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-soot/10 z-[60] overflow-hidden divide-y divide-soot/5 animate-in fade-in-50 zoom-in-95 duration-100">
           {/* Header with Moss background */}
           <div className="p-3.5 bg-moss text-[#FAF8F5] flex items-center justify-between shadow-2xs border-b border-white/10">
             <div className="flex items-center gap-2">
@@ -224,7 +225,6 @@ export default function Navbar() {
         { label: 'Dashboard', screen: 'org-dashboard' as const },
         { label: 'Browse Spaces', screen: 'browse' as const },
         { label: 'Team Bookings', screen: 'company-bookings' as const },
-        { label: 'Support', screen: 'contact' as const },
       ];
     }
 
@@ -233,11 +233,8 @@ export default function Navbar() {
         { label: 'Dashboard', screen: 'provider-dashboard' as const },
         { label: 'My Spaces', screen: 'provider-spaces' as const },
         { label: 'Bookings', screen: 'provider-bookings' as const },
-        { label: 'Loyalty Proposals', screen: 'provider-loyalty-proposals' as const },
-        { label: 'Support', screen: 'contact' as const },
       ];
     }
-
 
     if (role === 'admin') {
       return [
@@ -245,12 +242,8 @@ export default function Navbar() {
         { label: 'Spaces', screen: 'admin-spaces' as const },
         { label: 'Users', screen: 'admin-users' as const },
         { label: 'Bookings', screen: 'admin-bookings' as const },
-        { label: 'Loyalty Proposals', screen: 'admin-loyalty-proposals' as const },
-        { label: 'Support', screen: 'admin-support' as const },
-        { label: 'Reports', screen: 'admin-reports' as const },
       ];
     }
-
 
     // Default: Individual B2C User
     return [
@@ -258,6 +251,40 @@ export default function Navbar() {
       { label: 'Browse Spaces', screen: 'browse' as const },
       { label: 'Pricing & Plans', screen: 'pricing' as const },
       { label: 'My Bookings', screen: 'my-bookings' as const },
+    ];
+  };
+
+  const getMoreDropdownItems = (role?: string) => {
+    if (role === 'organization') {
+      return [
+        { label: 'Pricing & Plans', screen: 'pricing' as const, icon: CreditCard },
+        { label: 'Team Members', screen: 'company-team' as const, icon: Users },
+        { label: 'Company Bookings', screen: 'company-bookings' as const, icon: Calendar },
+        { label: 'Browse Spaces', screen: 'browse' as const, icon: Building2 },
+        { label: 'Settings', screen: 'org-settings' as const, icon: Settings },
+        { label: 'Support Desk', screen: 'contact' as const, icon: HelpCircle },
+      ];
+    }
+    if (role === 'provider') {
+      return [
+        { label: 'Loyalty Proposals', screen: 'provider-loyalty-proposals' as const, icon: Sparkles },
+        { label: 'Support Desk', screen: 'contact' as const, icon: HelpCircle },
+        { label: 'Profile Settings', screen: 'provider-profile' as const, icon: Settings },
+      ];
+    }
+    if (role === 'admin') {
+      return [
+        { label: 'Loyalty Proposals', screen: 'admin-loyalty-proposals' as const, icon: Sparkles },
+        { label: 'Reports', screen: 'admin-reports' as const, icon: Calendar },
+        { label: 'Support Desk', screen: 'admin-support' as const, icon: HelpCircle },
+        { label: 'Admin Settings', screen: 'admin-settings' as const, icon: Settings },
+      ];
+    }
+    // Individual default
+    return [
+      { label: 'Support Desk', screen: 'contact' as const, icon: HelpCircle },
+      { label: 'Account Settings', screen: 'ind-settings' as const, icon: Settings },
+      { label: 'Loyalty Hub', screen: 'loyalty' as const, icon: Sparkles },
     ];
   };
 
@@ -283,31 +310,31 @@ export default function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-plaster-surface/95 backdrop-blur-md border-b border-soot/12 shadow-xs transition-colors duration-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-2 sm:gap-4">
+    <header className="sticky top-0 z-50 w-full bg-plaster-surface/95 backdrop-blur-md border-b border-soot/12 shadow-xs transition-colors duration-200">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-2 sm:gap-3 xl:gap-4">
         {/* Brand Logo & Name */}
         <button
           type="button"
           onClick={() => navigate('landing')}
-          className="flex items-center gap-2.5 sm:gap-3 group focus:outline-none focus-visible:ring-2 focus-visible:ring-soot/30 rounded-xl p-1 transition-all shrink-0 cursor-pointer"
+          className="flex items-center gap-2 sm:gap-2.5 group focus:outline-none focus-visible:ring-2 focus-visible:ring-soot/30 rounded-xl p-1 transition-all shrink-0 cursor-pointer"
           title="Go to Home"
           aria-label="Coworking Pass Home"
         >
-          <Logo className="h-9 sm:h-11 w-auto" />
-          <span className="font-serif-display font-normal text-soot text-xl sm:text-2xl lg:text-3xl tracking-tight group-hover:text-soot-light transition-colors hidden sm:block">
+          <Logo className="h-8 sm:h-9 xl:h-10 w-auto shrink-0" />
+          <span className="font-serif-display font-normal text-soot text-lg sm:text-xl xl:text-2xl tracking-tight group-hover:text-soot-light transition-colors hidden sm:block whitespace-nowrap">
             Coworking Pass
           </span>
         </button>
 
         {/* Desktop Navigation Links */}
-        <nav className="hidden lg:flex items-center gap-1 xl:gap-2 flex-1 justify-center mx-2 min-w-0">
+        <nav className="hidden lg:flex items-center gap-1 xl:gap-1.5 flex-1 justify-center mx-1 xl:mx-3 min-w-0">
           {links.map(l => {
             const isActive = nav.screen === l.screen;
             return (
               <button
                 key={l.screen}
                 onClick={() => navigate(l.screen)}
-                className={`relative px-3 xl:px-4 py-2 rounded-full text-xs xl:text-sm font-medium transition-all duration-200 focus:outline-none cursor-pointer whitespace-nowrap shrink-0 ${
+                className={`relative px-2.5 xl:px-3.5 py-1.5 xl:py-2 rounded-full text-xs xl:text-sm font-medium transition-all duration-200 focus:outline-none cursor-pointer whitespace-nowrap shrink-0 ${
                   isActive
                     ? 'bg-[#DDE6DF] text-soot shadow-xs border border-soot/10 font-semibold'
                     : 'text-moss hover:text-soot hover:bg-soot/5 active:scale-98'
@@ -318,7 +345,7 @@ export default function Navbar() {
             );
           })}
 
-          {currentUser?.role === 'organization' && (
+          {currentUser && (
             <div
               className="relative shrink-0"
               ref={moreRef}
@@ -331,80 +358,20 @@ export default function Navbar() {
                   e.stopPropagation();
                   setMoreOpen(prev => !prev);
                 }}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs xl:text-sm font-medium transition-all whitespace-nowrap cursor-pointer ${
-                  ['company-bookings', 'company-team', 'browse', 'org-settings', 'team-bookings'].includes(nav.screen) || moreOpen
+                className={`flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 xl:py-2 rounded-full text-xs xl:text-sm font-medium transition-all whitespace-nowrap cursor-pointer ${
+                  moreOpen
                     ? 'bg-[#DDE6DF] text-soot shadow-xs border border-soot/10 font-semibold'
                     : 'text-moss hover:text-soot hover:bg-soot/5'
                 }`}
               >
-                <span>Support &amp; Settings</span>
+                <span className="hidden xl:inline">Support &amp; Settings</span>
+                <span className="xl:hidden">More</span>
                 <ChevronDown size={14} className={`text-moss transition-transform duration-200 ${moreOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {moreOpen && (
-                <div className="absolute right-0 mt-1 w-52 bg-plaster-surface rounded-2xl border border-soot/15 shadow-xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
-                  {[
-                    { label: 'Pricing & Plans', screen: 'pricing' as const, icon: CreditCard },
-                    { label: 'Team Bookings', screen: 'company-bookings' as const, icon: Calendar },
-                    { label: 'Team Members', screen: 'company-team' as const, icon: Users },
-                    { label: 'Browse Spaces', screen: 'browse' as const, icon: Building2 },
-                    { label: 'Settings', screen: 'org-settings' as const, icon: Settings },
-                  ].map(item => {
-                    const active = nav.screen === item.screen;
-                    const Icon = item.icon;
-                    return (
-                      <button
-                        key={item.screen}
-                        type="button"
-                        onClick={() => {
-                          navigate(item.screen);
-                          setMoreOpen(false);
-                        }}
-                        className={`w-full text-left px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-colors cursor-pointer ${
-                          active
-                            ? 'bg-[#DDE6DF] text-soot shadow-2xs'
-                            : 'text-soot hover:bg-soot/5'
-                        }`}
-                      >
-                        <Icon size={15} className="text-moss shrink-0" />
-                        <span>{item.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-
-          {currentUser?.role === 'individual' && (
-            <div
-              className="relative shrink-0"
-              ref={moreRef}
-              onMouseEnter={handleMoreMouseEnter}
-              onMouseLeave={handleMoreMouseLeave}
-            >
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setMoreOpen(prev => !prev);
-                }}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs xl:text-sm font-medium transition-all whitespace-nowrap cursor-pointer ${
-                  ['contact', 'ind-settings', 'ind-profile'].includes(nav.screen) || moreOpen
-                    ? 'bg-[#DDE6DF] text-soot shadow-xs border border-soot/10 font-semibold'
-                    : 'text-moss hover:text-soot hover:bg-soot/5'
-                }`}
-              >
-                <span>Support &amp; Settings</span>
-                <ChevronDown size={14} className={`text-moss transition-transform duration-200 ${moreOpen ? 'rotate-180' : ''}`} />
-              </button>
-
-              {moreOpen && (
-                <div className="absolute right-0 mt-1 w-52 bg-plaster-surface rounded-2xl border border-soot/15 shadow-xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
-                  {[
-                    { label: 'Support Desk', screen: 'contact' as const, icon: HelpCircle },
-                    { label: 'Account Settings', screen: 'ind-settings' as const, icon: Settings },
-                  ].map(item => {
+                <div className="absolute right-0 mt-1 w-52 bg-plaster-surface rounded-2xl border border-soot/15 shadow-xl p-1.5 z-[60] animate-in fade-in zoom-in-95 duration-150">
+                  {getMoreDropdownItems(currentUser.role).map(item => {
                     const active = nav.screen === item.screen;
                     const Icon = item.icon;
                     return (
@@ -433,7 +400,7 @@ export default function Navbar() {
         </nav>
 
         {/* Desktop Auth / User Profile Menu */}
-        <div className="hidden lg:flex items-center gap-2 xl:gap-2.5 shrink-0">
+        <div className="hidden lg:flex items-center gap-1.5 xl:gap-2.5 shrink-0">
           {currentUser && (
             <CartButton />
           )}
@@ -449,13 +416,13 @@ export default function Navbar() {
           {currentUser?.role === 'organization' && (
             <button
               onClick={() => navigate('org-dashboard')}
-              className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#DDE6DF] hover:bg-[#CFDDD2] border border-soot/10 text-soot transition-all text-xs font-medium cursor-pointer shadow-2xs group"
+              className="flex items-center gap-1.5 xl:gap-2 px-2.5 xl:px-3.5 py-1 xl:py-1.5 rounded-full bg-[#DDE6DF] hover:bg-[#CFDDD2] border border-soot/10 text-soot transition-all text-xs font-medium cursor-pointer shadow-2xs group shrink-0"
               title="Corporate Shared Wallet"
             >
-              <div className="w-6 h-6 rounded-full bg-soot text-plaster flex items-center justify-center">
-                <Wallet size={13} />
+              <div className="w-5 h-5 xl:w-6 xl:h-6 rounded-full bg-soot text-plaster flex items-center justify-center shrink-0">
+                <Wallet size={12} />
               </div>
-              <span className="font-semibold text-soot">Wallet:</span>
+              <span className="font-semibold text-soot hidden xl:inline">Wallet:</span>
               <span className="font-bold text-soot">SAR {(companyWalletBalance ?? 0).toLocaleString()}</span>
             </button>
           )}
@@ -465,24 +432,24 @@ export default function Navbar() {
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="flex items-center gap-3 p-1.5 pr-3 rounded-2xl border border-soot/12 bg-plaster-dark/30 hover:bg-plaster-dark/60 transition-all duration-200 cursor-pointer active:scale-98 focus:outline-none focus:ring-2 focus:ring-soot/20"
+                className="flex items-center gap-2 xl:gap-2.5 p-1 xl:p-1.5 pr-2 xl:pr-3 rounded-2xl border border-soot/12 bg-plaster-dark/30 hover:bg-plaster-dark/60 transition-all duration-200 cursor-pointer active:scale-98 focus:outline-none focus:ring-2 focus:ring-soot/20"
                 aria-label="User profile menu"
               >
                 <img
                   src={currentUser.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=faces'}
                   alt={currentUser.name}
-                  className="w-9 h-9 rounded-xl object-cover border border-soot/10 shadow-xs"
+                  className="w-8 h-8 xl:w-9 xl:h-9 rounded-xl object-cover border border-soot/10 shadow-xs shrink-0"
                 />
-                <div className="text-left hidden lg:block">
-                  <div className="text-xs font-semibold text-soot leading-tight">{currentUser.name}</div>
-                  <div className="text-[10px] text-moss font-medium">{getRoleLabel()}</div>
+                <div className="text-left hidden xl:block max-w-[110px] 2xl:max-w-[140px]">
+                  <div className="text-xs font-semibold text-soot leading-tight truncate">{currentUser.name}</div>
+                  <div className="text-[10px] text-moss font-medium truncate">{getRoleLabel()}</div>
                 </div>
                 <ChevronDown size={14} className={`text-moss transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {/* Profile Dropdown Popup */}
               {dropdownOpen && (
-                <div className="absolute right-0 mt-2 w-64 bg-plaster-surface rounded-3xl border border-soot/12 shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+                <div className="absolute right-0 mt-2 w-64 bg-plaster-surface rounded-3xl border border-soot/12 shadow-2xl p-2 z-[60] animate-in fade-in zoom-in-95 duration-150">
                   <div className="p-3 border-b border-soot/8 mb-1">
                     <div className="font-semibold text-soot text-sm">{currentUser.name}</div>
                     <div className="text-xs text-moss truncate mt-0.5">{currentUser.email}</div>
@@ -567,13 +534,13 @@ export default function Navbar() {
             <>
               <button
                 onClick={() => navigate('login')}
-                className="px-5 py-2.5 rounded-full text-sm font-medium text-soot hover:bg-soot/5 active:scale-98 transition-all duration-200 cursor-pointer"
+                className="px-3.5 xl:px-5 py-1.5 xl:py-2.5 rounded-full text-xs xl:text-sm font-medium text-soot hover:bg-soot/5 active:scale-98 transition-all duration-200 cursor-pointer whitespace-nowrap"
               >
                 Log in
               </button>
               <button
                 onClick={() => navigate('signup')}
-                className="px-6 py-2.5 rounded-full text-sm font-medium bg-[#DDE6DF] text-soot hover:bg-[#D0DDD3] border border-soot/8 shadow-xs active:scale-98 transition-all duration-200 cursor-pointer"
+                className="px-4 xl:px-6 py-1.5 xl:py-2.5 rounded-full text-xs xl:text-sm font-medium bg-[#DDE6DF] text-soot hover:bg-[#D0DDD3] border border-soot/8 shadow-xs active:scale-98 transition-all duration-200 cursor-pointer whitespace-nowrap"
               >
                 Sign up
               </button>
@@ -609,7 +576,7 @@ export default function Navbar() {
 
       {/* Mobile Menu Dropdown */}
       {mobileOpen && (
-        <div className="lg:hidden border-t border-soot/10 bg-plaster-surface/98 backdrop-blur-md px-4 pt-3 pb-6 space-y-3 shadow-lg animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="lg:hidden border-t border-soot/10 bg-plaster-surface/98 backdrop-blur-md px-4 pt-3 pb-6 space-y-3 shadow-lg animate-in fade-in slide-in-from-top-2 duration-200 max-h-[calc(100vh-4.5rem)] overflow-y-auto">
           {currentUser && (
             <div className="flex items-center gap-3 p-3 rounded-2xl bg-plaster-dark/30 border border-soot/10 mb-2">
               <img
@@ -628,7 +595,28 @@ export default function Navbar() {
           )}
 
           <nav className="space-y-1">
-            {links.map(l => {
+            {(currentUser?.role === 'admin'
+              ? [
+                  { label: 'Dashboard', screen: 'admin-dashboard' as const },
+                  { label: 'Spaces', screen: 'admin-spaces' as const },
+                  { label: 'Users', screen: 'admin-users' as const },
+                  { label: 'Bookings', screen: 'admin-bookings' as const },
+                  { label: 'Loyalty Proposals', screen: 'admin-loyalty-proposals' as const },
+                  { label: 'Support Desk', screen: 'admin-support' as const },
+                  { label: 'Reports', screen: 'admin-reports' as const },
+                  { label: 'Admin Settings', screen: 'admin-settings' as const },
+                ]
+              : currentUser?.role === 'organization'
+              ? [
+                  { label: 'Dashboard', screen: 'org-dashboard' as const },
+                  { label: 'Browse Spaces', screen: 'browse' as const },
+                  { label: 'Team Bookings', screen: 'company-bookings' as const },
+                  { label: 'Team Members', screen: 'company-team' as const },
+                  { label: 'Pricing & Plans', screen: 'pricing' as const },
+                  { label: 'Support', screen: 'contact' as const },
+                ]
+              : links
+            ).map(l => {
               const isActive = nav.screen === l.screen;
               return (
                 <button
