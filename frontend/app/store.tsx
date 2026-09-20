@@ -1033,8 +1033,48 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setDirectBookingsApi(data);
         const dbBookings: Booking[] = data.map((b) => {
           const matchedSpace = spaces.find(s => s.id === b.workspaceId) || spaces.find(s => s.name === b.workspace?.name);
-          const p = b.durationType?.toLowerCase() === 'monthly' ? 'monthly' : b.durationType?.toLowerCase() === 'yearly' ? 'yearly' : 'daily';
+          const rawDuration = (b.durationType || '').toUpperCase();
+          const p = rawDuration === 'MONTHLY' ? 'monthly' : rawDuration === 'YEARLY' ? 'yearly' : 'daily';
           const userIdStr = b.userId || (typeof b.user === 'object' && b.user && 'id' in b.user ? (b.user as any).id : '') || '';
+
+          let parsedMonths = 1;
+          let parsedDays = 1;
+          if (b.durationDetails) {
+            const match = b.durationDetails.match(/(\d+)/);
+            if (match) {
+              const num = parseInt(match[1], 10);
+              if (!isNaN(num) && num > 0) {
+                if (p === 'monthly') parsedMonths = num;
+                if (p === 'daily') parsedDays = num;
+              }
+            }
+          }
+
+          const startD = b.bookingDate ? new Date(b.bookingDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+
+          let endD = startD;
+          if (p === 'monthly') {
+            endD = calculateEndDate(startD, 'monthly', parsedMonths);
+          } else if (p === 'yearly') {
+            endD = calculateEndDate(startD, 'yearly', 1);
+          } else if (parsedDays > 1) {
+            const d = new Date(startD);
+            d.setDate(d.getDate() + (parsedDays - 1));
+            endD = d.toISOString().split('T')[0];
+          }
+
+          let computedPrice = 0;
+          if (p === 'monthly') {
+            const mRate = matchedSpace?.pricing?.monthly || (b.workspace as any)?.monthlyRate || (b.section as any)?.monthlyRate || 1700;
+            computedPrice = mRate * parsedMonths;
+          } else if (p === 'yearly') {
+            const yRate = matchedSpace?.pricing?.yearly || (b.workspace as any)?.yearlyRate || (b.section as any)?.yearlyRate || ((b.workspace as any)?.monthlyRate ? (b.workspace as any).monthlyRate * 10 : 17000);
+            computedPrice = yRate;
+          } else {
+            const dRate = matchedSpace?.pricing?.daily || (b.workspace as any)?.dailyRate || (b.section as any)?.dailyRate || 140;
+            computedPrice = dRate * parsedDays;
+          }
+
           return {
             id: b.id,
             userId: userIdStr,
@@ -1047,11 +1087,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
             plan: p,
             seats: 1,
             employees: [],
-            startDate: b.bookingDate ? new Date(b.bookingDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-            endDate: b.bookingDate ? new Date(b.bookingDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+            startDate: startD,
+            endDate: endD,
+            durationDays: p === 'daily' ? parsedDays : undefined,
+            durationMonths: p === 'monthly' ? parsedMonths : undefined,
+            durationDetails: b.durationDetails,
             startTime: '09:00',
             endTime: '18:00',
-            totalPrice: matchedSpace?.pricing?.daily || b.workspace?.dailyRate || 50,
+            totalPrice: computedPrice,
             status: b.status === 'CONFIRMED' || b.status === 'ACTIVE' ? 'active' : b.status === 'CANCELLED' ? 'cancelled' : 'previous',
             createdAt: b.createdAt ? new Date(b.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
           };
@@ -1059,7 +1102,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
         setBookings((prev) => {
           const map = new Map(prev.map(item => [item.id, item]));
-          dbBookings.forEach(dbItem => map.set(dbItem.id, dbItem));
+          dbBookings.forEach(dbItem => {
+            const existing = map.get(dbItem.id);
+            if (existing) {
+              map.set(dbItem.id, {
+                ...dbItem,
+                totalPrice: (existing.totalPrice && existing.totalPrice > 0 && !(dbItem.plan === 'monthly' && existing.totalPrice <= 300))
+                  ? existing.totalPrice
+                  : dbItem.totalPrice,
+                durationMonths: existing.durationMonths || dbItem.durationMonths,
+                durationDays: existing.durationDays || dbItem.durationDays,
+                durationHours: existing.durationHours || dbItem.durationHours,
+                seats: existing.seats || dbItem.seats,
+                employees: existing.employees?.length ? existing.employees : dbItem.employees,
+              });
+            } else {
+              map.set(dbItem.id, dbItem);
+            }
+          });
           return Array.from(map.values());
         });
       }
@@ -1557,25 +1617,51 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (Array.isArray(data) && data.length > 0) {
         setHourlyBookingsApi(data);
         const dbBookings: Booking[] = data.map((b) => {
-          const matchedSpace = spaces.find(s => s.id === b.section?.workspaceId);
+          const ws = b.workspace || b.section?.workspace;
+          const matchedSpace = spaces.find(s => s.id === ws?.id || s.id === b.section?.workspaceId) || spaces.find(s => s.name === ws?.name);
           const userIdStr = b.userId || (typeof b.user === 'object' && b.user && 'id' in b.user ? (b.user as any).id : '') || '';
+          const hours = b.hoursUsed || b.package?.hoursAmount || 1;
+          const hourlyRate = matchedSpace?.pricing?.hourly || 45;
+          const computedPrice = b.package?.price || (hourlyRate * hours);
+
+          let startTimeStr = '09:00';
+          let endTimeStr = '18:00';
+          if (b.startDate) {
+            try {
+              const d = new Date(b.startDate);
+              if (!isNaN(d.getTime())) {
+                startTimeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+              }
+            } catch (e) {}
+          }
+          if (b.endDate) {
+            try {
+              const d = new Date(b.endDate);
+              if (!isNaN(d.getTime())) {
+                endTimeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+              }
+            } catch (e) {}
+          }
+
           return {
             id: b.id,
             userId: userIdStr,
-            spaceId: b.section?.workspaceId || matchedSpace?.id || 'space-1',
-            spaceName: matchedSpace?.name || 'Workspace',
-            spaceCity: matchedSpace?.city || 'Riyadh',
-            spaceAddress: matchedSpace?.address || 'Riyadh',
-            spaceImage: matchedSpace?.images?.[0] || 'https://images.unsplash.com/photo-1497366216548-37526070297c',
-            type: matchedSpace?.type || 'private-office',
+            spaceId: ws?.id || b.section?.workspaceId || matchedSpace?.id || 'space-1',
+            spaceName: ws?.name || matchedSpace?.name || 'Workspace',
+            spaceCity: ws?.city || matchedSpace?.city || 'Riyadh',
+            spaceAddress: matchedSpace?.address || ws?.city || 'Riyadh',
+            spaceImage: (ws?.images && ws.images[0]) || matchedSpace?.images?.[0] || 'https://images.unsplash.com/photo-1497366216548-37526070297c',
+            type: matchedSpace?.type || 'meeting-room',
             plan: 'hourly',
             seats: 1,
             employees: [],
+            durationHours: hours,
+            bookingHours: hours,
             startDate: b.startDate ? new Date(b.startDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-            endDate: b.endDate ? new Date(b.endDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-            startTime: '09:00',
-            endTime: '18:00',
-            totalPrice: matchedSpace?.pricing?.hourly || 45,
+            endDate: b.endDate ? new Date(b.endDate).toISOString().split('T')[0] : (b.startDate ? new Date(b.startDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]),
+            startTime: startTimeStr,
+            endTime: endTimeStr,
+            totalPrice: computedPrice,
             status: b.status === 'ACTIVE' || b.status === 'CONFIRMED' ? 'active' : b.status === 'CANCELLED' ? 'cancelled' : 'previous',
             createdAt: b.createdAt ? new Date(b.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
           };
@@ -1583,7 +1669,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
         setBookings((prev) => {
           const map = new Map(prev.map(item => [item.id, item]));
-          dbBookings.forEach(dbItem => map.set(dbItem.id, dbItem));
+          dbBookings.forEach(dbItem => {
+            const existing = map.get(dbItem.id);
+            if (existing) {
+              map.set(dbItem.id, {
+                ...dbItem,
+                totalPrice: existing.totalPrice && existing.totalPrice > 0 ? existing.totalPrice : dbItem.totalPrice,
+                durationHours: existing.durationHours || dbItem.durationHours,
+                seats: existing.seats || dbItem.seats,
+              });
+            } else {
+              map.set(dbItem.id, dbItem);
+            }
+          });
           return Array.from(map.values());
         });
       }

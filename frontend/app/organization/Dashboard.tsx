@@ -227,7 +227,7 @@ export default function OrgDashboard() {
                     </div>
                   </div>
                   <div className="text-right shrink-0 flex flex-col items-end gap-1">
-                    <div className="text-sm font-semibold text-soot">SAR {getBookingPrice(b).toLocaleString()}</div>
+                    <div className="text-sm font-semibold text-soot">SAR {getBookingPrice(b, spaces).toLocaleString()}</div>
                     <button
                       type="button"
                       onClick={(e) => {

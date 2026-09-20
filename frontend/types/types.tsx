@@ -1280,12 +1280,33 @@ export interface CartItem {
 }
 
 export function getBookingPrice(b: Booking, spaces: Space[] = []): number {
-  if (typeof b.totalPrice === 'number' && !isNaN(b.totalPrice) && b.totalPrice >= 0) {
+  const space = spaces.find(s => s.id === b.spaceId || (s.name && b.spaceName && s.name.toLowerCase() === b.spaceName.toLowerCase()));
+  const seats = b.seats || 1;
+
+  if (typeof b.totalPrice === 'number' && !isNaN(b.totalPrice) && b.totalPrice > 0) {
+    const dailyRate = space?.pricing?.daily || 140;
+    // Guard against monthly bookings having an erroneous daily rate (e.g. <= 300 SAR)
+    if (b.plan === 'monthly' && b.totalPrice <= Math.max(dailyRate, 300)) {
+      const months = b.durationMonths || 1;
+      const mPrice = space ? getMonthlyPriceForDuration(space, months) : 1700 * months;
+      return mPrice * seats;
+    }
+    // Guard against yearly bookings having an erroneous daily or monthly rate
+    if (b.plan === 'yearly' && b.totalPrice <= Math.max(dailyRate * 5, 2000)) {
+      const yPrice = space?.pricing?.yearly || (space?.pricing?.monthly ? space.pricing.monthly * 10 : 17000);
+      return yPrice * seats;
+    }
     return b.totalPrice;
   }
-  const space = spaces.find(s => s.id === b.spaceId || s.name.toLowerCase() === b.spaceName.toLowerCase());
-  const seats = b.seats || 1;
-  if (!space) return 150 * seats;
+
+  if (!space) {
+    if (b.plan === 'monthly') return 1700 * (b.durationMonths || 1) * seats;
+    if (b.plan === 'yearly') return 17000 * seats;
+    if (b.plan === 'hourly') return 45 * (b.durationHours || 1) * seats;
+    const days = b.durationDays || calculateDailyDurationDays(b.startDate, b.endDate);
+    return 140 * seats * days;
+  }
+
   if (b.plan === 'hourly') {
     const hours = b.durationHours || 1;
     return getHourlyPriceForDuration(space, hours) * seats;
@@ -1298,7 +1319,7 @@ export function getBookingPrice(b: Booking, spaces: Space[] = []): number {
     return (space.pricing?.yearly || ((space.pricing?.monthly || 1800) * 10)) * seats;
   }
   const days = b.durationDays || calculateDailyDurationDays(b.startDate, b.endDate);
-  return (space.pricing?.daily || 150) * seats * days;
+  return (space.pricing?.daily || 140) * seats * days;
 }
 
 export type Screen =
@@ -1433,6 +1454,7 @@ export interface HourlyBookingApi {
   id: string;
   userId: string;
   sectionId: string;
+  workspaceId?: string;
   packageId: string;
   startDate: string;
   endDate: string;
@@ -1441,6 +1463,7 @@ export interface HourlyBookingApi {
   createdAt?: string;
   updatedAt?: string;
   user?: { name: string; email: string };
+  workspace?: WorkspaceApi;
   section?: any;
   package?: any;
 }
@@ -1488,6 +1511,7 @@ export interface DirectBookingApi {
   workspaceId: string;
   sectionId: string;
   durationType: string;
+  durationDetails?: string;
   bookingDate: string;
   status: string;
   createdAt?: string;
