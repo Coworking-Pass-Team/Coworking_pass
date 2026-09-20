@@ -3,6 +3,32 @@ import { useState, useRef, useEffect } from 'react';
 import { Menu, X, User as UserIcon, LogOut, ChevronDown, Calendar, Building2, Users, Settings, CreditCard, HelpCircle, Wallet, Bell, CheckCheck, ChevronRight, Sparkles, ShoppingBag } from 'lucide-react';
 import { useApp } from '@/app/store';
 import Logo from './logo';
+import WalletModal from '@/components/ui/WalletModal';
+import SharedWalletModal from '@/components/ui/SharedWalletModal';
+
+export function WalletButton({ onClick, className = '' }: { onClick?: () => void; className?: string }) {
+  const { currentUser, companyWalletBalance } = useApp();
+  if (!currentUser) return null;
+
+  const isOrg = currentUser.role === 'organization';
+  const balance = isOrg ? (companyWalletBalance ?? 0) : (currentUser.walletBalance ?? 0);
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 rounded-full bg-[#E2E8E4] hover:bg-[#DDE6DF] border border-[#2D3536]/15 text-soot text-xs font-semibold shadow-2xs transition-all cursor-pointer shrink-0 ${className}`}
+      title={isOrg ? 'Corporate Shared Wallet' : 'Digital Wallet'}
+      aria-label={`Wallet balance: SAR ${balance.toLocaleString()}`}
+    >
+      <Wallet size={14} className="text-moss shrink-0" />
+      <span className="font-bold text-soot flex items-center gap-0.5">
+        <span className="text-[10px] text-moss/80 font-medium">SAR</span>
+        <span>{balance.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
+      </span>
+    </button>
+  );
+}
 
 export function LoyaltyButton() {
   const { navigate, currentUser } = useApp();
@@ -174,6 +200,7 @@ export default function Navbar() {
   const { navigate, nav, currentUser, logout, companyWalletBalance, unreadNotificationsCount, openCart, cart } = useApp();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [walletModalOpen, setWalletModalOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown on click outside
@@ -307,26 +334,16 @@ export default function Navbar() {
             <CartButton />
           )}
 
+          {currentUser && (
+            <WalletButton onClick={() => setWalletModalOpen(true)} />
+          )}
+
           {currentUser && currentUser.role !== 'admin' && (
             <LoyaltyButton />
           )}
 
           {currentUser && (
             <NotificationButton />
-          )}
-
-          {currentUser?.role === 'organization' && (
-            <button
-              onClick={() => navigate('org-dashboard')}
-              className="flex items-center gap-1.5 xl:gap-2 px-2.5 xl:px-3.5 py-1 xl:py-1.5 rounded-full bg-[#DDE6DF] hover:bg-[#CFDDD2] border border-soot/10 text-soot transition-all text-xs font-medium cursor-pointer shadow-2xs group shrink-0"
-              title="Corporate Shared Wallet"
-            >
-              <div className="w-5 h-5 xl:w-6 xl:h-6 rounded-full bg-soot text-plaster flex items-center justify-center shrink-0">
-                <Wallet size={12} />
-              </div>
-              <span className="font-semibold text-soot hidden xl:inline">Wallet:</span>
-              <span className="font-bold text-soot">SAR {(companyWalletBalance ?? 0).toLocaleString()}</span>
-            </button>
           )}
 
           {currentUser ? (
@@ -375,12 +392,12 @@ export default function Navbar() {
                       <span>My Profile & Account</span>
                     </button>
 
-                    {currentUser.role === 'organization' && (
+                    {currentUser.role === 'organization' ? (
                       <>
                         <button
                           onClick={() => {
-                            navigate('org-dashboard');
                             setDropdownOpen(false);
+                            setWalletModalOpen(true);
                           }}
                           className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold text-soot hover:bg-plaster-dark/50 flex items-center justify-between transition-colors cursor-pointer"
                         >
@@ -413,6 +430,22 @@ export default function Navbar() {
                           <span>Company Bookings</span>
                         </button>
                       </>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setDropdownOpen(false);
+                          setWalletModalOpen(true);
+                        }}
+                        className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold text-soot hover:bg-plaster-dark/50 flex items-center justify-between transition-colors cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <Wallet size={15} className="text-moss" />
+                          <span>Digital Wallet</span>
+                        </div>
+                        <span className="font-bold text-[11px] text-soot bg-[#DDE6DF] px-2 py-0.5 rounded-md border border-soot/10">
+                          SAR {(currentUser.walletBalance ?? 0).toLocaleString()}
+                        </span>
+                      </button>
                     )}
 
                     {currentUser.role === 'admin' && (
@@ -500,10 +533,14 @@ export default function Navbar() {
           )}
         </div>
 
-        {/* Mobile Header Buttons (Cart + Notifications + Loyalty + Menu) */}
+        {/* Mobile Header Buttons (Cart + Wallet + Notifications + Loyalty + Menu) */}
         <div className="flex lg:hidden items-center gap-1 sm:gap-2 shrink-0">
           {currentUser && (
             <CartButton />
+          )}
+
+          {currentUser && (
+            <WalletButton onClick={() => setWalletModalOpen(true)} />
           )}
 
           {currentUser && currentUser.role !== 'admin' && (
@@ -630,6 +667,23 @@ export default function Navbar() {
                   )}
                 </button>
 
+                {/* Mobile Drawer Digital / Corporate Wallet */}
+                <button
+                  onClick={() => {
+                    setMobileOpen(false);
+                    setWalletModalOpen(true);
+                  }}
+                  className="w-full text-left px-4 py-3 rounded-xl text-base font-medium transition-all duration-150 cursor-pointer flex items-center justify-between text-moss hover:text-soot hover:bg-plaster-dark/40"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Wallet size={18} />
+                    <span>{currentUser.role === 'organization' ? 'Corporate Shared Wallet' : 'Digital Wallet'}</span>
+                  </div>
+                  <span className="font-bold text-xs text-soot bg-[#DDE6DF] px-2.5 py-0.5 rounded-md border border-soot/10">
+                    SAR {(currentUser.role === 'organization' ? (companyWalletBalance ?? 0) : (currentUser.walletBalance ?? 0)).toLocaleString()}
+                  </span>
+                </button>
+
                 {currentUser.role !== 'admin' && (
                   <button
                     onClick={() => {
@@ -703,6 +757,19 @@ export default function Navbar() {
           </div>
         </div>
       )}
+
+      {/* Wallet Modals */}
+      {currentUser && (currentUser.role === 'organization' ? (
+        <SharedWalletModal
+          isOpen={walletModalOpen}
+          onClose={() => setWalletModalOpen(false)}
+        />
+      ) : (
+        <WalletModal
+          isOpen={walletModalOpen}
+          onClose={() => setWalletModalOpen(false)}
+        />
+      ))}
     </header>
   );
 }
