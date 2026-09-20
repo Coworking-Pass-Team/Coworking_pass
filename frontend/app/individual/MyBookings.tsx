@@ -403,14 +403,34 @@ export default function MyBookings() {
 
                 {/* Revenue Amount */}
                 <div className="col-span-1 mt-2 lg:mt-0 text-sm font-semibold text-soot">
-                  {getBookingPrice(b, spaces) === 0 ? (
-                    <span className="text-xs font-bold text-moss bg-eucalyptus/30 px-2.5 py-1 rounded-full border border-eucalyptus/40 inline-flex items-center gap-1">
-                      <Check size={11} className="text-moss" />
-                      <span>Included</span>
-                    </span>
-                  ) : (
-                    `SAR ${getBookingPrice(b, spaces).toLocaleString()}`
-                  )}
+                  {(() => {
+                    const price = getBookingPrice(b, spaces);
+                    const isHourly = b.plan === 'hourly' || Boolean(b.durationHours);
+                    const isPassCovered = b.paidWithPass || price === 0 || b.totalPrice === 0;
+
+                    if (isPassCovered) {
+                      return (
+                        <div className="inline-flex flex-col items-start gap-0.5">
+                          <span className="text-xs font-bold text-emerald-900 bg-emerald-100 px-2.5 py-1 rounded-full border border-emerald-300 inline-flex items-center gap-1 shadow-2xs whitespace-nowrap">
+                            <Clock size={11} className="text-emerald-700 shrink-0" />
+                            <span>{isHourly ? `${b.durationHours || 1} ${(b.durationHours || 1) === 1 ? 'Hour' : 'Hours'}` : 'Included'}</span>
+                          </span>
+                          <span className="text-[10px] text-emerald-800 font-semibold pl-1">Covered by Pass</span>
+                        </div>
+                      );
+                    }
+
+                    if (b.coveredHours && b.coveredHours > 0) {
+                      return (
+                        <div>
+                          <div className="font-semibold text-soot text-xs">SAR {price.toLocaleString()}</div>
+                          <div className="text-[10px] text-emerald-800 font-semibold">{b.coveredHours}h Pass Quota</div>
+                        </div>
+                      );
+                    }
+
+                    return `SAR ${price.toLocaleString()}`;
+                  })()}
                 </div>
 
                 {/* Actions */}

@@ -2420,6 +2420,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 membershipTier: initU.membershipTier || existing.membershipTier,
                 hasActivePass: initU.hasActivePass !== undefined ? initU.hasActivePass : existing.hasActivePass,
                 loyaltyPoints: existing.loyaltyPoints ?? (initU as any).loyaltyPoints ?? 0,
+                remainingHours: existing.remainingHours !== undefined ? existing.remainingHours : initU.remainingHours,
+                totalPlanHours: existing.totalPlanHours !== undefined ? existing.totalPlanHours : initU.totalPlanHours,
               });
             }
           });
@@ -2938,8 +2940,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const updateCurrentUser = (updates: Partial<User>) => {
-    if (!currentUser) return;
-    const updated = { ...currentUser, ...updates };
+    let latestUser = currentUser;
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('cp_currentUser');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed && (!currentUser || parsed.id === currentUser.id)) {
+            latestUser = { ...(currentUser || {}), ...parsed };
+          }
+        }
+      } catch (e) {}
+    }
+    if (!latestUser) return;
+    const updated = { ...latestUser, ...updates };
     setCurrentUser(updated);
     const updatedUsers = users.map(u => u.id === updated.id ? updated : u);
     setUsers(updatedUsers);
@@ -3358,75 +3372,117 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const earnedPoints = (rawPrice > 0 ? Math.max(10, Math.floor(rawPrice / 10)) : 10) * multiplier;
 
     // Quota deduction for Meeting Room & Theater hourly bookings
+    const bCat = (booking.category || '').toLowerCase();
+    const bType = (booking.type || '').toLowerCase();
+    const sType = (space?.type || '').toLowerCase();
+    const sName = (space?.name || booking.spaceName || '').toLowerCase();
     const isMeetingOrTheater = 
-      booking.type?.includes('meeting') ||
-      booking.type?.includes('hall') ||
-      booking.type?.includes('theater') ||
-      booking.category === 'hall' ||
-      booking.category === 'theater' ||
-      space?.type?.includes('meeting') ||
-      space?.type?.includes('hall') ||
-      space?.type?.includes('theater');
+      bType.includes('meeting') ||
+      bType.includes('hall') ||
+      bType.includes('theater') ||
+      bCat.includes('meeting') ||
+      bCat.includes('hall') ||
+      bCat.includes('theater') ||
+      sType.includes('meeting') ||
+      sType.includes('hall') ||
+      sType.includes('theater') ||
+      sName.includes('meeting') ||
+      sName.includes('قاعة') ||
+      sName.includes('مسرح') ||
+      sName.includes('theater') ||
+      sName.includes('hall');
 
-    if (currentUser && currentUser.id === booking.userId && currentUser.hasActivePass && booking.plan === 'hourly' && isMeetingOrTheater) {
-      const tier = (currentUser.membershipTier || '').toLowerCase();
-      const isYearly = tier.includes('year') || tier.includes('annual');
-      const defaultQuota = isYearly ? 12 : 8;
-      const currentRemaining = typeof currentUser.remainingHours === 'number'
-        ? currentUser.remainingHours
-        : defaultQuota;
-
-      const bookedHours = booking.durationHours || 1;
-      const hoursDeducted = Math.min(bookedHours, Math.max(0, currentRemaining));
-
-      if (hoursDeducted > 0) {
-        const newRemaining = Math.max(0, currentRemaining - hoursDeducted);
-        const userWithDeductedHours = {
-          ...currentUser,
-          remainingHours: newRemaining,
-          totalPlanHours: currentUser.totalPlanHours || defaultQuota,
-        };
-        setCurrentUser(userWithDeductedHours);
-        setUsers(prev => prev.map(u => u.id === userWithDeductedHours.id ? userWithDeductedHours : u));
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('cp_currentUser', JSON.stringify(userWithDeductedHours));
+    // Read freshest user from localStorage if available
+    let latestUser = currentUser;
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('cp_currentUser');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed && (!currentUser || parsed.id === currentUser.id)) {
+            latestUser = { ...(currentUser || {}), ...parsed };
+          }
         }
-      }
+      } catch (e) {}
     }
 
-    if (currentUser && currentUser.id === booking.userId && earnedPoints > 0) {
-      const updatedUser = {
-        ...currentUser,
-        loyaltyPoints: (currentUser.loyaltyPoints || 0) + earnedPoints,
-      };
+    if (latestUser && latestUser.id === booking.userId) {
+      let updatedUser: User = { ...latestUser };
+
+      const hasPlanPass = Boolean(latestUser.hasActivePass);
+      const isHourlyBooking = booking.plan === 'hourly' || (booking.durationHours && booking.durationHours > 0);
+
+      if (hasPlanPass && isMeetingOrTheater && isHourlyBooking) {
+        const tier = (latestUser.membershipTier || '').toLowerCase();
+        const isYearly = tier.includes('year') || tier.includes('annual');
+        const defaultQuota = isYearly ? 12 : 8;
+        const currentRemaining = typeof latestUser.remainingHours === 'number'
+          ? latestUser.remainingHours
+          : defaultQuota;
+
+        const bookedHours = typeof booking.coveredHours === 'number'
+          ? booking.coveredHours
+          : (booking.durationHours || 1);
+        const hoursDeducted = Math.min(bookedHours, Math.max(0, currentRemaining));
+
+        if (hoursDeducted > 0) {
+          const newRemaining = Math.max(0, currentRemaining - hoursDeducted);
+          updatedUser = {
+            ...updatedUser,
+            remainingHours: newRemaining,
+            totalPlanHours: latestUser.totalPlanHours || defaultQuota,
+          };
+        }
+      }
+
+      if (earnedPoints > 0) {
+        updatedUser = {
+          ...updatedUser,
+          loyaltyPoints: (updatedUser.loyaltyPoints || 0) + earnedPoints,
+        };
+      }
+
       setCurrentUser(updatedUser);
       setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
       if (typeof window !== 'undefined') {
         localStorage.setItem('cp_currentUser', JSON.stringify(updatedUser));
+        try {
+          const storedUsers = localStorage.getItem('cp_users');
+          if (storedUsers) {
+            const parsedUsers = JSON.parse(storedUsers) as User[];
+            const updatedUsersList = parsedUsers.map(u => u.id === updatedUser.id ? updatedUser : u);
+            localStorage.setItem('cp_users', JSON.stringify(updatedUsersList));
+          }
+        } catch (e) {}
       }
 
-      createPointsTransactionApi({
-        userId: currentUser.id,
-        type: 'EARNED',
-        points: earnedPoints,
-        description: `Earned points for booking: ${booking.spaceName}`,
-        referenceId: newBooking.id,
-      }).then(res => {
-        if (res.success) {
-          getLoyaltyPointsApi(currentUser.id).then(ptsRes => {
-            if (ptsRes.success && Array.isArray(ptsRes.data)) {
-              const uPts = ptsRes.data.find((p: any) => p.userId === currentUser.id);
-              if (uPts && typeof uPts.availableBalance === 'number') {
-                const syncedUser = { ...currentUser, loyaltyPoints: uPts.availableBalance };
-                setCurrentUser(syncedUser);
-                if (typeof window !== 'undefined') {
-                  localStorage.setItem('cp_currentUser', JSON.stringify(syncedUser));
+      if (earnedPoints > 0) {
+        createPointsTransactionApi({
+          userId: latestUser.id,
+          type: 'EARNED',
+          points: earnedPoints,
+          description: `Earned points for booking: ${booking.spaceName}`,
+          referenceId: newBooking.id,
+        }).then(res => {
+          if (res.success) {
+            getLoyaltyPointsApi(latestUser.id).then(ptsRes => {
+              if (ptsRes.success && Array.isArray(ptsRes.data)) {
+                const uPts = ptsRes.data.find((p: any) => p.userId === latestUser.id);
+                if (uPts && typeof uPts.availableBalance === 'number') {
+                  setCurrentUser(prevU => {
+                    if (!prevU) return null;
+                    const synced = { ...prevU, loyaltyPoints: uPts.availableBalance };
+                    if (typeof window !== 'undefined') {
+                      localStorage.setItem('cp_currentUser', JSON.stringify(synced));
+                    }
+                    return synced;
+                  });
                 }
               }
-            }
-          }).catch(() => {});
-        }
-      }).catch(() => {});
+            }).catch(() => {});
+          }
+        }).catch(() => {});
+      }
     }
 
     addNotification({
@@ -4351,8 +4407,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return sum + Math.floor(item.itemTotal / 100) * 10 * multiplier;
     }, 0);
 
+    let freshestUser = currentUser;
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('cp_currentUser');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed && parsed.id === currentUser.id) {
+            freshestUser = { ...currentUser, ...parsed };
+          }
+        }
+      } catch (e) {}
+    }
+
     const updatedPoints = Math.max(0, userPoints - safePointsToUse) + earned;
-    const updatedUser = { ...currentUser, loyaltyPoints: updatedPoints };
+    const updatedUser = { ...freshestUser, loyaltyPoints: updatedPoints };
     setCurrentUser(updatedUser);
     const updatedUsers = users.map((u) => (u.id === updatedUser.id ? updatedUser : u));
     setUsers(updatedUsers);
