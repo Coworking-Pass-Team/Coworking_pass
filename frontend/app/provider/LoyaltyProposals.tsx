@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Sparkles,
   Plus,
@@ -17,7 +17,6 @@ import {
   Info,
   Gift
 } from 'lucide-react';
-import { useEffect } from 'react';
 import { useApp } from '@/app/store';
 import { LoyaltyRule, LoyaltyRuleType, ApprovalStatus } from '@/types/types';
 import Modal from '@/components/ui/Modal';
@@ -123,7 +122,6 @@ export default function ProviderLoyaltyProposals() {
 
     setIsSubmitting(true);
     try {
-      const selectedSpace = mySpaces.find((s) => s.id === workspaceId);
       await createLoyaltyProposal({
         ruleName: ruleName.trim(),
         ruleType,
@@ -243,7 +241,6 @@ export default function ProviderLoyaltyProposals() {
       {/* Toolbar & Filters */}
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          {/* Status Tabs */}
           <div className="flex items-center gap-1 p-1 bg-soot/5 rounded-2xl overflow-x-auto">
             {(
               [
@@ -278,7 +275,6 @@ export default function ProviderLoyaltyProposals() {
             })}
           </div>
 
-          {/* Rule Type Filter */}
           <div className="flex items-center gap-2">
             <select
               value={typeFilter}
@@ -292,7 +288,6 @@ export default function ProviderLoyaltyProposals() {
           </div>
         </div>
 
-        {/* Search Input */}
         <div className="relative">
           <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-moss" />
           <input
@@ -320,7 +315,6 @@ export default function ProviderLoyaltyProposals() {
             </p>
           </div>
 
-          {/* Quick Preset Starters */}
           <div className="pt-4 border-t border-soot/8 max-w-2xl mx-auto text-left">
             <span className="text-xs font-bold text-moss uppercase tracking-wider block mb-3 text-center">
               Or start from a popular template:
@@ -382,7 +376,6 @@ export default function ProviderLoyaltyProposals() {
                 className="bg-plaster-surface rounded-3xl border border-soot/12 p-6 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between group cursor-pointer"
               >
                 <div className="space-y-4">
-                  {/* Top Badges */}
                   <div className="flex items-start justify-between gap-2">
                     <span
                       className={`inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider ${
@@ -413,7 +406,6 @@ export default function ProviderLoyaltyProposals() {
                     </span>
                   </div>
 
-                  {/* Title & Description */}
                   <div>
                     <h3 className="text-lg font-serif-display font-medium text-soot group-hover:text-emerald-950 transition-colors">
                       {rule.ruleName}
@@ -423,7 +415,6 @@ export default function ProviderLoyaltyProposals() {
                     </p>
                   </div>
 
-                  {/* Key Metrics Pill */}
                   <div className="p-3 rounded-2xl bg-white/70 border border-soot/8 space-y-1.5">
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-moss font-medium">Points Exchange:</span>
@@ -443,7 +434,6 @@ export default function ProviderLoyaltyProposals() {
                   </div>
                 </div>
 
-                {/* Footer Metadata & Actions */}
                 <div className="pt-4 mt-4 border-t border-soot/8 flex items-center justify-between text-[11px] text-moss">
                   <div className="flex items-center gap-1.5">
                     <Building2 size={13} className="text-moss/70" />
@@ -474,13 +464,13 @@ export default function ProviderLoyaltyProposals() {
         </div>
       )}
 
-      {/* Submit Proposal Modal */}
+      {/* Submit Proposal Modal - Updated with size="2xl" */}
       <Modal
         open={isModalOpen}
         onClose={() => !isSubmitting && setIsModalOpen(false)}
         title="Propose Loyalty Points Rule"
+        size="2xl"
       >
-
         <form onSubmit={handleSubmit} className="space-y-5">
           <p className="text-xs text-moss">
             Create a custom loyalty rule for your coworking space. Once submitted, the Super Admin will review the point economics and activate it on the platform.
@@ -564,10 +554,10 @@ export default function ProviderLoyaltyProposals() {
             </select>
           </div>
 
-          {/* Numeric Values Row */}
+          {/* Numeric Values Row with whitespace-nowrap and truncation protection */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-soot uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-bold text-soot uppercase tracking-wider mb-1.5 truncate">
                 {ruleType === 'EARNING' ? 'Points Earned *' : 'Points Required to Redeem *'}
               </label>
               <input
@@ -582,7 +572,7 @@ export default function ProviderLoyaltyProposals() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-soot uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-bold text-soot uppercase tracking-wider mb-1.5 whitespace-nowrap">
                 {ruleType === 'EARNING' ? 'Per Spend Amount (SAR) *' : 'Discount Given (SAR) *'}
               </label>
               <input
@@ -670,14 +660,14 @@ export default function ProviderLoyaltyProposals() {
         </form>
       </Modal>
 
-      {/* Rule Detail View Modal */}
+      {/* Rule Detail View Modal - Updated with size="2xl" */}
       {selectedRuleDetail && (
         <Modal
           open={Boolean(selectedRuleDetail)}
           onClose={() => setSelectedRuleDetail(null)}
           title="Proposal Details & Status"
+          size="2xl"
         >
-
           <div className="space-y-5">
             <div className="flex items-center justify-between gap-3 pb-3 border-b border-soot/8">
               <div>
