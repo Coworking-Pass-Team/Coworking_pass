@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Wallet, ArrowDownLeft, ArrowUpRight, PlusCircle, MinusCircle, 
   X, ShieldCheck, RefreshCw, CheckCircle2, History 
@@ -19,6 +20,11 @@ export default function WalletModal({ isOpen, onClose }: WalletModalProps) {
   const [descriptionInput, setDescriptionInput] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingWallet, setIsLoadingWallet] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (isOpen && currentUser?.id) {
@@ -27,7 +33,7 @@ export default function WalletModal({ isOpen, onClose }: WalletModalProps) {
     }
   }, [isOpen, currentUser?.id]);
 
-  if (!isOpen || !currentUser) return null;
+  if (!isOpen || !currentUser || !mounted) return null;
 
   const currentBalance = currentUser.walletBalance || 0;
 
@@ -68,7 +74,7 @@ export default function WalletModal({ isOpen, onClose }: WalletModalProps) {
     }
   };
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200" dir="ltr">
       <div className="bg-[#FAF8F5] dark:bg-[#1A1F20] w-full max-w-lg rounded-3xl shadow-2xl border border-[#2D3536]/15 dark:border-white/10 overflow-hidden flex flex-col max-h-[90vh]">
         
@@ -324,7 +330,6 @@ export default function WalletModal({ isOpen, onClose }: WalletModalProps) {
                   const isRefund = txTypeUpper === 'REFUND' || descLower.includes('refund') || descLower.includes('استرجاع');
                   const isDeposit = txTypeUpper === 'DEPOSIT' || descLower.includes('top-up') || descLower.includes('إيداع');
 
-                  // Format description to English for historical records
                   let formattedDesc = descRaw;
                   if (!formattedDesc) {
                     formattedDesc = isDeposit ? 'Wallet Top-up' : isRefund ? 'Booking Refund' : 'Withdrawal';
@@ -338,7 +343,6 @@ export default function WalletModal({ isOpen, onClose }: WalletModalProps) {
                       .replace(/سحب/g, 'Withdrawal');
                   }
 
-                  // Handle display of historical balanceAfter created with negative calculation
                   const displayBalanceAfter = Math.abs(tx.balanceAfter || 0);
 
                   return (
@@ -401,6 +405,7 @@ export default function WalletModal({ isOpen, onClose }: WalletModalProps) {
         </div>
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
