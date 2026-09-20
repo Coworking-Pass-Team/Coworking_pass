@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Wallet,
   Building2,
@@ -36,15 +37,20 @@ export default function SharedWalletModal({ isOpen, onClose }: SharedWalletModal
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingWallet, setIsLoadingWallet] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    if (isOpen) {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (isOpen && currentUser) {
       setIsLoadingWallet(true);
       fetchCompanyWallet(currentUser?.companyId).finally(() => setIsLoadingWallet(false));
     }
-  }, [isOpen, currentUser?.companyId]);
+  }, [isOpen, currentUser]);
 
-  if (!isOpen || !currentUser) return null;
+  if (!isOpen || !currentUser || !mounted) return null;
 
   const currentBalance = companyWalletBalance ?? companyData?.balance ?? 0;
   const companyName = companyData?.companyName || currentUser.orgName || 'Corporate Account';
@@ -75,8 +81,8 @@ export default function SharedWalletModal({ isOpen, onClose }: SharedWalletModal
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-soot/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200">
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-soot/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200" dir="ltr">
       <div className="bg-plaster-surface w-full max-w-lg rounded-3xl shadow-2xl border border-soot/12 overflow-hidden flex flex-col max-h-[90vh]">
         {/* Modal Header */}
         <div className="px-6 py-5 bg-plaster-dark/40 border-b border-soot/10 flex items-center justify-between shrink-0">
@@ -288,6 +294,7 @@ export default function SharedWalletModal({ isOpen, onClose }: SharedWalletModal
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
