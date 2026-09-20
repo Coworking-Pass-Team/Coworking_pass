@@ -174,38 +174,22 @@ export default function Navbar() {
   const { navigate, nav, currentUser, logout, companyWalletBalance, unreadNotificationsCount, openCart, cart } = useApp();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [moreOpen, setMoreOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const moreRef = useRef<HTMLDivElement>(null);
-  const moreTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const handleMoreMouseEnter = () => {
-    if (moreTimeoutRef.current) clearTimeout(moreTimeoutRef.current);
-    setMoreOpen(true);
-  };
-
-  const handleMoreMouseLeave = () => {
-    moreTimeoutRef.current = setTimeout(() => {
-      setMoreOpen(false);
-    }, 250);
-  };
-
-  // Close dropdowns on click outside
+  // Close dropdown on click outside
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setDropdownOpen(false);
       }
-      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
-        setMoreOpen(false);
-      }
     }
-    document.addEventListener('mousedown', handleClickOutside);
+    if (dropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
-      if (moreTimeoutRef.current) clearTimeout(moreTimeoutRef.current);
     };
-  }, []);
+  }, [dropdownOpen]);
 
   // Determine navigation links based on user role
   const getNavLinks = () => {
@@ -225,6 +209,7 @@ export default function Navbar() {
         { label: 'Dashboard', screen: 'org-dashboard' as const },
         { label: 'Browse Spaces', screen: 'browse' as const },
         { label: 'Team Bookings', screen: 'company-bookings' as const },
+        { label: 'Team Members', screen: 'company-team' as const },
       ];
     }
 
@@ -233,6 +218,7 @@ export default function Navbar() {
         { label: 'Dashboard', screen: 'provider-dashboard' as const },
         { label: 'My Spaces', screen: 'provider-spaces' as const },
         { label: 'Bookings', screen: 'provider-bookings' as const },
+        { label: 'Loyalty Proposals', screen: 'provider-loyalty-proposals' as const },
       ];
     }
 
@@ -251,40 +237,6 @@ export default function Navbar() {
       { label: 'Browse Spaces', screen: 'browse' as const },
       { label: 'Pricing & Plans', screen: 'pricing' as const },
       { label: 'My Bookings', screen: 'my-bookings' as const },
-    ];
-  };
-
-  const getMoreDropdownItems = (role?: string) => {
-    if (role === 'organization') {
-      return [
-        { label: 'Pricing & Plans', screen: 'pricing' as const, icon: CreditCard },
-        { label: 'Team Members', screen: 'company-team' as const, icon: Users },
-        { label: 'Company Bookings', screen: 'company-bookings' as const, icon: Calendar },
-        { label: 'Browse Spaces', screen: 'browse' as const, icon: Building2 },
-        { label: 'Settings', screen: 'org-settings' as const, icon: Settings },
-        { label: 'Support Desk', screen: 'contact' as const, icon: HelpCircle },
-      ];
-    }
-    if (role === 'provider') {
-      return [
-        { label: 'Loyalty Proposals', screen: 'provider-loyalty-proposals' as const, icon: Sparkles },
-        { label: 'Support Desk', screen: 'contact' as const, icon: HelpCircle },
-        { label: 'Profile Settings', screen: 'provider-profile' as const, icon: Settings },
-      ];
-    }
-    if (role === 'admin') {
-      return [
-        { label: 'Loyalty Proposals', screen: 'admin-loyalty-proposals' as const, icon: Sparkles },
-        { label: 'Reports', screen: 'admin-reports' as const, icon: Calendar },
-        { label: 'Support Desk', screen: 'admin-support' as const, icon: HelpCircle },
-        { label: 'Admin Settings', screen: 'admin-settings' as const, icon: Settings },
-      ];
-    }
-    // Individual default
-    return [
-      { label: 'Support Desk', screen: 'contact' as const, icon: HelpCircle },
-      { label: 'Account Settings', screen: 'ind-settings' as const, icon: Settings },
-      { label: 'Loyalty Hub', screen: 'loyalty' as const, icon: Sparkles },
     ];
   };
 
@@ -311,93 +263,43 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 w-full bg-plaster-surface/95 backdrop-blur-md border-b border-soot/12 shadow-xs transition-colors duration-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-2 sm:gap-3 xl:gap-4">
-        {/* Brand Logo & Name */}
-        <button
-          type="button"
-          onClick={() => navigate('landing')}
-          className="flex items-center gap-2 sm:gap-2.5 group focus:outline-none focus-visible:ring-2 focus-visible:ring-soot/30 rounded-xl p-1 transition-all shrink-0 cursor-pointer"
-          title="Go to Home"
-          aria-label="Coworking Pass Home"
-        >
-          <Logo className="h-8 sm:h-9 xl:h-10 w-auto shrink-0" />
-          <span className="font-serif-display font-normal text-soot text-lg sm:text-xl xl:text-2xl tracking-tight group-hover:text-soot-light transition-colors hidden sm:block whitespace-nowrap">
-            Coworking Pass
-          </span>
-        </button>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-2 sm:gap-4">
+        {/* Left Section: Brand Logo & Desktop Navigation */}
+        <div className="flex items-center gap-3 sm:gap-4 xl:gap-6 min-w-0">
+          {/* Brand Logo & Name */}
+          <button
+            type="button"
+            onClick={() => navigate('landing')}
+            className="flex items-center gap-2 sm:gap-2.5 group focus:outline-none focus-visible:ring-2 focus-visible:ring-soot/30 rounded-xl p-1 transition-all shrink-0 cursor-pointer"
+            title="Go to Home"
+            aria-label="Coworking Pass Home"
+          >
+            <Logo className="h-8 sm:h-9 xl:h-10 w-auto shrink-0" />
+            <span className="font-serif-display font-normal text-soot text-lg sm:text-xl xl:text-2xl tracking-tight group-hover:text-soot-light transition-colors hidden sm:block whitespace-nowrap">
+              Coworking Pass
+            </span>
+          </button>
 
-        {/* Desktop Navigation Links */}
-        <nav className="hidden lg:flex items-center gap-1 xl:gap-1.5 flex-1 justify-center mx-1 xl:mx-3 min-w-0">
-          {links.map(l => {
-            const isActive = nav.screen === l.screen;
-            return (
-              <button
-                key={l.screen}
-                onClick={() => navigate(l.screen)}
-                className={`relative px-2.5 xl:px-3.5 py-1.5 xl:py-2 rounded-full text-xs xl:text-sm font-medium transition-all duration-200 focus:outline-none cursor-pointer whitespace-nowrap shrink-0 ${
-                  isActive
-                    ? 'bg-[#DDE6DF] text-soot shadow-xs border border-soot/10 font-semibold'
-                    : 'text-moss hover:text-soot hover:bg-soot/5 active:scale-98'
-                }`}
-              >
-                {l.label}
-              </button>
-            );
-          })}
-
-          {currentUser && (
-            <div
-              className="relative shrink-0"
-              ref={moreRef}
-              onMouseEnter={handleMoreMouseEnter}
-              onMouseLeave={handleMoreMouseLeave}
-            >
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setMoreOpen(prev => !prev);
-                }}
-                className={`flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 xl:py-2 rounded-full text-xs xl:text-sm font-medium transition-all whitespace-nowrap cursor-pointer ${
-                  moreOpen
-                    ? 'bg-[#DDE6DF] text-soot shadow-xs border border-soot/10 font-semibold'
-                    : 'text-moss hover:text-soot hover:bg-soot/5'
-                }`}
-              >
-                <span className="hidden xl:inline">Support &amp; Settings</span>
-                <span className="xl:hidden">More</span>
-                <ChevronDown size={14} className={`text-moss transition-transform duration-200 ${moreOpen ? 'rotate-180' : ''}`} />
-              </button>
-
-              {moreOpen && (
-                <div className="absolute right-0 mt-1 w-52 bg-plaster-surface rounded-2xl border border-soot/15 shadow-xl p-1.5 z-[60] animate-in fade-in zoom-in-95 duration-150">
-                  {getMoreDropdownItems(currentUser.role).map(item => {
-                    const active = nav.screen === item.screen;
-                    const Icon = item.icon;
-                    return (
-                      <button
-                        key={item.screen}
-                        type="button"
-                        onClick={() => {
-                          navigate(item.screen);
-                          setMoreOpen(false);
-                        }}
-                        className={`w-full text-left px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-colors cursor-pointer ${
-                          active
-                            ? 'bg-[#DDE6DF] text-soot shadow-2xs'
-                            : 'text-soot hover:bg-soot/5'
-                        }`}
-                      >
-                        <Icon size={15} className="text-moss shrink-0" />
-                        <span>{item.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-        </nav>
+          {/* Desktop Navigation Links */}
+          <nav className="hidden lg:flex items-center gap-1 xl:gap-1.5 min-w-0">
+            {links.map(l => {
+              const isActive = nav.screen === l.screen;
+              return (
+                <button
+                  key={l.screen}
+                  onClick={() => navigate(l.screen)}
+                  className={`relative px-2.5 xl:px-3.5 py-1.5 xl:py-2 rounded-full text-xs xl:text-sm font-medium transition-all duration-200 focus:outline-none cursor-pointer whitespace-nowrap shrink-0 ${
+                    isActive
+                      ? 'bg-[#DDE6DF] text-soot shadow-xs border border-soot/10 font-semibold'
+                      : 'text-moss hover:text-soot hover:bg-soot/5 active:scale-98'
+                  }`}
+                >
+                  {l.label}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
 
         {/* Desktop Auth / User Profile Menu */}
         <div className="hidden lg:flex items-center gap-1.5 xl:gap-2.5 shrink-0">
@@ -512,6 +414,56 @@ export default function Navbar() {
                         </button>
                       </>
                     )}
+
+                    {currentUser.role === 'admin' && (
+                      <>
+                        <button
+                          onClick={() => {
+                            navigate('admin-reports');
+                            setDropdownOpen(false);
+                          }}
+                          className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold text-soot hover:bg-plaster-dark/50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                        >
+                          <Calendar size={15} className="text-moss" />
+                          <span>Reports</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            navigate('admin-loyalty-proposals');
+                            setDropdownOpen(false);
+                          }}
+                          className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold text-soot hover:bg-plaster-dark/50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                        >
+                          <Sparkles size={15} className="text-moss" />
+                          <span>Loyalty Proposals</span>
+                        </button>
+                      </>
+                    )}
+
+                    {currentUser.role === 'provider' && (
+                      <button
+                        onClick={() => {
+                          navigate('provider-loyalty-proposals');
+                          setDropdownOpen(false);
+                        }}
+                        className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold text-soot hover:bg-plaster-dark/50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                      >
+                        <Sparkles size={15} className="text-moss" />
+                        <span>Loyalty Proposals</span>
+                      </button>
+                    )}
+
+                    {/* Support Desk for all logged in users */}
+                    <button
+                      onClick={() => {
+                        navigate(currentUser.role === 'admin' ? 'admin-support' : 'contact');
+                        setDropdownOpen(false);
+                      }}
+                      className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold text-soot hover:bg-plaster-dark/50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                    >
+                      <HelpCircle size={15} className="text-moss" />
+                      <span>Help & Support Desk</span>
+                    </button>
 
                     <div className="pt-1 mt-1 border-t border-soot/8">
                       <button
