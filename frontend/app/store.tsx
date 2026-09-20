@@ -3702,8 +3702,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       const hasPlanPass = Boolean(latestUser.hasActivePass);
       const isHourlyBooking = booking.plan === 'hourly' || (booking.durationHours && booking.durationHours > 0);
+      const isEligibleQuotaBooking = isHourlyBooking || (isMeetingOrTheater && (booking.plan === 'daily' || (typeof booking.coveredHours === 'number' && booking.coveredHours > 0)));
 
-      if (hasPlanPass && isMeetingOrTheater && isHourlyBooking) {
+      if (hasPlanPass && isMeetingOrTheater && isEligibleQuotaBooking) {
         const tier = (latestUser.membershipTier || '').toLowerCase();
         const isYearly = tier.includes('year') || tier.includes('annual');
         const defaultQuota = isYearly ? 12 : 8;
@@ -3713,7 +3714,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
         const bookedHours = typeof booking.coveredHours === 'number'
           ? booking.coveredHours
-          : (booking.durationHours || 1);
+          : (booking.durationHours || (isMeetingOrTheater && booking.plan === 'daily' ? 2 : 1));
         const hoursDeducted = Math.min(bookedHours, Math.max(0, currentRemaining));
 
         if (hoursDeducted > 0) {

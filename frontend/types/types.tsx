@@ -89,14 +89,14 @@ export function isOfficeSpace(spaceType?: string): boolean {
 
 /**
  * Returns allowed booking plans based on space type:
- * - Halls: ['hourly', 'daily', 'monthly', 'yearly']
- * - Theaters: ['hourly', 'daily', 'monthly', 'yearly']
+ * - Halls: ['daily'] (hourly, monthly, and yearly removed per policy)
+ * - Theaters: ['daily'] (hourly, monthly, and yearly removed per policy)
  * - Offices: ['daily', 'monthly', 'yearly'] (NO hourly)
  */
 export function getAllowedPlansForSpace(spaceOrType?: Space | string): BookingPlan[] {
   const cat = getSpaceCategory(spaceOrType);
   if (cat === 'hall' || cat === 'theater') {
-    return ['hourly', 'daily', 'monthly', 'yearly'];
+    return ['daily'];
   }
   return ['daily', 'monthly', 'yearly'];
 }
@@ -887,14 +887,16 @@ export function getOperatingHoursRange(openHoursStr?: string, dateStr?: string):
 
 /**
  * Returns available start times filtered strictly to the workspace's open hours.
+ * Ensures that start time + durationHours does not exceed the venue's closing time.
  */
-export function getFilteredStartTimes(openHoursStr?: string, dateStr?: string): string[] {
+export function getFilteredStartTimes(openHoursStr?: string, dateStr?: string, durationHours: number = 1): string[] {
   const range = getOperatingHoursRange(openHoursStr, dateStr);
   if (range.is24_7) return START_TIMES;
 
+  const neededMinutes = Math.max(1, durationHours) * 60;
   const filtered = START_TIMES.filter((t) => {
     const min = timeStringToMinutes(t);
-    return min >= range.openMinutes && min < range.closeMinutes;
+    return min >= range.openMinutes && min + neededMinutes <= range.closeMinutes;
   });
 
   return filtered.length > 0 ? filtered : START_TIMES;
@@ -1123,17 +1125,22 @@ export function getEffectiveSpacePrice(
     targetType.includes('theater') ||
     targetType.includes('auditorium');
 
-  if (isMeetingOrTheater && planType === 'hourly') {
+  const isHallOrTheaterDaily = (targetCategory === 'hall' || targetCategory === 'theater') && planType === 'daily';
+
+  if (isMeetingOrTheater && (planType === 'hourly' || isHallOrTheaterDaily)) {
+    const effectiveBookingHours = isHallOrTheaterDaily ? 2 : durationHours;
     if (includedMeetingHours > 0) {
       const userRemainingHours = typeof user.remainingHours === 'number'
         ? Math.max(0, user.remainingHours)
         : includedMeetingHours;
 
       if (userRemainingHours > 0) {
-        const coveredHours = Math.min(durationHours, userRemainingHours);
-        const payableHours = Math.max(0, durationHours - coveredHours);
-        const hourlyRate = space.pricing?.hourly || 150;
-        const payablePrice = payableHours * hourlyRate * effectiveSeats;
+        const coveredHours = Math.min(effectiveBookingHours, userRemainingHours);
+        const payableHours = Math.max(0, effectiveBookingHours - coveredHours);
+        const hourlyRate = space.pricing?.hourly || Math.round((space.pricing?.daily || 300) / 2);
+        const payablePrice = isHallOrTheaterDaily
+          ? (payableHours === 0 ? 0 : Math.round((payableHours / 2) * (space.pricing?.daily || 150) * effectiveSeats))
+          : payableHours * hourlyRate * effectiveSeats;
 
         if (payableHours === 0) {
           return {
@@ -1141,8 +1148,8 @@ export function getEffectiveSpacePrice(
             isPartiallyCovered: false,
             effectivePrice: 0,
             originalPrice: fullOriginalTotal,
-            badgeLabel: 'Included in your Plan',
-            displayPriceLabel: 'Included in your Plan',
+            badgeLabel: 'Included in your Pass Quota',
+            displayPriceLabel: 'Included in your Pass Quota',
             totalPayableLabel: 'SAR 0 to Pay',
             hasDiscount: true,
             discountPercentage: 100,
@@ -1150,7 +1157,7 @@ export function getEffectiveSpacePrice(
             payableSeats: 0,
             coveredHours,
             payableHours: 0,
-            coverageNote: `Covered by ${planDisplayName} hours (${userRemainingHours}h available)`,
+            coverageNote: `Covered by ${planDisplayName} quota (${userRemainingHours}h available)`,
           };
         } else {
           return {
@@ -1167,13 +1174,15 @@ export function getEffectiveSpacePrice(
             payableSeats: 0,
             coveredHours,
             payableHours,
-            coverageNote: `${coveredHours}h covered by pass, ${payableHours} extra hour(s) at SAR ${hourlyRate}/hr`,
+            coverageNote: `${coveredHours}h covered by pass, ${payableHours} extra hour(s) charged`,
           };
         }
       } else {
-        // Remaining hours quota is 0: extra hours charged at regular hourly rate
-        const hourlyRate = space.pricing?.hourly || 150;
-        const payablePrice = durationHours * hourlyRate * effectiveSeats;
+        // Remaining hours quota is 0: extra hours charged at regular rate
+        const hourlyRate = space.pricing?.hourly || Math.round((space.pricing?.daily || 300) / 2);
+        const payablePrice = isHallOrTheaterDaily
+          ? fullOriginalTotal
+          : durationHours * hourlyRate * effectiveSeats;
         return {
           isCovered: false,
           isPartiallyCovered: false,
@@ -1186,8 +1195,8 @@ export function getEffectiveSpacePrice(
           coveredSeats: 0,
           payableSeats: effectiveSeats,
           coveredHours: 0,
-          payableHours: durationHours,
-          coverageNote: `Monthly plan hours exhausted (0h remaining). Additional hours charged at regular rate.`,
+          payableHours: effectiveBookingHours,
+          coverageNote: `Monthly plan hours exhausted (0h remaining). Standard rate applies.`,
         };
       }
     } else {
