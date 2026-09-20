@@ -262,7 +262,31 @@ export default function IndividualDashboard() {
                     </div>
                   </div>
                   <div className="text-right shrink-0 flex flex-col items-end gap-1">
-                    <div className="text-sm font-semibold text-soot">SAR {getBookingPrice(b, spaces).toLocaleString()}</div>
+                    <div className="text-sm font-semibold text-soot">
+                      {(() => {
+                        const price = getBookingPrice(b, spaces);
+                        const isHourly = b.plan === 'hourly' || Boolean(b.durationHours);
+                        const isPassCovered = b.paidWithPass || price === 0 || b.totalPrice === 0;
+
+                        if (isPassCovered) {
+                          return (
+                            <span className="text-xs font-bold text-emerald-900 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-300 inline-flex items-center gap-1 shadow-2xs">
+                              <Clock size={11} className="text-emerald-700" />
+                              <span>{isHourly ? `${b.durationHours || 1} hrs (Pass)` : 'Included'}</span>
+                            </span>
+                          );
+                        }
+                        if (b.coveredHours && b.coveredHours > 0) {
+                          return (
+                            <div className="text-right">
+                              <div className="font-semibold text-soot text-xs">SAR {price.toLocaleString()}</div>
+                              <div className="text-[10px] text-emerald-800 font-medium">{b.coveredHours}h Pass</div>
+                            </div>
+                          );
+                        }
+                        return `SAR ${price.toLocaleString()}`;
+                      })()}
+                    </div>
                     <button
                       type="button"
                       onClick={(e) => {

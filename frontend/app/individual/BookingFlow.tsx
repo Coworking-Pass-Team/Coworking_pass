@@ -376,6 +376,14 @@ export default function BookingFlow() {
         ? `${durationMonths} ${durationMonths === 1 ? 'Month' : 'Months'}`
         : '1 Year';
 
+      const isPassBooking = Boolean(
+        currentUser.hasActivePass && (
+          totalPrice === 0 || 
+          (planInfo.coveredHours || 0) > 0 || 
+          planInfo.isCovered
+        )
+      );
+
       const booking = addBooking({
         userId: currentUser.id,
         spaceId: space.id,
@@ -399,32 +407,14 @@ export default function BookingFlow() {
         totalPrice,
         status: 'active',
         notes,
+        paidWithPass: isPassBooking,
+        coveredHours: planInfo.coveredHours,
+        payableHours: planInfo.payableHours,
       });
 
       try {
         if (useWalletBalance && walletDeduction > 0 && withdrawFromWallet) {
           withdrawFromWallet(walletDeduction, `Booking payment for ${space.name}`);
-        }
-
-        // Award earned loyalty points from this booking transaction
-        if (earnedPoints > 0 && currentUser) {
-          createPointsTransactionApi({
-            userId: currentUser.id,
-            type: 'EARNED',
-            points: earnedPoints,
-            description: `Earned points from booking at ${space.name}`,
-          }).then(res => {
-            if (res.success) {
-              getLoyaltyPointsApi(currentUser.id).then(ptsRes => {
-                if (ptsRes.success && Array.isArray(ptsRes.data)) {
-                  const uPts = ptsRes.data.find((p: any) => p.userId === currentUser.id);
-                  if (uPts && typeof uPts.availableBalance === 'number') {
-                    updateCurrentUser({ loyaltyPoints: uPts.availableBalance });
-                  }
-                }
-              }).catch(() => {});
-            }
-          }).catch(err => console.warn('[Points Award Sync]', err));
         }
       } catch (syncErr) {
         console.warn('[Sync background error]', syncErr);

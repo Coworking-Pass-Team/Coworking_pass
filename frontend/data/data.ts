@@ -916,6 +916,8 @@ export const INITIAL_USERS: User[] = [
     joinDate: '2026-01-15',
     hasActivePass: true,
     membershipTier: 'Monthly Pass',
+    remainingHours: 8,
+    totalPlanHours: 8,
   },
   {
     id: 'user-yearly',
@@ -929,6 +931,8 @@ export const INITIAL_USERS: User[] = [
     joinDate: '2024-03-10',
     hasActivePass: true,
     membershipTier: 'Yearly Pass',
+    remainingHours: 12,
+    totalPlanHours: 12,
   },
   {
     id: 'user-1',
@@ -942,6 +946,8 @@ export const INITIAL_USERS: User[] = [
     joinDate: '2024-03-10',
     hasActivePass: true,
     membershipTier: 'Yearly Pass',
+    remainingHours: 12,
+    totalPlanHours: 12,
   },
   {
     id: 'provider-1',

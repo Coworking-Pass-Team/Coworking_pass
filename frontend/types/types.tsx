@@ -1317,6 +1317,9 @@ export interface Booking {
   status: BookingStatus;
   createdAt?: string;
   notes?: string;
+  paidWithPass?: boolean;
+  coveredHours?: number;
+  payableHours?: number;
 }
 
 export type AmenityRequestStatus = 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
@@ -1361,7 +1364,10 @@ export function getBookingPrice(b: Booking, spaces: Space[] = []): number {
   const space = spaces.find(s => s.id === b.spaceId || (s.name && b.spaceName && s.name.toLowerCase() === b.spaceName.toLowerCase()));
   const seats = b.seats || 1;
 
-  if (typeof b.totalPrice === 'number' && !isNaN(b.totalPrice) && b.totalPrice > 0) {
+  if (typeof b.totalPrice === 'number' && !isNaN(b.totalPrice)) {
+    if (b.totalPrice === 0 || b.paidWithPass) {
+      return 0;
+    }
     const dailyRate = space?.pricing?.daily || 140;
     // Guard against monthly bookings having an erroneous daily rate (e.g. <= 300 SAR)
     if (b.plan === 'monthly' && b.totalPrice <= Math.max(dailyRate, 300)) {
