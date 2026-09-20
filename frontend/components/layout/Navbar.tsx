@@ -10,6 +10,8 @@ export function WalletButton({ onClick, className = '' }: { onClick?: () => void
   const { currentUser, companyWalletBalance } = useApp();
   if (!currentUser) return null;
 
+  if (currentUser.role === 'admin' || currentUser.role === 'provider') return null;
+
   const isOrg = currentUser.role === 'organization';
   const balance = isOrg ? (companyWalletBalance ?? 0) : (currentUser.walletBalance ?? 0);
 
@@ -33,6 +35,9 @@ export function WalletButton({ onClick, className = '' }: { onClick?: () => void
 export function LoyaltyButton() {
   const { navigate, currentUser } = useApp();
   if (!currentUser) return null;
+
+  if (currentUser.role === 'admin' || currentUser.role === 'provider' || currentUser.role === 'organization') return null;
+
   const points = currentUser.loyaltyPoints || 0;
 
   return (
@@ -87,7 +92,6 @@ export function NotificationButton() {
 
       {isOpen && (
         <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-soot/10 z-[60] overflow-hidden divide-y divide-soot/5 animate-in fade-in-50 zoom-in-95 duration-100">
-          {/* Header with Moss background */}
           <div className="p-3.5 bg-moss text-[#FAF8F5] flex items-center justify-between shadow-2xs border-b border-white/10">
             <div className="flex items-center gap-2">
               <Bell size={16} className="text-[#DDE6DF]" />
@@ -113,7 +117,6 @@ export function NotificationButton() {
             </div>
           </div>
 
-          {/* Notification List */}
           <div className="max-h-80 overflow-y-auto divide-y divide-soot/5">
             {notifications.length === 0 ? (
               <div className="p-6 text-center text-moss">
@@ -152,7 +155,6 @@ export function NotificationButton() {
             )}
           </div>
 
-          {/* Footer link */}
           <div className="p-2.5 bg-plaster-dark/25 text-center">
             <button
               type="button"
@@ -176,6 +178,8 @@ export function CartButton({ className = '' }: { className?: string }) {
   const { cart, openCart, currentUser } = useApp();
   if (!currentUser) return null;
 
+  if (currentUser.role === 'admin' || currentUser.role === 'provider') return null;
+
   const itemCount = cart.length;
 
   return (
@@ -197,13 +201,12 @@ export function CartButton({ className = '' }: { className?: string }) {
 }
 
 export default function Navbar() {
-  const { navigate, nav, currentUser, logout, companyWalletBalance, unreadNotificationsCount, openCart, cart } = useApp();
+  const { navigate, nav, currentUser, logout, companyWalletBalance } = useApp();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [walletModalOpen, setWalletModalOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown on click outside
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -218,7 +221,6 @@ export default function Navbar() {
     };
   }, [dropdownOpen]);
 
-  // Determine navigation links based on user role
   const getNavLinks = () => {
     if (!currentUser) {
       return [
@@ -255,10 +257,11 @@ export default function Navbar() {
         { label: 'Spaces', screen: 'admin-spaces' as const },
         { label: 'Users', screen: 'admin-users' as const },
         { label: 'Bookings', screen: 'admin-bookings' as const },
+        { label: 'Loyalty Proposals', screen: 'admin-loyalty-proposals' as const },
+        { label: 'Reports', screen: 'admin-reports' as const },
       ];
     }
 
-    // Default: Individual B2C User
     return [
       { label: 'Dashboard', screen: 'ind-dashboard' as const },
       { label: 'Browse Spaces', screen: 'browse' as const },
@@ -269,7 +272,6 @@ export default function Navbar() {
 
   const links = getNavLinks();
 
-  // Profile screen target based on role
   const getProfileScreen = () => {
     if (!currentUser) return 'login';
     if (currentUser.role === 'organization') return 'org-profile';
@@ -288,12 +290,13 @@ export default function Navbar() {
     return 'Individual Member';
   };
 
+  const isConsumerOrOrg = currentUser && currentUser.role !== 'admin' && currentUser.role !== 'provider';
+
   return (
     <header className="sticky top-0 z-50 w-full bg-plaster-surface/95 backdrop-blur-md border-b border-soot/12 shadow-xs transition-colors duration-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-2 sm:gap-4">
-        {/* Left Section: Brand Logo & Desktop Navigation */}
+        {/* Left Section: Logo & Main Navigation */}
         <div className="flex items-center gap-3 sm:gap-4 xl:gap-6 min-w-0">
-          {/* Brand Logo & Name */}
           <button
             type="button"
             onClick={() => navigate('landing')}
@@ -307,7 +310,6 @@ export default function Navbar() {
             </span>
           </button>
 
-          {/* Desktop Navigation Links */}
           <nav className="hidden lg:flex items-center gap-1 xl:gap-1.5 min-w-0">
             {links.map(l => {
               const isActive = nav.screen === l.screen;
@@ -315,7 +317,7 @@ export default function Navbar() {
                 <button
                   key={l.screen}
                   onClick={() => navigate(l.screen)}
-                  className={`relative px-2.5 xl:px-3.5 py-1.5 xl:py-2 rounded-full text-xs xl:text-sm font-medium transition-all duration-200 focus:outline-none cursor-pointer whitespace-nowrap shrink-0 ${
+                  className={`relative px-2.5 xl:px-3 py-1.5 xl:py-2 rounded-full text-xs xl:text-sm font-medium transition-all duration-200 focus:outline-none cursor-pointer whitespace-nowrap shrink-0 ${
                     isActive
                       ? 'bg-[#DDE6DF] text-soot shadow-xs border border-soot/10 font-semibold'
                       : 'text-moss hover:text-soot hover:bg-soot/5 active:scale-98'
@@ -328,26 +330,21 @@ export default function Navbar() {
           </nav>
         </div>
 
-        {/* Desktop Auth / User Profile Menu */}
+        {/* Right Section: Header Actions */}
         <div className="hidden lg:flex items-center gap-1.5 xl:gap-2.5 shrink-0">
-          {currentUser && (
-            <CartButton />
+          {currentUser && <CartButton />}
+
+          {isConsumerOrOrg && (
+            <>
+              <WalletButton onClick={() => setWalletModalOpen(true)} />
+              <LoyaltyButton />
+            </>
           )}
 
-          {currentUser && (
-            <WalletButton onClick={() => setWalletModalOpen(true)} />
-          )}
-
-          {currentUser && currentUser.role !== 'admin' && (
-            <LoyaltyButton />
-          )}
-
-          {currentUser && (
-            <NotificationButton />
-          )}
+          {currentUser && <NotificationButton />}
 
           {currentUser ? (
-            /* Logged-In User Profile Dropdown Menu */
+            /* User Profile Dropdown (نظيفة وخالية من التكرار) */
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -366,156 +363,60 @@ export default function Navbar() {
                 <ChevronDown size={14} className={`text-moss transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
               </button>
 
-              {/* Profile Dropdown Popup */}
-              {dropdownOpen && (
-                <div className="absolute right-0 mt-2 w-64 bg-plaster-surface rounded-3xl border border-soot/12 shadow-2xl p-2 z-[60] animate-in fade-in zoom-in-95 duration-150">
-                  <div className="p-3 border-b border-soot/8 mb-1">
-                    <div className="font-semibold text-soot text-sm">{currentUser.name}</div>
-                    <div className="text-xs text-moss truncate mt-0.5">{currentUser.email}</div>
-                    <div className="mt-2">
-                      {/* Unified Badge style for all roles */}
-                      <span className="inline-flex items-center px-3.5 py-1 rounded-full text-xs font-semibold bg-[#DDE6DF] text-soot border border-soot/6 shadow-2xs">
-                        {getRoleLabel()}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <button
-                      onClick={() => {
-                        navigate(profileScreen);
-                        setDropdownOpen(false);
-                      }}
-                      className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold text-soot hover:bg-plaster-dark/50 flex items-center gap-2.5 transition-colors cursor-pointer"
-                    >
-                      <UserIcon size={15} className="text-moss" />
-                      <span>My Profile & Account</span>
-                    </button>
-
-                    {currentUser.role === 'organization' ? (
-                      <>
-                        <button
-                          onClick={() => {
-                            setDropdownOpen(false);
-                            setWalletModalOpen(true);
-                          }}
-                          className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold text-soot hover:bg-plaster-dark/50 flex items-center justify-between transition-colors cursor-pointer"
-                        >
-                          <div className="flex items-center gap-2.5">
-                            <Wallet size={15} className="text-moss" />
-                            <span>Corporate Shared Wallet</span>
-                          </div>
-                          <span className="font-bold text-[11px] text-soot bg-[#DDE6DF] px-2 py-0.5 rounded-md border border-soot/10">
-                            SAR {(companyWalletBalance ?? 0).toLocaleString()}
-                          </span>
-                        </button>
-                        <button
-                          onClick={() => {
-                            navigate('pricing');
-                            setDropdownOpen(false);
-                          }}
-                          className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold text-soot hover:bg-plaster-dark/50 flex items-center gap-2.5 transition-colors cursor-pointer"
-                        >
-                          <CreditCard size={15} className="text-moss" />
-                          <span>Pricing & Plans</span>
-                        </button>
-                        <button
-                          onClick={() => {
-                            navigate('company-bookings');
-                            setDropdownOpen(false);
-                          }}
-                          className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold text-soot hover:bg-plaster-dark/50 flex items-center gap-2.5 transition-colors cursor-pointer"
-                        >
-                          <Building2 size={15} className="text-moss" />
-                          <span>Company Bookings</span>
-                        </button>
-                      </>
-                    ) : (
-                      <button
-                        onClick={() => {
-                          setDropdownOpen(false);
-                          setWalletModalOpen(true);
-                        }}
-                        className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold text-soot hover:bg-plaster-dark/50 flex items-center justify-between transition-colors cursor-pointer"
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <Wallet size={15} className="text-moss" />
-                          <span>Digital Wallet</span>
-                        </div>
-                        <span className="font-bold text-[11px] text-soot bg-[#DDE6DF] px-2 py-0.5 rounded-md border border-soot/10">
-                          SAR {(currentUser.walletBalance ?? 0).toLocaleString()}
-                        </span>
-                      </button>
-                    )}
-
-                    {currentUser.role === 'admin' && (
-                      <>
-                        <button
-                          onClick={() => {
-                            navigate('admin-reports');
-                            setDropdownOpen(false);
-                          }}
-                          className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold text-soot hover:bg-plaster-dark/50 flex items-center gap-2.5 transition-colors cursor-pointer"
-                        >
-                          <Calendar size={15} className="text-moss" />
-                          <span>Reports</span>
-                        </button>
-                        <button
-                          onClick={() => {
-                            navigate('admin-loyalty-proposals');
-                            setDropdownOpen(false);
-                          }}
-                          className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold text-soot hover:bg-plaster-dark/50 flex items-center gap-2.5 transition-colors cursor-pointer"
-                        >
-                          <Sparkles size={15} className="text-moss" />
-                          <span>Loyalty Proposals</span>
-                        </button>
-                      </>
-                    )}
-
-                    {currentUser.role === 'provider' && (
-                      <button
-                        onClick={() => {
-                          navigate('provider-loyalty-proposals');
-                          setDropdownOpen(false);
-                        }}
-                        className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold text-soot hover:bg-plaster-dark/50 flex items-center gap-2.5 transition-colors cursor-pointer"
-                      >
-                        <Sparkles size={15} className="text-moss" />
-                        <span>Loyalty Proposals</span>
-                      </button>
-                    )}
-
-                    {/* Support Desk for all logged in users */}
-                    <button
-                      onClick={() => {
-                        navigate(currentUser.role === 'admin' ? 'admin-support' : 'contact');
-                        setDropdownOpen(false);
-                      }}
-                      className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold text-soot hover:bg-plaster-dark/50 flex items-center gap-2.5 transition-colors cursor-pointer"
-                    >
-                      <HelpCircle size={15} className="text-moss" />
-                      <span>Help & Support Desk</span>
-                    </button>
-
-                    <div className="pt-1 mt-1 border-t border-soot/8">
-                      <button
-                        onClick={() => {
-                          logout();
-                          setDropdownOpen(false);
-                        }}
-                        className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold text-red-600 hover:bg-red-50 flex items-center gap-2.5 transition-colors cursor-pointer"
-                      >
-                        <LogOut size={15} />
-                        <span>Sign Out</span>
-                      </button>
-                    </div>
+              <div
+                className={`absolute right-0 mt-2 w-64 bg-plaster-surface rounded-3xl border border-soot/12 shadow-2xl p-2 z-[60] animate-in fade-in zoom-in-95 duration-150 ${
+                  dropdownOpen ? 'block' : 'hidden'
+                }`}
+              >
+                <div className="p-3 border-b border-soot/8 mb-1">
+                  <div className="font-semibold text-soot text-sm">{currentUser.name}</div>
+                  <div className="text-xs text-moss truncate mt-0.5">{currentUser.email}</div>
+                  <div className="mt-2">
+                    <span className="inline-flex items-center px-3.5 py-1 rounded-full text-xs font-semibold bg-[#DDE6DF] text-soot border border-soot/6 shadow-2xs">
+                      {getRoleLabel()}
+                    </span>
                   </div>
                 </div>
-              )}
+
+                <div className="space-y-1">
+                  <button
+                    onClick={() => {
+                      navigate(profileScreen);
+                      setDropdownOpen(false);
+                    }}
+                    className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold text-soot hover:bg-plaster-dark/50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                  >
+                    <UserIcon size={15} className="text-moss" />
+                    <span>My Profile & Account</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      navigate(currentUser.role === 'admin' ? 'admin-support' : 'contact');
+                      setDropdownOpen(false);
+                    }}
+                    className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold text-soot hover:bg-plaster-dark/50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                  >
+                    <HelpCircle size={15} className="text-moss" />
+                    <span>Help & Support Desk</span>
+                  </button>
+
+                  <div className="pt-1 mt-1 border-t border-soot/8">
+                    <button
+                      onClick={() => {
+                        logout();
+                        setDropdownOpen(false);
+                      }}
+                      className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold text-red-600 hover:bg-red-50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                    >
+                      <LogOut size={15} />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           ) : (
-            /* Guest Auth Buttons */
             <>
               <button
                 onClick={() => navigate('login')}
@@ -533,25 +434,22 @@ export default function Navbar() {
           )}
         </div>
 
-        {/* Mobile Header Buttons (Cart + Wallet + Notifications + Loyalty + Menu) */}
+        {/* Mobile Header Buttons */}
         <div className="flex lg:hidden items-center gap-1 sm:gap-2 shrink-0">
-          {currentUser && (
-            <CartButton />
+          {currentUser && <CartButton />}
+
+          {isConsumerOrOrg && (
+            <>
+              <WalletButton onClick={() => setWalletModalOpen(true)} />
+              {currentUser.role !== 'organization' && (
+                <div className="hidden sm:block">
+                  <LoyaltyButton />
+                </div>
+              )}
+            </>
           )}
 
-          {currentUser && (
-            <WalletButton onClick={() => setWalletModalOpen(true)} />
-          )}
-
-          {currentUser && currentUser.role !== 'admin' && (
-            <div className="hidden sm:block">
-              <LoyaltyButton />
-            </div>
-          )}
-
-          {currentUser && (
-            <NotificationButton />
-          )}
+          {currentUser && <NotificationButton />}
 
           <button
             className="p-2 rounded-xl text-soot hover:bg-plaster-dark/50 active:scale-95 transition-all focus:outline-none cursor-pointer shrink-0"
@@ -563,7 +461,7 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile Menu Dropdown */}
+      {/* Mobile Drawer Menu */}
       {mobileOpen && (
         <div className="lg:hidden border-t border-soot/10 bg-plaster-surface/98 backdrop-blur-md px-4 pt-3 pb-6 space-y-3 shadow-lg animate-in fade-in slide-in-from-top-2 duration-200 max-h-[calc(100vh-4.5rem)] overflow-y-auto">
           {currentUser && (
@@ -584,28 +482,7 @@ export default function Navbar() {
           )}
 
           <nav className="space-y-1">
-            {(currentUser?.role === 'admin'
-              ? [
-                  { label: 'Dashboard', screen: 'admin-dashboard' as const },
-                  { label: 'Spaces', screen: 'admin-spaces' as const },
-                  { label: 'Users', screen: 'admin-users' as const },
-                  { label: 'Bookings', screen: 'admin-bookings' as const },
-                  { label: 'Loyalty Proposals', screen: 'admin-loyalty-proposals' as const },
-                  { label: 'Support Desk', screen: 'admin-support' as const },
-                  { label: 'Reports', screen: 'admin-reports' as const },
-                  { label: 'Admin Settings', screen: 'admin-settings' as const },
-                ]
-              : currentUser?.role === 'organization'
-              ? [
-                  { label: 'Dashboard', screen: 'org-dashboard' as const },
-                  { label: 'Browse Spaces', screen: 'browse' as const },
-                  { label: 'Team Bookings', screen: 'company-bookings' as const },
-                  { label: 'Team Members', screen: 'company-team' as const },
-                  { label: 'Pricing & Plans', screen: 'pricing' as const },
-                  { label: 'Support', screen: 'contact' as const },
-                ]
-              : links
-            ).map(l => {
+            {links.map(l => {
               const isActive = nav.screen === l.screen;
               return (
                 <button
@@ -626,97 +503,20 @@ export default function Navbar() {
             })}
 
             {currentUser && (
-              <>
-                <button
-                  onClick={() => {
-                    setMobileOpen(false);
-                    openCart();
-                  }}
-                  className="w-full text-left px-4 py-3 rounded-xl text-base font-medium transition-all duration-150 cursor-pointer flex items-center justify-between text-moss hover:text-soot hover:bg-plaster-dark/40"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <ShoppingBag size={18} />
-                    <span>Shopping Cart</span>
-                  </div>
-                  {cart.length > 0 && (
-                    <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-soot text-plaster">
-                      {cart.length} {cart.length === 1 ? 'item' : 'items'}
-                    </span>
-                  )}
-                </button>
-              </>
-            )}
-
-            {currentUser && (
-              <>
-                <button
-                  onClick={() => {
-                    navigate('notifications');
-                    setMobileOpen(false);
-                  }}
-                  className="w-full text-left px-4 py-3 rounded-xl text-base font-medium transition-all duration-150 cursor-pointer flex items-center justify-between text-moss hover:text-soot hover:bg-plaster-dark/40"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <Bell size={18} />
-                    <span>Notifications</span>
-                  </div>
-                  {unreadNotificationsCount > 0 && (
-                    <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-500 text-white">
-                      {unreadNotificationsCount}
-                    </span>
-                  )}
-                </button>
-
-                {/* Mobile Drawer Digital / Corporate Wallet */}
-                <button
-                  onClick={() => {
-                    setMobileOpen(false);
-                    setWalletModalOpen(true);
-                  }}
-                  className="w-full text-left px-4 py-3 rounded-xl text-base font-medium transition-all duration-150 cursor-pointer flex items-center justify-between text-moss hover:text-soot hover:bg-plaster-dark/40"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <Wallet size={18} />
-                    <span>{currentUser.role === 'organization' ? 'Corporate Shared Wallet' : 'Digital Wallet'}</span>
-                  </div>
-                  <span className="font-bold text-xs text-soot bg-[#DDE6DF] px-2.5 py-0.5 rounded-md border border-soot/10">
-                    SAR {(currentUser.role === 'organization' ? (companyWalletBalance ?? 0) : (currentUser.walletBalance ?? 0)).toLocaleString()}
-                  </span>
-                </button>
-
-                {currentUser.role !== 'admin' && (
-                  <button
-                    onClick={() => {
-                      navigate('loyalty');
-                      setMobileOpen(false);
-                    }}
-                    className="w-full text-left px-4 py-3 rounded-xl text-base font-medium transition-all duration-150 cursor-pointer flex items-center justify-between text-moss hover:text-soot hover:bg-plaster-dark/40"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <Sparkles size={18} />
-                      <span>Loyalty Points</span>
-                    </div>
-                    <span className="font-bold text-xs text-soot bg-[#DDE6DF] px-2.5 py-0.5 rounded-md border border-soot/10">
-                      {(currentUser.loyaltyPoints || 0).toLocaleString()} pts
-                    </span>
-                  </button>
-                )}
-
-                <button
-                  onClick={() => {
-                    navigate(profileScreen);
-                    setMobileOpen(false);
-                  }}
-                  className={`w-full text-left px-4 py-3 rounded-xl text-base font-medium transition-all duration-150 cursor-pointer flex items-center justify-between ${
-                    nav.screen === profileScreen
-                      ? 'bg-soot text-plaster font-semibold'
-                      : 'text-moss hover:text-soot hover:bg-plaster-dark/40'
-                  }`}
-                >
-                  <span>My Profile & Settings</span>
-                  <UserIcon size={18} />
-                </button>
-              </>
+              <button
+                onClick={() => {
+                  navigate(profileScreen);
+                  setMobileOpen(false);
+                }}
+                className={`w-full text-left px-4 py-3 rounded-xl text-base font-medium transition-all duration-150 cursor-pointer flex items-center justify-between ${
+                  nav.screen === profileScreen
+                    ? 'bg-soot text-plaster font-semibold'
+                    : 'text-moss hover:text-soot hover:bg-plaster-dark/40'
+                }`}
+              >
+                <span>My Profile & Settings</span>
+                <UserIcon size={18} />
+              </button>
             )}
           </nav>
 
@@ -758,18 +558,20 @@ export default function Navbar() {
         </div>
       )}
 
-      {/* Wallet Modals */}
-      {currentUser && (currentUser.role === 'organization' ? (
-        <SharedWalletModal
-          isOpen={walletModalOpen}
-          onClose={() => setWalletModalOpen(false)}
-        />
-      ) : (
-        <WalletModal
-          isOpen={walletModalOpen}
-          onClose={() => setWalletModalOpen(false)}
-        />
-      ))}
+      {/* المودالات المالية */}
+      {isConsumerOrOrg && (
+        currentUser.role === 'organization' ? (
+          <SharedWalletModal
+            isOpen={walletModalOpen}
+            onClose={() => setWalletModalOpen(false)}
+          />
+        ) : (
+          <WalletModal
+            isOpen={walletModalOpen}
+            onClose={() => setWalletModalOpen(false)}
+          />
+        )
+      )}
     </header>
   );
 }

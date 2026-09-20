@@ -8,7 +8,7 @@ export interface ModalProps {
   subtitle?: string;
   children: ReactNode;
   footer?: ReactNode;
-  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl'| '3xl';
 }
 
 export default function Modal({ open, onClose, title, subtitle, children, footer, size = 'md' }: ModalProps) {
@@ -34,6 +34,7 @@ export default function Modal({ open, onClose, title, subtitle, children, footer
     lg: 'max-w-lg',
     xl: 'max-w-xl',
     '2xl': 'max-w-2xl',
+    '3xl': 'max-w-3xl',
   };
 
   return (
