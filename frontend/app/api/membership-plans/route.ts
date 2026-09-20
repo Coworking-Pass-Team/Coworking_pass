@@ -24,8 +24,8 @@ const DEFAULT_MEMBERSHIP_PLANS: MembershipPlanItem[] = [
     price: 1500,
   },
   {
-    id: 'plan_b2c_annual',
-    planName: 'Annual Pass',
+    id: 'plan_b2c_yearly',
+    planName: 'Yearly Pass',
     type: 'B2C',
     totalVisitsAllowed: 365,
     price: 15000,

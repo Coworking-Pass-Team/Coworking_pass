@@ -28,19 +28,19 @@ export const PLAN_COVERAGE_RULES: PlanCoverageRule[] = [
     audience: 'B2C',
     allowedBookingPlans: ['daily', 'monthly'],
     includedWorkspaceTypes: ['hot-desk', 'shared-desk', 'desk', 'office'],
-    includedMeetingHoursPerMonth: 2,
+    includedMeetingHoursPerMonth: 8,
     maxSeatsCoveredPerBooking: 1,
-    description: 'Unlimited hot desk visits across Saudi Arabia + up to 2 meeting room hours monthly.',
+    description: 'Unlimited hot desk visits across Saudi Arabia + up to 8 meeting room & theater hours monthly.',
   },
   {
-    key: 'annual',
-    names: ['annual pass', 'yearly pass', 'executive pass', 'annual', 'yearly'],
+    key: 'yearly',
+    names: ['yearly pass', 'annual pass', 'yearly', 'annual', 'executive pass'],
     audience: 'B2C',
     allowedBookingPlans: ['daily', 'monthly', 'yearly'],
     includedWorkspaceTypes: ['hot-desk', 'shared-desk', 'private-office', 'desk', 'office'],
-    includedMeetingHoursPerMonth: 8,
+    includedMeetingHoursPerMonth: 12,
     maxSeatsCoveredPerBooking: 1,
-    description: 'All-inclusive desk & private office visits + 8 meeting room hours monthly.',
+    description: 'All-inclusive desk & private office visits + 12 meeting room & theater hours monthly (renews monthly).',
   },
   {
     key: 'team',
@@ -192,13 +192,21 @@ export function evaluateReservationCoverage(
     (targetCategory === 'office' && rule.includedWorkspaceTypes.includes('office')) ||
     (targetType.includes('desk') && rule.includedWorkspaceTypes.some(t => t.includes('desk')));
 
-  // Check hourly meeting room inclusion
-  const isMeetingRoom = targetType === 'meeting-room' || targetType === 'meeting-hall';
-  const hasIncludedMeetingHours = isMeetingRoom && planType === 'hourly' && rule.includedMeetingHoursPerMonth > 0;
+  // Check hourly meeting room, hall, and theater inclusion
+  const isMeetingOrTheater =
+    targetCategory === 'hall' ||
+    targetCategory === 'theater' ||
+    targetType.includes('meeting') ||
+    targetType.includes('hall') ||
+    targetType.includes('theater') ||
+    targetType.includes('auditorium');
+  const hasIncludedMeetingHours = isMeetingOrTheater && planType === 'hourly' && rule.includedMeetingHoursPerMonth > 0;
 
-  // Excluded space types (e.g. theaters, performance halls for standard pass)
+  // Excluded space types (theaters only excluded if plan has no meeting/theater hours)
   const isHardExcluded =
-    (targetCategory === 'theater' || targetType.includes('theater')) && !rule.includedWorkspaceTypes.includes('*');
+    (targetCategory === 'theater' || targetType.includes('theater')) &&
+    !hasIncludedMeetingHours &&
+    !rule.includedWorkspaceTypes.includes('*');
 
   if (isHardExcluded || (!isTypeIncluded && !hasIncludedMeetingHours)) {
     // Not covered by this plan
@@ -214,53 +222,78 @@ export function evaluateReservationCoverage(
       payableSeats: effectiveSeats,
       coveredHours: 0,
       payableHours: durationHours,
-      coverageNote: `Not included in ${rule.names[0]} (applies to desks)`,
+      coverageNote: `Not included in ${rule.names[0]}`,
       matchedRule: rule,
     };
   }
 
   // 5. Check duration plan allowance
-  const isPlanAllowed = rule.allowedBookingPlans.includes(planType) || rule.allowedBookingPlans.includes('*' as any);
+  const isPlanAllowed = rule.allowedBookingPlans.includes(planType) || rule.allowedBookingPlans.includes('*' as any) || hasIncludedMeetingHours;
 
-  // Hourly Meeting Room partial/full coverage handling
-  if (isMeetingRoom && planType === 'hourly') {
-    const coveredHours = Math.min(durationHours, rule.includedMeetingHoursPerMonth);
-    const payableHours = Math.max(0, durationHours - coveredHours);
-    const hourlyRate = space.pricing?.hourly || 150;
-    const payablePrice = payableHours * hourlyRate * effectiveSeats;
+  // Hourly Meeting Room / Theater partial/full coverage handling
+  if (isMeetingOrTheater && planType === 'hourly') {
+    const userRemainingHours = typeof user.remainingHours === 'number'
+      ? Math.max(0, user.remainingHours)
+      : rule.includedMeetingHoursPerMonth;
 
-    if (payableHours === 0) {
-      return {
-        isCovered: true,
-        isPartiallyCovered: false,
-        effectivePrice: 0,
-        originalPrice: fullOriginalTotal,
-        displayPriceLabel: 'Included in your Plan',
-        totalPayableLabel: 'SAR 0 to Pay',
-        hasDiscount: true,
-        discountPercentage: 100,
-        coveredSeats: effectiveSeats,
-        payableSeats: 0,
-        coveredHours,
-        payableHours: 0,
-        coverageNote: `Covered by ${rule.names[0]} meeting room allowance`,
-        matchedRule: rule,
-      };
+    if (userRemainingHours > 0) {
+      const coveredHours = Math.min(durationHours, userRemainingHours);
+      const payableHours = Math.max(0, durationHours - coveredHours);
+      const hourlyRate = space.pricing?.hourly || 150;
+      const payablePrice = payableHours * hourlyRate * effectiveSeats;
+
+      if (payableHours === 0) {
+        return {
+          isCovered: true,
+          isPartiallyCovered: false,
+          effectivePrice: 0,
+          originalPrice: fullOriginalTotal,
+          displayPriceLabel: 'Included in your Plan',
+          totalPayableLabel: 'SAR 0 to Pay',
+          hasDiscount: true,
+          discountPercentage: 100,
+          coveredSeats: effectiveSeats,
+          payableSeats: 0,
+          coveredHours,
+          payableHours: 0,
+          coverageNote: `Covered by ${rule.names[0]} quota (${userRemainingHours}h available)`,
+          matchedRule: rule,
+        };
+      } else {
+        return {
+          isCovered: false,
+          isPartiallyCovered: true,
+          effectivePrice: payablePrice,
+          originalPrice: fullOriginalTotal,
+          displayPriceLabel: `${coveredHours}h Free · SAR ${payablePrice.toLocaleString()}`,
+          totalPayableLabel: `SAR ${payablePrice.toLocaleString()} to Pay`,
+          hasDiscount: true,
+          discountPercentage: Math.round(((fullOriginalTotal - payablePrice) / fullOriginalTotal) * 100),
+          coveredSeats: effectiveSeats,
+          payableSeats: 0,
+          coveredHours,
+          payableHours,
+          coverageNote: `${coveredHours}h covered by pass, ${payableHours}h at SAR ${hourlyRate}/hr`,
+          matchedRule: rule,
+        };
+      }
     } else {
+      // Remaining hours quota exhausted
+      const hourlyRate = space.pricing?.hourly || 150;
+      const payablePrice = durationHours * hourlyRate * effectiveSeats;
       return {
         isCovered: false,
-        isPartiallyCovered: true,
+        isPartiallyCovered: false,
         effectivePrice: payablePrice,
         originalPrice: fullOriginalTotal,
-        displayPriceLabel: `${coveredHours}h Included · SAR ${payablePrice.toLocaleString()}`,
-        totalPayableLabel: `SAR ${payablePrice.toLocaleString()}`,
-        hasDiscount: true,
-        discountPercentage: Math.round(((fullOriginalTotal - payablePrice) / fullOriginalTotal) * 100),
-        coveredSeats: effectiveSeats,
-        payableSeats: 0,
-        coveredHours,
-        payableHours,
-        coverageNote: `${coveredHours}h included in pass, ${payableHours}h at standard rate`,
+        displayPriceLabel: `SAR ${payablePrice.toLocaleString()}`,
+        totalPayableLabel: `SAR ${payablePrice.toLocaleString()} to Pay`,
+        hasDiscount: false,
+        coveredSeats: 0,
+        payableSeats: effectiveSeats,
+        coveredHours: 0,
+        payableHours: durationHours,
+        coverageNote: `Monthly plan hours exhausted (0h remaining). Charged at regular rate.`,
         matchedRule: rule,
       };
     }

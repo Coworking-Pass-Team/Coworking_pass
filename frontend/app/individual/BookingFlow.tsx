@@ -495,14 +495,10 @@ export default function BookingFlow() {
               )}
               <Row label="Reserved Seats" value={`${seats} seat${seats > 1 ? 's' : ''}`} />
               <div className="pt-3 border-t border-soot/8 flex justify-between items-center font-semibold text-base">
-                <span className="text-soot">{hasActiveSubscription ? 'Reservation Status' : 'Total Paid (incl. VAT)'}</span>
-                {hasActiveSubscription ? (
+                <span className="text-soot">{totalPrice === 0 ? 'Reservation Status' : 'Total Paid (incl. VAT)'}</span>
+                {totalPrice === 0 ? (
                   <span className="text-moss font-bold text-xs sm:text-sm bg-eucalyptus/25 px-3 py-1 rounded-full border border-eucalyptus/30">
                     Included in your Subscription Pass
-                  </span>
-                ) : totalPrice === 0 ? (
-                  <span className="text-moss font-bold text-xs sm:text-sm bg-eucalyptus/25 px-3 py-1 rounded-full border border-eucalyptus/30">
-                    Included in your Plan · SAR 0 Paid
                   </span>
                 ) : (
                   <span className="text-soot font-bold text-lg">SAR {totalPrice.toLocaleString()}</span>
@@ -607,7 +603,7 @@ export default function BookingFlow() {
 
         {/* Live Dynamic Price Display */}
         <div className="text-right shrink-0 bg-plaster-dark/40 px-4 py-2.5 rounded-2xl border border-soot/10">
-          {hasActiveSubscription ? (
+          {planInfo.effectivePrice === 0 ? (
             <>
               <span className="text-[10px] font-bold uppercase tracking-wider text-moss block">
                 Subscription Status
@@ -625,10 +621,14 @@ export default function BookingFlow() {
                 {seats > 1 ? `Total (${seats} Seats)` : 'Total Price'}
               </span>
               <div className="font-bold text-soot text-lg sm:text-xl leading-tight">
-                SAR {(planInfo.originalPrice * seats).toLocaleString()}
+                SAR {(planInfo.effectivePrice * seats).toLocaleString()}
               </div>
               <div className="text-[11px] text-moss mt-0.5">
-                {planInfo.isCovered ? 'Included with Pass' : `SAR ${planPrice.toLocaleString()} ${priceLabel}`}
+                {(planInfo.coveredHours || 0) > 0
+                  ? `${planInfo.coveredHours}h covered · ${planInfo.payableHours}h extra`
+                  : planInfo.isCovered
+                  ? 'Included with Pass'
+                  : `SAR ${planPrice.toLocaleString()} ${priceLabel}`}
               </div>
             </>
           )}
@@ -799,7 +799,7 @@ export default function BookingFlow() {
                   <p className="text-xs text-moss mt-0.5">Select your booking date, start time, and end time</p>
                 </div>
                 <div className="text-sm font-bold text-soot whitespace-nowrap shrink-0 text-right">
-                  {durationHours} {durationHours === 1 ? 'Hour' : 'Hours'} {hasActiveSubscription ? '· Included in Pass' : `· SAR ${getHourlyPriceForDuration(space, durationHours)}`}
+                  {durationHours} {durationHours === 1 ? 'Hour' : 'Hours'} {planInfo.effectivePrice === 0 ? '· Included in Pass' : (planInfo.coveredHours || 0) > 0 ? `· ${planInfo.coveredHours}h Covered · SAR ${(planInfo.effectivePrice * seats).toLocaleString()}` : `· SAR ${getHourlyPriceForDuration(space, durationHours)}`}
                 </div>
               </div>
 
@@ -889,7 +889,7 @@ export default function BookingFlow() {
               onClick={next}
               className="flex-1 py-3.5 px-6 rounded-full bg-[#DDE6DF] text-soot hover:bg-[#D0DDD3] font-medium text-sm transition-all flex items-center justify-center gap-2 shadow-xs border border-soot/8 cursor-pointer"
             >
-              <span>{hasActiveSubscription ? 'Continue to Schedule & Details' : `Continue to Schedule & Details (SAR ${(planInfo.originalPrice * seats).toLocaleString()})`}</span>
+              <span>{planInfo.effectivePrice === 0 ? 'Continue to Schedule & Details' : `Continue to Schedule & Details (SAR ${(planInfo.effectivePrice * seats).toLocaleString()})`}</span>
               <ChevronRight size={16} />
             </button>
           </div>
@@ -1166,7 +1166,7 @@ export default function BookingFlow() {
               onClick={next}
               className="flex-1 py-3.5 px-6 rounded-full bg-[#DDE6DF] text-soot hover:bg-[#D0DDD3] font-medium text-sm transition-all flex items-center justify-center gap-2 shadow-xs border border-soot/8 cursor-pointer"
             >
-              <span>{hasActiveSubscription ? 'Review Reservation' : 'Review Booking & Price'}</span>
+              <span>{totalPrice === 0 ? 'Review Reservation' : 'Review Booking & Price'}</span>
               <ChevronRight size={16} />
             </button>
           </div>
@@ -1178,10 +1178,10 @@ export default function BookingFlow() {
         <div className="bg-white rounded-3xl border border-soot/8 p-6 sm:p-8 shadow-sm space-y-6">
           <div>
             <h2 className="text-2xl text-soot font-normal mb-1 font-serif-display">
-              {hasActiveSubscription ? 'Review & Confirm Reservation' : 'Review & Payment'}
+              {totalPrice === 0 ? 'Review & Confirm Reservation' : 'Review & Payment'}
             </h2>
             <p className="text-moss text-sm">
-              {hasActiveSubscription
+              {totalPrice === 0
                 ? 'Review your reservation details and confirm your workspace access'
                 : 'Review your booking summary and confirm payment'}
             </p>
@@ -1212,7 +1212,7 @@ export default function BookingFlow() {
               <Row label="Reserved Seats" value={`${seats} seat${seats > 1 ? 's' : ''}`} />
             </div>
 
-            {hasActiveSubscription ? (
+            {totalPrice === 0 ? (
               /* Subscription Plan Coverage Card (No Prices Displayed) */
               <div className="p-5 rounded-2xl bg-[#E5ECE9]/60 border-2 border-eucalyptus/40 space-y-3.5">
                 <div className="flex items-center justify-between pb-2.5 border-b border-soot/8">
@@ -1232,6 +1232,14 @@ export default function BookingFlow() {
                     <span className="text-moss">Covered by</span>
                     <span className="font-semibold text-soot">{currentUser.membershipTier || 'All-Access Pass'}</span>
                   </div>
+                  {(planInfo.coveredHours || 0) > 0 && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-moss">Plan Hours Applied</span>
+                      <span className="font-semibold text-emerald-800">
+                        {planInfo.coveredHours} {planInfo.coveredHours === 1 ? 'Hour' : 'Hours'} ({currentUser.remainingHours !== undefined ? currentUser.remainingHours : 0} hrs remaining in monthly quota)
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between items-center">
                     <span className="text-moss">Reserved Seats</span>
                     <span className="font-semibold text-soot">{seats} {seats > 1 ? 'Seats' : 'Seat'} (Included)</span>
@@ -1249,6 +1257,30 @@ export default function BookingFlow() {
               </div>
             ) : (
               <>
+                {/* Quota breakdown banner if partial quota was applied */}
+                {hasActiveSubscription && (planInfo.coveredHours || 0) > 0 && (
+                  <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200/80 space-y-1.5">
+                    <div className="flex items-center gap-2 text-amber-900 font-semibold text-xs">
+                      <Info size={14} className="text-amber-700 shrink-0" />
+                      <span>Partial Plan Quota Applied</span>
+                    </div>
+                    <p className="text-xs text-amber-800/90 leading-relaxed">
+                      {planInfo.coveredHours} free {planInfo.coveredHours === 1 ? 'hour is' : 'hours are'} covered by your {currentUser.membershipTier || 'Pass'} quota ({currentUser.remainingHours !== undefined ? currentUser.remainingHours : 0} hrs remaining). The remaining {planInfo.payableHours} {planInfo.payableHours === 1 ? 'hour is' : 'hours are'} charged at SAR {space.pricing?.hourly || 0}/hour.
+                    </p>
+                  </div>
+                )}
+                {hasActiveSubscription && (planInfo.coveredHours || 0) === 0 && (currentUser.remainingHours || 0) === 0 && (
+                  <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200/80 space-y-1.5">
+                    <div className="flex items-center gap-2 text-amber-900 font-semibold text-xs">
+                      <Info size={14} className="text-amber-700 shrink-0" />
+                      <span>Monthly Hours Quota Depleted</span>
+                    </div>
+                    <p className="text-xs text-amber-800/90 leading-relaxed">
+                      You have 0 meeting room & theater credits remaining this cycle. Standard hourly rates apply until your plan quota renews next month.
+                    </p>
+                  </div>
+                )}
+
                 {/* Loyalty Rewards Program Card */}
                 <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 space-y-2">
                   <div className="flex items-center justify-between">
@@ -1325,18 +1357,33 @@ export default function BookingFlow() {
                     </span>
                   </div>
 
-                  <Row
-                    label={`Rate per Seat (${isHourly ? `${startTime} – ${endTime} (${durationHours}h)` : plan === 'monthly' ? `${durationMonths} Mo Monthly` : plan === 'daily' ? `Daily (${durationDays} ${durationDays === 1 ? 'day' : 'days'})` : `${plan} pass`})`}
-                    value={planInfo.isCovered ? 'Included in your Plan' : `SAR ${planInfo.originalPrice.toLocaleString()}`}
-                  />
-                  <Row
-                    label={`Number of Reserved Seats`}
-                    value={`× ${seats}`}
-                  />
-                  <Row
-                    label={`Subtotal`}
-                    value={planInfo.isCovered ? 'Included in your Plan' : `SAR ${(planInfo.originalPrice * seats).toLocaleString()}`}
-                  />
+                  {(planInfo.coveredHours || 0) > 0 ? (
+                    <>
+                      <Row
+                        label="Plan Quota Hours Applied"
+                        value={`-${planInfo.coveredHours} hrs (SAR 0 · Covered)`}
+                      />
+                      <Row
+                        label={`Extra Payable Hours (${planInfo.payableHours} hrs × SAR ${space.pricing?.hourly || 0})`}
+                        value={`SAR ${(planInfo.effectivePrice * seats).toLocaleString()}`}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <Row
+                        label={`Rate per Seat (${isHourly ? `${startTime} – ${endTime} (${durationHours}h)` : plan === 'monthly' ? `${durationMonths} Mo Monthly` : plan === 'daily' ? `Daily (${durationDays} ${durationDays === 1 ? 'day' : 'days'})` : `${plan} pass`})`}
+                        value={planInfo.isCovered ? 'Included in your Plan' : `SAR ${planInfo.originalPrice.toLocaleString()}`}
+                      />
+                      <Row
+                        label={`Number of Reserved Seats`}
+                        value={`× ${seats}`}
+                      />
+                      <Row
+                        label={`Subtotal`}
+                        value={planInfo.isCovered ? 'Included in your Plan' : `SAR ${(planInfo.originalPrice * seats).toLocaleString()}`}
+                      />
+                    </>
+                  )}
                   {pointsDiscount > 0 && (
                     <Row
                       label="Loyalty Points Discount"
@@ -1351,7 +1398,7 @@ export default function BookingFlow() {
                   )}
                   <Row
                     label="VAT (15% included in price)"
-                    value={planInfo.isCovered ? 'SAR 0' : `SAR ${((planInfo.originalPrice * seats) * 0.15).toFixed(0)}`}
+                    value={planInfo.effectivePrice === 0 ? 'SAR 0' : `SAR ${((planInfo.effectivePrice * seats) * 0.15).toFixed(0)}`}
                   />
 
                   {/* Highlighted Final Payable Amount */}
@@ -1415,15 +1462,15 @@ export default function BookingFlow() {
                   endDate: endDate,
                   seats: seats,
                   notes: notes,
-                  pricePerSeat: hasActiveSubscription || planInfo.isCovered ? 0 : Math.round(totalPrice / seats),
-                  itemTotal: hasActiveSubscription ? 0 : totalPrice,
+                  pricePerSeat: planInfo.effectivePrice === 0 ? 0 : Math.round(totalPrice / seats),
+                  itemTotal: planInfo.effectivePrice === 0 ? 0 : totalPrice,
                 });
                 navigate('browse');
               }}
               className="py-3.5 px-5 rounded-full border border-soot/15 text-soot font-medium text-sm hover:bg-soot/5 transition-all bg-white flex items-center justify-center gap-2 cursor-pointer shadow-2xs"
             >
               <ShoppingBag size={16} />
-              <span>{hasActiveSubscription || totalPrice === 0 ? 'Add to Cart (Covered by Pass)' : 'Add to Cart'}</span>
+              <span>{totalPrice === 0 ? 'Add to Cart (Covered by Pass)' : 'Add to Cart'}</span>
             </button>
             <button
               onClick={confirmBooking}
@@ -1432,7 +1479,7 @@ export default function BookingFlow() {
             >
               {loading ? (
                 <span>Confirming Reservation...</span>
-              ) : hasActiveSubscription || totalPrice === 0 ? (
+              ) : totalPrice === 0 ? (
                 <>
                   <Check size={16} className="text-moss" />
                   <span>Confirm Reservation (Covered by your Pass)</span>

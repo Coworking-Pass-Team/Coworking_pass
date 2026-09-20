@@ -20,6 +20,7 @@ import {
   isCancellationRefundEligible, 
   getBookingPrice, 
   getEffectiveSpacePrice, 
+  checkAndRenewPlanHours,
   OtpSession, 
   SupportTicket, 
   TicketStatus, 
@@ -2394,11 +2395,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       const savedUser = localStorage.getItem('cp_currentUser');
       if (savedUser) {
-        const parsed = JSON.parse(savedUser);
+        let parsed = JSON.parse(savedUser);
         if (parsed.avatar && (parsed.avatar.includes('images.unsplash.com') || parsed.avatar.includes('admin-avatar'))) {
           parsed.avatar = '';
-          localStorage.setItem('cp_currentUser', JSON.stringify(parsed));
         }
+        parsed = checkAndRenewPlanHours(parsed);
+        localStorage.setItem('cp_currentUser', JSON.stringify(parsed));
         setCurrentUser(parsed);
       }
       const savedUsers = localStorage.getItem('cp_users');
@@ -3354,6 +3356,43 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const multiplier = space?.loyaltyPointsMultiplier || 1;
     const rawPrice = booking.totalPrice || 0;
     const earnedPoints = (rawPrice > 0 ? Math.max(10, Math.floor(rawPrice / 10)) : 10) * multiplier;
+
+    // Quota deduction for Meeting Room & Theater hourly bookings
+    const isMeetingOrTheater = 
+      booking.type?.includes('meeting') ||
+      booking.type?.includes('hall') ||
+      booking.type?.includes('theater') ||
+      booking.category === 'hall' ||
+      booking.category === 'theater' ||
+      space?.type?.includes('meeting') ||
+      space?.type?.includes('hall') ||
+      space?.type?.includes('theater');
+
+    if (currentUser && currentUser.id === booking.userId && currentUser.hasActivePass && booking.plan === 'hourly' && isMeetingOrTheater) {
+      const tier = (currentUser.membershipTier || '').toLowerCase();
+      const isYearly = tier.includes('year') || tier.includes('annual');
+      const defaultQuota = isYearly ? 12 : 8;
+      const currentRemaining = typeof currentUser.remainingHours === 'number'
+        ? currentUser.remainingHours
+        : defaultQuota;
+
+      const bookedHours = booking.durationHours || 1;
+      const hoursDeducted = Math.min(bookedHours, Math.max(0, currentRemaining));
+
+      if (hoursDeducted > 0) {
+        const newRemaining = Math.max(0, currentRemaining - hoursDeducted);
+        const userWithDeductedHours = {
+          ...currentUser,
+          remainingHours: newRemaining,
+          totalPlanHours: currentUser.totalPlanHours || defaultQuota,
+        };
+        setCurrentUser(userWithDeductedHours);
+        setUsers(prev => prev.map(u => u.id === userWithDeductedHours.id ? userWithDeductedHours : u));
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('cp_currentUser', JSON.stringify(userWithDeductedHours));
+        }
+      }
+    }
 
     if (currentUser && currentUser.id === booking.userId && earnedPoints > 0) {
       const updatedUser = {

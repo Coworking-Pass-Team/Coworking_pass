@@ -10,6 +10,7 @@ import {
   ArrowRight,
   Bookmark,
   Check,
+  CheckCircle2,
   Sparkles,
   QrCode
 } from 'lucide-react';
@@ -51,11 +52,22 @@ export default function IndividualDashboard() {
   const tierName = currentUser.membershipTier || (currentUser.hasActivePass ? 'All-Access Pass' : 'Standard Member');
   const tierLower = tierName.toLowerCase();
 
-  const userPassPlan: BookingPlan = tierLower.includes('yearly') || tierLower.includes('enterprise') || tierLower.includes('all-access')
+  const userPassPlan: BookingPlan = tierLower.includes('yearly') || tierLower.includes('annual') || tierLower.includes('enterprise') || tierLower.includes('all-access')
     ? 'yearly'
     : tierLower.includes('monthly') || tierLower.includes('pro')
     ? 'monthly'
     : 'daily';
+
+  const hasPass = Boolean(currentUser.hasActivePass);
+  const totalPlanHours = currentUser.totalPlanHours !== undefined
+    ? currentUser.totalPlanHours
+    : (userPassPlan === 'yearly' ? 12 : userPassPlan === 'monthly' ? 8 : 0);
+  const remainingHours = currentUser.remainingHours !== undefined
+    ? currentUser.remainingHours
+    : totalPlanHours;
+
+  const cycleStartDate = currentUser.planCycleStart ? new Date(currentUser.planCycleStart) : new Date();
+  const nextRenewalDate = new Date(cycleStartDate.getTime() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -79,7 +91,7 @@ export default function IndividualDashboard() {
       </div>
 
       {/* Stats Cards Matching Organization Dashboard */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 ${hasPass ? 'lg:grid-cols-6' : 'lg:grid-cols-5'} gap-4`}>
         {[
           {
             label: 'Active Bookings',
@@ -88,6 +100,14 @@ export default function IndividualDashboard() {
             icon: CalendarDays,
             iconBg: 'bg-emerald-500/15 text-emerald-800 border-emerald-500/30',
           },
+          ...(hasPass ? [{
+            label: 'Remaining Hours',
+            count: `${remainingHours} hrs`,
+            sublabel: `${remainingHours} / ${totalPlanHours} hrs · Renews Monthly`,
+            badge: 'bg-emerald-800/15 text-emerald-900 border border-emerald-800/30',
+            icon: Clock,
+            iconBg: 'bg-emerald-800 text-white border-emerald-900/30',
+          }] : []),
           {
             label: 'Total Reservations',
             count: myBookings.length,
@@ -122,18 +142,73 @@ export default function IndividualDashboard() {
             onClick={() => stat.label === 'Loyalty Points' ? navigate('loyalty') : undefined}
             className={`bg-plaster-surface rounded-3xl border border-soot/12 p-5 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between group ${stat.label === 'Loyalty Points' ? 'cursor-pointer hover:border-amber-500/40' : ''}`}
           >
-            <div className="flex items-center gap-3.5">
+            <div className="flex items-center gap-3.5 min-w-0">
               <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs ${stat.iconBg}`}>
                 <stat.icon size={20} />
               </div>
-              <div>
-                <div className="text-3xl font-normal text-soot tracking-tight font-serif-display">{stat.count}</div>
-                <div className="text-xs font-medium text-moss mt-0.5">{stat.label}</div>
+              <div className="min-w-0">
+                <div className="text-2xl sm:text-3xl font-normal text-soot tracking-tight font-serif-display truncate">{stat.count}</div>
+                <div className="text-xs font-medium text-moss mt-0.5 truncate">{stat.label}</div>
+                {(stat as any).sublabel && (
+                  <div className="text-[10px] font-semibold text-emerald-800 mt-1 truncate">{(stat as any).sublabel}</div>
+                )}
               </div>
             </div>
           </div>
         ))}
       </div>
+
+      {/* Dedicated Remaining Hours & Pass Benefits Card */}
+      {hasPass && totalPlanHours > 0 && (
+        <div className="bg-plaster-surface rounded-3xl border border-soot/12 p-6 sm:p-7 shadow-xs relative overflow-hidden">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-soot/8">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 font-semibold text-xs border border-emerald-300">
+                  <CheckCircle2 size={13} className="text-emerald-700" />
+                  <span>Pass Benefit Active</span>
+                </span>
+                <span className="text-xs font-semibold text-moss">· Renews Monthly</span>
+              </div>
+              <h2 className="text-2xl font-serif-display text-soot">
+                Remaining Hours: <span className="text-emerald-900 font-bold">{remainingHours}</span> / {totalPlanHours} hrs
+              </h2>
+              <p className="text-xs text-moss">
+                Monthly quota for meeting rooms & theaters included with your {tierName}. Automatically deducts upon reservation and renews every 30 days.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3 sm:text-right shrink-0">
+              <div>
+                <span className="text-[11px] font-semibold text-moss uppercase tracking-wider block">Next Monthly Renewal</span>
+                <span className="text-sm font-bold text-soot">{nextRenewalDate}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate('browse')}
+                className="btn-primary py-2.5 px-4 text-xs shadow-xs cursor-pointer ml-2"
+              >
+                <span>Book Space</span>
+                <ArrowRight size={13} />
+              </button>
+            </div>
+          </div>
+
+          {/* Quota Usage Bar */}
+          <div className="mt-4 pt-1 space-y-2">
+            <div className="flex justify-between items-center text-xs font-semibold">
+              <span className="text-moss">Monthly Allowance Usage</span>
+              <span className="text-soot">{remainingHours} hrs remaining ({totalPlanHours - remainingHours} hrs used)</span>
+            </div>
+            <div className="w-full bg-soot/10 h-2.5 rounded-full overflow-hidden">
+              <div
+                className="bg-emerald-700 h-full rounded-full transition-all duration-500"
+                style={{ width: `${Math.min(100, Math.max(0, (remainingHours / totalPlanHours) * 100))}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Grid: Active bookings & Saved spaces */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
