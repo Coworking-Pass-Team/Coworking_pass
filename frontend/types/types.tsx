@@ -432,9 +432,55 @@ export interface User {
   businessDescription?: string;
   revenueShare?: number;
   hasActivePass?: boolean;
-  membershipTier?: 'All-Access Pass' | 'Pro Pass' | 'Basic Pass' | 'Enterprise Pass' | string;
+  membershipTier?: 'All-Access Pass' | 'Pro Pass' | 'Basic Pass' | 'Enterprise Pass' | 'Yearly Pass' | 'Monthly Pass' | string;
   loyaltyPoints?: number;
   walletBalance?: number;
+  remainingHours?: number;
+  totalPlanHours?: number;
+  planCycleStart?: string;
+}
+
+/**
+ * Ensures a user's monthly meeting room & theater hours are initialized and renewed monthly (every 30 days).
+ */
+export function checkAndRenewPlanHours(user: User): User {
+  if (!user || !user.hasActivePass) return user;
+
+  const tier = (user.membershipTier || '').toLowerCase();
+  const isYearly = tier.includes('year') || tier.includes('annual');
+  const isMonthly = tier.includes('month') || tier.includes('pro') || tier.includes('all-access');
+  const isTeam = tier.includes('team');
+
+  const totalMonthlyHours = isYearly ? 12 : isMonthly ? 8 : isTeam ? 10 : 0;
+  if (totalMonthlyHours === 0) return user;
+
+  const now = Date.now();
+  const cycleStart = user.planCycleStart ? new Date(user.planCycleStart).getTime() : now;
+  const daysPassed = (now - cycleStart) / (1000 * 60 * 60 * 24);
+
+  // Auto-renew if 30 days or more have elapsed since current cycle start
+  if (daysPassed >= 30) {
+    const cyclesElapsed = Math.floor(daysPassed / 30);
+    const newCycleStart = new Date(cycleStart + cyclesElapsed * 30 * 24 * 60 * 60 * 1000).toISOString();
+    return {
+      ...user,
+      remainingHours: totalMonthlyHours,
+      totalPlanHours: totalMonthlyHours,
+      planCycleStart: newCycleStart,
+    };
+  }
+
+  // Initialize remainingHours if undefined
+  if (typeof user.remainingHours !== 'number') {
+    return {
+      ...user,
+      remainingHours: totalMonthlyHours,
+      totalPlanHours: totalMonthlyHours,
+      planCycleStart: user.planCycleStart || new Date().toISOString(),
+    };
+  }
+
+  return user;
 }
 
 export interface WalletTransaction {
@@ -1034,16 +1080,16 @@ export function getEffectiveSpacePrice(
     includedMeetingHours = 10;
     maxCoveredSeats = 20;
   } else if (isAnnualPass) {
-    planDisplayName = 'Annual Pass';
+    planDisplayName = 'Yearly Pass';
     isTypeIncluded = targetCategory === 'office' || targetType.includes('desk') || targetType === 'private-office' || targetType === 'meeting-room';
-    isPlanDurationAllowed = planType === 'daily' || planType === 'monthly' || planType === 'yearly' || (planType === 'hourly' && targetType.includes('meeting'));
-    includedMeetingHours = 8;
+    isPlanDurationAllowed = planType === 'daily' || planType === 'monthly' || planType === 'yearly' || (planType === 'hourly' && (targetType.includes('meeting') || targetCategory === 'hall' || targetCategory === 'theater'));
+    includedMeetingHours = 12;
     maxCoveredSeats = 1;
   } else if (isMonthlyPass) {
     planDisplayName = 'Monthly Pass';
-    isTypeIncluded = (targetCategory === 'office' || targetType.includes('desk') || targetType === 'meeting-room') && targetType !== 'private-office' && targetCategory !== 'theater';
-    isPlanDurationAllowed = planType === 'daily' || planType === 'monthly' || (planType === 'hourly' && targetType.includes('meeting'));
-    includedMeetingHours = 2;
+    isTypeIncluded = (targetCategory === 'office' || targetType.includes('desk') || targetType === 'meeting-room') && targetType !== 'private-office';
+    isPlanDurationAllowed = planType === 'daily' || planType === 'monthly' || (planType === 'hourly' && (targetType.includes('meeting') || targetCategory === 'hall' || targetCategory === 'theater'));
+    includedMeetingHours = 8;
     maxCoveredSeats = 1;
   } else if (isDayPass) {
     planDisplayName = 'Day Pass';
@@ -1053,52 +1099,84 @@ export function getEffectiveSpacePrice(
     maxCoveredSeats = 1;
   }
 
-  // Check meeting room hourly coverage
-  const isMeetingRoom = targetType === 'meeting-room' || targetType === 'meeting-hall';
-  if (isMeetingRoom && planType === 'hourly') {
-    if (includedMeetingHours > 0) {
-      const coveredHours = Math.min(durationHours, includedMeetingHours);
-      const payableHours = Math.max(0, durationHours - coveredHours);
-      const hourlyRate = space.pricing?.hourly || 150;
-      const payablePrice = payableHours * hourlyRate * effectiveSeats;
+  // Check meeting room, hall, and theater hourly coverage
+  const isMeetingOrTheater =
+    targetCategory === 'hall' ||
+    targetCategory === 'theater' ||
+    targetType.includes('meeting') ||
+    targetType.includes('hall') ||
+    targetType.includes('theater') ||
+    targetType.includes('auditorium');
 
-      if (payableHours === 0) {
-        return {
-          isCovered: true,
-          isPartiallyCovered: false,
-          effectivePrice: 0,
-          originalPrice: fullOriginalTotal,
-          badgeLabel: 'Included in your Plan',
-          displayPriceLabel: 'Included in your Plan',
-          totalPayableLabel: 'SAR 0 to Pay',
-          hasDiscount: true,
-          discountPercentage: 100,
-          coveredSeats: effectiveSeats,
-          payableSeats: 0,
-          coveredHours,
-          payableHours: 0,
-          coverageNote: `Covered by ${planDisplayName} meeting room credits`,
-        };
+  if (isMeetingOrTheater && planType === 'hourly') {
+    if (includedMeetingHours > 0) {
+      const userRemainingHours = typeof user.remainingHours === 'number'
+        ? Math.max(0, user.remainingHours)
+        : includedMeetingHours;
+
+      if (userRemainingHours > 0) {
+        const coveredHours = Math.min(durationHours, userRemainingHours);
+        const payableHours = Math.max(0, durationHours - coveredHours);
+        const hourlyRate = space.pricing?.hourly || 150;
+        const payablePrice = payableHours * hourlyRate * effectiveSeats;
+
+        if (payableHours === 0) {
+          return {
+            isCovered: true,
+            isPartiallyCovered: false,
+            effectivePrice: 0,
+            originalPrice: fullOriginalTotal,
+            badgeLabel: 'Included in your Plan',
+            displayPriceLabel: 'Included in your Plan',
+            totalPayableLabel: 'SAR 0 to Pay',
+            hasDiscount: true,
+            discountPercentage: 100,
+            coveredSeats: effectiveSeats,
+            payableSeats: 0,
+            coveredHours,
+            payableHours: 0,
+            coverageNote: `Covered by ${planDisplayName} hours (${userRemainingHours}h available)`,
+          };
+        } else {
+          return {
+            isCovered: false,
+            isPartiallyCovered: true,
+            effectivePrice: payablePrice,
+            originalPrice: fullOriginalTotal,
+            badgeLabel: `${coveredHours}h Free · SAR ${payablePrice.toLocaleString()} to Pay`,
+            displayPriceLabel: `${coveredHours}h Free · SAR ${payablePrice.toLocaleString()}`,
+            totalPayableLabel: `SAR ${payablePrice.toLocaleString()} to Pay`,
+            hasDiscount: true,
+            discountPercentage: Math.round(((fullOriginalTotal - payablePrice) / fullOriginalTotal) * 100),
+            coveredSeats: effectiveSeats,
+            payableSeats: 0,
+            coveredHours,
+            payableHours,
+            coverageNote: `${coveredHours}h covered by pass, ${payableHours} extra hour(s) at SAR ${hourlyRate}/hr`,
+          };
+        }
       } else {
+        // Remaining hours quota is 0: extra hours charged at regular hourly rate
+        const hourlyRate = space.pricing?.hourly || 150;
+        const payablePrice = durationHours * hourlyRate * effectiveSeats;
         return {
           isCovered: false,
-          isPartiallyCovered: true,
+          isPartiallyCovered: false,
           effectivePrice: payablePrice,
           originalPrice: fullOriginalTotal,
-          badgeLabel: `${coveredHours}h Included in Plan · SAR ${payablePrice.toLocaleString()} to Pay`,
-          displayPriceLabel: `${coveredHours}h Included in Plan · SAR ${payablePrice.toLocaleString()}`,
+          badgeLabel: `SAR ${payablePrice.toLocaleString()}`,
+          displayPriceLabel: `SAR ${payablePrice.toLocaleString()}`,
           totalPayableLabel: `SAR ${payablePrice.toLocaleString()} to Pay`,
-          hasDiscount: true,
-          discountPercentage: Math.round(((fullOriginalTotal - payablePrice) / fullOriginalTotal) * 100),
-          coveredSeats: effectiveSeats,
-          payableSeats: 0,
-          coveredHours,
-          payableHours,
-          coverageNote: `${coveredHours}h included in pass, ${payableHours}h payable`,
+          hasDiscount: false,
+          coveredSeats: 0,
+          payableSeats: effectiveSeats,
+          coveredHours: 0,
+          payableHours: durationHours,
+          coverageNote: `Monthly plan hours exhausted (0h remaining). Additional hours charged at regular rate.`,
         };
       }
     } else {
-      // Meeting room not included in this plan
+      // Meeting room / theater not included in this plan
       return {
         isCovered: false,
         isPartiallyCovered: false,
@@ -1112,7 +1190,7 @@ export function getEffectiveSpacePrice(
         payableSeats: effectiveSeats,
         coveredHours: 0,
         payableHours: durationHours,
-        coverageNote: `Meeting rooms not included in ${planDisplayName}`,
+        coverageNote: `Meeting rooms & theaters not included in ${planDisplayName}`,
       };
     }
   }

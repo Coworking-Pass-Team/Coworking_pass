@@ -303,9 +303,9 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
 
                       <div className="text-right">
                         <span className="text-xs text-moss block">
-                          {hasActiveSubscription ? 'Pass Coverage' : 'Subtotal'}
+                          {item.itemTotal === 0 ? 'Pass Coverage' : 'Subtotal'}
                         </span>
-                        {hasActiveSubscription || item.itemTotal === 0 ? (
+                        {item.itemTotal === 0 ? (
                           <span className="text-xs font-bold text-moss bg-eucalyptus/30 px-2 py-0.5 rounded-full border border-eucalyptus/40">
                             Covered by Pass
                           </span>
@@ -402,7 +402,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                     <span className="text-moss font-medium flex items-center gap-1">
                       <Users size={12} /> {item.seats} Seat{item.seats > 1 ? 's' : ''} Reserved
                     </span>
-                    {hasActiveSubscription || item.itemTotal === 0 ? (
+                    {item.itemTotal === 0 ? (
                       <span className="text-xs font-bold text-moss bg-eucalyptus/30 px-2 py-0.5 rounded-full border border-eucalyptus/40">
                         Covered by Pass
                       </span>
@@ -417,7 +417,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
             </div>
 
             {/* Loyalty Points Redemption Widget */}
-            {!hasActiveSubscription && currentUser && availablePoints >= 100 && maxRedeemablePoints >= 100 && (
+            {totalAmount > 0 && currentUser && availablePoints >= 100 && maxRedeemablePoints >= 100 && (
               <div className="bg-gradient-to-r from-amber-500/10 to-amber-600/10 border border-amber-500/30 rounded-2xl p-4 space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -451,7 +451,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
             )}
 
             {/* Digital Wallet Redemption Widget */}
-            {!hasActiveSubscription && currentUser && userWalletBalance > 0 && (
+            {totalAmount > 0 && currentUser && userWalletBalance > 0 && (
               <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4 space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -503,7 +503,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                 <span className="text-moss">Total Reserved Seats</span>
                 <span className="font-semibold">{totalSeats} Seats</span>
               </div>
-              {!hasActiveSubscription && earnedLoyaltyPoints > 0 && (
+              {earnedLoyaltyPoints > 0 && (
                 <div className="flex justify-between text-amber-900 bg-amber-50 px-2 py-1 rounded-lg">
                   <span className="font-medium flex items-center gap-1">
                     <Sparkles size={12} className="text-amber-700" />
@@ -512,13 +512,13 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                   <span className="font-bold">+{earnedLoyaltyPoints} Pts</span>
                 </div>
               )}
-              {!hasActiveSubscription && pointsDiscount > 0 && (
+              {pointsDiscount > 0 && (
                 <div className="flex justify-between text-emerald-900 bg-emerald-50 px-2 py-1 rounded-lg">
                   <span className="font-medium">Loyalty Discount</span>
                   <span className="font-bold">- SAR {pointsDiscount.toLocaleString()}</span>
                 </div>
               )}
-              {!hasActiveSubscription && walletDeduction > 0 && (
+              {walletDeduction > 0 && (
                 <div className="flex justify-between text-emerald-900 bg-emerald-50 px-2 py-1 rounded-lg">
                   <span className="font-medium">Wallet Balance Applied</span>
                   <span className="font-bold">- SAR {walletDeduction.toLocaleString()}</span>
@@ -526,9 +526,9 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
               )}
               <div className="flex justify-between text-sm pt-2 border-t border-soot/10 font-bold items-center">
                 <span className="text-soot font-serif-display text-base">
-                  {hasActiveSubscription ? 'Pass Coverage' : 'Total Amount'}
+                  {finalTotalAmount === 0 && hasActiveSubscription ? 'Pass Coverage' : 'Total Amount'}
                 </span>
-                {hasActiveSubscription || finalTotalAmount === 0 ? (
+                {finalTotalAmount === 0 ? (
                   <span className="text-moss font-bold text-xs sm:text-sm bg-eucalyptus/30 px-3 py-1 rounded-full border border-eucalyptus/40">
                     {hasActiveSubscription ? 'Covered by Active Subscription Pass' : 'SAR 0 to Pay (Covered by Plan)'}
                   </span>
@@ -576,10 +576,8 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                 >
                   <CreditCard size={16} />
                   <span>
-                    {hasActiveSubscription
-                      ? 'Confirm Reservations (Covered by Pass)'
-                      : finalTotalAmount === 0
-                      ? 'Confirm Reservations (Included in Pass · SAR 0 to Pay)'
+                    {finalTotalAmount === 0
+                      ? (hasActiveSubscription ? 'Confirm Reservations (Covered by Pass)' : 'Confirm Reservations (Included in Pass · SAR 0 to Pay)')
                       : `Confirm Dates & Pay SAR ${finalTotalAmount.toLocaleString()}`}
                   </span>
                 </button>

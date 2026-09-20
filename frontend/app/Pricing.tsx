@@ -49,7 +49,7 @@ const individualPlans: PlanItem[] = [
     features: [
       'Unlimited workspace visits across Saudi',
       '2 Guest passes per month',
-      '2 Hours monthly meeting room credits',
+      '8 Hours monthly meeting room & theater credits (renews monthly)',
       'Priority waitlist & booking access',
       'Full community directory networking',
       'Dedicated phone booths access',
@@ -60,21 +60,21 @@ const individualPlans: PlanItem[] = [
     level: 2,
   },
   {
-    id: 'annual',
-    name: 'Annual Pass',
+    id: 'yearly',
+    name: 'Yearly Pass',
     price: 15000,
     period: '/year',
     desc: 'Executive value with permanent locker storage and business branding.',
     features: [
       'All Monthly Pass network privileges',
       '5 Guest passes per month',
-      '8 Hours monthly meeting room credits',
+      '12 Hours monthly meeting room & theater credits (renews monthly)',
       'Dedicated personal storage locker',
       'Registered commercial business address',
       'Two months free vs monthly billing',
     ],
     featured: false,
-    cta: 'Commit Annually',
+    cta: 'Commit Yearly',
     level: 3,
   },
 ];
@@ -274,8 +274,12 @@ export default function Pricing() {
     setIsProcessingPayment(true);
 
     const startDate = new Date().toISOString();
-    const durationDays = checkoutPlan.id === 'day' ? 1 : checkoutPlan.id === 'annual' ? 365 : 30;
+    const durationDays = checkoutPlan.id === 'day' ? 1 : (checkoutPlan.id === 'yearly' || checkoutPlan.id === 'annual') ? 365 : 30;
     const endDate = new Date(Date.now() + durationDays * 86400000).toISOString();
+
+    const isYearly = checkoutPlan.id === 'yearly' || checkoutPlan.id === 'annual' || checkoutPlan.name.toLowerCase().includes('year');
+    const isMonthly = checkoutPlan.id === 'monthly' || checkoutPlan.name.toLowerCase().includes('month');
+    const planHours = isYearly ? 12 : isMonthly ? 8 : checkoutPlan.id === 'team' ? 10 : 0;
 
     try {
       // 1. Backend Subscription creation
@@ -301,6 +305,9 @@ export default function Pricing() {
       updateCurrentUser({
         hasActivePass: true,
         membershipTier: checkoutPlan.name,
+        remainingHours: planHours,
+        totalPlanHours: planHours,
+        planCycleStart: startDate,
       });
 
       // 4. Add In-App notification

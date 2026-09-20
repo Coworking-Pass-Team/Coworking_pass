@@ -16,7 +16,7 @@ const DEFAULT_PLANS = [
     price: 1500,
   },
   {
-    planName: 'Annual Pass',
+    planName: 'Yearly Pass',
     type: 'B2C' as const,
     totalVisitsAllowed: 365,
     price: 15000,

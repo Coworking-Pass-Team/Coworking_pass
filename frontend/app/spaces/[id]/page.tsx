@@ -432,28 +432,27 @@ export default function SpaceDetails() {
               {/* Price Tag / Pass Badge */}
               <div className="mb-6 pb-5 border-b border-soot/10">
                 <span className="text-xs font-semibold uppercase tracking-wider text-moss block mb-1.5">
-                  {hasActiveSubscription ? 'Pass Coverage' : currentPlanInfo.isCovered ? 'Workspace Rate' : currentPlanInfo.hasDiscount ? 'Plan Upgrade Rate' : 'Membership Rate'}
+                  {currentPlanInfo.effectivePrice === 0 ? 'Pass Coverage' : currentPlanInfo.isCovered ? 'Workspace Rate' : currentPlanInfo.hasDiscount ? 'Plan Upgrade Rate' : 'Membership Rate'}
                 </span>
 
                 <div className="space-y-2">
                   <div className="flex items-baseline gap-2 flex-wrap">
                     <span className="text-3xl font-semibold text-soot tracking-tight whitespace-nowrap">
-                      {hasActiveSubscription ? 'Included in your Pass' : currentPlanInfo.isCovered ? 'Included in your Plan' : `SAR ${currentPlanInfo.effectivePrice.toLocaleString()}`}
+                      {currentPlanInfo.effectivePrice === 0 ? 'Included in your Pass' : `SAR ${currentPlanInfo.effectivePrice.toLocaleString()}`}
                     </span>
-                    {!hasActiveSubscription && !currentPlanInfo.isCovered && (
+                    {currentPlanInfo.effectivePrice > 0 && (
                       <span className="text-sm font-medium text-moss whitespace-nowrap">{planLabel}</span>
                     )}
                   </div>
 
-                  {hasActiveSubscription ? (
+                  {currentPlanInfo.effectivePrice === 0 ? (
                     <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-eucalyptus/30 text-soot font-semibold text-xs border border-eucalyptus/40 shadow-2xs">
                       <Check size={13} className="text-moss shrink-0" />
                       <span>Active Subscription · Covered by your Pass</span>
                     </div>
-                  ) : currentPlanInfo.isCovered ? (
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-eucalyptus/30 text-soot font-semibold text-xs border border-eucalyptus/40 shadow-2xs">
-                      <Check size={13} className="text-moss shrink-0" />
-                      <span>Included in Pass · SAR 0 to Pay</span>
+                  ) : (currentPlanInfo.coveredHours || 0) > 0 ? (
+                    <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-900 font-semibold text-xs border border-amber-500/30">
+                      <span>{currentPlanInfo.coveredHours}h Covered by Pass · {currentPlanInfo.payableHours}h Extra</span>
                     </div>
                   ) : currentPlanInfo.isPartiallyCovered ? (
                     <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-900 font-semibold text-xs border border-amber-500/30">
@@ -807,7 +806,7 @@ export default function SpaceDetails() {
                     onClick={handleBook}
                     className="w-full py-3.5 px-4 rounded-xl font-semibold text-sm bg-soot text-plaster hover:bg-moss active:scale-[0.99] transition-all duration-200 shadow-md flex items-center justify-center gap-2 cursor-pointer focus-visible:ring-2 focus-visible:ring-eucalyptus"
                   >
-                    <span>{currentUser ? (hasActiveSubscription || currentPlanInfo.isCovered ? 'Reserve Workspace (Covered by Pass)' : 'Proceed to Reservation') : 'Sign in to Reserve'}</span>
+                    <span>{currentUser ? (currentPlanInfo.effectivePrice === 0 ? 'Reserve Workspace (Covered by Pass)' : `Proceed to Reservation (SAR ${currentPlanInfo.effectivePrice.toLocaleString()})`) : 'Sign in to Reserve'}</span>
                     <ArrowRight size={16} />
                   </button>
 
@@ -816,7 +815,7 @@ export default function SpaceDetails() {
                       type="button"
                       onClick={() => {
                         const targetDate = bookingDate || new Date().toISOString().split('T')[0];
-                        const isCoveredBooking = hasActiveSubscription || currentPlanInfo.isCovered;
+                        const isCoveredBooking = currentPlanInfo.effectivePrice === 0;
                         const hasTimeWindow = isHourlySpace || selectedPlan === 'hourly';
                         addToCart({
                           spaceId: space.id,
@@ -841,7 +840,7 @@ export default function SpaceDetails() {
                       className="w-full py-3 px-4 rounded-xl font-semibold text-xs border border-soot/15 text-soot bg-white hover:bg-plaster-dark/40 active:scale-[0.99] transition-all duration-200 shadow-2xs flex items-center justify-center gap-2 cursor-pointer"
                     >
                       <ShoppingBag size={15} />
-                      <span>{hasActiveSubscription || currentPlanInfo.isCovered ? 'Add to Cart (Covered by Pass)' : 'Add Pass to Cart'}</span>
+                      <span>{currentPlanInfo.effectivePrice === 0 ? 'Add to Cart (Covered by Pass)' : 'Add Pass to Cart'}</span>
                     </button>
                   )}
                 </div>
