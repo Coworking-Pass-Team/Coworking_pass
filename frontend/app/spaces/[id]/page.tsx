@@ -59,15 +59,18 @@ export default function SpaceDetails() {
   const spaceId = nav?.params?.spaceId || (urlId && urlId !== 'page' && urlId !== '[id]' ? urlId : '') || 'space-1';
   const space = spaces.find(s => s.id === spaceId) || spaces[0];
 
-  const allowedPlans: BookingPlan[] = space ? getAllowedPlansForSpace(space) : (['hourly', 'daily', 'monthly', 'yearly'] as BookingPlan[]);
-  const defaultPlan: BookingPlan = isOfficeSpace(space?.type) ? 'daily' : isHourlyOnlySpace(space?.type) ? 'hourly' : 'hourly';
+  const allowedPlans: BookingPlan[] = space ? getAllowedPlansForSpace(space) : (['daily'] as BookingPlan[]);
+  const defaultPlan: BookingPlan = allowedPlans[0] || 'daily';
 
   const [imgIndex, setImgIndex] = useState(0);
   const [selectedPlan, setSelectedPlan] = useState<BookingPlan>(defaultPlan);
   const [bookingDate, setBookingDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
   const [bookingEndDate, setBookingEndDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
-  const [startTime, setStartTime] = useState<string>('09:00 AM');
-  const [endTime, setEndTime] = useState<string>('05:00 PM');
+  const isHourlySpace = isHourlyAllowed(space);
+  const defaultAvailableStarts = isHourlySpace ? getFilteredStartTimes(space?.openHours, bookingDate, 2) : START_TIMES;
+  const initialStartTime = defaultAvailableStarts[0] || '09:00 AM';
+  const [startTime, setStartTime] = useState<string>(initialStartTime);
+  const [endTime, setEndTime] = useState<string>(() => isHourlySpace ? calculateEndTime(initialStartTime, 2) : '05:00 PM');
   const [durationMonths, setDurationMonths] = useState(1);
   const [waitlistModal, setWaitlistModal] = useState(false);
   const [waitlistDone, setWaitlistDone] = useState(false);
@@ -93,38 +96,38 @@ export default function SpaceDetails() {
     }
     setBookingEndDate(newEnd);
   };
-  const isHourlySpace = isHourlyAllowed(space);
-  const availableStartTimes = isHourlySpace ? getFilteredStartTimes(space?.openHours, bookingDate) : START_TIMES;
-  const availableEndTimes = isHourlySpace ? getFilteredEndTimes(startTime, space?.openHours, bookingDate) : getAvailableEndTimes(startTime);
+  const availableStartTimes = isHourlySpace ? getFilteredStartTimes(space?.openHours, bookingDate, 2) : START_TIMES;
+  const availableEndTimes = isHourlySpace ? [calculateEndTime(startTime, 2)] : getAvailableEndTimes(startTime);
 
-  const durationHours = calculateDurationHours(startTime, endTime);
+  const durationHours = isHourlySpace ? 2 : calculateDurationHours(startTime, endTime);
 
   const handleStartTimeChange = (newStart: string) => {
     setStartTime(newStart);
-    const validEnds = isHourlySpace ? getFilteredEndTimes(newStart, space?.openHours, bookingDate) : getAvailableEndTimes(newStart);
-    const startMin = timeStringToMinutes(newStart);
-    const endMin = timeStringToMinutes(endTime);
-    if (endMin <= startMin || !validEnds.includes(endTime)) {
-      setEndTime(validEnds[0] || calculateEndTime(newStart, 1));
+    if (isHourlySpace) {
+      setEndTime(calculateEndTime(newStart, 2));
+    } else {
+      const validEnds = getAvailableEndTimes(newStart);
+      const startMin = timeStringToMinutes(newStart);
+      const endMin = timeStringToMinutes(endTime);
+      if (endMin <= startMin || !validEnds.includes(endTime)) {
+        setEndTime(validEnds[0] || calculateEndTime(newStart, 1));
+      }
     }
   };
 
   const handleEndTimeChange = (newEnd: string) => {
-    setEndTime(newEnd);
+    if (!isHourlySpace) {
+      setEndTime(newEnd);
+    }
   };
 
   useEffect(() => {
     setImgIndex(0);
     if (space) {
-      if (isHourlyAllowed(space)) {
-        // Default to hourly if space supports hourly
-        setSelectedPlan('hourly');
-      } else {
-        // Office/Desks: Default to daily or monthly, never hourly
-        setSelectedPlan('daily');
-      }
+      const allowed = getAllowedPlansForSpace(space);
+      setSelectedPlan(allowed[0] || 'daily');
     }
-  }, [spaceId, space?.type]);
+  }, [spaceId, space]);
 
   if (!space) {
     return (
@@ -549,8 +552,8 @@ export default function SpaceDetails() {
                   </div>
                 )}
 
-                {/* Daily Pass Date Range Selector */}
-                {selectedPlan === 'daily' && (
+                {/* Daily Pass Date Range Selector (for standard office/desk spaces) */}
+                {selectedPlan === 'daily' && !isHourlySpace && (
                   <div className="p-4 rounded-2xl bg-plaster-dark/40 border border-soot/10 space-y-3.5">
                     <div className="flex items-center justify-between gap-2">
                       <label className="text-[11px] font-semibold uppercase tracking-wider text-moss flex items-center gap-1.5 whitespace-nowrap">
@@ -636,40 +639,41 @@ export default function SpaceDetails() {
                   </div>
                 )}
 
-                {/* Allowed Daily Hours Selector for Halls and Theaters (All Plans) or Hourly Plan */}
+                {/* 2-Hour Daily Session Selector for Halls and Theaters within Operating Hours */}
                 {isHourlyAllowed(space) && (
                   <div className="p-4 rounded-2xl bg-plaster-dark/40 border border-soot/10 space-y-3.5">
                     <div className="flex items-center justify-between gap-2">
                       <label className="text-[11px] font-semibold uppercase tracking-wider text-moss flex items-center gap-1.5 whitespace-nowrap">
                         <Clock size={12} className="shrink-0" />
-                        <span>{selectedPlan === 'hourly' ? 'Specify Date & Exact Time' : 'Allowed Daily Hours (No 24/7 Access)'}</span>
+                        <span>Select 2-Hour Daily Session (حجز ساعتين)</span>
                       </label>
-                      <span className="text-xs font-bold text-soot bg-white px-2.5 py-1 rounded-full border border-soot/10 shadow-2xs whitespace-nowrap shrink-0">
-                        {durationHours} {durationHours === 1 ? 'Hour' : 'Hours'}{selectedPlan === 'hourly' ? '' : '/day'}
+                      <span className="text-xs font-bold text-emerald-900 bg-emerald-100/80 px-2.5 py-1 rounded-full border border-emerald-300 shadow-2xs whitespace-nowrap shrink-0">
+                        2 Hours Session (Fixed)
                       </span>
                     </div>
 
-                    {/* Booking Date Input (Only when hourly, since daily/monthly have date inputs above) */}
-                    {selectedPlan === 'hourly' && (
-                      <div>
-                        <label className="block text-[11px] font-semibold text-moss mb-1 flex items-center gap-1">
-                          <Calendar size={11} />
-                          <span>Booking Date</span>
-                        </label>
-                        <input
-                          type="date"
-                          value={bookingDate}
-                          min={new Date().toISOString().split('T')[0]}
-                          onChange={(e) => setBookingDate(e.target.value)}
-                          className="w-full px-3 py-2.5 rounded-xl bg-white border border-soot/12 text-soot text-xs font-medium focus:outline-none focus:border-eucalyptus cursor-pointer shadow-2xs"
-                        />
-                      </div>
-                    )}
+                    {/* Single Reservation Date for Theaters/Halls */}
+                    <div>
+                      <label className="block text-[11px] font-semibold text-moss mb-1 flex items-center gap-1">
+                        <Calendar size={11} />
+                        <span>Reservation Date</span>
+                      </label>
+                      <input
+                        type="date"
+                        value={bookingDate}
+                        min={new Date().toISOString().split('T')[0]}
+                        onChange={(e) => {
+                          handleBookingDateChange(e.target.value);
+                          setBookingEndDate(e.target.value);
+                        }}
+                        className="w-full px-3 py-2.5 rounded-xl bg-white border border-soot/12 text-soot text-xs font-medium focus:outline-none focus:border-eucalyptus cursor-pointer shadow-2xs"
+                      />
+                    </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-[11px] font-semibold text-moss mb-1">
-                          {selectedPlan === 'hourly' ? 'Start Time' : 'Daily Start Time'}
+                          Session Start Time (وقت البدء)
                         </label>
                         <select
                           value={startTime}
@@ -678,7 +682,7 @@ export default function SpaceDetails() {
                         >
                           {availableStartTimes.map((t) => (
                             <option key={t} value={t}>
-                              {t}
+                              {t} – {calculateEndTime(t, 2)} (2 Hours)
                             </option>
                           ))}
                         </select>
@@ -686,29 +690,25 @@ export default function SpaceDetails() {
 
                       <div>
                         <label className="block text-[11px] font-semibold text-moss mb-1">
-                          {selectedPlan === 'hourly' ? 'End Time' : 'Daily End Time'}
+                          Session End Time (وقت الانتهاء)
                         </label>
-                        <select
-                          value={endTime}
-                          onChange={(e) => handleEndTimeChange(e.target.value)}
-                          className="w-full px-3 py-2.5 rounded-xl bg-white border border-soot/12 text-soot text-xs font-medium focus:outline-none focus:border-eucalyptus cursor-pointer shadow-2xs"
-                        >
-                          {availableEndTimes.map((t) => (
-                            <option key={t} value={t}>
-                              {t}
-                            </option>
-                          ))}
-                        </select>
+                        <input
+                          type="text"
+                          readOnly
+                          disabled
+                          value={`${endTime} (2 Hours Fixed)`}
+                          className="w-full px-3 py-2.5 rounded-xl bg-soot/5 border border-soot/10 text-moss text-xs font-medium cursor-not-allowed shadow-2xs"
+                        />
                       </div>
                     </div>
 
                     <div className="bg-white p-3 rounded-xl border border-soot/8 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                       <div>
                         <span className="text-moss block text-[10px] uppercase font-semibold">
-                          {selectedPlan === 'hourly' ? 'Scheduled Date & Time' : 'Daily Operating Window'}
+                          Daily Session Window
                         </span>
                         <span className="font-semibold text-soot">
-                          {selectedPlan === 'hourly' ? `${bookingDate} · ${startTime} – ${endTime}` : `${startTime} – ${endTime} each day`}
+                          {bookingDate} · {startTime} – {endTime}
                         </span>
                       </div>
                       <div className="text-left sm:text-right">

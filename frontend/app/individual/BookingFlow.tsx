@@ -107,21 +107,20 @@ export default function BookingFlow() {
   const isOffice = isOfficeSpace(space?.type);
   const allowedPlans = getAllowedPlansForSpace(space);
 
-  const defaultInitialPlan: BookingPlan = isOffice
-    ? 'daily'
-    : (nav?.params?.plan as BookingPlan) || (isHourlySpace ? 'hourly' : 'daily');
+  const defaultInitialPlan: BookingPlan = allowedPlans.includes(nav?.params?.plan as BookingPlan)
+    ? (nav?.params?.plan as BookingPlan)
+    : (allowedPlans[0] || 'daily');
   const initialStartDate = (nav?.params?.startDate as string) || new Date().toISOString().split('T')[0];
   const initialEndDate = (nav?.params?.endDate as string) || initialStartDate;
   const initialMonths = (nav?.params?.durationMonths as number) || 1;
 
-  const defaultAvailableStarts = isHourlySpace ? getFilteredStartTimes(space?.openHours, initialStartDate) : START_TIMES;
-  const initialStartTime = (nav?.params?.startTime as string) || (defaultAvailableStarts.includes('09:00 AM') ? '09:00 AM' : (defaultAvailableStarts[0] || '09:00 AM'));
-  const defaultAvailableEnds = isHourlySpace ? getFilteredEndTimes(initialStartTime, space?.openHours, initialStartDate) : getAvailableEndTimes(initialStartTime);
-  const initialEndTime = (nav?.params?.endTime as string) || (nav?.params?.durationHours
+  const defaultAvailableStarts = isHourlySpace ? getFilteredStartTimes(space?.openHours, initialStartDate, 2) : START_TIMES;
+  const initialStartTime = (nav?.params?.startTime as string) || (defaultAvailableStarts[0] || '09:00 AM');
+  const initialEndTime = isHourlySpace
+    ? calculateEndTime(initialStartTime, 2)
+    : ((nav?.params?.endTime as string) || (nav?.params?.durationHours
     ? calculateEndTime(initialStartTime, Math.min(4, nav.params.durationHours as number))
-    : isHourlySpace
-    ? (defaultAvailableEnds.includes('01:00 PM') ? '01:00 PM' : (defaultAvailableEnds[defaultAvailableEnds.length - 1] || '01:00 PM'))
-    : (defaultAvailableEnds.includes('05:00 PM') ? '05:00 PM' : (defaultAvailableEnds[0] || '05:00 PM')));
+    : calculateEndTime(initialStartTime, 1)));
 
   const [step, setStep] = useState(0); 
   const [plan, setPlan] = useState<BookingPlan>(defaultInitialPlan);
@@ -134,23 +133,29 @@ export default function BookingFlow() {
   const [startTime, setStartTime] = useState<string>(initialStartTime);
   const [endTime, setEndTime] = useState<string>(initialEndTime);
 
-  const availableStartTimes = isHourlySpace ? getFilteredStartTimes(space?.openHours, startDate) : START_TIMES;
-  const availableEndTimes = isHourlySpace ? getFilteredEndTimes(startTime, space?.openHours, startDate) : getAvailableEndTimes(startTime);
+  const availableStartTimes = isHourlySpace ? getFilteredStartTimes(space?.openHours, startDate, 2) : START_TIMES;
+  const availableEndTimes = isHourlySpace ? [calculateEndTime(startTime, 2)] : getAvailableEndTimes(startTime);
 
-  const durationHours = calculateDurationHours(startTime, endTime);
+  const durationHours = isHourlySpace ? 2 : calculateDurationHours(startTime, endTime);
 
   const handleStartTimeChange = (newStart: string) => {
     setStartTime(newStart);
-    const validEnds = isHourlySpace ? getFilteredEndTimes(newStart, space?.openHours, startDate) : getAvailableEndTimes(newStart);
-    const startMin = timeStringToMinutes(newStart);
-    const endMin = timeStringToMinutes(endTime);
-    if (endMin <= startMin || !validEnds.includes(endTime)) {
-      setEndTime(validEnds[0] || calculateEndTime(newStart, 1));
+    if (isHourlySpace) {
+      setEndTime(calculateEndTime(newStart, 2));
+    } else {
+      const validEnds = getAvailableEndTimes(newStart);
+      const startMin = timeStringToMinutes(newStart);
+      const endMin = timeStringToMinutes(endTime);
+      if (endMin <= startMin || !validEnds.includes(endTime)) {
+        setEndTime(validEnds[0] || calculateEndTime(newStart, 1));
+      }
     }
   };
 
   const handleEndTimeChange = (newEnd: string) => {
-    setEndTime(newEnd);
+    if (!isHourlySpace) {
+      setEndTime(newEnd);
+    }
   };
   const [seats, setSeats] = useState(1);
   const [notes, setNotes] = useState('');
@@ -631,15 +636,15 @@ export default function BookingFlow() {
           <div>
             <h2 className="text-2xl text-soot font-normal mb-1 font-serif-display">
               {isHourlySpace
-                ? 'Select Reservation Plan & Duration'
+                ? 'Select Daily Pass Plan'
                 : isOffice
                 ? 'Choose Office Pass Plan'
                 : 'Choose Your Pass & Duration'}
             </h2>
             <p className="text-moss text-sm">
               {isHourlySpace
-                ? 'Halls and Theaters support Hourly, Daily, Monthly (multi-month), and Yearly reservations'
-                : 'Offices support Daily, Monthly (multi-month), and Yearly reservations'}
+                ? 'Theaters and Halls are reserved on a Daily basis with a 2-hour session within operating hours.'
+                : 'Offices support Daily, Monthly (multi-month), and Yearly reservations.'}
             </p>
           </div>
 
@@ -853,14 +858,14 @@ export default function BookingFlow() {
             </div>
           )}
 
-          {/* Daily Hours Notice for Theaters & Halls when choosing daily, monthly, or yearly */}
-          {isHourlySpace && plan !== 'hourly' && (
+          {/* Daily Hours Notice for Theaters & Halls */}
+          {isHourlySpace && (
             <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-xs flex items-start gap-2.5">
               <Clock size={16} className="text-amber-700 shrink-0 mt-0.5" />
               <div>
                 <span className="font-semibold text-soot block">Allowed Daily Hours Policy for Theaters & Halls</span>
                 <span className="text-moss text-[11px] leading-relaxed">
-                  Reservations for this venue are granted for specific daily operating hours within the workspace schedule ({space.openHours || 'Operating hours apply'}), not 24/7 continuous access. You will select your daily time window in the next step.
+                  Reservations for this venue are booked on a Daily Pass basis with a 2-hour session within the venue operating hours ({space.openHours || 'Operating hours apply'}). You will select your 2-hour time slot in the next step.
                 </span>
               </div>
             </div>
@@ -898,7 +903,8 @@ export default function BookingFlow() {
 
           <div className="space-y-6">
             {/* Daily Date Range Selector */}
-            {plan === 'daily' ? (
+            {/* Daily Date Range Selector (for standard office/desk spaces) vs Single Date for Theaters/Halls */}
+            {plan === 'daily' && !isHourlySpace ? (
               <div className="space-y-4 p-5 rounded-2xl bg-[#F9F8F5] border border-soot/8">
                 <div className="flex items-center justify-between gap-2">
                   <div>
@@ -966,39 +972,42 @@ export default function BookingFlow() {
                 </div>
               </div>
             ) : (
-              /* Non-daily single date field (e.g. Monthly, Yearly, Hourly) */
+              /* Single date field for Theaters, Halls, and other durations */
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-2 flex items-center gap-1.5">
                   <Calendar size={13} />
-                  <span>{isHourly ? 'Booking Date' : 'Start Date'}</span>
+                  <span>{isHourlySpace ? 'Reservation Date' : isHourly ? 'Booking Date' : 'Start Date'}</span>
                 </label>
                 <input
                   type="date"
                   value={startDate}
                   min={new Date().toISOString().split('T')[0]}
-                  onChange={e => setStartDate(e.target.value)}
-                  className="w-full px-4 py-3 rounded-2xl border border-soot/10 bg-[#F9F8F5] text-soot text-sm outline-none focus:border-eucalyptus focus:bg-white font-medium"
+                  onChange={e => {
+                    setStartDate(e.target.value);
+                    setDailyEndDate(e.target.value);
+                  }}
+                  className="w-full px-4 py-3 rounded-2xl border border-soot/10 bg-[#F9F8F5] text-soot text-sm outline-none focus:border-eucalyptus focus:bg-white font-medium cursor-pointer"
                 />
               </div>
             )}
 
-            {/* Start Time & End Time Controls for Halls and Theaters (All plans) or Hourly Plan */}
+            {/* Time Controls for Halls and Theaters (Fixed 2-hour session within operating hours) or Hourly Plan */}
             {(isHourlySpace || isHourly) && (
               <div className="space-y-4 p-5 rounded-2xl bg-[#F9F8F5] border border-soot/8">
                 <div className="flex items-center justify-between gap-2">
                   <div>
                     <h4 className="text-xs font-semibold uppercase tracking-wider text-moss flex items-center gap-1.5">
                       <Clock size={13} />
-                      <span>{isHourly ? 'Specify Reservation Date & Time' : 'Specific Allowed Hours (No 24/7 Access)'}</span>
+                      <span>{isHourlySpace ? 'Select 2-Hour Daily Session (حجز ساعتين)' : 'Specify Reservation Date & Time'}</span>
                     </h4>
                     <p className="text-xs text-moss mt-0.5">
-                      {isHourly
-                        ? 'Select your booking date, start time, and end time'
-                        : `Select your daily allowed reservation hours within venue operating hours (${space.openHours || 'Operating hours apply'})`}
+                      {isHourlySpace
+                        ? `Session within venue operating hours: ${space.openHours || 'Standard Operating Hours'}`
+                        : 'Select your booking date, start time, and end time'}
                     </p>
                   </div>
-                  <div className="text-xs font-bold text-soot bg-white px-3 py-1 rounded-full border border-soot/10 shadow-2xs whitespace-nowrap">
-                    {durationHours} {durationHours === 1 ? 'Hour' : 'Hours'}{isHourly ? '' : '/day'}
+                  <div className="text-xs font-bold text-emerald-900 bg-emerald-100/80 px-3 py-1 rounded-full border border-emerald-300 shadow-2xs whitespace-nowrap">
+                    {isHourlySpace ? '2 Hours Session (Fixed)' : `${durationHours} ${durationHours === 1 ? 'Hour' : 'Hours'}`}
                   </div>
                 </div>
 
@@ -1006,7 +1015,7 @@ export default function BookingFlow() {
                   <div>
                     <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-2 flex items-center gap-1.5">
                       <Clock size={13} />
-                      <span>{isHourly ? 'Start Time' : 'Daily Start Time'}</span>
+                      <span>{isHourlySpace ? 'Session Start Time (وقت البدء)' : 'Start Time'}</span>
                     </label>
                     <select
                       value={startTime}
@@ -1015,7 +1024,7 @@ export default function BookingFlow() {
                     >
                       {availableStartTimes.map((t) => (
                         <option key={t} value={t}>
-                          {t}
+                          {isHourlySpace ? `${t} – ${calculateEndTime(t, 2)} (2 Hours)` : t}
                         </option>
                       ))}
                     </select>
@@ -1024,29 +1033,38 @@ export default function BookingFlow() {
                   <div>
                     <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-2 flex items-center gap-1.5">
                       <Clock size={13} />
-                      <span>{isHourly ? 'End Time' : 'Daily End Time'}</span>
+                      <span>{isHourlySpace ? 'Session End Time (وقت النهاية)' : 'End Time'}</span>
                     </label>
-                    <select
-                      value={endTime}
-                      onChange={(e) => handleEndTimeChange(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-soot/12 text-soot text-sm font-medium focus:outline-none focus:border-eucalyptus cursor-pointer shadow-2xs"
-                    >
-                      {availableEndTimes.map((t) => (
-                        <option key={t} value={t}>
-                          {t}
-                        </option>
-                      ))}
-                    </select>
+                    {isHourlySpace ? (
+                      <input
+                        type="text"
+                        disabled
+                        value={`${endTime} (2 Hours Fixed)`}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-soot/5 border border-soot/12 text-soot text-sm font-semibold cursor-not-allowed shadow-2xs"
+                      />
+                    ) : (
+                      <select
+                        value={endTime}
+                        onChange={(e) => handleEndTimeChange(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-soot/12 text-soot text-sm font-medium focus:outline-none focus:border-eucalyptus cursor-pointer shadow-2xs"
+                      >
+                        {availableEndTimes.map((t) => (
+                          <option key={t} value={t}>
+                            {t}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                   </div>
                 </div>
 
                 <div className="bg-white p-3 rounded-xl border border-soot/8 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                   <div>
                     <span className="text-moss block text-[10px] uppercase font-semibold">
-                      {isHourly ? 'Scheduled Date & Time' : 'Daily Allowed Window'}
+                      {isHourlySpace ? 'Selected 2-Hour Daily Window' : 'Scheduled Date & Time'}
                     </span>
                     <span className="font-semibold text-soot">
-                      {isHourly ? `${startDate} · ${startTime} – ${endTime}` : `${startTime} – ${endTime} each day`}
+                      {startDate} · {startTime} – {endTime} {isHourlySpace ? '(2 Hours)' : ''}
                     </span>
                   </div>
                   <div className="text-left sm:text-right">
