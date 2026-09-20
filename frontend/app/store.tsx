@@ -38,7 +38,8 @@ import {
   ApprovalStatus,
   CrowdingLevel,
   SpaceCrowdingInfo,
-  calculateSpaceCrowding
+  calculateSpaceCrowding,
+  PassRefundEligibility
 } from '@/types/types';
 import { INITIAL_SPACES, INITIAL_USERS, INITIAL_BOOKINGS, INITIAL_NOTIFICATIONS, INITIAL_SUPPORT_TICKETS } from '@/data/data';
 import { 
@@ -369,6 +370,14 @@ interface AppContextType {
     updates: Partial<{ status: string }>
   ) => Promise<{ success: boolean; subscription?: SubscriptionApi; error?: string }>;
   deleteSubscription: (subscriptionId: string) => Promise<{ success: boolean; error?: string }>;
+  getPassRefundEligibility: (targetUser?: User) => PassRefundEligibility;
+  cancelSubscriptionPass: (targetUser?: User) => Promise<{
+    success: boolean;
+    refunded: boolean;
+    refundAmount: number;
+    message: string;
+    reasons?: string[];
+  }>;
 
   directBookingsApi: DirectBookingApi[];
   fetchDirectBookings: () => Promise<DirectBookingApi[]>;
@@ -1025,6 +1034,278 @@ export function AppProvider({ children }: { children: ReactNode }) {
       showToast(err.message || 'Failed to delete subscription', 'error');
       return { success: false, error: err.message };
     }
+  };
+
+  const getPassRefundEligibility = (targetUser?: User): PassRefundEligibility => {
+    const u = targetUser || currentUser;
+    if (!u || !u.hasActivePass) {
+      return {
+        isEligible: false,
+        isWithin3Days: false,
+        isUsed: false,
+        hoursPassed: 0,
+        daysPassed: 0,
+        hoursRemainingInWindow: 0,
+        refundAmount: 0,
+        usedReasons: ['No active subscription pass found.'],
+        ineligibleReasons: ['No active subscription pass found.'],
+      };
+    }
+
+    // 1. Purchase Date & 3-Day Window Check
+    const storedUserId = typeof window !== 'undefined' ? (localStorage.getItem('cp_userId') || u.id) : u.id;
+    const activeSub = subscriptionsApi.find(s => (s.userId === u.id || s.userId === storedUserId) && s.status === 'ACTIVE');
+    const purchaseDateStr = u.passPurchaseDate || u.planCycleStart || activeSub?.startDate || activeSub?.createdAt;
+
+    let isWithin3Days = true;
+    let hoursPassed = 0;
+    let daysPassed = 0;
+    let hoursRemainingInWindow = 72;
+
+    if (purchaseDateStr) {
+      const purchaseTime = new Date(purchaseDateStr).getTime();
+      if (!isNaN(purchaseTime)) {
+        const diffMs = Math.max(0, Date.now() - purchaseTime);
+        hoursPassed = Math.floor(diffMs / (1000 * 60 * 60));
+        daysPassed = parseFloat((diffMs / (1000 * 60 * 60 * 24)).toFixed(1));
+        hoursRemainingInWindow = Math.max(0, 72 - hoursPassed);
+        // Strict 3 calendar days / 72 hours from purchase
+        isWithin3Days = diffMs <= 3 * 24 * 60 * 60 * 1000;
+      }
+    }
+
+    // 2. Pass Usage Check
+    const usedReasons: string[] = [];
+
+    // Check explicit flag
+    if (u.passUsed) {
+      usedReasons.push('Pass is marked as used for workspace bookings.');
+    }
+
+    // Check if remaining hours were deducted from total plan hours
+    if (
+      typeof u.totalPlanHours === 'number' &&
+      u.totalPlanHours > 0 &&
+      typeof u.remainingHours === 'number' &&
+      u.remainingHours < u.totalPlanHours
+    ) {
+      const hoursConsumed = u.totalPlanHours - u.remainingHours;
+      usedReasons.push(`${hoursConsumed} hour${hoursConsumed > 1 ? 's' : ''} consumed from pass quota (${u.remainingHours}/${u.totalPlanHours} hrs remaining).`);
+    }
+
+    // Check backend subscription visitsUsed
+    if (activeSub && typeof activeSub.visitsUsed === 'number' && activeSub.visitsUsed > 0) {
+      usedReasons.push(`${activeSub.visitsUsed} workspace visit${activeSub.visitsUsed > 1 ? 's' : ''} registered.`);
+    }
+
+    // Check user bookings
+    const purchaseTimeForBookings = purchaseDateStr ? new Date(purchaseDateStr).getTime() : 0;
+    const userActiveBookings = bookings.filter(b => b.userId === u.id && b.status !== 'cancelled');
+    const passBookings = userActiveBookings.filter(b => {
+      if (b.paidWithPass) return true;
+      if (typeof b.coveredHours === 'number' && b.coveredHours > 0) return true;
+      const bTime = new Date(b.createdAt || b.startDate).getTime();
+      const isPostPurchase = !purchaseTimeForBookings || isNaN(purchaseTimeForBookings) || bTime >= purchaseTimeForBookings - 60000;
+      if (isPostPurchase && (b.plan === 'daily' || b.plan === 'monthly' || b.plan === 'yearly')) return true;
+      if (isPostPurchase && b.totalPrice === 0) return true;
+      return false;
+    });
+
+    if (passBookings.length > 0) {
+      usedReasons.push(`${passBookings.length} workspace reservation${passBookings.length > 1 ? 's' : ''} booked using this pass.`);
+    }
+
+    const isUsed = usedReasons.length > 0;
+
+    // 3. Ineligibility reasons
+    const ineligibleReasons: string[] = [];
+    if (!isWithin3Days) {
+      ineligibleReasons.push(`Cancellation is outside the 3-day refund window (${daysPassed} days / ${hoursPassed} hours elapsed).`);
+    }
+    if (isUsed) {
+      ineligibleReasons.push(`Pass has already been used for workspace services (${usedReasons.join(' · ')}).`);
+    }
+
+    const isEligible = isWithin3Days && !isUsed;
+
+    // 4. Calculate refund amount
+    let refundAmount = 0;
+    if (isEligible) {
+      if (typeof u.passPricePaid === 'number' && u.passPricePaid > 0) {
+        refundAmount = u.passPricePaid;
+      } else {
+        const tier = (u.membershipTier || '').toLowerCase();
+        if (tier.includes('year') || tier.includes('annual')) {
+          refundAmount = 17000;
+        } else if (tier.includes('month') || tier.includes('pro') || tier.includes('all-access')) {
+          refundAmount = 1700;
+        } else if (tier.includes('day') || tier.includes('daily')) {
+          refundAmount = 150;
+        } else if (tier.includes('team') || tier.includes('corp')) {
+          refundAmount = 4500;
+        } else {
+          refundAmount = 1700;
+        }
+      }
+    }
+
+    return {
+      isEligible,
+      isWithin3Days,
+      isUsed,
+      hoursPassed,
+      daysPassed,
+      hoursRemainingInWindow,
+      refundAmount,
+      usedReasons,
+      ineligibleReasons,
+    };
+  };
+
+  const cancelSubscriptionPass = async (targetUser?: User): Promise<{
+    success: boolean;
+    refunded: boolean;
+    refundAmount: number;
+    message: string;
+    reasons?: string[];
+  }> => {
+    const u = targetUser || currentUser;
+    if (!u) {
+      return { success: false, refunded: false, refundAmount: 0, message: 'User is not logged in' };
+    }
+
+    // 1. Run strict refund eligibility check
+    const eligibility = getPassRefundEligibility(u);
+
+    // 2. Update backend subscription status to CANCELLED
+    try {
+      const storedToken = getStoredToken();
+      const storedUserId = typeof window !== 'undefined' ? (localStorage.getItem('cp_userId') || u.id) : u.id;
+
+      let subIdToCancel: string | null = null;
+      const subInState = subscriptionsApi.find(s => (s.userId === u.id || s.userId === storedUserId) && s.status === 'ACTIVE');
+      if (subInState) {
+        subIdToCancel = subInState.id;
+      } else {
+        const activeSubs = await fetchSubscriptionsFromApi(storedToken);
+        const match = activeSubs.find(s => (s.userId === u.id || s.userId === storedUserId) && s.status === 'ACTIVE');
+        if (match) subIdToCancel = match.id;
+      }
+
+      if (subIdToCancel) {
+        await updateSubscription(subIdToCancel, { status: 'CANCELLED' });
+      }
+    } catch (dbErr) {
+      console.warn('[DB Subscription Cancellation Notice]', dbErr);
+    }
+
+    // 3. Process refund to wallet if strictly eligible
+    const currentWallet = u.walletBalance || 0;
+    let newWalletBalance = currentWallet;
+
+    if (eligibility.isEligible && eligibility.refundAmount > 0) {
+      newWalletBalance = currentWallet + eligibility.refundAmount;
+
+      // Sync refund to backend wallet endpoint
+      try {
+        const storedToken = getStoredToken();
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+
+        const walletRes = await fetch(`${getApiBaseUrl()}/wallet`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            userId: u.id,
+            amount: eligibility.refundAmount,
+            type: 'REFUND',
+            description: `Pass Subscription Cancellation Refund (${u.membershipTier || 'Pass'})`,
+          }),
+        });
+        if (walletRes.ok) {
+          const wData = await walletRes.json();
+          if (typeof wData.balance === 'number') {
+            newWalletBalance = wData.balance;
+          }
+        }
+      } catch (wErr) {
+        console.warn('[Wallet Refund Sync Notice]', wErr);
+      }
+
+      // Record wallet transaction
+      const refundTx: WalletTransaction = {
+        id: `tx-${Date.now()}`,
+        walletId: u.id,
+        userId: u.id,
+        amount: eligibility.refundAmount,
+        type: 'REFUND',
+        description: `Pass Subscription Cancellation Refund (${u.membershipTier || 'Pass'})`,
+        balanceAfter: newWalletBalance,
+        createdAt: new Date().toISOString(),
+      };
+      setWalletTransactions(prev => [refundTx, ...prev]);
+
+      // In-app payment notification
+      addNotification({
+        userId: u.id,
+        title: 'Subscription Cancelled & Refunded',
+        message: `Your ${u.membershipTier || 'Pass'} has been cancelled within 3 days without usage. SAR ${eligibility.refundAmount.toLocaleString()} was refunded to your wallet.`,
+        type: 'payment',
+      });
+
+      showToast(`Subscription cancelled. SAR ${eligibility.refundAmount.toLocaleString()} refunded to your wallet!`, 'success');
+    } else {
+      // In-app notification for non-refundable cancellation
+      const reasonSummary = eligibility.ineligibleReasons.length > 0
+        ? eligibility.ineligibleReasons.join(' ')
+        : 'As per policy, passes are only refundable within 3 days of purchase and if unused.';
+
+      addNotification({
+        userId: u.id,
+        title: 'Subscription Cancelled (No Refund)',
+        message: `Your pass subscription has been cancelled without refund. Reason: ${reasonSummary}`,
+        type: 'system',
+      });
+
+      showToast('Subscription cancelled without refund as per policy (3-day & zero-usage required).', 'info');
+    }
+
+    // 4. Update current user state and localStorage
+    const updatedUser: User = {
+      ...u,
+      hasActivePass: false,
+      membershipTier: undefined,
+      walletBalance: newWalletBalance,
+      remainingHours: 0,
+      totalPlanHours: 0,
+      passPurchaseDate: undefined,
+      passPricePaid: undefined,
+      passUsed: false,
+    };
+
+    setCurrentUser(updatedUser);
+    setUsers(prev => prev.map(usr => usr.id === updatedUser.id ? updatedUser : usr));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cp_currentUser', JSON.stringify(updatedUser));
+      try {
+        const storedUsers = localStorage.getItem('cp_users');
+        if (storedUsers) {
+          const parsedUsers = JSON.parse(storedUsers) as User[];
+          const updatedUsersList = parsedUsers.map(usr => usr.id === updatedUser.id ? updatedUser : usr);
+          localStorage.setItem('cp_users', JSON.stringify(updatedUsersList));
+        }
+      } catch (e) {}
+    }
+
+    return {
+      success: true,
+      refunded: eligibility.isEligible,
+      refundAmount: eligibility.refundAmount,
+      message: eligibility.isEligible
+        ? `Subscription cancelled. SAR ${eligibility.refundAmount.toLocaleString()} refunded to your wallet.`
+        : 'Subscription cancelled without refund as per policy.',
+      reasons: eligibility.ineligibleReasons,
+    };
   };
 
   const fetchDirectBookings = async (): Promise<DirectBookingApi[]> => {
@@ -2400,6 +2681,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
           parsed.avatar = '';
         }
         parsed = checkAndRenewPlanHours(parsed);
+        if (parsed.hasActivePass && !parsed.passPurchaseDate) {
+          parsed.passPurchaseDate = parsed.planCycleStart || (parsed.joinDate ? `${parsed.joinDate}T00:00:00.000Z` : new Date().toISOString());
+        }
+        if (parsed.hasActivePass && !parsed.passPricePaid) {
+          const t = (parsed.membershipTier || '').toLowerCase();
+          parsed.passPricePaid = t.includes('year') || t.includes('annual') ? 17000 : 1700;
+        }
         localStorage.setItem('cp_currentUser', JSON.stringify(parsed));
         setCurrentUser(parsed);
       }
@@ -2422,6 +2710,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 loyaltyPoints: existing.loyaltyPoints ?? (initU as any).loyaltyPoints ?? 0,
                 remainingHours: existing.remainingHours !== undefined ? existing.remainingHours : initU.remainingHours,
                 totalPlanHours: existing.totalPlanHours !== undefined ? existing.totalPlanHours : initU.totalPlanHours,
+                passPurchaseDate: existing.passPurchaseDate !== undefined ? existing.passPurchaseDate : initU.passPurchaseDate,
+                passPricePaid: existing.passPricePaid !== undefined ? existing.passPricePaid : initU.passPricePaid,
+                passUsed: existing.passUsed !== undefined ? existing.passUsed : initU.passUsed,
               });
             }
           });
@@ -3431,8 +3722,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
             ...updatedUser,
             remainingHours: newRemaining,
             totalPlanHours: latestUser.totalPlanHours || defaultQuota,
+            passUsed: true,
           };
         }
+      }
+
+      if (hasPlanPass && (booking.paidWithPass || (booking.coveredHours && booking.coveredHours > 0) || booking.totalPrice === 0 || booking.plan === 'daily' || booking.plan === 'monthly' || booking.plan === 'yearly')) {
+        updatedUser = {
+          ...updatedUser,
+          passUsed: true,
+        };
       }
 
       if (earnedPoints > 0) {
@@ -4858,6 +5157,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       payoutsApi, fetchPayouts, createPayout, updatePayout, deletePayout,
       membershipPlansApi, fetchMembershipPlans, createMembershipPlan, updateMembershipPlan, deleteMembershipPlan,
       subscriptionsApi, fetchSubscriptions, createSubscription, updateSubscription, deleteSubscription,
+      getPassRefundEligibility, cancelSubscriptionPass,
       directBookingsApi, fetchDirectBookings, createDirectBooking, updateDirectBooking, deleteDirectBooking,
       paymentsApi, fetchPayments, createPayment, updatePayment, deletePayment,
       currentUser, login, signup, logout, setPendingUser, pendingUser,

@@ -160,7 +160,7 @@ const faqs = [
 type PaymentMethodType = 'MADA' | 'APPLE_PAY' | 'CREDIT_CARD' | 'CORPORATE_INVOICE' | 'WALLET';
 
 export default function Pricing() {
-  const { currentUser, showToast, navigate, updateCurrentUser, addNotification, withdrawFromWallet } = useApp();
+  const { currentUser, showToast, navigate, updateCurrentUser, addNotification, withdrawFromWallet, getPassRefundEligibility, cancelSubscriptionPass } = useApp();
   
   const isOrg = currentUser?.role === 'organization' || currentUser?.role === 'HR_ADMIN' || (currentUser?.role as any) === 'B2B';
   const isInd = Boolean(currentUser && !isOrg);
@@ -185,6 +185,9 @@ export default function Pricing() {
   // Manage Subscription modal state
   const [showManageModal, setShowManageModal] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+
+  const refundEligibility = currentUser && hasActiveSubscription ? getPassRefundEligibility(currentUser) : null;
 
   // Strictly enforce active plans based on account type
   const activePlans = billingType === 'individual' ? individualPlans : corporatePlans;
@@ -308,6 +311,9 @@ export default function Pricing() {
         remainingHours: planHours,
         totalPlanHours: planHours,
         planCycleStart: startDate,
+        passPurchaseDate: startDate,
+        passPricePaid: checkoutPlan.price,
+        passUsed: false,
       });
 
       // 4. Add In-App notification
@@ -340,33 +346,14 @@ export default function Pricing() {
     setIsCancelling(true);
 
     try {
-      const activeSubsRes = await getSubscriptionsApi();
-      if (activeSubsRes.success && Array.isArray(activeSubsRes.data)) {
-        const storedUserId = typeof window !== 'undefined' ? (localStorage.getItem('cp_userId') || currentUser.id) : currentUser.id;
-        const userSub = activeSubsRes.data.find(s => s.userId === storedUserId || s.userId === currentUser.id || s.status === 'ACTIVE');
-        if (userSub) {
-          await updateSubscriptionApi(userSub.id, { status: 'CANCELLED' });
-        }
-      }
-    } catch (err) {
-      console.warn('[Cancel Sub API Error]', err);
+      await cancelSubscriptionPass(currentUser);
+      setIsCancelling(false);
+      setShowManageModal(false);
+      setShowCancelConfirm(false);
+    } catch (err: any) {
+      setIsCancelling(false);
+      showToast(err.message || 'Error cancelling subscription', 'error');
     }
-
-    updateCurrentUser({
-      hasActivePass: false,
-      membershipTier: undefined,
-    });
-
-    addNotification({
-      userId: currentUser.id,
-      title: 'Pass Subscription Cancelled',
-      message: 'Your coworking membership pass has been cancelled.',
-      type: 'system',
-    });
-
-    setIsCancelling(false);
-    setShowManageModal(false);
-    showToast('Subscription cancelled in database successfully.', 'info');
   };
 
   return (
@@ -924,27 +911,62 @@ export default function Pricing() {
       {showManageModal && (
         <Modal
           open={showManageModal}
-          onClose={() => setShowManageModal(false)}
+          onClose={() => {
+            setShowManageModal(false);
+            setShowCancelConfirm(false);
+          }}
           title="Manage Active Subscription"
-          subtitle="View details, change plan tier, or cancel renewal"
+          subtitle="View details, check cancellation refund policy, or manage plan tier"
           size="md"
           footer={
             <>
               <button
                 type="button"
-                onClick={() => setShowManageModal(false)}
+                onClick={() => {
+                  setShowManageModal(false);
+                  setShowCancelConfirm(false);
+                }}
                 className="px-4 py-2 rounded-xl text-xs font-semibold border border-soot/15 text-soot hover:bg-soot/5 cursor-pointer"
               >
                 Close
               </button>
-              <button
-                type="button"
-                onClick={handleCancelSubscription}
-                disabled={isCancelling}
-                className="px-4 py-2 rounded-xl text-xs font-semibold bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 cursor-pointer disabled:opacity-50"
-              >
-                {isCancelling ? 'Cancelling...' : 'Cancel Subscription'}
-              </button>
+              {showCancelConfirm ? (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowCancelConfirm(false)}
+                    className="px-3 py-2 rounded-xl text-xs font-semibold border border-soot/15 text-moss hover:bg-soot/5 cursor-pointer"
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCancelSubscription}
+                    disabled={isCancelling}
+                    className={`px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer disabled:opacity-50 text-white shadow-2xs ${
+                      refundEligibility?.isEligible ? 'bg-emerald-700 hover:bg-emerald-800' : 'bg-red-600 hover:bg-red-700'
+                    }`}
+                  >
+                    {isCancelling ? 'Processing...' : refundEligibility?.isEligible
+                      ? `Confirm & Refund SAR ${refundEligibility.refundAmount.toLocaleString()}`
+                      : 'Confirm Cancellation (No Refund)'}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowCancelConfirm(true)}
+                  className={`px-4 py-2 rounded-xl text-xs font-semibold border cursor-pointer transition-colors shadow-2xs ${
+                    refundEligibility?.isEligible
+                      ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
+                      : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'
+                  }`}
+                >
+                  {refundEligibility?.isEligible
+                    ? `Cancel & Refund SAR ${refundEligibility.refundAmount.toLocaleString()}`
+                    : 'Cancel Subscription'}
+                </button>
+              )}
             </>
           }
         >
@@ -967,6 +989,106 @@ export default function Pricing() {
                 Auto-Renewing
               </span>
             </div>
+
+            {/* Refund & Cancellation Policy Card */}
+            {refundEligibility && (
+              <div className="bg-white border border-soot/12 rounded-2xl p-4 space-y-3 shadow-2xs">
+                <div className="flex items-center justify-between pb-2 border-b border-soot/8">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck size={16} className={refundEligibility.isEligible ? 'text-emerald-700' : 'text-amber-600'} />
+                    <span className="font-semibold text-xs text-soot">
+                      Cancellation & Wallet Refund Policy
+                    </span>
+                  </div>
+                  <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider ${
+                    refundEligibility.isEligible
+                      ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                      : 'bg-amber-100 text-amber-900 border border-amber-300'
+                  }`}>
+                    {refundEligibility.isEligible ? '100% Refundable' : 'Non-Refundable'}
+                  </span>
+                </div>
+
+                <div className="space-y-2 text-xs">
+                  {/* Condition 1: 3-day purchase window */}
+                  <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-plaster/50 border border-soot/6">
+                    {refundEligibility.isWithin3Days ? (
+                      <CheckCircle2 size={16} className="text-emerald-700 shrink-0 mt-0.5" />
+                    ) : (
+                      <AlertCircle size={16} className="text-rose-600 shrink-0 mt-0.5" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="font-semibold text-soot flex items-center justify-between">
+                        <span>Condition 1: Within First 3 Days of Purchase</span>
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                          refundEligibility.isWithin3Days ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                        }`}>
+                          {refundEligibility.isWithin3Days ? 'Eligible' : 'Expired'}
+                        </span>
+                      </div>
+                      <p className="text-moss text-[11px] mt-0.5">
+                        {refundEligibility.isWithin3Days
+                          ? `Pass purchased ${refundEligibility.hoursPassed}h ago (${refundEligibility.hoursRemainingInWindow}h remaining to cancel with refund)`
+                          : `Pass purchased ${refundEligibility.daysPassed} days ago (exceeds 3-day / 72-hour policy limit)`}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Condition 2: Zero usage */}
+                  <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-plaster/50 border border-soot/6">
+                    {!refundEligibility.isUsed ? (
+                      <CheckCircle2 size={16} className="text-emerald-700 shrink-0 mt-0.5" />
+                    ) : (
+                      <AlertCircle size={16} className="text-rose-600 shrink-0 mt-0.5" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="font-semibold text-soot flex items-center justify-between">
+                        <span>Condition 2: Pass Has NOT Been Used</span>
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                          !refundEligibility.isUsed ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                        }`}>
+                          {!refundEligibility.isUsed ? 'Eligible' : 'Used'}
+                        </span>
+                      </div>
+                      <p className="text-moss text-[11px] mt-0.5">
+                        {!refundEligibility.isUsed
+                          ? 'Zero reservations or hours consumed with this pass'
+                          : refundEligibility.usedReasons.join(' · ')}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Eligibility Verdict Banner */}
+                {refundEligibility.isEligible ? (
+                  <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-950 flex items-center justify-between gap-3">
+                    <div className="space-y-0.5">
+                      <span className="font-bold block text-emerald-900">Eligible for 100% Wallet Refund</span>
+                      <p className="text-[11px] text-emerald-800">
+                        Cancelling will credit the full subscription amount directly into your digital wallet.
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="text-[10px] uppercase font-bold text-emerald-800 block">Refund to Wallet</span>
+                      <span className="text-base font-bold text-emerald-950">SAR {refundEligibility.refundAmount.toLocaleString()}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-3 bg-amber-50/90 rounded-xl border border-amber-200 text-xs text-amber-950 flex items-center justify-between gap-3">
+                    <div className="space-y-0.5">
+                      <span className="font-bold block text-amber-900">Non-Refundable Cancellation</span>
+                      <p className="text-[11px] text-amber-800">
+                        As per policy, passes are non-refundable if used or after 3 days. SAR 0 will be refunded upon cancellation.
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="text-[10px] uppercase font-bold text-amber-800 block">Refund to Wallet</span>
+                      <span className="text-base font-bold text-amber-950">SAR 0</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="bg-white border border-soot/10 rounded-2xl p-4 space-y-3 text-xs">
               <div className="flex justify-between">

@@ -178,15 +178,22 @@ export default function IndividualDashboard() {
               </p>
             </div>
 
-            <div className="flex items-center gap-3 sm:text-right shrink-0">
+            <div className="flex items-center gap-3 sm:text-right shrink-0 flex-wrap">
               <div>
                 <span className="text-[11px] font-semibold text-moss uppercase tracking-wider block">Next Monthly Renewal</span>
                 <span className="text-sm font-bold text-soot">{nextRenewalDate}</span>
               </div>
               <button
                 type="button"
+                onClick={() => navigate('pricing')}
+                className="py-2.5 px-3.5 text-xs rounded-xl border border-soot/20 text-soot hover:bg-soot/5 font-semibold transition-colors cursor-pointer shadow-2xs"
+              >
+                Manage Pass
+              </button>
+              <button
+                type="button"
                 onClick={() => navigate('browse')}
-                className="btn-primary py-2.5 px-4 text-xs shadow-xs cursor-pointer ml-2"
+                className="btn-primary py-2.5 px-4 text-xs shadow-xs cursor-pointer"
               >
                 <span>Book Space</span>
                 <ArrowRight size={13} />
