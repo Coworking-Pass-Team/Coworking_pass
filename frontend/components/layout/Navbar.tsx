@@ -233,7 +233,6 @@ export default function Navbar() {
 
     const role = currentUser.role;
 
-    // تم تثبيت Plans & Passes هنا لمنظمات الشركات
     if (role === 'organization') {
       return [
         { label: 'Dashboard', screen: 'org-dashboard' as const },
