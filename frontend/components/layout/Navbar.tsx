@@ -233,10 +233,12 @@ export default function Navbar() {
 
     const role = currentUser.role;
 
+    // تم تثبيت Plans & Passes هنا لمنظمات الشركات
     if (role === 'organization') {
       return [
         { label: 'Dashboard', screen: 'org-dashboard' as const },
         { label: 'Browse Spaces', screen: 'browse' as const },
+        { label: 'Plans & Passes', screen: 'pricing' as const },
         { label: 'Team Bookings', screen: 'company-bookings' as const },
         { label: 'Team Members', screen: 'company-team' as const },
       ];
@@ -344,7 +346,6 @@ export default function Navbar() {
           {currentUser && <NotificationButton />}
 
           {currentUser ? (
-            /* User Profile Dropdown (نظيفة وخالية من التكرار) */
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
