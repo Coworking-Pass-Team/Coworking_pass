@@ -35,7 +35,7 @@ export async function GET(request: Request) {
 
     if (!lat || !lng) {
       return NextResponse.json(
-        { error: "الحقول المطلوبة: lat, lng" },
+        { error: "Required fields: lat, lng" },
         { status: 400 }
       );
     }
@@ -60,6 +60,6 @@ export async function GET(request: Request) {
     return NextResponse.json(withDistance);
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "حدث خطأ في السيرفر" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }

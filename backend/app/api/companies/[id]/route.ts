@@ -48,7 +48,7 @@ export async function GET(
 
     if (!company) {
       return NextResponse.json(
-        { error: "الشركة غير موجودة" },
+        { error: "Company not found." },
         { status: 404 }
       );
     }
@@ -57,7 +57,7 @@ export async function GET(
   } catch (error) {
     console.error("❌ Error fetching company:", error);
     return NextResponse.json(
-      { error: "حدث خطأ في السيرفر" },
+      { error: "Internal server error." },
       { status: 500 }
     );
   }
@@ -105,11 +105,11 @@ if (!user) return unauthorizedResponse();
       data,
     });
 
-    return NextResponse.json({ message: "تم تعديل الشركة بنجاح", company });
+    return NextResponse.json({ message: "Company updated successfully.", company });
   } catch (error) {
     console.error(error);
     return NextResponse.json(
-      { error: "الشركة غير موجودة أو حدث خطأ" },
+      { error: "Company not found or an error occurred." },
       { status: 404 }
     );
   }
@@ -127,11 +127,11 @@ if (!user) return unauthorizedResponse();
 
     await prisma.company.delete({ where: { id } });
 
-    return NextResponse.json({ message: "تم حذف الشركة بنجاح" });
+    return NextResponse.json({ message: "Company deleted successfully." });
   } catch (error) {
     console.error(error);
     return NextResponse.json(
-      { error: "الشركة غير موجودة أو حدث خطأ" },
+      { error: "Company not found or an error occurred." },
       { status: 404 }
     );
   }

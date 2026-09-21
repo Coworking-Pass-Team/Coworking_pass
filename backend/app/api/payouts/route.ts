@@ -16,7 +16,7 @@ if (!user) return unauthorizedResponse();
   } catch (error) {
     console.error('❌ Error fetching partner payouts:', error)
     return NextResponse.json(
-      { error: 'حدث خطأ في جلب مستحقات الشركاء' },
+      { error: 'Failed to fetch partner payouts.' },
       { status: 500 }
     )
   }
@@ -59,7 +59,7 @@ if (!user) return unauthorizedResponse();
 
     if (!partnerId || !billingMonth || !totalVisitsReceived || !amountDue) {
       return NextResponse.json(
-        { error: 'جميع الحقول مطلوبة' },
+        { error: 'All fields are required.' },
         { status: 400 }
       )
     }
@@ -81,7 +81,7 @@ if (!user) return unauthorizedResponse();
   } catch (error) {
     console.error('❌ Error creating partner payout:', error)
     return NextResponse.json(
-      { error: 'حدث خطأ في إنشاء المستحقات' },
+      { error: 'Failed to create payout.' },
       { status: 500 }
     )
   }

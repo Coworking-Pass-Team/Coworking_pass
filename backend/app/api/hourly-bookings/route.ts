@@ -27,7 +27,7 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('❌ Error fetching hourly bookings:', error)
     return NextResponse.json(
-      { error: 'حدث خطأ في جلب الحجوزات الساعية' },
+      { error: 'Failed to fetch hourly bookings.' },
       { status: 500 }
     )
   }
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
 
     if (!effectiveUserId) {
       return NextResponse.json(
-        { error: 'يرجى تسجيل الدخول أو توفير معرف مستخدم صالح' },
+        { error: 'Please log in or provide a valid user ID.' },
         { status: 401 }
       );
     }
@@ -246,7 +246,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!ws) {
-      return NextResponse.json({ error: 'مساحة العمل غير موجودة' }, { status: 404 });
+      return NextResponse.json({ error: 'Workspace not found.' }, { status: 404 });
     }
 
     // حساب الساعات وتطبيق قيد الـ 4 ساعات كحد أقصى يومياً
@@ -367,7 +367,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('❌ Error creating hourly booking:', error);
     return NextResponse.json(
-      { error: error?.message || 'حدث خطأ في إنشاء الحجز الساعي' },
+      { error: error?.message || 'Failed to create hourly booking.' },
       { status: 500 }
     );
   }

@@ -35,12 +35,12 @@ if (!user) return unauthorizedResponse();
       where: { id }
     })
     return NextResponse.json(
-      { message: 'تم إزالتك من قائمة الانتظار' },
+      { message: 'Removed from waitlist successfully.' },
       { status: 200 }
     )
   } catch (error) {
     return NextResponse.json(
-      { error: 'حدث خطأ في الإزالة' },
+      { error: 'Failed to remove from waitlist.' },
       { status: 500 }
     )
   }

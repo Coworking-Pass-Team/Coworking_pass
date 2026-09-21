@@ -42,7 +42,7 @@ export async function GET(request: Request) {
     return NextResponse.json(amenities);
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "حدث خطأ في السيرفر" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }
 
@@ -84,7 +84,7 @@ if (!user) return unauthorizedResponse();
     const { name, icon, isDefault, requestedBy } = await request.json();
 
     if (!name) {
-      return NextResponse.json({ error: "الحقل name مطلوب" }, { status: 400 });
+      return NextResponse.json({ error: "Field 'name' is required." }, { status: 400 });
     }
 
     // لو مرفق افتراضي من الإدارة، يوافق عليه تلقائياً
@@ -93,7 +93,7 @@ if (!user) return unauthorizedResponse();
 
     if (!isDefault && !requestedBy) {
       return NextResponse.json(
-        { error: "requestedBy مطلوب عند اقتراح مرفق غير افتراضي" },
+        { error: "requestedBy is required when suggesting a custom amenity." },
         { status: 400 }
       );
     }
@@ -109,11 +109,11 @@ if (!user) return unauthorizedResponse();
     });
 
     return NextResponse.json(
-      { message: "تم إضافة المرفق بنجاح", amenity },
+      { message: "Amenity added successfully.", amenity },
       { status: 201 }
     );
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "حدث خطأ في السيرفر" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }

@@ -857,7 +857,7 @@ export default function TeamBooking() {
                   <div>
                     <h4 className="text-xs font-semibold uppercase tracking-wider text-moss flex items-center gap-1.5">
                       <Clock size={13} />
-                      <span>Select 2-Hour Daily Session (حجز ساعتين)</span>
+                      <span>Select 2-Hour Daily Session</span>
                     </h4>
                     <p className="text-xs text-moss mt-0.5">
                       Session within workspace operating hours: {space.openHours || 'Standard Operating Hours'}
@@ -872,7 +872,7 @@ export default function TeamBooking() {
                   <div>
                     <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1.5 flex items-center gap-1.5">
                       <Clock size={13} />
-                      <span>Session Start Time (وقت البدء)</span>
+                      <span>Session Start Time</span>
                     </label>
                     <select
                       value={startTime}
@@ -890,7 +890,7 @@ export default function TeamBooking() {
                   <div>
                     <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1.5 flex items-center gap-1.5">
                       <Clock size={13} />
-                      <span>Session End Time (وقت الانتهاء)</span>
+                      <span>Session End Time</span>
                     </label>
                     <input
                       type="text"
@@ -1112,7 +1112,7 @@ export default function TeamBooking() {
                         <Wallet size={16} className="text-emerald-700 shrink-0" />
                         <div>
                           <div className="text-xs font-semibold text-soot">
-                            {isUsingCompanyWallet ? 'المحفظة المشتركة (Corporate Shared Wallet)' : 'Digital Wallet Balance'}
+                            {isUsingCompanyWallet ? 'Corporate Shared Wallet' : 'Digital Wallet Balance'}
                           </div>
                           <div className="text-[11px] text-moss">Available Balance: SAR {userWalletBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
                         </div>

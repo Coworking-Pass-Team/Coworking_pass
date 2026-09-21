@@ -7,7 +7,7 @@ export async function GET() {
     const workspaces = await seedStandardWorkspaces();
     return NextResponse.json({
       success: true,
-      message: 'تمت تغذية جميع المساحات والأقسام والباقات بنجاح في قاعدة البيانات',
+      message: 'All workspaces, sections, and packages seeded successfully in database.',
       count: workspaces.length,
       workspaces: workspaces.map((w: any) => ({
         id: w.id,
@@ -19,7 +19,7 @@ export async function GET() {
     });
   } catch (error: any) {
     console.error('Error seeding workspaces:', error);
-    return NextResponse.json({ success: false, error: error?.message || 'حدث خطأ أثناء التغذية' }, { status: 500 });
+    return NextResponse.json({ success: false, error: error?.message || 'Failed to seed database.' }, { status: 500 });
   }
 }
 

@@ -20,13 +20,13 @@ export async function GET(
     });
 
     if (!payment) {
-      return NextResponse.json({ error: 'الدفعة غير موجودة' }, { status: 404 });
+      return NextResponse.json({ error: 'Payment not found.' }, { status: 404 });
     }
 
     return NextResponse.json(payment);
   } catch (error) {
     console.error('❌ Error fetching payment:', error);
-    return NextResponse.json({ error: 'حدث خطأ في جلب تفاصيل الدفع' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch payment details.' }, { status: 500 });
   }
 }
 
@@ -73,7 +73,7 @@ export async function PUT(
     return NextResponse.json(payment);
   } catch (error) {
     console.error('❌ Error updating payment:', error);
-    return NextResponse.json({ error: 'حدث خطأ في تحديث الدفعة' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to update payment.' }, { status: 500 });
   }
 }
 
@@ -92,9 +92,9 @@ export async function DELETE(
       where: { id },
     });
 
-    return NextResponse.json({ message: 'تم حذف الدفعة بنجاح' });
+    return NextResponse.json({ message: 'Payment deleted successfully.' });
   } catch (error) {
     console.error('❌ Error deleting payment:', error);
-    return NextResponse.json({ error: 'حدث خطأ في حذف الدفعة' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to delete payment.' }, { status: 500 });
   }
 }

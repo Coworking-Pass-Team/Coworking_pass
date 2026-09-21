@@ -21,7 +21,7 @@ export async function GET(
 
     if (!subscription) {
       return NextResponse.json(
-        { error: 'الاشتراك غير موجود' },
+        { error: 'Subscription not found.' },
         { status: 404 }
       )
     }
@@ -30,7 +30,7 @@ export async function GET(
   } catch (error) {
     console.error('❌ Error fetching subscription:', error)
     return NextResponse.json(
-      { error: 'حدث خطأ' },
+      { error: 'An error occurred.' },
       { status: 500 }
     )
   }
@@ -97,7 +97,7 @@ export async function PUT(
   } catch (error) {
     console.error('❌ Error updating subscription:', error);
     return NextResponse.json(
-      { error: 'حدث خطأ في التحديث أو الاشتراك غير موجود' },
+      { error: 'Failed to update subscription or not found.' },
       { status: 500 }
     );
   }
@@ -143,7 +143,7 @@ export async function DELETE(
 
     if (!subscription) {
       return NextResponse.json(
-        { error: 'الاشتراك غير موجود' },
+        { error: 'Subscription not found.' },
         { status: 404 }
       );
     }
@@ -159,7 +159,7 @@ export async function DELETE(
       if (hoursDiff < requiredHours && startTime > now) {
         return NextResponse.json(
           { 
-            error: `لا يمكن الإلغاء. يجب الإلغاء قبل ${requiredHours} ساعة على الأقل من بداية الاشتراك` 
+            error: `Cancellation not allowed. Cancellation must be made at least ${requiredHours} hours before start time.` 
           },
           { status: 400 }
         );
@@ -172,13 +172,13 @@ export async function DELETE(
     });
 
     return NextResponse.json(
-      { message: 'تم إلغاء الاشتراك بنجاح' },
+      { message: 'Subscription cancelled successfully.' },
       { status: 200 }
     );
   } catch (error) {
     console.error('❌ Error deleting subscription:', error);
     return NextResponse.json(
-      { error: 'حدث خطأ في الإلغاء أو الاشتراك غير موجود' },
+      { error: 'Failed to cancel subscription or not found.' },
       { status: 500 }
     );
   }

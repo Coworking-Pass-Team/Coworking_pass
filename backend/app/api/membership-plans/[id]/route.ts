@@ -16,7 +16,7 @@ export async function GET(
 
     if (!plan) {
       return NextResponse.json(
-        { error: 'الخطة غير موجودة' },
+        { error: 'Plan not found.' },
         { status: 404 }
       );
     }
@@ -25,7 +25,7 @@ export async function GET(
   } catch (error) {
     console.error('❌ Error fetching plan:', error);
     return NextResponse.json(
-      { error: 'حدث خطأ في جلب الخطة' },
+      { error: 'Failed to fetch plan.' },
       { status: 500 }
     );
   }
@@ -87,7 +87,7 @@ export async function PUT(
   } catch (error) {
     console.error('❌ Error updating plan:', error);
     return NextResponse.json(
-      { error: 'حدث خطأ في التحديث أو الخطة غير موجودة' },
+      { error: 'Failed to update plan or not found.' },
       { status: 500 }
     );
   }
@@ -110,13 +110,13 @@ export async function DELETE(
     });
 
     return NextResponse.json(
-      { message: 'تم الحذف بنجاح' },
+      { message: 'Deleted successfully.' },
       { status: 200 }
     );
   } catch (error) {
     console.error('❌ Error deleting plan:', error);
     return NextResponse.json(
-      { error: 'حدث خطأ في الحذف أو الخطة غير موجودة' },
+      { error: 'Failed to delete plan or not found.' },
       { status: 500 }
     );
   }

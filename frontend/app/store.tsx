@@ -610,7 +610,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
   ]);
   const [approvedCustomAmenities, setApprovedCustomAmenities] = useState<string[]>(['Podcast Recording Studio']);
   const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([]);
-  const [partners, setPartners] = useState<Partner[]>([]);
+  const [partners, setPartners] = useState<Partner[]>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('cp_partners');
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        } catch (_) {}
+      }
+    }
+    return [];
+  });
   const [workspacesApi, setWorkspacesApi] = useState<WorkspaceApi[]>([]);
   const [hourlyBookingsApi, setHourlyBookingsApi] = useState<HourlyBookingApi[]>([]);
   const [payoutsApi, setPayoutsApi] = useState<PayoutApi[]>([]);
@@ -1850,7 +1861,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const newBal = res.data?.company?.newBalance ?? (companyWalletBalance + amount);
       setCompanyWalletBalance(newBal);
       setCompanyData((prev: any) => prev ? { ...prev, balance: newBal } : { id: targetCompId, balance: newBal });
-      showToast(`تم إيداع ${amount.toLocaleString()} ر.س في المحفظة المشتركة بنجاح`, 'success');
+      showToast(`Successfully deposited SAR ${amount.toLocaleString()} into shared wallet`, 'success');
       return { success: true, message: 'Deposit successful', balance: newBal };
     } catch (err: any) {
       const msg = err.message || 'Error depositing to company wallet';
@@ -1880,16 +1891,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
           return {
             id: dbT.id,
             ticketNumber: `TK-${dbT.id.slice(-4).toUpperCase()}`,
-            userName: dbT.user?.name || dbT.company?.name || 'مستخدم',
+            userName: dbT.user?.name || dbT.company?.name || 'User',
             userEmail: dbT.user?.email || dbT.company?.email || 'user@coworkingpass.sa',
             userId: dbT.userId,
             category: 'general',
-            subject: dbT.subject || 'تذكرة دعم',
+            subject: dbT.subject || 'Support Ticket',
             message: dbT.subject || '',
             status: validStatus,
             priority: 'medium',
-            createdAt: dbT.createdAt ? new Date(dbT.createdAt).toLocaleString('ar-SA') : new Date().toLocaleString('ar-SA'),
-            updatedAt: dbT.updatedAt ? new Date(dbT.updatedAt).toLocaleString('ar-SA') : undefined,
+            createdAt: dbT.createdAt ? new Date(dbT.createdAt).toLocaleString() : new Date().toLocaleString(),
+            updatedAt: dbT.updatedAt ? new Date(dbT.updatedAt).toLocaleString() : undefined,
             adminReply: lastReplyMessage,
           };
         });
@@ -1906,9 +1917,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       const data = await fetchPartnersFromApi();
       if (Array.isArray(data) && data.length > 0) {
-        setPartners(data);
+        setPartners((prev) => {
+          const map = new Map(prev.map((p) => [p.contactEmail.toLowerCase(), p]));
+          data.forEach((p) => map.set(p.contactEmail.toLowerCase(), p));
+          const merged = Array.from(map.values());
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('cp_partners', JSON.stringify(merged));
+          }
+          return merged;
+        });
+        return data;
       }
-      return data;
+      return partners;
     } catch (err) {
       console.error('Failed to fetch partners from /api/partners:', err);
       return partners;
@@ -2567,7 +2587,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
 
       const newPartner: Partner = resData.partner || resData;
-      setPartners((prev) => [newPartner, ...prev]);
+      setPartners((prev) => {
+        const updated = [newPartner, ...prev];
+        if (typeof window !== 'undefined') localStorage.setItem('cp_partners', JSON.stringify(updated));
+        return updated;
+      });
       showToast(`Partner ${partnerData.brandName} created successfully`, 'success');
       return { success: true, partner: newPartner };
     } catch (err: any) {
@@ -2609,9 +2633,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
 
       const updatedPartner: Partner = resData.partner || resData;
-      setPartners((prev) =>
-        prev.map((p) => (p.id === partnerId ? { ...p, ...updatedPartner } : p))
-      );
+      setPartners((prev) => {
+        const updated = prev.map((p) => (p.id === partnerId ? { ...p, ...updatedPartner } : p));
+        if (typeof window !== 'undefined') localStorage.setItem('cp_partners', JSON.stringify(updated));
+        return updated;
+      });
       showToast(`Partner updated successfully`, 'success');
       return { success: true, partner: updatedPartner };
     } catch (err: any) {
@@ -2641,7 +2667,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         throw new Error(resData.error || 'Failed to delete partner');
       }
 
-      setPartners((prev) => prev.filter((p) => p.id !== partnerId));
+      setPartners((prev) => {
+        const updated = prev.filter((p) => p.id !== partnerId);
+        if (typeof window !== 'undefined') localStorage.setItem('cp_partners', JSON.stringify(updated));
+        return updated;
+      });
       showToast(`Partner deleted successfully`, 'success');
       return { success: true };
     } catch (err: any) {
@@ -2657,21 +2687,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (res.success) {
         const targetPartner = partners.find((p) => p.id === partnerId);
         if (targetPartner) {
-          setUsers((prev) =>
-            prev.map((u) =>
+          setUsers((prev) => {
+            const updatedUsers = prev.map((u) =>
               u.email.toLowerCase() === targetPartner.contactEmail.toLowerCase()
-                ? { ...u, partnerStatus: 'APPROVED' }
+                ? { ...u, partnerStatus: 'APPROVED' as ApprovalStatus }
                 : u
-            )
-          );
+            );
+            if (typeof window !== 'undefined') localStorage.setItem('cp_users', JSON.stringify(updatedUsers));
+            return updatedUsers;
+          });
         }
-        showToast('تم اعتماد حساب مزود المساحة بنجاح وإرسال إشعار البريد الإلكتروني!', 'success');
+        showToast('Space Partner account approved successfully! Confirmation email sent.', 'success');
         return { success: true };
       }
       return { success: false, error: res.error };
     } catch (err: any) {
       console.error(`Error approving partner ${partnerId}:`, err);
-      showToast(err.message || 'حدث خطأ أثناء اعتماد حساب الشريك', 'error');
+      showToast(err.message || 'Error approving partner account', 'error');
       return { success: false, error: err.message };
     }
   };
@@ -2682,21 +2714,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (res.success) {
         const targetPartner = partners.find((p) => p.id === partnerId);
         if (targetPartner) {
-          setUsers((prev) =>
-            prev.map((u) =>
+          setUsers((prev) => {
+            const updatedUsers = prev.map((u) =>
               u.email.toLowerCase() === targetPartner.contactEmail.toLowerCase()
-                ? { ...u, partnerStatus: 'REJECTED' }
+                ? { ...u, partnerStatus: 'REJECTED' as ApprovalStatus }
                 : u
-            )
-          );
+            );
+            if (typeof window !== 'undefined') localStorage.setItem('cp_users', JSON.stringify(updatedUsers));
+            return updatedUsers;
+          });
         }
-        showToast('تم رفض طلب مزود المساحة.', 'info');
+        showToast('Partner application rejected.', 'info');
         return { success: true };
       }
       return { success: false, error: res.error };
     } catch (err: any) {
       console.error(`Error rejecting partner ${partnerId}:`, err);
-      showToast(err.message || 'حدث خطأ أثناء رفض الطلب', 'error');
+      showToast(err.message || 'Error rejecting partner application', 'error');
       return { success: false, error: err.message };
     }
   };
@@ -3072,6 +3106,39 @@ export function AppProvider({ children }: { children: ReactNode }) {
       backendSynced: Boolean(apiRes.userId),
       devOtp: apiRes.devOtp,
     };
+
+    const isProviderRegistration = role === 'provider' || role === 'PARTNER_ADMIN' || newUser.role === 'provider' || newUser.role === 'PARTNER_ADMIN';
+    if (isProviderRegistration) {
+      const brand = (extraData?.businessName || newUser.name || 'New Space Partner').trim();
+      const cr = (extraData?.crNumber || '').trim();
+      const pendingPartner: Partner = {
+        id: apiRes.userId || `partner-${Date.now()}`,
+        brandName: brand,
+        contactEmail: newUser.email,
+        taxNumber: cr || '1010000000',
+        revenueSharePercentage: 15,
+        status: 'PENDING_APPROVAL',
+        createdAt: new Date().toISOString(),
+      };
+      setPartners((prev) => {
+        const list = prev.filter(p => p.contactEmail.toLowerCase() !== pendingPartner.contactEmail.toLowerCase());
+        const updated = [pendingPartner, ...list];
+        if (typeof window !== 'undefined') localStorage.setItem('cp_partners', JSON.stringify(updated));
+        return updated;
+      });
+
+      const adminNotif: Notification = {
+        id: `notif-${Date.now()}`,
+        userId: 'usr_admin',
+        title: 'New Space Partner Application',
+        message: `Venue "${brand}" (CR: ${cr || 'N/A'}) has submitted a registration application pending your review and approval.`,
+        type: 'info',
+        read: false,
+        createdAt: 'Just now',
+      };
+      setNotifications((prev) => [adminNotif, ...prev]);
+    }
+
     setOtpSession(session);
     navigate('otp-verify');
     showToast(apiRes.message || `Verification code sent to ${newUser.email || newUser.phone}`, 'info');
@@ -3231,7 +3298,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const isProvider = updated.role === 'provider' || updated.role === 'PARTNER_ADMIN' || otpSession.role === 'provider' || otpSession.role === 'PARTNER_ADMIN';
 
     if (isProvider) {
-      showToast('تم تأكيد البريد الإلكتروني بنجاح! طلب حساب مزود المساحات قيد المراجعة والاعتماد من قبل الإدارة.', 'info');
+      const brand = (updated.businessName || otpSession.extraData?.businessName || updated.name || 'New Space Partner').trim();
+      const cr = (updated.crNumber || otpSession.extraData?.crNumber || '').trim();
+      const pendingPartner: Partner = {
+        id: updated.id || `partner-${Date.now()}`,
+        brandName: brand,
+        contactEmail: updated.email,
+        taxNumber: cr || '1010000000',
+        revenueSharePercentage: 15,
+        status: 'PENDING_APPROVAL',
+        createdAt: new Date().toISOString(),
+      };
+      setPartners((prev) => {
+        const list = prev.filter((p) => p.contactEmail.toLowerCase() !== pendingPartner.contactEmail.toLowerCase());
+        const updatedList = [pendingPartner, ...list];
+        if (typeof window !== 'undefined') localStorage.setItem('cp_partners', JSON.stringify(updatedList));
+        return updatedList;
+      });
+
+      showToast('Email verified successfully! Your Space Partner application is under review and pending administrator approval.', 'info');
       return { success: true, pendingApproval: true };
     }
 

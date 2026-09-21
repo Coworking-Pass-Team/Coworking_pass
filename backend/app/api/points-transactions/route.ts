@@ -17,7 +17,7 @@ if (!user) return unauthorizedResponse();
   } catch (error) {
     console.error('❌ Error fetching transactions:', error)
     return NextResponse.json(
-      { error: 'حدث خطأ في جلب معاملات النقاط' },
+      { error: 'Failed to fetch points transactions.' },
       { status: 500 }
     )
   }
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
 
     if (!effectiveUserId || !type || !points) {
       return NextResponse.json(
-        { error: 'جميع الحقول مطلوبة' },
+        { error: 'All fields are required.' },
         { status: 400 }
       )
     }
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
     // منع الخصم إذا الرصيد غير كافٍ
     if (type === 'REDEEMED' && loyaltyPoints.availableBalance < numPoints) {
       return NextResponse.json(
-        { error: 'رصيد النقاط غير كافٍ' },
+        { error: 'Insufficient points balance.' },
         { status: 400 }
       )
     }
@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('❌ Error creating transaction:', error)
     return NextResponse.json(
-      { error: 'حدث خطأ في إنشاء المعاملة' },
+      { error: 'Failed to create transaction.' },
       { status: 500 }
     )
   }

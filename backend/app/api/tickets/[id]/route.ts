@@ -46,7 +46,7 @@ if (!user) return unauthorizedResponse();
 
     if (data.status && !VALID_STATUSES.includes(data.status)) {
       return NextResponse.json(
-        { error: `status يجب أن يكون: ${VALID_STATUSES.join(", ")}` },
+        { error: `status must be one of: ${VALID_STATUSES.join(", ")}` },
         { status: 400 }
       );
     }
@@ -56,11 +56,11 @@ if (!user) return unauthorizedResponse();
       data,
     });
 
-    return NextResponse.json({ message: "تم تعديل التذكرة بنجاح", ticket });
+    return NextResponse.json({ message: "Support ticket updated successfully.", ticket });
   } catch (error) {
     console.error(error);
     return NextResponse.json(
-      { error: "التذكرة غير موجودة أو حدث خطأ" },
+      { error: "Support ticket not found or an error occurred." },
       { status: 404 }
     );
   }
@@ -76,11 +76,11 @@ export async function DELETE(
 if (!user) return unauthorizedResponse();
     const { id } = await params;
     await prisma.ticket.delete({ where: { id } });
-    return NextResponse.json({ message: "تم حذف التذكرة بنجاح" });
+    return NextResponse.json({ message: "Support ticket deleted successfully." });
   } catch (error) {
     console.error(error);
     return NextResponse.json(
-      { error: "التذكرة غير موجودة أو حدث خطأ" },
+      { error: "Support ticket not found or an error occurred." },
       { status: 404 }
     );
   }

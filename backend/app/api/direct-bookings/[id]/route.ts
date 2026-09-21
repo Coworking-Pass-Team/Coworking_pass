@@ -42,7 +42,7 @@ export async function GET(
 
     if (!booking) {
       return NextResponse.json(
-        { error: 'الحجز غير موجود' },
+        { error: 'Booking not found.' },
         { status: 404 }
       );
     }
@@ -51,7 +51,7 @@ export async function GET(
   } catch (error) {
     console.error(' Error fetching direct booking:', error);
     return NextResponse.json(
-      { error: 'حدث خطأ في جلب تفاصيل الحجز' },
+      { error: 'Failed to fetch booking details.' },
       { status: 500 }
     );
   }
@@ -118,7 +118,7 @@ export async function PUT(
   } catch (error) {
     console.error(' Error updating direct booking:', error);
     return NextResponse.json(
-      { error: 'حدث خطأ في تحديث الحجز' },
+      { error: 'Failed to update booking.' },
       { status: 500 }
     );
   }
@@ -163,7 +163,7 @@ export async function DELETE(
 
     if (!booking) {
       return NextResponse.json(
-        { error: 'الحجز غير موجود' },
+        { error: 'Booking not found.' },
         { status: 404 }
       );
     }
@@ -178,7 +178,7 @@ export async function DELETE(
       if (hoursDiff < requiredHours) {
         return NextResponse.json(
           {
-            error: `لا يمكن الإلغاء. يجب الإلغاء قبل ${requiredHours} ساعة على الأقل من موعد الحجز`,
+            error: `Cancellation not allowed. Must cancel at least ${requiredHours} hours before booking time.`,
           },
           { status: 400 }
         );
@@ -200,8 +200,8 @@ export async function DELETE(
       data: {
         userId: booking.userId,
         type: 'BOOKING_CANCELLED',
-        title: 'تم إلغاء حجزك',
-        message: `تم إلغاء حجزك رقم ${booking.id.slice(0, 8)} بنجاح`,
+        title: 'Booking Cancelled',
+        message: `Booking #${booking.id.slice(0, 8)} cancelled successfully.`,
         channel: 'IN_APP',
         sentAt: new Date()
       }
@@ -228,24 +228,24 @@ export async function DELETE(
         data: {
           userId: nextInWaitlist.userId,
           type: 'WAITLIST_PROMOTED',
-          title: 'تم تأكيد حجزك من قائمة الانتظار',
-          message: 'توفر مكان وتم تأكيد حجزك تلقائياً',
+          title: 'Booking Confirmed from Waitlist',
+          message: 'A spot became available and your booking was automatically confirmed.',
           channel: 'IN_APP',
           sentAt: new Date()
         }
       });
 
-      promotedMessage = ' وتم ترقية أول مستخدم من قائمة الانتظار تلقائياً';
+      promotedMessage = ' and first waitlisted user was automatically promoted.';
     }
 
     return NextResponse.json(
-      { message: `تم إلغاء الحجز بنجاح${promotedMessage}`, booking: updated },
+      { message: `Booking cancelled successfully.${promotedMessage}`, booking: updated },
       { status: 200 }
     );
   } catch (error) {
     console.error(' Error cancelling direct booking:', error);
     return NextResponse.json(
-      { error: 'حدث خطأ في الإلغاء' },
+      { error: 'Failed to cancel.' },
       { status: 500 }
     );
   }

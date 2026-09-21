@@ -33,37 +33,37 @@ export async function POST(request: Request) {
     const { email, password } = await request.json();
 
     if (!email || !password) {
-      return NextResponse.json({ error: "الإيميل وكلمة المرور مطلوبان" }, { status: 400 });
+      return NextResponse.json({ error: "Email and password are required." }, { status: 400 });
     }
 
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
-      return NextResponse.json({ error: "بيانات الدخول غير صحيحة" }, { status: 401 });
+      return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
     if (!isPasswordValid) {
-      return NextResponse.json({ error: "بيانات الدخول غير صحيحة" }, { status: 401 });
+      return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
     }
 
     if (user.isBanned) {
-      return NextResponse.json({ error: "تم حظر هذا الحساب، يرجى التواصل مع إدارة المنصة" }, { status: 403 });
+      return NextResponse.json({ error: "This account has been suspended. Please contact platform support." }, { status: 403 });
     }
 
-    // التحقق من حالة مزود المساحة (هل تم اعتماده من السوبر أدمن)
+    // Check space provider approval status
     if (user.role === "PARTNER_ADMIN") {
       const partner = await prisma.partner.findFirst({
         where: { contactEmail: { equals: user.email, mode: "insensitive" } },
       });
       if (partner && partner.status === "PENDING_APPROVAL") {
         return NextResponse.json({
-          error: "حساب مزود المساحة قيد المراجعة والتحقق من قبل إدارة المنصة. سيتم إشعارك عبر البريد الإلكتروني فور اعتماده لتتمكن من تسجيل الدخول.",
+          error: "Your partner account is currently under review by platform administrators. You will receive an email confirmation once approved.",
           code: "PARTNER_PENDING_APPROVAL",
         }, { status: 403 });
       }
       if (partner && partner.status === "REJECTED") {
         return NextResponse.json({
-          error: "عذراً، تم رفض طلب انضمام مزود المساحة من قبل الإدارة. يرجى التواصل مع فريق الدعم الفني لمزيد من التفاصيل.",
+          error: "Your partner registration request has been declined. Please contact support for further assistance.",
           code: "PARTNER_REJECTED",
         }, { status: 403 });
       }
@@ -84,11 +84,11 @@ export async function POST(request: Request) {
     await sendOtpEmail(email, otp);
 
     return NextResponse.json({
-      message: "تم إرسال رمز التحقق إلى إيميلك",
+      message: "Verification code sent to your email address.",
       userId: user.id,
     });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "حدث خطأ في السيرفر" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }

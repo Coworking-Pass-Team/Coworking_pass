@@ -30,7 +30,7 @@ export async function GET(request: Request) {
     return NextResponse.json(companies);
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "حدث خطأ في السيرفر" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }
 /**
@@ -71,19 +71,19 @@ export async function POST(request: Request) {
 
     if (!companyName || !hrAdminId) {
       return NextResponse.json(
-        { error: "الحقول المطلوبة: companyName, hrAdminId" },
+        { error: "Required fields: companyName, hrAdminId" },
         { status: 400 }
       );
     }
 
     const userExists = await prisma.user.findUnique({ where: { id: hrAdminId } });
     if (!userExists) {
-      return NextResponse.json({ error: "المستخدم (hrAdminId) غير موجود" }, { status: 404 });
+      return NextResponse.json({ error: "User (hrAdminId) not found." }, { status: 404 });
     }
 
     if (userExists.role !== "HR_ADMIN") {
       return NextResponse.json(
-        { error: "هذا المستخدم دوره ليس HR_ADMIN" },
+        { error: "This user role is not HR_ADMIN." },
         { status: 400 }
       );
     }
@@ -119,11 +119,11 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json(
-      { message: existingCompany ? "تم تحديث الشركة بنجاح" : "تم إنشاء الشركة بنجاح", company },
+      { message: existingCompany ? "Company updated successfully." : "Company created successfully.", company },
       { status: existingCompany ? 200 : 201 }
     );
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "حدث خطأ في السيرفر" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }

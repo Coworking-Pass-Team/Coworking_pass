@@ -25,7 +25,7 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('❌ Error fetching loyalty points:', error)
     return NextResponse.json(
-      { error: 'حدث خطأ في جلب نقاط الولاء' },
+      { error: 'Failed to fetch loyalty points.' },
       { status: 500 }
     )
   }
@@ -61,7 +61,7 @@ if (!user) return unauthorizedResponse();
 
     if (!userId) {
       return NextResponse.json(
-        { error: 'معرف المستخدم مطلوب' },
+        { error: 'User ID is required.' },
         { status: 400 }
       )
     }
@@ -82,7 +82,7 @@ if (!user) return unauthorizedResponse();
   } catch (error) {
     console.error('❌ Error creating loyalty points:', error)
     return NextResponse.json(
-      { error: 'حدث خطأ في إنشاء نقاط الولاء' },
+      { error: 'Failed to create loyalty points.' },
       { status: 500 }
     )
   }

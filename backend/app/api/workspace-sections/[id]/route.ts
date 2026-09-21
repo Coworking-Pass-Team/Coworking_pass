@@ -45,11 +45,11 @@ if (!user) return unauthorizedResponse();
       data,
     });
 
-    return NextResponse.json({ message: "تم تعديل القسم بنجاح", section });
+    return NextResponse.json({ message: "Section updated successfully.", section });
   } catch (error) {
     console.error(error);
     return NextResponse.json(
-      { error: "القسم غير موجود أو حدث خطأ" },
+      { error: "Section not found or an error occurred." },
       { status: 404 }
     );
   }
@@ -65,11 +65,11 @@ export async function DELETE(
 if (!user) return unauthorizedResponse();
     const { id } = await params;
     await prisma.workspaceSection.delete({ where: { id } });
-    return NextResponse.json({ message: "تم حذف القسم بنجاح" });
+    return NextResponse.json({ message: "Section deleted successfully." });
   } catch (error) {
     console.error(error);
     return NextResponse.json(
-      { error: "القسم غير موجود أو حدث خطأ" },
+      { error: "Section not found or an error occurred." },
       { status: 404 }
     );
   }

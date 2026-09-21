@@ -50,7 +50,7 @@ export async function POST(
     // التحقق من الصلاحيات
     if (user && user.role !== 'HR_ADMIN' && user.role !== 'SUPER_ADMIN') {
       return NextResponse.json(
-        { error: 'غير مصرح. فقط مدير الموارد البشرية أو المدير العام' },
+        { error: 'Unauthorized. Only HR Admin or Super Admin permitted.' },
         { status: 403 }
       );
     }
@@ -60,7 +60,7 @@ export async function POST(
 
     if (!amount || amount <= 0) {
       return NextResponse.json(
-        { error: 'المبلغ مطلوب ويجب أن يكون أكبر من صفر' },
+        { error: 'Amount is required and must be greater than zero.' },
         { status: 400 }
       )
     }
@@ -72,7 +72,7 @@ export async function POST(
 
     if (!company) {
       return NextResponse.json(
-        { error: 'الشركة غير موجودة' },
+        { error: 'Company not found.' },
         { status: 404 }
       )
     }
@@ -84,7 +84,7 @@ export async function POST(
     })
 
     return NextResponse.json({
-      message: 'تم الإيداع بنجاح',
+      message: 'Deposit successful.',
       company: {
         id: updatedCompany.id,
         companyName: updatedCompany.companyName,
@@ -95,7 +95,7 @@ export async function POST(
   } catch (error) {
     console.error('❌ Error depositing:', error)
     return NextResponse.json(
-      { error: 'حدث خطأ في الإيداع' },
+      { error: 'Failed to deposit into company wallet.' },
       { status: 500 }
     )
   }

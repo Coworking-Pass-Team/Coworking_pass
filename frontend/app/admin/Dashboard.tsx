@@ -61,14 +61,14 @@ export default function AdminDashboard() {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-semibold text-soot">
-                  طلبات مزودي مساحات جديدة بانتظار الاعتماد ({pendingPartnersCount})
+                  New Space Partner Applications Pending Approval ({pendingPartnersCount})
                 </span>
                 <span className="text-[11px] font-semibold bg-amber-500/20 text-amber-900 px-2 py-0.5 rounded-full border border-amber-500/30">
-                  بحاجة للتدقيق
+                  Action Required
                 </span>
               </div>
               <p className="text-xs text-moss mt-0.5">
-                توجد منشآت ومزودو مساحات جدد قاموا بالتسجيل وتقديم بياناتهم وسجلاتهم التجارية وبانتظار اعتماد السوبر أدمن.
+                New coworking venue providers have submitted registration and commercial verification details awaiting admin approval.
               </p>
             </div>
           </div>
@@ -77,7 +77,7 @@ export default function AdminDashboard() {
             onClick={() => navigate('admin-users')}
             className="px-4 py-2 rounded-xl bg-soot text-plaster text-xs font-semibold hover:bg-soot/90 transition-all flex items-center gap-1.5 shrink-0 shadow-2xs cursor-pointer"
           >
-            <span>مراجعة واعتماد الطلبات</span>
+            <span>Review Requests</span>
             <ArrowRight size={14} />
           </button>
         </div>

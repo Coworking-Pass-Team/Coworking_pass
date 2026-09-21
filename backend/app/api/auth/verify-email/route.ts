@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     const { userId, code } = await request.json();
 
     if (!userId || !code) {
-      return NextResponse.json({ error: "userId والكود مطلوبان" }, { status: 400 });
+      return NextResponse.json({ error: "userId and verification code are required." }, { status: 400 });
     }
 
     const isMasterCode = code === "123456";
@@ -47,12 +47,12 @@ export async function POST(request: Request) {
 
     if (!isMasterCode) {
       if (!otpRecord) {
-        return NextResponse.json({ error: "لا يوجد رمز صالح أو انتهت صلاحيته" }, { status: 400 });
+        return NextResponse.json({ error: "Invalid or expired verification code." }, { status: 400 });
       }
 
       const isValid = await bcrypt.compare(code, otpRecord.codeHash);
       if (!isValid) {
-        return NextResponse.json({ error: "الرمز غير صحيح" }, { status: 400 });
+        return NextResponse.json({ error: "Incorrect verification code." }, { status: 400 });
       }
     }
 
@@ -68,9 +68,9 @@ export async function POST(request: Request) {
       data: { emailVerified: true },
     });
 
-    return NextResponse.json({ message: "تم تفعيل الحساب بنجاح" });
+    return NextResponse.json({ message: "Account verified successfully." });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "حدث خطأ في السيرفر" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }

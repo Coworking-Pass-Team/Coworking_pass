@@ -19,7 +19,7 @@ export async function PUT(
     });
 
     if (!existingPartner) {
-      return NextResponse.json({ error: "الشريك غير موجود" }, { status: 404 });
+      return NextResponse.json({ error: "Partner not found." }, { status: 404 });
     }
 
     const partner = await prisma.partner.update({
@@ -27,12 +27,12 @@ export async function PUT(
       data,
     });
 
-    // إذا تحولت الحالة إلى APPROVED
+    // If status changed to APPROVED
     if (data.status === "APPROVED" && existingPartner.status !== "APPROVED") {
-      // إرسال بريد إلكتروني رسمي للمزود
+      // Send official email
       await sendPartnerApprovalEmail(partner.contactEmail, partner.brandName);
 
-      // إنشاء إشعار داخلي للمستخدم
+      // Create in-app notification
       const partnerUser = await prisma.user.findFirst({
         where: { email: { equals: partner.contactEmail, mode: "insensitive" } },
       });
@@ -41,24 +41,24 @@ export async function PUT(
           data: {
             userId: partnerUser.id,
             type: "PARTNER_APPROVED",
-            title: "تم اعتماد حسابك بنجاح",
-            message: `تهانينا! تم اعتماد منشأتكم "${partner.brandName}" بنجاح من قبل إدارة المنصة. يمكنك الآن تسجيل الدخول وإضافة مساحات العمل.`,
+            title: "Partner Account Approved",
+            message: `Congratulations! Your venue "${partner.brandName}" has been approved by platform administration. You may now log in and add workspaces.`,
             channel: "BOTH",
           },
         }).catch(() => {});
       }
     }
 
-    // إذا تحولت الحالة إلى REJECTED
+    // If status changed to REJECTED
     if (data.status === "REJECTED" && existingPartner.status !== "REJECTED") {
       await sendPartnerRejectionEmail(partner.contactEmail, partner.brandName, rejectionReason);
     }
 
-    return NextResponse.json({ message: "تم تحديث بيانات الشريك بنجاح", partner });
+    return NextResponse.json({ message: "Partner updated successfully.", partner });
   } catch (error) {
     console.error(error);
     return NextResponse.json(
-      { error: "الشريك غير موجود أو حدث خطأ أثناء التحديث" },
+      { error: "Partner not found or error occurred during update." },
       { status: 500 }
     );
   }
@@ -75,11 +75,11 @@ if (!user) return unauthorizedResponse();
 
     await prisma.partner.delete({ where: { id } });
 
-    return NextResponse.json({ message: "تم حذف الشريك بنجاح" });
+    return NextResponse.json({ message: "Partner deleted successfully." });
   } catch (error) {
     console.error(error);
     return NextResponse.json(
-      { error: "الشريك غير موجود أو حدث خطأ" },
+      { error: "Partner not found or an error occurred." },
       { status: 404 }
     );
   }

@@ -404,7 +404,7 @@ export default function UsersAdmin() {
               <div className="space-y-0.5">
                 {[
                   { value: '', label: 'All Roles' },
-                  { value: 'pending', label: 'Pending Approvals (قيد الاعتماد)' },
+                  { value: 'pending', label: 'Pending Approvals' },
                   { value: 'individual', label: 'Individual Member' },
                   { value: 'organization', label: 'Organization (B2B)' },
                   { value: 'provider', label: 'Space Partner' },
@@ -633,7 +633,7 @@ export default function UsersAdmin() {
                         type="button"
                         onClick={async (e) => {
                           e.stopPropagation();
-                          const reason = prompt('سبب رفض طلب مزود المساحة (اختياري):');
+                          const reason = prompt('Reason for rejecting partner application (optional):');
                           if (reason !== null) {
                             const pId = partner?.id || u.id.replace('partner-', '');
                             await rejectPartner(pId, reason);
@@ -956,10 +956,10 @@ export default function UsersAdmin() {
                           label: 'Verification Status',
                           value:
                             getPartnerEffectiveStatus(selectedUser) === 'PENDING_APPROVAL'
-                              ? 'Pending Admin Verification (قيد المراجعة)'
+                              ? 'Pending Admin Verification'
                               : getPartnerEffectiveStatus(selectedUser) === 'REJECTED'
-                              ? 'Rejected (مرفوض)'
-                              : 'Approved Partner (معتمد)',
+                              ? 'Rejected'
+                              : 'Approved Partner',
                           icon: CheckCircle2,
                         },
                       ]
@@ -1001,12 +1001,12 @@ export default function UsersAdmin() {
                     className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
                   >
                     <Check size={16} />
-                    <span>Approve Partner (اعتماد)</span>
+                    <span>Approve Partner</span>
                   </button>
                   <button
                     type="button"
                     onClick={async () => {
-                      const reason = prompt('سبب رفض طلب مزود المساحة (اختياري):');
+                      const reason = prompt('Reason for rejecting partner application (optional):');
                       if (reason !== null) {
                         const pId = getPartnerForUser(selectedUser)?.id || selectedUser.id.replace('partner-', '');
                         await rejectPartner(pId, reason);
@@ -1017,7 +1017,7 @@ export default function UsersAdmin() {
                     className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-rose-600 text-white hover:bg-rose-700 shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
                   >
                     <X size={16} />
-                    <span>Reject (رفض)</span>
+                    <span>Reject Application</span>
                   </button>
                 </>
               )}

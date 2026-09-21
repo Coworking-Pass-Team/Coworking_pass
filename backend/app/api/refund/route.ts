@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
 
     if (!bookingId || !userId) {
       return NextResponse.json(
-        { error: 'معرف الحجز والمستخدم مطلوبان' },
+        { error: 'Booking ID and User ID are required.' },
         { status: 400 }
       )
     }
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
 
     if (!booking) {
       return NextResponse.json(
-        { error: 'الحجز غير موجود' },
+        { error: 'Booking not found.' },
         { status: 404 }
       )
     }
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
     // 2. التحقق من أن الحجز قابل للاسترجاع
     if (booking.status === 'REFUNDED') {
       return NextResponse.json(
-        { error: 'تم استرجاع هذا الحجز مسبقاً' },
+        { error: 'This booking has already been refunded.' },
         { status: 400 }
       )
     }
@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error(' Error processing refund:', error)
     return NextResponse.json(
-      { error: 'حدث خطأ في عملية الاسترجاع' },
+      { error: 'Failed to process refund.' },
       { status: 500 }
     )
   }

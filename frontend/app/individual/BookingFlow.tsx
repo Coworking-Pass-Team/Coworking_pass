@@ -998,7 +998,7 @@ export default function BookingFlow() {
                   <div>
                     <h4 className="text-xs font-semibold uppercase tracking-wider text-moss flex items-center gap-1.5">
                       <Clock size={13} />
-                      <span>{isHourlySpace ? 'Select 2-Hour Daily Session (حجز ساعتين)' : 'Specify Reservation Date & Time'}</span>
+                      <span>{isHourlySpace ? 'Select 2-Hour Daily Session' : 'Specify Reservation Date & Time'}</span>
                     </h4>
                     <p className="text-xs text-moss mt-0.5">
                       {isHourlySpace
@@ -1015,7 +1015,7 @@ export default function BookingFlow() {
                   <div>
                     <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-2 flex items-center gap-1.5">
                       <Clock size={13} />
-                      <span>{isHourlySpace ? 'Session Start Time (وقت البدء)' : 'Start Time'}</span>
+                      <span>{isHourlySpace ? 'Session Start Time' : 'Start Time'}</span>
                     </label>
                     <select
                       value={startTime}
@@ -1033,7 +1033,7 @@ export default function BookingFlow() {
                   <div>
                     <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-2 flex items-center gap-1.5">
                       <Clock size={13} />
-                      <span>{isHourlySpace ? 'Session End Time (وقت النهاية)' : 'End Time'}</span>
+                      <span>{isHourlySpace ? 'Session End Time' : 'End Time'}</span>
                     </label>
                     {isHourlySpace ? (
                       <input

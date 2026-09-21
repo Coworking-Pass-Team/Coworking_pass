@@ -32,7 +32,7 @@ if (!user) return unauthorizedResponse();
     return NextResponse.json(waitlist)
   } catch (error) {
     return NextResponse.json(
-      { error: 'حدث خطأ في جلب طابور الانتظار' },
+      { error: 'Failed to fetch waitlist.' },
       { status: 500 }
     )
   }
@@ -48,7 +48,7 @@ if (!user) return unauthorizedResponse();
 
     if (!userId || !workspaceId || !sectionId || !durationType || !bookingDate) {
       return NextResponse.json(
-        { error: 'جميع الحقول مطلوبة' },
+        { error: 'All fields are required.' },
         { status: 400 }
       )
     }
@@ -65,7 +65,7 @@ if (!user) return unauthorizedResponse();
 
     if (existingBooking) {
       return NextResponse.json(
-        { error: 'لديك حجز نشط أو قيد الانتظار في هذه المساحة' },
+        { error: 'You already have an active or pending reservation for this workspace.' },
         { status: 409 }
       )
     }
@@ -89,7 +89,7 @@ if (!user) return unauthorizedResponse();
     return NextResponse.json(waitlist, { status: 201 })
   } catch (error) {
     return NextResponse.json(
-      { error: 'حدث خطأ في إضافة طلب الانتظار' },
+      { error: 'Failed to join waitlist.' },
       { status: 500 }
     )
   }

@@ -59,7 +59,7 @@ if (!user) return unauthorizedResponse();
   } catch (error) {
     console.error('❌ Error updating rule:', error)
     return NextResponse.json(
-      { error: 'حدث خطأ في تحديث القاعدة' },
+      { error: 'Failed to update loyalty rule.' },
       { status: 500 }
     )
   }
@@ -77,13 +77,13 @@ if (!user) return unauthorizedResponse();
       where: { id }
     })
     return NextResponse.json(
-      { message: 'تم حذف القاعدة بنجاح' },
+      { message: 'Loyalty rule deleted successfully.' },
       { status: 200 }
     )
   } catch (error) {
     console.error('❌ Error deleting rule:', error)
     return NextResponse.json(
-      { error: 'حدث خطأ في حذف القاعدة' },
+      { error: 'Failed to delete loyalty rule.' },
       { status: 500 }
     )
   }

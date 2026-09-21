@@ -30,7 +30,7 @@ if (!user) return unauthorizedResponse();
 
     if (!transactionId || !amount || !userId) {
       return NextResponse.json(
-        { error: 'جميع الحقول مطلوبة' },
+        { error: 'All fields are required.' },
         { status: 400 }
       )
     }
@@ -43,7 +43,7 @@ if (!user) return unauthorizedResponse();
 
     return NextResponse.json({
       success: true,
-      message: `تم قبول طلب الاسترجاع. سيتم المعالجة خلال ${processingDays} أيام عمل`,
+      message: `Refund request approved. Processing takes ${processingDays} business days.`,
       transactionId,
       status: 'PENDING',
       estimatedCompletion: new Date(Date.now() + processingDays * 24 * 60 * 60 * 1000)
@@ -52,7 +52,7 @@ if (!user) return unauthorizedResponse();
   } catch (error) {
     console.error('❌ Error processing gateway refund:', error)
     return NextResponse.json(
-      { error: 'حدث خطأ في التواصل مع بوابة الدفع' },
+      { error: 'Failed to connect to payment gateway.' },
       { status: 500 }
     )
   }

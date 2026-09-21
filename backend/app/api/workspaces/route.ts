@@ -95,7 +95,7 @@ export async function GET(request: Request) {
     return NextResponse.json(formatted);
   } catch (error: any) {
     console.error(error);
-    return NextResponse.json({ error: "حدث خطأ في السيرفر", details: error?.message || String(error) }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error.", details: error?.message || String(error) }, { status: 500 });
   }
 }
 
@@ -163,7 +163,7 @@ export async function POST(request: Request) {
 
     if (!name || !city) {
       return NextResponse.json(
-        { error: "الحقول المطلوبة: name, city" },
+        { error: "Required fields: name, city" },
         { status: 400 }
       );
     }
@@ -220,13 +220,13 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json(
-      { message: "تم إنشاء مساحة العمل بنجاح", workspace: { ...workspace, amenities: amenities || [] } },
+      { message: "Workspace created successfully.", workspace: { ...workspace, amenities: amenities || [] } },
       { status: 201 }
     );
   } catch (error) {
     console.error(error);
     return NextResponse.json(
-      { error: "حدث خطأ في السيرفر" },
+      { error: "Internal server error." },
       { status: 500 }
     );
   }
