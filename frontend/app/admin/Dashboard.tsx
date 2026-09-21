@@ -20,10 +20,11 @@ import { useApp } from '@/app/store';
 import { getBookingPrice } from '@/types/types';
 
 export default function AdminDashboard() {
-  const { spaces, users, bookings, loyaltyRules, navigate, partners, fetchPartners } = useApp();
+  const { spaces, users, bookings, loyaltyRules, navigate, partners, fetchPartners, fetchUsers } = useApp();
 
   React.useEffect(() => {
     fetchPartners().catch(() => {});
+    if (fetchUsers) fetchUsers().catch(() => {});
   }, []);
 
   const pendingPartnersCount = partners.filter((p) => p.status === 'PENDING_APPROVAL').length;
@@ -74,7 +75,7 @@ export default function AdminDashboard() {
           </div>
           <button
             type="button"
-            onClick={() => navigate('admin-users')}
+            onClick={() => navigate('admin-users', { filter: 'pending' })}
             className="px-4 py-2 rounded-xl bg-soot text-plaster text-xs font-semibold hover:bg-soot/90 transition-all flex items-center gap-1.5 shrink-0 shadow-2xs cursor-pointer"
           >
             <span>Review Requests</span>

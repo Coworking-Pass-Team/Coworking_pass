@@ -123,6 +123,20 @@ async function fetchPartnersFromApi(token?: string): Promise<Partner[]> {
   }
 }
 
+async function fetchUsersFromApi(token?: string): Promise<any[]> {
+  try {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    const storedToken = token || getStoredToken();
+    if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+    const response = await fetch(`${getApiBaseUrl()}/users`, { method: 'GET', headers });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return Array.isArray(data) ? data : [];
+  } catch (error: any) {
+    return [];
+  }
+}
+
 async function fetchWorkspacesFromApi(token?: string): Promise<WorkspaceApi[]> {
   try {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -477,6 +491,7 @@ interface AppContextType {
   generateFakeNotification: (presetType?: string, customTitle?: string, customMessage?: string) => Notification;
 
   users: User[];
+  fetchUsers: () => Promise<User[]>;
   blockUser: (id: string) => void;
   unblockUser: (id: string) => void;
   changeUserRole: (id: string, role: UserRole) => void;
@@ -1913,13 +1928,76 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return supportTickets;
   };
 
+  const fetchUsers = async (): Promise<User[]> => {
+    try {
+      const data = await fetchUsersFromApi();
+      if (Array.isArray(data) && data.length > 0) {
+        const mappedUsers: User[] = data.map((u: any) => {
+          let role: UserRole = 'individual';
+          if (u.role === 'SUPER_ADMIN') role = 'admin';
+          else if (u.role === 'PARTNER_ADMIN') role = 'provider';
+          else if (u.role === 'HR_ADMIN') role = 'organization';
+          else if (u.role === 'INDIVIDUAL') role = 'individual';
+
+          return {
+            id: u.id,
+            name: u.name || 'User',
+            email: u.email,
+            password: '',
+            role,
+            phone: '+966 50 000 0000',
+            avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=120&h=120&fit=crop&crop=faces',
+            isBlocked: !!u.isBanned,
+            joinDate: '2026-09-21',
+            companyId: u.companyId,
+            orgName: u.company?.companyName,
+          };
+        });
+
+        setUsers((prev) => {
+          const map = new Map<string, User>();
+          prev.forEach((u) => {
+            if (u.email) map.set(u.email.toLowerCase(), u);
+          });
+          mappedUsers.forEach((u) => {
+            if (u.email) {
+              const existing = map.get(u.email.toLowerCase());
+              map.set(u.email.toLowerCase(), {
+                ...existing,
+                ...u,
+                role: existing?.role || u.role,
+                isBlocked: existing?.isBlocked !== undefined ? existing.isBlocked : u.isBlocked,
+              });
+            }
+          });
+          const merged = Array.from(map.values());
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('cp_users', JSON.stringify(merged));
+          }
+          return merged;
+        });
+      }
+      return users;
+    } catch (err) {
+      console.error('Failed to fetch users from /api/users:', err);
+      return users;
+    }
+  };
+
   const fetchPartners = async (): Promise<Partner[]> => {
     try {
       const data = await fetchPartnersFromApi();
       if (Array.isArray(data) && data.length > 0) {
         setPartners((prev) => {
-          const map = new Map(prev.map((p) => [p.contactEmail.toLowerCase(), p]));
-          data.forEach((p) => map.set(p.contactEmail.toLowerCase(), p));
+          const map = new Map<string, Partner>();
+          prev.forEach((p) => {
+            const key = p.id || (p.contactEmail ? p.contactEmail.trim().toLowerCase() : '');
+            if (key) map.set(key, p);
+          });
+          data.forEach((p) => {
+            const key = p.id || (p.contactEmail ? p.contactEmail.trim().toLowerCase() : '');
+            if (key) map.set(key, p);
+          });
           const merged = Array.from(map.values());
           if (typeof window !== 'undefined') {
             localStorage.setItem('cp_partners', JSON.stringify(merged));
@@ -2686,10 +2764,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const res = await updatePartner(partnerId, { status: 'APPROVED' });
       if (res.success) {
         const targetPartner = partners.find((p) => p.id === partnerId);
-        if (targetPartner) {
+        if (targetPartner && targetPartner.contactEmail) {
+          const targetEmail = targetPartner.contactEmail.trim().toLowerCase();
           setUsers((prev) => {
             const updatedUsers = prev.map((u) =>
-              u.email.toLowerCase() === targetPartner.contactEmail.toLowerCase()
+              (u.email || '').trim().toLowerCase() === targetEmail
                 ? { ...u, partnerStatus: 'APPROVED' as ApprovalStatus }
                 : u
             );
@@ -2713,10 +2792,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const res = await updatePartner(partnerId, { status: 'REJECTED', rejectionReason: reason });
       if (res.success) {
         const targetPartner = partners.find((p) => p.id === partnerId);
-        if (targetPartner) {
+        if (targetPartner && targetPartner.contactEmail) {
+          const targetEmail = targetPartner.contactEmail.trim().toLowerCase();
           setUsers((prev) => {
             const updatedUsers = prev.map((u) =>
-              u.email.toLowerCase() === targetPartner.contactEmail.toLowerCase()
+              (u.email || '').trim().toLowerCase() === targetEmail
                 ? { ...u, partnerStatus: 'REJECTED' as ApprovalStatus }
                 : u
             );
@@ -2740,10 +2820,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     fetchMembershipPlans().catch(() => {});
     fetchAmenities().catch(() => {});
     fetchLoyaltyRules().catch(() => {});
+    fetchPartners().catch(() => {});
+    fetchUsers().catch(() => {});
 
     const storedToken = getStoredToken();
     if (storedToken) {
-      fetchPartners().catch(() => {});
       fetchHourlyBookings().catch(() => {});
       fetchPayouts().catch(() => {});
       fetchSubscriptions().catch(() => {});
@@ -2923,9 +3004,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (currentUser && (currentUser.role === 'provider' || currentUser.role === 'admin')) {
-      const userEmail = currentUser.email?.toLowerCase();
-      const matchedPartner = partners.find(p => p.contactEmail?.toLowerCase() === userEmail);
+    if (currentUser && currentUser.role === 'provider') {
+      const userEmail = (currentUser.email || '').toLowerCase();
+      const matchedPartner = partners.find(p => (p.contactEmail || '').toLowerCase() === userEmail);
       if (matchedPartner && (!currentUser.businessName || !currentUser.crNumber)) {
         const updatedUser: User = {
           ...currentUser,
@@ -2940,7 +3021,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       const storedToken = getStoredToken();
       if (storedToken) {
-        const exists = partners.some(p => p.contactEmail?.toLowerCase() === userEmail);
+        const exists = partners.some(p => (p.contactEmail || '').toLowerCase() === userEmail);
         if (!exists && userEmail) {
           createPartner({
             brandName: (currentUser as any).businessName || currentUser.name || 'Venue Partner',
@@ -3135,7 +3216,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         createdAt: new Date().toISOString(),
       };
       setPartners((prev) => {
-        const list = prev.filter(p => p.contactEmail.toLowerCase() !== pendingPartner.contactEmail.toLowerCase());
+        const list = prev.filter(p => (p.contactEmail || '').toLowerCase() !== (pendingPartner.contactEmail || '').toLowerCase());
         const updated = [pendingPartner, ...list];
         if (typeof window !== 'undefined') localStorage.setItem('cp_partners', JSON.stringify(updated));
         return updated;
@@ -3324,7 +3405,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         createdAt: new Date().toISOString(),
       };
       setPartners((prev) => {
-        const list = prev.filter((p) => p.contactEmail.toLowerCase() !== pendingPartner.contactEmail.toLowerCase());
+        const list = prev.filter((p) => (p.contactEmail || '').toLowerCase() !== (pendingPartner.contactEmail || '').toLowerCase());
         const updatedList = [pendingPartner, ...list];
         if (typeof window !== 'undefined') localStorage.setItem('cp_partners', JSON.stringify(updatedList));
         return updatedList;
@@ -5457,7 +5538,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       notifications: userNotifications,
       unreadNotificationsCount: userNotifications.filter(n => !n.read).length,
       markNotificationRead, toggleNotificationRead, markAllNotificationsRead, deleteNotification, clearAllNotifications, addNotification, generateFakeNotification,
-      users, blockUser, unblockUser, changeUserRole,
+      users, fetchUsers, blockUser, unblockUser, changeUserRole,
       waitlist, autobooking, autobookingCard, joinWaitlist, leaveWaitlist, enableAutoBooking, disableAutoBooking,
       addPaymentCard,
       cart, isCartOpen, setIsCartOpen, openCart, closeCart, addToCart, removeFromCart, updateCartItemSeats, updateCartItem, clearCart, checkoutCart,

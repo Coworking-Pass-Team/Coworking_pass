@@ -43,7 +43,9 @@ const ROW_ROLES: { value: UserRole; label: string }[] = [
 
 export default function UsersAdmin() {
   const {
+    nav,
     users,
+    fetchUsers,
     blockUser,
     unblockUser,
     changeUserRole,
@@ -55,8 +57,16 @@ export default function UsersAdmin() {
     rejectPartner,
   } = useApp();
   const [query, setQuery] = useState('');
-  const [filterRole, setFilterRole] = useState<string>('');
+  const [filterRole, setFilterRole] = useState<string>(() => {
+    return nav?.params?.filter === 'pending' ? 'pending' : '';
+  });
   const [filterStatus, setFilterStatus] = useState<string>('');
+
+  useEffect(() => {
+    if (nav?.params?.filter === 'pending') {
+      setFilterRole('pending');
+    }
+  }, [nav?.params]);
 
   // Dropdown States for Filters
   const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
@@ -103,18 +113,20 @@ export default function UsersAdmin() {
 
   useEffect(() => {
     fetchPartners().catch(() => {});
+    if (fetchUsers) fetchUsers().catch(() => {});
   }, []);
 
-  // دمج شركاء قاعدة البيانات الحقيقيين مع قائمة المستخدمين تلقائياً
+  // Safely merge database partners with users directory
   const displayUsers = useMemo(() => {
     const list = [...users];
     partners.forEach((p) => {
-      const existingIdx = list.findIndex((u) => u.email.toLowerCase() === p.contactEmail.toLowerCase());
+      const pEmail = (p.contactEmail || '').trim().toLowerCase();
+      const existingIdx = pEmail ? list.findIndex((u) => (u.email || '').trim().toLowerCase() === pEmail) : -1;
       if (existingIdx === -1) {
         list.push({
-          id: `partner-${p.id}`,
-          name: p.brandName,
-          email: p.contactEmail,
+          id: p.id ? `partner-${p.id}` : `partner-${Date.now()}`,
+          name: p.brandName || 'Space Partner',
+          email: p.contactEmail || '',
           password: '',
           role: 'provider',
           phone: '+966 50 000 0000',
@@ -128,6 +140,7 @@ export default function UsersAdmin() {
       } else {
         list[existingIdx] = {
           ...list[existingIdx],
+          role: list[existingIdx].role === 'admin' ? 'admin' : (list[existingIdx].role || 'provider'),
           businessName: p.brandName || list[existingIdx].businessName,
           crNumber: p.taxNumber || list[existingIdx].crNumber,
           partnerStatus: p.status || list[existingIdx].partnerStatus,
@@ -138,7 +151,9 @@ export default function UsersAdmin() {
   }, [users, partners]);
 
   const getPartnerForUser = (user: User) => {
-    return partners.find((p) => p.contactEmail?.toLowerCase() === user.email.toLowerCase());
+    const uEmail = (user.email || '').trim().toLowerCase();
+    if (!uEmail) return undefined;
+    return partners.find((p) => (p.contactEmail || '').trim().toLowerCase() === uEmail);
   };
 
   const getPartnerEffectiveStatus = (user: User) => {
@@ -146,7 +161,11 @@ export default function UsersAdmin() {
     return p?.status || user.partnerStatus || 'APPROVED';
   };
 
-  const pendingPartnersCount = partners.filter((p) => p.status === 'PENDING_APPROVAL').length;
+  const pendingPartners = useMemo(() => {
+    return partners.filter((p) => p.status === 'PENDING_APPROVAL');
+  }, [partners]);
+
+  const pendingPartnersCount = pendingPartners.length;
 
   const nonAdmins = displayUsers.filter((u) => u.role !== 'admin');
 
@@ -161,12 +180,12 @@ export default function UsersAdmin() {
       return false;
     }
 
-    const displayName = u.role === 'organization' ? u.orgName || u.name : (partner?.brandName || u.businessName || u.name);
+    const displayName = u.role === 'organization' ? u.orgName || u.name : (partner?.brandName || u.businessName || u.name || '');
     const q = query.trim().toLowerCase();
     if (
       q &&
       !displayName.toLowerCase().includes(q) &&
-      !u.email.toLowerCase().includes(q) &&
+      !(u.email || '').toLowerCase().includes(q) &&
       !(u.crNumber || partner?.taxNumber || '').toLowerCase().includes(q)
     ) {
       return false;
@@ -291,6 +310,90 @@ export default function UsersAdmin() {
           <span>Add User</span>
         </button>
       </div>
+
+      {/* Dedicated Pending Space Partner Applications Alert & Action Section */}
+      {pendingPartnersCount > 0 && (
+        <div className="bg-amber-500/10 border-2 border-amber-500/35 rounded-3xl p-6 shadow-xs space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-3.5">
+              <div className="w-11 h-11 rounded-2xl bg-amber-500/20 text-amber-900 flex items-center justify-center shrink-0 border border-amber-500/30">
+                <ShieldAlert size={22} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base font-bold text-soot">
+                    Pending Space Partner Applications
+                  </h2>
+                  <span className="px-2.5 py-0.5 rounded-full bg-amber-500 text-white text-xs font-bold shadow-2xs">
+                    {pendingPartnersCount} Action Required
+                  </span>
+                </div>
+                <p className="text-xs text-moss mt-0.5">
+                  The following coworking venue providers have submitted registration and commercial verification details awaiting platform approval.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-1">
+            {pendingPartners.map((partner) => (
+              <div
+                key={partner.id}
+                className="bg-white rounded-2xl p-5 border border-amber-500/25 shadow-xs flex flex-col justify-between space-y-3"
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-2 mb-1.5">
+                    <span className="font-bold text-base text-soot font-serif-display">
+                      {partner.brandName}
+                    </span>
+                    <span className="text-[10px] font-semibold bg-amber-500/15 text-amber-900 border border-amber-500/30 px-2 py-0.5 rounded-full shrink-0">
+                      Pending Review
+                    </span>
+                  </div>
+                  <div className="text-xs text-moss font-mono mb-2 truncate" title={partner.contactEmail}>
+                    {partner.contactEmail}
+                  </div>
+                  <div className="text-xs text-moss/90 flex items-center gap-1.5 bg-plaster-dark/40 px-3 py-1.5 rounded-xl border border-soot/5">
+                    <span className="font-medium">CR / Tax No:</span>
+                    <span className="font-mono font-bold text-soot">{partner.taxNumber || 'Not provided'}</span>
+                  </div>
+                  {partner.createdAt && (
+                    <div className="text-[11px] text-moss/70 mt-2">
+                      Submitted: {new Date(partner.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 pt-3 border-t border-soot/5">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await approvePartner(partner.id);
+                    }}
+                    className="flex-1 py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                  >
+                    <Check size={15} />
+                    <span>Approve Partner</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const reason = prompt('Reason for rejecting partner application (optional):');
+                      if (reason !== null) {
+                        await rejectPartner(partner.id, reason);
+                      }
+                    }}
+                    className="py-2.5 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                  >
+                    <X size={15} />
+                    <span>Reject</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Premium Elevated Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
