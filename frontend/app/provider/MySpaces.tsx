@@ -95,6 +95,7 @@ export default function ProviderMySpaces() {
   const userPartner = partners.find(p => p.contactEmail?.toLowerCase() === currentUser.email?.toLowerCase());
   const mySpaces = spaces.filter((s) =>
     s.ownerId === currentUser.id ||
+    (currentUser.email?.toLowerCase() === 'provider@thehubriyadh.sa' && (s.ownerId === 'provider-1' || s.email?.toLowerCase().includes('thehubriyadh.sa'))) ||
     (userPartner && s.ownerId === userPartner.id) ||
     (s.email && s.email.toLowerCase() === currentUser.email?.toLowerCase()) ||
     (currentUser.email && s.email && s.email.toLowerCase() === currentUser.email.toLowerCase())

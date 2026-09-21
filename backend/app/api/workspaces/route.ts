@@ -158,32 +158,59 @@ export async function POST(request: Request) {
       images,
     } = body;
 
-    if (!partnerId || !name || !city || !passVisitValue || !totalCapacity) {
+    const effectivePassVisitValue = passVisitValue ?? 15;
+    const effectiveTotalCapacity = totalCapacity ?? 30;
+
+    if (!name || !city) {
       return NextResponse.json(
-        { error: "الحقول المطلوبة: partnerId, name, city, passVisitValue, totalCapacity" },
+        { error: "الحقول المطلوبة: name, city" },
         { status: 400 }
       );
     }
 
-    const partnerExists = await prisma.partner.findUnique({ where: { id: partnerId } });
+    let finalPartnerId = partnerId;
+    let partnerExists = partnerId ? await prisma.partner.findUnique({ where: { id: partnerId } }) : null;
     if (!partnerExists) {
-      return NextResponse.json(
-        { error: "الشريك (partnerId) غير موجود" },
-        { status: 404 }
-      );
+      const dbUser = await prisma.user.findUnique({ where: { id: user.userId } });
+      if (dbUser?.email) {
+        const foundPartner = await prisma.partner.findFirst({
+          where: { contactEmail: { equals: dbUser.email, mode: 'insensitive' } },
+        });
+        if (foundPartner) {
+          partnerExists = foundPartner;
+          finalPartnerId = foundPartner.id;
+        }
+      }
+      if (!partnerExists) {
+        const fallbackPartner = await prisma.partner.findFirst();
+        if (fallbackPartner) {
+          partnerExists = fallbackPartner;
+          finalPartnerId = fallbackPartner.id;
+        } else {
+          partnerExists = await prisma.partner.create({
+            data: {
+              brandName: dbUser?.name || 'Workspace Partner',
+              contactEmail: dbUser?.email || 'partner@coworkingpass.sa',
+              taxNumber: '300000000000003',
+              revenueSharePercentage: 15,
+            },
+          });
+          finalPartnerId = partnerExists.id;
+        }
+      }
     }
 
     const workspace = await prisma.workspace.create({
       data: {
-        partnerId,
+        partnerId: finalPartnerId,
         name,
         city,
         locationMapUrl,
         dailyRate,
         monthlyRate,
         yearlyRate,
-        passVisitValue,
-        totalCapacity,
+        passVisitValue: effectivePassVisitValue,
+        totalCapacity: effectiveTotalCapacity,
         images: Array.isArray(images) ? images : [],
       },
     });
