@@ -8,7 +8,9 @@ export async function GET(request: Request) {
     const user = getTokenFromRequest(request);
 if (!user) return unauthorizedResponse();
 
-    const partners = await prisma.partner.findMany();
+    const partners = await prisma.partner.findMany({
+      orderBy: { createdAt: "desc" },
+    });
     return NextResponse.json(partners);
   } catch (error) {
     console.error(error);

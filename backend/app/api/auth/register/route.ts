@@ -111,18 +111,37 @@ export async function POST(request: Request) {
       }
     }
 
-    // إنشاء سجل الشريك لمزود المساحات
+    // إنشاء سجل الشريك لمزود المساحات بحالة بانتظار الاعتماد (PENDING_APPROVAL)
     if (assignedRole === "PARTNER_ADMIN") {
       const finalBrandName = (businessName || name || 'New Partner').trim();
+      const cleanCr = crNumber ? String(crNumber).trim() : '';
       try {
         await prisma.partner.create({
           data: {
             brandName: finalBrandName,
             contactEmail: cleanEmail,
-            taxNumber: (crNumber && String(crNumber).trim()) || '300000000000003',
+            taxNumber: cleanCr || '300000000000003',
             revenueSharePercentage: 15,
+            status: "PENDING_APPROVAL",
           },
         });
+
+        // إشعار السوبر أدمن بالطلب الجديد
+        const superAdmins = await prisma.user.findMany({
+          where: { role: "SUPER_ADMIN" },
+          select: { id: true },
+        });
+        for (const admin of superAdmins) {
+          await prisma.notification.create({
+            data: {
+              userId: admin.id,
+              type: "PARTNER_APPROVED",
+              title: "طلب انضمام مزود مساحة جديد",
+              message: `قدمت المنشأة "${finalBrandName}" (السجل التجاري: ${cleanCr || 'غير محدد'}) طلب انضمام جديد وهو قيد المراجعة والاعتماد.`,
+              channel: "IN_APP",
+            },
+          }).catch(() => {});
+        }
       } catch (partnerErr) {
         console.error("❌ Error creating partner for PARTNER_ADMIN on register:", partnerErr);
       }
