@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Warehouse,
   Settings,
@@ -48,22 +48,40 @@ export default function ProviderProfileSettings() {
   // Edit Profile Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
+  const isDemoProvider = currentUser.email?.toLowerCase() === 'provider@thehubriyadh.sa';
+  const effectiveBusinessName = currentUser.businessName || userPartner?.brandName || (isDemoProvider ? 'The Hub Riyadh Holdings' : '');
+  const effectiveCrNumber = currentUser.crNumber || userPartner?.taxNumber || (isDemoProvider ? '1010456789' : '');
+  const effectiveCity = currentUser.city || (isDemoProvider ? 'Riyadh, Saudi Arabia' : '');
+  const effectiveWebsite = currentUser.website || (isDemoProvider ? 'https://thehubriyadh.sa' : '');
+  const effectiveBusinessDescription = currentUser.businessDescription || (isDemoProvider ? 'Operator of premium coworking spaces in Riyadh, including The Hub Riyadh and Desk Society. Dedicated to providing flexible, tech-enabled productive work environments.' : '');
+
   // Form Fields
-  const [editBusinessName, setEditBusinessName] = useState(currentUser?.businessName || 'The Hub Riyadh Holdings');
-  const [editName, setEditName] = useState(currentUser?.name || 'Nawaf Al-Qahtani');
-  const [editCrNumber, setEditCrNumber] = useState(currentUser?.crNumber || '1010456789');
-  const [editPhone, setEditPhone] = useState(currentUser?.phone || '+966 50 234 5678');
-  const [editCity, setEditCity] = useState(currentUser?.city || 'Riyadh, Saudi Arabia');
-  const [editWebsite, setEditWebsite] = useState(currentUser?.website || 'https://thehubriyadh.sa');
-  const [editBusinessDescription, setEditBusinessDescription] = useState(
-    currentUser?.businessDescription ||
-      'Operator of premium coworking spaces in Riyadh, including The Hub Riyadh and Desk Society. Dedicated to providing flexible, tech-enabled productive work environments.'
-  );
+  const [editBusinessName, setEditBusinessName] = useState(effectiveBusinessName);
+  const [editName, setEditName] = useState(currentUser?.name || '');
+  const [editCrNumber, setEditCrNumber] = useState(effectiveCrNumber);
+  const [editPhone, setEditPhone] = useState(currentUser?.phone || '');
+  const [editCity, setEditCity] = useState(effectiveCity);
+  const [editWebsite, setEditWebsite] = useState(effectiveWebsite);
+  const [editBusinessDescription, setEditBusinessDescription] = useState(effectiveBusinessDescription);
   const [editAvatar, setEditAvatar] = useState(currentUser?.avatar || '');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (currentUser) {
+      const p = partners.find(part => part.contactEmail?.toLowerCase() === currentUser.email?.toLowerCase());
+      const isDemo = currentUser.email?.toLowerCase() === 'provider@thehubriyadh.sa';
+      setEditBusinessName(currentUser.businessName || p?.brandName || (isDemo ? 'The Hub Riyadh Holdings' : ''));
+      setEditCrNumber(currentUser.crNumber || p?.taxNumber || (isDemo ? '1010456789' : ''));
+      setEditName(currentUser.name || '');
+      setEditPhone(currentUser.phone || '');
+      setEditCity(currentUser.city || (isDemo ? 'Riyadh, Saudi Arabia' : ''));
+      setEditWebsite(currentUser.website || (isDemo ? 'https://thehubriyadh.sa' : ''));
+      setEditBusinessDescription(currentUser.businessDescription || (isDemo ? 'Operator of premium coworking spaces in Riyadh, including The Hub Riyadh and Desk Society.' : ''));
+    }
+  }, [currentUser, partners]);
 
   // Settings: Notifications & Payouts
   const [notifications, setNotifications] = useState({
@@ -79,16 +97,13 @@ export default function ProviderProfileSettings() {
   });
 
   const handleOpenEdit = () => {
-    setEditBusinessName(currentUser.businessName || 'The Hub Riyadh Holdings');
+    setEditBusinessName(effectiveBusinessName);
     setEditName(currentUser.name || '');
-    setEditCrNumber(currentUser.crNumber || '1010456789');
+    setEditCrNumber(effectiveCrNumber);
     setEditPhone(currentUser.phone || '');
-    setEditCity(currentUser.city || 'Riyadh, Saudi Arabia');
-    setEditWebsite(currentUser.website || 'https://thehubriyadh.sa');
-    setEditBusinessDescription(
-      currentUser.businessDescription ||
-        'Operator of premium coworking spaces in Riyadh, including The Hub Riyadh and Desk Society.'
-    );
+    setEditCity(effectiveCity);
+    setEditWebsite(effectiveWebsite);
+    setEditBusinessDescription(effectiveBusinessDescription);
     setEditAvatar(currentUser.avatar || '');
     setErrors({});
     setIsEditModalOpen(true);
@@ -303,7 +318,7 @@ export default function ProviderProfileSettings() {
                   Business / Brand Name
                 </div>
                 <div className="text-sm sm:text-base font-normal text-soot">
-                  {currentUser.businessName || 'The Hub Riyadh Holdings'}
+                  {effectiveBusinessName || 'Not specified'}
                 </div>
               </div>
 
@@ -336,7 +351,7 @@ export default function ProviderProfileSettings() {
                   Contact Phone Number
                 </div>
                 <div className="text-sm sm:text-base font-normal text-soot">
-                  {currentUser.phone || '+966 50 234 5678'}
+                  {currentUser.phone || 'Not specified'}
                 </div>
               </div>
 
@@ -347,7 +362,7 @@ export default function ProviderProfileSettings() {
                   Commercial Registration (CR)
                 </div>
                 <div className="text-sm sm:text-base font-normal text-soot">
-                  {currentUser.crNumber || '1010456789'}
+                  {effectiveCrNumber || 'Not specified'}
                 </div>
               </div>
 
@@ -358,7 +373,7 @@ export default function ProviderProfileSettings() {
                   Operating City
                 </div>
                 <div className="text-sm sm:text-base font-normal text-soot">
-                  {currentUser.city || 'Riyadh, Saudi Arabia'}
+                  {effectiveCity || 'Not specified'}
                 </div>
               </div>
 
@@ -369,7 +384,7 @@ export default function ProviderProfileSettings() {
                   Official Website URL
                 </div>
                 <div className="text-sm sm:text-base font-normal text-soot truncate">
-                  {currentUser.website || 'https://thehubriyadh.sa'}
+                  {effectiveWebsite || 'Not specified'}
                 </div>
               </div>
 
@@ -380,8 +395,7 @@ export default function ProviderProfileSettings() {
                   Business Description & Operations
                 </div>
                 <div className="text-sm font-normal text-soot leading-relaxed">
-                  {currentUser.businessDescription ||
-                    'Operator of premium coworking spaces in Riyadh, including The Hub Riyadh and Desk Society. Dedicated to providing flexible, tech-enabled productive work environments.'}
+                  {effectiveBusinessDescription || 'No description provided yet.'}
                 </div>
               </div>
 

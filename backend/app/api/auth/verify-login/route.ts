@@ -83,6 +83,13 @@ export async function POST(request: Request) {
 
     const associatedCompany = user.hrAdminOf || user.company;
 
+    let partnerInfo = null;
+    if (user.role === "PARTNER_ADMIN") {
+      partnerInfo = await prisma.partner.findFirst({
+        where: { contactEmail: { equals: user.email, mode: "insensitive" } },
+      });
+    }
+
     return NextResponse.json({
       message: "تم تسجيل الدخول بنجاح",
       token,
@@ -94,6 +101,8 @@ export async function POST(request: Request) {
         companyId: associatedCompany?.id || user.companyId || null,
         companyName: associatedCompany?.companyName || null,
         orgName: associatedCompany?.companyName || null,
+        businessName: partnerInfo?.brandName || null,
+        crNumber: partnerInfo?.taxNumber || null,
       },
     });
   } catch (error) {
