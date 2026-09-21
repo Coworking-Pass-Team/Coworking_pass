@@ -23,6 +23,8 @@ export interface RegisterPayload {
   role: string;
   orgName?: string;
   companyName?: string;
+  businessName?: string;
+  crNumber?: string;
 }
 
 export interface RegisterResponse {
@@ -122,6 +124,8 @@ export async function registerUserApi(payload: RegisterPayload): Promise<Registe
         role: backendRole,
         orgName: payload.orgName?.trim(),
         companyName: payload.companyName?.trim(),
+        businessName: payload.businessName?.trim(),
+        crNumber: payload.crNumber?.trim(),
       }),
     });
 
