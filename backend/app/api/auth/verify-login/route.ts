@@ -75,6 +75,29 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "المستخدم غير موجود" }, { status: 404 });
     }
 
+    if (user.isBanned) {
+      return NextResponse.json({ error: "تم حظر هذا الحساب، يرجى التواصل مع إدارة المنصة" }, { status: 403 });
+    }
+
+    let partnerInfo = null;
+    if (user.role === "PARTNER_ADMIN") {
+      partnerInfo = await prisma.partner.findFirst({
+        where: { contactEmail: { equals: user.email, mode: "insensitive" } },
+      });
+      if (partnerInfo && partnerInfo.status === "PENDING_APPROVAL") {
+        return NextResponse.json({
+          error: "حساب مزود المساحة قيد المراجعة والتحقق من قبل إدارة المنصة. سيتم إشعارك عبر البريد الإلكتروني فور اعتماده.",
+          code: "PARTNER_PENDING_APPROVAL",
+        }, { status: 403 });
+      }
+      if (partnerInfo && partnerInfo.status === "REJECTED") {
+        return NextResponse.json({
+          error: "عذراً، تم رفض طلب انضمام مزود المساحة من قبل الإدارة.",
+          code: "PARTNER_REJECTED",
+        }, { status: 403 });
+      }
+    }
+
     const token = jwt.sign(
       { userId: user.id, role: user.role },
       process.env.JWT_SECRET!,
@@ -82,13 +105,6 @@ export async function POST(request: Request) {
     );
 
     const associatedCompany = user.hrAdminOf || user.company;
-
-    let partnerInfo = null;
-    if (user.role === "PARTNER_ADMIN") {
-      partnerInfo = await prisma.partner.findFirst({
-        where: { contactEmail: { equals: user.email, mode: "insensitive" } },
-      });
-    }
 
     return NextResponse.json({
       message: "تم تسجيل الدخول بنجاح",
@@ -103,6 +119,7 @@ export async function POST(request: Request) {
         orgName: associatedCompany?.companyName || null,
         businessName: partnerInfo?.brandName || null,
         crNumber: partnerInfo?.taxNumber || null,
+        partnerStatus: partnerInfo?.status || null,
       },
     });
   } catch (error) {

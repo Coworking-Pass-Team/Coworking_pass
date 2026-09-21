@@ -1,59 +1,65 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
-
-
-
-
-/**
- * @swagger
- * /api/partners/{id}:
- *   put:
- *     summary: تعديل شريك
- *     security:
- *       - BearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               revenueSharePercentage:
- *                 type: number
- *     responses:
- *       200:
- *         description: تم تعديل الشريك
- */
+import { sendPartnerApprovalEmail, sendPartnerRejectionEmail } from "@/lib/mailer";
 
 export async function PUT(
-  
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = getTokenFromRequest(request);
-if (!user) return unauthorizedResponse();
+    if (!user) return unauthorizedResponse();
     const { id } = await params;
-    const data = await request.json();
+    const body = await request.json();
+    const { rejectionReason, ...data } = body;
+
+    const existingPartner = await prisma.partner.findUnique({
+      where: { id },
+    });
+
+    if (!existingPartner) {
+      return NextResponse.json({ error: "الشريك غير موجود" }, { status: 404 });
+    }
 
     const partner = await prisma.partner.update({
       where: { id },
       data,
     });
 
-    return NextResponse.json({ message: "تم تعديل الشريك بنجاح", partner });
+    // إذا تحولت الحالة إلى APPROVED
+    if (data.status === "APPROVED" && existingPartner.status !== "APPROVED") {
+      // إرسال بريد إلكتروني رسمي للمزود
+      await sendPartnerApprovalEmail(partner.contactEmail, partner.brandName);
+
+      // إنشاء إشعار داخلي للمستخدم
+      const partnerUser = await prisma.user.findFirst({
+        where: { email: { equals: partner.contactEmail, mode: "insensitive" } },
+      });
+      if (partnerUser) {
+        await prisma.notification.create({
+          data: {
+            userId: partnerUser.id,
+            type: "PARTNER_APPROVED",
+            title: "تم اعتماد حسابك بنجاح",
+            message: `تهانينا! تم اعتماد منشأتكم "${partner.brandName}" بنجاح من قبل إدارة المنصة. يمكنك الآن تسجيل الدخول وإضافة مساحات العمل.`,
+            channel: "BOTH",
+          },
+        }).catch(() => {});
+      }
+    }
+
+    // إذا تحولت الحالة إلى REJECTED
+    if (data.status === "REJECTED" && existingPartner.status !== "REJECTED") {
+      await sendPartnerRejectionEmail(partner.contactEmail, partner.brandName, rejectionReason);
+    }
+
+    return NextResponse.json({ message: "تم تحديث بيانات الشريك بنجاح", partner });
   } catch (error) {
     console.error(error);
     return NextResponse.json(
-      { error: "الشريك غير موجود أو حدث خطأ" },
-      { status: 404 }
+      { error: "الشريك غير موجود أو حدث خطأ أثناء التحديث" },
+      { status: 500 }
     );
   }
 }
