@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import {
   Search,
   Plus,
@@ -9,6 +9,10 @@ import {
   ChevronDown,
   AlertCircle,
   Check,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  ShieldAlert,
   Users as UsersIcon,
   UserCheck,
   UserX,
@@ -25,14 +29,31 @@ import { User, UserRole } from '@/types/types';
 import { createCompanyApi } from '@/services/authApi';
 import Badge from '@/components/ui/Badge';
 
-const ROLES: { value: UserRole; label: string }[] = [
+const FORM_ROLES: { value: UserRole; label: string }[] = [
+  { value: 'individual', label: 'Individual Member' },
+  { value: 'organization', label: 'Organization (B2B)' },
+  { value: 'provider', label: 'Space Partner' },
+];
+
+const ROW_ROLES: { value: UserRole; label: string }[] = [
   { value: 'individual', label: 'Individual Member' },
   { value: 'organization', label: 'Organization (B2B)' },
   { value: 'provider', label: 'Space Partner' },
 ];
 
 export default function UsersAdmin() {
-  const { users, blockUser, unblockUser, changeUserRole, showToast, deletePartner } = useApp();
+  const {
+    users,
+    blockUser,
+    unblockUser,
+    changeUserRole,
+    showToast,
+    deletePartner,
+    partners,
+    fetchPartners,
+    approvePartner,
+    rejectPartner,
+  } = useApp();
   const [query, setQuery] = useState('');
   const [filterRole, setFilterRole] = useState<string>('');
   const [filterStatus, setFilterStatus] = useState<string>('');
@@ -80,13 +101,76 @@ export default function UsersAdmin() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const nonAdmins = users.filter((u) => u.role !== 'admin');
+  useEffect(() => {
+    fetchPartners().catch(() => {});
+  }, []);
+
+  // دمج شركاء قاعدة البيانات الحقيقيين مع قائمة المستخدمين تلقائياً
+  const displayUsers = useMemo(() => {
+    const list = [...users];
+    partners.forEach((p) => {
+      const existingIdx = list.findIndex((u) => u.email.toLowerCase() === p.contactEmail.toLowerCase());
+      if (existingIdx === -1) {
+        list.push({
+          id: `partner-${p.id}`,
+          name: p.brandName,
+          email: p.contactEmail,
+          password: '',
+          role: 'provider',
+          phone: '+966 50 000 0000',
+          avatar: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=120&h=120&fit=crop&crop=faces',
+          isBlocked: false,
+          joinDate: p.createdAt ? new Date(p.createdAt).toISOString().split('T')[0] : '2026-09-21',
+          businessName: p.brandName,
+          crNumber: p.taxNumber,
+          partnerStatus: p.status,
+        });
+      } else {
+        list[existingIdx] = {
+          ...list[existingIdx],
+          businessName: p.brandName || list[existingIdx].businessName,
+          crNumber: p.taxNumber || list[existingIdx].crNumber,
+          partnerStatus: p.status || list[existingIdx].partnerStatus,
+        };
+      }
+    });
+    return list;
+  }, [users, partners]);
+
+  const getPartnerForUser = (user: User) => {
+    return partners.find((p) => p.contactEmail?.toLowerCase() === user.email.toLowerCase());
+  };
+
+  const getPartnerEffectiveStatus = (user: User) => {
+    const p = getPartnerForUser(user);
+    return p?.status || user.partnerStatus || 'APPROVED';
+  };
+
+  const pendingPartnersCount = partners.filter((p) => p.status === 'PENDING_APPROVAL').length;
+
+  const nonAdmins = displayUsers.filter((u) => u.role !== 'admin');
 
   const filtered = nonAdmins.filter((u) => {
-    const displayName = u.role === 'organization' ? u.orgName || u.name : u.name;
+    const isProvider = u.role === 'provider' || u.role === 'PARTNER_ADMIN';
+    const partner = isProvider ? getPartnerForUser(u) : null;
+    const status = getPartnerEffectiveStatus(u);
+
+    if (filterRole === 'pending') {
+      if (!isProvider || status !== 'PENDING_APPROVAL') return false;
+    } else if (filterRole && u.role !== filterRole) {
+      return false;
+    }
+
+    const displayName = u.role === 'organization' ? u.orgName || u.name : (partner?.brandName || u.businessName || u.name);
     const q = query.trim().toLowerCase();
-    if (q && !displayName.toLowerCase().includes(q) && !u.email.toLowerCase().includes(q)) return false;
-    if (filterRole && u.role !== filterRole) return false;
+    if (
+      q &&
+      !displayName.toLowerCase().includes(q) &&
+      !u.email.toLowerCase().includes(q) &&
+      !(u.crNumber || partner?.taxNumber || '').toLowerCase().includes(q)
+    ) {
+      return false;
+    }
     if (filterStatus === 'active' && u.isBlocked) return false;
     if (filterStatus === 'blocked' && !u.isBlocked) return false;
     return true;
@@ -209,7 +293,7 @@ export default function UsersAdmin() {
       </div>
 
       {/* Premium Elevated Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {[
           {
             label: 'Total Users',
@@ -217,20 +301,39 @@ export default function UsersAdmin() {
             badge: 'bg-soot/10 text-soot border border-soot/15',
             icon: UsersIcon,
             iconBg: 'bg-soot text-plaster border-soot/20',
+            active: !filterRole && !filterStatus,
+            onClick: () => { setFilterRole(''); setFilterStatus(''); },
+          },
+          {
+            label: 'Pending Approval',
+            count: pendingPartnersCount,
+            badge: pendingPartnersCount > 0
+              ? 'bg-amber-500/20 text-amber-900 border border-amber-500/35 font-bold'
+              : 'bg-soot/10 text-soot border border-soot/15',
+            icon: ShieldAlert,
+            iconBg: pendingPartnersCount > 0
+              ? 'bg-amber-500/20 text-amber-900 border border-amber-500/35'
+              : 'bg-soot/10 text-soot border border-soot/20',
+            active: filterRole === 'pending',
+            onClick: () => { setFilterRole(filterRole === 'pending' ? '' : 'pending'); setFilterStatus(''); },
           },
           {
             label: 'Active Members',
             count: activeCount,
             badge: 'bg-emerald-500/15 text-emerald-800 border border-emerald-500/30',
             icon: UserCheck,
-            iconBg: 'bg-emerald-500/15 text-emerald-800 border-emerald-500/30',
+            iconBg: 'bg-emerald-500/15 text-emerald-800 border border-emerald-500/30',
+            active: filterStatus === 'active',
+            onClick: () => { setFilterStatus(filterStatus === 'active' ? '' : 'active'); setFilterRole(''); },
           },
           {
             label: 'Blocked Accounts',
             count: blockedCount,
             badge: 'bg-red-500/15 text-red-700 border border-red-500/30',
             icon: UserX,
-            iconBg: 'bg-red-500/15 text-red-700 border-red-500/30',
+            iconBg: 'bg-red-500/15 text-red-700 border border-red-500/30',
+            active: filterStatus === 'blocked',
+            onClick: () => { setFilterStatus(filterStatus === 'blocked' ? '' : 'blocked'); setFilterRole(''); },
           },
           {
             label: 'Organizations (B2B)',
@@ -238,11 +341,16 @@ export default function UsersAdmin() {
             badge: 'bg-eucalyptus/25 text-soot border border-eucalyptus/35',
             icon: Building2,
             iconBg: 'bg-eucalyptus/25 text-soot border-eucalyptus/35',
+            active: filterRole === 'organization',
+            onClick: () => { setFilterRole(filterRole === 'organization' ? '' : 'organization'); setFilterStatus(''); },
           },
         ].map((stat) => (
           <div
             key={stat.label}
-            className="bg-plaster-surface rounded-3xl border border-soot/12 p-5 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between group"
+            onClick={stat.onClick}
+            className={`bg-plaster-surface rounded-3xl border p-5 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between group cursor-pointer ${
+              stat.active ? 'border-soot ring-1 ring-soot bg-plaster-dark/40' : 'border-soot/12'
+            }`}
           >
             <div className="flex items-center gap-3.5">
               <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs ${stat.iconBg}`}>
@@ -268,7 +376,7 @@ export default function UsersAdmin() {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search users by name, company, or email..."
+            placeholder="Search users by name, company, CR number, or email..."
             className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-soot/12 bg-plaster-dark/30 text-soot text-sm placeholder:text-moss/70 outline-none focus:border-eucalyptus focus:bg-plaster-surface transition-all"
           />
         </div>
@@ -281,7 +389,7 @@ export default function UsersAdmin() {
             className="w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/50 border border-soot/12 transition-all duration-200 text-left cursor-pointer focus:outline-none relative z-1000"
           >
             <span className="text-sm font-medium text-soot truncate">
-              {filterRole ? (filterRole === 'individual' ? 'Individual' : filterRole === 'organization' ? 'Organization' : 'Provider') : 'All Roles'}
+              {filterRole ? (filterRole === 'individual' ? 'Individual' : filterRole === 'organization' ? 'Organization' : filterRole === 'provider' ? 'Provider' : 'Pending Approvals') : 'All Roles'}
             </span>
             <ChevronDown
               size={15}
@@ -296,6 +404,7 @@ export default function UsersAdmin() {
               <div className="space-y-0.5">
                 {[
                   { value: '', label: 'All Roles' },
+                  { value: 'pending', label: 'Pending Approvals (قيد الاعتماد)' },
                   { value: 'individual', label: 'Individual Member' },
                   { value: 'organization', label: 'Organization (B2B)' },
                   { value: 'provider', label: 'Space Partner' },
@@ -389,7 +498,12 @@ export default function UsersAdmin() {
 
         <div className="divide-y divide-soot/8">
           {filtered.map((u) => {
-            const displayName = u.role === 'organization' ? u.orgName || u.name : u.name;
+            const isProvider = u.role === 'provider' || u.role === 'PARTNER_ADMIN';
+            const partner = isProvider ? getPartnerForUser(u) : null;
+            const effectiveStatus = getPartnerEffectiveStatus(u);
+            const partnerCr = u.crNumber || partner?.taxNumber;
+            const isPending = isProvider && effectiveStatus === 'PENDING_APPROVAL';
+            const displayName = u.role === 'organization' ? u.orgName || u.name : (partner?.brandName || u.businessName || u.name);
             const isDropdownActive = activeRowRoleDropdown === u.id;
 
             return (
@@ -399,7 +513,9 @@ export default function UsersAdmin() {
                   setSelectedUser(u);
                   setDetailsModal(true);
                 }}
-                className="px-6 py-4 hover:bg-plaster-dark/30 transition-colors flex flex-col md:grid md:grid-cols-12 md:gap-6 md:items-center cursor-pointer group"
+                className={`px-6 py-4 hover:bg-plaster-dark/30 transition-colors flex flex-col md:grid md:grid-cols-12 md:gap-6 md:items-center cursor-pointer group ${
+                  isPending ? 'bg-amber-500/5' : ''
+                }`}
               >
                 {/* User Info & Avatar */}
                 <div className="col-span-5 flex items-center gap-3.5 min-w-0">
@@ -409,10 +525,15 @@ export default function UsersAdmin() {
                     className="w-11 h-11 rounded-full object-cover border border-soot/10 shrink-0 shadow-2xs group-hover:scale-105 transition-transform"
                   />
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm font-semibold text-soot group-hover:text-emerald-900 transition-colors truncate">
                         {displayName}
                       </span>
+                      {partnerCr && (
+                        <span className="text-[10px] font-mono font-medium text-moss bg-soot/5 border border-soot/10 px-1.5 py-0.5 rounded">
+                          CR: {partnerCr}
+                        </span>
+                      )}
                     </div>
                     <div className="text-xs text-moss truncate mt-0.5 font-medium">{u.email}</div>
                   </div>
@@ -431,7 +552,7 @@ export default function UsersAdmin() {
 
                   {isDropdownActive && (
                     <div className="absolute top-full left-0 mt-1 w-44 p-1 bg-plaster-surface border border-soot/15 rounded-xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100 relative z-50">
-                      {ROLES.map((r) => (
+                      {ROW_ROLES.map((r) => (
                         <button
                           key={r.value}
                           type="button"
@@ -450,16 +571,41 @@ export default function UsersAdmin() {
 
                 {/* Status Badge */}
                 <div className="col-span-2 mt-2 md:mt-0">
-                  <span
-                    className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-xl font-semibold ${
-                      u.isBlocked
-                        ? 'bg-red-500/10 text-red-700 border border-red-500/20'
-                        : 'bg-emerald-500/10 text-emerald-800 border border-emerald-500/20'
-                    }`}
-                  >
-                    <span className={`w-1.5 h-1.5 rounded-full ${u.isBlocked ? 'bg-red-500' : 'bg-emerald-500'}`} />
-                    <span>{u.isBlocked ? 'Blocked' : 'Active'}</span>
-                  </span>
+                  {isProvider ? (
+                    effectiveStatus === 'PENDING_APPROVAL' ? (
+                      <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-xl font-semibold bg-amber-500/15 text-amber-900 border border-amber-500/30 shadow-2xs animate-pulse">
+                        <Clock size={12} className="text-amber-700" />
+                        <span>Pending Approval</span>
+                      </span>
+                    ) : effectiveStatus === 'REJECTED' ? (
+                      <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-xl font-semibold bg-rose-500/15 text-rose-800 border border-rose-500/30">
+                        <XCircle size={12} className="text-rose-600" />
+                        <span>Rejected</span>
+                      </span>
+                    ) : (
+                      <span
+                        className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-xl font-semibold ${
+                          u.isBlocked
+                            ? 'bg-red-500/10 text-red-700 border border-red-500/20'
+                            : 'bg-emerald-500/10 text-emerald-800 border border-emerald-500/20'
+                        }`}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full ${u.isBlocked ? 'bg-red-500' : 'bg-emerald-500'}`} />
+                        <span>{u.isBlocked ? 'Blocked' : 'Approved Partner'}</span>
+                      </span>
+                    )
+                  ) : (
+                    <span
+                      className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-xl font-semibold ${
+                        u.isBlocked
+                          ? 'bg-red-500/10 text-red-700 border border-red-500/20'
+                          : 'bg-emerald-500/10 text-emerald-800 border border-emerald-500/20'
+                      }`}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full ${u.isBlocked ? 'bg-red-500' : 'bg-emerald-500'}`} />
+                      <span>{u.isBlocked ? 'Blocked' : 'Active'}</span>
+                    </span>
+                  )}
                 </div>
 
                 {/* Joined Date */}
@@ -469,6 +615,37 @@ export default function UsersAdmin() {
 
                 {/* Actions */}
                 <div className="col-span-1 mt-4 md:mt-0 flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                  {isPending && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          const pId = partner?.id || u.id.replace('partner-', '');
+                          await approvePartner(pId);
+                        }}
+                        className="p-2 rounded-xl bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border border-emerald-300 transition-all cursor-pointer font-medium"
+                        title="Approve Partner & Send Email Notification"
+                      >
+                        <Check size={15} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          const reason = prompt('سبب رفض طلب مزود المساحة (اختياري):');
+                          if (reason !== null) {
+                            const pId = partner?.id || u.id.replace('partner-', '');
+                            await rejectPartner(pId, reason);
+                          }
+                        }}
+                        className="p-2 rounded-xl bg-rose-100 text-rose-800 hover:bg-rose-200 border border-rose-300 transition-all cursor-pointer font-medium"
+                        title="Reject Application"
+                      >
+                        <X size={15} />
+                      </button>
+                    </>
+                  )}
                   <button
                     type="button"
                     onClick={(e) => openEditModal(e, u)}
@@ -508,7 +685,7 @@ export default function UsersAdmin() {
                     onClick={(e) => {
                       e.stopPropagation();
                       if (confirm(`Are you sure you want to delete user/partner "${u.name}"?`)) {
-                        deletePartner(u.id);
+                        deletePartner(partner?.id || u.id);
                       }
                     }}
                     className="p-2 rounded-xl text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-all cursor-pointer"
@@ -601,14 +778,14 @@ export default function UsersAdmin() {
                   className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border border-soot/15 bg-white hover:bg-plaster-dark/30 text-soot text-sm text-left transition-all cursor-pointer focus:outline-none shadow-2xs"
                 >
                   <span className="font-medium truncate">
-                    {ROLES.find((r) => r.value === role)?.label || 'Select Role'}
+                    {FORM_ROLES.find((r) => r.value === role)?.label || 'Select Role'}
                   </span>
                   <ChevronDown size={15} className={`text-moss transition-transform duration-200 ${modalRoleDropdownOpen ? 'rotate-180 text-soot' : ''}`} />
                 </button>
 
                 {modalRoleDropdownOpen && (
                   <div className="mt-1.5 p-1.5 bg-white border border-soot/15 rounded-xl shadow-lg space-y-0.5 animate-in fade-in-50 zoom-in-95 duration-100">
-                    {ROLES.map((r) => {
+                    {FORM_ROLES.map((r) => {
                       const isSelected = role === r.value;
                       return (
                         <button
@@ -763,6 +940,30 @@ export default function UsersAdmin() {
                         { label: 'Industry', value: selectedUser.industry || 'Technology', icon: Building2 },
                       ]
                     : []),
+                  ...(selectedUser.role === 'provider'
+                    ? [
+                        {
+                          label: 'Business / Brand Name',
+                          value: selectedUser.businessName || getPartnerForUser(selectedUser)?.brandName || selectedUser.name,
+                          icon: Building2,
+                        },
+                        {
+                          label: 'Commercial Reg. (CR)',
+                          value: selectedUser.crNumber || getPartnerForUser(selectedUser)?.taxNumber || 'N/A',
+                          icon: ShieldAlert,
+                        },
+                        {
+                          label: 'Verification Status',
+                          value:
+                            getPartnerEffectiveStatus(selectedUser) === 'PENDING_APPROVAL'
+                              ? 'Pending Admin Verification (قيد المراجعة)'
+                              : getPartnerEffectiveStatus(selectedUser) === 'REJECTED'
+                              ? 'Rejected (مرفوض)'
+                              : 'Approved Partner (معتمد)',
+                          icon: CheckCircle2,
+                        },
+                      ]
+                    : []),
                 ].map((row) => (
                   <div key={row.label} className="flex items-center justify-between py-1.5 border-b border-soot/6 last:border-0">
                     <span className="text-moss text-xs flex items-center gap-2">
@@ -775,7 +976,7 @@ export default function UsersAdmin() {
               </div>
             </div>
 
-            <div className="px-6 sm:px-8 py-4 border-t border-soot/10 bg-plaster-dark/30 flex items-center justify-end gap-3">
+            <div className="px-6 sm:px-8 py-4 border-t border-soot/10 bg-plaster-dark/30 flex items-center justify-end gap-3 flex-wrap">
               <button
                 type="button"
                 onClick={() => {
@@ -786,6 +987,41 @@ export default function UsersAdmin() {
               >
                 Close
               </button>
+
+              {selectedUser.role === 'provider' && getPartnerEffectiveStatus(selectedUser) === 'PENDING_APPROVAL' && (
+                <>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const pId = getPartnerForUser(selectedUser)?.id || selectedUser.id.replace('partner-', '');
+                      await approvePartner(pId);
+                      setDetailsModal(false);
+                      setSelectedUser(null);
+                    }}
+                    className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Check size={16} />
+                    <span>Approve Partner (اعتماد)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const reason = prompt('سبب رفض طلب مزود المساحة (اختياري):');
+                      if (reason !== null) {
+                        const pId = getPartnerForUser(selectedUser)?.id || selectedUser.id.replace('partner-', '');
+                        await rejectPartner(pId, reason);
+                        setDetailsModal(false);
+                        setSelectedUser(null);
+                      }
+                    }}
+                    className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-rose-600 text-white hover:bg-rose-700 shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
+                  >
+                    <X size={16} />
+                    <span>Reject (رفض)</span>
+                  </button>
+                </>
+              )}
+
               <button
                 type="button"
                 onClick={() => {
