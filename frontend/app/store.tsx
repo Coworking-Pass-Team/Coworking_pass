@@ -2834,9 +2834,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (currentUser && (currentUser.role === 'provider' || currentUser.role === 'admin')) {
+      const userEmail = currentUser.email?.toLowerCase();
+      const matchedPartner = partners.find(p => p.contactEmail?.toLowerCase() === userEmail);
+      if (matchedPartner && (!currentUser.businessName || !currentUser.crNumber)) {
+        const updatedUser: User = {
+          ...currentUser,
+          businessName: currentUser.businessName || matchedPartner.brandName,
+          crNumber: currentUser.crNumber || matchedPartner.taxNumber,
+        };
+        setCurrentUser(updatedUser);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('cp_currentUser', JSON.stringify(updatedUser));
+        }
+      }
+
       const storedToken = getStoredToken();
       if (storedToken) {
-        const userEmail = currentUser.email?.toLowerCase();
         const exists = partners.some(p => p.contactEmail?.toLowerCase() === userEmail);
         if (!exists && userEmail) {
           createPartner({
@@ -3065,6 +3078,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
             role: userRole,
             companyId: apiRes.user.companyId || user.companyId,
             orgName: returnedOrgName || user.orgName,
+            businessName: (apiRes.user as any).businessName || user.businessName || (otpSession.user as any)?.businessName,
+            crNumber: (apiRes.user as any).crNumber || user.crNumber || (otpSession.user as any)?.crNumber,
           };
           const updatedUsers = users.some(u => u.id === user.id || u.email.toLowerCase() === user.email.toLowerCase())
             ? users.map(u => (u.id === user.id || u.email.toLowerCase() === user.email.toLowerCase()) ? user : u)
