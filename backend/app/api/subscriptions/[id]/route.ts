@@ -107,7 +107,7 @@ export async function PUT(
  * @swagger
  * /api/subscriptions/{id}:
  *   delete:
- *     summary: إلغاء اشتراك (بسياسة زمنية)
+ *     summary: إلغاء اشتراك واسترجاعه (فترة سماح 3 أيام بشرط عدم استخدام أي زيارة)
  *     security:
  *       - BearerAuth: []
  *     parameters:
@@ -118,9 +118,11 @@ export async function PUT(
  *           type: string
  *     responses:
  *       200:
- *         description: تم إلغاء الاشتراك
+ *         description: تم إلغاء الاشتراك واسترجاع مبلغه لمحفظة العميل
  *       400:
- *         description: تجاوز مهلة الإلغاء (6 ساعات للأفراد، 24 للمؤسسات)
+ *         description: تجاوز مهلة الاسترجاع (3 أيام) أو تم استهلاك زيارات بالفعل
+ *       404:
+ *         description: الاشتراك غير موجود
  */
 
 export async function DELETE(
@@ -135,10 +137,13 @@ export async function DELETE(
 
     const { id } = await params;
 
-    // 1. Fetch subscription with user data
+    // 1. Fetch subscription with user data and plan
     const subscription = await prisma.subscription.findUnique({
       where: { id },
-      include: { user: true }
+      include: { 
+        user: true,
+        plan: true
+      }
     });
 
     if (!subscription) {
@@ -148,31 +153,111 @@ export async function DELETE(
       );
     }
 
-    // 2. Cancellation check (allow admin or respect policy)
+    // 2. Cancellation check (Super Admin can bypass)
     const isAdmin = user && user.role === 'SUPER_ADMIN';
     if (!isAdmin) {
-      const now = new Date();
-      const startTime = new Date(subscription.startDate);
-      const hoursDiff = (startTime.getTime() - now.getTime()) / (1000 * 60 * 60);
-      const requiredHours = subscription.user.role === 'B2C' ? 6 : 24;
-
-      if (hoursDiff < requiredHours && startTime > now) {
+      // Check 1: Ensure no visits have been consumed
+      if (subscription.visitsUsed > 0) {
         return NextResponse.json(
           { 
-            error: `Cancellation not allowed. Cancellation must be made at least ${requiredHours} hours before start time.` 
+            error: 'Cannot cancel or refund subscription because visits have already been used.' 
           },
           { status: 400 }
         );
       }
+
+      // Check 2: Cooling-off period: must be within 3 days (72 hours) of startDate
+      const now = new Date();
+      const startDate = new Date(subscription.startDate);
+      if (startDate <= now) {
+        const hoursSinceStart = (now.getTime() - startDate.getTime()) / (1000 * 60 * 60);
+        if (hoursSinceStart > 72) {
+          return NextResponse.json(
+            { 
+              error: 'Refund period expired. Subscriptions can only be cancelled and refunded within 3 days (72 hours) of start date with zero visits used.' 
+            },
+            { status: 400 }
+          );
+        }
+      }
     }
+
+    const refundAmount = subscription.plan?.price || 0;
+    const targetUserId = subscription.userId;
 
     // 3. Delete / Cancel subscription
     await prisma.subscription.delete({
       where: { id }
     });
 
+    // 4. Automatic refund to user's wallet if plan has a monetary value
+    let newBalance = 0;
+    if (refundAmount > 0) {
+      // Record payment transaction as REFUND
+      await prisma.payment.create({
+        data: {
+          userId: targetUserId,
+          amount: refundAmount,
+          method: 'REFUND',
+          paymentFor: 'REFUND',
+          referenceId: id,
+          status: 'SUCCESS',
+          gatewayTransactionId: `REF-SUB-${Date.now()}`
+        }
+      });
+
+      // Credit wallet
+      let wallet = await prisma.wallet.findUnique({
+        where: { userId: targetUserId }
+      });
+
+      if (!wallet) {
+        wallet = await prisma.wallet.create({
+          data: {
+            userId: targetUserId,
+            balance: 0
+          }
+        });
+      }
+
+      newBalance = wallet.balance + refundAmount;
+      await prisma.wallet.update({
+        where: { userId: targetUserId },
+        data: { balance: newBalance }
+      });
+
+      // Record wallet ledger transaction
+      await prisma.walletTransaction.create({
+        data: {
+          walletId: wallet.id,
+          userId: targetUserId,
+          amount: refundAmount,
+          type: 'REFUND',
+          description: `Refund for cancelled subscription (${subscription.plan?.planName || 'Universal Pass'})`,
+          referenceId: id,
+          balanceAfter: newBalance
+        }
+      });
+
+      // In-app notification
+      await prisma.notification.create({
+        data: {
+          userId: targetUserId,
+          type: 'PAYMENT_SUCCESS',
+          title: 'Subscription Refunded',
+          message: `Your subscription (${subscription.plan?.planName || 'Universal Pass'}) has been cancelled and refunded. SAR ${refundAmount} has been credited to your wallet.`,
+          channel: 'IN_APP',
+          sentAt: new Date()
+        }
+      });
+    }
+
     return NextResponse.json(
-      { message: 'Subscription cancelled successfully.' },
+      { 
+        message: 'Subscription cancelled and refunded successfully.',
+        refundAmount,
+        walletBalance: newBalance
+      },
       { status: 200 }
     );
   } catch (error) {

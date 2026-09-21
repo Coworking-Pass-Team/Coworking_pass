@@ -1,8 +1,8 @@
-﻿# Entity Relationship Diagram (ERD) - Master Version
+# Entity Relationship Diagram (ERD) - Master Version
 
-This ERD encompasses all system entities: foundational booking logic (Waitlists, Durations), the Aggregator logic (B2B, Packages, QR Check-ins, Payouts), Workspace Sections (Desks, Meeting Rooms, Theaters), Notifications & OTP, Amenities Management, and the Loyalty Points & Rules System.
+This ERD encompasses all system entities: foundational booking logic (Waitlists, Durations), the Aggregator logic (B2B, Packages, QR Check-ins, Payouts), Workspace Sections (Desks, Meeting Rooms, Theaters), Notifications & OTP, Amenities Management, the Loyalty Points & Rules System, Digital Wallets, and the Customer Support Ticketing System.
 
-> **Total Entities: 20 | Total Relationships: 24**
+> **Total Entities: 24 | Total Relationships: 31**
 
 ```mermaid
 erDiagram
@@ -17,6 +17,7 @@ erDiagram
         enum role "GUEST, B2C, HR_ADMIN, PARTNER_ADMIN, SUPER_ADMIN"
         uuid company_id FK "Nullable - links to COMPANIES if B2B employee"
         boolean email_verified "default false"
+        boolean is_banned "default false - moderation status"
     }
 
     COMPANIES {
@@ -24,15 +25,17 @@ erDiagram
         string company_name
         uuid hr_admin_id FK
         int total_passes_allocated "Legacy: passes"
-        float shared_wallet_balance "New: For Shared Wallet feature"
+        float balance "Corporate shared wallet balance - default 0"
     }
 
     PARTNERS {
         uuid id PK
         string brand_name
         string contact_email
-        string tax_number
+        string tax_number "Saudi Commercial Registration (CR)"
         float revenue_share_percentage
+        enum status "APPROVED, PENDING_APPROVAL, REJECTED - default APPROVED/PENDING"
+        datetime created_at
     }
 
     %% ===== WORKSPACE & SECTIONS =====
@@ -117,7 +120,7 @@ erDiagram
         uuid section_id FK "Links to WORKSPACE_SECTIONS"
         enum duration_type "DAILY, MONTHLY, YEARLY"
         date booking_date
-        enum status "CONFIRMED, WAITLISTED, CANCELLED"
+        enum status "CONFIRMED, WAITLISTED, CANCELLED, REFUNDED"
         datetime created_at "Used for waitlist queue ordering"
     }
 
@@ -149,7 +152,7 @@ erDiagram
         uuid id PK
         uuid user_id FK
         string code_hash "Hashed OTP code"
-        enum purpose "EMAIL_VERIFICATION, PASSWORD_RESET"
+        enum purpose "EMAIL_VERIFICATION, PASSWORD_RESET, LOGIN"
         datetime expires_at
         boolean is_used "default false"
         datetime created_at
@@ -161,11 +164,12 @@ erDiagram
         uuid id PK
         uuid user_id FK
         float amount
-        enum method "MADA, VISA, APPLE_PAY, SAMSUNG_PAY"
+        enum method "MADA, VISA, APPLE_PAY, SAMSUNG_PAY, REFUND"
         string gateway_transaction_id
-        enum payment_for "DIRECT_BOOKING, HOURLY_BOOKING, SUBSCRIPTION, POINTS_REDEMPTION"
+        enum payment_for "DIRECT_BOOKING, HOURLY_BOOKING, SUBSCRIPTION, POINTS_REDEMPTION, REFUND"
         uuid reference_id "FK to the relevant booking or subscription"
         enum status "SUCCESS, FAILED"
+        datetime created_at
     }
 
     PAYOUTS {
@@ -225,6 +229,47 @@ erDiagram
         datetime created_at
     }
 
+    %% ===== DIGITAL WALLET =====
+
+    WALLETS {
+        uuid id PK
+        uuid user_id FK "Unique - B2C personal digital wallet"
+        float balance "default 0"
+        datetime created_at
+        datetime updated_at
+    }
+
+    WALLET_TRANSACTIONS {
+        uuid id PK
+        uuid wallet_id FK
+        uuid user_id FK
+        float amount
+        string type "DEPOSIT, WITHDRAW, REFUND"
+        string description
+        string reference_id "Nullable - FK to Payment or Booking"
+        float balance_after
+        datetime created_at
+    }
+
+    %% ===== SUPPORT TICKETS =====
+
+    TICKETS {
+        uuid id PK
+        uuid company_id FK "Associated company"
+        uuid user_id FK "Requester / submitter"
+        string subject
+        enum status "OPEN, IN_PROGRESS, CLOSED - default OPEN"
+        datetime created_at
+    }
+
+    TICKET_REPLIES {
+        uuid id PK
+        uuid ticket_id FK
+        uuid user_id FK "Author of response"
+        string message
+        datetime created_at
+    }
+
     %% ===== RELATIONSHIPS =====
 
     USERS ||--o{ SUBSCRIPTIONS : "buys packages"
@@ -238,6 +283,17 @@ erDiagram
     USERS ||--o| LOYALTY_POINTS : "has points balance"
     USERS ||--o{ POINTS_TRANSACTIONS : "earns and redeems"
     USERS ||--o{ LOYALTY_RULES : "proposes rules"
+    USERS ||--o| WALLETS : "owns personal wallet"
+    USERS ||--o{ WALLET_TRANSACTIONS : "initiates"
+    USERS ||--o{ TICKETS : "opens tickets"
+    USERS ||--o{ TICKET_REPLIES : "posts replies"
+
+    COMPANIES ||--o{ TICKETS : "has corporate tickets"
+
+    WALLETS ||--o{ WALLET_TRANSACTIONS : "records ledger"
+
+    TICKETS ||--o{ TICKET_REPLIES : "has thread replies"
+
     PARTNERS ||--o{ WORKSPACES : "manages branches"
     PARTNERS ||--o{ PAYOUTS : "earns from platform"
     WORKSPACES ||--o{ WORKSPACE_SECTIONS : "divided into"
@@ -259,15 +315,15 @@ erDiagram
 
 ## 📌 تفصيل أقسام قاعدة البيانات (ERD Breakdown)
 
-لكي تكون هيكلة قاعدة البيانات واضحة ومقروءة لك، قمنا بتقسيمها إلى **7 أقسام رئيسية**:
+لكي تكون هيكلة قاعدة البيانات واضحة ومقروءة لك، قمنا بتقسيمها إلى **9 أقسام رئيسية**:
 
 ### 1. الكيانات الأساسية (Core Entities)
-- **`USERS`**: يخزن بيانات جميع المستخدمين (زوار، أفراد، إداريين، شركاء) وصلاحياتهم.
-- **`COMPANIES`**: للشركات المنضمة (B2B) وتحديد عدد العضويات المخصصة لموظفيها.
-- **`PARTNERS`**: شركاء مساحات العمل (مثل زمكان، ريجس) وبياناتهم الضريبية.
+- **`USERS`**: يخزن بيانات جميع المستخدمين (زوار، أفراد، إداريين، شركاء) وصلاحياتهم، وتأكيد البريد الإلكتروني، وحالة الإيقاف والحظر الإداري `is_banned`.
+- **`COMPANIES`**: للشركات المنضمة (B2B) وتحديد عدد العضويات المخصصة لموظفيها، بالإضافة إلى رصيد المحفظة المشتركة للمؤسسة `balance`.
+- **`PARTNERS`**: شركاء مساحات العمل وبياناتهم الضريبية والسجل التجاري السعودي (CR / `tax_number`)، وحالة اعتماد الشريك من قِبل الـ Super Admin (`APPROVED`, `PENDING_APPROVAL`, `REJECTED`).
 
 ### 2. المساحات والمرافق (Workspace & Sections)
-- **`WORKSPACES`**: تفاصيل كل فرع مساحة عمل (المدينة، الموقع، التسعيرة الأساسية).
+- **`WORKSPACES`**: تفاصيل كل فرع مساحة عمل (المدينة، الموقع، الإحداثيات، الصور، التسعيرة الأساسية).
 - **`WORKSPACE_SECTIONS`**: تقسيمات المساحة من الداخل (مكاتب، قاعات اجتماعات، مسارح) بسعتها وأسعارها الخاصة.
 - **`HOURLY_PACKAGES`**: باقات الساعات المخصصة لقاعات الاجتماعات والمسارح (مثل: باقة 8 ساعات/شهر).
 
@@ -277,20 +333,26 @@ erDiagram
 
 ### 4. الحجوزات والعضويات (Plans & Bookings)
 - **`MEMBERSHIP_PLANS` & `SUBSCRIPTIONS`**: لتخزين العضويات الشاملة (Universal Pass) ومدة اشتراك المستخدم فيها.
-- **`DIRECT_BOOKINGS`**: الحجوزات المباشرة الثابتة للمكاتب (باليوم، الشهر، السنة) ويشمل (طابور الانتظار).
+- **`DIRECT_BOOKINGS`**: الحجوزات المباشرة الثابتة للمكاتب (باليوم، الشهر، السنة) ويشمل طابور الانتظار وحالات الإلغاء والاسترجاع (`REFUNDED`).
 - **`HOURLY_BOOKINGS`**: حجوزات قاعات الاجتماعات والمسارح التي تستهلك من رصيد ساعات المستخدم.
 
 ### 5. الدفع والمالية (Financial)
-- **`PAYMENTS`**: جميع عمليات الدفع (الوهمية حالياً أو الحقيقية مستقبلاً)، سواء لحجز مباشر، اشتراك، أو غيره.
-- **`PAYOUTS`**: التسويات المالية التي تصرفها المنصة شهرياً لكل شريك بناءً على الزيارات.
+- **`PAYMENTS`**: جميع عمليات الدفع والاسترداد المالي (`REFUND`) عبر البطاقات البنكية، أبل باي، أو المحفظة.
+- **`PAYOUTS`**: التسويات المالية التي تصرفها المنصة شهرياً لكل شريك بناءً على الزيارات المحققة.
 
 ### 6. التحقق والأمان (Verification & Security)
 - **`QR_CHECK_INS`**: السجل اللحظي لمسح رموز الـ QR عند أبواب مساحات العمل للتحقق من الدخول.
-- **`OTP_CODES`**: تخزين أكواد التحقق المؤقتة المرسلة عبر الإيميل للتسجيل واستعادة كلمة المرور، لضمان تشفيرها ومدة صلاحيتها.
+- **`OTP_CODES`**: تخزين أكواد التحقق المؤقتة لتسجيل الحسابات، تسجيل الدخول، واستعادة كلمة المرور لضمان تشفيرها ومدة صلاحيتها.
 
 ### 7. الإشعارات ونقاط الولاء (Notifications & Loyalty)
-- **`NOTIFICATIONS`**: جميع الإشعارات الصادرة (بريد أو تطبيق) لكل مستخدم وتتبع حالة قراءتها.
-- **`LOYALTY_RULES`**: اقتراحات الشركاء لقواعد النقاط والتي يراجعها الـ Super Admin للموافقة.
+- **`NOTIFICATIONS`**: جميع الإشعارات الصادرة (بريد أو تطبيق) لكل مستخدم وتتبع حالة قراءتها ومناسباتها المختلفة.
+- **`LOYALTY_RULES`**: اقتراحات الشركاء لقواعد النقاط والتي يراجعها الـ Super Admin للموافقة والتفعيل.
 - **`LOYALTY_POINTS` & `POINTS_TRANSACTIONS`**: رصيد كل مستخدم من النقاط وسجل الاكتساب والاستبدال.
 
----
+### 8. المحافظ الرقمية (Digital Wallets & Ledger)
+- **`WALLETS`**: المحفظة الرقمية الخاصة بكل مستخدم، تتيح شحن الرصيد المسبق والدفع الفوري، واستقبال مبالغ الاسترداد بشكل لحظي دون انتظار مواعيد البنوك.
+- **`WALLET_TRANSACTIONS`**: سجل حركات الإيداع والسحب والاسترداد (`DEPOSIT`, `WITHDRAW`, `REFUND`) مع تتبع الرصيد بعد كل معاملة `balance_after`.
+
+### 9. التذاكر والدعم الفني (Support Tickets)
+- **`TICKETS`**: تذاكر الدعم الفني المرفوعة من المستخدمين والشركات للمطالبات والملاحظات مع تتبع الحالة (`OPEN`, `IN_PROGRESS`, `CLOSED`).
+- **`TICKET_REPLIES`**: سجل الردود والمراسلات المتبادلة بين إدارة المنصة والمستخدم لحل المشكلات والنزاعات.

@@ -40,15 +40,122 @@ export async function POST(request: NextRequest) {
     const user = getTokenFromRequest(request);
     if (!user) return unauthorizedResponse();
 
-    const { bookingId, userId } = await request.json()
+    const { bookingId, subscriptionId, userId } = await request.json()
 
-    if (!bookingId || !userId) {
+    if ((!bookingId && !subscriptionId) || !userId) {
       return NextResponse.json(
-        { error: 'Booking ID and User ID are required.' },
+        { error: 'Either bookingId or subscriptionId, and userId are required.' },
         { status: 400 }
       )
     }
 
+    // ============ 1. معالجة استرجاع الاشتراكات والباقات (Subscriptions) ============
+    if (subscriptionId) {
+      const subscription = await prisma.subscription.findUnique({
+        where: { id: subscriptionId },
+        include: { user: true, plan: true }
+      })
+
+      if (!subscription) {
+        return NextResponse.json(
+          { error: 'Subscription not found.' },
+          { status: 404 }
+        )
+      }
+
+      if (subscription.status === 'CANCELLED') {
+        return NextResponse.json(
+          { error: 'This subscription has already been cancelled and refunded.' },
+          { status: 400 }
+        )
+      }
+
+      // شرط عدم الاستخدام
+      if (subscription.visitsUsed > 0 && user.role !== 'SUPER_ADMIN') {
+        return NextResponse.json(
+          { error: 'Cannot refund subscription because visits have already been used.' },
+          { status: 400 }
+        )
+      }
+
+      // شرط فترة السماح (3 أيام / 72 ساعة)
+      const now = new Date()
+      const startDate = new Date(subscription.startDate)
+      if (startDate <= now && user.role !== 'SUPER_ADMIN') {
+        const hoursSinceStart = (now.getTime() - startDate.getTime()) / (1000 * 60 * 60)
+        if (hoursSinceStart > 72) {
+          return NextResponse.json(
+            { error: 'Refund period expired. Subscriptions can only be refunded within 3 days (72 hours) of start date with zero visits used.' },
+            { status: 400 }
+          )
+        }
+      }
+
+      const refundAmount = subscription.plan?.price || 100
+
+      // تحديث حالة الاشتراك
+      const updatedSubscription = await prisma.subscription.update({
+        where: { id: subscriptionId },
+        data: { status: 'CANCELLED' }
+      })
+
+      // تسجيل الدفعة كـ REFUND
+      await prisma.payment.create({
+        data: {
+          userId: userId,
+          amount: refundAmount,
+          method: 'REFUND',
+          paymentFor: 'REFUND',
+          referenceId: subscriptionId,
+          status: 'SUCCESS',
+          gatewayTransactionId: `REF-SUB-${Date.now()}`
+        }
+      })
+
+      // إيداع المبلغ في المحفظة
+      let wallet = await prisma.wallet.findUnique({ where: { userId } })
+      if (!wallet) {
+        wallet = await prisma.wallet.create({ data: { userId, balance: 0 } })
+      }
+
+      const newBalance = wallet.balance + refundAmount
+      await prisma.wallet.update({
+        where: { userId },
+        data: { balance: newBalance }
+      })
+
+      await prisma.walletTransaction.create({
+        data: {
+          walletId: wallet.id,
+          userId: userId,
+          amount: refundAmount,
+          type: 'REFUND',
+          description: `Refund for cancelled subscription (${subscription.plan?.planName || 'Universal Pass'})`,
+          referenceId: subscriptionId,
+          balanceAfter: newBalance
+        }
+      })
+
+      await prisma.notification.create({
+        data: {
+          userId,
+          type: 'PAYMENT_SUCCESS',
+          title: 'Subscription Refunded',
+          message: `Refund of SAR ${refundAmount} for your subscription has been credited to your wallet.`,
+          channel: 'IN_APP',
+          sentAt: new Date()
+        }
+      })
+
+      return NextResponse.json({
+        message: 'Subscription refunded successfully',
+        subscription: updatedSubscription,
+        refundAmount,
+        walletBalance: newBalance
+      }, { status: 200 })
+    }
+
+    // ============ 2. معالجة استرجاع الحجوزات المباشرة (Direct Bookings) ============
     // 1. جلب الحجز مع بياناته
     const booking = await prisma.directBooking.findUnique({
       where: { id: bookingId },
@@ -70,7 +177,21 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 3. حساب المبلغ (افتراضي)
+    // فحص مهلة الإلغاء للحجز المباشر (6 ساعات للأفراد، 24 للمؤسسات)
+    if (user.role !== 'SUPER_ADMIN') {
+      const now = new Date()
+      const bookingDate = new Date(booking.bookingDate)
+      const hoursDiff = (bookingDate.getTime() - now.getTime()) / (1000 * 60 * 60)
+      const requiredHours = booking.user?.role === 'B2C' ? 6 : 24
+      if (hoursDiff < requiredHours && bookingDate > now) {
+        return NextResponse.json(
+          { error: `Cancellation not allowed. Must cancel at least ${requiredHours} hours before booking time.` },
+          { status: 400 }
+        )
+      }
+    }
+
+    // 3. حساب المبلغ (افتراضي أو من الحجز)
     const refundAmount = 100
 
     // 4. تحديث حالة الحجز إلى REFUNDED
