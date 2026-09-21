@@ -271,46 +271,6 @@ export function LoginScreen() {
                 </>
               )}
             </button>
-            {/* Quick Demo Access Pills */}
-            <div className="pt-3 border-t border-soot/10">
-              <div className="text-[11px] font-semibold text-moss uppercase tracking-wider mb-2 text-center">
-                Quick Demo Accounts (Unified Password: <span className="font-mono text-soot font-bold">password</span>)
-              </div>
-              <div className="grid grid-cols-2 gap-1.5 text-xs">
-                <button
-                  type="button"
-                  onClick={() => { setEmail('admin@coworkingpass.sa'); setPassword('password'); }}
-                  className="px-2.5 py-1.5 rounded-lg bg-soot/5 hover:bg-soot/10 text-soot border border-soot/10 text-left transition-colors cursor-pointer flex items-center justify-between"
-                >
-                  <span className="font-medium text-[11px]">Super Admin</span>
-                  <span className="text-[10px] text-moss font-mono">admin@...</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setEmail('sarah@example.com'); setPassword('password'); }}
-                  className="px-2.5 py-1.5 rounded-lg bg-soot/5 hover:bg-soot/10 text-soot border border-soot/10 text-left transition-colors cursor-pointer flex items-center justify-between"
-                >
-                  <span className="font-medium text-[11px]">Member (B2C)</span>
-                  <span className="text-[10px] text-moss font-mono">sarah@...</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setEmail('hr@aramco.com'); setPassword('password'); }}
-                  className="px-2.5 py-1.5 rounded-lg bg-soot/5 hover:bg-soot/10 text-soot border border-soot/10 text-left transition-colors cursor-pointer flex items-center justify-between"
-                >
-                  <span className="font-medium text-[11px]">Company HR</span>
-                  <span className="text-[10px] text-moss font-mono">hr@...</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setEmail('partner@spacehub.sa'); setPassword('password'); }}
-                  className="px-2.5 py-1.5 rounded-lg bg-soot/5 hover:bg-soot/10 text-soot border border-soot/10 text-left transition-colors cursor-pointer flex items-center justify-between"
-                >
-                  <span className="font-medium text-[11px]">Space Partner</span>
-                  <span className="text-[10px] text-moss font-mono">partner@...</span>
-                </button>
-              </div>
-            </div>
           </form>
 
           <p className="text-center text-xs sm:text-sm text-moss mt-6 pt-4 border-t border-soot/10">
@@ -1490,25 +1450,6 @@ export function OtpVerificationScreen() {
 
 
 
-            {/* Master / Demo OTP helper badge */}
-            {(otpSession?.devOtp || otpSession?.user?.email?.toLowerCase() === 'admin@coworkingpass.sa') && (
-              <div className="p-3 rounded-xl bg-eucalyptus/15 border border-eucalyptus/30 text-soot text-xs flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Sparkles size={14} className="text-emerald-700 shrink-0" />
-                  <span>Demo/Admin Code:</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const code = otpSession?.devOtp || '123456';
-                    setDigits(code.split(''));
-                  }}
-                  className="font-mono font-bold text-emerald-800 bg-white px-2.5 py-1 rounded-md shadow-xs hover:bg-emerald-50 transition-colors cursor-pointer text-xs"
-                >
-                  {otpSession?.devOtp || '123456'} (Click to fill)
-                </button>
-              </div>
-            )}
 
             {/* 6 Digit Input Boxes */}
             <div>
