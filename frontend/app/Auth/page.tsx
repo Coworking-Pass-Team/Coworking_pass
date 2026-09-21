@@ -18,7 +18,8 @@ import {
   FileText,
   Users,
   ShieldCheck,
-  Clock
+  Clock,
+  AlertTriangle
 } from 'lucide-react';
 import { useApp } from '@/app/store';
 import LogoImage from '@/components/layout/logo';
@@ -145,9 +146,47 @@ export function LoginScreen() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="bg-red-500/10 border border-red-500/20 text-red-700 text-xs sm:text-sm font-medium rounded-xl px-4 py-3">
-                {error}
-              </div>
+              error.includes('قيد المراجعة') || error.toLowerCase().includes('pending') ? (
+                <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-950 shadow-xs">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-700 flex items-center justify-center shrink-0 mt-0.5">
+                      <Clock size={18} />
+                    </div>
+                    <div className="flex-1 text-xs sm:text-sm">
+                      <div className="font-bold text-amber-950 mb-1 flex items-center gap-1.5">
+                        <span>طلب حساب المزود قيد المراجعة والتدقيق</span>
+                        <Badge variant="mist" className="text-[10px] bg-amber-200/70 text-amber-800 border-amber-300">
+                          قيد الانتظار
+                        </Badge>
+                      </div>
+                      <p className="text-amber-900/90 leading-relaxed font-normal">
+                        {error}
+                      </p>
+                      <p className="text-amber-800/80 text-[11px] mt-2 font-medium">
+                        ستصلكم رسالة رسمية على البريد الإلكتروني فور قيام المشرفين باعتماد وتفعيل الحساب.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : error.includes('رفض') || error.toLowerCase().includes('rejected') ? (
+                <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-950 shadow-xs">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-rose-500/20 text-rose-700 flex items-center justify-center shrink-0 mt-0.5">
+                      <AlertTriangle size={18} />
+                    </div>
+                    <div className="flex-1 text-xs sm:text-sm">
+                      <div className="font-bold text-rose-950 mb-1">تم رفض طلب التسجيل</div>
+                      <p className="text-rose-900/90 leading-relaxed font-normal">
+                        {error}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-red-500/10 border border-red-500/20 text-red-700 text-xs sm:text-sm font-medium rounded-xl px-4 py-3">
+                  {error}
+                </div>
+              )
             )}
 
             {/* Email */}
@@ -1138,6 +1177,8 @@ export function OtpVerificationScreen() {
   const [loading, setLoading] = useState(false);
   const [countdown, setCountdown] = useState(60);
   const [canResend, setCanResend] = useState(false);
+  const [isPendingApproval, setIsPendingApproval] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState('');
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   // Focus first input & reset form on OTP session change
@@ -1223,7 +1264,13 @@ export function OtpVerificationScreen() {
     setError('');
 
     try {
+      const currentTargetEmail = otpSession?.targetEmailOrPhone || recipient;
       const res = await verifyOtp(code);
+      if (res.pendingApproval) {
+        setPendingEmail(currentTargetEmail);
+        setIsPendingApproval(true);
+        return;
+      }
       if (!res.success) {
         setError(res.error || 'Invalid verification code. Please try again.');
       }
@@ -1245,6 +1292,113 @@ export function OtpVerificationScreen() {
   const recipient = otpSession?.targetEmailOrPhone || 'your registered contact';
   const isSignup = otpSession?.mode === 'signup';
   const isForgotPassword = otpSession?.mode === 'forgot-password';
+  const isProviderSignup = isSignup && (otpSession?.role === 'provider' || otpSession?.role === 'PARTNER_ADMIN');
+
+  if (isPendingApproval) {
+    return (
+      <div className="min-h-screen w-full flex bg-plaster text-soot">
+        {/* Left Form Column */}
+        <div className="w-full lg:w-1/2 flex flex-col justify-between p-6 sm:p-10 lg:p-14 min-h-screen">
+          {/* Top Header */}
+          <div className="flex items-center justify-between w-full max-w-md mx-auto">
+            <Logo onClick={() => navigate('landing')} />
+            <button
+              type="button"
+              onClick={() => navigate('login')}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-soot/5 hover:bg-soot/10 border border-soot/10 text-xs font-semibold text-soot transition-all duration-200 cursor-pointer group"
+            >
+              <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />
+              <span>تسجيل الدخول</span>
+            </button>
+          </div>
+
+          {/* Center Content */}
+          <div className="w-full max-w-md mx-auto my-auto py-8">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-700 flex items-center justify-center mx-auto mb-4 shadow-sm">
+                <Clock size={32} className="text-amber-600 animate-pulse" />
+              </div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-800 text-xs font-semibold mb-3">
+                <Sparkles size={13} className="text-amber-600 shrink-0" />
+                <span>طلب مزود مساحات قيد المراجعة والاعتماد</span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-normal font-serif-display text-soot tracking-tight mb-2">
+                تم تأكيد البريد الإلكتروني بنجاح!
+              </h1>
+              <p className="text-moss text-xs sm:text-sm leading-relaxed">
+                شكراً لانضمامك إلى شبكة Coworking Pass. تم استلام طلب تسجيل منشأتك وبيانات السجل التجاري بنجاح وهو قيد المراجعة والتدقيق حالياً من قِبل إدارة المنصة.
+              </p>
+            </div>
+
+            {/* Steps Tracker Card */}
+            <div className="bg-plaster-surface rounded-2xl p-5 border border-soot/10 shadow-xs mb-6 space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="w-7 h-7 rounded-full bg-emerald-500/15 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5">
+                  <CheckCircle2 size={16} />
+                </div>
+                <div className="flex-1 text-xs">
+                  <span className="font-semibold text-soot block">تأكيد البريد الإلكتروني</span>
+                  <span className="text-moss">تم التحقق من الحساب: <strong className="text-soot">{pendingEmail || recipient}</strong></span>
+                </div>
+              </div>
+
+              <div className="border-t border-soot/8 pt-3 flex items-start gap-3">
+                <div className="w-7 h-7 rounded-full bg-amber-500/15 text-amber-700 flex items-center justify-center shrink-0 mt-0.5">
+                  <Clock size={16} className="text-amber-600" />
+                </div>
+                <div className="flex-1 text-xs">
+                  <span className="font-semibold text-amber-900 block">مراجعة السجل التجاري والمنشأة</span>
+                  <span className="text-amber-800/80">يقوم المشرفون بالتحقق من صحة البيانات تمهيداً لاعتماد الحساب.</span>
+                </div>
+              </div>
+
+              <div className="border-t border-soot/8 pt-3 flex items-start gap-3">
+                <div className="w-7 h-7 rounded-full bg-soot/5 text-moss flex items-center justify-center shrink-0 mt-0.5">
+                  <Mail size={16} />
+                </div>
+                <div className="flex-1 text-xs">
+                  <span className="font-semibold text-soot block">إشعار الاعتماد عبر الإيميل</span>
+                  <span className="text-moss">ستصلك رسالة إلكترونية رسمية فور القبول للبدء في إدارة مساحاتك واستقبال الحجوزات.</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={() => navigate('login')}
+                className="btn-primary w-full py-3.5 flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span>الانتقال إلى صفحة تسجيل الدخول</span>
+                <ArrowRight size={16} />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => navigate('landing')}
+                className="w-full py-2.5 text-xs font-semibold text-moss hover:text-soot transition-colors text-center cursor-pointer"
+              >
+                العودة للصفحة الرئيسية
+              </button>
+            </div>
+          </div>
+
+          {/* Micro Footer */}
+          <div className="w-full max-w-md mx-auto text-center text-[11px] text-moss">
+            &copy; 2026 Coworking Pass Inc. All rights reserved.
+          </div>
+        </div>
+
+        {/* Right Visual Image */}
+        <AuthVisualBanner
+          quote="نمكن مزودي وملاك مساحات العمل في السعودية من تنمية أعمالهم والوصول إلى قاعدة عملاء واسعة من المحترفين والشركات بأعلى معايير الموثوقية."
+          author="فريق شبكة المساحات"
+          role="Coworking Pass Partner Network"
+          tag="اعتماد وموثوقية الشركاء"
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen w-full flex bg-plaster text-soot">
@@ -1277,6 +1431,14 @@ export function OtpVerificationScreen() {
               We&apos;ve sent a 6-digit one-time code to{' '}
               <span className="font-semibold text-soot">{recipient}</span>. Enter the code below to {isSignup ? 'complete your account registration' : isForgotPassword ? 'verify your identity and reset your password' : 'complete your sign in'}.
             </p>
+            {isProviderSignup && (
+              <div className="mt-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-900 text-xs flex items-start gap-2">
+                <Clock size={15} className="text-amber-600 shrink-0 mt-0.5" />
+                <span>
+                  تنبيه: بعد تأكيد الرمز، سيخضع حساب مزود المساحات للمراجعة والتدقيق من قبل الإدارة قبل تفعيل تسجيل الدخول.
+                </span>
+              </div>
+            )}
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">

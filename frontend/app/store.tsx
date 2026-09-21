@@ -429,7 +429,7 @@ interface AppContextType {
   requestForgotPasswordOtp: (email: string) => { success: boolean; error?: string };
   resetPassword: (newPassword: string) => { success: boolean; error?: string };
   completeSignup: (role: UserRole, extraData?: Partial<User>) => void;
-  verifyOtp: (code: string) => Promise<{ success: boolean; error?: string }>;
+  verifyOtp: (code: string) => Promise<{ success: boolean; error?: string; pendingApproval?: boolean }>;
   resendOtp: () => Promise<void>;
   cancelOtp: () => void;
   startOtpVerification: (session: OtpSession) => void;
@@ -2985,6 +2985,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return { success: true, requireOtp: true };
     }
 
+    if (!apiRes.success && apiRes.error && !apiRes.error.includes('Network connection issue')) {
+      return { success: false, error: apiRes.error };
+    }
+
     let user = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
     if (!user) {
       user = INITIAL_USERS.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
@@ -3099,7 +3103,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return { success: true };
   };
 
-  const verifyOtp = async (code: string): Promise<{ success: boolean; error?: string }> => {
+  const verifyOtp = async (code: string): Promise<{ success: boolean; error?: string; pendingApproval?: boolean }> => {
     if (!otpSession) {
       return { success: false, error: 'No active verification session. Please sign in again.' };
     }
@@ -3224,26 +3228,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    if (updated.role === 'provider') {
-      (async () => {
-        try {
-          const storedToken = getStoredToken();
-          const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-          if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
-          await fetch(`${getApiBaseUrl()}/partners`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({
-              brandName: updated.orgName || updated.name,
-              contactEmail: updated.email,
-              taxNumber: '1234567890',
-              revenueSharePercentage: 20,
-            }),
-          });
-        } catch (err) {
-          console.warn('Frontend auto-create partner error:', err);
-        }
-      })();
+    const isProvider = updated.role === 'provider' || updated.role === 'PARTNER_ADMIN' || otpSession.role === 'provider' || otpSession.role === 'PARTNER_ADMIN';
+
+    if (isProvider) {
+      showToast('تم تأكيد البريد الإلكتروني بنجاح! طلب حساب مزود المساحات قيد المراجعة والاعتماد من قبل الإدارة.', 'info');
+      return { success: true, pendingApproval: true };
     }
 
     const loginRes = await login(updated.email, updated.password);
@@ -3257,7 +3246,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('cp_currentUser', JSON.stringify(updated));
     }
     if (updated.role === 'organization') navigate('org-dashboard');
-    else if (updated.role === 'provider') navigate('provider-dashboard');
     else navigate('ind-dashboard');
     showToast(`Account verified! Welcome to Coworking Pass, ${updated.name}!`, 'success');
     return { success: true };
