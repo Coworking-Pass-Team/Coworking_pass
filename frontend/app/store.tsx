@@ -2973,6 +2973,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       role: role || newUser.role || 'individual',
       orgName: extraData?.orgName,
       companyName: extraData?.orgName,
+      businessName: extraData?.businessName,
+      crNumber: extraData?.crNumber,
     });
 
     if (!apiRes.success && apiRes.error && !apiRes.error.includes('Network connection issue')) {
@@ -3198,6 +3200,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         email: otpSession.user.email,
         password: otpSession.user.password,
         role: otpSession.role || otpSession.user.role || 'individual',
+        orgName: otpSession.extraData?.orgName,
+        companyName: otpSession.extraData?.orgName,
+        businessName: otpSession.extraData?.businessName,
+        crNumber: otpSession.extraData?.crNumber,
       });
       if (apiRes.userId || apiRes.devOtp) {
         setOtpSession(prev => prev ? { ...prev, userId: apiRes.userId || prev.userId, devOtp: apiRes.devOtp } : null);
