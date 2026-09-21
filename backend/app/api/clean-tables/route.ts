@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { seedStandardWorkspaces } from '@/lib/seed-data';
+import { ensureDatabaseSchema } from '@/lib/db-schema-sync';
 
 export async function GET() {
   try {
+    await ensureDatabaseSchema(true);
     // Ensure durationDetails column exists in Neon DB
     await prisma.$executeRawUnsafe(
       'ALTER TABLE "DirectBooking" ADD COLUMN IF NOT EXISTS "durationDetails" TEXT;'

@@ -38,7 +38,7 @@ if (!globalAuth.__cp_users) {
       id: 'usr_admin',
       name: 'Fahad Al-Husseini',
       email: 'admin@coworkingpass.sa',
-      passwordHash: hashPassword('admin123'),
+      passwordHash: hashPassword('password'),
       role: 'SUPER_ADMIN',
       emailVerified: true,
       createdAt: new Date(),
