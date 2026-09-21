@@ -428,6 +428,7 @@ export interface User {
   savedCards?: PaymentCard[];
   businessName?: string;
   crNumber?: string;
+  partnerStatus?: ApprovalStatus;
   city?: string;
   businessDescription?: string;
   revenueShare?: number;
@@ -1535,6 +1536,7 @@ export interface Partner {
   contactEmail: string;
   taxNumber: string;
   revenueSharePercentage: number;
+  status?: ApprovalStatus;
   workspaces?: any[];
   payouts?: any[];
   createdAt?: string;

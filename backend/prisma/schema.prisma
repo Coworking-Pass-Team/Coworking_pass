@@ -180,11 +180,13 @@ model Company {
 }
 
 model Partner {
-  id                     String @id @default(uuid())
+  id                     String         @id @default(uuid())
   brandName              String
   contactEmail           String
   taxNumber              String
   revenueSharePercentage Float
+  status                 ApprovalStatus @default(APPROVED)
+  createdAt              DateTime       @default(now())
 
   workspaces Workspace[]
   payouts    Payout[]
