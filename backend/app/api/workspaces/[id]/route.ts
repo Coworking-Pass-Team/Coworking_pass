@@ -119,6 +119,8 @@ if (!user) return unauthorizedResponse();
 
     const { id } = await params;
 
+    await prisma.workspaceAmenity.deleteMany({ where: { workspaceId: id } });
+    await prisma.workspaceSection.deleteMany({ where: { workspaceId: id } });
     await prisma.workspace.delete({ where: { id } });
 
     return NextResponse.json({ message: "تم حذف المساحة بنجاح" });

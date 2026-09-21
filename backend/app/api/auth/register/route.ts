@@ -39,7 +39,7 @@ function generateOtp() {
  */
 export async function POST(request: Request) {
   try {
-    const { name, email, password, role, companyId, companyName, orgName } = await request.json();
+    const { name, email, password, role, companyId, companyName, orgName, businessName, crNumber } = await request.json();
 
     if (!name || !email || !password) {
       return NextResponse.json(
@@ -92,6 +92,23 @@ export async function POST(request: Request) {
         });
       } catch (companyErr) {
         console.error("❌ Error creating company for HR_ADMIN on register:", companyErr);
+      }
+    }
+
+    // إنشاء سجل الشريك لمزود المساحات
+    if (assignedRole === "PARTNER_ADMIN") {
+      const finalBrandName = (businessName || name || 'New Partner').trim();
+      try {
+        await prisma.partner.create({
+          data: {
+            brandName: finalBrandName,
+            contactEmail: cleanEmail,
+            taxNumber: (crNumber && String(crNumber).trim()) || '300000000000003',
+            revenueSharePercentage: 15,
+          },
+        });
+      } catch (partnerErr) {
+        console.error("❌ Error creating partner for PARTNER_ADMIN on register:", partnerErr);
       }
     }
 
