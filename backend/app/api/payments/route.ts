@@ -37,7 +37,7 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error(' Error fetching payments:', error);
     return NextResponse.json(
-      { error: 'حدث خطأ في جلب المدفوعات' },
+      { error: 'Failed to fetch payments.' },
       { status: 500 }
     );
   }
@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
 
     if (!effectiveUserId || amount === undefined || !method || !paymentFor) {
       return NextResponse.json(
-        { error: 'جميع الحقول مطلوبة: userId (أو token), amount, method, paymentFor' },
+        { error: 'All fields are required: userId (or token), amount, method, paymentFor' },
         { status: 400 }
       );
     }
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
     const normalizedMethod = (method || '').toUpperCase();
     if (!validMethods.includes(normalizedMethod)) {
       return NextResponse.json(
-        { error: `method يجب أن يكون أحد القيم: ${validMethods.join(', ')}` },
+        { error: `method must be one of: ${validMethods.join(', ')}` },
         { status: 400 }
       );
     }
@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
     const normalizedPaymentFor = (paymentFor || '').toUpperCase();
     if (!validPaymentFor.includes(normalizedPaymentFor)) {
       return NextResponse.json(
-        { error: `paymentFor يجب أن يكون أحد القيم: ${validPaymentFor.join(', ')}` },
+        { error: `paymentFor must be one of: ${validPaymentFor.join(', ')}` },
         { status: 400 }
       );
     }
@@ -180,8 +180,8 @@ export async function POST(request: NextRequest) {
         data: {
           userId: effectiveUserId,
           type: 'PAYMENT_SUCCESS',
-          title: 'تم الدفع بنجاح',
-          message: `تم استلام دفعتك بمبلغ ${amount} ريال بنجاح`,
+          title: 'Payment Successful',
+          message: `Payment of SAR ${amount} received successfully.`,
           channel: 'IN_APP',
           sentAt: ksaCurrentTime,
         },
@@ -192,7 +192,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error(' Error creating payment:', error);
     return NextResponse.json(
-      { error: 'حدث خطأ في إنشاء الدفع' },
+      { error: 'Failed to create payment.' },
       { status: 500 }
     );
   }

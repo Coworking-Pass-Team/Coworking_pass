@@ -25,7 +25,7 @@ export function getTokenFromRequest(request: Request): TokenPayload | null {
 
 export function unauthorizedResponse() {
   return NextResponse.json(
-    { error: "غير مصرح لك بالدخول. يرجى تسجيل الدخول أولاً" },
+    { error: "Unauthorized access. Please log in first." },
     { status: 401 }
   );
 }

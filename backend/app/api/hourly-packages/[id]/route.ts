@@ -43,18 +43,18 @@ if (!user) return unauthorizedResponse();
 
     const existing = await prisma.hourlyPackage.findUnique({ where: { id } });
     if (!existing) {
-      return NextResponse.json({ error: "الباقة غير موجودة" }, { status: 404 });
+      return NextResponse.json({ error: "Package not found." }, { status: 404 });
     }
 
     const effectivePeriod = data.periodType || existing.periodType;
     const effectiveHours = data.hoursAmount !== undefined ? Number(data.hoursAmount) : existing.hoursAmount;
 
     if (effectivePeriod === 'PER_DAY' && effectiveHours > 4) {
-      return NextResponse.json({ error: "الساعات اليومية لا يمكن أن تتجاوز 4 ساعات" }, { status: 400 });
+      return NextResponse.json({ error: "Daily hours cannot exceed 4 hours." }, { status: 400 });
     }
 
     if (effectivePeriod === 'PER_MONTH' && effectiveHours > 12) {
-      return NextResponse.json({ error: "الساعات الشهرية لا يمكن أن تتجاوز 12 ساعة" }, { status: 400 });
+      return NextResponse.json({ error: "Monthly hours cannot exceed 12 hours." }, { status: 400 });
     }
 
     const hourlyPackage = await prisma.hourlyPackage.update({
@@ -62,11 +62,11 @@ if (!user) return unauthorizedResponse();
       data,
     });
 
-    return NextResponse.json({ message: "تم تعديل الباقة بنجاح", hourlyPackage });
+    return NextResponse.json({ message: "Hourly package updated successfully.", hourlyPackage });
   } catch (error) {
     console.error(error);
     return NextResponse.json(
-      { error: "الباقة غير موجودة أو حدث خطأ" },
+      { error: "Hourly package not found or an error occurred." },
       { status: 404 }
     );
   }
@@ -82,11 +82,11 @@ export async function DELETE(
 if (!user) return unauthorizedResponse();
     const { id } = await params;
     await prisma.hourlyPackage.delete({ where: { id } });
-    return NextResponse.json({ message: "تم حذف الباقة بنجاح" });
+    return NextResponse.json({ message: "Hourly package deleted successfully." });
   } catch (error) {
     console.error(error);
     return NextResponse.json(
-      { error: "الباقة غير موجودة أو حدث خطأ" },
+      { error: "Hourly package not found or an error occurred." },
       { status: 404 }
     );
   }

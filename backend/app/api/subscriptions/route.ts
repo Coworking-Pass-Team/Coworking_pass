@@ -30,7 +30,7 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('❌ Error fetching subscriptions:', error);
     return NextResponse.json(
-      { error: 'حدث خطأ في جلب الاشتراكات' },
+      { error: 'Failed to fetch subscriptions.' },
       { status: 500 }
     );
   }
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
 
     if (!effectiveUserId || !planId || !startDate || !endDate) {
       return NextResponse.json(
-        { error: 'جميع الحقول مطلوبة: userId, planId, startDate, endDate' },
+        { error: 'All fields are required: userId, planId, startDate, endDate' },
         { status: 400 }
       );
     }
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('❌ Error creating subscription:', error);
     return NextResponse.json(
-      { error: 'حدث خطأ في إنشاء الاشتراك' },
+      { error: 'Failed to create subscription.' },
       { status: 500 }
     );
   }

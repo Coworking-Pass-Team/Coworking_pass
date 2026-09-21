@@ -21,7 +21,7 @@ if (!user) return unauthorizedResponse();
 
     if (!booking) {
       return NextResponse.json(
-        { error: 'الحجز غير موجود' },
+        { error: 'Booking not found.' },
         { status: 404 }
       )
     }
@@ -30,7 +30,7 @@ if (!user) return unauthorizedResponse();
   } catch (error) {
     console.error('❌ Error fetching booking:', error)
     return NextResponse.json(
-      { error: 'حدث خطأ' },
+      { error: 'An error occurred.' },
       { status: 500 }
     )
   }
@@ -85,7 +85,7 @@ if (!user) return unauthorizedResponse();
   } catch (error) {
     console.error('❌ Error updating booking:', error)
     return NextResponse.json(
-      { error: 'حدث خطأ في التحديث' },
+      { error: 'Failed to update.' },
       { status: 500 }
     )
   }
@@ -109,7 +109,7 @@ if (!user) return unauthorizedResponse();
 
     if (!booking) {
       return NextResponse.json(
-        { error: 'الحجز غير موجود' },
+        { error: 'Booking not found.' },
         { status: 404 }
       )
     }
@@ -125,7 +125,7 @@ if (!user) return unauthorizedResponse();
     if (hoursDiff < requiredHours) {
       return NextResponse.json(
         { 
-          error: `لا يمكن الإلغاء. يجب الإلغاء قبل ${requiredHours} ساعة على الأقل من موعد الحجز` 
+          error: `Cancellation not allowed. Must cancel at least ${requiredHours} hours before booking time.` 
         },
         { status: 400 }
       )
@@ -137,13 +137,13 @@ if (!user) return unauthorizedResponse();
     })
 
     return NextResponse.json(
-      { message: 'تم إلغاء الحجز بنجاح' },
+      { message: 'Booking cancelled successfully.' },
       { status: 200 }
     )
   } catch (error) {
     console.error('❌ Error:', error)
     return NextResponse.json(
-      { error: 'حدث خطأ في الإلغاء' },
+      { error: 'Failed to cancel.' },
       { status: 500 }
     )
   }

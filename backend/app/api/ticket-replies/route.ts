@@ -13,7 +13,7 @@ if (!user) return unauthorizedResponse();
     return NextResponse.json(replies);
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "حدث خطأ في السيرفر" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }
 
@@ -54,26 +54,26 @@ if (!user) return unauthorizedResponse();
 
     if (!ticketId || !userId || !message) {
       return NextResponse.json(
-        { error: "الحقول المطلوبة: ticketId, userId, message" },
+        { error: "Required fields: ticketId, userId, message" },
         { status: 400 }
       );
     }
 
     const ticketExists = await prisma.ticket.findUnique({ where: { id: ticketId } });
     if (!ticketExists) {
-      return NextResponse.json({ error: "التذكرة (ticketId) غير موجودة" }, { status: 404 });
+      return NextResponse.json({ error: "Support ticket (ticketId) not found." }, { status: 404 });
     }
 
     if (ticketExists.status === "CLOSED") {
       return NextResponse.json(
-        { error: "لا يمكن الرد على تذكرة مغلقة" },
+        { error: "Cannot reply to a closed support ticket." },
         { status: 400 }
       );
     }
 
     const userExists = await prisma.user.findUnique({ where: { id: userId } });
     if (!userExists) {
-      return NextResponse.json({ error: "المستخدم (userId) غير موجود" }, { status: 404 });
+      return NextResponse.json({ error: "User (userId) not found." }, { status: 404 });
     }
 
     const reply = await prisma.ticketReply.create({
@@ -89,11 +89,11 @@ if (!user) return unauthorizedResponse();
     }
 
     return NextResponse.json(
-      { message: "تم إضافة الرد بنجاح", reply },
+      { message: "Reply added successfully.", reply },
       { status: 201 }
     );
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "حدث خطأ في السيرفر" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }

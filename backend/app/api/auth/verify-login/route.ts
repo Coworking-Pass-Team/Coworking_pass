@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     const { userId, code } = await request.json();
 
     if (!userId || !code) {
-      return NextResponse.json({ error: "userId والكود مطلوبان" }, { status: 400 });
+      return NextResponse.json({ error: "User ID and verification code are required." }, { status: 400 });
     }
 
     const isMasterCode = code === "123456";
@@ -47,12 +47,12 @@ export async function POST(request: Request) {
 
     if (!isMasterCode) {
       if (!otpRecord) {
-        return NextResponse.json({ error: "لا يوجد رمز صالح أو انتهت صلاحيته" }, { status: 400 });
+        return NextResponse.json({ error: "Invalid or expired verification code." }, { status: 400 });
       }
 
       const isValid = await bcrypt.compare(code, otpRecord.codeHash);
       if (!isValid) {
-        return NextResponse.json({ error: "الرمز غير صحيح" }, { status: 400 });
+        return NextResponse.json({ error: "Invalid verification code." }, { status: 400 });
       }
     }
 
@@ -72,11 +72,11 @@ export async function POST(request: Request) {
     });
 
     if (!user) {
-      return NextResponse.json({ error: "المستخدم غير موجود" }, { status: 404 });
+      return NextResponse.json({ error: "User not found." }, { status: 404 });
     }
 
     if (user.isBanned) {
-      return NextResponse.json({ error: "تم حظر هذا الحساب، يرجى التواصل مع إدارة المنصة" }, { status: 403 });
+      return NextResponse.json({ error: "This account has been suspended. Please contact platform support." }, { status: 403 });
     }
 
     let partnerInfo = null;
@@ -86,13 +86,13 @@ export async function POST(request: Request) {
       });
       if (partnerInfo && partnerInfo.status === "PENDING_APPROVAL") {
         return NextResponse.json({
-          error: "حساب مزود المساحة قيد المراجعة والتحقق من قبل إدارة المنصة. سيتم إشعارك عبر البريد الإلكتروني فور اعتماده.",
+          error: "Your partner account is currently under review by platform administrators. You will receive an email once approved.",
           code: "PARTNER_PENDING_APPROVAL",
         }, { status: 403 });
       }
       if (partnerInfo && partnerInfo.status === "REJECTED") {
         return NextResponse.json({
-          error: "عذراً، تم رفض طلب انضمام مزود المساحة من قبل الإدارة.",
+          error: "Your partner registration request has been declined. Please contact support.",
           code: "PARTNER_REJECTED",
         }, { status: 403 });
       }
@@ -107,7 +107,7 @@ export async function POST(request: Request) {
     const associatedCompany = user.hrAdminOf || user.company;
 
     return NextResponse.json({
-      message: "تم تسجيل الدخول بنجاح",
+      message: "Logged in successfully.",
       token,
       user: {
         id: user.id,
@@ -124,7 +124,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "حدث خطأ في السيرفر" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }
 

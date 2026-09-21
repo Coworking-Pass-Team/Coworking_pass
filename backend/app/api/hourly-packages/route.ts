@@ -15,7 +15,7 @@ if (!user) return unauthorizedResponse();
     return NextResponse.json(packages);
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "حدث خطأ في السيرفر" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }
 
@@ -64,41 +64,41 @@ if (!user) return unauthorizedResponse();
 
     if (!sectionId || !packageName || !hoursAmount || !periodType || !price) {
       return NextResponse.json(
-        { error: "الحقول المطلوبة: sectionId, packageName, hoursAmount, periodType, price" },
+        { error: "Required fields: sectionId, packageName, hoursAmount, periodType, price" },
         { status: 400 }
       );
     }
 
     if (!VALID_PERIOD_TYPES.includes(periodType)) {
       return NextResponse.json(
-        { error: `periodType يجب أن يكون: ${VALID_PERIOD_TYPES.join(", ")}` },
+        { error: `periodType must be one of: ${VALID_PERIOD_TYPES.join(", ")}` },
         { status: 400 }
       );
     }
 
     const sectionExists = await prisma.workspaceSection.findUnique({ where: { id: sectionId } });
     if (!sectionExists) {
-      return NextResponse.json({ error: "القسم (sectionId) غير موجود" }, { status: 404 });
+      return NextResponse.json({ error: "Section (sectionId) not found." }, { status: 404 });
     }
 
     const parsedHours = Number(hoursAmount);
     if (periodType === 'PER_DAY' && parsedHours > 4) {
       return NextResponse.json(
-        { error: "الساعات اليومية لا يمكن أن تتجاوز 4 ساعات" },
+        { error: "Daily hours cannot exceed 4 hours." },
         { status: 400 }
       );
     }
 
     if (periodType === 'PER_MONTH' && parsedHours > 12) {
       return NextResponse.json(
-        { error: "الساعات الشهرية لا يمكن أن تتجاوز 12 ساعة" },
+        { error: "Monthly hours cannot exceed 12 hours." },
         { status: 400 }
       );
     }
 
     if (!["MEETING_ROOM", "THEATER"].includes(sectionExists.type)) {
       return NextResponse.json(
-        { error: "باقات الساعات تنطبق فقط على قاعات الاجتماعات أو المسارح" },
+        { error: "Hourly packages only apply to meeting rooms or theaters." },
         { status: 400 }
       );
     }
@@ -108,11 +108,11 @@ if (!user) return unauthorizedResponse();
     });
 
     return NextResponse.json(
-      { message: "تم إنشاء الباقة بنجاح", hourlyPackage },
+      { message: "Hourly package created successfully.", hourlyPackage },
       { status: 201 }
     );
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "حدث خطأ في السيرفر" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }

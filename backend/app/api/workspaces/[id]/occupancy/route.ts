@@ -44,7 +44,7 @@ export async function GET(
 
     if (!workspace) {
       return NextResponse.json(
-        { error: 'المساحة غير موجودة' },
+        { error: 'Workspace not found.' },
         { status: 404 }
       )
     }
@@ -76,7 +76,7 @@ export async function GET(
   } catch (error) {
     console.error('❌ Error calculating occupancy:', error)
     return NextResponse.json(
-      { error: 'حدث خطأ في حساب الإشغال' },
+      { error: 'Failed to calculate occupancy.' },
       { status: 500 }
     )
   }

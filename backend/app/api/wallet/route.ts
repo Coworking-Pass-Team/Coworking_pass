@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
 
     if (!userId) {
       return NextResponse.json(
-        { error: 'معرف المستخدم مطلوب' },
+        { error: 'User ID is required.' },
         { status: 400 }
       )
     }
@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('❌ Error fetching wallet:', error)
     return NextResponse.json(
-      { error: 'حدث خطأ في جلب المحفظة' },
+      { error: 'Failed to fetch wallet.' },
       { status: 500 }
     )
   }
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
 
     if (!userId || !amount || !type) {
       return NextResponse.json(
-        { error: 'جميع الحقول مطلوبة' },
+        { error: 'All fields are required.' },
         { status: 400 }
       )
     }
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
     // التحقق من الرصيد في حالة السحب
     if (!isCredit && wallet.balance < amount) {
       return NextResponse.json(
-        { error: 'رصيد غير كافٍ' },
+        { error: 'Insufficient balance.' },
         { status: 400 }
       )
     }
@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('❌ Error processing wallet:', error)
     return NextResponse.json(
-      { error: 'حدث خطأ في معاملة المحفظة' },
+      { error: 'Failed to process wallet transaction.' },
       { status: 500 }
     )
   }

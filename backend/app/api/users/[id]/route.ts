@@ -19,7 +19,7 @@ import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-tok
  *       200:
  *         description: بيانات المستخدم
  *       404:
- *         description: المستخدم غير موجود
+ *         description: User not found.
  */
 export async function GET(
   request: Request,
@@ -42,13 +42,13 @@ export async function GET(
     });
 
     if (!targetUser) {
-      return NextResponse.json({ error: "المستخدم غير موجود" }, { status: 404 });
+      return NextResponse.json({ error: "User not found." }, { status: 404 });
     }
 
     return NextResponse.json(targetUser);
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "حدث خطأ في السيرفر" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }
 
@@ -96,7 +96,7 @@ export async function PUT(
     // حظر/رفع حظر — صلاحية SUPER_ADMIN فقط
     if (data.isBanned !== undefined && user.role !== "SUPER_ADMIN") {
       return NextResponse.json(
-        { error: "هذا الإجراء يتطلب صلاحية مدير النظام" },
+        { error: "This action requires administrator privileges." },
         { status: 403 }
       );
     }
@@ -113,11 +113,11 @@ export async function PUT(
       },
     });
 
-    return NextResponse.json({ message: "تم تعديل البيانات بنجاح", user: updated });
+    return NextResponse.json({ message: "User profile updated successfully.", user: updated });
   } catch (error) {
     console.error(error);
     return NextResponse.json(
-      { error: "المستخدم غير موجود أو حدث خطأ" },
+      { error: "User not found or an error occurred." },
       { status: 404 }
     );
   }
@@ -140,7 +140,7 @@ export async function PUT(
  *       200:
  *         description: تم حذف الحساب بنجاح
  *       404:
- *         description: المستخدم غير موجود
+ *         description: User not found.
  */
 export async function DELETE(
   request: Request,
@@ -154,11 +154,11 @@ export async function DELETE(
 
     await prisma.user.delete({ where: { id } });
 
-    return NextResponse.json({ message: "تم حذف الحساب وكل بياناته بنجاح" });
+    return NextResponse.json({ message: "Account and associated data deleted successfully." });
   } catch (error) {
     console.error(error);
     return NextResponse.json(
-      { error: "المستخدم غير موجود أو حدث خطأ" },
+      { error: "User not found or an error occurred." },
       { status: 404 }
     );
   }

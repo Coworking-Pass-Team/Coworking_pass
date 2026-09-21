@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
 
     if (!planName || !type || totalVisitsAllowed === undefined || price === undefined) {
       return NextResponse.json(
-        { error: 'جميع الحقول مطلوبة: planName, type (B2C | B2B), totalVisitsAllowed, price' },
+        { error: 'All fields are required: planName, type (B2C | B2B), totalVisitsAllowed, price' },
         { status: 400 }
       );
     }
@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('❌ Error creating plan:', error);
     return NextResponse.json(
-      { error: 'حدث خطأ في إنشاء الخطة' },
+      { error: 'Failed to create plan.' },
       { status: 500 }
     );
   }

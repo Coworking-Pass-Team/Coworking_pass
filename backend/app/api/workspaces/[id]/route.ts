@@ -99,11 +99,11 @@ export async function PUT(
         }
       : workspace;
 
-    return NextResponse.json({ message: "تم تعديل المساحة بنجاح", workspace: formatted });
+    return NextResponse.json({ message: "Workspace updated successfully.", workspace: formatted });
   } catch (error) {
     console.error(error);
     return NextResponse.json(
-      { error: "المساحة غير موجودة أو حدث خطأ" },
+      { error: "Workspace not found or an error occurred." },
       { status: 404 }
     );
   }
@@ -123,11 +123,11 @@ if (!user) return unauthorizedResponse();
     await prisma.workspaceSection.deleteMany({ where: { workspaceId: id } });
     await prisma.workspace.delete({ where: { id } });
 
-    return NextResponse.json({ message: "تم حذف المساحة بنجاح" });
+    return NextResponse.json({ message: "Workspace deleted successfully." });
   } catch (error) {
     console.error(error);
     return NextResponse.json(
-      { error: "المساحة غير موجودة أو حدث خطأ" },
+      { error: "Workspace not found or an error occurred." },
       { status: 404 }
     );
   }

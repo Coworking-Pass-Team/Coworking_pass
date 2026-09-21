@@ -31,11 +31,11 @@ export async function DELETE(
 if (!user) return unauthorizedResponse();
     const { id } = await params;
     await prisma.ticketReply.delete({ where: { id } });
-    return NextResponse.json({ message: "تم حذف الرد بنجاح" });
+    return NextResponse.json({ message: "Reply deleted successfully." });
   } catch (error) {
     console.error(error);
     return NextResponse.json(
-      { error: "الرد غير موجود أو حدث خطأ" },
+      { error: "Reply not found or an error occurred." },
       { status: 404 }
     );
   }

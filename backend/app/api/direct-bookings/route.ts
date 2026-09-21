@@ -42,7 +42,7 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error(' Error fetching direct bookings:', error);
     return NextResponse.json(
-      { error: 'حدث خطأ في جلب الحجوزات المباشرة' },
+      { error: 'Failed to fetch direct bookings.' },
       { status: 500 }
     );
   }
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
 
     if (!effectiveUserId) {
       return NextResponse.json(
-        { error: 'يرجى تسجيل الدخول أو توفير معرف مستخدم صالح' },
+        { error: 'Please log in or provide a valid user ID.' },
         { status: 401 }
       );
     }
@@ -241,7 +241,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!ws) {
-      return NextResponse.json({ error: 'مساحة العمل المطلوبة غير موجودة' }, { status: 404 });
+      return NextResponse.json({ error: 'Requested workspace not found.' }, { status: 404 });
     }
 
     targetWorkspaceId = ws.id;
@@ -329,8 +329,8 @@ export async function POST(request: NextRequest) {
       data: {
         userId: effectiveUserId,
         type: 'BOOKING_CONFIRMED',
-        title: 'تم تأكيد حجزك',
-        message: `تم تأكيد حجزك في ${booking.workspace.name} بنجاح`,
+        title: 'Booking Confirmed',
+        message: `Your booking at ${booking.workspace.name} has been confirmed successfully.`,
         channel: 'IN_APP',
         sentAt: getKsaNow()
       }
@@ -340,7 +340,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('❌ Error creating direct booking:', error);
     return NextResponse.json(
-      { error: error?.message || 'حدث خطأ في إنشاء الحجز المباشر' },
+      { error: error?.message || 'Failed to create direct booking.' },
       { status: 500 }
     );
   }

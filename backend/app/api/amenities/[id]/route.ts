@@ -44,7 +44,7 @@ if (!user) return unauthorizedResponse();
 
     if (!["APPROVED", "REJECTED"].includes(status)) {
       return NextResponse.json(
-        { error: "status يجب أن يكون APPROVED أو REJECTED" },
+        { error: "status must be either APPROVED or REJECTED." },
         { status: 400 }
       );
     }
@@ -54,11 +54,11 @@ if (!user) return unauthorizedResponse();
       data: { status },
     });
 
-    return NextResponse.json({ message: "تم تحديث حالة المرفق بنجاح", amenity });
+    return NextResponse.json({ message: "Amenity status updated successfully.", amenity });
   } catch (error) {
     console.error(error);
     return NextResponse.json(
-      { error: "المرفق غير موجود أو حدث خطأ" },
+      { error: "Amenity not found or an error occurred." },
       { status: 404 }
     );
   }
@@ -74,11 +74,11 @@ export async function DELETE(
 if (!user) return unauthorizedResponse();
     const { id } = await params;
     await prisma.amenityCatalog.delete({ where: { id } });
-    return NextResponse.json({ message: "تم حذف المرفق بنجاح" });
+    return NextResponse.json({ message: "Amenity deleted successfully." });
   } catch (error) {
     console.error(error);
     return NextResponse.json(
-      { error: "المرفق غير موجود أو حدث خطأ" },
+      { error: "Amenity not found or an error occurred." },
       { status: 404 }
     );
   }

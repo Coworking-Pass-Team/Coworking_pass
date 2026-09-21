@@ -645,7 +645,7 @@ export default function SpaceDetails() {
                     <div className="flex items-center justify-between gap-2">
                       <label className="text-[11px] font-semibold uppercase tracking-wider text-moss flex items-center gap-1.5 whitespace-nowrap">
                         <Clock size={12} className="shrink-0" />
-                        <span>Select 2-Hour Daily Session (حجز ساعتين)</span>
+                        <span>Select 2-Hour Daily Session</span>
                       </label>
                       <span className="text-xs font-bold text-emerald-900 bg-emerald-100/80 px-2.5 py-1 rounded-full border border-emerald-300 shadow-2xs whitespace-nowrap shrink-0">
                         2 Hours Session (Fixed)
@@ -673,7 +673,7 @@ export default function SpaceDetails() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-[11px] font-semibold text-moss mb-1">
-                          Session Start Time (وقت البدء)
+                          Session Start Time
                         </label>
                         <select
                           value={startTime}
@@ -690,7 +690,7 @@ export default function SpaceDetails() {
 
                       <div>
                         <label className="block text-[11px] font-semibold text-moss mb-1">
-                          Session End Time (وقت الانتهاء)
+                          Session End Time
                         </label>
                         <input
                           type="text"

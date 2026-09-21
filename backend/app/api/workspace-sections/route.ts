@@ -22,7 +22,7 @@ export async function GET(request: Request) {
     return NextResponse.json(sections);
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "حدث خطأ في السيرفر" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }
 
@@ -71,21 +71,21 @@ if (!user) return unauthorizedResponse();
 
     if (!workspaceId || !type || !name || !capacity) {
       return NextResponse.json(
-        { error: "الحقول المطلوبة: workspaceId, type, name, capacity" },
+        { error: "Required fields: workspaceId, type, name, capacity" },
         { status: 400 }
       );
     }
 
     if (!VALID_TYPES.includes(type)) {
       return NextResponse.json(
-        { error: `type يجب أن يكون: ${VALID_TYPES.join(", ")}` },
+        { error: `type must be one of: ${VALID_TYPES.join(", ")}` },
         { status: 400 }
       );
     }
 
     const workspaceExists = await prisma.workspace.findUnique({ where: { id: workspaceId } });
     if (!workspaceExists) {
-      return NextResponse.json({ error: "المساحة (workspaceId) غير موجودة" }, { status: 404 });
+      return NextResponse.json({ error: "Workspace (workspaceId) not found." }, { status: 404 });
     }
 
     const section = await prisma.workspaceSection.create({
@@ -93,11 +93,11 @@ if (!user) return unauthorizedResponse();
     });
 
     return NextResponse.json(
-      { message: "تم إنشاء القسم بنجاح", section },
+      { message: "Section created successfully.", section },
       { status: 201 }
     );
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "حدث خطأ في السيرفر" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }

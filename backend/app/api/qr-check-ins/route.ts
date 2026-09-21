@@ -35,7 +35,7 @@ if (!user) return unauthorizedResponse();
   } catch (error) {
     console.error('❌ Error fetching QR check-ins:', error)
     return NextResponse.json(
-      { error: 'حدث خطأ في جلب مسحات QR' },
+      { error: 'Failed to fetch QR check-ins.' },
       { status: 500 }
     )
   }
@@ -78,7 +78,7 @@ if (!user) return unauthorizedResponse();
 
     if (!userId || !workspaceId || !sectionId) {
       return NextResponse.json(
-        { error: 'جميع الحقول مطلوبة' },
+        { error: 'All fields are required.' },
         { status: 400 }
       )
     }
@@ -121,7 +121,7 @@ if (!user) return unauthorizedResponse();
             userId: userId,
             type: 'EARNED',
             points: pointsToEarn,
-            description: `نقاط من حجز ${activeBooking.durationType} في ${activeBooking.workspaceId}`,
+            description: `Points earned from ${activeBooking.durationType} booking in ${activeBooking.workspaceId}`,
             referenceId: activeBooking.id
           }
         })
@@ -177,7 +177,7 @@ if (!user) return unauthorizedResponse();
   } catch (error) {
     console.error('❌ Error creating QR check-in:', error)
     return NextResponse.json(
-      { error: 'حدث خطأ في إنشاء مسح QR' },
+      { error: 'Failed to create QR check-in.' },
       { status: 500 }
     )
   }

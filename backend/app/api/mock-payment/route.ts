@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
 
     if (!userId || !amount || !paymentFor) {
       return NextResponse.json(
-        { error: 'جميع الحقول مطلوبة' },
+        { error: 'All fields are required.' },
         { status: 400 }
       )
     }
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { 
           status: 'FAILED',
-          message: 'فشلت عملية الدفع، يرجى المحاولة مرة أخرى'
+          message: 'Payment failed, please try again.'
         },
         { status: 402 }
       )
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       status: 'SUCCESS',
-      message: 'تم الدفع بنجاح ✅',
+      message: 'Payment successful ✅',
       transactionId: payment.gatewayTransactionId,
       payment
     }, { status: 200 })
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('❌ Mock Payment Error:', error)
     return NextResponse.json(
-      { error: 'حدث خطأ في محاكاة الدفع' },
+      { error: 'Failed to simulate payment.' },
       { status: 500 }
     )
   }

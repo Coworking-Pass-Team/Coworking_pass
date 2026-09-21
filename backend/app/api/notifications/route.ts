@@ -6,20 +6,21 @@ import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-tok
 export async function GET(request: Request) {
   try {
     const user = getTokenFromRequest(request);
-if (!user) return unauthorizedResponse();
     const notifications = await prisma.notification.findMany({
+      where: user && user.role !== 'SUPER_ADMIN' ? { userId: user.userId } : undefined,
       include: {
         user: { select: { name: true, email: true } }
       },
-      orderBy: { createdAt: 'desc' }
-    })
-    return NextResponse.json(notifications)
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+    return NextResponse.json(notifications);
   } catch (error) {
-    console.error('❌ Error fetching notifications:', error)
+    console.error('❌ Error fetching notifications:', error);
     return NextResponse.json(
-      { error: 'حدث خطأ في جلب الإشعارات' },
+      { error: 'Failed to fetch notifications.' },
       { status: 500 }
-    )
+    );
   }
 }
 
@@ -63,7 +64,7 @@ if (!user) return unauthorizedResponse();
 
     if (!userId || !type || !title || !message) {
       return NextResponse.json(
-        { error: 'جميع الحقول مطلوبة' },
+        { error: 'All fields are required.' },
         { status: 400 }
       )
     }
@@ -87,7 +88,7 @@ if (!user) return unauthorizedResponse();
   } catch (error) {
     console.error('❌ Error creating notification:', error)
     return NextResponse.json(
-      { error: 'حدث خطأ في إنشاء الإشعار' },
+      { error: 'Failed to create notification.' },
       { status: 500 }
     )
   }
@@ -106,7 +107,7 @@ export async function PUT(request: NextRequest) {
   } catch (error) {
     console.error('❌ Error updating notification:', error)
     return NextResponse.json(
-      { error: 'حدث خطأ في تحديث الإشعار' },
+      { error: 'Failed to update notification.' },
       { status: 500 }
     )
   }

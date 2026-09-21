@@ -22,7 +22,7 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('❌ Error fetching rules:', error);
     return NextResponse.json(
-      { error: 'حدث خطأ في جلب قواعد الولاء' },
+      { error: 'Failed to fetch loyalty rules.' },
       { status: 500 }
     );
   }
@@ -67,7 +67,7 @@ if (!user) return unauthorizedResponse();
 
     if (!ruleName || !ruleType || !pointsValue || !monetaryValue || !proposedBy) {
       return NextResponse.json(
-        { error: 'جميع الحقول مطلوبة' },
+        { error: 'All fields are required.' },
         { status: 400 }
       )
     }
@@ -92,7 +92,7 @@ if (!user) return unauthorizedResponse();
   } catch (error) {
     console.error('❌ Error creating rule:', error)
     return NextResponse.json(
-      { error: 'حدث خطأ في إنشاء القاعدة' },
+      { error: 'Failed to create loyalty rule.' },
       { status: 500 }
     )
   }

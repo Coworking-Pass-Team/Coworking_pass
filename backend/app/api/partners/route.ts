@@ -2,19 +2,16 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
-// GET /api/partners — عرض كل الشركاء
+// GET /api/partners — List all partners
 export async function GET(request: Request) {
   try {
-    const user = getTokenFromRequest(request);
-if (!user) return unauthorizedResponse();
-
     const partners = await prisma.partner.findMany({
       orderBy: { createdAt: "desc" },
     });
     return NextResponse.json(partners);
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "حدث خطأ في السيرفر" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }
 
@@ -56,7 +53,7 @@ if (!user) return unauthorizedResponse();
 
     if (!brandName || !contactEmail || !taxNumber || revenueSharePercentage === undefined) {
       return NextResponse.json(
-        { error: "الحقول المطلوبة: brandName, contactEmail, taxNumber, revenueSharePercentage" },
+        { error: "Required fields: brandName, contactEmail, taxNumber, revenueSharePercentage" },
         { status: 400 }
       );
     }
@@ -66,11 +63,11 @@ if (!user) return unauthorizedResponse();
     });
 
     return NextResponse.json(
-      { message: "تم إنشاء الشريك بنجاح", partner },
+      { message: "Partner created successfully.", partner },
       { status: 201 }
     );
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "حدث خطأ في السيرفر" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }
