@@ -20,9 +20,13 @@ import { useApp } from '@/app/store';
 import { getBookingPrice } from '@/types/types';
 
 export default function AdminDashboard() {
-  const { spaces, users, bookings, loyaltyRules, navigate } = useApp();
+  const { spaces, users, bookings, loyaltyRules, navigate, partners, fetchPartners } = useApp();
 
+  React.useEffect(() => {
+    fetchPartners().catch(() => {});
+  }, []);
 
+  const pendingPartnersCount = partners.filter((p) => p.status === 'PENDING_APPROVAL').length;
   const nonAdminUsers = users.filter(u => u.role !== 'admin');
   const totalRevenue = bookings.filter(b => b.status !== 'cancelled').reduce((sum, b) => sum + getBookingPrice(b, spaces), 0);
   const activeBookings = bookings.filter(b => b.status === 'active');
@@ -46,6 +50,38 @@ export default function AdminDashboard() {
           Dashboard
         </h1>
       </div>
+
+      {/* Pending Space Provider Requests Banner */}
+      {pendingPartnersCount > 0 && (
+        <div className="mb-6 bg-amber-500/10 border border-amber-500/25 rounded-3xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
+          <div className="flex items-start sm:items-center gap-3.5">
+            <div className="w-10 h-10 rounded-2xl bg-amber-500/20 flex items-center justify-center text-amber-800 shrink-0">
+              <AlertCircle size={20} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-soot">
+                  طلبات مزودي مساحات جديدة بانتظار الاعتماد ({pendingPartnersCount})
+                </span>
+                <span className="text-[11px] font-semibold bg-amber-500/20 text-amber-900 px-2 py-0.5 rounded-full border border-amber-500/30">
+                  بحاجة للتدقيق
+                </span>
+              </div>
+              <p className="text-xs text-moss mt-0.5">
+                توجد منشآت ومزودو مساحات جدد قاموا بالتسجيل وتقديم بياناتهم وسجلاتهم التجارية وبانتظار اعتماد السوبر أدمن.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate('admin-users')}
+            className="px-4 py-2 rounded-xl bg-soot text-plaster text-xs font-semibold hover:bg-soot/90 transition-all flex items-center gap-1.5 shrink-0 shadow-2xs cursor-pointer"
+          >
+            <span>مراجعة واعتماد الطلبات</span>
+            <ArrowRight size={14} />
+          </button>
+        </div>
+      )}
 
       {/* Primary Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">

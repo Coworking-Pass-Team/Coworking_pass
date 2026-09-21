@@ -259,9 +259,13 @@ interface AppContextType {
       contactEmail: string;
       taxNumber: string;
       revenueSharePercentage: number;
+      status: ApprovalStatus;
+      rejectionReason?: string;
     }>
   ) => Promise<{ success: boolean; partner?: Partner; error?: string }>;
   deletePartner: (partnerId: string) => Promise<{ success: boolean; error?: string }>;
+  approvePartner: (partnerId: string) => Promise<{ success: boolean; error?: string }>;
+  rejectPartner: (partnerId: string, reason?: string) => Promise<{ success: boolean; error?: string }>;
 
   workspacesApi: WorkspaceApi[];
   fetchWorkspaces: () => Promise<WorkspaceApi[]>;
@@ -2580,6 +2584,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       contactEmail: string;
       taxNumber: string;
       revenueSharePercentage: number;
+      status: ApprovalStatus;
+      rejectionReason?: string;
     }>
   ): Promise<{ success: boolean; partner?: Partner; error?: string }> => {
     try {
@@ -2641,6 +2647,56 @@ export function AppProvider({ children }: { children: ReactNode }) {
     } catch (err: any) {
       console.error(`Error deleting partner via DELETE /api/partners/${partnerId}:`, err);
       showToast(err.message || 'Failed to delete partner', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const approvePartner = async (partnerId: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const res = await updatePartner(partnerId, { status: 'APPROVED' });
+      if (res.success) {
+        const targetPartner = partners.find((p) => p.id === partnerId);
+        if (targetPartner) {
+          setUsers((prev) =>
+            prev.map((u) =>
+              u.email.toLowerCase() === targetPartner.contactEmail.toLowerCase()
+                ? { ...u, partnerStatus: 'APPROVED' }
+                : u
+            )
+          );
+        }
+        showToast('تم اعتماد حساب مزود المساحة بنجاح وإرسال إشعار البريد الإلكتروني!', 'success');
+        return { success: true };
+      }
+      return { success: false, error: res.error };
+    } catch (err: any) {
+      console.error(`Error approving partner ${partnerId}:`, err);
+      showToast(err.message || 'حدث خطأ أثناء اعتماد حساب الشريك', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const rejectPartner = async (partnerId: string, reason?: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const res = await updatePartner(partnerId, { status: 'REJECTED', rejectionReason: reason });
+      if (res.success) {
+        const targetPartner = partners.find((p) => p.id === partnerId);
+        if (targetPartner) {
+          setUsers((prev) =>
+            prev.map((u) =>
+              u.email.toLowerCase() === targetPartner.contactEmail.toLowerCase()
+                ? { ...u, partnerStatus: 'REJECTED' }
+                : u
+            )
+          );
+        }
+        showToast('تم رفض طلب مزود المساحة.', 'info');
+        return { success: true };
+      }
+      return { success: false, error: res.error };
+    } catch (err: any) {
+      console.error(`Error rejecting partner ${partnerId}:`, err);
+      showToast(err.message || 'حدث خطأ أثناء رفض الطلب', 'error');
       return { success: false, error: err.message };
     }
   };
@@ -5296,7 +5352,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   return (
     <AppContext.Provider value={{
       nav, navigate, goBack,
-      partners, fetchPartners, createPartner, updatePartner, deletePartner,
+      partners, fetchPartners, createPartner, updatePartner, deletePartner, approvePartner, rejectPartner,
       workspacesApi, fetchWorkspaces, createWorkspace, updateWorkspace, deleteWorkspace,
       hourlyBookingsApi, fetchHourlyBookings, createHourlyBooking, updateHourlyBooking, deleteHourlyBooking,
       payoutsApi, fetchPayouts, createPayout, updatePayout, deletePayout,
