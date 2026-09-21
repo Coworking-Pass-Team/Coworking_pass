@@ -23,6 +23,7 @@ import {
 import { useApp } from '@/app/store';
 import LogoImage from '@/components/layout/logo';
 import Badge from '@/components/ui/Badge';
+import { isValidSaudiCrNumber } from '@/types/types';
 
 function Logo({ onClick }: { onClick: () => void }) {
   return (
@@ -304,6 +305,11 @@ export function SignUpScreen() {
       if (!orgName.trim()) e.orgName = 'Organization name is required.';
     } else if (role === 'provider') {
       if (!businessName.trim()) e.businessName = 'Partner business name is required.';
+      if (!crNumber.trim()) {
+        e.crNumber = 'Commercial Registration (CR) Number is required.';
+      } else if (!isValidSaudiCrNumber(crNumber)) {
+        e.crNumber = 'CR Number must be 10 digits starting with a valid region code (e.g., 1010xxxxxx).';
+      }
     }
     return e;
   };
@@ -591,7 +597,7 @@ export function SignUpScreen() {
                     {errors.businessName && <p className="text-red-500 text-xs mt-0.5 font-medium">{errors.businessName}</p>}
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-soot mb-1">CR Number</label>
+                    <label className="block text-xs font-medium text-soot mb-1">CR Number *</label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-moss">
                         <FileText size={15} />
@@ -599,11 +605,16 @@ export function SignUpScreen() {
                       <input
                         type="text"
                         value={crNumber}
-                        onChange={(e) => setCrNumber(e.target.value)}
+                        onChange={(e) => {
+                          setCrNumber(e.target.value.replace(/\D/g, '').slice(0, 10));
+                          if (errors.crNumber) setErrors(prev => { const n = { ...prev }; delete n.crNumber; return n; });
+                        }}
+                        maxLength={10}
                         placeholder="1010xxxxxx"
-                        className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-plaster-dark/20 border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs"
+                        className={`w-full pl-9 pr-3 py-2.5 rounded-xl bg-plaster-dark/20 border ${errors.crNumber ? 'border-red-500' : 'border-soot/15'} text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs`}
                       />
                     </div>
+                    {errors.crNumber && <p className="text-red-500 text-xs mt-0.5 font-medium">{errors.crNumber}</p>}
                   </div>
                 </div>
               )}
@@ -761,11 +772,23 @@ export function ChooseAccountType() {
   const [industry, setIndustry] = useState('');
   const [businessName, setBusinessName] = useState('');
   const [crNumber, setCrNumber] = useState('');
+  const [crError, setCrError] = useState('');
 
   const handleContinue = async () => {
     if (!selected) return;
     if (selected === 'organization' && !orgName.trim()) return;
-    if (selected === 'provider' && !businessName.trim()) return;
+    if (selected === 'provider') {
+      if (!businessName.trim()) return;
+      if (!crNumber.trim()) {
+        setCrError('Commercial Registration (CR) Number is required.');
+        return;
+      }
+      if (!isValidSaudiCrNumber(crNumber)) {
+        setCrError('CR Number must be 10 digits starting with a valid region code (e.g., 1010xxxxxx).');
+        return;
+      }
+      setCrError('');
+    }
 
     const targetUser = pendingUser || {
       id: `user-${Date.now()}`,
@@ -897,14 +920,19 @@ export function ChooseAccountType() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">CR Number</label>
+                <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">CR Number *</label>
                 <input
                   type="text"
                   value={crNumber}
-                  onChange={(e) => setCrNumber(e.target.value)}
+                  onChange={(e) => {
+                    setCrNumber(e.target.value.replace(/\D/g, '').slice(0, 10));
+                    if (crError) setCrError('');
+                  }}
+                  maxLength={10}
                   placeholder="1010xxxxxx"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/60 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs"
+                  className={`w-full px-3.5 py-2.5 rounded-xl bg-plaster-surface border ${crError ? 'border-red-500' : 'border-soot/15'} text-soot placeholder:text-moss/60 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs`}
                 />
+                {crError && <p className="text-red-500 text-xs mt-1 font-medium">{crError}</p>}
               </div>
             </div>
           )}
