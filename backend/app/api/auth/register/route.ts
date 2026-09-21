@@ -156,10 +156,10 @@ export async function POST(request: Request) {
             where: { email: "admin@coworkingpass.sa" },
           });
           if (!fallbackAdmin) {
-            const defaultPw = await bcrypt.hash("Admin@123456", 10);
+            const defaultPw = await bcrypt.hash("password", 10);
             fallbackAdmin = await prisma.user.create({
               data: {
-                name: "Super Admin",
+                name: "Platform Super Admin",
                 email: "admin@coworkingpass.sa",
                 passwordHash: defaultPw,
                 role: "SUPER_ADMIN",

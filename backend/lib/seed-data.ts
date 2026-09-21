@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
+import { ensureDatabaseSchema } from '@/lib/db-schema-sync';
 
 export interface StandardSpaceSeed {
   name: string;
@@ -495,6 +496,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
 ];
 
 export async function seedStandardWorkspaces() {
+  await ensureDatabaseSchema();
   // 1. Ensure Partner exists
   let partner = await prisma.partner.findFirst();
   if (!partner) {
@@ -666,20 +668,23 @@ export async function seedStandardWorkspaces() {
 }
 
 export async function seedLoyaltyRules() {
+  await ensureDatabaseSchema();
   // 1. Find or create an admin user for proposedBy / approvedBy
   let admin = await prisma.user.findFirst({
-    where: { role: 'SUPER_ADMIN' },
+    where: { email: 'admin@coworkingpass.sa' },
   });
 
   if (!admin) {
-    admin = await prisma.user.findFirst();
+    admin = await prisma.user.findFirst({
+      where: { role: 'SUPER_ADMIN' },
+    });
   }
 
   if (!admin) {
-    const passwordHash = await bcrypt.hash('Admin@123456', 10);
+    const passwordHash = await bcrypt.hash('password', 10);
     admin = await prisma.user.create({
       data: {
-        name: 'Super Admin',
+        name: 'Platform Super Admin',
         email: 'admin@coworkingpass.sa',
         passwordHash,
         role: 'SUPER_ADMIN',
