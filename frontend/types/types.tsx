@@ -1681,5 +1681,12 @@ export interface LoyaltyProposalForm {
   bonusMultiplier?: number;
 }
 
-
-
+/**
+ * Validates a Saudi Commercial Registration (CR) number.
+ * Must be exactly 10 digits starting with standard Saudi chamber/city codes (e.g., 1010 for Riyadh, 4030 for Jeddah, etc.).
+ */
+export function isValidSaudiCrNumber(cr: string): boolean {
+  if (!cr) return false;
+  const clean = cr.trim();
+  return /^(1010|1011|2050|2051|2052|2053|2055|2251|2252|3350|3351|3400|3450|3452|3550|4030|4031|4032|4650|4700|5850|5851|5900|5950|[1-5]\d{3})\d{6}$/.test(clean);
+}

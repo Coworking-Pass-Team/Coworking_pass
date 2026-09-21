@@ -63,6 +63,22 @@ export async function POST(request: Request) {
     const passwordHash = await bcrypt.hash(password, 10);
     const assignedRole = (role && VALID_ROLES.includes(role)) ? role : "B2C";
 
+    if (assignedRole === "PARTNER_ADMIN" || (crNumber && String(crNumber).trim())) {
+      const cleanCr = crNumber ? String(crNumber).trim() : '';
+      if (assignedRole === "PARTNER_ADMIN" && !cleanCr) {
+        return NextResponse.json(
+          { error: "رقم السجل التجاري (CR Number) مطلوب لمزودي المساحات" },
+          { status: 400 }
+        );
+      }
+      if (cleanCr && !/^(1010|1011|2050|2051|2052|2053|2055|2251|2252|3350|3351|3400|3450|3452|3550|4030|4031|4032|4650|4700|5850|5851|5900|5950|[1-5]\d{3})\d{6}$/.test(cleanCr)) {
+        return NextResponse.json(
+          { error: "رقم السجل التجاري غير صالح. يجب أن يتكون من 10 أرقام ويبدأ برمز منطقة معتمد (مثل 1010xxxxxx)" },
+          { status: 400 }
+        );
+      }
+    }
+
     const user = await prisma.user.create({
       data: {
         name: name.trim(),

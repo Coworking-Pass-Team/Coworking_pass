@@ -25,7 +25,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { useApp } from '@/app/store';
-import { Space } from '@/types/types';
+import { Space, isValidSaudiCrNumber } from '@/types/types';
 import Modal from '@/components/ui/Modal';
 import UserAvatar from '@/components/ui/UserAvatar';
 
@@ -122,6 +122,11 @@ export default function ProviderProfileSettings() {
     const newErrors: Record<string, string> = {};
     if (!editBusinessName.trim()) newErrors.businessName = 'Business name is required';
     if (!editName.trim()) newErrors.name = 'Contact manager name is required';
+    if (!editCrNumber.trim()) {
+      newErrors.crNumber = 'Commercial Registration (CR) Number is required';
+    } else if (!isValidSaudiCrNumber(editCrNumber)) {
+      newErrors.crNumber = 'CR Number must be 10 digits starting with a valid region code (e.g. 1010xxxxxx)';
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -696,16 +701,21 @@ export default function ProviderProfileSettings() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-medium uppercase tracking-wider text-moss mb-1.5 flex items-center justify-between">
-                  <span>CR / Registration Number</span>
+                  <span>CR / Registration Number *</span>
                   <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">Editable</span>
                 </label>
                 <input
                   type="text"
                   value={editCrNumber}
-                  onChange={e => setEditCrNumber(e.target.value)}
+                  onChange={e => {
+                    setEditCrNumber(e.target.value.replace(/\D/g, '').slice(0, 10));
+                    if (errors.crNumber) setErrors(prev => { const n = { ...prev }; delete n.crNumber; return n; });
+                  }}
+                  maxLength={10}
                   placeholder="1010456789"
-                  className="w-full px-4 py-3 rounded-2xl border border-soot/12 bg-white text-sm text-soot outline-none focus:border-eucalyptus font-normal"
+                  className={`w-full px-4 py-3 rounded-2xl border ${errors.crNumber ? 'border-red-500' : 'border-soot/12'} bg-white text-sm text-soot outline-none focus:border-eucalyptus font-normal`}
                 />
+                {errors.crNumber && <p className="text-red-500 text-xs mt-1 font-medium">{errors.crNumber}</p>}
               </div>
 
               <div>

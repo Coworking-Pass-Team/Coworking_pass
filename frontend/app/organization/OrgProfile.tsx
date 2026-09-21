@@ -27,7 +27,7 @@ import {
   ArrowUpRight
 } from 'lucide-react';
 import { useApp } from '@/app/store';
-import { Employee } from '@/types/types';
+import { Employee, isValidSaudiCrNumber } from '@/types/types';
 import Modal from '@/components/ui/Modal';
 import UserAvatar from '@/components/ui/UserAvatar';
 
@@ -136,6 +136,9 @@ export default function OrgProfile() {
     const newErrors: Record<string, string> = {};
     if (!editOrgName.trim()) newErrors.orgName = 'Organization name is required';
     if (!editOwnerName.trim()) newErrors.ownerName = 'Owner / Representative name is required';
+    if (editCrNumber.trim() && !isValidSaudiCrNumber(editCrNumber)) {
+      newErrors.crNumber = 'CR Number must be 10 digits starting with a valid region code (e.g. 1010xxxxxx)';
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -912,10 +915,15 @@ export default function OrgProfile() {
               <input
                 type="text"
                 value={editCrNumber}
-                onChange={e => setEditCrNumber(e.target.value)}
+                onChange={e => {
+                  setEditCrNumber(e.target.value.replace(/\D/g, '').slice(0, 10));
+                  if (errors.crNumber) setErrors(prev => { const n = { ...prev }; delete n.crNumber; return n; });
+                }}
+                maxLength={10}
                 placeholder="1010874921"
-                className="w-full px-4 py-3 rounded-2xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs font-normal"
+                className={`w-full px-4 py-3 rounded-2xl border ${errors.crNumber ? 'border-red-500' : 'border-soot/12'} bg-white text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs font-normal`}
               />
+              {errors.crNumber && <p className="text-red-500 text-xs mt-1 font-medium">{errors.crNumber}</p>}
             </div>
 
             {/* Organization Size */}
