@@ -424,7 +424,7 @@ interface AppContextType {
   currentUser: User | null;
   otpSession: OtpSession | null;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string; requireOtp?: boolean }>;
-  signup: (name: string, email: string, password: string, phone: string) => User;
+  signup: (name: string, email: string, password: string, phone: string, role?: UserRole) => User;
   requestSignupOtp: (newUser: User, role: UserRole, extraData?: Partial<User>) => Promise<{ success: boolean; error?: string; message?: string }>;
   requestForgotPasswordOtp: (email: string) => { success: boolean; error?: string };
   resetPassword: (newPassword: string) => { success: boolean; error?: string };
@@ -3012,7 +3012,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return { success: true, requireOtp: true };
   };
 
-  const signup = (name: string, email: string, password: string, phone: string) => {
+  const signup = (name: string, email: string, password: string, phone: string, role: UserRole = 'individual') => {
     const generatedUsername = name.trim().toLowerCase().replace(/[^a-z0-9_]/g, '') || `user_${Date.now().toString().slice(-4)}`;
     const newUser: User = {
       id: `user-${Date.now()}`,
@@ -3020,7 +3020,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       username: generatedUsername,
       email,
       password,
-      role: 'individual',
+      role,
       phone,
       avatar: '',
       isBlocked: false,

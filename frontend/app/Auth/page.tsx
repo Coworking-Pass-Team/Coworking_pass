@@ -360,7 +360,7 @@ export function SignUpScreen() {
     if (Object.keys(errs).length > 0) return;
 
     setLoading(true);
-    const newUser = signup(name, email, password, phone);
+    const newUser = signup(name, email, password, phone, role);
     setPendingUser(newUser);
 
     let res;
