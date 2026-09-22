@@ -238,7 +238,7 @@ export default function Navbar() {
         { label: 'Dashboard', screen: 'org-dashboard' as const },
         { label: 'Browse Spaces', screen: 'browse' as const },
         { label: 'Plans & Passes', screen: 'pricing' as const },
-        { label: 'Team Bookings', screen: 'company-bookings' as const },
+        { label: 'Team Bookings', screen: 'team-bookings' as const },
         { label: 'Team Members', screen: 'company-team' as const },
       ];
     }
