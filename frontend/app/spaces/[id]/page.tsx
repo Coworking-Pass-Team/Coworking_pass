@@ -15,7 +15,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Check,
-  Info,
   Sparkles,
   ShieldCheck,
   ArrowRight,
@@ -23,41 +22,45 @@ import {
 } from 'lucide-react';
 import { useApp } from '@/app/store';
 import {
-  Space,
   BookingPlan,
   isUserPassHolder,
   getEffectiveSpacePrice,
-  getHourlyPriceForDuration,
   getMonthlyPriceForDuration,
-  isHourlyOnlySpace,
   isHourlyAllowed,
-  isOfficeSpace,
   getAllowedPlansForSpace,
-  getSpaceTypeLabel,
-  getSpaceCategory,
   START_TIMES,
-  END_TIMES,
   calculateDurationHours,
   getAvailableEndTimes,
   getFilteredStartTimes,
-  getFilteredEndTimes,
-  formatHourlyTimeRange,
   calculateEndTime,
   calculateEndDate,
   calculateDailyDurationDays,
-  formatDateRange,
-  timeStringToMinutes
+  formatDateRange
 } from '@/types/types';
 import Modal from '@/components/ui/Modal';
-import Badge from '@/components/ui/Badge';
 
 export default function SpaceDetails() {
-  const { nav, navigate, goBack, spaces, currentUser, favorites, toggleFavorite, waitlist, autobooking, joinWaitlist, leaveWaitlist, enableAutoBooking, disableAutoBooking, addToCart, getSpaceCrowding } = useApp();
+  const {
+    nav,
+    navigate,
+    spaces,
+    currentUser,
+    favorites,
+    toggleFavorite,
+    waitlist,
+    autobooking,
+    joinWaitlist,
+    leaveWaitlist,
+    enableAutoBooking,
+    addToCart,
+    getSpaceCrowding
+  } = useApp();
+
   const passActive = isUserPassHolder(currentUser);
 
   const urlId = typeof window !== 'undefined' ? window.location.pathname.split('/').pop() : '';
-  const spaceId = nav?.params?.spaceId || (urlId && urlId !== 'page' && urlId !== '[id]' ? urlId : '') || 'space-1';
-  const space = spaces.find(s => s.id === spaceId) || spaces[0];
+  const spaceId = nav?.params?.spaceId || (urlId && urlId !== 'page' && urlId !== '[id]' ? urlId : '') || '';
+  const space = spaces && spaces.length > 0 ? spaces.find(s => s.id === spaceId) || null : null;
 
   const allowedPlans: BookingPlan[] = space ? getAllowedPlansForSpace(space) : (['daily'] as BookingPlan[]);
   const defaultPlan: BookingPlan = allowedPlans[0] || 'daily';
@@ -66,8 +69,8 @@ export default function SpaceDetails() {
   const [selectedPlan, setSelectedPlan] = useState<BookingPlan>(defaultPlan);
   const [bookingDate, setBookingDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
   const [bookingEndDate, setBookingEndDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
-  const isHourlySpace = isHourlyAllowed(space);
-  const defaultAvailableStarts = isHourlySpace ? getFilteredStartTimes(space?.openHours, bookingDate, 2) : START_TIMES;
+  const isHourlySpace = Boolean(space && isHourlyAllowed(space));
+  const defaultAvailableStarts = isHourlySpace && space ? getFilteredStartTimes(space.openHours, bookingDate, 2) : START_TIMES;
   const initialStartTime = defaultAvailableStarts[0] || '09:00 AM';
   const [startTime, setStartTime] = useState<string>(initialStartTime);
   const [endTime, setEndTime] = useState<string>(() => isHourlySpace ? calculateEndTime(initialStartTime, 2) : '05:00 PM');
@@ -96,9 +99,8 @@ export default function SpaceDetails() {
     }
     setBookingEndDate(newEnd);
   };
-  const availableStartTimes = isHourlySpace ? getFilteredStartTimes(space?.openHours, bookingDate, 2) : START_TIMES;
-  const availableEndTimes = isHourlySpace ? [calculateEndTime(startTime, 2)] : getAvailableEndTimes(startTime);
 
+  const availableStartTimes = isHourlySpace && space ? getFilteredStartTimes(space.openHours, bookingDate, 2) : START_TIMES;
   const durationHours = isHourlySpace ? 2 : calculateDurationHours(startTime, endTime);
 
   const handleStartTimeChange = (newStart: string) => {
@@ -107,17 +109,7 @@ export default function SpaceDetails() {
       setEndTime(calculateEndTime(newStart, 2));
     } else {
       const validEnds = getAvailableEndTimes(newStart);
-      const startMin = timeStringToMinutes(newStart);
-      const endMin = timeStringToMinutes(endTime);
-      if (endMin <= startMin || !validEnds.includes(endTime)) {
-        setEndTime(validEnds[0] || calculateEndTime(newStart, 1));
-      }
-    }
-  };
-
-  const handleEndTimeChange = (newEnd: string) => {
-    if (!isHourlySpace) {
-      setEndTime(newEnd);
+      setEndTime(validEnds[0] || calculateEndTime(newStart, 1));
     }
   };
 
@@ -133,6 +125,7 @@ export default function SpaceDetails() {
     return (
       <div className="min-h-screen bg-plaster text-soot flex flex-col items-center justify-center p-8">
         <h2 className="text-2xl font-serif-display text-soot mb-2">Space not found</h2>
+        <p className="text-moss text-xs sm:text-sm mb-4">The requested workspace could not be found or has been removed.</p>
         <button
           type="button"
           onClick={() => navigate('browse')}
@@ -206,7 +199,7 @@ export default function SpaceDetails() {
     1,
     selectedPlan === 'daily' ? dailyDurationDays : 1
   );
-  const planPrice = currentPlanInfo.effectivePrice;
+
   const planLabel = selectedPlan === 'hourly'
     ? durationHours > 1 ? `for ${durationHours} hours` : '/ hour'
     : selectedPlan === 'monthly'
@@ -262,7 +255,7 @@ export default function SpaceDetails() {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-soot/50 via-transparent to-transparent pointer-events-none" />
 
-              {space.images.length > 1 && (
+              {space.images && space.images.length > 1 && (
                 <>
                   <button
                     type="button"
@@ -463,7 +456,7 @@ export default function SpaceDetails() {
                     </div>
                   ) : currentPlanInfo.hasDiscount ? (
                     <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-900 font-semibold text-xs border border-amber-500/30">
-                      <span>{currentPlanInfo.discountPercentage}% Pass Discount · SAR {currentPlanInfo.effectivePrice.toLocaleString()}</span>
+                      <span>{currentPlanInfo.discountPercentage}% Pass Discount · SAR ${currentPlanInfo.effectivePrice.toLocaleString()}</span>
                     </div>
                   ) : null}
                 </div>
@@ -652,7 +645,6 @@ export default function SpaceDetails() {
                       </span>
                     </div>
 
-                    {/* Single Reservation Date for Theaters/Halls */}
                     <div>
                       <label className="block text-[11px] font-semibold text-moss mb-1 flex items-center gap-1">
                         <Calendar size={11} />
@@ -727,7 +719,7 @@ export default function SpaceDetails() {
                 )}
               </div>
 
-              {/* Live Crowding Indicator (Connected to QR Code Scans) */}
+              {/* Live Crowding Indicator */}
               <div className="mb-6 p-4 rounded-2xl bg-[#FAF7F2] border border-soot/10 space-y-2">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-moss font-normal">Capacity</span>
@@ -979,7 +971,7 @@ export default function SpaceDetails() {
                     type="button"
                     onClick={() => {
                       if (autoBookOn) {
-                        disableAutoBooking(space.id);
+                        leaveWaitlist(space.id);
                       } else {
                         enableAutoBooking(space.id, currentUser?.savedCards?.[0]?.id || 'card-1');
                       }
