@@ -19,6 +19,100 @@ import {
 import { useApp } from '@/app/store';
 import { getBookingPrice } from '@/types/types';
 
+export interface GrowthRateResult {
+  value: number | null;
+  formatted: string;
+  direction: 'up' | 'down' | 'neutral';
+  badgeClass: string;
+}
+
+/**
+ * Calculates percentage growth rate from previous to current period.
+ * Formula: ((current - previous) / previous) * 100
+ * Handles division by zero (previous === 0) and missing baseline data (--).
+ */
+export function calculateGrowthRate(
+  current: number,
+  previous: number,
+  options?: { suffix?: string; zeroAsDash?: boolean }
+): GrowthRateResult {
+  const suffix = options?.suffix ? ` ${options.suffix.trim()}` : '';
+
+  // Edge Case 1: Missing or invalid numerical input
+  if (
+    current === undefined ||
+    previous === undefined ||
+    isNaN(current) ||
+    isNaN(previous) ||
+    current < 0 ||
+    previous < 0
+  ) {
+    return {
+      value: null,
+      formatted: '--',
+      direction: 'neutral',
+      badgeClass: 'text-moss bg-soot/5 border border-soot/10',
+    };
+  }
+
+  // Edge Case 2: No data or activity in either period
+  if (previous === 0 && current === 0) {
+    return {
+      value: 0,
+      formatted: '--',
+      direction: 'neutral',
+      badgeClass: 'text-moss bg-soot/5 border border-soot/10',
+    };
+  }
+
+  // Edge Case 3: Division by Zero protection (previous === 0, current > 0)
+  if (previous === 0) {
+    if (options?.zeroAsDash) {
+      return {
+        value: null,
+        formatted: '--',
+        direction: 'neutral',
+        badgeClass: 'text-moss bg-soot/5 border border-soot/10',
+      };
+    }
+    return {
+      value: 100,
+      formatted: `+100%${suffix}`,
+      direction: 'up',
+      badgeClass: 'font-semibold text-emerald-800 bg-emerald-50 border border-emerald-100',
+    };
+  }
+
+  // Standard percentage growth formula
+  const rate = ((current - previous) / previous) * 100;
+  const rounded = Math.round(rate * 10) / 10;
+
+  if (rounded > 0) {
+    return {
+      value: rounded,
+      formatted: `+${rounded}%${suffix}`,
+      direction: 'up',
+      badgeClass: 'font-semibold text-emerald-800 bg-emerald-50 border border-emerald-100',
+    };
+  }
+
+  if (rounded < 0) {
+    return {
+      value: rounded,
+      formatted: `${rounded}%${suffix}`,
+      direction: 'down',
+      badgeClass: 'font-semibold text-rose-800 bg-rose-50 border border-rose-100',
+    };
+  }
+
+  return {
+    value: 0,
+    formatted: `0%${suffix}`,
+    direction: 'neutral',
+    badgeClass: 'text-moss bg-soot/5 border border-soot/10',
+  };
+}
+
 export default function AdminDashboard() {
   const { spaces, users, bookings, loyaltyRules, navigate, partners, fetchPartners, fetchUsers } = useApp();
 
@@ -39,6 +133,73 @@ export default function AdminDashboard() {
 
   const recentBookings = bookings.slice(-5).reverse();
   const recentUsers = nonAdminUsers.slice(-5).reverse();
+
+  // Dynamic Growth Calculations (MoM / Period-over-Period)
+  const now = new Date();
+  let anchorDate = now;
+  for (const b of bookings) {
+    const raw = b.createdAt || b.startDate;
+    if (raw) {
+      const d = new Date(raw);
+      if (!isNaN(d.getTime()) && d > anchorDate) {
+        anchorDate = d;
+      }
+    }
+  }
+
+  const currentYear = anchorDate.getFullYear();
+  const currentMonth = anchorDate.getMonth();
+  const currentMonthStart = new Date(currentYear, currentMonth, 1);
+  const currentMonthEnd = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59, 999);
+
+  const prevMonthStart = new Date(currentYear, currentMonth - 1, 1);
+  const prevMonthEnd = new Date(currentYear, currentMonth, 0, 23, 59, 59, 999);
+
+  const isInRange = (rawDate?: string, start?: Date, end?: Date) => {
+    if (!rawDate || !start || !end) return false;
+    const d = new Date(rawDate);
+    if (isNaN(d.getTime())) return false;
+    return d >= start && d <= end;
+  };
+
+  const isBefore = (rawDate?: string, threshold?: Date) => {
+    if (!rawDate || !threshold) return false;
+    const d = new Date(rawDate);
+    if (isNaN(d.getTime())) return false;
+    return d < threshold;
+  };
+
+  // 1. Total Revenue MoM
+  const currentMonthRevenue = bookings
+    .filter(b => b.status !== 'cancelled' && isInRange(b.createdAt || b.startDate, currentMonthStart, currentMonthEnd))
+    .reduce((sum, b) => sum + getBookingPrice(b, spaces), 0);
+
+  const prevMonthRevenue = bookings
+    .filter(b => b.status !== 'cancelled' && isInRange(b.createdAt || b.startDate, prevMonthStart, prevMonthEnd))
+    .reduce((sum, b) => sum + getBookingPrice(b, spaces), 0);
+
+  const revenueGrowth = calculateGrowthRate(currentMonthRevenue, prevMonthRevenue, { suffix: 'MoM' });
+
+  // 2. Active Bookings Growth
+  const currentMonthBookings = bookings.filter(
+    b => b.status !== 'cancelled' && isInRange(b.createdAt || b.startDate, currentMonthStart, currentMonthEnd)
+  ).length;
+
+  const prevMonthBookings = bookings.filter(
+    b => b.status !== 'cancelled' && isInRange(b.createdAt || b.startDate, prevMonthStart, prevMonthEnd)
+  ).length;
+
+  const bookingsGrowth = calculateGrowthRate(currentMonthBookings, prevMonthBookings);
+
+  // 3. Total Users Growth
+  const prevUsersCount = nonAdminUsers.filter(u => isBefore(u.joinDate || (u as any).createdAt, currentMonthStart)).length;
+  const currentUsersCount = nonAdminUsers.length;
+  const usersGrowth = calculateGrowthRate(currentUsersCount, prevUsersCount);
+
+  // 4. Active Spaces Growth
+  const newSpacesInPeriod = visibleSpaces.filter(s => isInRange((s as any).createdAt, currentMonthStart, currentMonthEnd)).length;
+  const prevSpacesCount = visibleSpaces.length - newSpacesInPeriod;
+  const spacesGrowth = calculateGrowthRate(visibleSpaces.length, prevSpacesCount);
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
@@ -92,8 +253,8 @@ export default function AdminDashboard() {
             <div className="w-10 h-10 rounded-2xl bg-eucalyptus/20 flex items-center justify-center text-soot">
               <TrendingUp size={19} />
             </div>
-            <span className="text-xs font-semibold text-emerald-800 bg-emerald-50 border border-emerald-100 px-2.5 py-0.5 rounded-full">
-              +12% MoM
+            <span className={`text-xs px-2.5 py-0.5 rounded-full transition-colors ${revenueGrowth.badgeClass}`}>
+              {revenueGrowth.formatted}
             </span>
           </div>
           <div>
@@ -110,8 +271,8 @@ export default function AdminDashboard() {
             <div className="w-10 h-10 rounded-2xl bg-moss/15 flex items-center justify-center text-soot">
               <CalendarDays size={19} />
             </div>
-            <span className="text-xs text-moss bg-soot/5 px-2.5 py-0.5 rounded-full">
-              +5%
+            <span className={`text-xs px-2.5 py-0.5 rounded-full transition-colors ${bookingsGrowth.badgeClass}`}>
+              {bookingsGrowth.formatted}
             </span>
           </div>
           <div>
@@ -128,8 +289,8 @@ export default function AdminDashboard() {
             <div className="w-10 h-10 rounded-2xl bg-mist-light flex items-center justify-center text-soot">
               <Users size={19} />
             </div>
-            <span className="text-xs text-moss bg-soot/5 px-2.5 py-0.5 rounded-full">
-              +8%
+            <span className={`text-xs px-2.5 py-0.5 rounded-full transition-colors ${usersGrowth.badgeClass}`}>
+              {usersGrowth.formatted}
             </span>
           </div>
           <div>
@@ -146,8 +307,8 @@ export default function AdminDashboard() {
             <div className="w-10 h-10 rounded-2xl bg-soot/5 flex items-center justify-center text-soot">
               <Building2 size={19} />
             </div>
-            <span className="text-xs text-moss bg-soot/5 px-2.5 py-0.5 rounded-full">
-              +2
+            <span className={`text-xs px-2.5 py-0.5 rounded-full transition-colors ${spacesGrowth.badgeClass}`}>
+              {spacesGrowth.formatted}
             </span>
           </div>
           <div>
