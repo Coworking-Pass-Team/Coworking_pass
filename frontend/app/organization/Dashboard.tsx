@@ -449,14 +449,15 @@ export default function OrgDashboard() {
       </div>
 
       {/* Admin-Matching Action Cards */}
-      <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {[
-          { label: 'Browse Workspaces', desc: 'Find and reserve desks, halls & theaters', action: () => navigate('browse'), icon: Building2 },
-          { label: 'Team Bookings', desc: 'Manage active company reservations', action: () => navigate('team-bookings'), icon: CalendarDays },
-          { label: 'Manage Team', desc: 'Add colleagues to enterprise pass', action: () => navigate('company-team'), icon: Users },
+          { label: 'Company Workspaces', desc: 'Manage corporate locations & suites', action: () => navigate('company-workspaces'), icon: Building2 },
+          { label: 'Browse Spaces', desc: 'Find and reserve desks & halls', action: () => navigate('browse'), icon: Building2 },
+          { label: 'Team Bookings', desc: 'Manage active reservations', action: () => navigate('team-bookings'), icon: CalendarDays },
+          { label: 'Manage Team', desc: 'Add colleagues to pass', action: () => navigate('company-team'), icon: Users },
           {
-            label: 'Corporate Shared Wallet',
-            desc: `Balance: SAR ${(companyWalletBalance ?? companyData?.balance ?? 0).toLocaleString()} · Top up & manage team funds`,
+            label: 'Shared Wallet',
+            desc: `SAR ${(companyWalletBalance ?? companyData?.balance ?? 0).toLocaleString()} · Team funds`,
             action: () => setIsSharedWalletOpen(true),
             icon: Wallet
           },
