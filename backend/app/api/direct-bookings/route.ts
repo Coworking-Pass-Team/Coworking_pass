@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { userId, workspaceId, sectionId, durationType, durationDetails, durationDays, durationMonths, bookingDate, status = 'CONFIRMED', spaceName, city } = body;
 
-    // تطبيع المدينة — استخدم المدينة المُرسَلة أو استنتجها من اسم المساحة
+    // تطبيع المدينة
     const resolveCity = (name?: string, sentCity?: string): string => {
       if (sentCity && sentCity.trim()) return sentCity.trim();
       const n = (name || '').toLowerCase();
@@ -102,7 +102,6 @@ export async function POST(request: NextRequest) {
 
     let effectiveUserId = userId || (user ? user.userId : null);
 
-    // التحقق من وجود المستخدم في قاعدة البيانات، أو جلبه تلقائياً
     if (effectiveUserId) {
       const existingUser = await prisma.user.findUnique({ where: { id: effectiveUserId } });
       if (!existingUser) {
@@ -125,13 +124,31 @@ export async function POST(request: NextRequest) {
     const normalizedDuration = (durationType || 'DAILY').toUpperCase();
     const finalDuration = validDurations.includes(normalizedDuration) ? normalizedDuration : 'DAILY';
 
+    //  BE-07: منع الحجز المتزامن (Universal Pass)
+    const activeBooking = await prisma.directBooking.findFirst({
+      where: {
+        userId: effectiveUserId,
+        status: 'CONFIRMED',
+        bookingDate: { gte: getKsaNow() }
+      }
+    });
+
+    if (activeBooking) {
+      return NextResponse.json(
+        { 
+          error: 'لديك حجز نشط بالفعل. يجب إلغاؤه قبل حجز مساحة أخرى.',
+          activeBookingId: activeBooking.id
+        },
+        { status: 400 }
+      );
+    }
+
     let targetWorkspaceId = workspaceId;
     let targetSectionId = sectionId;
 
     const resolvedCity = resolveCity(spaceName, city);
     const cleanCity = resolvedCity.replace(/al\s+/i, '').trim();
 
-    // البحث عن مساحة العمل المعتمدة مسبقاً (لا ننشئ Workspace جديد عند الحجز أبداً)
     let ws = targetWorkspaceId ? await prisma.workspace.findUnique({
       where: { id: targetWorkspaceId },
       include: { sections: true }
@@ -140,7 +157,6 @@ export async function POST(request: NextRequest) {
     if (!ws && spaceName) {
       const trimmedName = spaceName.trim();
 
-      // 1. Exact match in city (case-insensitive)
       ws = await prisma.workspace.findFirst({
         where: {
           name: { equals: trimmedName, mode: 'insensitive' },
@@ -149,7 +165,6 @@ export async function POST(request: NextRequest) {
         include: { sections: true }
       });
 
-      // 2. Contains match in city (e.g. "Oasis Cowork" matches "Oasis Coworking" in Al Khobar)
       if (!ws) {
         ws = await prisma.workspace.findFirst({
           where: {
@@ -160,7 +175,6 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // 3. First word match in city (e.g. "Oasis" in Al Khobar)
       if (!ws) {
         const firstWord = trimmedName.split(/\s+/)[0];
         if (firstWord && firstWord.length > 2) {
@@ -174,7 +188,6 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // 4. Exact match overall
       if (!ws) {
         ws = await prisma.workspace.findFirst({
           where: { name: { equals: trimmedName, mode: 'insensitive' } },
@@ -182,7 +195,6 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // 5. Contains match overall
       if (!ws) {
         ws = await prisma.workspace.findFirst({
           where: { name: { contains: trimmedName, mode: 'insensitive' } },
@@ -191,7 +203,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 6. City match if spaceName alone wasn't enough (e.g., Khobar)
     if (!ws && cleanCity) {
       ws = await prisma.workspace.findFirst({
         where: { city: { contains: cleanCity, mode: 'insensitive' } },
@@ -246,7 +257,6 @@ export async function POST(request: NextRequest) {
 
     targetWorkspaceId = ws.id;
 
-    // التأكد من وجود القسم
     let sec = ws.sections && ws.sections.length > 0
       ? (targetSectionId ? ws.sections.find((s: any) => s.id === targetSectionId) : null) || ws.sections[0]
       : null;
@@ -265,8 +275,20 @@ export async function POST(request: NextRequest) {
 
     targetSectionId = sec.id;
 
-    // فحص المحفظة المشتركة للشركات إذا كان المستخدم يتبع لشركة
-    const bookingCost = 100;
+    //  BE-09: حساب السعر الفعلي حسب نوع الحجز
+    let bookingCost = 100;
+    switch (finalDuration) {
+      case 'DAILY':
+        bookingCost = ws.dailyRate || 100;
+        break;
+      case 'MONTHLY':
+        bookingCost = ws.monthlyRate || 800;
+        break;
+      case 'YEARLY':
+        bookingCost = ws.yearlyRate || 8000;
+        break;
+    }
+
     const bookingUser = await prisma.user.findUnique({
       where: { id: effectiveUserId },
       include: { company: true },
@@ -300,12 +322,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // تأكد من وجود العمود في قاعدة البيانات
     await prisma.$executeRawUnsafe(
       'ALTER TABLE "DirectBooking" ADD COLUMN IF NOT EXISTS "durationDetails" TEXT;'
     ).catch(() => {});
 
-    // إنشاء الحجز في قاعدة بيانات Neon
     const booking = await prisma.directBooking.create({
       data: {
         userId: effectiveUserId,
@@ -324,7 +344,6 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // إرسال الإشعار للمستخدم بشكل آمن دون التسبب في إلغاء الحجز لو تعثر
     await prisma.notification.create({
       data: {
         userId: effectiveUserId,
