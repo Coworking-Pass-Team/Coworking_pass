@@ -107,8 +107,8 @@ export default function Landing() {
                             setDropdownOpen(false);
                           }}
                           className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-sm font-medium transition-colors duration-150 text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus ${isSelected
-                              ? 'bg-soot text-plaster font-semibold'
-                              : 'text-soot hover:bg-plaster-dark/70 hover:text-soot'
+                            ? 'bg-soot text-plaster font-semibold'
+                            : 'text-soot hover:bg-plaster-dark/70 hover:text-soot'
                             }`}
                         >
                           <div className="flex items-center gap-2.5">
@@ -311,7 +311,9 @@ export default function Landing() {
                     }
                     return (
                       <>
-                        <div className="text-soot font-bold text-sm">SAR {space.pricing.daily}</div>
+                        <div className="text-soot font-bold text-sm">
+                          {space.pricing?.daily ? `SAR ${space.pricing.daily}` : 'Contact for price'}
+                        </div>
                         <div className="text-moss text-[10px] font-medium">/ day</div>
                       </>
                     );
