@@ -129,7 +129,7 @@ export default function ProviderDashboard() {
               {mySpaces.map((space) => (
                 <div
                   key={space.id}
-                  onClick={() => navigate('provider-spaces')}
+                  onClick={() => navigate('provider-spaces', { spaceId: space.id, edit: true })}
                   className="p-4 hover:bg-plaster-dark/30 transition-colors flex items-center gap-3.5 cursor-pointer group"
                 >
                   <img
