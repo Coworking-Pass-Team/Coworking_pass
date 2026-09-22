@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useRef, useEffect } from 'react';
 import { ArrowRight, MapPin, Star, Users, Zap, Headphones, Shield, ChevronDown, Quote, Check, Building2, Presentation, Clapperboard } from 'lucide-react';
@@ -8,6 +8,8 @@ import GuestNav from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
+
+const FALLBACK_SPACE_IMAGE = 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80';
 
 const cities = ['All Cities', 'Riyadh', 'Jeddah', 'Dammam', 'Khobar', 'Madinah', 'Makkah'];
 
@@ -71,12 +73,12 @@ export default function Landing() {
           </p>
 
           {/* Clean Integrated Search Bar */}
-          <div className="relative z-40 w-full max-w-xl mx-auto flex flex-col sm:flex-row items-center gap-2 p-1.5 bg-plaster-surface/95 backdrop-blur-md rounded-2xl border border-soot/15 shadow-2xl">
+          <div className="relative z-40 w-full max-w-lg mx-auto flex flex-col sm:flex-row items-center gap-2 p-1.5 bg-plaster-surface/95 backdrop-blur-md rounded-2xl border border-soot/15 shadow-2xl">
             <div className="relative flex-1 w-full" ref={dropdownRef}>
               <button
                 type="button"
                 onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/60 border border-soot/12 transition-all duration-200 text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus focus-visible:ring-offset-1"
+                className="w-full flex items-center justify-between gap-3 px-3.5 py-2 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/60 border border-soot/12 transition-all duration-200 text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus focus-visible:ring-offset-1"
                 aria-haspopup="listbox"
                 aria-expanded={dropdownOpen}
               >
@@ -94,8 +96,8 @@ export default function Landing() {
               </button>
 
               {dropdownOpen && (
-                <div className="absolute top-full left-0 right-0 mt-1.5 p-1.5 bg-[#FAF8F3] border border-soot/15 rounded-2xl shadow-2xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
-                  <div className="max-h-48 overflow-y-auto space-y-0.5">
+                <div className="absolute top-full left-0 right-0 mt-1.5 p-1 bg-[#FAF8F3] border border-soot/15 rounded-2xl shadow-2xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
+                  <div className="max-h-40 overflow-y-auto space-y-0.5">
                     {cities.map(city => {
                       const isSelected = (city === 'All Cities' && !searchCity) || searchCity === city;
                       return (
@@ -106,9 +108,9 @@ export default function Landing() {
                             setSearchCity(city === 'All Cities' ? '' : city);
                             setDropdownOpen(false);
                           }}
-                          className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors duration-150 text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus ${isSelected
-                              ? 'bg-soot text-plaster font-semibold'
-                              : 'text-soot hover:bg-plaster-dark/70 hover:text-soot'
+                          className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-sm font-medium transition-colors duration-150 text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus ${isSelected
+                            ? 'bg-soot text-plaster font-semibold'
+                            : 'text-soot hover:bg-plaster-dark/70 hover:text-soot'
                             }`}
                         >
                           <div className="flex items-center gap-2.5">
@@ -127,7 +129,7 @@ export default function Landing() {
             <Button
               onClick={handleSearch}
               variant="primary"
-              className="w-full sm:w-auto px-7 py-3 font-semibold text-sm shrink-0 bg-soot text-plaster hover:bg-moss focus-visible:ring-2 focus-visible:ring-eucalyptus transition-colors duration-200 shadow-md active:scale-[0.98] cursor-pointer rounded-xl"
+              className="w-full sm:w-auto px-6 py-2.5 font-semibold text-sm shrink-0 bg-soot text-plaster hover:bg-moss focus-visible:ring-2 focus-visible:ring-eucalyptus transition-colors duration-200 shadow-md active:scale-[0.98] cursor-pointer rounded-xl"
             >
               Find Spaces
               <ArrowRight size={16} />
@@ -170,9 +172,11 @@ export default function Landing() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Offices Card */}
-          <div
+          <button
+            type="button"
             onClick={() => navigate('browse', { category: 'office' })}
-            className="p-6 rounded-3xl bg-plaster-surface border border-soot/12 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-between"
+            className="w-full text-left p-6 rounded-3xl bg-plaster-surface border border-soot/12 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-between focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus"
+            aria-label={`Browse Offices (${officeCount} available)`}
           >
             <div>
               <div className="w-12 h-12 rounded-2xl bg-soot text-plaster flex items-center justify-center mb-5 shadow-xs group-hover:bg-moss transition-colors">
@@ -192,12 +196,14 @@ export default function Landing() {
               <span>Browse Offices</span>
               <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
             </div>
-          </div>
+          </button>
 
           {/* Halls Card */}
-          <div
+          <button
+            type="button"
             onClick={() => navigate('browse', { category: 'hall' })}
-            className="p-6 rounded-3xl bg-plaster-surface border border-soot/12 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-between"
+            className="w-full text-left p-6 rounded-3xl bg-plaster-surface border border-soot/12 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-between focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus"
+            aria-label={`Browse Halls (${hallCount} available)`}
           >
             <div>
               <div className="w-12 h-12 rounded-2xl bg-[#E5ECE9] text-soot border border-eucalyptus/40 flex items-center justify-center mb-5 shadow-xs group-hover:bg-eucalyptus transition-colors">
@@ -217,12 +223,14 @@ export default function Landing() {
               <span>Browse Halls</span>
               <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
             </div>
-          </div>
+          </button>
 
           {/* Theaters Card */}
-          <div
+          <button
+            type="button"
             onClick={() => navigate('browse', { category: 'theater' })}
-            className="p-6 rounded-3xl bg-plaster-surface border border-soot/12 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-between"
+            className="w-full text-left p-6 rounded-3xl bg-plaster-surface border border-soot/12 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-between focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus"
+            aria-label={`Browse Theaters (${theaterCount} available)`}
           >
             <div>
               <div className="w-12 h-12 rounded-2xl bg-soot/10 text-soot flex items-center justify-center mb-5 shadow-xs group-hover:bg-soot group-hover:text-plaster transition-colors">
@@ -242,7 +250,7 @@ export default function Landing() {
               <span>Browse Theaters</span>
               <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
             </div>
-          </div>
+          </button>
         </div>
       </section>
 
@@ -263,21 +271,18 @@ export default function Landing() {
 
         <div className="grid md:grid-cols-3 gap-6">
           {featured.map(space => (
-            <div
+            <button
               key={space.id}
-              className="group cursor-pointer bg-plaster-dark/40 hover:bg-plaster-dark/80 rounded-3xl border border-soot/12 overflow-hidden transition-colors duration-200 active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-eucalyptus"
-              tabIndex={0}
+              type="button"
               onClick={() => navigate('space-details', { spaceId: space.id })}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  navigate('space-details', { spaceId: space.id });
-                }
-              }}
+              className="w-full text-left group cursor-pointer bg-plaster-dark/40 hover:bg-plaster-dark/80 rounded-3xl border border-soot/12 overflow-hidden transition-colors duration-200 active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus"
+              aria-label={`View space details for ${space.name}`}
             >
               <div className="relative h-56 overflow-hidden">
+                {/* حل المشكلة FE-07: حماية الصور بالـ Optional Chaining وصورة بديلة */}
                 <img
-                  src={space.images[0]}
-                  alt={space.name}
+                  src={space.images?.[0] || FALLBACK_SPACE_IMAGE}
+                  alt={space.name || 'Workspace'}
                   loading="lazy"
                   decoding="async"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
@@ -285,9 +290,10 @@ export default function Landing() {
                 <div className="absolute inset-0 bg-gradient-to-t from-soot/70 via-soot/20 to-transparent" />
                 <div className="absolute bottom-4 left-4 right-4">
                   <div className="text-white font-semibold text-lg leading-snug font-serif-display">{space.name}</div>
+                  {/* حل المشكلة FE-08: استبدال الرمز المشوه بنقطة فاصلة سليمة */}
                   <div className="flex items-center gap-1.5 text-plaster/90 text-xs font-medium mt-1">
                     <MapPin size={13} className="text-eucalyptus" />
-                    {space.city} ΓÇó {space.address}
+                    <span>{space.city} • {space.address}</span>
                   </div>
                 </div>
                 <div className="absolute top-4 right-4 bg-plaster-surface/95 backdrop-blur-md rounded-2xl px-3 py-1.5 text-center border border-soot/12 shadow-xs">
@@ -311,7 +317,9 @@ export default function Landing() {
                     }
                     return (
                       <>
-                        <div className="text-soot font-bold text-sm">SAR {space.pricing.daily}</div>
+                        <div className="text-soot font-bold text-sm">
+                          {space.pricing?.daily ? `SAR ${space.pricing.daily}` : 'Contact for price'}
+                        </div>
                         <div className="text-moss text-[10px] font-medium">/ day</div>
                       </>
                     );
@@ -329,7 +337,7 @@ export default function Landing() {
                   {space.availableCapacity === 0 ? 'Fully Booked' : space.availableCapacity <= 5 ? 'Almost Full' : 'Available'}
                 </Badge>
               </div>
-            </div>
+            </button>
           ))}
         </div>
 
@@ -480,7 +488,7 @@ export default function Landing() {
             Built for the modern <span className="text-moss italic font-serif">professional.</span>
           </h2>
           <p className="text-moss text-sm sm:text-base leading-relaxed">
-            Everything you need to stay productive, flexible, and connected across Saudi ArabiaΓÇÖs fastest-growing workspace network.
+            Everything you need to stay productive, flexible, and connected across Saudi Arabia&apos;s fastest-growing workspace network.
           </p>
         </div>
 

@@ -24,6 +24,8 @@ import { useApp } from '@/app/store';
 import { Space, SpaceType, SpaceCategory, ALL_SPACE_TYPES, isHourlyOnlySpace, isOfficeSpace, isHourlyAllowed, getSpaceCategory } from '@/types/types';
 import Modal from '@/components/ui/Modal';
 
+const FALLBACK_SPACE_IMAGE = 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80';
+
 const AMENITY_OPTIONS = [
   'High-Speed WiFi',
   'Parking',
@@ -49,7 +51,7 @@ const CITIES = ['Riyadh', 'Jeddah', 'Dammam', 'Khobar', 'Madinah', 'Makkah', 'Ab
 const TYPES = ALL_SPACE_TYPES;
 
 export default function ProviderMySpaces() {
-  const { currentUser, spaces, partners, addSpace, updateSpace, toggleSpaceVisibility, deleteSpace, amenityRequests, requestCustomAmenity, getApprovedAmenities } = useApp();
+  const { nav, currentUser, spaces, partners, addSpace, updateSpace, toggleSpaceVisibility, deleteSpace, amenityRequests, requestCustomAmenity, getApprovedAmenities } = useApp();
   const [query, setQuery] = useState('');
   const [filterCity, setFilterCity] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<'all' | SpaceCategory>('all');
@@ -73,6 +75,7 @@ export default function ProviderMySpaces() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [imageUrlInput, setImageUrlInput] = useState('');
   const [customAmenityInput, setCustomAmenityInput] = useState('');
+  const handledSpaceIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -108,6 +111,24 @@ export default function ProviderMySpaces() {
     (req.providerName && currentUser.businessName && req.providerName.toLowerCase() === currentUser.businessName.toLowerCase()) ||
     (userPartner && req.providerName && userPartner.brandName && req.providerName.toLowerCase() === userPartner.brandName.toLowerCase())
   );
+
+  useEffect(() => {
+    const targetSpaceId = nav?.params?.spaceId || nav?.params?.id;
+    if (targetSpaceId && targetSpaceId !== handledSpaceIdRef.current && mySpaces.length > 0) {
+      const spaceToEdit = mySpaces.find((s) => s.id === targetSpaceId) || spaces.find((s) => s.id === targetSpaceId);
+      if (spaceToEdit) {
+        handledSpaceIdRef.current = targetSpaceId;
+        setEditingSpace(spaceToEdit);
+        setFormErrors({});
+        setForm({
+          ...spaceToEdit,
+          amenities: Array.isArray(spaceToEdit.amenities) ? [...spaceToEdit.amenities] : [],
+        });
+        setEditModal(true);
+        setSaved(false);
+      }
+    }
+  }, [nav?.params?.spaceId, nav?.params?.id, mySpaces, spaces]);
 
   const filteredSpaces = mySpaces.filter((s) => {
     const q = query.trim().toLowerCase();
@@ -157,7 +178,7 @@ export default function ProviderMySpaces() {
       openHours: 'Sun–Thu: 8am–9pm',
       phone: '',
       email: currentUser.email || '',
-      images: ['https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&h=800&fit=crop&auto=format'],
+      images: [FALLBACK_SPACE_IMAGE],
       ownerId: currentUser.id,
     });
     setEditModal(true);
@@ -171,6 +192,7 @@ export default function ProviderMySpaces() {
     setForm({
       ...space,
       amenities: Array.isArray(space.amenities) ? [...space.amenities] : [],
+      images: Array.isArray(space.images) && space.images.length > 0 ? [...space.images] : [FALLBACK_SPACE_IMAGE],
     });
     setEditModal(true);
     setSaved(false);
@@ -223,7 +245,6 @@ export default function ProviderMySpaces() {
     toggleSpaceVisibility(spaceId);
   };
 
-
   const toggleAmenity = (amenity: string) => {
     setForm((prev) => ({
       ...prev,
@@ -249,17 +270,9 @@ export default function ProviderMySpaces() {
         }));
       }
     } else {
-      // Send custom amenity request to Admin for approval
       requestCustomAmenity(trimmed, editingSpace?.id, form.name || 'Workspace');
     }
     setCustomAmenityInput('');
-  };
-
-  const handleRemoveCustomAmenity = (amenityToRemove: string) => {
-    setForm((prev) => ({
-      ...prev,
-      amenities: (prev.amenities || []).filter((a) => a !== amenityToRemove),
-    }));
   };
 
   const setPrice = (field: 'hourly' | 'daily' | 'monthly' | 'yearly', val: number) => {
@@ -587,18 +600,18 @@ export default function ProviderMySpaces() {
             {filteredSpaces.map((space) => {
               const cat = getSpaceCategory(space);
               const occupancyRatio =
-                space.totalCapacity > 0 ? (space.availableCapacity / space.totalCapacity) * 100 : 0;
+                space.totalCapacity > 0 ? ((space.availableCapacity ?? 0) / space.totalCapacity) * 100 : 0;
 
               return (
                 <div
                   key={space.id}
                   className="px-6 py-4 hover:bg-plaster-dark/30 transition-colors flex flex-col md:grid md:grid-cols-12 md:gap-6 md:items-center cursor-pointer group"
                 >
-                  {/* Space Name & Thumbnail */}
+                  {/* Space Name & Thumbnail (Sudharelo safe fallback photo) */}
                   <div className="col-span-5 flex items-center gap-3.5 min-w-0">
                     <img
-                      src={space.images[0]}
-                      alt={space.name}
+                      src={space.images?.[0] || FALLBACK_SPACE_IMAGE}
+                      alt={space.name || 'Workspace'}
                       className="w-11 h-11 rounded-xl object-cover border border-soot/10 shrink-0 shadow-2xs group-hover:scale-105 transition-transform"
                     />
                     <div className="min-w-0 flex-1">
@@ -660,16 +673,16 @@ export default function ProviderMySpaces() {
                   <div className="col-span-2 mt-3 md:mt-0 flex flex-col justify-center">
                     <div className="flex items-center gap-1 text-xs text-moss mb-1.5 font-medium">
                       <span className="font-semibold text-soot text-sm leading-none">
-                        {space.availableCapacity}
+                        {space.availableCapacity ?? 0}
                       </span>
-                      <span>/ {space.totalCapacity}</span>
+                      <span>/ {space.totalCapacity || 0}</span>
                     </div>
                     <div className="w-full max-w-[120px] h-2 bg-soot/10 rounded-full overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all ${
-                          space.availableCapacity === 0
+                          (space.availableCapacity ?? 0) === 0
                             ? 'bg-red-500'
-                            : space.availableCapacity <= 5
+                            : (space.availableCapacity ?? 0) <= 5
                             ? 'bg-amber-500'
                             : 'bg-[#40534C]'
                         }`}
@@ -678,9 +691,11 @@ export default function ProviderMySpaces() {
                     </div>
                   </div>
 
-                  {/* Space Price */}
+                  {/* Space Price (Safe null check sathe) */}
                   <div className="col-span-2 mt-3 md:mt-0 text-sm font-semibold text-soot">
-                    SAR {isHourlyOnlySpace(space.type) ? (space.pricing?.hourly || 150).toLocaleString() : space.pricing?.daily?.toLocaleString()}
+                    SAR {isHourlyOnlySpace(space.type)
+                      ? (space.pricing?.hourly ?? 150).toLocaleString()
+                      : (space.pricing?.daily ?? 0).toLocaleString()}
                     <span className="text-xs text-moss font-normal ml-1">
                       {isHourlyOnlySpace(space.type) ? '/ hour' : '/ day'}
                     </span>
@@ -926,7 +941,7 @@ export default function ProviderMySpaces() {
               </div>
             </div>
 
-            {/* Pricing Section (Dynamically adapted based on space category) */}
+            {/* Pricing Section */}
             <div className="space-y-4 pt-2">
               <div className="flex items-center justify-between border-b border-soot/10 pb-1.5">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-moss">
@@ -961,7 +976,7 @@ export default function ProviderMySpaces() {
                 ))}
               </div>
 
-              {/* Hourly Duration Tiers (Only for Halls and Theaters; hidden for Offices) */}
+              {/* Hourly Duration Tiers */}
               {!isOfficeSpace(form.type) && (
                 <div className="p-3.5 rounded-2xl bg-plaster-dark/40 border border-soot/10 space-y-2.5">
                   <div className="flex items-center justify-between">
@@ -997,7 +1012,7 @@ export default function ProviderMySpaces() {
                 </div>
               )}
 
-              {/* Multi-Month Duration Tiers (Available for ALL space types) */}
+              {/* Multi-Month Duration Tiers */}
               <div className="p-3.5 rounded-2xl bg-plaster-dark/40 border border-soot/10 space-y-2.5">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-soot">
@@ -1075,7 +1090,7 @@ export default function ProviderMySpaces() {
                 <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 pt-2">
                   {form.images.map((img, idx) => (
                     <div key={idx} className="relative group rounded-xl overflow-hidden border border-soot/10 aspect-video">
-                      <img src={img} alt={`Space photo ${idx + 1}`} className="w-full h-full object-cover" />
+                      <img src={img || FALLBACK_SPACE_IMAGE} alt={`Space photo ${idx + 1}`} className="w-full h-full object-cover" />
                       <button
                         type="button"
                         onClick={() => removeImage(idx)}

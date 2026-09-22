@@ -343,14 +343,19 @@ export interface SpaceCrowdingInfo {
  * Calculates live crowding indicators based on total capacity, baseline availability,
  * and real-time QR code check-in scans.
  */
+/**
+ * Calculates live crowding indicators based on total capacity, baseline availability,
+ * and real-time QR code check-in scans.
+ */
 export function calculateSpaceCrowding(
   space: Space,
   scannedCount: number = 0
 ): SpaceCrowdingInfo {
-  const total = space.totalCapacity > 0 ? space.totalCapacity : 30;
+  // استخدام التحقق الصريح لضمان قبول السعة 0 الحقيقية وعدم استبدالها برقم افتراضي
+  const total = space.totalCapacity !== undefined && space.totalCapacity !== null ? Number(space.totalCapacity) : 0;
   const occupied = Math.min(total, Math.max(0, scannedCount));
   const available = Math.max(0, total - occupied);
-  const occupancyPercentage = total > 0 ? Math.round((occupied / total) * 100) : 0;
+  const occupancyPercentage = total > 0 ? Math.round((occupied / total) * 100) : (total === 0 ? 100 : 0);
 
   let level: CrowdingLevel = 'Quiet';
   let textColor = 'text-[#059669]';
@@ -358,7 +363,7 @@ export function calculateSpaceCrowding(
   let badgeClass = 'bg-emerald-100/90 text-emerald-900 border-emerald-200/90';
   let trackColor = 'bg-[#E5EBE7]';
 
-  if (available === 0 || occupancyPercentage >= 80) {
+  if (total === 0 || available === 0 || occupancyPercentage >= 80) {
     level = 'Busy';
     textColor = 'text-[#DC2626]';
     barColor = 'bg-[#DC2626]';

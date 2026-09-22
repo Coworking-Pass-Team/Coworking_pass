@@ -76,7 +76,6 @@ export default function Browse() {
 
   const hasAutoPromptedRef = useRef(false);
 
-  // Automatically request location permission immediately when user enters the browse page
   useEffect(() => {
     if (hasAutoPromptedRef.current) return;
     hasAutoPromptedRef.current = true;
@@ -98,7 +97,6 @@ export default function Browse() {
     });
   }, [userLocation]);
 
-  // Sync navigation params if navigated from another page
   useEffect(() => {
     if (nav?.params?.category) {
       setCategoryFilter(nav.params.category);
@@ -109,7 +107,6 @@ export default function Browse() {
     }
   }, [nav?.params]);
 
-  // Dropdown States
   const [cityDropdownOpen, setCityDropdownOpen] = useState(false);
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
   const cityRef = useRef<HTMLDivElement>(null);
@@ -130,7 +127,6 @@ export default function Browse() {
 
   const visible = spaces.filter(s => (currentUser?.role === 'admin' ? true : s.isVisible));
 
-  // Category counts
   const categoryCounts = useMemo(() => {
     return {
       all: visible.length,
@@ -140,7 +136,6 @@ export default function Browse() {
     };
   }, [visible]);
 
-  // Compute distance for all visible spaces when userLocation is available
   const spacesWithDistance = useMemo(() => {
     return visible.map(space => {
       const coords = getSpaceCoordinates(space);
@@ -178,18 +173,26 @@ export default function Browse() {
     let list = spacesWithDistance.filter(s => {
       if (
         query &&
-        !s.name.toLowerCase().includes(query.toLowerCase()) &&
-        !s.city.toLowerCase().includes(query.toLowerCase()) &&
-        !s.address.toLowerCase().includes(query.toLowerCase())
+        !s.name?.toLowerCase().includes(query.toLowerCase()) &&
+        !s.city?.toLowerCase().includes(query.toLowerCase()) &&
+        !s.address?.toLowerCase().includes(query.toLowerCase())
       ) {
         return false;
       }
       if (categoryFilter !== 'all' && getSpaceCategory(s) !== categoryFilter) return false;
       if (city && s.city !== city) return false;
       if (spaceType !== 'all' && s.type !== spaceType) return false;
-      if (s.pricing.daily > maxPrice) return false;
-      if (availableOnly && s.availableCapacity <= 0) return false;
-      if (selectedAmenities.length > 0 && !selectedAmenities.every(a => s.amenities.includes(a))) return false;
+      
+      if ((s.pricing?.daily ?? 0) > maxPrice) return false;
+      
+      if (availableOnly && (s.availableCapacity ?? 0) <= 0) return false;
+      
+      if (
+        selectedAmenities.length > 0 &&
+        !selectedAmenities.every(a => (s.amenities || []).includes(a))
+      ) {
+        return false;
+      }
       return true;
     });
 
@@ -203,13 +206,13 @@ export default function Browse() {
         });
       }
     } else if (sort === 'Price: Low to High') {
-      list.sort((a, b) => a.pricing.daily - b.pricing.daily);
+      list.sort((a, b) => (a.pricing?.daily ?? 0) - (b.pricing?.daily ?? 0));
     } else if (sort === 'Price: High to Low') {
-      list.sort((a, b) => b.pricing.daily - a.pricing.daily);
+      list.sort((a, b) => (b.pricing?.daily ?? 0) - (a.pricing?.daily ?? 0));
     } else if (sort === 'Rating') {
-      list.sort((a, b) => b.rating - a.rating);
+      list.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
     } else if (sort === 'Availability') {
-      list.sort((a, b) => b.availableCapacity - a.availableCapacity);
+      list.sort((a, b) => (b.availableCapacity ?? 0) - (a.availableCapacity ?? 0));
     }
 
     return list;
@@ -236,7 +239,6 @@ export default function Browse() {
   return (
     <div className="min-h-screen bg-plaster text-soot py-10 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        {/* Header Banner */}
         <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-soot/10">
           <div>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-soot/5 border border-soot/10 text-moss text-xs font-semibold mb-3">
@@ -259,7 +261,6 @@ export default function Browse() {
           </div>
         </div>
 
-        {/* Category Tabs: All, Offices, Halls, Theaters */}
         <div className="flex flex-wrap gap-2.5 mb-6">
           {CATEGORY_TABS.map(tab => {
             const Icon = tab.icon;
@@ -291,9 +292,7 @@ export default function Browse() {
           })}
         </div>
 
-        {/* Search & Main Filter Controls Bar */}
         <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3 mb-6">
-          {/* Keyword Search Input */}
           <div className="relative flex-1">
             <Search size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-moss pointer-events-none" />
             <input
@@ -314,7 +313,6 @@ export default function Browse() {
             )}
           </div>
 
-          {/* Custom City Selector */}
           <div className="relative min-w-[170px]" ref={cityRef}>
             <button
               type="button"
@@ -360,7 +358,6 @@ export default function Browse() {
             )}
           </div>
 
-          {/* Filter Panel Toggle Button */}
           <button
             type="button"
             onClick={() => setShowFilters(!showFilters)}
@@ -377,7 +374,6 @@ export default function Browse() {
             )}
           </button>
 
-          {/* Custom Sort Selector */}
           <div className="relative min-w-[190px]" ref={sortRef}>
             <button
               type="button"
@@ -421,7 +417,6 @@ export default function Browse() {
           </div>
         </div>
 
-        {/* Location Status Feedback Banner */}
         {!dismissedLocationBanner && (
           <div className="mb-6">
             {locationStatus === 'loading' ? (
@@ -532,7 +527,6 @@ export default function Browse() {
           </div>
         )}
 
-        {/* Expanded Filters Drawer */}
         {showFilters && (
           <div className="bg-plaster-surface rounded-3xl border border-soot/12 p-6 sm:p-8 mb-8 shadow-sm animate-in fade-in-50 duration-200">
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-soot/10">
@@ -553,7 +547,6 @@ export default function Browse() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-              {/* Space Type */}
               <div>
                 <label className="text-xs font-semibold uppercase tracking-wider text-moss mb-3 block">
                   Workspace Type
@@ -576,7 +569,6 @@ export default function Browse() {
                 </div>
               </div>
 
-              {/* Price Range Slider */}
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <label className="text-xs font-semibold uppercase tracking-wider text-moss">
@@ -601,7 +593,6 @@ export default function Browse() {
                 </div>
               </div>
 
-              {/* Amenities Selector */}
               <div>
                 <label className="text-xs font-semibold uppercase tracking-wider text-moss mb-3 block">
                   Included Amenities
@@ -627,34 +618,37 @@ export default function Browse() {
                 </div>
               </div>
 
-              {/* Availability Toggle */}
               <div>
-                <label className="text-xs font-semibold uppercase tracking-wider text-moss mb-3 block">
+                <span id="availability-filter-label" className="text-xs font-semibold uppercase tracking-wider text-moss mb-3 block">
                   Availability
-                </label>
-                <div
+                </span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={availableOnly}
+                  aria-labelledby="availability-filter-label"
                   onClick={() => setAvailableOnly(!availableOnly)}
-                  className="flex items-center justify-between p-3.5 rounded-2xl bg-plaster-dark/30 border border-soot/10 cursor-pointer hover:bg-plaster-dark/50 transition-all"
+                  className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-plaster-dark/30 border border-soot/10 cursor-pointer hover:bg-plaster-dark/50 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus focus-visible:ring-offset-1 text-left"
                 >
                   <span className="text-xs sm:text-sm font-medium text-soot">Available Desks Only</span>
-                  <div
-                    className={`w-11 h-6 rounded-full transition-colors relative ${
+                  <span
+                    aria-hidden="true"
+                    className={`w-11 h-6 rounded-full transition-colors relative inline-block shrink-0 ${
                       availableOnly ? 'bg-soot' : 'bg-soot/20'
                     }`}
                   >
-                    <div
-                      className={`absolute top-0.5 w-5 h-5 bg-plaster rounded-full shadow-md transition-transform duration-200 ${
+                    <span
+                      className={`absolute top-0.5 w-5 h-5 bg-plaster rounded-full shadow-md transition-transform duration-200 block ${
                         availableOnly ? 'translate-x-5.5' : 'translate-x-0.5'
                       }`}
                     />
-                  </div>
-                </div>
+                  </span>
+                </button>
               </div>
             </div>
           </div>
         )}
 
-        {/* Workspaces Grid */}
         {filtered.length === 0 ? (
           <div className="bg-plaster-surface rounded-3xl border border-soot/12 p-16 text-center shadow-xs max-w-xl mx-auto my-12">
             <div className="w-14 h-14 rounded-2xl bg-soot/5 flex items-center justify-center mx-auto mb-4">

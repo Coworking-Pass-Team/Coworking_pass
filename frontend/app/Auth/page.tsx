@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Eye,
   EyeOff,
@@ -19,12 +19,17 @@ import {
   Users,
   ShieldCheck,
   Clock,
-  AlertTriangle
+  AlertTriangle,
+  ChevronDown,
+  Search
 } from 'lucide-react';
 import { useApp } from '@/app/store';
 import LogoImage from '@/components/layout/logo';
 import Badge from '@/components/ui/Badge';
 import { isValidSaudiCrNumber } from '@/types/types';
+import PhoneInput from 'react-phone-number-input';
+import { isValidPhoneNumber, getCountryCallingCode } from 'libphonenumber-js';
+import 'react-phone-number-input/style.css';
 
 function Logo({ onClick }: { onClick: () => void }) {
   return (
@@ -301,6 +306,204 @@ export function LoginScreen() {
   );
 }
 
+interface CountryOption {
+  value?: string;
+  label: string;
+  divider?: boolean;
+}
+
+interface CustomCountrySelectProps {
+  value?: string;
+  onChange: (value?: string) => void;
+  options: CountryOption[];
+  disabled?: boolean;
+  readOnly?: boolean;
+  iconComponent: React.ComponentType<{ country: string; label: string; aspectRatio?: number }>;
+  [key: string]: any;
+}
+
+function getCallingCodeSafe(country?: string): string {
+  if (!country || country === 'ZZ') return '';
+  try {
+    return getCountryCallingCode(country as any);
+  } catch {
+    return '';
+  }
+}
+
+const PRIORITY_COUNTRIES = ['SA', 'AE', 'KW', 'QA', 'BH', 'OM', 'EG', 'JO', 'GB', 'US'];
+
+function CustomCountrySelect({
+  value,
+  onChange,
+  options,
+  disabled,
+  readOnly,
+  iconComponent: Icon
+}: CustomCountrySelectProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Close when clicking outside or pressing Escape
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+        setSearch('');
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsOpen(false);
+        setSearch('');
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen]);
+
+  // Focus search input when opened
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 50);
+    }
+  }, [isOpen]);
+
+  const selectedOption = options.find((opt) => opt.value === value && !opt.divider);
+
+  const filteredOptions = useMemo(() => {
+    const valid = options.filter((opt) => !opt.divider && opt.value);
+    if (!search.trim()) {
+      const priority = valid.filter((opt) => opt.value && PRIORITY_COUNTRIES.includes(opt.value));
+      const rest = valid.filter((opt) => opt.value && !PRIORITY_COUNTRIES.includes(opt.value));
+      priority.sort((a, b) => {
+        const idxA = PRIORITY_COUNTRIES.indexOf(a.value!);
+        const idxB = PRIORITY_COUNTRIES.indexOf(b.value!);
+        return idxA - idxB;
+      });
+      return [...priority, ...rest];
+    }
+    const q = search.trim().toLowerCase();
+    return valid.filter((opt) => {
+      if (!opt.value) return false;
+      const nameMatch = opt.label.toLowerCase().includes(q);
+      const code = getCallingCodeSafe(opt.value);
+      const codeMatch = code.includes(q.replace(/^\+/, ''));
+      return nameMatch || codeMatch;
+    });
+  }, [options, search]);
+
+  return (
+    <div ref={dropdownRef} className="relative flex items-center">
+      <button
+        type="button"
+        disabled={disabled || readOnly}
+        onClick={() => setIsOpen((prev) => !prev)}
+        className="flex items-center gap-1.5 pr-2.5 mr-2.5 border-r border-soot/15 text-soot hover:text-soot-light transition-colors cursor-pointer select-none focus:outline-none shrink-0"
+        aria-expanded={isOpen}
+        aria-label="Select Country"
+      >
+        <div className="w-5 h-3.5 rounded-[2px] overflow-hidden shadow-xs border border-soot/10 flex items-center justify-center shrink-0">
+          {value && Icon ? (
+            <Icon country={value} label={selectedOption?.label || value} />
+          ) : (
+            <span className="text-[10px]">🌐</span>
+          )}
+        </div>
+        <ChevronDown
+          size={13}
+          className={`text-moss transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+        />
+      </button>
+
+      {isOpen && (
+        <div
+          className="absolute left-0 top-full mt-2 w-72 sm:w-80 bg-plaster-surface rounded-2xl border border-soot/15 shadow-xl py-2 z-50 animate-in fade-in zoom-in-95 duration-150"
+          style={{ boxShadow: '0 12px 30px -4px rgba(45, 53, 54, 0.18)' }}
+        >
+          {/* Search Header */}
+          <div className="px-2.5 pb-2 mb-1 border-b border-soot/8">
+            <div className="relative">
+              <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-moss pointer-events-none" />
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search country or code..."
+                className="w-full pl-8 pr-7 py-1.5 rounded-lg bg-plaster-dark/30 border border-soot/10 text-xs text-soot placeholder:text-moss/60 focus:outline-none focus:ring-1 focus:ring-eucalyptus"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-moss hover:text-soot text-xs cursor-pointer"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Country List (compact, limited height, scrollable) */}
+          <div className="max-h-56 overflow-y-auto px-1 space-y-0.5" style={{ scrollbarWidth: 'thin' }}>
+            {filteredOptions.length === 0 ? (
+              <div className="py-4 text-center text-xs text-moss">No countries found</div>
+            ) : (
+              filteredOptions.map((opt) => {
+                const isSelected = opt.value === value;
+                const callingCode = getCallingCodeSafe(opt.value);
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => {
+                      onChange(opt.value);
+                      setIsOpen(false);
+                      setSearch('');
+                    }}
+                    className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-left transition-colors cursor-pointer text-xs ${
+                      isSelected
+                        ? 'bg-eucalyptus/25 text-soot font-semibold'
+                        : 'hover:bg-soot/5 text-soot'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                      <div className="w-5 h-3.5 rounded-[2px] overflow-hidden shadow-xs border border-soot/10 shrink-0 flex items-center justify-center">
+                        {opt.value && Icon ? (
+                          <Icon country={opt.value} label={opt.label} />
+                        ) : (
+                          <span>🌐</span>
+                        )}
+                      </div>
+                      <span className="truncate">{opt.label}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {callingCode && (
+                        <span className="text-[11px] font-mono text-moss">+{callingCode}</span>
+                      )}
+                      {isSelected && <Check size={13} className="text-emerald-700 shrink-0" />}
+                    </div>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function SignUpScreen() {
   const { signup, requestSignupOtp, setPendingUser, navigate } = useApp();
 
@@ -334,7 +537,11 @@ export function SignUpScreen() {
     if (!name.trim()) e.name = 'Full name is required.';
     if (!email.trim()) e.email = 'Email address is required.';
     else if (!/\S+@\S+\.\S+/.test(email)) e.email = 'Enter a valid email address.';
-    if (!phone.trim()) e.phone = 'Phone number is required.';
+    if (!phone || !phone.trim()) {
+      e.phone = 'Phone number is required.';
+    } else if (!isValidPhoneNumber(phone)) {
+      e.phone = 'Please enter a valid international phone number.';
+    }
     if (!password) e.password = 'Password is required.';
     else if (password.length < 6) e.password = 'Password must be at least 6 characters.';
     if (password !== confirm) e.confirm = 'Passwords do not match.';
@@ -513,18 +720,34 @@ export function SignUpScreen() {
                   <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">
                     Phone Number <span className="text-rose-600">*</span>
                   </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-moss">
-                      <Phone size={15} />
-                    </div>
-                    <input
-                      type="tel"
+                  <div
+                    className={`relative z-20 w-full h-[42px] px-3 flex items-center rounded-xl bg-plaster-surface border transition-all ${
+                      errors.phone
+                        ? 'border-rose-500 ring-2 ring-rose-500/20'
+                        : 'border-soot/15 focus-within:ring-2 focus-within:ring-eucalyptus'
+                    } shadow-xs`}
+                  >
+                    <PhoneInput
+                      international
+                      defaultCountry="SA"
                       value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
+                      onChange={(val) => {
+                        setPhone(val || '');
+                        if (errors.phone) {
+                          setErrors((prev) => {
+                            const updated = { ...prev };
+                            delete updated.phone;
+                            return updated;
+                          });
+                        }
+                      }}
                       placeholder="+966 55 123 4567"
-                      className={`w-full pl-9 pr-3 py-2.5 rounded-xl bg-plaster-surface border ${
-                        errors.phone ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-soot/15 focus-visible:ring-2 focus-visible:ring-eucalyptus'
-                      } text-soot placeholder:text-moss/50 text-sm shadow-xs transition-all`}
+                      className="custom-phone-input"
+                      countrySelectComponent={CustomCountrySelect}
+                      numberInputProps={{
+                        className:
+                          'w-full bg-transparent border-none outline-none text-soot placeholder:text-moss/50 text-sm font-sans focus:outline-none focus:ring-0 pl-1',
+                      }}
                     />
                   </div>
                   {errors.phone && <p className="text-rose-600 text-xs mt-0.5 font-medium">* {errors.phone}</p>}
