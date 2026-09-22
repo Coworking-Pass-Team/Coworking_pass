@@ -172,9 +172,11 @@ export default function Landing() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Offices Card */}
-          <div
+          <button
+            type="button"
             onClick={() => navigate('browse', { category: 'office' })}
-            className="p-6 rounded-3xl bg-plaster-surface border border-soot/12 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-between"
+            className="w-full text-left p-6 rounded-3xl bg-plaster-surface border border-soot/12 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-between focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus"
+            aria-label={`Browse Offices (${officeCount} available)`}
           >
             <div>
               <div className="w-12 h-12 rounded-2xl bg-soot text-plaster flex items-center justify-center mb-5 shadow-xs group-hover:bg-moss transition-colors">
@@ -194,12 +196,14 @@ export default function Landing() {
               <span>Browse Offices</span>
               <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
             </div>
-          </div>
+          </button>
 
           {/* Halls Card */}
-          <div
+          <button
+            type="button"
             onClick={() => navigate('browse', { category: 'hall' })}
-            className="p-6 rounded-3xl bg-plaster-surface border border-soot/12 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-between"
+            className="w-full text-left p-6 rounded-3xl bg-plaster-surface border border-soot/12 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-between focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus"
+            aria-label={`Browse Halls (${hallCount} available)`}
           >
             <div>
               <div className="w-12 h-12 rounded-2xl bg-[#E5ECE9] text-soot border border-eucalyptus/40 flex items-center justify-center mb-5 shadow-xs group-hover:bg-eucalyptus transition-colors">
@@ -219,12 +223,14 @@ export default function Landing() {
               <span>Browse Halls</span>
               <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
             </div>
-          </div>
+          </button>
 
           {/* Theaters Card */}
-          <div
+          <button
+            type="button"
             onClick={() => navigate('browse', { category: 'theater' })}
-            className="p-6 rounded-3xl bg-plaster-surface border border-soot/12 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-between"
+            className="w-full text-left p-6 rounded-3xl bg-plaster-surface border border-soot/12 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-between focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus"
+            aria-label={`Browse Theaters (${theaterCount} available)`}
           >
             <div>
               <div className="w-12 h-12 rounded-2xl bg-soot/10 text-soot flex items-center justify-center mb-5 shadow-xs group-hover:bg-soot group-hover:text-plaster transition-colors">
@@ -244,7 +250,7 @@ export default function Landing() {
               <span>Browse Theaters</span>
               <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
             </div>
-          </div>
+          </button>
         </div>
       </section>
 
@@ -265,16 +271,12 @@ export default function Landing() {
 
         <div className="grid md:grid-cols-3 gap-6">
           {featured.map(space => (
-            <div
+            <button
               key={space.id}
-              className="group cursor-pointer bg-plaster-dark/40 hover:bg-plaster-dark/80 rounded-3xl border border-soot/12 overflow-hidden transition-colors duration-200 active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-eucalyptus"
-              tabIndex={0}
+              type="button"
               onClick={() => navigate('space-details', { spaceId: space.id })}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  navigate('space-details', { spaceId: space.id });
-                }
-              }}
+              className="w-full text-left group cursor-pointer bg-plaster-dark/40 hover:bg-plaster-dark/80 rounded-3xl border border-soot/12 overflow-hidden transition-colors duration-200 active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus"
+              aria-label={`View space details for ${space.name}`}
             >
               <div className="relative h-56 overflow-hidden">
                 {/* حل المشكلة FE-07: حماية الصور بالـ Optional Chaining وصورة بديلة */}
@@ -335,7 +337,7 @@ export default function Landing() {
                   {space.availableCapacity === 0 ? 'Fully Booked' : space.availableCapacity <= 5 ? 'Almost Full' : 'Available'}
                 </Badge>
               </div>
-            </div>
+            </button>
           ))}
         </div>
 

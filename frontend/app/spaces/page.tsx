@@ -637,26 +637,31 @@ export default function Browse() {
 
               {/* Availability Toggle */}
               <div>
-                <label className="text-xs font-semibold uppercase tracking-wider text-moss mb-3 block">
+                <span id="availability-filter-label" className="text-xs font-semibold uppercase tracking-wider text-moss mb-3 block">
                   Availability
-                </label>
-                <div
+                </span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={availableOnly}
+                  aria-labelledby="availability-filter-label"
                   onClick={() => setAvailableOnly(!availableOnly)}
-                  className="flex items-center justify-between p-3.5 rounded-2xl bg-plaster-dark/30 border border-soot/10 cursor-pointer hover:bg-plaster-dark/50 transition-all"
+                  className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-plaster-dark/30 border border-soot/10 cursor-pointer hover:bg-plaster-dark/50 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus focus-visible:ring-offset-1 text-left"
                 >
                   <span className="text-xs sm:text-sm font-medium text-soot">Available Desks Only</span>
-                  <div
-                    className={`w-11 h-6 rounded-full transition-colors relative ${
+                  <span
+                    aria-hidden="true"
+                    className={`w-11 h-6 rounded-full transition-colors relative inline-block shrink-0 ${
                       availableOnly ? 'bg-soot' : 'bg-soot/20'
                     }`}
                   >
-                    <div
-                      className={`absolute top-0.5 w-5 h-5 bg-plaster rounded-full shadow-md transition-transform duration-200 ${
+                    <span
+                      className={`absolute top-0.5 w-5 h-5 bg-plaster rounded-full shadow-md transition-transform duration-200 block ${
                         availableOnly ? 'translate-x-5.5' : 'translate-x-0.5'
                       }`}
                     />
-                  </div>
-                </div>
+                  </span>
+                </button>
               </div>
             </div>
           </div>
