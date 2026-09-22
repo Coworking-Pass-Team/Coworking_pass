@@ -49,6 +49,8 @@ export default function SpaceCard({ space, distance, onSelect }: SpaceCardProps)
     ? formatDistance(distance)
     : '';
 
+  const amenitiesList = Array.isArray(space.amenities) ? space.amenities : [];
+
   return (
     <div
       className="bg-white rounded-3xl overflow-hidden shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer group border border-soot/10 flex flex-col justify-between active:scale-[0.99] w-full"
@@ -118,8 +120,9 @@ export default function SpaceCard({ space, distance, onSelect }: SpaceCardProps)
                 </div>
               ) : (
                 <>
+                  {/* حماية استخراج السعر */}
                   <div className="text-soot font-bold text-xs sm:text-sm">
-                    SAR {isHourlyAllowed(space) ? (space.pricing.hourly || 150) : space.pricing.daily}
+                    SAR {isHourlyAllowed(space) ? (space.pricing?.hourly ?? 150) : (space.pricing?.daily ?? 0)}
                   </div>
                   <div className="text-moss text-[10px] sm:text-[11px] font-normal block -mt-0.5">
                     {isHourlyAllowed(space) ? '/ hour' : '/ day'}
@@ -143,9 +146,9 @@ export default function SpaceCard({ space, distance, onSelect }: SpaceCardProps)
             )}
           </div>
 
-          {/* Amenities Chips */}
+          {/* Amenities Chips (تمت الحماية باستخدام amenitiesList) */}
           <div className="flex items-center gap-1.5 flex-wrap mb-3.5">
-            {space.amenities.slice(0, 3).map(a => (
+            {amenitiesList.slice(0, 3).map(a => (
               <span
                 key={typeof a === 'string' ? a : (a as any)?.name}
                 className="text-[11px] px-2.5 py-1 rounded-lg bg-[#F5F3ED] text-soot/80 font-medium border border-soot/5"
@@ -153,9 +156,9 @@ export default function SpaceCard({ space, distance, onSelect }: SpaceCardProps)
                 {typeof a === 'string' ? a : (a as any)?.name}
               </span>
             ))}
-            {space.amenities.length > 3 && (
+            {amenitiesList.length > 3 && (
               <span className="text-[11px] px-2 py-1 rounded-lg bg-[#F5F3ED] text-moss font-medium border border-soot/5">
-                +{space.amenities.length - 3}
+                +{amenitiesList.length - 3}
               </span>
             )}
           </div>

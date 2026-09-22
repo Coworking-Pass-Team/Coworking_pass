@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import {
   ArrowLeft,
   MapPin,
@@ -15,7 +16,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Check,
-  Info,
   Sparkles,
   ShieldCheck,
   ArrowRight,
@@ -23,41 +23,45 @@ import {
 } from 'lucide-react';
 import { useApp } from '@/app/store';
 import {
-  Space,
   BookingPlan,
   isUserPassHolder,
   getEffectiveSpacePrice,
-  getHourlyPriceForDuration,
   getMonthlyPriceForDuration,
-  isHourlyOnlySpace,
   isHourlyAllowed,
-  isOfficeSpace,
   getAllowedPlansForSpace,
-  getSpaceTypeLabel,
-  getSpaceCategory,
   START_TIMES,
-  END_TIMES,
   calculateDurationHours,
   getAvailableEndTimes,
   getFilteredStartTimes,
-  getFilteredEndTimes,
-  formatHourlyTimeRange,
   calculateEndTime,
   calculateEndDate,
   calculateDailyDurationDays,
-  formatDateRange,
-  timeStringToMinutes
+  formatDateRange
 } from '@/types/types';
 import Modal from '@/components/ui/Modal';
-import Badge from '@/components/ui/Badge';
 
 export default function SpaceDetails() {
-  const { nav, navigate, goBack, spaces, currentUser, favorites, toggleFavorite, waitlist, autobooking, joinWaitlist, leaveWaitlist, enableAutoBooking, disableAutoBooking, addToCart, getSpaceCrowding } = useApp();
+  const {
+    nav,
+    navigate,
+    spaces,
+    currentUser,
+    favorites,
+    toggleFavorite,
+    waitlist,
+    autobooking,
+    joinWaitlist,
+    leaveWaitlist,
+    enableAutoBooking,
+    addToCart,
+    getSpaceCrowding
+  } = useApp();
+
   const passActive = isUserPassHolder(currentUser);
 
   const urlId = typeof window !== 'undefined' ? window.location.pathname.split('/').pop() : '';
-  const spaceId = nav?.params?.spaceId || (urlId && urlId !== 'page' && urlId !== '[id]' ? urlId : '') || 'space-1';
-  const space = spaces.find(s => s.id === spaceId) || spaces[0];
+  const spaceId = nav?.params?.spaceId || (urlId && urlId !== 'page' && urlId !== '[id]' ? urlId : '') || '';
+  const space = spaces && spaces.length > 0 ? spaces.find(s => s.id === spaceId) || null : null;
 
   const allowedPlans: BookingPlan[] = space ? getAllowedPlansForSpace(space) : (['daily'] as BookingPlan[]);
   const defaultPlan: BookingPlan = allowedPlans[0] || 'daily';
@@ -66,8 +70,8 @@ export default function SpaceDetails() {
   const [selectedPlan, setSelectedPlan] = useState<BookingPlan>(defaultPlan);
   const [bookingDate, setBookingDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
   const [bookingEndDate, setBookingEndDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
-  const isHourlySpace = isHourlyAllowed(space);
-  const defaultAvailableStarts = isHourlySpace ? getFilteredStartTimes(space?.openHours, bookingDate, 2) : START_TIMES;
+  const isHourlySpace = Boolean(space && isHourlyAllowed(space));
+  const defaultAvailableStarts = isHourlySpace && space ? getFilteredStartTimes(space.openHours, bookingDate, 2) : START_TIMES;
   const initialStartTime = defaultAvailableStarts[0] || '09:00 AM';
   const [startTime, setStartTime] = useState<string>(initialStartTime);
   const [endTime, setEndTime] = useState<string>(() => isHourlySpace ? calculateEndTime(initialStartTime, 2) : '05:00 PM');
@@ -96,9 +100,8 @@ export default function SpaceDetails() {
     }
     setBookingEndDate(newEnd);
   };
-  const availableStartTimes = isHourlySpace ? getFilteredStartTimes(space?.openHours, bookingDate, 2) : START_TIMES;
-  const availableEndTimes = isHourlySpace ? [calculateEndTime(startTime, 2)] : getAvailableEndTimes(startTime);
 
+  const availableStartTimes = isHourlySpace && space ? getFilteredStartTimes(space.openHours, bookingDate, 2) : START_TIMES;
   const durationHours = isHourlySpace ? 2 : calculateDurationHours(startTime, endTime);
 
   const handleStartTimeChange = (newStart: string) => {
@@ -107,17 +110,17 @@ export default function SpaceDetails() {
       setEndTime(calculateEndTime(newStart, 2));
     } else {
       const validEnds = getAvailableEndTimes(newStart);
-      const startMin = timeStringToMinutes(newStart);
-      const endMin = timeStringToMinutes(endTime);
-      if (endMin <= startMin || !validEnds.includes(endTime)) {
-        setEndTime(validEnds[0] || calculateEndTime(newStart, 1));
-      }
+      setEndTime(validEnds[0] || calculateEndTime(newStart, 1));
     }
   };
 
-  const handleEndTimeChange = (newEnd: string) => {
-    if (!isHourlySpace) {
-      setEndTime(newEnd);
+  const handleBack = () => {
+    if (nav?.params?.fromScreen && navigate) {
+      navigate(nav.params.fromScreen, nav.params.fromParams || {});
+    } else if (navigate) {
+      navigate('browse');
+    } else if (typeof window !== 'undefined') {
+      window.history.back();
     }
   };
 
@@ -133,9 +136,16 @@ export default function SpaceDetails() {
     return (
       <div className="min-h-screen bg-plaster text-soot flex flex-col items-center justify-center p-8">
         <h2 className="text-2xl font-serif-display text-soot mb-2">Space not found</h2>
+        <p className="text-moss text-xs sm:text-sm mb-4">The requested workspace could not be found or has been removed.</p>
         <button
           type="button"
-          onClick={() => navigate('browse')}
+          onClick={() => {
+            if (navigate) {
+              navigate('browse');
+            } else if (typeof window !== 'undefined') {
+              window.history.back();
+            }
+          }}
           className="mt-3 inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-soot/12 bg-white hover:bg-plaster-dark/40 text-soot text-xs sm:text-sm font-semibold transition-all cursor-pointer shadow-2xs group active:scale-98"
         >
           <ArrowLeft size={15} className="group-hover:-translate-x-0.5 transition-transform" />
@@ -145,24 +155,29 @@ export default function SpaceDetails() {
     );
   }
 
-  const crowding = getSpaceCrowding ? getSpaceCrowding(space) : {
+      const crowding = getSpaceCrowding ? getSpaceCrowding(space) : {
     scannedCount: 0,
-    totalCapacity: space.totalCapacity || 30,
-    availableCapacity: space.availableCapacity ?? 15,
-    occupiedSeats: (space.totalCapacity || 30) - (space.availableCapacity ?? 15),
-    occupancyPercentage: 50,
-    level: 'Moderate' as const,
+    totalCapacity: space.totalCapacity !== undefined && space.totalCapacity !== null ? Number(space.totalCapacity) : 0,
+    availableCapacity: space.availableCapacity !== undefined && space.availableCapacity !== null ? Number(space.availableCapacity) : (space.totalCapacity ?? 0),
+    occupiedSeats: (space.totalCapacity ?? 0) - (space.availableCapacity ?? 0),
+    occupancyPercentage: (space.totalCapacity ?? 0) > 0 ? Math.min(100, Math.max(0, (((space.totalCapacity ?? 0) - (space.availableCapacity ?? 0)) / (space.totalCapacity ?? 1)) * 100)) : 100,
+    level: (space.totalCapacity ?? 0) === 0 || (space.availableCapacity ?? 0) === 0 ? 'Busy' : 'Moderate',
     badgeClass: 'bg-amber-100/90 text-amber-900 border-amber-200/90',
     barColor: 'bg-[#D97706]',
     textColor: 'text-[#D97706]',
     trackColor: 'bg-[#E5EBE7]',
   };
 
+
   const isFav = favorites.includes(space.id);
   const isFullyBooked = crowding.availableCapacity === 0 || crowding.level === 'Busy';
   const inWaitlist = Boolean(currentUser && waitlist[`${currentUser.id}_${space.id}`]);
   const autoBookOn = Boolean(currentUser && autobooking[`${currentUser.id}_${space.id}`]);
   const hasActiveSubscription = Boolean(currentUser?.hasActivePass);
+
+  const currentWaitlistKeys = Object.keys(waitlist || {}).filter(key => key.endsWith(`_${space.id}`));
+  const queuePosition = Math.max(1, currentWaitlistKeys.length + (inWaitlist ? 0 : 1));
+  const estimatedMins = Math.max(15, queuePosition * 10);
 
   const handleBook = () => {
     if (!currentUser) { navigate('login'); return; }
@@ -185,8 +200,17 @@ export default function SpaceDetails() {
     }
   };
 
-  const handleJoinWaitlist = () => {
-    joinWaitlist(space.id);
+  const handleJoinWaitlist = async () => {
+    if (joinWaitlist) {
+      await (joinWaitlist as any)(space.id, {
+        preferredDate: preferredDate || bookingDate,
+        alertPreferences: {
+          sms: smsAlerts,
+          email: emailAlerts,
+          whatsapp: whatsappAlerts,
+        },
+      });
+    }
     setWaitlistDone(true);
   };
 
@@ -206,7 +230,7 @@ export default function SpaceDetails() {
     1,
     selectedPlan === 'daily' ? dailyDurationDays : 1
   );
-  const planPrice = currentPlanInfo.effectivePrice;
+
   const planLabel = selectedPlan === 'hourly'
     ? durationHours > 1 ? `for ${durationHours} hours` : '/ hour'
     : selectedPlan === 'monthly'
@@ -217,20 +241,11 @@ export default function SpaceDetails() {
 
   const hoursDisplay = (space as any).openHours || (space as any).hours || 'Sun–Thu: 8am–10pm | Fri: 2pm–10pm';
   const phoneDisplay = space.phone || '+966 11 234 5678';
-  const handleBack = () => {
-    if (nav?.params?.fromScreen) {
-      navigate(nav.params.fromScreen, nav.params.fromParams || {});
-    } else {
-      navigate('browse');
-    }
-  };
-
   const emailDisplay = space.email || 'info@coworkingpass.sa';
 
   return (
     <div className="min-h-screen bg-plaster text-soot py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
-        {/* Navigation Breadcrumb / Back */}
         <div className="flex items-center justify-between mb-6">
           <button
             type="button"
@@ -249,20 +264,17 @@ export default function SpaceDetails() {
           </div>
         </div>
 
-        {/* Layout Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column: Details & Images */}
           <div className="lg:col-span-2 space-y-7">
-            {/* Carousel Frame */}
             <div className="relative h-80 sm:h-[420px] rounded-3xl overflow-hidden border border-soot/12 shadow-xl bg-soot">
               <img
-                src={space.images?.[imgIndex] ? space.images[imgIndex] : 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80'}
+                src={space.images?.[imgIndex] || 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80'}
                 alt={`${space.name} view ${imgIndex + 1}`}
                 className="w-full h-full object-cover saturate-105"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-soot/50 via-transparent to-transparent pointer-events-none" />
 
-              {space.images.length > 1 && (
+              {space.images && space.images.length > 1 && (
                 <>
                   <button
                     type="button"
@@ -296,7 +308,6 @@ export default function SpaceDetails() {
                 </>
               )}
 
-              {/* Heart Favorite Action */}
               <div className="absolute top-4 right-4">
                 {currentUser && (
                   <button
@@ -315,7 +326,6 @@ export default function SpaceDetails() {
               </div>
             </div>
 
-            {/* Title & Key Stats */}
             <div className="space-y-3 pb-6 border-b border-soot/10">
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div>
@@ -354,7 +364,6 @@ export default function SpaceDetails() {
               </div>
             </div>
 
-            {/* Description */}
             <div className="space-y-2">
               <h2 className="text-base sm:text-lg font-semibold text-soot font-serif-display">
                 About this workspace
@@ -364,7 +373,6 @@ export default function SpaceDetails() {
               </p>
             </div>
 
-            {/* Amenities */}
             <div className="space-y-3">
               <h2 className="text-base sm:text-lg font-semibold text-soot font-serif-display">
                 Included Amenities
@@ -389,7 +397,6 @@ export default function SpaceDetails() {
               </div>
             </div>
 
-            {/* Contact & Hours Info Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-3">
               {[
                 { icon: Clock, label: 'Operating Hours', value: hoursDisplay },
@@ -429,10 +436,8 @@ export default function SpaceDetails() {
             </div>
           </div>
 
-          {/* Right Column: Static Stable Booking Card */}
           <div className="w-full">
             <div className="bg-plaster-surface rounded-3xl border border-soot/12 p-6 sm:p-7 shadow-xl">
-              {/* Price Tag / Pass Badge */}
               <div className="mb-6 pb-5 border-b border-soot/10">
                 <span className="text-xs font-semibold uppercase tracking-wider text-moss block mb-1.5">
                   {currentPlanInfo.effectivePrice === 0 ? 'Pass Coverage' : currentPlanInfo.isCovered ? 'Workspace Rate' : currentPlanInfo.hasDiscount ? 'Plan Upgrade Rate' : 'Membership Rate'}
@@ -463,13 +468,12 @@ export default function SpaceDetails() {
                     </div>
                   ) : currentPlanInfo.hasDiscount ? (
                     <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-900 font-semibold text-xs border border-amber-500/30">
-                      <span>{currentPlanInfo.discountPercentage}% Pass Discount · SAR {currentPlanInfo.effectivePrice.toLocaleString()}</span>
+                      <span>{currentPlanInfo.discountPercentage}% Pass Discount · SAR ${currentPlanInfo.effectivePrice.toLocaleString()}</span>
                     </div>
                   ) : null}
                 </div>
               </div>
 
-              {/* Plan Choice Selectors */}
               <div className="mb-6 space-y-4">
                 <div>
                   <div className="flex items-center justify-between mb-2.5 gap-2">
@@ -513,7 +517,6 @@ export default function SpaceDetails() {
                   </div>
                 </div>
 
-                {/* Multi-Month Duration Selector (when monthly is chosen) */}
                 {selectedPlan === 'monthly' && (
                   <div className="p-4 rounded-2xl bg-plaster-dark/40 border border-soot/10 space-y-3">
                     <div className="flex items-center justify-between flex-wrap gap-2">
@@ -552,7 +555,6 @@ export default function SpaceDetails() {
                   </div>
                 )}
 
-                {/* Daily Pass Date Range Selector (for standard office/desk spaces) */}
                 {selectedPlan === 'daily' && !isHourlySpace && (
                   <div className="p-4 rounded-2xl bg-plaster-dark/40 border border-soot/10 space-y-3.5">
                     <div className="flex items-center justify-between gap-2">
@@ -616,7 +618,6 @@ export default function SpaceDetails() {
                   </div>
                 )}
 
-                {/* Monthly & Yearly Start Date Selector */}
                 {(selectedPlan === 'monthly' || selectedPlan === 'yearly') && (
                   <div className="p-4 rounded-2xl bg-plaster-dark/40 border border-soot/10 space-y-2">
                     <label className="block text-[11px] font-semibold text-moss mb-1 flex items-center gap-1">
@@ -628,7 +629,7 @@ export default function SpaceDetails() {
                       value={bookingDate}
                       min={new Date().toISOString().split('T')[0]}
                       onChange={(e) => handleBookingDateChange(e.target.value)}
-                      className="w-full px-3 py-2.5 rounded-xl bg-white border border-soot/12 text-soot text-xs font-medium focus:outline-none focus:border-eucalyptus cursor-pointer shadow-2xs"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-soot/12 text-soot text-xs font-medium focus:outline-none focus:border-eucalyptus cursor-pointer shadow-2xs"
                     />
                     <div className="text-[11px] text-moss flex justify-between pt-1">
                       <span>Period End:</span>
@@ -639,7 +640,6 @@ export default function SpaceDetails() {
                   </div>
                 )}
 
-                {/* 2-Hour Daily Session Selector for Halls and Theaters within Operating Hours */}
                 {isHourlyAllowed(space) && (
                   <div className="p-4 rounded-2xl bg-plaster-dark/40 border border-soot/10 space-y-3.5">
                     <div className="flex items-center justify-between gap-2">
@@ -652,7 +652,6 @@ export default function SpaceDetails() {
                       </span>
                     </div>
 
-                    {/* Single Reservation Date for Theaters/Halls */}
                     <div>
                       <label className="block text-[11px] font-semibold text-moss mb-1 flex items-center gap-1">
                         <Calendar size={11} />
@@ -727,35 +726,29 @@ export default function SpaceDetails() {
                 )}
               </div>
 
-              {/* Live Crowding Indicator (Connected to QR Code Scans) */}
               <div className="mb-6 p-4 rounded-2xl bg-[#FAF7F2] border border-soot/10 space-y-2">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-moss font-normal">Capacity</span>
-                  <span className={`font-semibold ${crowding.textColor}`}>
-                    {crowding.level}
+                  <span className={`font-semibold ${isFullyBooked ? 'text-rose-700' : crowding.textColor}`}>
+                    {isFullyBooked ? 'Busy / Full' : crowding.level}
                   </span>
                 </div>
                 <div className="w-full h-2 rounded-full bg-[#E5EBE7] overflow-hidden">
                   <div
-                    className={`h-full rounded-full transition-all duration-500 ${crowding.barColor}`}
+                    className={`h-full rounded-full transition-all duration-500 ${isFullyBooked ? 'bg-rose-600' : crowding.barColor}`}
                     style={{
-                      width: `${
-                        crowding.level === 'Busy'
-                          ? 100
-                          : Math.min(100, Math.max(10, crowding.occupancyPercentage))
-                      }%`,
+                      width: `${isFullyBooked ? 100 : Math.min(100, Math.max(10, crowding.occupancyPercentage))}%`,
                     }}
                   />
                 </div>
                 <div className="flex items-center justify-between text-[11px] text-moss pt-0.5">
-                  <span>{crowding.availableCapacity} / {crowding.totalCapacity} available</span>
+                  <span>{isFullyBooked ? '0' : crowding.availableCapacity} / {crowding.totalCapacity} available</span>
                   <span className="text-[10px] font-medium text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60">
                     {crowding.scannedCount} QR Check-ins Today
                   </span>
                 </div>
               </div>
 
-              {/* Primary Call to Action */}
               {isFullyBooked ? (
                 <div className="space-y-3">
                   <div className="rounded-2xl p-4 text-center border border-soot/12 bg-plaster-dark/30">
@@ -868,7 +861,6 @@ export default function SpaceDetails() {
         </div>
       </div>
 
-      {/* Waitlist Modal */}
       <Modal
         open={waitlistModal}
         onClose={() => setWaitlistModal(false)}
@@ -897,7 +889,7 @@ export default function SpaceDetails() {
             <div className="space-y-4">
               <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-plaster-dark/30 border border-soot/12">
                 <img
-                  src={space.images?.[0] ? space.images[0] : 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80'}
+                  src={space.images?.[0] || 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80'}
                   alt={space.name}
                   className="w-12 h-12 rounded-xl object-cover"
                 />
@@ -913,11 +905,11 @@ export default function SpaceDetails() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="p-3.5 rounded-2xl bg-plaster-surface border border-soot/12">
                   <div className="text-[11px] text-moss mb-0.5">Queue Status</div>
-                  <div className="text-lg font-semibold text-soot">Position #3</div>
+                  <div className="text-lg font-semibold text-soot">Position #{queuePosition}</div>
                 </div>
                 <div className="p-3.5 rounded-2xl bg-plaster-surface border border-soot/12">
                   <div className="text-[11px] text-moss mb-0.5">Est. Notification</div>
-                  <div className="text-lg font-semibold text-soot">~25 mins</div>
+                  <div className="text-lg font-semibold text-soot">~{estimatedMins} mins</div>
                 </div>
               </div>
 
@@ -979,7 +971,7 @@ export default function SpaceDetails() {
                     type="button"
                     onClick={() => {
                       if (autoBookOn) {
-                        disableAutoBooking(space.id);
+                        leaveWaitlist(space.id);
                       } else {
                         enableAutoBooking(space.id, currentUser?.savedCards?.[0]?.id || 'card-1');
                       }

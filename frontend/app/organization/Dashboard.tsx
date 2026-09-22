@@ -32,8 +32,11 @@ import {
   Employee,
   getBookingPrice,
   getSpaceCategory,
-  SpaceCategory
+  SpaceCategory,
+  calculateDailyDurationDays
 } from '@/types/types';
+
+const FALLBACK_SPACE_IMAGE = 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80';
 
 export default function OrgDashboard() {
   const { currentUser, spaces, bookings, favorites, navigate, companyWalletBalance, companyData } = useApp();
@@ -44,6 +47,14 @@ export default function OrgDashboard() {
   if (!currentUser) return null;
 
   const orgBookings = bookings.filter((b: Booking) => b.userId === currentUser.id);
+  const totalDaysBooked = orgBookings
+    .filter((b: Booking) => b.status !== 'cancelled')
+    .reduce((sum: number, b: Booking) => {
+      if (b.durationDays) return sum + b.durationDays;
+      if (b.startDate && b.endDate)
+        return sum + calculateDailyDurationDays(b.startDate, b.endDate);
+      return sum + 1;
+    }, 0);
   const activeBookings = orgBookings.filter((b: Booking) => b.status === 'active');
   const favoriteSpaces = spaces.filter((s: Space) => favorites.includes(s.id) && s.isVisible);
   const visibleSpaces = spaces.filter((s: Space) => s.isVisible);
@@ -52,13 +63,6 @@ export default function OrgDashboard() {
   const categoryFilteredSpaces = selectedCategory === 'all'
     ? visibleSpaces
     : visibleSpaces.filter(s => getSpaceCategory(s) === selectedCategory);
-
-  const greeting = () => {
-    const h = new Date().getHours();
-    if (h < 12) return 'Good morning';
-    if (h < 17) return 'Good afternoon';
-    return 'Good evening';
-  };
 
   const getEmpName = (id: string) => employees.find((e: Employee) => e.id === id)?.name || id;
 
@@ -113,7 +117,7 @@ export default function OrgDashboard() {
         </div>
       </div>
 
-      {/* Stats Cards مع بطاقة نقاط الولاء المدمجة */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {[
           {
@@ -139,7 +143,7 @@ export default function OrgDashboard() {
           },
           {
             label: 'Days Booked',
-            count: orgBookings.filter(b => b.status !== 'cancelled').length * 4,
+            count: totalDaysBooked,
             badge: 'bg-blue-500/15 text-blue-800 border border-blue-500/30',
             icon: Clock,
             iconBg: 'bg-blue-500/15 text-blue-800 border-blue-500/30',
@@ -205,7 +209,11 @@ export default function OrgDashboard() {
                   className="p-4 hover:bg-plaster-dark/30 transition-colors flex items-center justify-between gap-4 cursor-pointer group"
                 >
                   <div className="flex items-center gap-3.5 min-w-0">
-                    <img src={b.spaceImage} alt={b.spaceName} className="w-12 h-12 rounded-xl object-cover border border-soot/10 shrink-0 shadow-2xs group-hover:scale-105 transition-transform" />
+                    <img
+                      src={b.spaceImage || FALLBACK_SPACE_IMAGE}
+                      alt={b.spaceName}
+                      className="w-12 h-12 rounded-xl object-cover border border-soot/10 shrink-0 shadow-2xs group-hover:scale-105 transition-transform"
+                    />
                     <div className="min-w-0">
                       <h4 className="font-semibold text-soot text-sm truncate group-hover:text-emerald-900 transition-colors">{b.spaceName}</h4>
                       <div className="flex items-center gap-1.5 text-xs text-moss mt-0.5 font-medium">
@@ -279,8 +287,9 @@ export default function OrgDashboard() {
                   className="p-4 hover:bg-plaster-dark/30 transition-colors flex items-center justify-between gap-4 cursor-pointer group"
                 >
                   <div className="flex items-center gap-3.5 min-w-0">
+                    {/* حل المشكلة رقم 4 (الموضع الأول) */}
                     <img
-                      src={space.images[0]}
+                      src={space.images?.[0] || FALLBACK_SPACE_IMAGE}
                       alt={space.name}
                       className="w-12 h-12 rounded-xl object-cover border border-soot/10 shrink-0 shadow-2xs group-hover:scale-105 transition-transform"
                     />
@@ -315,7 +324,8 @@ export default function OrgDashboard() {
                           </div>
                         );
                       }
-                      return <div className="text-sm font-semibold text-soot">SAR {space.pricing.daily}/day</div>;
+                      {/* حماية إضافية لكائن التسعير */}
+                      return <div className="text-sm font-semibold text-soot">SAR {space.pricing?.daily ?? 0}/day</div>;
                     })()}
                   </div>
                 </div>
@@ -390,8 +400,9 @@ export default function OrgDashboard() {
                 className="bg-plaster-surface hover:bg-plaster-dark/30 rounded-3xl border border-soot/12 overflow-hidden shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer group flex flex-col justify-between"
               >
                 <div className="relative h-44 overflow-hidden">
+                  {/* حل المشكلة رقم 4 (الموضع الثاني) */}
                   <img
-                    src={space.images[0]}
+                    src={space.images?.[0] || FALLBACK_SPACE_IMAGE}
                     alt={space.name}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
@@ -447,14 +458,15 @@ export default function OrgDashboard() {
       </div>
 
       {/* Admin-Matching Action Cards */}
-      <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {[
-          { label: 'Browse Workspaces', desc: 'Find and reserve desks, halls & theaters', action: () => navigate('browse'), icon: Building2 },
-          { label: 'Team Bookings', desc: 'Manage active company reservations', action: () => navigate('team-bookings'), icon: CalendarDays },
-          { label: 'Manage Team', desc: 'Add colleagues to enterprise pass', action: () => navigate('company-team'), icon: Users },
+          { label: 'Company Workspaces', desc: 'Manage corporate locations & suites', action: () => navigate('company-workspaces'), icon: Building2 },
+          { label: 'Browse Spaces', desc: 'Find and reserve desks & halls', action: () => navigate('browse'), icon: Building2 },
+          { label: 'Team Bookings', desc: 'Manage active reservations', action: () => navigate('team-bookings'), icon: CalendarDays },
+          { label: 'Manage Team', desc: 'Add colleagues to pass', action: () => navigate('company-team'), icon: Users },
           {
-            label: 'Corporate Shared Wallet',
-            desc: `Balance: SAR ${(companyWalletBalance ?? companyData?.balance ?? 0).toLocaleString()} · Top up & manage team funds`,
+            label: 'Shared Wallet',
+            desc: `SAR ${(companyWalletBalance ?? companyData?.balance ?? 0).toLocaleString()} · Team funds`,
             action: () => setIsSharedWalletOpen(true),
             icon: Wallet
           },
