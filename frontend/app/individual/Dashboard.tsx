@@ -23,7 +23,8 @@ import {
   BookingPlan,
   getEffectiveSpacePrice,
   getBookingPrice,
-  getSpaceCategory
+  getSpaceCategory,
+  calculateDailyDurationDays
 } from '@/types/types';
 
 export default function IndividualDashboard() {
@@ -34,6 +35,14 @@ export default function IndividualDashboard() {
   if (!currentUser) return null;
 
   const myBookings = bookings.filter(b => b.userId === currentUser.id);
+  const totalDaysBooked = myBookings
+    .filter(b => b.status !== 'cancelled')
+    .reduce((sum, b) => {
+      if (b.durationDays) return sum + b.durationDays;
+      if (b.startDate && b.endDate)
+        return sum + calculateDailyDurationDays(b.startDate, b.endDate);
+      return sum + 1;
+    }, 0);
   const activeBookings = myBookings.filter(b => b.status === 'active');
   const favoriteSpaces = spaces.filter(s => favorites.includes(s.id) && s.isVisible);
   const visibleSpaces = spaces.filter(s => s.isVisible);
@@ -124,7 +133,7 @@ export default function IndividualDashboard() {
           },
           {
             label: 'Days Booked',
-            count: myBookings.filter(b => b.status !== 'cancelled').length * 3,
+            count: totalDaysBooked,
             badge: 'bg-blue-500/15 text-blue-800 border border-blue-500/30',
             icon: Clock,
             iconBg: 'bg-blue-500/15 text-blue-800 border-blue-500/30',
