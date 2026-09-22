@@ -178,18 +178,26 @@ export default function Browse() {
     let list = spacesWithDistance.filter(s => {
       if (
         query &&
-        !s.name.toLowerCase().includes(query.toLowerCase()) &&
-        !s.city.toLowerCase().includes(query.toLowerCase()) &&
-        !s.address.toLowerCase().includes(query.toLowerCase())
+        !s.name?.toLowerCase().includes(query.toLowerCase()) &&
+        !s.city?.toLowerCase().includes(query.toLowerCase()) &&
+        !s.address?.toLowerCase().includes(query.toLowerCase())
       ) {
         return false;
       }
       if (categoryFilter !== 'all' && getSpaceCategory(s) !== categoryFilter) return false;
       if (city && s.city !== city) return false;
       if (spaceType !== 'all' && s.type !== spaceType) return false;
-      if (s.pricing.daily > maxPrice) return false;
-      if (availableOnly && s.availableCapacity <= 0) return false;
-      if (selectedAmenities.length > 0 && !selectedAmenities.every(a => s.amenities.includes(a))) return false;
+      
+      if ((s.pricing?.daily ?? 0) > maxPrice) return false;
+      
+      if (availableOnly && (s.availableCapacity ?? 0) <= 0) return false;
+      
+      if (
+        selectedAmenities.length > 0 &&
+        !selectedAmenities.every(a => (s.amenities || []).includes(a))
+      ) {
+        return false;
+      }
       return true;
     });
 
@@ -203,13 +211,13 @@ export default function Browse() {
         });
       }
     } else if (sort === 'Price: Low to High') {
-      list.sort((a, b) => a.pricing.daily - b.pricing.daily);
+      list.sort((a, b) => (a.pricing?.daily ?? 0) - (b.pricing?.daily ?? 0));
     } else if (sort === 'Price: High to Low') {
-      list.sort((a, b) => b.pricing.daily - a.pricing.daily);
+      list.sort((a, b) => (b.pricing?.daily ?? 0) - (a.pricing?.daily ?? 0));
     } else if (sort === 'Rating') {
-      list.sort((a, b) => b.rating - a.rating);
+      list.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
     } else if (sort === 'Availability') {
-      list.sort((a, b) => b.availableCapacity - a.availableCapacity);
+      list.sort((a, b) => (b.availableCapacity ?? 0) - (a.availableCapacity ?? 0));
     }
 
     return list;
