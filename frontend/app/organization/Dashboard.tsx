@@ -32,7 +32,8 @@ import {
   Employee,
   getBookingPrice,
   getSpaceCategory,
-  SpaceCategory
+  SpaceCategory,
+  calculateDailyDurationDays
 } from '@/types/types';
 
 const FALLBACK_SPACE_IMAGE = 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80';
@@ -46,6 +47,14 @@ export default function OrgDashboard() {
   if (!currentUser) return null;
 
   const orgBookings = bookings.filter((b: Booking) => b.userId === currentUser.id);
+  const totalDaysBooked = orgBookings
+    .filter((b: Booking) => b.status !== 'cancelled')
+    .reduce((sum: number, b: Booking) => {
+      if (b.durationDays) return sum + b.durationDays;
+      if (b.startDate && b.endDate)
+        return sum + calculateDailyDurationDays(b.startDate, b.endDate);
+      return sum + 1;
+    }, 0);
   const activeBookings = orgBookings.filter((b: Booking) => b.status === 'active');
   const favoriteSpaces = spaces.filter((s: Space) => favorites.includes(s.id) && s.isVisible);
   const visibleSpaces = spaces.filter((s: Space) => s.isVisible);
@@ -134,7 +143,7 @@ export default function OrgDashboard() {
           },
           {
             label: 'Days Booked',
-            count: orgBookings.filter(b => b.status !== 'cancelled').length * 4,
+            count: totalDaysBooked,
             badge: 'bg-blue-500/15 text-blue-800 border border-blue-500/30',
             icon: Clock,
             iconBg: 'bg-blue-500/15 text-blue-800 border-blue-500/30',
@@ -449,14 +458,15 @@ export default function OrgDashboard() {
       </div>
 
       {/* Admin-Matching Action Cards */}
-      <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {[
-          { label: 'Browse Workspaces', desc: 'Find and reserve desks, halls & theaters', action: () => navigate('browse'), icon: Building2 },
-          { label: 'Team Bookings', desc: 'Manage active company reservations', action: () => navigate('team-bookings'), icon: CalendarDays },
-          { label: 'Manage Team', desc: 'Add colleagues to enterprise pass', action: () => navigate('company-team'), icon: Users },
+          { label: 'Company Workspaces', desc: 'Manage corporate locations & suites', action: () => navigate('company-workspaces'), icon: Building2 },
+          { label: 'Browse Spaces', desc: 'Find and reserve desks & halls', action: () => navigate('browse'), icon: Building2 },
+          { label: 'Team Bookings', desc: 'Manage active reservations', action: () => navigate('team-bookings'), icon: CalendarDays },
+          { label: 'Manage Team', desc: 'Add colleagues to pass', action: () => navigate('company-team'), icon: Users },
           {
-            label: 'Corporate Shared Wallet',
-            desc: `Balance: SAR ${(companyWalletBalance ?? companyData?.balance ?? 0).toLocaleString()} · Top up & manage team funds`,
+            label: 'Shared Wallet',
+            desc: `SAR ${(companyWalletBalance ?? companyData?.balance ?? 0).toLocaleString()} · Team funds`,
             action: () => setIsSharedWalletOpen(true),
             icon: Wallet
           },

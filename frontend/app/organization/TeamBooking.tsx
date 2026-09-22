@@ -279,7 +279,7 @@ export default function TeamBooking() {
       } else if (space?.id) {
         navigate('space-details', { spaceId: space.id });
       } else {
-        navigate('company-bookings');
+        navigate('team-bookings');
       }
       return;
     }
