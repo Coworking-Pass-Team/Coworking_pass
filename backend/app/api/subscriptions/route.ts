@@ -64,6 +64,10 @@ export async function GET(request: Request) {
  *     responses:
  *       201:
  *         description: تم تفعيل الاشتراك بنجاح
+ *       400:
+ *         description: بيانات غير صحيحة أو عدم توافق نوع الباقة
+ *       404:
+ *         description: المستخدم أو الخطة غير موجودة
  */
 export async function POST(request: NextRequest) {
   try {
@@ -84,6 +88,49 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    //  BE-08: فحص جمهور الباقة (B2C vs B2B)
+    const [userData, plan] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: effectiveUserId },
+        select: { id: true, companyId: true, role: true }
+      }),
+      prisma.membershipPlan.findUnique({
+        where: { id: planId },
+        select: { id: true, type: true, planName: true }
+      })
+    ]);
+
+    if (!userData) {
+      return NextResponse.json(
+        { error: 'المستخدم غير موجود' },
+        { status: 404 }
+      );
+    }
+
+    if (!plan) {
+      return NextResponse.json(
+        { error: 'الخطة غير موجودة' },
+        { status: 404 }
+      );
+    }
+
+    // B2C: للأفراد فقط (بدون شركة)
+    if (plan.type === 'B2C' && userData.companyId) {
+      return NextResponse.json(
+        { error: 'هذه الباقة مخصصة للأفراد فقط. أنت مرتبط بشركة.' },
+        { status: 400 }
+      );
+    }
+
+    // B2B: للمؤسسات فقط (مرتبط بشركة)
+    if (plan.type === 'B2B' && !userData.companyId) {
+      return NextResponse.json(
+        { error: 'هذه الباقة مخصصة للمؤسسات فقط. يجب أن تكون مرتبطاً بشركة.' },
+        { status: 400 }
+      );
+    }
+
+    // إنشاء الاشتراك
     const subscription = await prisma.subscription.create({
       data: {
         userId: effectiveUserId,

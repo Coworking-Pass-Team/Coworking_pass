@@ -63,7 +63,6 @@ export async function GET(request: Request) {
  *       201:
  *         description: تم إنشاء الحجز الساعي
  */
-
 export async function POST(request: NextRequest) {
   try {
     const user = getTokenFromRequest(request);
@@ -86,13 +85,28 @@ export async function POST(request: NextRequest) {
       endTime
     } = body;
 
-    // تطبيع status — HourlyBooking يستخدم LifecycleStatus: ACTIVE, EXPIRED, CANCELLED
+    //  BE-05: منع الحجز الساعي للمكاتب الفردية
+    if (sectionId) {
+      const requestedSection = await prisma.workspaceSection.findUnique({
+        where: { id: sectionId },
+        select: { type: true }
+      });
+
+      if (requestedSection && requestedSection.type === 'DESK') {
+        return NextResponse.json(
+          { error: 'الحجز بالساعة غير متاح للمكاتب الفردية. يرجى اختيار غرفة اجتماعات أو قاعة' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // تطبيع status
     const validStatuses = ['ACTIVE', 'EXPIRED', 'CANCELLED'];
     const normalizedStatus = validStatuses.includes((status || '').toUpperCase())
       ? (status || '').toUpperCase()
       : 'ACTIVE';
 
-    // تطبيع المدينة — استنتج المدينة من اسم المساحة أو القيمة المُرسَلة
+    // تطبيع المدينة
     const resolveCity = (name?: string, sentCity?: string): string => {
       if (sentCity && sentCity.trim()) return sentCity.trim();
       const n = (name || '').toLowerCase();
@@ -125,14 +139,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // تحديد نوع القسم المطلوب (THEATER, MEETING_ROOM, DESK)
+    // تحديد نوع القسم المطلوب
     const validSectionTypes = ['DESK', 'MEETING_ROOM', 'THEATER'];
     const requestedType = validSectionTypes.includes(sectionType) ? sectionType : 'MEETING_ROOM';
 
     const resolvedCity = resolveCity(spaceName, city);
     const cleanCity = resolvedCity.replace(/al\s+/i, '').trim();
 
-    // البحث عن مساحة العمل المعتمدة مسبقاً بدقة (تماماً مثل DirectBooking)
+    // البحث عن مساحة العمل
     let ws = workspaceId ? await prisma.workspace.findUnique({
       where: { id: workspaceId },
       include: { sections: true }
@@ -141,7 +155,6 @@ export async function POST(request: NextRequest) {
     if (!ws && spaceName) {
       const trimmedName = spaceName.trim();
 
-      // 1. Exact match in city (case-insensitive)
       ws = await prisma.workspace.findFirst({
         where: {
           name: { equals: trimmedName, mode: 'insensitive' },
@@ -150,7 +163,6 @@ export async function POST(request: NextRequest) {
         include: { sections: true }
       });
 
-      // 2. Contains match in city (e.g. "Oasis Cowork" matches "Oasis Coworking" in Al Khobar)
       if (!ws) {
         ws = await prisma.workspace.findFirst({
           where: {
@@ -161,7 +173,6 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // 3. First word match in city (e.g. "Oasis" in Al Khobar)
       if (!ws) {
         const firstWord = trimmedName.split(/\s+/)[0];
         if (firstWord && firstWord.length > 2) {
@@ -175,7 +186,6 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // 4. Exact match overall
       if (!ws) {
         ws = await prisma.workspace.findFirst({
           where: { name: { equals: trimmedName, mode: 'insensitive' } },
@@ -183,7 +193,6 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // 5. Contains match overall
       if (!ws) {
         ws = await prisma.workspace.findFirst({
           where: { name: { contains: trimmedName, mode: 'insensitive' } },
@@ -192,7 +201,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 6. City match if spaceName alone wasn't enough (e.g., Khobar)
     if (!ws && cleanCity) {
       ws = await prisma.workspace.findFirst({
         where: { city: { contains: cleanCity, mode: 'insensitive' } },
@@ -200,7 +208,6 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 5. Seed standard workspaces if none found
     if (!ws) {
       await seedStandardWorkspaces();
       if (spaceName) {
@@ -211,7 +218,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 6. Self-healing fallback: Create the workspace with exact name and city (NEVER pick random wrong space!)
     if (!ws && (spaceName || workspaceId)) {
       let partner = await prisma.partner.findFirst();
       if (!partner) {
@@ -249,12 +255,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Workspace not found.' }, { status: 404 });
     }
 
-    // حساب الساعات وتطبيق قيد الـ 4 ساعات كحد أقصى يومياً
+    // حساب الساعات
     let computedHours = durationHours ? Number(durationHours) : 0;
     if (computedHours > 4) computedHours = 4;
     if (computedHours < 1) computedHours = 1;
 
-    // دمج التاريخ والوقت بدقة لمنع التصفير إلى منتصف الليل 00:00:00 وحفظ التوقيت السعودي الفعلي
     const startObj = parseDateAndTimeToKsaDate(startDate, startTime, 9);
     let endObj: Date;
     if (endTime) {
@@ -281,7 +286,7 @@ export async function POST(request: NextRequest) {
 
     const computedDetails = durationDetails || `${computedHours} ${computedHours === 1 ? 'Hour' : 'Hours'}`;
 
-    // التحقق من وجود القسم المطلوب داخل هذه المساحة المحددة
+    // التحقق من وجود القسم
     let targetSectionId = sectionId;
     let targetPackageId = packageId;
 
@@ -318,7 +323,7 @@ export async function POST(request: NextRequest) {
 
     targetSectionId = sec.id;
 
-    // التأكد من وجود باقة ساعات متوافقة
+    // التأكد من وجود باقة
     let pkg = sec.hourlyPackages && sec.hourlyPackages.length > 0
       ? sec.hourlyPackages.find((p: any) => p.id === targetPackageId) || sec.hourlyPackages[0]
       : await prisma.hourlyPackage.findFirst({ where: { sectionId: sec.id } });
@@ -337,7 +342,7 @@ export async function POST(request: NextRequest) {
 
     targetPackageId = pkg.id;
 
-    // إنشاء الحجز الساعي مع ربط مساحة العمل وعدد الساعات وتفاصيلها بدقة
+    // إنشاء الحجز
     const booking = await prisma.hourlyBooking.create({
       data: {
         userId: effectiveUserId,
