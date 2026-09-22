@@ -1,8 +1,10 @@
 'use client';
 
-import { Warehouse, CalendarDays, TrendingUp, Percent, ArrowRight, MapPin, Building2, CheckCircle2, Sparkles } from 'lucide-react';
+import { Warehouse, CalendarDays, TrendingUp, Percent, ArrowRight, MapPin, Building2, Sparkles } from 'lucide-react';
 import { useApp } from '@/app/store';
 import { getBookingPrice, getSpaceCategory, isHourlyAllowed } from '@/types/types';
+
+const FALLBACK_SPACE_IMAGE = 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80';
 
 export default function ProviderDashboard() {
   const { currentUser, spaces, partners, bookings, navigate } = useApp();
@@ -24,8 +26,8 @@ export default function ProviderDashboard() {
     .filter((b) => b.status !== 'cancelled')
     .reduce((sum, b) => sum + getBookingPrice(b, spaces), 0);
 
-  const totalCapacity = mySpaces.reduce((sum, s) => sum + s.totalCapacity, 0);
-  const totalAvailable = mySpaces.reduce((sum, s) => sum + s.availableCapacity, 0);
+  const totalCapacity = mySpaces.reduce((sum, s) => sum + (s.totalCapacity || 0), 0);
+  const totalAvailable = mySpaces.reduce((sum, s) => sum + (s.availableCapacity ?? 0), 0);
   const occupancy =
     totalCapacity > 0 ? Math.round(((totalCapacity - totalAvailable) / totalCapacity) * 100) : 0;
 
@@ -55,34 +57,30 @@ export default function ProviderDashboard() {
         </div>
       </div>
 
-      {/* Admin-Matching Elevated Stats Cards */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         {[
           {
             label: 'Total Spaces',
             value: mySpaces.length,
-            badge: 'bg-soot/10 text-soot border border-soot/15',
             icon: Building2,
             iconBg: 'bg-soot text-plaster border-soot/20',
           },
           {
             label: 'Active Bookings',
             value: activeBookings.length,
-            badge: 'bg-emerald-500/15 text-emerald-800 border border-emerald-500/30',
             icon: CalendarDays,
             iconBg: 'bg-emerald-500/15 text-emerald-800 border-emerald-500/30',
           },
           {
             label: 'Total Revenue',
             value: `SAR ${totalRevenue.toLocaleString()}`,
-            badge: 'bg-blue-500/15 text-blue-800 border border-blue-500/30',
             icon: TrendingUp,
             iconBg: 'bg-blue-500/15 text-blue-800 border-blue-500/30',
           },
           {
             label: 'Occupancy Rate',
             value: `${occupancy}%`,
-            badge: 'bg-teal-500/15 text-teal-800 border border-teal-500/30',
             icon: Percent,
             iconBg: 'bg-teal-500/15 text-teal-800 border-teal-500/30',
           },
@@ -132,11 +130,13 @@ export default function ProviderDashboard() {
                   onClick={() => navigate('provider-spaces', { spaceId: space.id, edit: true })}
                   className="p-4 hover:bg-plaster-dark/30 transition-colors flex items-center gap-3.5 cursor-pointer group"
                 >
+                  {/* حل المشكلة FE-05: استخدام Optional Chaining وصورة بديلة */}
                   <img
-                    src={space.images[0]}
+                    src={space.images?.[0] || FALLBACK_SPACE_IMAGE}
                     alt={space.name}
                     className="w-12 h-12 rounded-xl object-cover border border-soot/10 shrink-0 shadow-2xs group-hover:scale-105 transition-transform"
                   />
+
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-sm font-semibold text-soot truncate group-hover:text-emerald-900 transition-colors">
@@ -157,12 +157,14 @@ export default function ProviderDashboard() {
                       <span className="truncate">{space.city}</span>
                       <span>·</span>
                       <span>
-                        {space.availableCapacity}/{space.totalCapacity} available
+                        {space.availableCapacity ?? 0}/{space.totalCapacity || 0} available
                       </span>
                     </div>
                   </div>
+
+                  {/* حل المشكلة FE-06: الحماية الكاملة لأسعار اليوم والساعة */}
                   <div className="text-right text-xs font-semibold text-soot shrink-0">
-                    SAR {isHourlyAllowed(space) ? (space.pricing.hourly || 150) : space.pricing.daily}
+                    SAR {isHourlyAllowed(space) ? (space.pricing?.hourly ?? 150) : (space.pricing?.daily ?? 0)}
                     <span className="text-[10px] text-moss font-normal block">
                       {isHourlyAllowed(space) ? '/ hour' : '/ day'}
                     </span>
@@ -201,7 +203,7 @@ export default function ProviderDashboard() {
                   className="p-4 hover:bg-plaster-dark/30 transition-colors flex items-center gap-3.5 cursor-pointer group"
                 >
                   <img
-                    src={b.spaceImage}
+                    src={b.spaceImage || FALLBACK_SPACE_IMAGE}
                     alt={b.spaceName}
                     className="w-11 h-11 rounded-xl object-cover border border-soot/10 shrink-0 shadow-2xs group-hover:scale-105 transition-transform"
                   />
@@ -265,4 +267,3 @@ export default function ProviderDashboard() {
     </div>
   );
 }
-
