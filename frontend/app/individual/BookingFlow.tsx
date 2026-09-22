@@ -53,6 +53,8 @@ import {
   timeStringToMinutes
 } from '@/types/types';
 
+const FALLBACK_SPACE_IMAGE = 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80';
+
 const STEPS = ['Plan', 'Details', 'Review', 'Confirm'];
 
 const DURATION_OPTIONS = [1, 2, 3, 4, 6, 8];
@@ -101,11 +103,11 @@ export default function BookingFlow() {
   
   const urlId = typeof window !== 'undefined' ? window.location.pathname.split('/').pop() : '';
   const spaceId = nav?.params?.spaceId || (urlId && urlId !== 'page' && urlId !== 'booking-flow' ? urlId : '') || 'space-1';
-  const space = spaces.find(s => s.id === spaceId) || spaces[0];
+  const space = (spaces && spaces.length > 0 ? spaces.find(s => s.id === spaceId) || spaces[0] : null) as any;
 
-  const isHourlySpace = isHourlyAllowed(space);
-  const isOffice = isOfficeSpace(space?.type);
-  const allowedPlans = getAllowedPlansForSpace(space);
+  const isHourlySpace = Boolean(space && isHourlyAllowed(space));
+  const isOffice = Boolean(space && isOfficeSpace(space?.type));
+  const allowedPlans = space ? getAllowedPlansForSpace(space) : (['daily'] as BookingPlan[]);
 
   const defaultInitialPlan: BookingPlan = allowedPlans.includes(nav?.params?.plan as BookingPlan)
     ? (nav?.params?.plan as BookingPlan)
@@ -395,7 +397,7 @@ export default function BookingFlow() {
         spaceName: space.name,
         spaceCity: space.city,
         spaceAddress: space.address,
-        spaceImage: space.images[0],
+        spaceImage: space.images?.[0] || FALLBACK_SPACE_IMAGE,
         category: getSpaceCategory(space),
         type: deskType,
         plan,
@@ -459,7 +461,11 @@ export default function BookingFlow() {
 
           <div className="bg-white rounded-3xl border border-soot/8 p-6 sm:p-8 text-left mb-8 shadow-sm">
             <div className="flex items-center gap-4 mb-6 pb-6 border-b border-soot/8">
-              <img src={space.images[0]} alt={space.name} className="w-16 h-16 rounded-2xl object-cover shadow-sm" />
+              <img
+                src={space.images?.[0] || FALLBACK_SPACE_IMAGE}
+                alt={space.name || 'Workspace'}
+                className="w-16 h-16 rounded-2xl object-cover shadow-sm"
+              />
               <div>
                 <div className="font-semibold text-soot text-lg">{space.name}</div>
                 <div className="flex items-center gap-1.5 text-xs text-moss mt-1">
@@ -586,7 +592,11 @@ export default function BookingFlow() {
       {/* Prominent Space & Live Price Header Bar */}
       <div className="flex items-center justify-between gap-4 bg-white rounded-3xl border border-soot/8 p-5 mb-8 shadow-sm">
         <div className="flex items-center gap-4 min-w-0">
-          <img src={space.images[0]} alt={space.name} className="w-14 h-14 rounded-2xl object-cover shadow-sm shrink-0" />
+          <img
+            src={space.images?.[0] || FALLBACK_SPACE_IMAGE}
+            alt={space.name || 'Workspace'}
+            className="w-14 h-14 rounded-2xl object-cover shadow-sm shrink-0"
+          />
           <div className="min-w-0">
             <div className="font-semibold text-soot text-base truncate">{space.name}</div>
             <div className="flex items-center gap-1.5 text-xs text-moss mt-0.5">
@@ -648,7 +658,7 @@ export default function BookingFlow() {
             </p>
           </div>
 
-          {/* Workspace Desk Type Selector (for mixed / desk spaces) */}
+          {/* Workspace Desk Type Selector */}
           {!isHourlySpace && !isOffice && (
             <div>
               <h3 className="text-xs font-semibold uppercase tracking-wider text-moss mb-3">Workspace Type</h3>
@@ -752,7 +762,7 @@ export default function BookingFlow() {
                   <p className="text-xs text-moss mt-0.5">Choose duration: 1, 2, 3, 6, or 12 months</p>
                 </div>
                 <div className="text-sm font-bold text-soot">
-                  {durationMonths} {durationMonths === 1 ? 'Month' : 'Months'} {hasActiveSubscription ? '· Included in Pass' : `· SAR ${((space.pricing?.monthly || 1800) * durationMonths).toLocaleString()}`}
+                  {durationMonths} {durationMonths === 1 ? 'Month' : 'Months'} {hasActiveSubscription ? '· Included in Pass' : `· SAR ${((space.pricing?.monthly ?? 1800) * durationMonths).toLocaleString()}`}
                 </div>
               </div>
 
@@ -903,7 +913,6 @@ export default function BookingFlow() {
 
           <div className="space-y-6">
             {/* Daily Date Range Selector */}
-            {/* Daily Date Range Selector (for standard office/desk spaces) vs Single Date for Theaters/Halls */}
             {plan === 'daily' && !isHourlySpace ? (
               <div className="space-y-4 p-5 rounded-2xl bg-[#F9F8F5] border border-soot/8">
                 <div className="flex items-center justify-between gap-2">
@@ -965,14 +974,13 @@ export default function BookingFlow() {
                       {hasActiveSubscription ? (
                         <span className="text-emerald-800">Included in your Pass ({durationDays} {durationDays === 1 ? 'day' : 'days'})</span>
                       ) : (
-                        `SAR ${(space.pricing?.daily || 150).toLocaleString()} × ${durationDays} ${durationDays === 1 ? 'day' : 'days'} = SAR ${((space.pricing?.daily || 150) * durationDays).toLocaleString()} / seat`
+                        `SAR ${(space.pricing?.daily ?? 150).toLocaleString()} × ${durationDays} ${durationDays === 1 ? 'day' : 'days'} = SAR ${((space.pricing?.daily ?? 150) * durationDays).toLocaleString()} / seat`
                       )}
                     </span>
                   </div>
                 </div>
               </div>
             ) : (
-              /* Single date field for Theaters, Halls, and other durations */
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-2 flex items-center gap-1.5">
                   <Calendar size={13} />
@@ -991,7 +999,7 @@ export default function BookingFlow() {
               </div>
             )}
 
-            {/* Time Controls for Halls and Theaters (Fixed 2-hour session within operating hours) or Hourly Plan */}
+            {/* Time Controls for Halls and Theaters */}
             {(isHourlySpace || isHourly) && (
               <div className="space-y-4 p-5 rounded-2xl bg-[#F9F8F5] border border-soot/8">
                 <div className="flex items-center justify-between gap-2">
@@ -1143,7 +1151,7 @@ export default function BookingFlow() {
                   +
                 </button>
                 <span className="text-xs text-moss font-normal">
-                  {space.availableCapacity} seats currently open
+                  {space.availableCapacity ?? 0} seats currently open
                 </span>
               </div>
             </div>
@@ -1221,7 +1229,7 @@ export default function BookingFlow() {
             </div>
 
             {totalPrice === 0 ? (
-              /* Subscription Plan Coverage Card (No Prices Displayed) */
+              /* Subscription Plan Coverage Card */
               <div className="p-5 rounded-2xl bg-[#E5ECE9]/60 border-2 border-eucalyptus/40 space-y-3.5">
                 <div className="flex items-center justify-between pb-2.5 border-b border-soot/8">
                   <div className="flex items-center gap-2">
@@ -1265,7 +1273,7 @@ export default function BookingFlow() {
               </div>
             ) : (
               <>
-                {/* Quota breakdown banner if partial quota was applied */}
+                {/* Quota breakdown banner */}
                 {hasActiveSubscription && (planInfo.coveredHours || 0) > 0 && (
                   <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200/80 space-y-1.5">
                     <div className="flex items-center gap-2 text-amber-900 font-semibold text-xs">
@@ -1273,7 +1281,7 @@ export default function BookingFlow() {
                       <span>Partial Plan Quota Applied</span>
                     </div>
                     <p className="text-xs text-amber-800/90 leading-relaxed">
-                      {planInfo.coveredHours} free {planInfo.coveredHours === 1 ? 'hour is' : 'hours are'} covered by your {currentUser.membershipTier || 'Pass'} quota ({currentUser.remainingHours !== undefined ? currentUser.remainingHours : 0} hrs remaining). The remaining {planInfo.payableHours} {planInfo.payableHours === 1 ? 'hour is' : 'hours are'} charged at SAR {space.pricing?.hourly || 0}/hour.
+                      {planInfo.coveredHours} free {planInfo.coveredHours === 1 ? 'hour is' : 'hours are'} covered by your {currentUser.membershipTier || 'Pass'} quota ({currentUser.remainingHours !== undefined ? currentUser.remainingHours : 0} hrs remaining). The remaining {planInfo.payableHours} {planInfo.payableHours === 1 ? 'hour is' : 'hours are'} charged at SAR {space.pricing?.hourly ?? 0}/hour.
                     </p>
                   </div>
                 )}
@@ -1372,14 +1380,14 @@ export default function BookingFlow() {
                         value={`-${planInfo.coveredHours} hrs (SAR 0 · Covered)`}
                       />
                       <Row
-                        label={`Extra Payable Hours (${planInfo.payableHours} hrs × SAR ${space.pricing?.hourly || 0})`}
+                        label={`Extra Payable Hours (${planInfo.payableHours} hrs × SAR ${space.pricing?.hourly ?? 0})`}
                         value={`SAR ${(planInfo.effectivePrice * seats).toLocaleString()}`}
                       />
                     </>
                   ) : (
                     <>
                       <Row
-                        label={`Rate per Seat (${isHourly ? `${startTime} – ${endTime} (${durationHours}h)` : plan === 'monthly' ? `${durationMonths} Mo Monthly` : plan === 'daily' ? `Daily (${durationDays} ${durationDays === 1 ? 'day' : 'days'})` : `${plan} pass`})`}
+                        label={`Rate per Seat (${isHourly ? `${startTime} – ${endTime} (${durationHours}h)` : plan === 'monthly' ? `${durationMonths} Mo Monthly` : plan === 'daily' ? `Daily (${durationDays}${durationDays === 1 ? 'day' : 'days'})` : `${plan} pass`})`}
                         value={planInfo.isCovered ? 'Included in your Plan' : `SAR ${planInfo.originalPrice.toLocaleString()}`}
                       />
                       <Row
@@ -1458,7 +1466,7 @@ export default function BookingFlow() {
                   spaceName: space.name,
                   spaceCity: space.city,
                   spaceAddress: space.address || space.city,
-                  spaceImage: space.images?.[0] || 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80',
+                  spaceImage: space.images?.[0] || FALLBACK_SPACE_IMAGE,
                   type: deskType,
                   plan: plan,
                   durationHours: isHourly ? durationHours : undefined,
