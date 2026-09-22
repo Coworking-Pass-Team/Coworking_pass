@@ -49,7 +49,7 @@ const CITIES = ['Riyadh', 'Jeddah', 'Dammam', 'Khobar', 'Madinah', 'Makkah', 'Ab
 const TYPES = ALL_SPACE_TYPES;
 
 export default function ProviderMySpaces() {
-  const { currentUser, spaces, partners, addSpace, updateSpace, toggleSpaceVisibility, deleteSpace, amenityRequests, requestCustomAmenity, getApprovedAmenities } = useApp();
+  const { nav, currentUser, spaces, partners, addSpace, updateSpace, toggleSpaceVisibility, deleteSpace, amenityRequests, requestCustomAmenity, getApprovedAmenities } = useApp();
   const [query, setQuery] = useState('');
   const [filterCity, setFilterCity] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<'all' | SpaceCategory>('all');
@@ -73,6 +73,7 @@ export default function ProviderMySpaces() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [imageUrlInput, setImageUrlInput] = useState('');
   const [customAmenityInput, setCustomAmenityInput] = useState('');
+  const handledSpaceIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -108,6 +109,24 @@ export default function ProviderMySpaces() {
     (req.providerName && currentUser.businessName && req.providerName.toLowerCase() === currentUser.businessName.toLowerCase()) ||
     (userPartner && req.providerName && userPartner.brandName && req.providerName.toLowerCase() === userPartner.brandName.toLowerCase())
   );
+
+  useEffect(() => {
+    const targetSpaceId = nav?.params?.spaceId || nav?.params?.id;
+    if (targetSpaceId && targetSpaceId !== handledSpaceIdRef.current && mySpaces.length > 0) {
+      const spaceToEdit = mySpaces.find((s) => s.id === targetSpaceId) || spaces.find((s) => s.id === targetSpaceId);
+      if (spaceToEdit) {
+        handledSpaceIdRef.current = targetSpaceId;
+        setEditingSpace(spaceToEdit);
+        setFormErrors({});
+        setForm({
+          ...spaceToEdit,
+          amenities: Array.isArray(spaceToEdit.amenities) ? [...spaceToEdit.amenities] : [],
+        });
+        setEditModal(true);
+        setSaved(false);
+      }
+    }
+  }, [nav?.params?.spaceId, nav?.params?.id, mySpaces, spaces]);
 
   const filteredSpaces = mySpaces.filter((s) => {
     const q = query.trim().toLowerCase();
