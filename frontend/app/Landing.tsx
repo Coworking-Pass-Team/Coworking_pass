@@ -9,6 +9,8 @@ import Footer from '@/components/layout/Footer';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 
+const FALLBACK_SPACE_IMAGE = 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80';
+
 const cities = ['All Cities', 'Riyadh', 'Jeddah', 'Dammam', 'Khobar', 'Madinah', 'Makkah'];
 
 export default function Landing() {
@@ -275,9 +277,10 @@ export default function Landing() {
               }}
             >
               <div className="relative h-56 overflow-hidden">
+                {/* حل المشكلة FE-07: حماية الصور بالـ Optional Chaining وصورة بديلة */}
                 <img
-                  src={space.images[0]}
-                  alt={space.name}
+                  src={space.images?.[0] || FALLBACK_SPACE_IMAGE}
+                  alt={space.name || 'Workspace'}
                   loading="lazy"
                   decoding="async"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
@@ -285,9 +288,10 @@ export default function Landing() {
                 <div className="absolute inset-0 bg-gradient-to-t from-soot/70 via-soot/20 to-transparent" />
                 <div className="absolute bottom-4 left-4 right-4">
                   <div className="text-white font-semibold text-lg leading-snug font-serif-display">{space.name}</div>
+                  {/* حل المشكلة FE-08: استبدال الرمز المشوه بنقطة فاصلة سليمة */}
                   <div className="flex items-center gap-1.5 text-plaster/90 text-xs font-medium mt-1">
                     <MapPin size={13} className="text-eucalyptus" />
-                    {space.city} ΓÇó {space.address}
+                    <span>{space.city} • {space.address}</span>
                   </div>
                 </div>
                 <div className="absolute top-4 right-4 bg-plaster-surface/95 backdrop-blur-md rounded-2xl px-3 py-1.5 text-center border border-soot/12 shadow-xs">
@@ -482,7 +486,7 @@ export default function Landing() {
             Built for the modern <span className="text-moss italic font-serif">professional.</span>
           </h2>
           <p className="text-moss text-sm sm:text-base leading-relaxed">
-            Everything you need to stay productive, flexible, and connected across Saudi ArabiaΓÇÖs fastest-growing workspace network.
+            Everything you need to stay productive, flexible, and connected across Saudi Arabia&apos;s fastest-growing workspace network.
           </p>
         </div>
 
