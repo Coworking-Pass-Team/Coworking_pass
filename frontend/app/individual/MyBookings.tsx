@@ -27,6 +27,8 @@ import Modal from '@/components/ui/Modal';
 import BookingQrModal from '@/components/BookingQrModal';
 import { deleteDirectBookingApi, getHourlyBookingsApi, updateHourlyBookingApi, HourlyBookingItemApi } from '@/services/authApi';
 
+const FALLBACK_SPACE_IMAGE = 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80';
+
 export default function MyBookings() {
   const { bookings, spaces, currentUser, navigate, cancelBooking, nav, showToast, fetchDirectBookings } = useApp();
   const [bookingCategory, setBookingCategory] = useState<'direct' | 'hourly'>('direct');
@@ -193,15 +195,19 @@ export default function MyBookings() {
                     <button
                       type="button"
                       onClick={() => {
+                        // حل المشكلة FE-09: ربط ديناميكي بالمساحة الأصلية لجلب المدينة والعنوان والصورة الحقيقيين
+                        const targetWorkspaceId = (hb as any).workspaceId || (hb.section as any)?.workspaceId || (hb.package as any)?.workspaceId;
+                        const matchedSpace = spaces.find(s => s.id === targetWorkspaceId);
+
                         const converted: Booking = {
                           id: hb.id,
                           userId: hb.userId || currentUser?.id || 'guest',
-                          spaceId: (hb as any).workspaceId || (hb.section as any)?.workspaceId || (spaces[0]?.id || 'sp-1'),
-                          spaceName: hb.package?.packageName || hb.section?.name || 'Meeting Room & Desk Package',
-                          spaceCity: 'Riyadh',
-                          spaceAddress: 'King Fahd Road, Riyadh',
-                          spaceImage: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80',
-                          type: 'meeting-room',
+                          spaceId: targetWorkspaceId || matchedSpace?.id || spaces[0]?.id || 'sp-1',
+                          spaceName: hb.package?.packageName || hb.section?.name || matchedSpace?.name || 'Meeting Room & Desk Package',
+                          spaceCity: matchedSpace?.city || (hb as any).workspace?.city || 'Riyadh',
+                          spaceAddress: matchedSpace?.address || (hb as any).workspace?.address || 'Workspace Location',
+                          spaceImage: matchedSpace?.images?.[0] || (hb as any).workspace?.image || FALLBACK_SPACE_IMAGE,
+                          type: (matchedSpace?.type as any) || 'meeting-room',
                           plan: 'hourly',
                           startDate: hb.startDate ? new Date(hb.startDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
                           endDate: hb.endDate ? new Date(hb.endDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
@@ -356,7 +362,7 @@ export default function MyBookings() {
                 {/* Workspace Name & Image */}
                 <div className="col-span-5 flex items-center gap-3.5 min-w-0">
                   <img
-                    src={b.spaceImage}
+                    src={b.spaceImage || FALLBACK_SPACE_IMAGE}
                     alt={b.spaceName}
                     className="w-11 h-11 rounded-xl object-cover border border-soot/10 shrink-0 shadow-2xs group-hover:scale-105 transition-transform"
                   />

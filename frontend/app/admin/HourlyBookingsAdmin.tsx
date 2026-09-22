@@ -106,7 +106,11 @@ export default function HourlyBookingsAdmin() {
           status: b.status === 'cancelled' ? 'CANCELLED' : (b.status as string) === 'completed' || b.status === 'previous' ? 'EXPIRED' : 'ACTIVE',
           createdAt: b.createdAt || new Date().toISOString(),
           user: { name: userObj?.name || (b as any).userName || 'User', email: userObj?.email || 'user@coworkingpass.sa' },
-          workspace: { id: matchedSpace?.id || b.spaceId || 'ws-1', name: b.spaceName || matchedSpace?.name || 'Workspace', city: b.spaceCity || matchedSpace?.city || 'Riyadh' },
+          workspace: { 
+            id: matchedSpace?.id || b.spaceId || 'ws-1', 
+            name: b.spaceName || matchedSpace?.name || 'Workspace', 
+            city: b.spaceCity || matchedSpace?.city || '' 
+          },
           section: { id: matchedSpace?.id || 'sec-1', name: b.spaceName || matchedSpace?.name || 'Meeting Room', type: 'MEETING_ROOM' },
           package: { id: 'pkg-1', packageName: `${b.durationHours || 1} Hour Package`, hoursAmount: b.durationHours || 1, price: b.totalPrice || 45 },
         };
