@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useRef, useEffect } from 'react';
 import { ArrowRight, MapPin, Star, Users, Zap, Headphones, Shield, ChevronDown, Quote, Check, Building2, Presentation, Clapperboard } from 'lucide-react';
@@ -71,12 +71,12 @@ export default function Landing() {
           </p>
 
           {/* Clean Integrated Search Bar */}
-          <div className="relative z-40 w-full max-w-xl mx-auto flex flex-col sm:flex-row items-center gap-2 p-1.5 bg-plaster-surface/95 backdrop-blur-md rounded-2xl border border-soot/15 shadow-2xl">
+          <div className="relative z-40 w-full max-w-lg mx-auto flex flex-col sm:flex-row items-center gap-2 p-1.5 bg-plaster-surface/95 backdrop-blur-md rounded-2xl border border-soot/15 shadow-2xl">
             <div className="relative flex-1 w-full" ref={dropdownRef}>
               <button
                 type="button"
                 onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/60 border border-soot/12 transition-all duration-200 text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus focus-visible:ring-offset-1"
+                className="w-full flex items-center justify-between gap-3 px-3.5 py-2 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/60 border border-soot/12 transition-all duration-200 text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus focus-visible:ring-offset-1"
                 aria-haspopup="listbox"
                 aria-expanded={dropdownOpen}
               >
@@ -94,8 +94,8 @@ export default function Landing() {
               </button>
 
               {dropdownOpen && (
-                <div className="absolute top-full left-0 right-0 mt-1.5 p-1.5 bg-[#FAF8F3] border border-soot/15 rounded-2xl shadow-2xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
-                  <div className="max-h-48 overflow-y-auto space-y-0.5">
+                <div className="absolute top-full left-0 right-0 mt-1.5 p-1 bg-[#FAF8F3] border border-soot/15 rounded-2xl shadow-2xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
+                  <div className="max-h-40 overflow-y-auto space-y-0.5">
                     {cities.map(city => {
                       const isSelected = (city === 'All Cities' && !searchCity) || searchCity === city;
                       return (
@@ -106,7 +106,7 @@ export default function Landing() {
                             setSearchCity(city === 'All Cities' ? '' : city);
                             setDropdownOpen(false);
                           }}
-                          className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors duration-150 text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus ${isSelected
+                          className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-sm font-medium transition-colors duration-150 text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus ${isSelected
                               ? 'bg-soot text-plaster font-semibold'
                               : 'text-soot hover:bg-plaster-dark/70 hover:text-soot'
                             }`}
@@ -127,7 +127,7 @@ export default function Landing() {
             <Button
               onClick={handleSearch}
               variant="primary"
-              className="w-full sm:w-auto px-7 py-3 font-semibold text-sm shrink-0 bg-soot text-plaster hover:bg-moss focus-visible:ring-2 focus-visible:ring-eucalyptus transition-colors duration-200 shadow-md active:scale-[0.98] cursor-pointer rounded-xl"
+              className="w-full sm:w-auto px-6 py-2.5 font-semibold text-sm shrink-0 bg-soot text-plaster hover:bg-moss focus-visible:ring-2 focus-visible:ring-eucalyptus transition-colors duration-200 shadow-md active:scale-[0.98] cursor-pointer rounded-xl"
             >
               Find Spaces
               <ArrowRight size={16} />
