@@ -293,11 +293,7 @@ export default function Landing() {
                   {/* حل المشكلة FE-08: استبدال الرمز المشوه بنقطة فاصلة سليمة */}
                   <div className="flex items-center gap-1.5 text-plaster/90 text-xs font-medium mt-1">
                     <MapPin size={13} className="text-eucalyptus" />
-<<<<<<< HEAD
-                    {space.city} • {space.address}
-=======
                     <span>{space.city} • {space.address}</span>
->>>>>>> 20a15bd292f83b1756cba692a3ce58a3d15f9e6b
                   </div>
                 </div>
                 <div className="absolute top-4 right-4 bg-plaster-surface/95 backdrop-blur-md rounded-2xl px-3 py-1.5 text-center border border-soot/12 shadow-xs">
