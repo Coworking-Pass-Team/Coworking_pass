@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import {
   ArrowLeft,
   MapPin,
@@ -113,6 +114,14 @@ export default function SpaceDetails() {
     }
   };
 
+  const handleBack = () => {
+    if (nav?.params?.fromScreen && navigate) {
+      navigate(nav.params.fromScreen, nav.params.fromParams || {});
+    } else if (typeof window !== 'undefined') {
+      window.location.href = '/spaces';
+    }
+  };
+
   useEffect(() => {
     setImgIndex(0);
     if (space) {
@@ -121,19 +130,22 @@ export default function SpaceDetails() {
     }
   }, [spaceId, space]);
 
+  // شاشة خطأ آمنة وزر انتقال فعّال
   if (!space) {
     return (
       <div className="min-h-screen bg-plaster text-soot flex flex-col items-center justify-center p-8">
         <h2 className="text-2xl font-serif-display text-soot mb-2">Space not found</h2>
         <p className="text-moss text-xs sm:text-sm mb-4">The requested workspace could not be found or has been removed.</p>
-        <button
-          type="button"
-          onClick={() => navigate('browse')}
+        <Link
+          href="/spaces"
+          onClick={() => {
+            if (navigate) navigate('browse');
+          }}
           className="mt-3 inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-soot/12 bg-white hover:bg-plaster-dark/40 text-soot text-xs sm:text-sm font-semibold transition-all cursor-pointer shadow-2xs group active:scale-98"
         >
           <ArrowLeft size={15} className="group-hover:-translate-x-0.5 transition-transform" />
           <span>Back to Browse Workspaces</span>
-        </button>
+        </Link>
       </div>
     );
   }
@@ -210,14 +222,6 @@ export default function SpaceDetails() {
 
   const hoursDisplay = (space as any).openHours || (space as any).hours || 'Sun–Thu: 8am–10pm | Fri: 2pm–10pm';
   const phoneDisplay = space.phone || '+966 11 234 5678';
-  const handleBack = () => {
-    if (nav?.params?.fromScreen) {
-      navigate(nav.params.fromScreen, nav.params.fromParams || {});
-    } else {
-      navigate('browse');
-    }
-  };
-
   const emailDisplay = space.email || 'info@coworkingpass.sa';
 
   return (
@@ -506,7 +510,7 @@ export default function SpaceDetails() {
                   </div>
                 </div>
 
-                {/* Multi-Month Duration Selector (when monthly is chosen) */}
+                {/* Multi-Month Duration Selector */}
                 {selectedPlan === 'monthly' && (
                   <div className="p-4 rounded-2xl bg-plaster-dark/40 border border-soot/10 space-y-3">
                     <div className="flex items-center justify-between flex-wrap gap-2">
@@ -545,7 +549,7 @@ export default function SpaceDetails() {
                   </div>
                 )}
 
-                {/* Daily Pass Date Range Selector (for standard office/desk spaces) */}
+                {/* Daily Pass Date Range Selector */}
                 {selectedPlan === 'daily' && !isHourlySpace && (
                   <div className="p-4 rounded-2xl bg-plaster-dark/40 border border-soot/10 space-y-3.5">
                     <div className="flex items-center justify-between gap-2">
