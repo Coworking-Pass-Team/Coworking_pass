@@ -114,13 +114,16 @@ export default function SpaceDetails() {
     }
   };
 
-  const handleBack = () => {
+    const handleBack = () => {
     if (nav?.params?.fromScreen && navigate) {
       navigate(nav.params.fromScreen, nav.params.fromParams || {});
+    } else if (navigate) {
+      navigate('browse');
     } else if (typeof window !== 'undefined') {
-      window.location.href = '/spaces';
+      window.history.back();
     }
   };
+
 
   useEffect(() => {
     setImgIndex(0);
@@ -131,24 +134,29 @@ export default function SpaceDetails() {
   }, [spaceId, space]);
 
   // شاشة خطأ آمنة وزر انتقال فعّال
-  if (!space) {
+    if (!space) {
     return (
       <div className="min-h-screen bg-plaster text-soot flex flex-col items-center justify-center p-8">
         <h2 className="text-2xl font-serif-display text-soot mb-2">Space not found</h2>
         <p className="text-moss text-xs sm:text-sm mb-4">The requested workspace could not be found or has been removed.</p>
-        <Link
-          href="/spaces"
+        <button
+          type="button"
           onClick={() => {
-            if (navigate) navigate('browse');
+            if (navigate) {
+              navigate('browse');
+            } else if (typeof window !== 'undefined') {
+              window.history.back();
+            }
           }}
           className="mt-3 inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-soot/12 bg-white hover:bg-plaster-dark/40 text-soot text-xs sm:text-sm font-semibold transition-all cursor-pointer shadow-2xs group active:scale-98"
         >
           <ArrowLeft size={15} className="group-hover:-translate-x-0.5 transition-transform" />
           <span>Back to Browse Workspaces</span>
-        </Link>
+        </button>
       </div>
     );
   }
+
 
   const crowding = getSpaceCrowding ? getSpaceCrowding(space) : {
     scannedCount: 0,
