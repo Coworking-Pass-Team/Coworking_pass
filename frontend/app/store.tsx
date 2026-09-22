@@ -1,40 +1,40 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { 
-  User, 
-  Space, 
-  SpaceType, 
-  Booking, 
-  Screen, 
-  NavState, 
-  UserRole, 
-  BookingType, 
-  PaymentCard, 
-  Notification, 
-  CartItem, 
-  AmenityRequest, 
-  AmenityRequestStatus, 
-  calculateEndDate, 
+import {
+  User,
+  Space,
+  SpaceType,
+  Booking,
+  Screen,
+  NavState,
+  UserRole,
+  BookingType,
+  PaymentCard,
+  Notification,
+  CartItem,
+  AmenityRequest,
+  AmenityRequestStatus,
+  calculateEndDate,
   calculateDailyDurationDays,
-  isCancellationRefundEligible, 
-  getBookingPrice, 
-  getEffectiveSpacePrice, 
+  isCancellationRefundEligible,
+  getBookingPrice,
+  getEffectiveSpacePrice,
   checkAndRenewPlanHours,
-  OtpSession, 
-  SupportTicket, 
-  TicketStatus, 
-  Partner, 
-  WorkspaceApi, 
-  HourlyBookingApi, 
-  PayoutApi, 
-  MembershipPlanApi, 
-  SubscriptionApi, 
-  DirectBookingApi, 
-  PaymentApi, 
+  OtpSession,
+  SupportTicket,
+  TicketStatus,
+  Partner,
+  WorkspaceApi,
+  HourlyBookingApi,
+  PayoutApi,
+  MembershipPlanApi,
+  SubscriptionApi,
+  DirectBookingApi,
+  PaymentApi,
   WalletTransaction,
-  LoyaltyRule, 
-  LoyaltyRuleType, 
+  LoyaltyRule,
+  LoyaltyRuleType,
   ApprovalStatus,
   CrowdingLevel,
   SpaceCrowdingInfo,
@@ -42,17 +42,17 @@ import {
   PassRefundEligibility
 } from '@/types/types';
 import { INITIAL_SPACES, INITIAL_USERS, INITIAL_BOOKINGS, INITIAL_NOTIFICATIONS, INITIAL_SUPPORT_TICKETS } from '@/data/data';
-import { 
-  registerUserApi, 
-  verifyEmailApi, 
-  loginUserApi, 
-  verifyLoginApi, 
-  mapRoleToFrontend, 
-  createCompanyApi, 
-  createPointsTransactionApi, 
-  getLoyaltyRulesApi, 
-  createLoyaltyRuleApi, 
-  updateLoyaltyRuleApi, 
+import {
+  registerUserApi,
+  verifyEmailApi,
+  loginUserApi,
+  verifyLoginApi,
+  mapRoleToFrontend,
+  createCompanyApi,
+  createPointsTransactionApi,
+  getLoyaltyRulesApi,
+  createLoyaltyRuleApi,
+  updateLoyaltyRuleApi,
   deleteLoyaltyRuleApi,
   getLoyaltyPointsApi,
   getQrCheckInsApi,
@@ -572,7 +572,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       try {
         const raw = localStorage.getItem('cp_custom_spaces');
         if (raw) customSpaces = JSON.parse(raw);
-      } catch (_) {}
+      } catch (_) { }
     }
     const seen = new Set<string>();
     const initial: Space[] = [];
@@ -632,7 +632,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         try {
           const parsed = JSON.parse(stored);
           if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-        } catch (_) {}
+        } catch (_) { }
       }
     }
     return [];
@@ -651,7 +651,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         try {
           const parsed = JSON.parse(stored);
           if (Array.isArray(parsed)) return parsed;
-        } catch (_) {}
+        } catch (_) { }
       }
     }
     return [];
@@ -673,7 +673,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       try {
         const stored = localStorage.getItem('cp_qr_scans');
         if (stored) return JSON.parse(stored);
-      } catch (_) {}
+      } catch (_) { }
     }
     return {};
   });
@@ -693,7 +693,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (typeof window !== 'undefined') {
           try {
             localStorage.setItem('cp_qr_scans', JSON.stringify(dbCounts));
-          } catch (_) {}
+          } catch (_) { }
         }
         return dbCounts;
       }
@@ -729,7 +729,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (typeof window !== 'undefined') {
         try {
           localStorage.setItem('cp_qr_scans', JSON.stringify(next));
-        } catch (_) {}
+        } catch (_) { }
       }
       return next;
     });
@@ -860,13 +860,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         prev.map((r) =>
           r.id === ruleId
             ? {
-                ...r,
-                status,
-                approvedBy: approverId,
-                approverName,
-                isActive: status === 'APPROVED',
-                adminFeedback: notes || r.adminFeedback,
-              }
+              ...r,
+              status,
+              approvedBy: approverId,
+              approverName,
+              isActive: status === 'APPROVED',
+              adminFeedback: notes || r.adminFeedback,
+            }
             : r
         )
       );
@@ -884,13 +884,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
           prev.map((r) =>
             r.id === ruleId
               ? {
-                  ...r,
-                  status: updated.status || status,
-                  approvedBy: updated.approvedBy || approverId,
-                  approverName: updated.approver?.name || approverName,
-                  isActive: updated.isActive !== undefined ? updated.isActive : (status === 'APPROVED'),
-                  adminFeedback: notes || r.adminFeedback,
-                }
+                ...r,
+                status: updated.status || status,
+                approvedBy: updated.approvedBy || approverId,
+                approverName: updated.approver?.name || approverName,
+                isActive: updated.isActive !== undefined ? updated.isActive : (status === 'APPROVED'),
+                adminFeedback: notes || r.adminFeedback,
+              }
               : r
           )
         );
@@ -1342,7 +1342,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           const updatedUsersList = parsedUsers.map(usr => usr.id === updatedUser.id ? updatedUser : usr);
           localStorage.setItem('cp_users', JSON.stringify(updatedUsersList));
         }
-      } catch (e) {}
+      } catch (e) { }
     }
 
     return {
@@ -1891,14 +1891,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (res.success && Array.isArray(res.data)) {
         const mapped: SupportTicket[] = res.data.map((dbT: any) => {
           const statusLower = (dbT.status || 'OPEN').toLowerCase();
-          const validStatus: TicketStatus = 
+          const validStatus: TicketStatus =
             statusLower === 'in_progress' || statusLower === 'in-progress' || statusLower === 'pending'
               ? 'in-progress'
               : statusLower === 'resolved'
-              ? 'resolved'
-              : statusLower === 'closed'
-              ? 'closed'
-              : 'open';
+                ? 'resolved'
+                : statusLower === 'closed'
+                  ? 'closed'
+                  : 'open';
 
           const replies = Array.isArray(dbT.replies) ? dbT.replies : [];
           const lastReplyMessage = replies.length > 0 ? replies[replies.length - 1].message : undefined;
@@ -2034,7 +2034,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               if (!isNaN(d.getTime())) {
                 startTimeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
               }
-            } catch (e) {}
+            } catch (e) { }
           }
           if (b.endDate) {
             try {
@@ -2042,7 +2042,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               if (!isNaN(d.getTime())) {
                 endTimeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
               }
-            } catch (e) {}
+            } catch (e) { }
           }
 
           return {
@@ -2361,7 +2361,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 if (p.name) savedCustomSpaceNames.add(p.name.trim().toLowerCase());
               });
             }
-          } catch (_) {}
+          } catch (_) { }
         }
 
         const dbSpaces: Space[] = data.map((w) => {
@@ -2374,7 +2374,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           ));
           const existing = spaces.find(s => s.id === w.id || s.name.toLowerCase() === w.name.toLowerCase())
             || INITIAL_SPACES.find(s => s.id === w.id || s.name.toLowerCase() === w.name.toLowerCase());
-          
+
           const nameKey = (w.name || '').trim().toLowerCase();
           const savedType = savedTypes[w.id] || savedTypes[nameKey] || savedTypes[w.name.toLowerCase()];
           const savedAmenityList = savedAmenities[w.id] || savedAmenities[nameKey] || savedAmenities[w.name.toLowerCase()];
@@ -2415,7 +2415,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                     'Authorization': `Bearer ${storedToken}`,
                   },
                   body: JSON.stringify({ type: targetDbSecType }),
-                }).catch(() => {});
+                }).catch(() => { });
               }
             }
           }
@@ -2438,7 +2438,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 const imgMap = JSON.parse(rawImgMap);
                 savedImagesList = imgMap[w.id] || imgMap[w.name.toLowerCase()];
               }
-            } catch (_) {}
+            } catch (_) { }
           }
 
           const dbImages = (w as any).images && Array.isArray((w as any).images) && (w as any).images.length > 0
@@ -2457,13 +2457,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
             type: preservedType,
             images: finalImages,
             amenities: finalAmenities,
-            totalCapacity: w.totalCapacity || existing?.totalCapacity || 50,
-            availableCapacity: w.totalCapacity || existing?.availableCapacity || 50,
+            totalCapacity: w.totalCapacity !== undefined && w.totalCapacity !== null ? Number(w.totalCapacity) : 0,
+            availableCapacity: w.totalCapacity !== undefined && w.totalCapacity !== null ? Number(w.totalCapacity) : 0,
+
             pricing: {
-              hourly: existing?.pricing?.hourly || 45,
-              daily: w.dailyRate || existing?.pricing?.daily || 100,
-              monthly: w.monthlyRate || existing?.pricing?.monthly || 2000,
-              yearly: w.yearlyRate || existing?.pricing?.yearly || 20000,
+              hourly: (w as any).hourlyRate ?? existing?.pricing?.hourly ?? 45,
+              daily: w.dailyRate !== undefined && w.dailyRate !== null ? w.dailyRate : (existing?.pricing?.daily ?? 100),
+              monthly: w.monthlyRate !== undefined && w.monthlyRate !== null ? w.monthlyRate : (existing?.pricing?.monthly ?? 2000),
+              yearly: w.yearlyRate !== undefined && w.yearlyRate !== null ? w.yearlyRate : (existing?.pricing?.yearly ?? 20000),
             },
             bookingMode: existing?.bookingMode || (preservedType === 'meeting-room' || preservedType === 'event-hall' || (preservedType as string).includes('hall') ? 'hourly' : 'subscription'),
             bookingPackages: existing?.bookingPackages || [],
@@ -2495,7 +2496,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           try {
             const raw = localStorage.getItem('cp_custom_spaces');
             if (raw) customSpaces = JSON.parse(raw);
-          } catch (_) {}
+          } catch (_) { }
         }
 
         const mergedSpaces = [
@@ -2816,23 +2817,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    fetchWorkspaces().catch(() => {});
-    fetchMembershipPlans().catch(() => {});
-    fetchAmenities().catch(() => {});
-    fetchLoyaltyRules().catch(() => {});
-    fetchPartners().catch(() => {});
-    fetchUsers().catch(() => {});
+    fetchWorkspaces().catch(() => { });
+    fetchMembershipPlans().catch(() => { });
+    fetchAmenities().catch(() => { });
+    fetchLoyaltyRules().catch(() => { });
+    fetchPartners().catch(() => { });
+    fetchUsers().catch(() => { });
 
     const storedToken = getStoredToken();
     if (storedToken) {
-      fetchHourlyBookings().catch(() => {});
-      fetchPayouts().catch(() => {});
-      fetchSubscriptions().catch(() => {});
-      fetchDirectBookings().catch(() => {});
-      fetchPayments().catch(() => {});
-      fetchNotifications().catch(() => {});
+      fetchHourlyBookings().catch(() => { });
+      fetchPayouts().catch(() => { });
+      fetchSubscriptions().catch(() => { });
+      fetchDirectBookings().catch(() => { });
+      fetchPayments().catch(() => { });
+      fetchNotifications().catch(() => { });
       if (currentUser) {
-        fetchWallet(currentUser.id).catch(() => {});
+        fetchWallet(currentUser.id).catch(() => { });
         getLoyaltyPointsApi(currentUser.id).then(ptsRes => {
           if (ptsRes.success && Array.isArray(ptsRes.data)) {
             const uPts = ptsRes.data.find((p: any) => p.userId === currentUser.id);
@@ -2844,16 +2845,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
               }
             }
           }
-        }).catch(() => {});
+        }).catch(() => { });
       }
     }
   }, []);
 
   useEffect(() => {
     if (currentUser?.id) {
-      fetchWallet(currentUser.id).catch(() => {});
+      fetchWallet(currentUser.id).catch(() => { });
       if (currentUser.role === 'organization' || currentUser.companyId) {
-        fetchCompanyWallet(currentUser.companyId).catch(() => {});
+        fetchCompanyWallet(currentUser.companyId).catch(() => { });
       }
     }
   }, [currentUser?.id, currentUser?.companyId, currentUser?.role]);
@@ -2995,9 +2996,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      fetchTickets().catch(() => {});
-      fetchPartners().catch(() => {});
-      fetchWorkspaces().catch(() => {});
+      fetchTickets().catch(() => { });
+      fetchPartners().catch(() => { });
+      fetchWorkspaces().catch(() => { });
     } catch (e) {
       console.error('Failed to load storage state:', e);
     }
@@ -3028,7 +3029,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             contactEmail: currentUser.email,
             taxNumber: (currentUser as any).crNumber || '300000000000003',
             revenueSharePercentage: 20,
-          }).catch(() => {});
+          }).catch(() => { });
         }
       }
     }
@@ -3036,9 +3037,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (currentUser) {
-      fetchWallet(currentUser.id).catch(() => {});
+      fetchWallet(currentUser.id).catch(() => { });
       if (currentUser.role === 'organization' || (currentUser as any).role === 'HR_ADMIN' || currentUser.companyId) {
-        fetchCompanyWallet(currentUser.companyId).catch(() => {});
+        fetchCompanyWallet(currentUser.companyId).catch(() => { });
       }
     }
   }, [currentUser?.id, currentUser?.role, currentUser?.companyId]);
@@ -3525,7 +3526,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             latestUser = { ...(currentUser || {}), ...parsed };
           }
         }
-      } catch (e) {}
+      } catch (e) { }
     }
     if (!latestUser) return;
     const updated = { ...latestUser, ...updates };
@@ -3563,7 +3564,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setLocationStatus('unsupported');
       setLocationErrorMessage('Geolocation is not supported by your browser or device.');
       showToast('Geolocation is not supported by your browser.', 'error');
-      try { sessionStorage.setItem('coworking_location_status', 'unsupported'); } catch {}
+      try { sessionStorage.setItem('coworking_location_status', 'unsupported'); } catch { }
       return null;
     }
 
@@ -3589,7 +3590,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           setUserLocation(coords);
           setLocationStatus('granted');
           setLocationErrorMessage(null);
-          try { sessionStorage.setItem('coworking_location_status', 'granted'); } catch {}
+          try { sessionStorage.setItem('coworking_location_status', 'granted'); } catch { }
           resolve(coords);
         },
         error => {
@@ -3598,24 +3599,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
             // PERMISSION_DENIED
             setLocationStatus('denied');
             setLocationErrorMessage('Location permission was denied. Enabling location access is required to calculate accurate distances and sort workspaces nearest to you.');
-            try { sessionStorage.setItem('coworking_location_status', 'denied'); } catch {}
+            try { sessionStorage.setItem('coworking_location_status', 'denied'); } catch { }
             showToast('Location permission was denied. Workspaces are shown in default order.', 'info');
           } else if (error.code === 2) {
             // POSITION_UNAVAILABLE
             setLocationStatus('unavailable');
             setLocationErrorMessage('Location services are disabled or unavailable on your device. Please ensure GPS or device location is turned on.');
-            try { sessionStorage.setItem('coworking_location_status', 'unavailable'); } catch {}
+            try { sessionStorage.setItem('coworking_location_status', 'unavailable'); } catch { }
             showToast('Location services are disabled or unavailable.', 'info');
           } else if (error.code === 3) {
             // TIMEOUT
             setLocationStatus('unavailable');
             setLocationErrorMessage('Location request timed out. Please check your connection or signal and try again.');
-            try { sessionStorage.setItem('coworking_location_status', 'unavailable'); } catch {}
+            try { sessionStorage.setItem('coworking_location_status', 'unavailable'); } catch { }
             showToast('Location request timed out.', 'info');
           } else {
             setLocationStatus('unavailable');
             setLocationErrorMessage(error.message || 'Unable to determine your current location.');
-            try { sessionStorage.setItem('coworking_location_status', 'unavailable'); } catch {}
+            try { sessionStorage.setItem('coworking_location_status', 'unavailable'); } catch { }
             showToast('Unable to determine your current location.', 'info');
           }
           resolve(null);
@@ -3676,7 +3677,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           imgMap[newSpace.name.toLowerCase()] = newSpace.images;
           localStorage.setItem('cp_space_images', JSON.stringify(imgMap));
         }
-      } catch (_) {}
+      } catch (_) { }
     }
 
     setSpaces(prev => {
@@ -3698,7 +3699,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 if (typeof window !== 'undefined') localStorage.setItem('cp_token', vRes.token);
               }
             }
-          } catch (_) {}
+          } catch (_) { }
         }
 
         let currentPartners = partners;
@@ -3775,7 +3776,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                   imgMap[createdWs.name.toLowerCase()] = space.images;
                   localStorage.setItem('cp_space_images', JSON.stringify(imgMap));
                 }
-              } catch (_) {}
+              } catch (_) { }
             }
 
             const dbSecType = mapFrontendTypeToDbSectionType(newSpace.type);
@@ -3795,7 +3796,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                   yearlyRate: space.pricing?.yearly || 8000,
                 }),
               });
-            } catch (_) {}
+            } catch (_) { }
 
             await fetchWorkspaces();
           }
@@ -3854,7 +3855,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           }
           localStorage.setItem('cp_space_images', JSON.stringify(imgMap));
         }
-      } catch (_) {}
+      } catch (_) { }
     }
 
     setSpaces(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
@@ -3915,7 +3916,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                   }
                 }
               }
-            } catch (_) {}
+            } catch (_) { }
           }
           await fetchWorkspaces();
         } else if (!targetDbId && (Object.keys(payload).length > 0 || updates.type)) {
@@ -3961,7 +3962,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                     yearlyRate: (updatedSpaceObj as any).pricing?.yearly || 8000,
                   }),
                 });
-              } catch (_) {}
+              } catch (_) { }
               await fetchWorkspaces();
             }
           }
@@ -3986,7 +3987,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           const updatedList = customList.filter(s => s.id !== id);
           localStorage.setItem('cp_custom_spaces', JSON.stringify(updatedList));
         }
-      } catch (_) {}
+      } catch (_) { }
     }
     showToast('Space deleted.');
 
@@ -4003,7 +4004,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 if (typeof window !== 'undefined') localStorage.setItem('cp_token', vRes.token);
               }
             }
-          } catch (_) {}
+          } catch (_) { }
         }
         if (storedToken) {
           const res = await deleteWorkspace(id);
@@ -4024,7 +4025,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       createdAt: new Date().toISOString().split('T')[0],
     };
     setBookings(prev => [...prev, newBooking]);
-    
+
     const space = spaces.find(s => s.id === booking.spaceId);
     const multiplier = space?.loyaltyPointsMultiplier || 1;
     const rawPrice = booking.totalPrice || 0;
@@ -4035,7 +4036,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const bType = (booking.type || '').toLowerCase();
     const sType = (space?.type || '').toLowerCase();
     const sName = (space?.name || booking.spaceName || '').toLowerCase();
-    const isMeetingOrTheater = 
+    const isMeetingOrTheater =
       bType.includes('meeting') ||
       bType.includes('hall') ||
       bType.includes('theater') ||
@@ -4062,7 +4063,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             latestUser = { ...(currentUser || {}), ...parsed };
           }
         }
-      } catch (e) {}
+      } catch (e) { }
     }
 
     if (latestUser && latestUser.id === booking.userId) {
@@ -4121,7 +4122,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             const updatedUsersList = parsedUsers.map(u => u.id === updatedUser.id ? updatedUser : u);
             localStorage.setItem('cp_users', JSON.stringify(updatedUsersList));
           }
-        } catch (e) {}
+        } catch (e) { }
       }
 
       if (earnedPoints > 0) {
@@ -4147,9 +4148,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
                   });
                 }
               }
-            }).catch(() => {});
+            }).catch(() => { });
           }
-        }).catch(() => {});
+        }).catch(() => { });
       }
     }
 
@@ -4236,7 +4237,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 if (matchedSec) sectionId = matchedSec.id;
               }
             }
-          } catch (e) {}
+          } catch (e) { }
         }
 
         if (!sectionId && validWorkspaceId) {
@@ -4258,7 +4259,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               const secData = await secCreateRes.json();
               sectionId = secData.id || secData.section?.id;
             }
-          } catch (e) {}
+          } catch (e) { }
         }
 
         const bookingPlanStr = (booking.plan || (booking as any).type || '') as string;
@@ -4266,177 +4267,177 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const durationType = bookingPlanStr === 'monthly' ? 'MONTHLY' : bookingPlanStr === 'yearly' ? 'YEARLY' : 'DAILY';
         const bookingDate = booking.startDate || new Date().toISOString().split('T')[0];
 
-          if (!isHourly) {
-            const computedDays = booking.durationDays || (booking.startDate && booking.endDate ? calculateDailyDurationDays(booking.startDate, booking.endDate) : 1);
-            const computedMonths = booking.durationMonths || 1;
-            const computedDetails = booking.durationDetails || (
-              durationType === 'DAILY'
-                ? `${computedDays} ${computedDays === 1 ? 'Day' : 'Days'}`
-                : durationType === 'MONTHLY'
+        if (!isHourly) {
+          const computedDays = booking.durationDays || (booking.startDate && booking.endDate ? calculateDailyDurationDays(booking.startDate, booking.endDate) : 1);
+          const computedMonths = booking.durationMonths || 1;
+          const computedDetails = booking.durationDetails || (
+            durationType === 'DAILY'
+              ? `${computedDays} ${computedDays === 1 ? 'Day' : 'Days'}`
+              : durationType === 'MONTHLY'
                 ? `${computedMonths} ${computedMonths === 1 ? 'Month' : 'Months'}`
                 : '1 Year'
-            );
+          );
 
-            const directRes = await fetch(`${getApiBaseUrl()}/direct-bookings`, {
+          const directRes = await fetch(`${getApiBaseUrl()}/direct-bookings`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              userId: currentUser?.id || booking.userId,
+              workspaceId: validWorkspaceId || undefined,
+              spaceName: effectiveSpaceName,
+              city: effectiveCity,
+              sectionId: sectionId || undefined,
+              durationType,
+              durationDetails: computedDetails,
+              durationDays: computedDays,
+              durationMonths: computedMonths,
+              bookingDate,
+              status: 'CONFIRMED',
+            }),
+          });
+
+          if (directRes.ok) {
+            const dbBooking = await directRes.json();
+            setDirectBookingsApi(prev => [dbBooking, ...prev]);
+
+            if (dbBooking && dbBooking.id) {
+              setBookings(prev => prev.map(b => b.id === newBooking.id ? {
+                ...b,
+                id: dbBooking.id,
+                spaceId: dbBooking.workspaceId || b.spaceId,
+                spaceName: dbBooking.workspace?.name || b.spaceName,
+                spaceCity: dbBooking.workspace?.city || b.spaceCity,
+              } : b));
+            }
+
+            await fetch(`${getApiBaseUrl()}/payments`, {
               method: 'POST',
               headers,
               body: JSON.stringify({
                 userId: currentUser?.id || booking.userId,
-                workspaceId: validWorkspaceId || undefined,
-                spaceName: effectiveSpaceName,
-                city: effectiveCity,
-                sectionId: sectionId || undefined,
-                durationType,
-                durationDetails: computedDetails,
-                durationDays: computedDays,
-                durationMonths: computedMonths,
-                bookingDate,
-                status: 'CONFIRMED',
+                workspaceId: validWorkspaceId || dbBooking.workspaceId || undefined,
+                amount: booking.totalPrice || 50,
+                method: 'MADA',
+                paymentFor: 'DIRECT_BOOKING',
+                referenceId: dbBooking.id || newBooking.id,
               }),
-            });
+            }).catch(() => { });
+          }
+        }
 
-            if (directRes.ok) {
-              const dbBooking = await directRes.json();
-              setDirectBookingsApi(prev => [dbBooking, ...prev]);
-
-              if (dbBooking && dbBooking.id) {
-                setBookings(prev => prev.map(b => b.id === newBooking.id ? {
-                  ...b,
-                  id: dbBooking.id,
-                  spaceId: dbBooking.workspaceId || b.spaceId,
-                  spaceName: dbBooking.workspace?.name || b.spaceName,
-                  spaceCity: dbBooking.workspace?.city || b.spaceCity,
-                } : b));
+        if (booking.plan === 'hourly' || (targetSpace && targetSpace.bookingMode === 'hourly')) {
+          let pkgId: string | null = null;
+          try {
+            const pkgRes = await fetch(`${getApiBaseUrl()}/hourly-packages`, { headers });
+            if (pkgRes.ok) {
+              const pkgs = await pkgRes.json();
+              if (Array.isArray(pkgs)) {
+                const matchPkg = pkgs.find((p: any) => p.sectionId === sectionId);
+                if (matchPkg) pkgId = matchPkg.id;
               }
+            }
+          } catch (_) { }
 
-              await fetch(`${getApiBaseUrl()}/payments`, {
+          const hourlyDuration = Math.min(4, Math.max(1, booking.durationHours || 1));
+          const hourlyDetails = booking.durationDetails || `${hourlyDuration} ${hourlyDuration === 1 ? 'Hour' : 'Hours'}`;
+
+          if (!pkgId && sectionId) {
+            try {
+              const pkgCreateRes = await fetch(`${getApiBaseUrl()}/hourly-packages`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({
+                  sectionId,
+                  packageName: `${hourlyDuration} Hour Package`,
+                  hoursAmount: hourlyDuration,
+                  periodType: 'PER_DAY',
+                  price: booking.totalPrice || 45,
+                }),
+              });
+              if (pkgCreateRes.ok) {
+                const pkgData = await pkgCreateRes.json();
+                pkgId = pkgData.id || pkgData.hourlyPackage?.id;
+              }
+            } catch (_) { }
+          }
+
+          const formatIsoWithTime = (dateStr?: string, timeStr?: string, defaultHour: number = 9) => {
+            const d = dateStr ? dateStr.split('T')[0] : new Date().toISOString().split('T')[0];
+            const parts = d.split('-').map(Number);
+            const year = parts[0] || new Date().getFullYear();
+            const month = parts[1] || (new Date().getMonth() + 1);
+            const day = parts[2] || new Date().getDate();
+            let hours = defaultHour;
+            let minutes = 0;
+            if (timeStr) {
+              const isPM = /PM/i.test(timeStr);
+              const isAM = /AM/i.test(timeStr);
+              const cleanTime = timeStr.replace(/(AM|PM|\s)/gi, '').trim();
+              const tparts = cleanTime.split(':');
+              let h = parseInt(tparts[0], 10) || 0;
+              if (isPM && h < 12) h += 12;
+              if (isAM && h === 12) h = 0;
+              hours = h;
+              minutes = tparts.length > 1 ? (parseInt(tparts[1], 10) || 0) : 0;
+            }
+            const pad = (n: number) => String(n).padStart(2, '0');
+            return `${year}-${pad(month)}-${pad(day)}T${pad(hours)}:${pad(minutes)}:00.000Z`;
+          };
+
+          const isoStart = formatIsoWithTime(booking.startDate, booking.startTime, 9);
+          const isoEnd = formatIsoWithTime(booking.endDate || booking.startDate, booking.endTime, 9 + hourlyDuration);
+
+          if (sectionId && pkgId) {
+            try {
+              const hbRes = await fetch(`${getApiBaseUrl()}/hourly-bookings`, {
                 method: 'POST',
                 headers,
                 body: JSON.stringify({
                   userId: currentUser?.id || booking.userId,
-                  workspaceId: validWorkspaceId || dbBooking.workspaceId || undefined,
-                  amount: booking.totalPrice || 50,
-                  method: 'MADA',
-                  paymentFor: 'DIRECT_BOOKING',
-                  referenceId: dbBooking.id || newBooking.id,
+                  workspaceId: validWorkspaceId || undefined,
+                  spaceName: effectiveSpaceName,
+                  city: effectiveCity,
+                  sectionId,
+                  packageId: pkgId,
+                  startDate: isoStart,
+                  endDate: isoEnd,
+                  startTime: booking.startTime,
+                  endTime: booking.endTime,
+                  hoursUsed: hourlyDuration,
+                  durationDetails: hourlyDetails,
+                  status: 'ACTIVE',
                 }),
-              }).catch(() => {});
-            }
-          }
+              });
+              if (hbRes.ok) {
+                const hbData = await hbRes.json();
+                setHourlyBookingsApi(prev => [hbData, ...prev]);
 
-          if (booking.plan === 'hourly' || (targetSpace && targetSpace.bookingMode === 'hourly')) {
-            let pkgId: string | null = null;
-            try {
-              const pkgRes = await fetch(`${getApiBaseUrl()}/hourly-packages`, { headers });
-              if (pkgRes.ok) {
-                const pkgs = await pkgRes.json();
-                if (Array.isArray(pkgs)) {
-                  const matchPkg = pkgs.find((p: any) => p.sectionId === sectionId);
-                  if (matchPkg) pkgId = matchPkg.id;
+                if (hbData && hbData.id) {
+                  setBookings(prev => prev.map(b => b.id === newBooking.id ? {
+                    ...b,
+                    id: hbData.id,
+                    spaceId: hbData.workspaceId || b.spaceId,
+                    spaceName: hbData.workspace?.name || hbData.section?.workspace?.name || b.spaceName,
+                    spaceCity: hbData.workspace?.city || hbData.section?.workspace?.city || b.spaceCity,
+                  } : b));
                 }
-              }
-            } catch (_) {}
 
-            const hourlyDuration = Math.min(4, Math.max(1, booking.durationHours || 1));
-            const hourlyDetails = booking.durationDetails || `${hourlyDuration} ${hourlyDuration === 1 ? 'Hour' : 'Hours'}`;
-
-            if (!pkgId && sectionId) {
-              try {
-                const pkgCreateRes = await fetch(`${getApiBaseUrl()}/hourly-packages`, {
-                  method: 'POST',
-                  headers,
-                  body: JSON.stringify({
-                    sectionId,
-                    packageName: `${hourlyDuration} Hour Package`,
-                    hoursAmount: hourlyDuration,
-                    periodType: 'PER_DAY',
-                    price: booking.totalPrice || 45,
-                  }),
-                });
-                if (pkgCreateRes.ok) {
-                  const pkgData = await pkgCreateRes.json();
-                  pkgId = pkgData.id || pkgData.hourlyPackage?.id;
-                }
-              } catch (_) {}
-            }
-
-            const formatIsoWithTime = (dateStr?: string, timeStr?: string, defaultHour: number = 9) => {
-              const d = dateStr ? dateStr.split('T')[0] : new Date().toISOString().split('T')[0];
-              const parts = d.split('-').map(Number);
-              const year = parts[0] || new Date().getFullYear();
-              const month = parts[1] || (new Date().getMonth() + 1);
-              const day = parts[2] || new Date().getDate();
-              let hours = defaultHour;
-              let minutes = 0;
-              if (timeStr) {
-                const isPM = /PM/i.test(timeStr);
-                const isAM = /AM/i.test(timeStr);
-                const cleanTime = timeStr.replace(/(AM|PM|\s)/gi, '').trim();
-                const tparts = cleanTime.split(':');
-                let h = parseInt(tparts[0], 10) || 0;
-                if (isPM && h < 12) h += 12;
-                if (isAM && h === 12) h = 0;
-                hours = h;
-                minutes = tparts.length > 1 ? (parseInt(tparts[1], 10) || 0) : 0;
-              }
-              const pad = (n: number) => String(n).padStart(2, '0');
-              return `${year}-${pad(month)}-${pad(day)}T${pad(hours)}:${pad(minutes)}:00.000Z`;
-            };
-
-            const isoStart = formatIsoWithTime(booking.startDate, booking.startTime, 9);
-            const isoEnd = formatIsoWithTime(booking.endDate || booking.startDate, booking.endTime, 9 + hourlyDuration);
-
-            if (sectionId && pkgId) {
-              try {
-                const hbRes = await fetch(`${getApiBaseUrl()}/hourly-bookings`, {
+                await fetch(`${getApiBaseUrl()}/payments`, {
                   method: 'POST',
                   headers,
                   body: JSON.stringify({
                     userId: currentUser?.id || booking.userId,
-                    workspaceId: validWorkspaceId || undefined,
-                    spaceName: effectiveSpaceName,
-                    city: effectiveCity,
-                    sectionId,
-                    packageId: pkgId,
-                    startDate: isoStart,
-                    endDate: isoEnd,
-                    startTime: booking.startTime,
-                    endTime: booking.endTime,
-                    hoursUsed: hourlyDuration,
-                    durationDetails: hourlyDetails,
-                    status: 'ACTIVE',
+                    workspaceId: validWorkspaceId || hbData.workspaceId || undefined,
+                    amount: booking.totalPrice || 50,
+                    method: 'MADA',
+                    paymentFor: 'HOURLY_BOOKING',
+                    referenceId: hbData.id || newBooking.id,
                   }),
-                });
-                if (hbRes.ok) {
-                  const hbData = await hbRes.json();
-                  setHourlyBookingsApi(prev => [hbData, ...prev]);
-
-                  if (hbData && hbData.id) {
-                    setBookings(prev => prev.map(b => b.id === newBooking.id ? {
-                      ...b,
-                      id: hbData.id,
-                      spaceId: hbData.workspaceId || b.spaceId,
-                      spaceName: hbData.workspace?.name || hbData.section?.workspace?.name || b.spaceName,
-                      spaceCity: hbData.workspace?.city || hbData.section?.workspace?.city || b.spaceCity,
-                    } : b));
-                  }
-
-                  await fetch(`${getApiBaseUrl()}/payments`, {
-                    method: 'POST',
-                    headers,
-                    body: JSON.stringify({
-                      userId: currentUser?.id || booking.userId,
-                      workspaceId: validWorkspaceId || hbData.workspaceId || undefined,
-                      amount: booking.totalPrice || 50,
-                      method: 'MADA',
-                      paymentFor: 'HOURLY_BOOKING',
-                      referenceId: hbData.id || newBooking.id,
-                    }),
-                  }).catch(() => {});
-                }
-              } catch (_) {}
-            }
+                }).catch(() => { });
+              }
+            } catch (_) { }
           }
+        }
       } catch (err) {
         console.warn('Booking DB persistence notice:', err);
       }
@@ -4594,7 +4595,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           if (payload.userId && payload.userId.length > 20) return payload.userId;
         }
       }
-    } catch (e) {}
+    } catch (e) { }
 
     const realUser = users.find(u => u.id && u.id.length > 20 && !u.id.startsWith('user-'));
     if (realUser) return realUser.id;
@@ -4627,11 +4628,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const currentDbUserId = getValidPostgresUserId(currentUser?.id);
   const userNotifications = currentUser
     ? notifications.filter(n =>
-        currentUser.role === 'admin' ||
-        n.userId === currentUser.id ||
-        (currentDbUserId && n.userId === currentDbUserId) ||
-        (!n.userId || n.userId === 'user-1' || n.userId === 'admin' || n.userId.startsWith('user-'))
-      )
+      currentUser.role === 'admin' ||
+      n.userId === currentUser.id ||
+      (currentDbUserId && n.userId === currentDbUserId) ||
+      (!n.userId || n.userId === 'user-1' || n.userId === 'admin' || n.userId.startsWith('user-'))
+    )
     : [];
 
   const markNotificationRead = (id: string) => {
@@ -4651,7 +4652,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           headers,
           body: JSON.stringify({ id, isRead: true }),
         });
-      } catch (err) {}
+      } catch (err) { }
     })();
   };
 
@@ -4675,7 +4676,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           headers,
           body: JSON.stringify({ id, isRead: nextReadState }),
         });
-      } catch (err) {}
+      } catch (err) { }
     })();
   };
 
@@ -4697,10 +4698,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
               method: 'PUT',
               headers,
               body: JSON.stringify({ id: n.id, isRead: true }),
-            }).catch(() => {});
+            }).catch(() => { });
           }
         }
-      } catch (err) {}
+      } catch (err) { }
     })();
   };
 
@@ -4838,19 +4839,56 @@ export function AppProvider({ children }: { children: ReactNode }) {
     showToast('User permissions updated.');
   };
 
-  const joinWaitlist = (spaceId: string) => {
+  const joinWaitlist = async (spaceId: string, options?: { preferredDate?: string; alertPreferences?: { sms: boolean; email: boolean; whatsapp: boolean } }) => {
     const userId = currentUser?.id || 'user-1';
     const key = `${userId}_${spaceId}`;
     setWaitlist(prev => ({ ...prev, [key]: true }));
-    const space = spaces.find(s => s.id === spaceId);
-    addNotification({
-      userId,
-      title: 'Joined Waitlist',
-      message: `You joined the waitlist for ${space?.name || 'the workspace'}. We'll notify you as soon as a spot opens!`,
-      type: 'info',
-    });
-    showToast('You have joined the priority waitlist! We\'ll notify you when a spot opens.');
+
+    const targetSpace = spaces.find(s => s.id === spaceId) || workspacesApi.find(w => w.id === spaceId);
+
+    const actualWorkspaceId = targetSpace?.id || spaceId;
+
+    const actualSectionId = (targetSpace as any)?.sections?.[0]?.id || (targetSpace as any)?.sectionId || `sec-${actualWorkspaceId}`;
+
+    try {
+      const storedToken = getStoredToken();
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+
+      const response = await fetch(`${getApiBaseUrl()}/waitlist`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          userId,
+          workspaceId: actualWorkspaceId,
+          sectionId: actualSectionId,
+          durationType: 'DAILY', // القيمة الإجبارية التي يشترطها الـ Backend
+          bookingDate: options?.preferredDate || new Date().toISOString().split('T')[0],
+        }),
+      });
+
+      const resData = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        console.error('Waitlist Server Error Details:', resData.error || resData);
+        showToast(resData.error || 'Failed to join waitlist', 'error');
+        return;
+      }
+
+      addNotification({
+        userId,
+        title: 'Joined Waitlist',
+        message: `You successfully joined the waitlist. We'll notify you as soon as a spot opens!`,
+        type: 'info',
+      });
+      showToast('You have joined the priority waitlist successfully!');
+    } catch (err) {
+      console.warn('Waitlist API sync notice:', err);
+      showToast('Network error while joining waitlist', 'error');
+    }
   };
+
+
 
   const leaveWaitlist = (spaceId: string) => {
     const userId = currentUser?.id || 'user-1';
@@ -5085,7 +5123,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             freshestUser = { ...currentUser, ...parsed };
           }
         }
-      } catch (e) {}
+      } catch (e) { }
     }
 
     const updatedPoints = Math.max(0, userPoints - safePointsToUse) + earned;
@@ -5118,9 +5156,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 }
               }
             }
-          }).catch(() => {});
+          }).catch(() => { });
         }
-      }).catch(() => {});
+      }).catch(() => { });
     }
 
     clearCart();
@@ -5128,15 +5166,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     addNotification({
       userId: currentUser.id,
       title: 'Batch Checkout Successful',
-      message: `Payment confirmed for ${newBookings.length} workspace pass${
-        newBookings.length > 1 ? 'es' : ''
-      }.${safePointsToUse > 0 ? ` Redeemed ${safePointsToUse} points for SAR ${pointsDiscount} off.` : ''} Earned ${earned} loyalty points!`,
+      message: `Payment confirmed for ${newBookings.length} workspace pass${newBookings.length > 1 ? 'es' : ''
+        }.${safePointsToUse > 0 ? ` Redeemed ${safePointsToUse} points for SAR ${pointsDiscount} off.` : ''} Earned ${earned} loyalty points!`,
       type: 'payment',
     });
 
     showToast(
-      `Payment processed! ${newBookings.length} pass${
-        newBookings.length > 1 ? 'es' : ''
+      `Payment processed! ${newBookings.length} pass${newBookings.length > 1 ? 'es' : ''
       } confirmed (+${earned} points).`,
       'success'
     );
@@ -5428,11 +5464,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const updated = supportTickets.map((t) =>
       t.id === id
         ? {
-            ...t,
-            status,
-            adminNotes: notes !== undefined ? notes : t.adminNotes,
-            updatedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
-          }
+          ...t,
+          status,
+          adminNotes: notes !== undefined ? notes : t.adminNotes,
+          updatedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
+        }
         : t
     );
     setSupportTickets(updated);
@@ -5448,11 +5484,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const updated = supportTickets.map((t) =>
       t.id === id
         ? {
-            ...t,
-            adminReply: reply,
-            status: newStatus,
-            updatedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
-          }
+          ...t,
+          adminReply: reply,
+          status: newStatus,
+          updatedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
+        }
         : t
     );
     setSupportTickets(updated);
