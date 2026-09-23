@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { sendOtpEmail } from "@/lib/mailer";
 
-const VALID_ROLES = ["GUEST", "B2C", "HR_ADMIN", "PARTNER_ADMIN", "SUPER_ADMIN"];
+const VALID_ROLES = ["GUEST", "B2C", "HR_ADMIN", "PARTNER_ADMIN"];
 
 function generateOtp() {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -53,12 +53,37 @@ export async function POST(request: Request) {
       where: { email: cleanEmail },
     });
 
-    if (existingUser) {
-      return NextResponse.json(
-        { error: "An account with this email address already exists." },
-        { status: 400 }
-      );
-    }
+    if (existingUser && existingUser.emailVerified) {
+  return NextResponse.json(
+    { error: "An account with this email address already exists." },
+    { status: 400 }
+  );
+}
+
+if (existingUser && !existingUser.emailVerified) {
+  const passwordHash = await bcrypt.hash(password, 10);
+  await prisma.user.update({
+    where: { id: existingUser.id },
+    data: { name: name.trim(), passwordHash },
+  });
+
+  const otp = generateOtp();
+  const otpHash = await bcrypt.hash(otp, 10);
+  await prisma.otpCode.create({
+    data: {
+      userId: existingUser.id,
+      codeHash: otpHash,
+      purpose: "EMAIL_VERIFICATION",
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+    },
+  });
+  await sendOtpEmail(cleanEmail, otp).catch(() => {});
+
+  return NextResponse.json(
+    { message: "Account already exists but not verified. A new verification code has been sent.", userId: existingUser.id },
+    { status: 200 }
+  );
+}
 
     const passwordHash = await bcrypt.hash(password, 10);
     const assignedRole = (role && VALID_ROLES.includes(role)) ? role : "B2C";
@@ -107,9 +132,13 @@ export async function POST(request: Request) {
           data: { companyId: company.id },
         });
       } catch (companyErr) {
-        console.error("❌ Error creating company for HR_ADMIN on register:", companyErr);
-      }
-    }
+  console.error("❌ Error creating company for HR_ADMIN on register:", companyErr);
+  await prisma.user.delete({ where: { id: user.id } }).catch(() => {});
+  return NextResponse.json(
+    { error: "Failed to create company record. Please try registering again." },
+    { status: 500 }
+  );
+}
 
     // إنشاء سجل الشريك لمزود المساحات بحالة بانتظار الاعتماد (PENDING_APPROVAL)
     if (assignedRole === "PARTNER_ADMIN") {
@@ -151,44 +180,21 @@ export async function POST(request: Request) {
           select: { id: true },
         });
 
-        if (superAdmins.length === 0) {
-          let fallbackAdmin = await prisma.user.findFirst({
-            where: { email: "admin@coworkingpass.sa" },
-          });
-          if (!fallbackAdmin) {
-            const defaultPw = await bcrypt.hash("password", 10);
-            fallbackAdmin = await prisma.user.create({
-              data: {
-                name: "Platform Super Admin",
-                email: "admin@coworkingpass.sa",
-                passwordHash: defaultPw,
-                role: "SUPER_ADMIN",
-                emailVerified: true,
-              },
-            });
-          }
-          await prisma.notification.create({
-            data: {
-              userId: fallbackAdmin.id,
-              type: "PARTNER_APPROVED",
-              title: "New Space Partner Application",
-              message: `Venue "${finalBrandName}" (CR: ${cleanCr || 'N/A'}) has submitted a registration application pending your review and approval.`,
-              channel: "IN_APP",
-            },
-          }).catch(() => {});
-        } else {
-          for (const admin of superAdmins) {
-            await prisma.notification.create({
-              data: {
-                userId: admin.id,
-                type: "PARTNER_APPROVED",
-                title: "New Space Partner Application",
-                message: `Venue "${finalBrandName}" (CR: ${cleanCr || 'N/A'}) has submitted a registration application pending your review and approval.`,
-                channel: "IN_APP",
-              },
-            }).catch(() => {});
-          }
-        }
+        if (superAdmins.length > 0) {
+  for (const admin of superAdmins) {
+    await prisma.notification.create({
+      data: {
+        userId: admin.id,
+        type: "PARTNER_APPROVED",
+        title: "New Space Partner Application",
+        message: `Venue "${finalBrandName}" (CR: ${cleanCr || 'N/A'}) has submitted a registration application pending your review and approval.`,
+        channel: "IN_APP",
+      },
+    }).catch(() => {});
+  }
+} else {
+  console.warn("⚠️ No SUPER_ADMIN account exists to notify about new partner application:", finalBrandName);
+}
       } catch (partnerErr) {
         console.error("❌ Error creating partner for PARTNER_ADMIN on register:", partnerErr);
       }

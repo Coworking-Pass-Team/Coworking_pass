@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import { NextResponse } from "next/server";
+import { isBlacklisted } from "./token-blacklist";
 
 interface TokenPayload {
   userId: string;
@@ -17,6 +18,12 @@ export function getTokenFromRequest(request: Request): TokenPayload | null {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as TokenPayload;
+
+    // رفض التوكن لو صاحبه محظور أو سجّل خروج (Blacklist)
+    if (isBlacklisted(decoded.userId)) {
+      return null;
+    }
+
     return decoded;
   } catch {
     return null;

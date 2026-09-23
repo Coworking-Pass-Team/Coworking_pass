@@ -5,6 +5,9 @@ import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-tok
 // GET /api/partners — List all partners
 export async function GET(request: Request) {
   try {
+    const user = getTokenFromRequest(request);
+    if (!user) return unauthorizedResponse();
+
     const partners = await prisma.partner.findMany({
       orderBy: { createdAt: "desc" },
     });
