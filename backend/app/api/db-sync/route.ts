@@ -1,22 +1,14 @@
 import { NextResponse } from "next/server";
 import { ensureDatabaseSchema } from "@/lib/db-schema-sync";
 import { prisma } from "@/lib/prisma";
+import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const user = getTokenFromRequest(request);
+  if (!user || user.role !== "SUPER_ADMIN") return unauthorizedResponse();
+
   try {
     const syncResult = await ensureDatabaseSchema(true);
-
-    const admin = await prisma.user.findFirst({
-      where: { email: "admin@coworkingpass.sa" },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        emailVerified: true,
-        isBanned: true,
-      },
-    });
 
     const partnerCount = await prisma.partner.count().catch(() => -1);
     const userCount = await prisma.user.count().catch(() => -1);
@@ -24,7 +16,6 @@ export async function GET() {
     return NextResponse.json({
       success: syncResult.success,
       message: syncResult.message,
-      adminUser: admin,
       counts: {
         users: userCount,
         partners: partnerCount,
@@ -36,13 +27,9 @@ export async function GET() {
     return NextResponse.json(
       {
         success: false,
-        error: error?.message || "Failed to synchronize database.",
+        error: "Failed to synchronize database.",
       },
       { status: 500 }
     );
   }
-}
-
-export async function POST() {
-  return GET();
 }

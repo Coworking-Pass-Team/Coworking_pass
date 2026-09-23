@@ -33,28 +33,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "User ID and verification code are required." }, { status: 400 });
     }
 
-    const isMasterCode = code === "123456";
+const otpRecord = await prisma.otpCode.findFirst({
+  where: {
+    userId,
+    purpose: "LOGIN",
+    isUsed: false,
+    expiresAt: { gt: new Date() },
+  },
+  orderBy: { createdAt: "desc" },
+});
 
-    const otpRecord = await prisma.otpCode.findFirst({
-      where: {
-        userId,
-        purpose: "LOGIN",
-        isUsed: false,
-        expiresAt: { gt: new Date() },
-      },
-      orderBy: { createdAt: "desc" },
-    });
+if (!otpRecord) {
+  return NextResponse.json({ error: "Invalid or expired verification code." }, { status: 400 });
+}
 
-    if (!isMasterCode) {
-      if (!otpRecord) {
-        return NextResponse.json({ error: "Invalid or expired verification code." }, { status: 400 });
-      }
-
-      const isValid = await bcrypt.compare(code, otpRecord.codeHash);
-      if (!isValid) {
-        return NextResponse.json({ error: "Invalid verification code." }, { status: 400 });
-      }
-    }
+const isValid = await bcrypt.compare(code, otpRecord.codeHash);
+if (!isValid) {
+  return NextResponse.json({ error: "Invalid verification code." }, { status: 400 });
+}
 
     if (otpRecord) {
       await prisma.otpCode.update({
@@ -75,6 +71,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "User not found." }, { status: 404 });
     }
 
+    if (!user.emailVerified) {
+     return NextResponse.json({ error: "Please verify your email address first." }, { status: 403 });
+    }
     if (user.isBanned) {
       return NextResponse.json({ error: "This account has been suspended. Please contact platform support." }, { status: 403 });
     }

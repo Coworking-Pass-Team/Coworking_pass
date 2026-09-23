@@ -2,8 +2,12 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { seedStandardWorkspaces } from '@/lib/seed-data';
 import { ensureDatabaseSchema } from '@/lib/db-schema-sync';
+import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
-export async function GET() {
+export async function DELETE(request: Request) {
+  const user = getTokenFromRequest(request);
+  if (!user || user.role !== "SUPER_ADMIN") return unauthorizedResponse();
+
   try {
     await ensureDatabaseSchema(true);
     // Ensure durationDetails column exists in Neon DB
@@ -91,27 +95,4 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      message: 'HourlyBooking, DirectBooking, and Payment tables cleaned and updated successfully.',
-      hourlyBookings: {
-        deleted: deletedHourlyBookings.count,
-        before: hourlyBookingsCountBefore,
-        remaining: 0,
-      },
-      directBookings: {
-        deleted: deletedDirectBookings.count,
-        before: directBookingsCountBefore,
-        remaining: 0,
-      },
-      payments: {
-        deleted: deletedPayments.count,
-        before: paymentsCountBefore,
-        remaining: 0,
-      },
-    });
-  } catch (error: any) {
-    return NextResponse.json(
-      { success: false, error: error?.message || String(error) },
-      { status: 500 }
-    );
-  }
-}
+      message:

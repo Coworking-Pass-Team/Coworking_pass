@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import { seedStandardWorkspaces, deduplicateWorkspaces } from '@/lib/seed-data';
+import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const user = getTokenFromRequest(request);
+  if (!user || user.role !== "SUPER_ADMIN") return unauthorizedResponse();
+
   try {
     await deduplicateWorkspaces();
     const workspaces = await seedStandardWorkspaces();
@@ -19,10 +23,6 @@ export async function GET() {
     });
   } catch (error: any) {
     console.error('Error seeding workspaces:', error);
-    return NextResponse.json({ success: false, error: error?.message || 'Failed to seed database.' }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Failed to seed database.' }, { status: 500 });
   }
-}
-
-export async function POST() {
-  return GET();
 }
