@@ -32,7 +32,6 @@ function generateOtp() {
  */
 export async function POST(request: Request) {
   try {
-    // Ensure DB schema and missing columns exist on Neon PostgreSQL
     await ensureDatabaseSchema().catch((e) => console.warn("[Login DB Schema Sync Warning]:", e));
 
     const { email, password } = await request.json();
@@ -42,70 +41,37 @@ export async function POST(request: Request) {
     }
 
     const cleanEmail = email.trim().toLowerCase();
-    let user = await prisma.user.findUnique({ where: { email: cleanEmail } }); 
-    if (isRateLimited(cleanEmail)) {
-  return NextResponse.json(
-    { error: "Too many failed login attempts. Please try again in 15 minutes." },
-    { status: 429 }
-  );
-}
 
-    // Standardized Super Admin password check: strictly accept "password" (and legacy migration)
-if (!isPasswordValid && cleanEmail === "admin@coworkingpass.sa") {
-  if (password === "password" || password === "Admin@123456" || password === "admin123") {
-    isPasswordValid = true;
-    const newHash = await bcrypt.hash("password", 10);
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        passwordHash: newHash,
-        role: "SUPER_ADMIN",
-        isBanned: false,
-        emailVerified: true,
-      },
-    });
-  }
-}
+    if (isRateLimited(cleanEmail)) {
+      return NextResponse.json(
+        { error: "Too many failed login attempts. Please try again in 15 minutes." },
+        { status: 429 }
+      );
+    }
+
+    const user = await prisma.user.findUnique({ where: { email: cleanEmail } });
 
     if (!user) {
       return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
     }
 
-    let isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
 
-    // Standardized Super Admin password check: strictly accept "password" (and legacy migration)
-    if (!isPasswordValid && cleanEmail === "admin@coworkingpass.sa") {
-      if (password === "password" || password === "Admin@123456" || password === "admin123") {
-        isPasswordValid = true;
-        // Standardize password hash to 'password'
-        const newHash = await bcrypt.hash("password", 10);
-        await prisma.user.update({
-          where: { id: user.id },
-          data: {
-            passwordHash: newHash,
-            role: "SUPER_ADMIN",
-            isBanned: false,
-            emailVerified: true,
-          },
-        });
-      }
+    if (!isPasswordValid) {
+      recordFailedAttempt(cleanEmail);
+      return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
     }
-
-   if (!isPasswordValid) {
-  recordFailedAttempt(cleanEmail);
-  return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
-}
-clearAttempts(cleanEmail); 
+    clearAttempts(cleanEmail);
 
     if (user.isBanned) {
       return NextResponse.json({ error: "This account has been suspended. Please contact platform support." }, { status: 403 });
     }
     if (!user.emailVerified) {
-  return NextResponse.json(
-    { error: "Please verify your email address first. Check your inbox for the verification code sent during registration." },
-    { status: 403 }
-  );
-}
+      return NextResponse.json(
+        { error: "Please verify your email address first. Check your inbox for the verification code sent during registration." },
+        { status: 403 }
+      );
+    }
 
     // Check space provider approval status
     if (user.role === "PARTNER_ADMIN") {
