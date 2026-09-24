@@ -93,6 +93,30 @@ export async function DELETE(request: Request) {
     const deletedHourlyBookings = await prisma.hourlyBooking.deleteMany({});
     const deletedPayments = await prisma.payment.deleteMany({});
 
-    return NextResponse.json({
+        return NextResponse.json({
       success: true,
-      message:
+      message: 'HourlyBooking, DirectBooking, and Payment tables cleaned and updated successfully.',
+      hourlyBookings: {
+        deleted: deletedHourlyBookings.count,
+        before: hourlyBookingsCountBefore,
+        remaining: 0,
+      },
+      directBookings: {
+        deleted: deletedDirectBookings.count,
+        before: directBookingsCountBefore,
+        remaining: 0,
+      },
+      payments: {
+        deleted: deletedPayments.count,
+        before: paymentsCountBefore,
+        remaining: 0,
+      },
+    });
+  } catch (error: any) {
+    console.error("[clean-tables Error]:", error);
+    return NextResponse.json({
+      success: false,
+      error: "An error occurred while processing the request.",
+    }, { status: 500 });
+  }
+}

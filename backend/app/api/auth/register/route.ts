@@ -139,6 +139,7 @@ if (existingUser && !existingUser.emailVerified) {
     { status: 500 }
   );
 }
+    }
 
     // إنشاء سجل الشريك لمزود المساحات بحالة بانتظار الاعتماد (PENDING_APPROVAL)
     if (assignedRole === "PARTNER_ADMIN") {
