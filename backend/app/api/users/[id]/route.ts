@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
-
+import { blacklistUser, removeFromBlacklist } from "@/lib/auth/token-blacklist";
 /**
  * @swagger
  * /api/users/{id}:
@@ -100,6 +100,11 @@ export async function PUT(
         { status: 403 }
       );
     }
+    if (data.isBanned === true) {
+  blacklistUser(id);
+} else if (data.isBanned === false) {
+  removeFromBlacklist(id);
+}
 
     const updated = await prisma.user.update({
       where: { id },

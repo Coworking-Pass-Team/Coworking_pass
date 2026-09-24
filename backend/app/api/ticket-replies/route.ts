@@ -45,12 +45,12 @@ if (!user) return unauthorizedResponse();
  *       400:
  *         description: التذكرة مغلقة (CLOSED)
  */
-// POST /api/ticket-replies — إضافة رد على تذكرة
 export async function POST(request: Request) {
   try {
     const user = getTokenFromRequest(request);
-if (!user) return unauthorizedResponse();
-    const { ticketId, userId, message } = await request.json();
+    if (!user) return unauthorizedResponse();
+    const { ticketId, message } = await request.json();
+    const userId = user.userId;
 
     if (!ticketId || !userId || !message) {
       return NextResponse.json(
