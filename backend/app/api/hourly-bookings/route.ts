@@ -141,8 +141,10 @@ export async function POST(request: NextRequest) {
 
     // تحديد نوع القسم المطلوب
     const validSectionTypes = ['DESK', 'MEETING_ROOM', 'THEATER'];
-    const requestedType = validSectionTypes.includes(sectionType) ? sectionType : 'MEETING_ROOM';
-
+const requestedType = (validSectionTypes.includes(sectionType) && sectionType !== 'DESK')
+  ? sectionType
+  : 'MEETING_ROOM';
+  
     const resolvedCity = resolveCity(spaceName, city);
     const cleanCity = resolvedCity.replace(/al\s+/i, '').trim();
 

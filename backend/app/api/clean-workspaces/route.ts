@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
-export async function GET() {
+export async function POST(request: Request) {
+  const user = getTokenFromRequest(request);
+  if (!user || user.role !== "SUPER_ADMIN") return unauthorizedResponse();
+
   const logs: string[] = [];
   try {
     const keepId = '5ebb9c03-a292-4f2e-8a3e-f26afb903757';
@@ -192,11 +196,11 @@ export async function GET() {
       remaining,
     });
   } catch (error: any) {
-    return NextResponse.json({
-      success: false,
-      logs,
-      error: error?.message || String(error),
-      stack: error?.stack,
-    }, { status: 500 });
-  }
+  console.error("[clean-workspaces Error]:", error);
+  return NextResponse.json({
+    success: false,
+    logs,
+    error: "An error occurred while processing the request.",
+  }, { status: 500 });
+}
 }
