@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { prisma } from "@/lib/prisma";
+import { removeFromBlacklist } from "@/lib/auth/token-blacklist";
 
 /**
  * @swagger
@@ -102,6 +103,9 @@ if (!isValid) {
       process.env.JWT_SECRET!,
       { expiresIn: "7d" }
     );
+
+    // Unblacklist user on fresh login to allow new sessions
+    removeFromBlacklist(user.id);
 
     const associatedCompany = user.hrAdminOf || user.company;
 

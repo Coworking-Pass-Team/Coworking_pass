@@ -1,23 +1,31 @@
 import { NextResponse } from "next/server";
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
-import { blacklistUser } from "@/lib/auth/token-blacklist";
+import { blacklistToken, blacklistUser } from "@/lib/auth/token-blacklist";
 
 /**
  * @swagger
  * /api/auth/logout:
  *   post:
- *     summary: تسجيل الخروج (يلغي التوكن الحالي فوراً)
+ *     summary: Sign out and invalidate current token
  *     security:
  *       - BearerAuth: []
  *     responses:
  *       200:
- *         description: تم تسجيل الخروج بنجاح
+ *         description: Signed out successfully
  */
 export async function POST(request: Request) {
+  const authHeader = request.headers.get("authorization");
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return unauthorizedResponse();
+  }
+
+  const token = authHeader.split(" ")[1];
+  blacklistToken(token);
+
   const user = getTokenFromRequest(request);
-  if (!user) return unauthorizedResponse();
+  if (user) {
+    blacklistUser(user.userId);
+  }
 
-  blacklistUser(user.userId);
-
-  return NextResponse.json({ message: "تم تسجيل الخروج بنجاح" });
+  return NextResponse.json({ message: "Signed out successfully." });
 }
