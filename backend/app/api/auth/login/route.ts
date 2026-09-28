@@ -93,7 +93,14 @@ export async function POST(request: Request) {
     }
 
     const isSuperAdmin = cleanEmail === "admin@coworkingpass.sa" || user.role === "SUPER_ADMIN";
-    const otp = isSuperAdmin ? "123456" : generateOtp();
+    const isDevMode = process.env.NODE_ENV !== "production" || process.env.ENABLE_DEV_OTP === "true";
+    const otp = (isDevMode && isSuperAdmin) ? "123456" : generateOtp();
+    
+    // Log OTP to console in development mode to support student testing without paid email domains
+    if (isDevMode) {
+      console.log(`🔑 [DEV OTP] Code for ${cleanEmail}: ${otp}`);
+    }
+
     const otpHash = await bcrypt.hash(otp, 10);
 
     await prisma.otpCode.create({

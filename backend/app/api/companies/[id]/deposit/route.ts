@@ -85,9 +85,11 @@ export async function POST(
 
     return NextResponse.json({
       message: 'Deposit successful.',
+      balance: updatedCompany.balance,
       company: {
         id: updatedCompany.id,
         companyName: updatedCompany.companyName,
+        balance: updatedCompany.balance,
         newBalance: updatedCompany.balance
       }
     })

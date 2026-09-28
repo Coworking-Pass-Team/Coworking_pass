@@ -185,7 +185,7 @@ model Partner {
   contactEmail           String
   taxNumber              String
   revenueSharePercentage Float
-  status                 ApprovalStatus @default(APPROVED)
+  status                 ApprovalStatus @default(PENDING_APPROVAL)
   createdAt              DateTime       @default(now())
 
   workspaces Workspace[]

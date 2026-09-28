@@ -63,6 +63,55 @@ async function syncWorkspaceAmenities(workspaceId: string, amenities: string[]) 
   }
 }
 
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+
+    const workspace = await prisma.workspace.findUnique({
+      where: { id },
+      include: {
+        partner: true,
+        sections: {
+          include: {
+            hourlyPackages: true,
+          },
+        },
+        amenities: {
+          include: {
+            amenity: true,
+          },
+        },
+      },
+    });
+
+    if (!workspace) {
+      return NextResponse.json(
+        { error: "Workspace not found." },
+        { status: 404 }
+      );
+    }
+
+    const formatted = {
+      ...workspace,
+      images: Array.isArray(workspace.images) ? workspace.images : [],
+      amenities: Array.isArray(workspace.amenities)
+        ? workspace.amenities.map((wa: any) => wa.amenity?.name || wa.name).filter(Boolean)
+        : [],
+    };
+
+    return NextResponse.json(formatted);
+  } catch (error) {
+    console.error("Error fetching workspace details:", error);
+    return NextResponse.json(
+      { error: "Internal server error." },
+      { status: 500 }
+    );
+  }
+}
+
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
