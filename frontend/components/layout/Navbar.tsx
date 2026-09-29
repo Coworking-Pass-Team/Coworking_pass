@@ -237,10 +237,10 @@ export default function Navbar() {
       return [
         { label: 'Dashboard', screen: 'org-dashboard' as const },
         { label: 'Workspaces', screen: 'company-workspaces' as const },
-        { label: 'Browse Spaces', screen: 'browse' as const },
-        { label: 'Plans & Passes', screen: 'pricing' as const },
-        { label: 'Team Bookings', screen: 'team-bookings' as const },
-        { label: 'Team Members', screen: 'company-team' as const },
+        { label: 'Browse', screen: 'browse' as const },
+        { label: 'Passes', screen: 'pricing' as const },
+        { label: 'Bookings', screen: 'team-bookings' as const },
+        { label: 'Team', screen: 'company-team' as const },
       ];
     }
 
@@ -298,11 +298,11 @@ export default function Navbar() {
     <header className="sticky top-0 z-50 w-full bg-plaster-surface/95 backdrop-blur-md border-b border-soot/12 shadow-xs transition-colors duration-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-2 sm:gap-4">
         {/* Left Section: Logo & Main Navigation */}
-        <div className="flex items-center gap-3 sm:gap-4 xl:gap-6 min-w-0">
+        <div className="flex items-center gap-2 sm:gap-3 xl:gap-5 min-w-0 flex-1">
           <button
             type="button"
             onClick={() => navigate('landing')}
-            className="flex items-center gap-2 sm:gap-2.5 group focus:outline-none focus-visible:ring-2 focus-visible:ring-soot/30 rounded-xl p-1 transition-all shrink-0 cursor-pointer"
+            className="flex items-center gap-2 group focus:outline-none focus-visible:ring-2 focus-visible:ring-soot/30 rounded-xl p-1 transition-all shrink-0 cursor-pointer"
             title="Go to Home"
             aria-label="Coworking Pass Home"
           >
@@ -312,14 +312,14 @@ export default function Navbar() {
             </span>
           </button>
 
-          <nav className="hidden lg:flex items-center gap-1 xl:gap-1.5 min-w-0">
+          <nav className="hidden lg:flex items-center gap-0.5 xl:gap-1.5 min-w-0 overflow-x-auto no-scrollbar py-1">
             {links.map(l => {
               const isActive = nav.screen === l.screen;
               return (
                 <button
                   key={l.screen}
                   onClick={() => navigate(l.screen)}
-                  className={`relative px-2.5 xl:px-3 py-1.5 xl:py-2 rounded-full text-xs xl:text-sm font-medium transition-all duration-200 focus:outline-none cursor-pointer whitespace-nowrap shrink-0 ${
+                  className={`relative px-2 xl:px-3 py-1.5 rounded-full text-xs xl:text-sm font-medium transition-all duration-200 focus:outline-none cursor-pointer whitespace-nowrap shrink-0 ${
                     isActive
                       ? 'bg-[#DDE6DF] text-soot shadow-xs border border-soot/10 font-semibold'
                       : 'text-moss hover:text-soot hover:bg-soot/5 active:scale-98'
@@ -333,13 +333,13 @@ export default function Navbar() {
         </div>
 
         {/* Right Section: Header Actions */}
-        <div className="hidden lg:flex items-center gap-1.5 xl:gap-2.5 shrink-0">
+        <div className="hidden lg:flex items-center gap-1.5 xl:gap-2 shrink-0 ml-2">
           {currentUser && <CartButton />}
 
           {isConsumerOrOrg && (
             <>
               <WalletButton onClick={() => setWalletModalOpen(true)} />
-              <LoyaltyButton />
+              {currentUser.role !== 'organization' && <LoyaltyButton />}
             </>
           )}
 
@@ -349,7 +349,7 @@ export default function Navbar() {
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="flex items-center gap-2 xl:gap-2.5 p-1 xl:p-1.5 pr-2 xl:pr-3 rounded-2xl border border-soot/12 bg-plaster-dark/30 hover:bg-plaster-dark/60 transition-all duration-200 cursor-pointer active:scale-98 focus:outline-none focus:ring-2 focus:ring-soot/20"
+                className="flex items-center gap-1.5 xl:gap-2 p-1 xl:p-1.5 pr-2 xl:pr-3 rounded-2xl border border-soot/12 bg-plaster-dark/30 hover:bg-plaster-dark/60 transition-all duration-200 cursor-pointer active:scale-98 focus:outline-none focus:ring-2 focus:ring-soot/20"
                 aria-label="User profile menu"
               >
                 <img
@@ -357,7 +357,7 @@ export default function Navbar() {
                   alt={currentUser.name}
                   className="w-8 h-8 xl:w-9 xl:h-9 rounded-xl object-cover border border-soot/10 shadow-xs shrink-0"
                 />
-                <div className="text-left hidden xl:block max-w-[110px] 2xl:max-w-[140px]">
+                <div className="text-left hidden 2xl:block max-w-[110px] 2xl:max-w-[140px]">
                   <div className="text-xs font-semibold text-soot leading-tight truncate">{currentUser.name}</div>
                   <div className="text-[10px] text-moss font-medium truncate">{getRoleLabel()}</div>
                 </div>
