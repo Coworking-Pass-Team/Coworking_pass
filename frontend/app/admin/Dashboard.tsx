@@ -131,8 +131,22 @@ export default function AdminDashboard() {
   const visibleSpaces = spaces.filter(s => s.isVisible);
   const fullyBooked = spaces.filter(s => s.availableCapacity === 0 && s.isVisible).length;
 
-  const recentBookings = bookings.slice(-5).reverse();
-  const recentUsers = nonAdminUsers.slice(-5).reverse();
+  // Sort all bookings by createdAt (newest first) to get truly recent bookings
+  const recentBookings = [...bookings]
+    .sort((a, b) => {
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return dateB - dateA;
+    })
+    .slice(0, 5);
+  // Sort all non-admin users by joinDate/createdAt (newest first)
+  const recentUsers = [...nonAdminUsers]
+    .sort((a, b) => {
+      const dateA = a.joinDate || (a as any).createdAt;
+      const dateB = b.joinDate || (b as any).createdAt;
+      return (dateB ? new Date(dateB).getTime() : 0) - (dateA ? new Date(dateA).getTime() : 0);
+    })
+    .slice(0, 5);
 
   // Dynamic Growth Calculations (MoM / Period-over-Period)
   const now = new Date();
