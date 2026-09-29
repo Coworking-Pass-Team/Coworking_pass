@@ -592,7 +592,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [locationErrorMessage, setLocationErrorMessage] = useState<string | null>(null);
   const [bookings, setBookings] = useState<Booking[]>(INITIAL_BOOKINGS);
   const [users, setUsers] = useState<User[]>(INITIAL_USERS);
-  const [favorites, setFavorites] = useState<string[]>(['space-1', 'space-3']);
+  const [favorites, setFavorites] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const savedUser = localStorage.getItem('cp_currentUser');
+        const userId = savedUser ? (JSON.parse(savedUser).id || 'guest') : 'guest';
+        const userSaved = localStorage.getItem(`cp_favorites_${userId}`);
+        if (userSaved !== null) {
+          const parsed = JSON.parse(userSaved);
+          if (Array.isArray(parsed)) return parsed;
+        }
+        const globalSaved = localStorage.getItem('cp_favorites');
+        if (globalSaved !== null) {
+          const parsed = JSON.parse(globalSaved);
+          if (Array.isArray(parsed)) return parsed;
+        }
+      } catch (_) {}
+    }
+    return [];
+  });
   const [waitlist, setWaitlist] = useState<Record<string, boolean>>({});
   const [autobooking, setAutobooking] = useState<Record<string, boolean>>({});
   const [autobookingCard, setAutobookingCard] = useState<Record<string, string>>({});
@@ -3045,6 +3063,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
       }
 
+      const userKey = savedUser ? (JSON.parse(savedUser).id || 'guest') : 'guest';
+      const savedUserFavs = localStorage.getItem(`cp_favorites_${userKey}`);
+      if (savedUserFavs !== null) {
+        try {
+          const parsed = JSON.parse(savedUserFavs);
+          if (Array.isArray(parsed)) setFavorites(parsed);
+        } catch (_) {}
+      } else {
+        const savedGlobalFavs = localStorage.getItem('cp_favorites');
+        if (savedGlobalFavs !== null) {
+          try {
+            const parsed = JSON.parse(savedGlobalFavs);
+            if (Array.isArray(parsed)) setFavorites(parsed);
+          } catch (_) {}
+        }
+      }
+
       fetchTickets().catch(() => { });
       fetchPartners().catch(() => { });
       fetchWorkspaces().catch(() => { });
@@ -3052,6 +3087,31 @@ export function AppProvider({ children }: { children: ReactNode }) {
       console.error('Failed to load storage state:', e);
     }
   }, []);
+
+  // Synchronize favorites whenever current user changes
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const userId = currentUser?.id || 'guest';
+    const userSaved = localStorage.getItem(`cp_favorites_${userId}`);
+    if (userSaved !== null) {
+      try {
+        const parsed = JSON.parse(userSaved);
+        if (Array.isArray(parsed)) {
+          setFavorites(parsed);
+          return;
+        }
+      } catch (_) {}
+    }
+    const globalSaved = localStorage.getItem('cp_favorites');
+    if (globalSaved !== null) {
+      try {
+        const parsed = JSON.parse(globalSaved);
+        if (Array.isArray(parsed)) {
+          setFavorites(parsed);
+        }
+      } catch (_) {}
+    }
+  }, [currentUser?.id]);
 
   useEffect(() => {
     if (currentUser && currentUser.role === 'provider') {
@@ -3592,6 +3652,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     setCurrentUser(null);
     setPendingUser(null);
+    setFavorites([]);
     if (typeof window !== 'undefined') {
       localStorage.removeItem('cp_currentUser');
       localStorage.removeItem('cp_token');
@@ -3603,9 +3664,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const toggleFavorite = (spaceId: string) => {
-    setFavorites(prev =>
-      prev.includes(spaceId) ? prev.filter(id => id !== spaceId) : [...prev, spaceId]
-    );
+    const userKey = currentUser?.id || 'guest';
+    const strId = String(spaceId);
+    setFavorites(prev => {
+      const isFav = prev.includes(strId);
+      const next = isFav ? prev.filter(id => id !== strId) : [...prev, strId];
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem(`cp_favorites_${userKey}`, JSON.stringify(next));
+          localStorage.setItem('cp_favorites', JSON.stringify(next));
+        } catch (_) {}
+      }
+      if (isFav) {
+        showToast('Workspace removed from your saved list.', 'info');
+      } else {
+        showToast('Workspace saved to your list.', 'success');
+      }
+      return next;
+    });
   };
 
   const requestUserLocation = async (force: boolean = false): Promise<{ lat: number; lng: number } | null> => {

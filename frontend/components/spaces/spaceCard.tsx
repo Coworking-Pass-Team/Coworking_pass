@@ -12,7 +12,7 @@ interface SpaceCardProps {
 
 export default function SpaceCard({ space, distance, onSelect }: SpaceCardProps) {
   const { favorites, toggleFavorite, currentUser, getSpaceCrowding } = useApp();
-  const isFav = favorites.includes(space.id);
+  const isFav = favorites.includes(space.id) || (space.name ? favorites.includes(space.name) : false);
   const userTier = (currentUser?.membershipTier || '').toLowerCase();
   const userPlan: BookingPlan = userTier.includes('yearly') || userTier.includes('enterprise') || userTier.includes('all-access')
     ? 'yearly'

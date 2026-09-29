@@ -44,8 +44,10 @@ export default function IndividualDashboard() {
       return sum + 1;
     }, 0);
   const activeBookings = myBookings.filter(b => b.status === 'active');
-  const favoriteSpaces = spaces.filter(s => favorites.includes(s.id) && s.isVisible);
-  const visibleSpaces = spaces.filter(s => s.isVisible);
+  const favoriteSpaces = spaces.filter((s: Space) =>
+    (favorites.includes(s.id) || (s.name && favorites.includes(s.name))) && s.isVisible !== false
+  );
+  const visibleSpaces = spaces.filter((s: Space) => s.isVisible !== false);
 
   const categoryFilteredSpaces = selectedCategory === 'all'
     ? visibleSpaces
