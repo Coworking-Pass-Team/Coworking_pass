@@ -2062,7 +2062,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 ...existing,
                 ...u,
                 role: existing?.role || u.role,
-                isBlocked: existing?.isBlocked !== undefined ? existing.isBlocked : u.isBlocked,
+                isBlocked: Boolean(u.isBlocked),
               });
             }
           });
@@ -2984,6 +2984,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const savedUser = localStorage.getItem('cp_currentUser');
       if (savedUser) {
         let parsed = JSON.parse(savedUser);
+        if (parsed?.isBlocked) {
+          localStorage.removeItem('cp_token');
+          localStorage.removeItem('cp_currentUser');
+          localStorage.removeItem('token');
+          localStorage.removeItem('jwt');
+          setCurrentUser(null);
+          navigate('account-suspended');
+          return;
+        }
         if (parsed.avatar && (parsed.avatar.includes('images.unsplash.com') || parsed.avatar.includes('admin-avatar'))) {
           parsed.avatar = '';
         }
@@ -3236,6 +3245,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const apiRes = await loginUserApi({ email, password });
     if (apiRes.success && apiRes.userId) {
       let user = users.find(u => u.email.toLowerCase() === cleanEmail);
+      if (user?.isBlocked) {
+        setCurrentUser(null);
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('cp_token');
+          localStorage.removeItem('cp_currentUser');
+          localStorage.removeItem('token');
+          localStorage.removeItem('jwt');
+        }
+        navigate('account-suspended');
+        return { success: false, error: 'Your account has been suspended. Please contact platform support.' };
+      }
       if (!user) {
         user = {
           id: apiRes.userId,
@@ -3268,6 +3288,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
 
     if (!apiRes.success && apiRes.error && !apiRes.error.includes('Network connection issue')) {
+      const isSuspended =
+        apiRes.error.toLowerCase().includes('suspended') ||
+        apiRes.error.toLowerCase().includes('banned') ||
+        apiRes.error.toLowerCase().includes('blocked');
+
+      if (isSuspended) {
+        setCurrentUser(null);
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('cp_token');
+          localStorage.removeItem('cp_currentUser');
+          localStorage.removeItem('token');
+          localStorage.removeItem('jwt');
+        }
+        navigate('account-suspended');
+        return { success: false, error: apiRes.error };
+      }
+
       const isServerError = apiRes.error.includes('Internal server error') || apiRes.error.includes('500');
       if (!isServerError) {
         return { success: false, error: apiRes.error };
@@ -3288,6 +3325,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return { success: false, error: apiRes.error || 'Invalid email or password. Please try again.' };
     }
     if (user.isBlocked) {
+      setCurrentUser(null);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('cp_token');
+        localStorage.removeItem('cp_currentUser');
+        localStorage.removeItem('token');
+        localStorage.removeItem('jwt');
+      }
+      navigate('account-suspended');
       return { success: false, error: 'Your account has been suspended. Please contact support.' };
     }
 
@@ -5024,8 +5069,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
 
       // Find the user's backend DB id (may differ from frontend id)
-      const targetUser = users.find(u => u.id === id);
-      const dbId = (targetUser as any)?.dbId || id;
+      const targetUser = users.find(u => u.id === id || (u as any).dbId === id || (u.email && u.email.toLowerCase() === id.toLowerCase()));
+      const dbId = (targetUser as any)?.dbId || targetUser?.id || id;
+
+      const isSameUser = (u: any) =>
+        Boolean(u && (
+          u.id === id ||
+          u.id === dbId ||
+          u.dbId === id ||
+          u.dbId === dbId ||
+          (targetUser?.email && u.email && u.email.toLowerCase() === targetUser.email.toLowerCase())
+        ));
 
       const response = await fetch(`${getApiBaseUrl()}/users/${dbId}`, {
         method: 'PUT',
@@ -5036,20 +5090,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const resData = await response.json().catch(() => ({}));
       if (!response.ok) {
         console.warn(`Block user notice (${dbId}):`, resData.error || 'Failed to block user in DB');
-        // Still update local state even if API call fails (best-effort)
       }
 
-      // Update local users state
-      setUsers(prev => prev.map(u => u.id === id ? { ...u, isBlocked: true } : u));
+      // Update local users state and localStorage cp_users
+      setUsers(prev => {
+        const next = prev.map(u => isSameUser(u) ? { ...u, isBlocked: true } : u);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('cp_users', JSON.stringify(next));
+        }
+        return next;
+      });
 
-      // If the blocked user is currently logged in, force them out
-      if (currentUser?.id === id) {
+      // If the blocked user is currently logged in, force them out immediately
+      if (currentUser && isSameUser(currentUser)) {
         setCurrentUser(null);
         if (typeof window !== 'undefined') {
           localStorage.removeItem('cp_token');
-          localStorage.removeItem('cp_current_user');
+          localStorage.removeItem('cp_currentUser');
+          localStorage.removeItem('token');
+          localStorage.removeItem('jwt');
         }
-        navigate('login');
+        navigate('account-suspended');
       }
 
       showToast('User has been blocked and their session has been terminated.', 'info');
@@ -5057,7 +5118,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     } catch (err: any) {
       console.error(`Error blocking user ${id}:`, err);
       // Update local state even on network error
-      setUsers(prev => prev.map(u => u.id === id ? { ...u, isBlocked: true } : u));
+      setUsers(prev => {
+        const next = prev.map(u => (u.id === id || (u as any).dbId === id) ? { ...u, isBlocked: true } : u);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('cp_users', JSON.stringify(next));
+        }
+        return next;
+      });
       showToast('User blocked locally (API sync pending).', 'info');
       return { success: false, error: err.message };
     }
@@ -5070,8 +5137,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
 
       // Find the user's backend DB id
-      const targetUser = users.find(u => u.id === id);
-      const dbId = (targetUser as any)?.dbId || id;
+      const targetUser = users.find(u => u.id === id || (u as any).dbId === id || (u.email && u.email.toLowerCase() === id.toLowerCase()));
+      const dbId = (targetUser as any)?.dbId || targetUser?.id || id;
+
+      const isSameUser = (u: any) =>
+        Boolean(u && (
+          u.id === id ||
+          u.id === dbId ||
+          u.dbId === id ||
+          u.dbId === dbId ||
+          (targetUser?.email && u.email && u.email.toLowerCase() === targetUser.email.toLowerCase())
+        ));
 
       const response = await fetch(`${getApiBaseUrl()}/users/${dbId}`, {
         method: 'PUT',
@@ -5084,12 +5160,39 @@ export function AppProvider({ children }: { children: ReactNode }) {
         console.warn(`Unblock user notice (${dbId}):`, resData.error || 'Failed to unblock user in DB');
       }
 
-      setUsers(prev => prev.map(u => u.id === id ? { ...u, isBlocked: false } : u));
+      // Update local users state and localStorage cp_users and cp_currentUser
+      setUsers(prev => {
+        const next = prev.map(u => isSameUser(u) ? { ...u, isBlocked: false } : u);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('cp_users', JSON.stringify(next));
+          const storedCurrent = localStorage.getItem('cp_currentUser');
+          if (storedCurrent) {
+            try {
+              const parsed = JSON.parse(storedCurrent);
+              if (isSameUser(parsed)) {
+                localStorage.setItem('cp_currentUser', JSON.stringify({ ...parsed, isBlocked: false }));
+              }
+            } catch (_) {}
+          }
+        }
+        return next;
+      });
+
+      if (currentUser && isSameUser(currentUser)) {
+        setCurrentUser(prev => prev ? { ...prev, isBlocked: false } : null);
+      }
+
       showToast('User has been unblocked.');
       return { success: true };
     } catch (err: any) {
       console.error(`Error unblocking user ${id}:`, err);
-      setUsers(prev => prev.map(u => u.id === id ? { ...u, isBlocked: false } : u));
+      setUsers(prev => {
+        const next = prev.map(u => (u.id === id || (u as any).dbId === id) ? { ...u, isBlocked: false } : u);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('cp_users', JSON.stringify(next));
+        }
+        return next;
+      });
       showToast('User unblocked locally (API sync pending).');
       return { success: false, error: err.message };
     }

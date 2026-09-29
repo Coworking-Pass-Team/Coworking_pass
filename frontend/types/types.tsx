@@ -1597,7 +1597,8 @@ export type Screen =
   | 'loyalty'
   | 'privacy-policy'
   | 'terms-of-service'
-  | 'legal';
+  | 'legal'
+  | 'account-suspended';
 
 export type TicketCategory = 'general' | 'complaint' | 'refund';
 export type TicketStatus = 'open' | 'in-progress' | 'resolved' | 'closed';
