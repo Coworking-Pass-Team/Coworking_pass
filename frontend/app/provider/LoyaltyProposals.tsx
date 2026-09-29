@@ -41,7 +41,6 @@ export default function ProviderLoyaltyProposals() {
   const [monetaryValue, setMonetaryValue] = useState<number | ''>(100);
   const [description, setDescription] = useState('');
   const [workspaceId, setWorkspaceId] = useState<string>('ALL');
-  const [bonusMultiplier, setBonusMultiplier] = useState<number>(1.5);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!currentUser) return null;
@@ -85,14 +84,13 @@ export default function ProviderLoyaltyProposals() {
     return matchesQuery && matchesStatus && matchesType;
   });
 
-  const handleOpenModal = (preset?: { name: string; type: LoyaltyRuleType; points: number; money: number; desc: string; mult?: number }) => {
+  const handleOpenModal = (preset?: { name: string; type: LoyaltyRuleType; points: number; money: number; desc: string }) => {
     if (preset) {
       setRuleName(preset.name);
       setRuleType(preset.type);
       setPointsValue(preset.points);
       setMonetaryValue(preset.money);
       setDescription(preset.desc);
-      setBonusMultiplier(preset.mult || 1.5);
     } else {
       setRuleName('');
       setRuleType('EARNING');
@@ -100,7 +98,6 @@ export default function ProviderLoyaltyProposals() {
       setMonetaryValue(100);
       setDescription('');
       setWorkspaceId('ALL');
-      setBonusMultiplier(1.5);
     }
     setIsModalOpen(true);
   };
@@ -129,7 +126,6 @@ export default function ProviderLoyaltyProposals() {
         monetaryValue: Number(monetaryValue),
         description: description.trim(),
         workspaceId: workspaceId === 'ALL' ? undefined : workspaceId,
-        bonusMultiplier: ruleType === 'EARNING' ? bonusMultiplier : undefined,
       });
 
       setIsModalOpen(false);
@@ -322,12 +318,11 @@ export default function ProviderLoyaltyProposals() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {[
                 {
-                  name: 'Weekend Hot-Desk 2x Points',
+                  name: 'Weekend Hot-Desk Points',
                   type: 'EARNING' as LoyaltyRuleType,
                   points: 30,
                   money: 100,
-                  mult: 2.0,
-                  desc: 'Double loyalty points for customers booking desks during weekends.',
+                  desc: 'Loyalty points for customers booking desks during weekends.',
                 },
                 {
                   name: '500 Pts Meeting Discount',
@@ -337,12 +332,11 @@ export default function ProviderLoyaltyProposals() {
                   desc: 'Redeem 500 points for SAR 25 discount on any meeting room booking.',
                 },
                 {
-                  name: 'Monthly Member Kickback',
+                  name: 'Monthly Member Reward',
                   type: 'EARNING' as LoyaltyRuleType,
                   points: 150,
                   money: 1200,
-                  mult: 1.5,
-                  desc: 'Give 150 bonus loyalty points on monthly pass subscriptions.',
+                  desc: 'Give 150 loyalty points on monthly pass subscriptions.',
                 },
               ].map((template) => (
                 <button
@@ -528,7 +522,7 @@ export default function ProviderLoyaltyProposals() {
             <input
               type="text"
               required
-              placeholder="e.g. Weekend Coworking 2x Points Booster"
+              placeholder="e.g. Weekend Coworking Points Booster"
               value={ruleName}
               onChange={(e) => setRuleName(e.target.value)}
               className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-soot/15 text-sm text-soot placeholder:text-moss/60 focus:outline-none focus:ring-2 focus:ring-soot/20"
@@ -586,25 +580,6 @@ export default function ProviderLoyaltyProposals() {
               />
             </div>
           </div>
-
-          {/* Bonus Multiplier (Only for Earning) */}
-          {ruleType === 'EARNING' && (
-            <div>
-              <label className="block text-xs font-bold text-soot uppercase tracking-wider mb-1.5">
-                Bonus Multiplier Badge
-              </label>
-              <select
-                value={bonusMultiplier}
-                onChange={(e) => setBonusMultiplier(Number(e.target.value))}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-soot/15 text-sm text-soot focus:outline-none focus:ring-2 focus:ring-soot/20 cursor-pointer"
-              >
-                <option value={1.0}>1.0× (Standard Rate)</option>
-                <option value={1.5}>1.5× Bonus Points</option>
-                <option value={2.0}>2.0× Double Points (Promotional)</option>
-                <option value={3.0}>3.0× Triple Points (Grand Launch)</option>
-              </select>
-            </div>
-          )}
 
           {/* Description & Business Rationale */}
           <div>
