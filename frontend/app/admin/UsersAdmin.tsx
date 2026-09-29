@@ -50,6 +50,7 @@ export default function UsersAdmin() {
     unblockUser,
     changeUserRole,
     showToast,
+    deleteUser,
     deletePartner,
     partners,
     fetchPartners,
@@ -787,8 +788,14 @@ export default function UsersAdmin() {
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (confirm(`Are you sure you want to delete user/partner "${u.name}"?`)) {
-                        deletePartner(partner?.id || u.id);
+                      if (confirm(`Are you sure you want to delete user "${u.name}"? This action cannot be undone.`)) {
+                        if (isProvider && partner?.id) {
+                          // For provider users, delete via partner API (which cascades)
+                          deletePartner(partner.id);
+                        } else {
+                          // For individual/organization users, delete via users API
+                          deleteUser(u.id);
+                        }
                       }
                     }}
                     className="p-2 rounded-xl text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-all cursor-pointer"
