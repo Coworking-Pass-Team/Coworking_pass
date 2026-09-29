@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
+import { ensureDatabaseSchema } from "@/lib/db-schema-sync";
+import { creditWallet } from "@/lib/wallet";
 
 /**
  * @swagger
  * /api/refund:
  *   post:
- *     summary: تنفيذ استرجاع مالي (يحدّث الحجز إلى REFUNDED ويضيف المبلغ لمحفظة العميل)
+ *     summary: Refund a cancelled booking or subscription into the owner's wallet (atomic)
  *     security:
  *       - BearerAuth: []
  *     requestBody:
@@ -15,192 +17,134 @@ import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-tok
  *         application/json:
  *           schema:
  *             type: object
- *             required: [bookingId, userId]
  *             properties:
  *               bookingId:
  *                 type: string
- *                 example: "123e4567-e89b-12d3-a456-426614174000"
- *               userId:
+ *               subscriptionId:
  *                 type: string
- *                 example: "123e4567-e89b-12d3-a456-426614174000"
  *     responses:
  *       200:
- *         description: تم الاسترجاع بنجاح
- *       400:
- *         description: خطأ في الطلب
- *       401:
- *         description: غير مصرح
- *       404:
- *         description: الحجز غير موجود
- *       500:
- *         description: خطأ في السيرفر
+ *         description: Refund credited
  */
 export async function POST(request: NextRequest) {
   try {
     const user = await getTokenFromRequest(request);
     if (!user) return unauthorizedResponse(request);
 
-    const { bookingId, subscriptionId, userId: bodyUserId } = await request.json()
-
-    // Refunds are credited to the caller; only super admins may act for another user
-    const userId: string | undefined = user.role === 'SUPER_ADMIN' ? bodyUserId : user.userId
-
-    if ((!bookingId && !subscriptionId) || !userId) {
-      return NextResponse.json(
-        { error: 'Either bookingId or subscriptionId, and userId are required.' },
-        { status: 400 }
-      )
+    const { bookingId, subscriptionId } = await request.json()
+    if (!bookingId && !subscriptionId) {
+      return NextResponse.json({ error: 'Either bookingId or subscriptionId is required.' }, { status: 400 })
     }
 
-    // ============ 1. معالجة استرجاع الاشتراكات والباقات (Subscriptions) ============
+    // Make sure the ledger table exists before the first refund after a deploy
+    await ensureDatabaseSchema().catch(() => undefined)
+
+    const isAdmin = user.role === 'SUPER_ADMIN'
+
+    // ============ Subscription / pass refund ============
     if (subscriptionId) {
       const subscription = await prisma.subscription.findUnique({
         where: { id: subscriptionId },
-        include: { user: true, plan: true }
+        include: { plan: true },
       })
-
       if (!subscription) {
-        return NextResponse.json(
-          { error: 'Subscription not found.' },
-          { status: 404 }
-        )
+        return NextResponse.json({ error: 'Subscription not found.' }, { status: 404 })
       }
-
+      if (!isAdmin && subscription.userId !== user.userId) {
+        return NextResponse.json({ error: 'You are not allowed to refund this subscription.' }, { status: 403 })
+      }
       if (subscription.status === 'CANCELLED') {
+        return NextResponse.json({ error: 'This subscription has already been cancelled and refunded.' }, { status: 400 })
+      }
+      if (subscription.visitsUsed > 0 && !isAdmin) {
+        return NextResponse.json({ error: 'Cannot refund subscription because visits have already been used.' }, { status: 400 })
+      }
+      const hoursSinceStart = (Date.now() - new Date(subscription.startDate).getTime()) / 3_600_000
+      if (!isAdmin && hoursSinceStart > 72) {
         return NextResponse.json(
-          { error: 'This subscription has already been cancelled and refunded.' },
+          { error: 'Refund period expired. Subscriptions can only be refunded within 3 days (72 hours) of start date with zero visits used.' },
           { status: 400 }
         )
       }
 
-      if (user.role !== 'SUPER_ADMIN' && subscription.userId !== user.userId) {
-        return NextResponse.json(
-          { error: 'You are not allowed to refund this subscription.' },
-          { status: 403 }
-        )
-      }
-
-      // شرط عدم الاستخدام
-      if (subscription.visitsUsed > 0 && user.role !== 'SUPER_ADMIN') {
-        return NextResponse.json(
-          { error: 'Cannot refund subscription because visits have already been used.' },
-          { status: 400 }
-        )
-      }
-
-      // شرط فترة السماح (3 أيام / 72 ساعة)
-      const now = new Date()
-      const startDate = new Date(subscription.startDate)
-      if (startDate <= now && user.role !== 'SUPER_ADMIN') {
-        const hoursSinceStart = (now.getTime() - startDate.getTime()) / (1000 * 60 * 60)
-        if (hoursSinceStart > 72) {
-          return NextResponse.json(
-            { error: 'Refund period expired. Subscriptions can only be refunded within 3 days (72 hours) of start date with zero visits used.' },
-            { status: 400 }
-          )
-        }
-      }
-
-      const refundAmount = subscription.plan?.price || 100
-
-      // تحديث حالة الاشتراك
-      const updatedSubscription = await prisma.subscription.update({
-        where: { id: subscriptionId },
-        data: { status: 'CANCELLED' }
+      const originalPayment = await prisma.payment.findFirst({
+        where: { referenceId: subscriptionId, status: 'SUCCESS', NOT: { paymentFor: 'REFUND' } },
+        orderBy: { createdAt: 'desc' },
       })
+      const refundAmount = originalPayment?.amount ?? subscription.plan?.price ?? 0
+      const planName = subscription.plan?.planName || 'Pass'
 
-      // تسجيل الدفعة كـ REFUND
-      await prisma.payment.create({
-        data: {
-          userId: userId,
-          amount: refundAmount,
-          method: 'REFUND',
-          paymentFor: 'REFUND',
-          referenceId: subscriptionId,
-          status: 'SUCCESS',
-          gatewayTransactionId: `REF-SUB-${Date.now()}`
-        }
-      })
+      const result = await prisma.$transaction(async (tx) => {
+        // Conditional update: only the first request can flip the status, so a refund can never be credited twice
+        const cancelled = await tx.subscription.updateMany({
+          where: { id: subscriptionId, NOT: { status: 'CANCELLED' } },
+          data: { status: 'CANCELLED' },
+        })
+        if (cancelled.count === 0) return null
 
-      // إيداع المبلغ في المحفظة
-      let wallet = await prisma.wallet.findUnique({ where: { userId } })
-      if (!wallet) {
-        wallet = await prisma.wallet.create({ data: { userId, balance: 0 } })
-      }
-
-      const newBalance = wallet.balance + refundAmount
-      await prisma.wallet.update({
-        where: { userId },
-        data: { balance: newBalance }
-      })
-
-      await prisma.walletTransaction.create({
-        data: {
-          walletId: wallet.id,
-          userId: userId,
+        const credit = await creditWallet(tx, {
+          userId: subscription.userId,
           amount: refundAmount,
           type: 'REFUND',
-          description: `Refund for cancelled subscription (${subscription.plan?.planName || 'Universal Pass'})`,
+          description: `Refund for cancelled subscription (${planName})`,
           referenceId: subscriptionId,
-          balanceAfter: newBalance
-        }
+        })
+        await tx.payment.create({
+          data: {
+            userId: subscription.userId,
+            amount: refundAmount,
+            method: 'REFUND',
+            paymentFor: 'REFUND',
+            referenceId: subscriptionId,
+            status: 'SUCCESS',
+            gatewayTransactionId: `REF-SUB-${Date.now()}`,
+          },
+        })
+        await tx.notification.create({
+          data: {
+            userId: subscription.userId,
+            type: 'PAYMENT_SUCCESS',
+            title: 'Subscription Refunded',
+            message: `Refund of SAR ${refundAmount} for your subscription has been credited to your wallet.`,
+            channel: 'IN_APP',
+            sentAt: new Date(),
+          },
+        })
+        return credit
       })
 
-      await prisma.notification.create({
-        data: {
-          userId,
-          type: 'PAYMENT_SUCCESS',
-          title: 'Subscription Refunded',
-          message: `Refund of SAR ${refundAmount} for your subscription has been credited to your wallet.`,
-          channel: 'IN_APP',
-          sentAt: new Date()
-        }
-      })
-
+      if (!result) {
+        return NextResponse.json({ error: 'This subscription has already been cancelled and refunded.' }, { status: 400 })
+      }
       return NextResponse.json({
         message: 'Subscription refunded successfully',
-        subscription: updatedSubscription,
         refundAmount,
-        walletBalance: newBalance
+        walletTarget: result.target,
+        companyId: result.companyId,
+        walletBalance: result.balance,
       }, { status: 200 })
     }
 
-    // ============ 2. معالجة استرجاع الحجوزات المباشرة (Direct Bookings) ============
-    // 1. جلب الحجز مع بياناته
-    const booking = await prisma.directBooking.findUnique({
-      where: { id: bookingId },
-      include: { user: true }
-    })
-
+    // ============ Booking refund (direct or hourly) ============
+    const direct = await prisma.directBooking.findUnique({ where: { id: bookingId }, include: { user: true } })
+    const hourly = direct ? null : await prisma.hourlyBooking.findUnique({ where: { id: bookingId }, include: { user: true } })
+    const booking = direct || hourly
     if (!booking) {
-      return NextResponse.json(
-        { error: 'Booking not found.' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'Booking not found.' }, { status: 404 })
+    }
+    if (!isAdmin && booking.userId !== user.userId) {
+      return NextResponse.json({ error: 'You are not allowed to refund this booking.' }, { status: 403 })
+    }
+    if (direct?.status === 'REFUNDED') {
+      return NextResponse.json({ error: 'This booking has already been refunded.' }, { status: 400 })
     }
 
-    if (user.role !== 'SUPER_ADMIN' && booking.userId !== user.userId) {
-      return NextResponse.json(
-        { error: 'You are not allowed to refund this booking.' },
-        { status: 403 }
-      )
-    }
-
-    // 2. التحقق من أن الحجز قابل للاسترجاع
-    if (booking.status === 'REFUNDED') {
-      return NextResponse.json(
-        { error: 'This booking has already been refunded.' },
-        { status: 400 }
-      )
-    }
-
-    // فحص مهلة الإلغاء للحجز المباشر (6 ساعات للأفراد، 24 للمؤسسات)
-    if (user.role !== 'SUPER_ADMIN') {
-      const now = new Date()
-      const bookingDate = new Date(booking.bookingDate)
-      const hoursDiff = (bookingDate.getTime() - now.getTime()) / (1000 * 60 * 60)
+    // Cancellation window: 6 hours for individuals, 24 hours for organizations
+    if (!isAdmin) {
+      const start = direct ? new Date(direct.bookingDate) : new Date(hourly!.startDate)
+      const hoursDiff = (start.getTime() - Date.now()) / 3_600_000
       const requiredHours = booking.user?.role === 'B2C' ? 6 : 24
-      if (hoursDiff < requiredHours && bookingDate > now) {
+      if (hoursDiff < requiredHours && start > new Date()) {
         return NextResponse.json(
           { error: `Cancellation not allowed. Must cancel at least ${requiredHours} hours before booking time.` },
           { status: 400 }
@@ -208,94 +152,74 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 3. حساب المبلغ (افتراضي أو من الحجز)
-    // Refund what was actually paid for this booking; fall back to the legacy flat amount
+    // Refund exactly what was paid for this booking
     const originalPayment = await prisma.payment.findFirst({
       where: { referenceId: bookingId, status: 'SUCCESS', NOT: { paymentFor: 'REFUND' } },
       orderBy: { createdAt: 'desc' },
     })
-    const refundAmount = originalPayment?.amount ?? 100
-
-    // 4. تحديث حالة الحجز إلى REFUNDED
-    const updatedBooking = await prisma.directBooking.update({
-      where: { id: bookingId },
-      data: { status: 'REFUNDED' }
-    })
-
-    // 5. تسجيل معاملة الاسترجاع
-    await prisma.payment.create({
-      data: {
-        userId: userId,
-        amount: refundAmount,
-        method: 'REFUND',
-        paymentFor: 'REFUND',
-        referenceId: bookingId,
-        status: 'SUCCESS',
-        gatewayTransactionId: `REF-${Date.now()}`
-      }
-    })
-
-    // 6. إضافة المبلغ إلى محفظة العميل
-    let wallet = await prisma.wallet.findUnique({
-      where: { userId }
-    })
-
-    if (!wallet) {
-      wallet = await prisma.wallet.create({
-        data: {
-          userId,
-          balance: 0
-        }
-      })
+    if (!originalPayment) {
+      return NextResponse.json({ error: 'No payment found for this booking, nothing to refund.' }, { status: 404 })
     }
+    const refundAmount = originalPayment.amount
 
-    const newBalance = wallet.balance + refundAmount
+    const result = await prisma.$transaction(async (tx) => {
+      // Serialize concurrent refunds of the same booking, then make sure none has been issued yet
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${bookingId}))`
+      const alreadyRefunded = await tx.payment.findFirst({
+        where: { referenceId: bookingId, paymentFor: 'REFUND', status: 'SUCCESS' },
+      })
+      if (alreadyRefunded) return null
 
-    await prisma.wallet.update({
-      where: { userId },
-      data: {
-        balance: newBalance
+      if (direct) {
+        await tx.directBooking.update({ where: { id: bookingId }, data: { status: 'REFUNDED' } })
+      } else {
+        await tx.hourlyBooking.update({ where: { id: bookingId }, data: { status: 'CANCELLED' } })
       }
-    })
 
-    // 7. تسجيل معاملة المحفظة
-    await prisma.walletTransaction.create({
-      data: {
-        walletId: wallet.id,
-        userId: userId,
+      const credit = await creditWallet(tx, {
+        userId: booking.userId,
         amount: refundAmount,
         type: 'REFUND',
         description: `Refund for booking ${bookingId}`,
         referenceId: bookingId,
-        balanceAfter: newBalance
-      }
+      })
+      await tx.payment.create({
+        data: {
+          userId: booking.userId,
+          workspaceId: originalPayment.workspaceId,
+          amount: refundAmount,
+          method: 'REFUND',
+          paymentFor: 'REFUND',
+          referenceId: bookingId,
+          status: 'SUCCESS',
+          gatewayTransactionId: `REF-${Date.now()}`,
+        },
+      })
+      await tx.notification.create({
+        data: {
+          userId: booking.userId,
+          type: 'PAYMENT_SUCCESS',
+          title: 'Amount Refunded',
+          message: `Refund of SAR ${refundAmount} has been credited to your wallet.`,
+          channel: 'IN_APP',
+          sentAt: new Date(),
+        },
+      })
+      return credit
     })
 
-    //  8. إرسال إشعار للمستخدم 
-    await prisma.notification.create({
-      data: {
-        userId,
-        type: 'PAYMENT_SUCCESS',
-        title: 'Amount Refunded',
-        message: `Refund of SAR ${refundAmount} has been credited to your wallet.`,
-        channel: 'IN_APP',
-        sentAt: new Date()
-      }
-    })
-
-    // 9. الرد النهائي
+    if (!result) {
+      return NextResponse.json({ error: 'This booking has already been refunded.' }, { status: 400 })
+    }
     return NextResponse.json({
       message: 'Booking refunded successfully',
-      booking: updatedBooking,
       refundAmount,
-      walletBalance: newBalance
+      walletTarget: result.target,
+      companyId: result.companyId,
+      walletBalance: result.balance,
     }, { status: 200 })
-
   } catch (error) {
-    console.error(' Error processing refund:', error)
-    return NextResponse.json(
-      { error: 'Failed to process refund.' },
-      { status: 500 }
-    )
+    console.error('Error processing refund:', error)
+    return NextResponse.json({ error: 'Failed to process refund.' }, { status: 500 })
   }
 }

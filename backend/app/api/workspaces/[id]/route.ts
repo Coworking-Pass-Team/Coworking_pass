@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isValidHhmm } from "@/lib/operating-hours";
 import { prisma } from "@/lib/prisma";
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
@@ -122,7 +123,30 @@ export async function PUT(
 
     const { id } = await params;
     const data = await request.json();
-    const { amenities, ...workspaceData } = data;
+    const { amenities } = data;
+
+    // Only platform admins and the owning partner may edit a workspace
+    const role = String(user.role || '').toUpperCase();
+    if (role !== 'SUPER_ADMIN') {
+      const owner = await prisma.workspace.findUnique({ where: { id }, include: { partner: true } });
+      const dbUser = await prisma.user.findUnique({ where: { id: user.userId }, select: { email: true } });
+      const ownsWorkspace = role === 'PARTNER_ADMIN' && owner && dbUser?.email
+        && owner.partner.contactEmail.toLowerCase() === dbUser.email.toLowerCase();
+      if (!ownsWorkspace) {
+        return NextResponse.json({ error: 'You are not allowed to modify this workspace.' }, { status: 403 });
+      }
+    }
+
+    // Whitelist editable fields (no partnerId / id changes)
+    const workspaceData: Record<string, unknown> = {};
+    for (const key of ['name', 'city', 'locationMapUrl', 'dailyRate', 'monthlyRate', 'yearlyRate', 'passVisitValue', 'totalCapacity', 'latitude', 'longitude'] as const) {
+      if (data[key] !== undefined) workspaceData[key] = data[key];
+    }
+    if (Array.isArray(data.images)) workspaceData.images = data.images;
+    if (isValidHhmm(data.openingTime)) workspaceData.openingTime = data.openingTime.trim();
+    if (isValidHhmm(data.closingTime)) workspaceData.closingTime = data.closingTime.trim();
+    if (typeof data.is24Hours === 'boolean') workspaceData.is24Hours = data.is24Hours;
+    if (typeof data.isVisible === 'boolean') workspaceData.isVisible = data.isVisible;
 
     const workspace = await prisma.workspace.update({
       where: { id },

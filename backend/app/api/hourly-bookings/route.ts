@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { getTokenFromRequest, unauthorizedResponse, suspendedResponse } from "@/lib/auth/verify-token";
 import { seedStandardWorkspaces } from '@/lib/seed-data';
 import { getKsaNow, parseDateAndTimeToKsaDate } from '@/lib/time-utils';
+import { getOccupiedSeats } from '@/lib/capacity';
+import { validateHourlyWindow } from '@/lib/operating-hours';
 
 
 export async function GET(request: Request) {
@@ -325,6 +327,24 @@ const requestedType = (validSectionTypes.includes(sectionType) && sectionType !=
 
     targetSectionId = sec.id;
 
+    // Reject windows outside the venue's operating hours and, for halls/theaters, anything but a fixed 2-hour session
+    const windowError = validateHourlyWindow({ workspace: ws, sectionType: sec.type, start: startObj, end: endObj });
+    if (windowError) {
+      return NextResponse.json({ error: windowError }, { status: 400 });
+    }
+
+    // Capacity check for the requested time window
+    const requestedSeats = Math.max(1, Math.floor(Number(body.seats) || 1));
+    if (ws.totalCapacity > 0) {
+      const occupied = (await getOccupiedSeats([ws.id], startObj, endObj)).get(ws.id) || 0;
+      if (occupied + requestedSeats > ws.totalCapacity) {
+        return NextResponse.json(
+          { error: `Not enough availability. Only ${Math.max(0, ws.totalCapacity - occupied)} seat(s) left for the selected time.` },
+          { status: 409 }
+        );
+      }
+    }
+
     // التأكد من وجود باقة
     let pkg = sec.hourlyPackages && sec.hourlyPackages.length > 0
       ? sec.hourlyPackages.find((p: any) => p.id === targetPackageId) || sec.hourlyPackages[0]
@@ -354,6 +374,7 @@ const requestedType = (validSectionTypes.includes(sectionType) && sectionType !=
         startDate: startObj,
         endDate: endObj,
         durationDetails: computedDetails,
+        seats: requestedSeats,
         status: normalizedStatus as any,
         hoursUsed: computedHours,
         createdAt: getKsaNow(),

@@ -42,7 +42,19 @@ export async function PUT(
     const user = await getTokenFromRequest(request);
 if (!user) return unauthorizedResponse(request);
     const { id } = await params;
-    const data = await request.json();
+    const body = await request.json();
+
+    const existing = await prisma.ticket.findUnique({ where: { id }, select: { userId: true } });
+    if (!existing) {
+      return NextResponse.json({ error: "Support ticket not found." }, { status: 404 });
+    }
+    if (user.role !== "SUPER_ADMIN" && existing.userId !== user.userId) {
+      return NextResponse.json({ error: "You are not allowed to modify this ticket." }, { status: 403 });
+    }
+
+    // Only the status can be changed after creation
+    const data: { status?: string } = {};
+    if (body.status !== undefined) data.status = body.status;
 
     if (data.status && !VALID_STATUSES.includes(data.status)) {
       return NextResponse.json(
@@ -53,7 +65,7 @@ if (!user) return unauthorizedResponse(request);
 
     const ticket = await prisma.ticket.update({
       where: { id },
-      data,
+      data: data as any,
     });
 
     return NextResponse.json({ message: "Support ticket updated successfully.", ticket });
@@ -74,7 +86,11 @@ export async function DELETE(
   try {
     const user = await getTokenFromRequest(request);
 if (!user) return unauthorizedResponse(request);
+    if (user.role !== "SUPER_ADMIN") {
+      return NextResponse.json({ error: "Only administrators can delete tickets." }, { status: 403 });
+    }
     const { id } = await params;
+    await prisma.ticketReply.deleteMany({ where: { ticketId: id } });
     await prisma.ticket.delete({ where: { id } });
     return NextResponse.json({ message: "Support ticket deleted successfully." });
   } catch (error) {

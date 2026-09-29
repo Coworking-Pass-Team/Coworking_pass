@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { getOccupiedSeatsToday } from "@/lib/capacity";
+import { isValidHhmm } from "@/lib/operating-hours";
 import { prisma } from "@/lib/prisma";
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
@@ -84,8 +86,13 @@ export async function GET(request: Request) {
       });
     }
 
+    // Live availability for today, computed from confirmed bookings
+    const occupiedByWorkspace = await getOccupiedSeatsToday(workspaces.map((w: any) => w.id));
+
     const formatted = workspaces.map((w: any) => ({
       ...w,
+      occupiedSeats: occupiedByWorkspace.get(w.id) || 0,
+      availableCapacity: Math.max(0, (Number(w.totalCapacity) || 0) - (occupiedByWorkspace.get(w.id) || 0)),
       images: Array.isArray(w.images) ? w.images : [],
       amenities: Array.isArray(w.amenities)
         ? w.amenities.map((wa: any) => wa.amenity?.name || wa.name).filter(Boolean)
@@ -166,6 +173,9 @@ export async function POST(request: Request) {
       totalCapacity,
       amenities,
       images,
+      openingTime,
+      closingTime,
+      is24Hours,
     } = body;
 
     const effectivePassVisitValue = passVisitValue ?? 15;
@@ -222,6 +232,9 @@ export async function POST(request: Request) {
         passVisitValue: effectivePassVisitValue,
         totalCapacity: effectiveTotalCapacity,
         images: Array.isArray(images) ? images : [],
+        ...(isValidHhmm(openingTime) && { openingTime: openingTime.trim() }),
+        ...(isValidHhmm(closingTime) && { closingTime: closingTime.trim() }),
+        ...(typeof is24Hours === 'boolean' && { is24Hours }),
       },
     });
 

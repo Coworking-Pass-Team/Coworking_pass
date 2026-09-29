@@ -177,6 +177,23 @@ model Company {
   hrAdmin   User     @relation("CompanyHrAdmin", fields: [hrAdminId], references: [id])
   employees User[]   @relation("CompanyEmployees")
   tickets   Ticket[]
+  walletTransactions CompanyWalletTransaction[]
+}
+
+model CompanyWalletTransaction {
+  id           String   @id @default(uuid())
+  companyId    String
+  userId       String?
+  amount       Float
+  type         String   // DEPOSIT, WITHDRAW, REFUND
+  description  String?
+  referenceId  String?
+  balanceAfter Float
+  createdAt    DateTime @default(now())
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, createdAt])
 }
 
 model Partner {
@@ -208,6 +225,10 @@ model Workspace {
   latitude       Float?
   longitude      Float?
   images         String[] @default([])
+  openingTime    String   @default("08:00")
+  closingTime    String   @default("22:00")
+  is24Hours      Boolean  @default(false)
+  isVisible      Boolean  @default(true)
 
   partner    Partner            @relation(fields: [partnerId], references: [id])
   sections   WorkspaceSection[]
@@ -304,6 +325,7 @@ model DirectBooking {
   durationType    DurationType
   durationDetails String?
   bookingDate     DateTime
+  seats           Int                 @default(1)
   status       DirectBookingStatus
   createdAt    DateTime            @default(now())
 
@@ -321,6 +343,7 @@ model HourlyBooking {
   startDate       DateTime
   endDate         DateTime
   hoursUsed       Float           @default(0)
+  seats           Int             @default(1)
   durationDetails String?
   status          LifecycleStatus
   createdAt       DateTime        @default(now())
@@ -476,13 +499,16 @@ model WalletTransaction {
 
 model Ticket {
   id        String       @id @default(uuid())
-  companyId String
+  companyId String?
   userId    String
   subject   String
+  message   String?
+  category  String?
+  priority  String?
   status    TicketStatus @default(OPEN)
   createdAt DateTime     @default(now())
 
-  company Company       @relation(fields: [companyId], references: [id])
+  company Company?      @relation(fields: [companyId], references: [id])
   user    User          @relation(fields: [userId], references: [id])
   replies TicketReply[]
 }
