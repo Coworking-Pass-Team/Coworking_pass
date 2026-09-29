@@ -66,17 +66,14 @@ export default function TeamBooking() {
     ? (nav.params.plan as BookingPlan)
     : (allowedPlans[0] || 'daily');
   const initialMonths = (nav?.params?.durationMonths as number) || 1;
+  const initialHours = Number(nav?.params?.durationHours) || 1;
   const initialStartDate = (nav?.params?.startDate as string) || new Date().toISOString().split('T')[0];
   const initialEndDate = (nav?.params?.endDate as string) || initialStartDate;
 
-  const defaultAvailableStarts = isHourlySpace ? getFilteredStartTimes(space?.openHours, initialStartDate, 2) : START_TIMES;
+  const [selectedHours, setSelectedHours] = useState<number>(initialHours);
+  const defaultAvailableStarts = isHourlySpace ? getFilteredStartTimes(space?.openHours, initialStartDate, initialHours) : START_TIMES;
   const initialStartTime = (nav?.params?.startTime as string) || (defaultAvailableStarts.includes('09:00 AM') ? '09:00 AM' : (defaultAvailableStarts[0] || '09:00 AM'));
-  const defaultAvailableEnds = isHourlySpace ? [calculateEndTime(initialStartTime, 2)] : getAvailableEndTimes(initialStartTime);
-  const initialEndTime = isHourlySpace
-    ? calculateEndTime(initialStartTime, 2)
-    : (nav?.params?.endTime as string) || (nav?.params?.durationHours
-      ? calculateEndTime(initialStartTime, Math.min(4, nav.params.durationHours as number))
-      : (defaultAvailableEnds.includes('05:00 PM') ? '05:00 PM' : (defaultAvailableEnds[0] || '05:00 PM')));
+  const initialEndTime = (nav?.params?.endTime as string) || calculateEndTime(initialStartTime, initialHours);
 
   const [step, setStep] = useState(0);
   const [bookingType, setBookingType] = useState<BookingType>(space?.type || 'hot-desk');
@@ -88,15 +85,16 @@ export default function TeamBooking() {
   const [endTime, setEndTime] = useState<string>(initialEndTime);
   const [useWalletBalance, setUseWalletBalance] = useState(false);
 
-  const availableStartTimes = isHourlySpace ? getFilteredStartTimes(space?.openHours, startDate, 2) : START_TIMES;
-  const availableEndTimes = isHourlySpace ? [calculateEndTime(startTime, 2)] : getAvailableEndTimes(startTime);
+  const isHourly = isHourlySpace || plan === 'hourly';
+  const availableStartTimes = isHourlySpace ? getFilteredStartTimes(space?.openHours, startDate, selectedHours) : START_TIMES;
+  const availableEndTimes = isHourlySpace ? [calculateEndTime(startTime, selectedHours)] : getAvailableEndTimes(startTime);
 
-  const durationHours = isHourlySpace ? 2 : calculateDurationHours(startTime, endTime);
+  const durationHours = isHourly ? selectedHours : calculateDurationHours(startTime, endTime);
 
   const handleStartTimeChange = (newStart: string) => {
     setStartTime(newStart);
-    if (isHourlySpace) {
-      setEndTime(calculateEndTime(newStart, 2));
+    if (isHourly) {
+      setEndTime(calculateEndTime(newStart, selectedHours));
     } else {
       const validEnds = getAvailableEndTimes(newStart);
       const startMin = timeStringToMinutes(newStart);
@@ -105,6 +103,11 @@ export default function TeamBooking() {
         setEndTime(validEnds[0] || calculateEndTime(newStart, 1));
       }
     }
+  };
+
+  const handleHoursChange = (hours: number) => {
+    setSelectedHours(hours);
+    setEndTime(calculateEndTime(startTime, hours));
   };
 
   const handleEndTimeChange = (newEnd: string) => {
@@ -168,7 +171,6 @@ export default function TeamBooking() {
 
   if (!space || !currentUser) return null;
 
-  const isHourly = isHourlySpace && plan === 'hourly';
   const hasActiveSubscription = Boolean(currentUser?.hasActivePass);
 
   const effectiveDailyEndDate = dailyEndDate && dailyEndDate >= startDate ? dailyEndDate : startDate;
@@ -658,14 +660,14 @@ export default function TeamBooking() {
               </div>
             )}
 
-            {/* Daily Hours Policy Notice for Theaters & Halls */}
+            {/* Hourly Booking Policy Notice for Theaters & Halls */}
             {isHourlySpace && (
-              <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-xs flex items-start gap-2.5">
-                <Clock size={16} className="text-amber-700 shrink-0 mt-0.5" />
+              <div className="p-4 rounded-2xl bg-eucalyptus/20 border border-eucalyptus/30 text-xs flex items-start gap-2.5">
+                <Clock size={16} className="text-moss shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-semibold text-soot block">Allowed Daily Hours Policy for Theaters & Halls</span>
+                  <span className="font-semibold text-soot block">Hourly Reservation Policy for Theaters & Halls</span>
                   <span className="text-moss text-[11px] leading-relaxed">
-                    Reservations for this venue are booked on a Daily Pass basis with a 2-hour session within the venue operating hours ({space.openHours || 'Operating hours apply'}). You will select your 2-hour time slot in the Schedule step.
+                    Reservations for this venue are booked and priced on an hourly basis within the venue operating hours ({space.openHours || 'Operating hours apply'}). You can select your required duration in hours and specific time slot in the Schedule step.
                   </span>
                 </div>
               </div>
@@ -850,21 +852,51 @@ export default function TeamBooking() {
               </div>
             )}
 
-            {/* 2-Hour Daily Session Selector for Theaters and Halls within Operating Hours */}
+            {/* Hourly Duration & Session Selector for Theaters and Halls */}
             {isHourlySpace && (
               <div className="space-y-4 p-5 rounded-2xl bg-[#F9F8F5] border border-soot/8">
                 <div className="flex items-center justify-between gap-2">
                   <div>
                     <h4 className="text-xs font-semibold uppercase tracking-wider text-moss flex items-center gap-1.5">
                       <Clock size={13} />
-                      <span>Select 2-Hour Daily Session</span>
+                      <span>Select Hourly Duration & Session</span>
                     </h4>
                     <p className="text-xs text-moss mt-0.5">
                       Session within workspace operating hours: {space.openHours || 'Standard Operating Hours'}
                     </p>
                   </div>
                   <div className="text-xs font-bold text-emerald-900 bg-emerald-100/80 px-3 py-1 rounded-full border border-emerald-300 shadow-2xs whitespace-nowrap">
-                    2 Hours Session (Fixed)
+                    {durationHours} {durationHours === 1 ? 'Hour' : 'Hours'} Duration
+                  </div>
+                </div>
+
+                {/* Duration Pills */}
+                <div className="space-y-1.5">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-moss block">
+                    Duration (Hours)
+                  </span>
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                    {[1, 2, 3, 4, 6, 8].map((h) => {
+                      const isSelected = selectedHours === h;
+                      const hPrice = getEffectiveSpacePrice(currentUser, space, 'hourly', bookingType, h, 1, seats);
+                      return (
+                        <button
+                          key={h}
+                          type="button"
+                          onClick={() => handleHoursChange(h)}
+                          className={`py-2 px-1.5 rounded-xl text-center border transition-all cursor-pointer ${
+                            isSelected
+                              ? 'bg-soot text-plaster border-soot shadow-2xs font-semibold'
+                              : 'bg-white border-soot/10 text-moss hover:text-soot hover:border-soot/30'
+                          }`}
+                        >
+                          <div className="font-bold text-xs">{h} {h === 1 ? 'Hour' : 'Hours'}</div>
+                          <div className={`text-[10px] mt-0.5 ${isSelected ? 'text-plaster/80 font-medium' : 'text-moss'}`}>
+                            {hasActiveSubscription && hPrice.isCovered ? 'Corporate Plan' : `SAR ${hPrice.effectivePrice.toLocaleString()}`}
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -881,7 +913,7 @@ export default function TeamBooking() {
                     >
                       {availableStartTimes.map((t) => (
                         <option key={t} value={t}>
-                          {t} – {calculateEndTime(t, 2)} (2 Hours)
+                          {t}
                         </option>
                       ))}
                     </select>
@@ -896,7 +928,7 @@ export default function TeamBooking() {
                       type="text"
                       readOnly
                       disabled
-                      value={`${endTime} (2 Hours Fixed)`}
+                      value={`${endTime} (${durationHours} ${durationHours === 1 ? 'Hour' : 'Hours'})`}
                       className="w-full px-3.5 py-2.5 rounded-xl bg-soot/5 border border-soot/10 text-moss text-sm font-medium cursor-not-allowed shadow-2xs"
                     />
                   </div>
@@ -905,10 +937,10 @@ export default function TeamBooking() {
                 <div className="bg-white rounded-2xl p-4 border border-soot/8 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                   <div>
                     <span className="text-moss block text-[10px] uppercase font-semibold">
-                      Daily Session Window
+                      Scheduled Reservation Window
                     </span>
                     <span className="font-semibold text-soot text-sm">
-                      {startDate} · {startTime} – {endTime}
+                      {startDate} · {startTime} – {endTime} ({durationHours} {durationHours === 1 ? 'hour' : 'hours'})
                     </span>
                   </div>
                   <div className="text-left sm:text-right">
