@@ -4,7 +4,7 @@ import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-tok
 
 export async function POST(request: Request) {
   const user = await getTokenFromRequest(request);
-  if (!user || user.role !== "SUPER_ADMIN") return unauthorizedResponse();
+  if (!user || user.role !== "SUPER_ADMIN") return unauthorizedResponse(request);
 
   const logs: string[] = [];
   try {

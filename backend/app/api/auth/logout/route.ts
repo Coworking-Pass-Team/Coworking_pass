@@ -16,7 +16,7 @@ import { blacklistToken, blacklistUser } from "@/lib/auth/token-blacklist";
 export async function POST(request: Request) {
   const authHeader = request.headers.get("authorization");
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return unauthorizedResponse();
+    return unauthorizedResponse(request);
   }
 
   const token = authHeader.split(" ")[1];

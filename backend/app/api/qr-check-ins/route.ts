@@ -22,7 +22,7 @@ function generateQRHash() {
 export async function GET(request: Request) {
   try {
     const user = await getTokenFromRequest(request);
-if (!user) return unauthorizedResponse();
+if (!user) return unauthorizedResponse(request);
     const checkIns = await prisma.qrCheckIn.findMany({
       include: {
         user: { select: { name: true, email: true } },
@@ -72,7 +72,7 @@ if (!user) return unauthorizedResponse();
 export async function POST(request: NextRequest) {
   try {
     const user = await getTokenFromRequest(request);
-if (!user) return unauthorizedResponse();
+if (!user) return unauthorizedResponse(request);
     const body = await request.json()
     const { userId, workspaceId, sectionId, status = 'VALID' } = body
 

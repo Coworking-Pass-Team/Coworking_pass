@@ -56,7 +56,7 @@ export async function GET(request: Request) {
 export async function POST(request: NextRequest) {
   try {
     const user = await getTokenFromRequest(request);
-if (!user) return unauthorizedResponse();
+if (!user) return unauthorizedResponse(request);
     const { userId, totalEarned = 0, totalRedeemed = 0 } = await request.json()
 
     if (!userId) {

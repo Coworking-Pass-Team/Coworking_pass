@@ -1,3 +1,4 @@
+import { suspendedResponse } from "@/lib/auth/verify-token";
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
@@ -64,7 +65,7 @@ export async function POST(request: Request) {
     clearAttempts(cleanEmail);
 
     if (user.isBanned) {
-      return NextResponse.json({ error: "This account has been suspended. Please contact platform support." }, { status: 403 });
+      return suspendedResponse();
     }
     if (!user.emailVerified) {
       return NextResponse.json(

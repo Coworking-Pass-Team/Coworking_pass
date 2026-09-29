@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
   try {
     const user = await getTokenFromRequest(request);
     if (!user) {
-      return unauthorizedResponse();
+      return unauthorizedResponse(request);
     }
 
     const body = await request.json();

@@ -26,7 +26,7 @@ const DEFAULT_AMENITIES = [
 export async function GET(request: Request) {
   try {
     const user = await getTokenFromRequest(request);
-    if (!user) return unauthorizedResponse();
+    if (!user) return unauthorizedResponse(request);
 
     let amenities = await prisma.amenityCatalog.findMany();
     if (amenities.length === 0) {
@@ -80,7 +80,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const user = await getTokenFromRequest(request);
-if (!user) return unauthorizedResponse();
+if (!user) return unauthorizedResponse(request);
     const { name, icon, isDefault, requestedBy } = await request.json();
 
     if (!name) {

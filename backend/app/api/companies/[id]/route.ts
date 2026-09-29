@@ -29,7 +29,7 @@ export async function GET(
   try {
     const user = await getTokenFromRequest(request);
     if (!user) {
-      return unauthorizedResponse();
+      return unauthorizedResponse(request);
     }
 
     const { id } = await params;
@@ -96,7 +96,7 @@ export async function PUT(
 ) {
   try {
     const user = await getTokenFromRequest(request);
-    if (!user) return unauthorizedResponse();
+    if (!user) return unauthorizedResponse(request);
     const { id } = await params;
     const body = await request.json();
 
@@ -137,7 +137,7 @@ export async function DELETE(
 ) {
   try {
     const user = await getTokenFromRequest(request);
-if (!user) return unauthorizedResponse();
+if (!user) return unauthorizedResponse(request);
     if (user.role !== "SUPER_ADMIN") {
       return NextResponse.json({ error: "Only super admins can delete companies." }, { status: 403 });
     }

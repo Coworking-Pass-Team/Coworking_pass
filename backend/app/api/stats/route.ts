@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
   try {
     //  1. التحقق من التوكن
     const user = await getTokenFromRequest(request);
-    if (!user) return unauthorizedResponse();
+    if (!user) return unauthorizedResponse(request);
 
     // 2. إجمالي الإيرادات (من المدفوعات الناجحة)
     const totalRevenue = await prisma.payment.aggregate({

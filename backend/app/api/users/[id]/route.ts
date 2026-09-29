@@ -27,7 +27,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const user = await getTokenFromRequest(request);
-  if (!user) return unauthorizedResponse();
+  if (!user) return unauthorizedResponse(request);
 
   try {
     const { id } = await params;
@@ -88,7 +88,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const user = await getTokenFromRequest(request);
-  if (!user) return unauthorizedResponse();
+  if (!user) return unauthorizedResponse(request);
 
   try {
     const { id } = await params;
@@ -183,7 +183,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const user = await getTokenFromRequest(request);
-  if (!user) return unauthorizedResponse();
+  if (!user) return unauthorizedResponse(request);
 
   try {
     const { id } = await params;

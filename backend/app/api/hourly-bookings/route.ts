@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
+import { getTokenFromRequest, unauthorizedResponse, suspendedResponse } from "@/lib/auth/verify-token";
 import { seedStandardWorkspaces } from '@/lib/seed-data';
 import { getKsaNow, parseDateAndTimeToKsaDate } from '@/lib/time-utils';
 
@@ -8,7 +8,7 @@ import { getKsaNow, parseDateAndTimeToKsaDate } from '@/lib/time-utils';
 export async function GET(request: Request) {
   try {
     const user = await getTokenFromRequest(request);
-    if (!user) return unauthorizedResponse();
+    if (!user) return unauthorizedResponse(request);
 
     const bookings = await prisma.hourlyBooking.findMany({
       orderBy: { createdAt: 'desc' },
@@ -122,14 +122,14 @@ export async function POST(request: NextRequest) {
     let effectiveUserId = (user && user.role === 'SUPER_ADMIN' && userId) ? userId : (user ? user.userId : null);
 
     if (!effectiveUserId) {
-      return unauthorizedResponse();
+      return unauthorizedResponse(request);
     }
     const existingUser = await prisma.user.findUnique({ where: { id: effectiveUserId }, select: { id: true, isBanned: true } });
     if (!existingUser) {
       return NextResponse.json({ error: 'User not found.' }, { status: 404 });
     }
     if (existingUser.isBanned) {
-      return NextResponse.json({ error: 'This account has been suspended. Please contact platform support.' }, { status: 403 });
+      return suspendedResponse();
     }
 
     if (!effectiveUserId) {

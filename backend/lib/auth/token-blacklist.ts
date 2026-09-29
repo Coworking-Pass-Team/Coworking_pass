@@ -2,7 +2,7 @@
 const blacklistedTokens = new Map<string, number>();
 const blacklistedUsers = new Set<string>();
 
-export function blacklistToken(token: string, expiryMs: number = 7 * 24 * 60 * 60 * 1000): void {
+export function blacklistToken(token: string, expiryMs: number = 24 * 60 * 60 * 1000): void {
   blacklistedTokens.set(token, Date.now() + expiryMs);
 }
 

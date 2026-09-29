@@ -1,3 +1,4 @@
+import { suspendedResponse } from "@/lib/auth/verify-token";
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -80,7 +81,7 @@ export async function POST(request: Request) {
      return NextResponse.json({ error: "Please verify your email address first." }, { status: 403 });
     }
     if (user.isBanned) {
-      return NextResponse.json({ error: "This account has been suspended. Please contact platform support." }, { status: 403 });
+      return suspendedResponse();
     }
 
     let partnerInfo = null;
@@ -105,7 +106,7 @@ export async function POST(request: Request) {
     const token = jwt.sign(
       { userId: user.id, role: user.role },
       process.env.JWT_SECRET!,
-      { expiresIn: "7d" }
+      { expiresIn: "1d" }
     );
 
     // Unblacklist user on fresh login to allow new sessions

@@ -9,7 +9,7 @@ export async function PUT(
 ) {
   try {
     const user = await getTokenFromRequest(request);
-    if (!user) return unauthorizedResponse();
+    if (!user) return unauthorizedResponse(request);
     if (user.role !== "SUPER_ADMIN") {
       return NextResponse.json({ error: "Only super admins can modify partners." }, { status: 403 });
     }
@@ -73,7 +73,7 @@ export async function DELETE(
 ) {
   try {
     const user = await getTokenFromRequest(request);
-if (!user) return unauthorizedResponse();
+if (!user) return unauthorizedResponse(request);
     if (user.role !== "SUPER_ADMIN") {
       return NextResponse.json({ error: "Only super admins can delete partners." }, { status: 403 });
     }

@@ -26,7 +26,7 @@ import { getTokenFromRequest, unauthorizedResponse } from '@/lib/auth/verify-tok
 export async function POST(request: NextRequest) {
   try {
     const authUser = await getTokenFromRequest(request)
-    if (!authUser) return unauthorizedResponse()
+    if (!authUser) return unauthorizedResponse(request)
 
     const body = await request.json()
     const { amount, method = 'VISA', paymentFor, referenceId } = body

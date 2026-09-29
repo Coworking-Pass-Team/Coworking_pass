@@ -141,7 +141,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const user = await getTokenFromRequest(request);
-    if (!user) return unauthorizedResponse();
+    if (!user) return unauthorizedResponse(request);
 
     // Verify that the requester is a space partner or platform admin
     const userRole = String(user.role || '').toUpperCase();

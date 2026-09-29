@@ -6,7 +6,7 @@ export async function GET(request: Request) {
   try {
     const user = await getTokenFromRequest(request);
     if (!user) {
-      return unauthorizedResponse();
+      return unauthorizedResponse(request);
     }
 
     const { searchParams } = new URL(request.url);
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
   try {
     const user = await getTokenFromRequest(request);
     if (!user) {
-      return unauthorizedResponse();
+      return unauthorizedResponse(request);
     }
 
     const body = await request.json();
