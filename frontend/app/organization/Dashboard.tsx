@@ -56,8 +56,10 @@ export default function OrgDashboard() {
       return sum + 1;
     }, 0);
   const activeBookings = orgBookings.filter((b: Booking) => b.status === 'active');
-  const favoriteSpaces = spaces.filter((s: Space) => favorites.includes(s.id) && s.isVisible);
-  const visibleSpaces = spaces.filter((s: Space) => s.isVisible);
+  const favoriteSpaces = spaces.filter((s: Space) =>
+    (favorites.includes(s.id) || (s.name && favorites.includes(s.name))) && s.isVisible !== false
+  );
+  const visibleSpaces = spaces.filter((s: Space) => s.isVisible !== false);
   const employees = currentUser.employees || [];
 
   const categoryFilteredSpaces = selectedCategory === 'all'

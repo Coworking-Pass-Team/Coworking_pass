@@ -169,7 +169,7 @@ export default function SpaceDetails() {
   };
 
 
-  const isFav = favorites.includes(space.id);
+  const isFav = favorites.includes(space.id) || (space.name ? favorites.includes(space.name) : false);
   const isFullyBooked = crowding.availableCapacity === 0 || crowding.level === 'Busy';
   const inWaitlist = Boolean(currentUser && waitlist[`${currentUser.id}_${space.id}`]);
   const autoBookOn = Boolean(currentUser && autobooking[`${currentUser.id}_${space.id}`]);
