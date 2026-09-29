@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getTokenFromRequest, unauthorizedResponse, suspendedResponse } from '@/lib/auth/verify-token';
 import { seedStandardWorkspaces } from '@/lib/seed-data';
 import { directBookingEnd, getOccupiedSeats } from '@/lib/capacity';
+import { hiddenWorkspaceError } from '@/lib/workspace-visibility';
 import { getKsaNow, parseDateAndTimeToKsaDate } from '@/lib/time-utils';
 
 export async function GET(request: Request) {
@@ -290,6 +291,12 @@ export async function POST(request: NextRequest) {
     await prisma.$executeRawUnsafe(
       'ALTER TABLE "DirectBooking" ADD COLUMN IF NOT EXISTS "durationDetails" TEXT;'
     ).catch(() => {});
+
+    // Hidden workspaces cannot be booked by the public
+    const hiddenError = await hiddenWorkspaceError(targetWorkspaceId, user);
+    if (hiddenError) {
+      return NextResponse.json({ error: hiddenError }, { status: 403 });
+    }
 
     // Capacity check: reject requests that would exceed the venue's total seats for the booked period
     const requestedSeats = Math.max(1, Math.floor(Number(body.seats) || 1));

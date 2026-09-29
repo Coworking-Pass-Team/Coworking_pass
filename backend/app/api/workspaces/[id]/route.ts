@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { isValidHhmm } from "@/lib/operating-hours";
+import { canViewHiddenWorkspace } from "@/lib/workspace-visibility";
 import { prisma } from "@/lib/prisma";
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
@@ -93,6 +94,14 @@ export async function GET(
         { error: "Workspace not found." },
         { status: 404 }
       );
+    }
+
+    // Hidden workspaces look like they do not exist to anyone but admins and the owning partner
+    if (workspace.isVisible === false) {
+      const caller = await getTokenFromRequest(request);
+      if (!(await canViewHiddenWorkspace(caller, workspace.partner?.contactEmail))) {
+        return NextResponse.json({ error: "Workspace not found." }, { status: 404 });
+      }
     }
 
     const formatted = {
