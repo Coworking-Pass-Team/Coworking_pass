@@ -2,13 +2,16 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
-// GET /api/ticket-replies — عرض كل الردود
+// GET /api/ticket-replies — list replies visible to the caller
 export async function GET(request: Request) {
   try {
     const user = await getTokenFromRequest(request);
-if (!user) return unauthorizedResponse(request);
+    if (!user) return unauthorizedResponse(request);
+    // Admins see every reply; everyone else only replies on their own tickets
     const replies = await prisma.ticketReply.findMany({
-      include: { ticket: true, user: true },
+      where: user.role === "SUPER_ADMIN" ? {} : { ticket: { userId: user.userId } },
+      include: { ticket: true, user: { select: { id: true, name: true, email: true } } },
+      orderBy: { createdAt: "asc" },
     });
     return NextResponse.json(replies);
   } catch (error) {
@@ -63,6 +66,10 @@ export async function POST(request: Request) {
     if (!ticketExists) {
       return NextResponse.json({ error: "Support ticket (ticketId) not found." }, { status: 404 });
     }
+    // Only the ticket owner or an administrator may reply
+    if (user.role !== "SUPER_ADMIN" && ticketExists.userId !== user.userId) {
+      return NextResponse.json({ error: "You are not allowed to reply to this ticket." }, { status: 403 });
+    }
 
     if (ticketExists.status === "CLOSED") {
       return NextResponse.json(
@@ -80,8 +87,8 @@ export async function POST(request: Request) {
       data: { ticketId, userId, message },
     });
 
-    // لما الأدمن يرد، تحديث حالة التذكرة تلقائياً لـ IN_PROGRESS
-    if (ticketExists.status === "OPEN") {
+    // When an admin replies to an open ticket, move it to IN_PROGRESS automatically
+    if (ticketExists.status === "OPEN" && user.role === "SUPER_ADMIN") {
       await prisma.ticket.update({
         where: { id: ticketId },
         data: { status: "IN_PROGRESS" },

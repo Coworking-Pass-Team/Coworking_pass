@@ -1,14 +1,19 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
+import { ensureDatabaseSchema } from "@/lib/db-schema-sync";
 
 // GET /api/tickets — عرض كل التذاكر
 export async function GET(request: Request) {
   try {
     const user = await getTokenFromRequest(request);
-if (!user) return unauthorizedResponse(request);
+    if (!user) return unauthorizedResponse(request);
+
+    // Admins see every ticket; everyone else only their own
     const tickets = await prisma.ticket.findMany({
-      include: { company: true, user: true, replies: true },
+      where: user.role === "SUPER_ADMIN" ? {} : { userId: user.userId },
+      include: { company: true, user: { select: { id: true, name: true, email: true } }, replies: { orderBy: { createdAt: "asc" } } },
+      orderBy: { createdAt: "desc" },
     });
     return NextResponse.json(tickets);
   } catch (error) {
@@ -47,28 +52,41 @@ if (!user) return unauthorizedResponse(request);
 export async function POST(request: Request) {
   try {
     const user = await getTokenFromRequest(request);
-if (!user) return unauthorizedResponse(request);
-    const { companyId, userId, subject } = await request.json();
+    if (!user) return unauthorizedResponse(request);
+    const { companyId, subject, message, category, priority } = await request.json();
 
-    if (!companyId || !userId || !subject) {
-      return NextResponse.json(
-        { error: "Required fields: companyId, userId, subject" },
-        { status: 400 }
-      );
+    if (!subject || typeof subject !== "string") {
+      return NextResponse.json({ error: "Required field: subject" }, { status: 400 });
     }
 
-    const companyExists = await prisma.company.findUnique({ where: { id: companyId } });
-    if (!companyExists) {
-      return NextResponse.json({ error: "Company (companyId) not found." }, { status: 404 });
+    // The ticket always belongs to the caller; a company is optional (individuals and partners have none)
+    let resolvedCompanyId: string | null = null;
+    if (companyId) {
+      const company = await prisma.company.findUnique({ where: { id: companyId } });
+      if (!company) {
+        return NextResponse.json({ error: "Company (companyId) not found." }, { status: 404 });
+      }
+      if (user.role !== "SUPER_ADMIN" && company.hrAdminId !== user.userId) {
+        const member = await prisma.user.findFirst({ where: { id: user.userId, companyId } });
+        if (!member) {
+          return NextResponse.json({ error: "You do not belong to this company." }, { status: 403 });
+        }
+      }
+      resolvedCompanyId = company.id;
     }
 
-    const userExists = await prisma.user.findUnique({ where: { id: userId } });
-    if (!userExists) {
-      return NextResponse.json({ error: "User (userId) not found." }, { status: 404 });
-    }
+    await ensureDatabaseSchema().catch(() => undefined);
 
     const ticket = await prisma.ticket.create({
-      data: { companyId, userId, subject, status: "OPEN" },
+      data: {
+        companyId: resolvedCompanyId,
+        userId: user.userId,
+        subject: subject.slice(0, 300),
+        message: typeof message === "string" ? message : null,
+        category: typeof category === "string" ? category : null,
+        priority: typeof priority === "string" ? priority : null,
+        status: "OPEN",
+      },
     });
 
     return NextResponse.json(

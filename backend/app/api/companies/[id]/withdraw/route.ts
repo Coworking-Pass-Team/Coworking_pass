@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token"
+import { ensureDatabaseSchema } from "@/lib/db-schema-sync"
 
 /**
  * @swagger
@@ -53,7 +54,8 @@ export async function POST(
     }
 
     const { id } = await params;
-    const { amount } = await request.json();
+    const body = await request.json();
+    const amount = body.amount;
 
     if (typeof amount !== 'number' || !Number.isFinite(amount) || amount <= 0) {
       return NextResponse.json(
@@ -81,21 +83,52 @@ export async function POST(
       );
     }
 
-    // Atomic conditional decrement: the balance check and deduction happen in one statement,
-    // so concurrent withdrawals cannot overdraw the wallet
-    const deducted = await prisma.company.updateMany({
-      where: { id, balance: { gte: amount } },
-      data: { balance: { decrement: amount } }
+    await ensureDatabaseSchema().catch(() => undefined);
+
+    // Optional client-generated key: a repeated request with the same key never deducts twice
+    const referenceId: string | null = typeof body.referenceId === 'string' && body.referenceId ? body.referenceId : null;
+    const description: string = typeof body.description === 'string' && body.description ? body.description : 'Wallet withdrawal';
+
+    const outcome = await prisma.$transaction(async (tx) => {
+      if (referenceId) {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${'wd:' + id + ':' + referenceId}))`;
+        const existing = await tx.companyWalletTransaction.findFirst({
+          where: { companyId: id, type: 'WITHDRAW', referenceId },
+        });
+        if (existing) return { duplicate: true as const, balance: existing.balanceAfter };
+      }
+
+      // Atomic conditional decrement: the balance check and deduction happen in one statement,
+      // so concurrent withdrawals cannot overdraw the wallet
+      const deducted = await tx.company.updateMany({
+        where: { id, balance: { gte: amount } },
+        data: { balance: { decrement: amount } },
+      });
+      if (deducted.count === 0) return { insufficient: true as const };
+
+      const updated = await tx.company.findUniqueOrThrow({ where: { id } });
+      await tx.companyWalletTransaction.create({
+        data: {
+          companyId: id,
+          userId: user.userId,
+          amount,
+          type: 'WITHDRAW',
+          description,
+          referenceId,
+          balanceAfter: updated.balance,
+        },
+      });
+      return { duplicate: false as const, balance: updated.balance };
     });
 
-    if (deducted.count === 0) {
+    if ('insufficient' in outcome) {
       return NextResponse.json(
         { error: 'Insufficient company wallet balance.' },
         { status: 400 }
       );
     }
 
-    const updatedCompany = await prisma.company.findUniqueOrThrow({ where: { id } });
+    const updatedCompany = { ...company, balance: outcome.balance };
 
     return NextResponse.json({
       message: 'Withdrawal successful.',

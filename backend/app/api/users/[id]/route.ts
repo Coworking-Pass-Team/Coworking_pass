@@ -101,8 +101,24 @@ export async function PUT(
     }
 
     // Whitelist updatable fields to prevent mass assignment (role, emailVerified, etc.)
-    const data: { name?: string; isBanned?: boolean; role?: Role } = {};
+    const data: { name?: string; email?: string; isBanned?: boolean; role?: Role } = {};
     if (typeof body.name === "string" && body.name.trim()) data.name = body.name.trim();
+
+    // Email is the login identity, so only admins may change it (and it must stay unique)
+    if (typeof body.email === "string" && body.email.trim()) {
+      const email = body.email.trim().toLowerCase();
+      if (!isAdmin) {
+        return NextResponse.json({ error: "Only administrators can change an account email." }, { status: 403 });
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return NextResponse.json({ error: "Invalid email address." }, { status: 400 });
+      }
+      const taken = await prisma.user.findFirst({ where: { email: { equals: email, mode: "insensitive" }, NOT: { id } } });
+      if (taken) {
+        return NextResponse.json({ error: "This email is already used by another account." }, { status: 409 });
+      }
+      data.email = email;
+    }
 
     if (body.isBanned !== undefined || body.role !== undefined) {
       if (!isAdmin) {
@@ -140,6 +156,14 @@ export async function PUT(
         isBanned: true,
       },
     });
+
+    // A corporate account needs a company record (shared wallet, team) as soon as it becomes an HR admin
+    if (data.role === "HR_ADMIN") {
+      const company = await prisma.company.findUnique({ where: { hrAdminId: id } });
+      if (!company) {
+        await prisma.company.create({ data: { companyName: updated.name, hrAdminId: id } });
+      }
+    }
 
     // Apply session changes only after the database write succeeded
     if (data.isBanned === true) {

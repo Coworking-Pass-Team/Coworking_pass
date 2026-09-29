@@ -67,6 +67,70 @@ export async function ensureDatabaseSchema(force = false): Promise<{ success: bo
       'ALTER TABLE "Payment" ADD COLUMN IF NOT EXISTS "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;'
     ).then(() => executedStatements.push('Payment.createdAt'));
 
+    await prisma.$executeRawUnsafe(
+      'ALTER TABLE "DirectBooking" ADD COLUMN IF NOT EXISTS "seats" INTEGER NOT NULL DEFAULT 1;'
+    ).then(() => executedStatements.push('DirectBooking.seats'));
+
+    await prisma.$executeRawUnsafe(
+      'ALTER TABLE "HourlyBooking" ADD COLUMN IF NOT EXISTS "seats" INTEGER NOT NULL DEFAULT 1;'
+    ).then(() => executedStatements.push('HourlyBooking.seats'));
+
+    await prisma.$executeRawUnsafe(
+      `ALTER TABLE "Workspace" ADD COLUMN IF NOT EXISTS "openingTime" TEXT NOT NULL DEFAULT '08:00';`
+    ).then(() => executedStatements.push('Workspace.openingTime'));
+
+    await prisma.$executeRawUnsafe(
+      `ALTER TABLE "Workspace" ADD COLUMN IF NOT EXISTS "closingTime" TEXT NOT NULL DEFAULT '22:00';`
+    ).then(() => executedStatements.push('Workspace.closingTime'));
+
+    await prisma.$executeRawUnsafe(
+      'ALTER TABLE "Workspace" ADD COLUMN IF NOT EXISTS "is24Hours" BOOLEAN NOT NULL DEFAULT false;'
+    ).then(() => executedStatements.push('Workspace.is24Hours'));
+
+    await prisma.$executeRawUnsafe(
+      'ALTER TABLE "Workspace" ADD COLUMN IF NOT EXISTS "isVisible" BOOLEAN NOT NULL DEFAULT true;'
+    ).then(() => executedStatements.push('Workspace.isVisible'));
+
+    // Support tickets can be raised by individuals and partners, who have no company
+    await prisma.$executeRawUnsafe(
+      'ALTER TABLE "Ticket" ALTER COLUMN "companyId" DROP NOT NULL;'
+    ).then(() => executedStatements.push('Ticket.companyId nullable')).catch((err) => console.warn("[Schema Sync] Ticket.companyId warning:", err));
+    for (const column of ['message', 'category', 'priority']) {
+      await prisma.$executeRawUnsafe(
+        `ALTER TABLE "Ticket" ADD COLUMN IF NOT EXISTS "${column}" TEXT;`
+      ).then(() => executedStatements.push(`Ticket.${column}`)).catch((err) => console.warn("[Schema Sync] Ticket column warning:", err));
+    }
+
+    // 4b. Ensure the corporate wallet ledger table exists
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "CompanyWalletTransaction" (
+        "id" TEXT NOT NULL,
+        "companyId" TEXT NOT NULL,
+        "userId" TEXT,
+        "amount" DOUBLE PRECISION NOT NULL,
+        "type" TEXT NOT NULL,
+        "description" TEXT,
+        "referenceId" TEXT,
+        "balanceAfter" DOUBLE PRECISION NOT NULL,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "CompanyWalletTransaction_pkey" PRIMARY KEY ("id")
+      );
+    `).then(() => executedStatements.push('CompanyWalletTransaction'));
+
+    await prisma.$executeRawUnsafe(
+      'CREATE INDEX IF NOT EXISTS "CompanyWalletTransaction_companyId_createdAt_idx" ON "CompanyWalletTransaction"("companyId", "createdAt");'
+    ).catch((err) => console.warn("[Schema Sync] CompanyWalletTransaction index warning:", err));
+
+    await prisma.$executeRawUnsafe(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'CompanyWalletTransaction_companyId_fkey') THEN
+          ALTER TABLE "CompanyWalletTransaction" ADD CONSTRAINT "CompanyWalletTransaction_companyId_fkey"
+            FOREIGN KEY ("companyId") REFERENCES "Company"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+        END IF;
+      END $$;
+    `).catch((err) => console.warn("[Schema Sync] CompanyWalletTransaction FK warning:", err));
+
     // 5. Ensure Super Admin Account is provisioned with unified password "password"
     const adminEmail = "admin@coworkingpass.sa";
     const unifiedPassword = "password";

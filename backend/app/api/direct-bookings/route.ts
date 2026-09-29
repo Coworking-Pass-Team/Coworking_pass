@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getTokenFromRequest, unauthorizedResponse, suspendedResponse } from '@/lib/auth/verify-token';
 import { seedStandardWorkspaces } from '@/lib/seed-data';
+import { directBookingEnd, getOccupiedSeats } from '@/lib/capacity';
 import { getKsaNow, parseDateAndTimeToKsaDate } from '@/lib/time-utils';
 
 export async function GET(request: Request) {
@@ -268,37 +269,8 @@ export async function POST(request: NextRequest) {
 
     targetSectionId = sec.id;
 
-    //  BE-09: حساب السعر الفعلي حسب نوع الحجز
-    let bookingCost = 100;
-    switch (finalDuration) {
-      case 'DAILY':
-        bookingCost = ws.dailyRate || 100;
-        break;
-      case 'MONTHLY':
-        bookingCost = ws.monthlyRate || 800;
-        break;
-      case 'YEARLY':
-        bookingCost = ws.yearlyRate || 8000;
-        break;
-    }
-
-    const bookingUser = await prisma.user.findUnique({
-      where: { id: effectiveUserId },
-      include: { company: true },
-    });
-
-    if (bookingUser?.companyId) {
-      const company = await prisma.company.findUnique({
-        where: { id: bookingUser.companyId },
-      });
-
-      if (company && company.balance >= bookingCost) {
-        await prisma.company.update({
-          where: { id: bookingUser.companyId },
-          data: { balance: { decrement: bookingCost } },
-        }).catch(() => {});
-      }
-    }
+    // The corporate wallet is charged only through POST /api/companies/[id]/withdraw (idempotent, ledgered).
+    // Deducting here as well would charge the company twice for a single booking.
 
     let finalDurationDetails = durationDetails;
     if (!finalDurationDetails) {
@@ -319,9 +291,25 @@ export async function POST(request: NextRequest) {
       'ALTER TABLE "DirectBooking" ADD COLUMN IF NOT EXISTS "durationDetails" TEXT;'
     ).catch(() => {});
 
+    // Capacity check: reject requests that would exceed the venue's total seats for the booked period
+    const requestedSeats = Math.max(1, Math.floor(Number(body.seats) || 1));
+    const bookingStart = parseDateAndTimeToKsaDate(bookingDate, null, 9);
+    const workspaceForCapacity = await prisma.workspace.findUnique({ where: { id: targetWorkspaceId }, select: { totalCapacity: true } });
+    if (workspaceForCapacity && workspaceForCapacity.totalCapacity > 0) {
+      const bookingEnd = directBookingEnd({ bookingDate: bookingStart, durationType: finalDuration, durationDetails: finalDurationDetails });
+      const occupied = (await getOccupiedSeats([targetWorkspaceId], bookingStart, bookingEnd)).get(targetWorkspaceId) || 0;
+      if (occupied + requestedSeats > workspaceForCapacity.totalCapacity) {
+        return NextResponse.json(
+          { error: `Not enough availability. Only ${Math.max(0, workspaceForCapacity.totalCapacity - occupied)} seat(s) left for the selected period.` },
+          { status: 409 }
+        );
+      }
+    }
+
     const booking = await prisma.directBooking.create({
       data: {
         userId: effectiveUserId,
+        seats: requestedSeats,
         workspaceId: targetWorkspaceId,
         sectionId: targetSectionId,
         durationType: finalDuration as any,

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token"
+import { ensureDatabaseSchema } from "@/lib/db-schema-sync"
 
 /**
  * @swagger
@@ -53,7 +54,8 @@ export async function POST(
     }
 
     const { id } = await params
-    const { amount } = await request.json()
+    const body = await request.json()
+    const amount = body.amount
 
     if (typeof amount !== 'number' || !Number.isFinite(amount) || amount <= 0) {
       return NextResponse.json(
@@ -81,9 +83,25 @@ export async function POST(
       )
     }
 
-    const updatedCompany = await prisma.company.update({
-      where: { id },
-      data: { balance: { increment: amount } }
+    await ensureDatabaseSchema().catch(() => undefined)
+
+    const updatedCompany = await prisma.$transaction(async (tx) => {
+      const updated = await tx.company.update({
+        where: { id },
+        data: { balance: { increment: amount } }
+      })
+      await tx.companyWalletTransaction.create({
+        data: {
+          companyId: id,
+          userId: user.userId,
+          amount,
+          type: 'DEPOSIT',
+          description: typeof body.description === 'string' && body.description ? body.description : 'Wallet top-up',
+          referenceId: null,
+          balanceAfter: updated.balance,
+        }
+      })
+      return updated
     })
 
     return NextResponse.json({
