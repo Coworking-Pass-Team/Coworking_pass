@@ -45,7 +45,7 @@ import {
   hhmmTo12h,
 } from '@/types/types';
 import AccountSuspendedModal from '@/components/AccountSuspendedModal';
-import { INITIAL_SPACES, INITIAL_USERS, INITIAL_BOOKINGS, INITIAL_NOTIFICATIONS, INITIAL_SUPPORT_TICKETS } from '@/data/data';
+import { INITIAL_SPACES, INITIAL_USERS, INITIAL_BOOKINGS, INITIAL_SUPPORT_TICKETS } from '@/data/data';
 import {
   registerUserApi,
   verifyEmailApi,
@@ -3171,20 +3171,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('cp_bookings', JSON.stringify(sanitized));
       }
 
+      // Drop the demo notifications older builds seeded into every browser (ids notif-1 ... notif-99)
       const savedNotifs = localStorage.getItem('cp_notifications');
       if (savedNotifs) {
         try {
-          const parsed = JSON.parse(savedNotifs);
+          const parsed = (JSON.parse(savedNotifs) as Notification[]).filter(n => !/^notif-\d{1,3}$/.test(String(n.id)));
           const sanitized = sanitizeNotifications(parsed);
           setNotifications(sanitized);
           localStorage.setItem('cp_notifications', JSON.stringify(sanitized));
         } catch (e) {
-          setNotifications(sanitizeNotifications(INITIAL_NOTIFICATIONS));
+          setNotifications([]);
+          localStorage.removeItem('cp_notifications');
         }
       } else {
-        const sanitized = sanitizeNotifications(INITIAL_NOTIFICATIONS);
-        setNotifications(sanitized);
-        localStorage.setItem('cp_notifications', JSON.stringify(INITIAL_NOTIFICATIONS));
+        setNotifications([]);
       }
 
       const savedCart = localStorage.getItem('cp_cart');
@@ -4312,15 +4312,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
     // Optimistically update local state immediately
     setSpaces(prev => prev.map(s => s.id === id ? { ...s, isVisible: newVisible } : s));
 
-    // Persist visibility change to the API if the space has a DB ID
-    const dbId = (target as any).dbId || (workspacesApi.find(w => w.id === id || w.id === (target as any).dbId)?.id);
-    if (dbId) {
-      updateWorkspace(dbId, { isVisible: newVisible } as any).catch((err: any) => {
-        console.error('Failed to persist space visibility to API:', err);
-        // Revert optimistic update on failure
-        setSpaces(prev => prev.map(s => s.id === id ? { ...s, isVisible: !newVisible } : s));
-      });
+    // Resolve the database workspace by id, then by name
+    const dbWorkspace = workspacesApi.find(w => w.id === id || w.id === (target as any).dbId)
+      || workspacesApi.find(w => (w.name || '').trim().toLowerCase() === (target.name || '').trim().toLowerCase());
+
+    if (!dbWorkspace) {
+      // Not stored in the database yet, so it cannot be hidden for other users: undo and tell the admin
+      setSpaces(prev => prev.map(s => s.id === id ? { ...s, isVisible: !newVisible } : s));
+      showToast('This space is not saved on the server yet, so its visibility cannot be changed for other users.', 'error');
+      return;
     }
+
+    // Persist, and revert if the server rejects the change
+    updateWorkspace(dbWorkspace.id, { isVisible: newVisible } as any).then((res) => {
+      if (!res.success) {
+        setSpaces(prev => prev.map(s => s.id === id ? { ...s, isVisible: !newVisible } : s));
+        showToast(res.error || 'Failed to change space visibility.', 'error');
+      } else {
+        showToast(newVisible ? 'Space is now visible to the public.' : 'Space is now hidden from the public.', 'success');
+      }
+    });
   };
 
   const deleteSpace = (id: string) => {
@@ -4976,13 +4987,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const currentDbUserId = getValidPostgresUserId(currentUser?.id);
+  // Strictly the signed-in account's own notifications (admins included)
   const userNotifications = currentUser
-    ? notifications.filter(n =>
-      currentUser.role === 'admin' ||
-      n.userId === currentUser.id ||
-      (currentDbUserId && n.userId === currentDbUserId) ||
-      (!n.userId || n.userId === 'user-1' || n.userId === 'admin' || n.userId.startsWith('user-'))
-    )
+    ? notifications.filter(n => n.userId === currentUser.id || (currentDbUserId && n.userId === currentDbUserId))
     : [];
 
   const markNotificationRead = (id: string) => {
