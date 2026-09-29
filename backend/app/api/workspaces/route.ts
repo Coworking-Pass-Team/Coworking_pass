@@ -143,6 +143,16 @@ export async function POST(request: Request) {
     const user = getTokenFromRequest(request);
     if (!user) return unauthorizedResponse();
 
+    // Verify that the requester is a space partner or platform admin
+    const userRole = String(user.role || '').toUpperCase();
+    const isPartnerOrAdmin = userRole === 'PARTNER_ADMIN' || userRole === 'SUPER_ADMIN' || userRole === 'PROVIDER' || userRole === 'ADMIN';
+    if (!isPartnerOrAdmin) {
+      return NextResponse.json(
+        { error: "Forbidden: Only space partners and platform administrators are authorized to add workspaces." },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const {
       partnerId,

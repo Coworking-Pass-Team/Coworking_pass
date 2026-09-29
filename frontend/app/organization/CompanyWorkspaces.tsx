@@ -13,7 +13,6 @@ import {
   Check,
   ChevronDown,
   Warehouse,
-  Plus,
   ArrowLeft,
   CalendarDays,
   ExternalLink,
@@ -115,7 +114,7 @@ export default function CompanyWorkspaces() {
             Company Workspaces
           </h1>
           <p className="text-moss text-xs sm:text-sm mt-1">
-            Manage your organization&apos;s corporate branches, dedicated suites, and bookable team locations.
+            View your organization&apos;s corporate branches, dedicated suites, and bookable team locations.
           </p>
         </div>
 
@@ -124,18 +123,18 @@ export default function CompanyWorkspaces() {
           <button
             type="button"
             onClick={() => navigate('team-bookings')}
-            className="btn-secondary px-4 py-2.5 text-xs sm:text-sm flex items-center gap-2"
+            className="btn-secondary px-4 py-2.5 text-xs sm:text-sm flex items-center gap-2 cursor-pointer"
           >
             <CalendarDays size={16} />
             <span>Team Bookings</span>
           </button>
           <button
             type="button"
-            onClick={() => navigate('company-add-workspace')}
+            onClick={() => navigate('browse')}
             className="btn-primary px-4 py-2.5 text-xs sm:text-sm flex items-center gap-2 shadow-sm cursor-pointer"
           >
-            <Plus size={16} />
-            <span>Add Workspace</span>
+            <Building2 size={16} />
+            <span>Browse Spaces</span>
           </button>
         </div>
       </div>
@@ -313,7 +312,7 @@ export default function CompanyWorkspaces() {
         </div>
 
         {companySpaces.length === 0 ? (
-          /* Empty State when no workspaces are added yet */
+          /* Empty State when no dedicated company workspaces are registered */
           <div className="py-16 px-6 text-center max-w-md mx-auto">
             <div className="w-16 h-16 rounded-2xl bg-eucalyptus/20 text-soot flex items-center justify-center mx-auto mb-4 border border-eucalyptus/30">
               <Building2 size={30} className="text-eucalyptus-dark" />
@@ -322,15 +321,15 @@ export default function CompanyWorkspaces() {
               No Company Workspaces Registered Yet
             </h2>
             <p className="text-xs sm:text-sm text-moss leading-relaxed mb-6">
-              Add your organization&apos;s corporate branches, innovation hubs, or meeting suites to make them available for your distributed teams.
+              Your organization currently has no dedicated workspaces assigned. Browse partner coworking spaces across Saudi Arabia to book passes and rooms for your team.
             </p>
             <button
               type="button"
-              onClick={() => navigate('company-add-workspace')}
+              onClick={() => navigate('browse')}
               className="btn-primary inline-flex items-center gap-2 px-5 py-2.5 text-sm shadow-sm cursor-pointer"
             >
-              <Plus size={16} />
-              <span>Add Your First Workspace</span>
+              <Building2 size={16} />
+              <span>Browse Spaces</span>
             </button>
           </div>
         ) : filtered.length === 0 ? (
