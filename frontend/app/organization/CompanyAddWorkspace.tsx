@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ArrowLeft,
   Building2,
@@ -96,7 +96,35 @@ export default function CompanyAddWorkspace() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  useEffect(() => {
+    if (currentUser?.role === 'organization') {
+      navigate('company-workspaces');
+    }
+  }, [currentUser, navigate]);
+
   if (!currentUser) return null;
+
+  if (currentUser.role === 'organization') {
+    return (
+      <div className="max-w-xl mx-auto px-4 py-16 text-center">
+        <div className="w-16 h-16 rounded-2xl bg-amber-500/15 text-amber-700 flex items-center justify-center mx-auto mb-4 border border-amber-500/30">
+          <AlertCircle size={30} />
+        </div>
+        <h2 className="text-2xl font-serif-display text-soot mb-2">Access Restricted</h2>
+        <p className="text-sm text-moss mb-6 leading-relaxed">
+          Adding new workspaces is reserved exclusively for registered Space Partners. Organizations can browse and book workspaces for their team members.
+        </p>
+        <button
+          type="button"
+          onClick={() => navigate('company-workspaces')}
+          className="btn-primary inline-flex items-center gap-2 px-5 py-2.5 text-sm shadow-sm cursor-pointer"
+        >
+          <ArrowLeft size={16} />
+          <span>Return to Workspaces</span>
+        </button>
+      </div>
+    );
+  }
 
   const toggleAmenity = (amenity: string) => {
     setSelectedAmenities((prev) =>

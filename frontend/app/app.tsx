@@ -154,7 +154,7 @@ function Router() {
       <AppLayout>
         {screen === 'org-dashboard' && <OrgDashboard />}
         {screen === 'company-workspaces' && <CompanyWorkspaces />}
-        {screen === 'company-add-workspace' && <CompanyAddWorkspace />}
+        {screen === 'company-add-workspace' && <CompanyWorkspaces />}
         {screen === 'company-bookings' && <TeamBookings />}
         {screen === 'company-team' && <CompanyTeam />}
         {screen === 'team-booking' && <TeamBooking />}
