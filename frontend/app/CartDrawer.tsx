@@ -87,15 +87,17 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
     setStep('review');
   };
 
-  const handleFinalCheckout = () => {
+  const handleFinalCheckout = async () => {
     if (!currentUser) {
       onClose();
       navigate('login');
       return;
     }
 
+    // Charge the wallet first; abort checkout if the debit fails
     if (useWalletBalance && walletDeduction > 0 && withdrawFromWallet) {
-      withdrawFromWallet(walletDeduction, 'Cart Checkout Payment');
+      const payment = await withdrawFromWallet(walletDeduction, 'Cart Checkout Payment');
+      if (!payment.success) return;
     }
 
     const pointsToRedeem = useLoyaltyPoints ? maxRedeemablePoints : 0;

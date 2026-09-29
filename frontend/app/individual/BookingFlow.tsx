@@ -360,7 +360,16 @@ export default function BookingFlow() {
 
   const confirmBooking = () => {
     setLoading(true);
-    setTimeout(() => {
+    setTimeout(async () => {
+      // Charge the wallet first; only create the booking if the debit succeeded
+      if (useWalletBalance && walletDeduction > 0 && withdrawFromWallet) {
+        const payment = await withdrawFromWallet(walletDeduction, `Booking payment for ${space.name}`);
+        if (!payment.success) {
+          setLoading(false);
+          return;
+        }
+      }
+
       const pointsUsed = useLoyaltyPoints ? maxRedeemablePoints : 0;
       if (pointsUsed > 0) {
         const updatedPoints = Math.max(0, availablePoints - pointsUsed);
@@ -435,18 +444,10 @@ export default function BookingFlow() {
         payableHours: planInfo.payableHours,
       });
 
-      try {
-        if (useWalletBalance && walletDeduction > 0 && withdrawFromWallet) {
-          withdrawFromWallet(walletDeduction, `Booking payment for ${space.name}`);
-        }
-      } catch (syncErr) {
-        console.warn('[Sync background error]', syncErr);
-      } finally {
-        setConfirmedBooking(booking);
-        setStep(3);
-        setLoading(false);
-        showToast('Workspace booked successfully!', 'success');
-      }
+      setConfirmedBooking(booking);
+      setStep(3);
+      setLoading(false);
+      showToast('Workspace booked successfully!', 'success');
     }, 900);
   };
 

@@ -1955,29 +1955,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      // 1. Try dedicated withdraw API
-      let res = await withdrawCompanyWalletApi(targetCompId, amount);
-
-      // 2. If dedicated withdraw fails, fallback to updateCompanyApi with new balance
+      const res = await withdrawCompanyWalletApi(targetCompId, amount);
       if (!res.success) {
-        const fallbackBal = Math.max(0, companyWalletBalance - amount);
-        const updateRes = await updateCompanyApi(targetCompId, { balance: fallbackBal });
-        if (updateRes.success) {
-          res = { success: true, data: { company: { balance: fallbackBal, newBalance: fallbackBal } } };
-        }
+        const msg = res.error || 'Insufficient corporate wallet balance or withdrawal failed';
+        showToast(msg, 'error');
+        return { success: false, message: msg };
       }
 
-      const newBal = res.data?.company?.newBalance ?? res.data?.company?.balance ?? Math.max(0, companyWalletBalance - amount);
-      setCompanyWalletBalance(newBal);
-      setCompanyData((prev: any) => prev ? { ...prev, balance: newBal } : { id: targetCompId, balance: newBal });
+      const newBal = res.data?.company?.newBalance ?? res.data?.company?.balance ?? res.data?.balance;
+      if (typeof newBal === 'number') {
+        setCompanyWalletBalance(newBal);
+        setCompanyData((prev: any) => prev ? { ...prev, balance: newBal } : { id: targetCompId, balance: newBal });
+      }
       showToast(`SAR ${amount.toLocaleString()} debited from corporate shared wallet`, 'success');
       return { success: true, message: 'Withdrawal successful', balance: newBal };
     } catch (err: any) {
-      const fallbackBal = Math.max(0, companyWalletBalance - amount);
-      setCompanyWalletBalance(fallbackBal);
-      setCompanyData((prev: any) => prev ? { ...prev, balance: fallbackBal } : null);
-      showToast(`SAR ${amount.toLocaleString()} debited from shared wallet`, 'info');
-      return { success: true, message: 'Deduction applied locally', balance: fallbackBal };
+      const msg = err.message || 'Failed to debit corporate wallet';
+      showToast(msg, 'error');
+      return { success: false, message: msg };
     }
   };
 
@@ -5089,7 +5084,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       const resData = await response.json().catch(() => ({}));
       if (!response.ok) {
-        console.warn(`Block user notice (${dbId}):`, resData.error || 'Failed to block user in DB');
+        throw new Error(resData.error || 'Failed to block user in DB');
       }
 
       // Update local users state and localStorage cp_users
@@ -5117,15 +5112,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return { success: true };
     } catch (err: any) {
       console.error(`Error blocking user ${id}:`, err);
-      // Update local state even on network error
-      setUsers(prev => {
-        const next = prev.map(u => (u.id === id || (u as any).dbId === id) ? { ...u, isBlocked: true } : u);
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('cp_users', JSON.stringify(next));
-        }
-        return next;
-      });
-      showToast('User blocked locally (API sync pending).', 'info');
+      // Do not change local state: the block was not persisted, so the UI must not claim it was
+      showToast(err.message || 'Failed to block user. Please try again.', 'error');
       return { success: false, error: err.message };
     }
   };
@@ -5157,7 +5145,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       const resData = await response.json().catch(() => ({}));
       if (!response.ok) {
-        console.warn(`Unblock user notice (${dbId}):`, resData.error || 'Failed to unblock user in DB');
+        throw new Error(resData.error || 'Failed to unblock user in DB');
       }
 
       // Update local users state and localStorage cp_users and cp_currentUser
@@ -5186,14 +5174,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return { success: true };
     } catch (err: any) {
       console.error(`Error unblocking user ${id}:`, err);
-      setUsers(prev => {
-        const next = prev.map(u => (u.id === id || (u as any).dbId === id) ? { ...u, isBlocked: false } : u);
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('cp_users', JSON.stringify(next));
-        }
-        return next;
-      });
-      showToast('User unblocked locally (API sync pending).');
+      // Do not change local state: the unblock was not persisted
+      showToast(err.message || 'Failed to unblock user. Please try again.', 'error');
       return { success: false, error: err.message };
     }
   };
