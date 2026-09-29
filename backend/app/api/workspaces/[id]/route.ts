@@ -118,7 +118,7 @@ export async function PUT(
 ) {
   try {
     const user = await getTokenFromRequest(request);
-    if (!user) return unauthorizedResponse();
+    if (!user) return unauthorizedResponse(request);
 
     const { id } = await params;
     const data = await request.json();
@@ -164,7 +164,7 @@ export async function DELETE(
 ) {
   try {
     const user = await getTokenFromRequest(request);
-if (!user) return unauthorizedResponse();
+if (!user) return unauthorizedResponse(request);
 
     const { id } = await params;
 

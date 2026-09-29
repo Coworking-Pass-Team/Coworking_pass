@@ -43,7 +43,7 @@ export async function POST(
 ) {
   try {
     const user = await getTokenFromRequest(request);
-    if (!user) return unauthorizedResponse();
+    if (!user) return unauthorizedResponse(request);
 
     if (user.role !== 'HR_ADMIN' && user.role !== 'SUPER_ADMIN') {
       return NextResponse.json(

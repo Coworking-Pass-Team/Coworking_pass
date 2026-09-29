@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getTokenFromRequest, unauthorizedResponse } from '@/lib/auth/verify-token';
+import { getTokenFromRequest, unauthorizedResponse, suspendedResponse } from '@/lib/auth/verify-token';
 import { seedStandardWorkspaces } from '@/lib/seed-data';
 import { getKsaNow, parseDateAndTimeToKsaDate } from '@/lib/time-utils';
 
@@ -8,7 +8,7 @@ export async function GET(request: Request) {
   try {
     const user = await getTokenFromRequest(request);
     if (!user) {
-      return unauthorizedResponse();
+      return unauthorizedResponse(request);
     }
 
     const { searchParams } = new URL(request.url);
@@ -84,7 +84,7 @@ export async function GET(request: Request) {
 export async function POST(request: NextRequest) {
   try {
     const user = await getTokenFromRequest(request);
-    if (!user) return unauthorizedResponse();
+    if (!user) return unauthorizedResponse(request);
 
     const body = await request.json();
     const { userId, workspaceId, sectionId, durationType, durationDetails, durationDays, durationMonths, bookingDate, status = 'CONFIRMED', spaceName, city } = body;
@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User not found.' }, { status: 404 });
     }
     if (bookingOwner.isBanned) {
-      return NextResponse.json({ error: 'This account has been suspended. Please contact platform support.' }, { status: 403 });
+      return suspendedResponse();
     }
 
     const validDurations = ['DAILY', 'MONTHLY', 'YEARLY'];

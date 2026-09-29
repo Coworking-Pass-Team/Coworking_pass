@@ -6,7 +6,7 @@ import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-tok
 
 export async function DELETE(request: Request) {
   const user = await getTokenFromRequest(request);
-  if (!user || user.role !== "SUPER_ADMIN") return unauthorizedResponse();
+  if (!user || user.role !== "SUPER_ADMIN") return unauthorizedResponse(request);
 
   try {
     await ensureDatabaseSchema(true);

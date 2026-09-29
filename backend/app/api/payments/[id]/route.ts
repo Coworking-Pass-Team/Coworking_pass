@@ -9,7 +9,7 @@ export async function GET(
   try {
     const user = await getTokenFromRequest(request);
     if (!user) {
-      return unauthorizedResponse();
+      return unauthorizedResponse(request);
     }
     const { id } = await params;
     const payment = await prisma.payment.findUnique({
@@ -37,7 +37,7 @@ export async function PUT(
   try {
     const user = await getTokenFromRequest(request);
     if (!user) {
-      return unauthorizedResponse();
+      return unauthorizedResponse(request);
     }
     const { id } = await params;
     const body = await request.json();
@@ -84,7 +84,7 @@ export async function DELETE(
   try {
     const user = await getTokenFromRequest(request);
     if (!user) {
-      return unauthorizedResponse();
+      return unauthorizedResponse(request);
     }
     const { id } = await params;
 

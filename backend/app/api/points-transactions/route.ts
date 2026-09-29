@@ -6,7 +6,7 @@ import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-tok
 export async function GET(request: Request) {
   try {
     const user = await getTokenFromRequest(request);
-if (!user) return unauthorizedResponse();
+if (!user) return unauthorizedResponse(request);
     const transactions = await prisma.pointsTransaction.findMany({
       include: {
         user: { select: { name: true, email: true } }

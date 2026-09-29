@@ -21,7 +21,7 @@ import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-tok
 export async function GET(request: Request) {
   try {
     const user = await getTokenFromRequest(request);
-    if (!user) return unauthorizedResponse();
+    if (!user) return unauthorizedResponse(request);
 
 
     const companies = await prisma.company.findMany({
@@ -64,7 +64,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
      const user = await getTokenFromRequest(request);
-    if (!user) return unauthorizedResponse();
+    if (!user) return unauthorizedResponse(request);
 
 
     const { companyName, hrAdminId, totalPassesAllocated } = await request.json();

@@ -6,7 +6,7 @@ import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-tok
 export async function GET(request: Request) {
   try {
     const user = await getTokenFromRequest(request);
-if (!user) return unauthorizedResponse();
+if (!user) return unauthorizedResponse(request);
     const tickets = await prisma.ticket.findMany({
       include: { company: true, user: true, replies: true },
     });
@@ -47,7 +47,7 @@ if (!user) return unauthorizedResponse();
 export async function POST(request: Request) {
   try {
     const user = await getTokenFromRequest(request);
-if (!user) return unauthorizedResponse();
+if (!user) return unauthorizedResponse(request);
     const { companyId, userId, subject } = await request.json();
 
     if (!companyId || !userId || !subject) {

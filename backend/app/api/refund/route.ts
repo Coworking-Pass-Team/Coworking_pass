@@ -38,7 +38,7 @@ import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-tok
 export async function POST(request: NextRequest) {
   try {
     const user = await getTokenFromRequest(request);
-    if (!user) return unauthorizedResponse();
+    if (!user) return unauthorizedResponse(request);
 
     const { bookingId, subscriptionId, userId: bodyUserId } = await request.json()
 

@@ -17,10 +17,13 @@ export function invalidateBanCache(userId: string): void {
   banCache.delete(userId);
 }
 
-async function isUserAllowed(userId: string): Promise<boolean> {
+// Requests rejected because the account is suspended, so the 401/403 response can carry the right code
+const suspendedRequests = new WeakSet<Request>();
+
+async function getUserState(userId: string): Promise<{ banned: boolean; exists: boolean }> {
   const cached = banCache.get(userId);
   if (cached && cached.expires > Date.now()) {
-    return cached.exists && !cached.banned;
+    return cached;
   }
 
   const row = await prisma.user.findUnique({
@@ -29,7 +32,7 @@ async function isUserAllowed(userId: string): Promise<boolean> {
   });
   const state = { banned: !!row?.isBanned, exists: !!row, expires: Date.now() + BAN_CACHE_TTL_MS };
   banCache.set(userId, state);
-  return state.exists && !state.banned;
+  return state;
 }
 
 /**
@@ -57,7 +60,12 @@ export async function getTokenFromRequest(request: Request): Promise<TokenPayloa
       return null;
     }
 
-    if (!(await isUserAllowed(decoded.userId))) {
+    const state = await getUserState(decoded.userId);
+    if (!state.exists) {
+      return null;
+    }
+    if (state.banned) {
+      suspendedRequests.add(request);
       return null;
     }
 
@@ -67,7 +75,21 @@ export async function getTokenFromRequest(request: Request): Promise<TokenPayloa
   }
 }
 
-export function unauthorizedResponse() {
+export const SUSPENDED_MESSAGE =
+  "This account has been suspended by the platform administration. Please contact platform support.";
+
+/** 403 response returned to blocked users; the frontend keys off `code` to show the suspension modal. */
+export function suspendedResponse() {
+  return NextResponse.json(
+    { error: SUSPENDED_MESSAGE, code: "ACCOUNT_SUSPENDED" },
+    { status: 403 }
+  );
+}
+
+export function unauthorizedResponse(request?: Request) {
+  if (request && suspendedRequests.has(request)) {
+    return suspendedResponse();
+  }
   return NextResponse.json(
     { error: "Unauthorized access. Please log in first." },
     { status: 401 }

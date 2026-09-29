@@ -8,7 +8,7 @@ const VALID_PERIOD_TYPES = ["PER_DAY", "PER_MONTH"];
 export async function GET(request: Request) {
   try {
     const user = await getTokenFromRequest(request);
-if (!user) return unauthorizedResponse();
+if (!user) return unauthorizedResponse(request);
     const packages = await prisma.hourlyPackage.findMany({
       include: { section: true },
     });
@@ -58,7 +58,7 @@ if (!user) return unauthorizedResponse();
 export async function POST(request: Request) {
   try {
     const user = await getTokenFromRequest(request);
-if (!user) return unauthorizedResponse();
+if (!user) return unauthorizedResponse(request);
     const { sectionId, packageName, hoursAmount, periodType, price } =
       await request.json();
 

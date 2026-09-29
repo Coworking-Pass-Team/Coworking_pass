@@ -65,7 +65,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const user = await getTokenFromRequest(request);
-if (!user) return unauthorizedResponse();
+if (!user) return unauthorizedResponse(request);
     const { workspaceId, type, name, capacity, dailyRate, monthlyRate, yearlyRate } =
       await request.json();
 
