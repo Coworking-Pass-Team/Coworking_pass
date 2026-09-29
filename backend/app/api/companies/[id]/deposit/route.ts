@@ -42,13 +42,10 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = getTokenFromRequest(request);
-    if (!user && process.env.NODE_ENV === 'production') {
-      return unauthorizedResponse();
-    }
+    const user = await getTokenFromRequest(request);
+    if (!user) return unauthorizedResponse();
 
-    // التحقق من الصلاحيات
-    if (user && user.role !== 'HR_ADMIN' && user.role !== 'SUPER_ADMIN') {
+    if (user.role !== 'HR_ADMIN' && user.role !== 'SUPER_ADMIN') {
       return NextResponse.json(
         { error: 'Unauthorized. Only HR Admin or Super Admin permitted.' },
         { status: 403 }
@@ -58,14 +55,13 @@ export async function POST(
     const { id } = await params
     const { amount } = await request.json()
 
-    if (!amount || amount <= 0) {
+    if (typeof amount !== 'number' || !Number.isFinite(amount) || amount <= 0) {
       return NextResponse.json(
         { error: 'Amount is required and must be greater than zero.' },
         { status: 400 }
       )
     }
 
-    // التحقق من وجود الشركة
     const company = await prisma.company.findUnique({
       where: { id }
     })
@@ -77,7 +73,14 @@ export async function POST(
       )
     }
 
-    // إيداع المبلغ
+    // An HR admin may only fund their own company wallet
+    if (user.role === 'HR_ADMIN' && company.hrAdminId !== user.userId) {
+      return NextResponse.json(
+        { error: 'You can only manage your own company wallet.' },
+        { status: 403 }
+      )
+    }
+
     const updatedCompany = await prisma.company.update({
       where: { id },
       data: { balance: { increment: amount } }

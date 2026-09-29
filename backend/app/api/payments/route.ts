@@ -5,7 +5,8 @@ import { getKsaNow } from '@/lib/time-utils';
 
 export async function GET(request: Request) {
   try {
-    const user = getTokenFromRequest(request);
+    const user = await getTokenFromRequest(request);
+    if (!user) return unauthorizedResponse();
 
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
@@ -14,9 +15,10 @@ export async function GET(request: Request) {
     const method = searchParams.get('method');
 
     const whereClause: any = {};
-    if (userId) {
+    const canViewOthers = user.role === 'SUPER_ADMIN' || user.role === 'PARTNER_ADMIN';
+    if (userId && (canViewOthers || userId === user.userId)) {
       whereClause.userId = userId;
-    } else if (user && user.role !== 'SUPER_ADMIN') {
+    } else if (!canViewOthers) {
       whereClause.userId = user.userId;
     }
 
@@ -76,7 +78,7 @@ export async function GET(request: Request) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const user = getTokenFromRequest(request);
+    const user = await getTokenFromRequest(request);
 
     const body = await request.json();
     const {
@@ -90,16 +92,16 @@ export async function POST(request: NextRequest) {
       gatewayTransactionId,
     } = body;
 
-    let effectiveUserId = userId || (user ? user.userId : null);
-    if (effectiveUserId) {
-      const existingUser = await prisma.user.findUnique({ where: { id: effectiveUserId } });
-      if (!existingUser) {
-        const firstUser = await prisma.user.findFirst();
-        if (firstUser) effectiveUserId = firstUser.id;
-      }
-    } else {
-      const firstUser = await prisma.user.findFirst();
-      if (firstUser) effectiveUserId = firstUser.id;
+    let effectiveUserId = (user && user.role === 'SUPER_ADMIN' && userId) ? userId : (user ? user.userId : null);
+    if (!effectiveUserId) {
+      return unauthorizedResponse();
+    }
+    const existingUser = await prisma.user.findUnique({ where: { id: effectiveUserId }, select: { id: true, isBanned: true } });
+    if (!existingUser) {
+      return NextResponse.json({ error: 'User not found.' }, { status: 404 });
+    }
+    if (existingUser.isBanned) {
+      return NextResponse.json({ error: 'This account has been suspended. Please contact platform support.' }, { status: 403 });
     }
 
     if (!effectiveUserId || amount === undefined || !method || !paymentFor) {

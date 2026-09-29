@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
 export async function POST(request: Request) {
-  const user = getTokenFromRequest(request);
+  const user = await getTokenFromRequest(request);
   if (!user || user.role !== "SUPER_ADMIN") return unauthorizedResponse();
 
   const logs: string[] = [];

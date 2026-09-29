@@ -7,7 +7,7 @@ import { getKsaNow, parseDateAndTimeToKsaDate } from '@/lib/time-utils';
 
 export async function GET(request: Request) {
   try {
-    const user = getTokenFromRequest(request);
+    const user = await getTokenFromRequest(request);
     if (!user) return unauthorizedResponse();
 
     const bookings = await prisma.hourlyBooking.findMany({
@@ -65,7 +65,7 @@ export async function GET(request: Request) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const user = getTokenFromRequest(request);
+    const user = await getTokenFromRequest(request);
 
     const body = await request.json();
     const {
@@ -119,17 +119,17 @@ export async function POST(request: NextRequest) {
       return 'Riyadh';
     };
 
-    let effectiveUserId = userId || (user ? user.userId : null);
+    let effectiveUserId = (user && user.role === 'SUPER_ADMIN' && userId) ? userId : (user ? user.userId : null);
 
-    if (effectiveUserId) {
-      const existingUser = await prisma.user.findUnique({ where: { id: effectiveUserId } });
-      if (!existingUser) {
-        const firstUser = await prisma.user.findFirst();
-        if (firstUser) effectiveUserId = firstUser.id;
-      }
-    } else {
-      const firstUser = await prisma.user.findFirst();
-      if (firstUser) effectiveUserId = firstUser.id;
+    if (!effectiveUserId) {
+      return unauthorizedResponse();
+    }
+    const existingUser = await prisma.user.findUnique({ where: { id: effectiveUserId }, select: { id: true, isBanned: true } });
+    if (!existingUser) {
+      return NextResponse.json({ error: 'User not found.' }, { status: 404 });
+    }
+    if (existingUser.isBanned) {
+      return NextResponse.json({ error: 'This account has been suspended. Please contact platform support.' }, { status: 403 });
     }
 
     if (!effectiveUserId) {

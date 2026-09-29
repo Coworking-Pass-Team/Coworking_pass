@@ -7,8 +7,8 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = getTokenFromRequest(request);
-    if (!user && process.env.NODE_ENV === 'production') {
+    const user = await getTokenFromRequest(request);
+    if (!user) {
       return unauthorizedResponse();
     }
     const { id } = await params;
@@ -35,8 +35,8 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = getTokenFromRequest(request);
-    if (!user && process.env.NODE_ENV === 'production') {
+    const user = await getTokenFromRequest(request);
+    if (!user) {
       return unauthorizedResponse();
     }
     const { id } = await params;
@@ -82,8 +82,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = getTokenFromRequest(request);
-    if (!user && process.env.NODE_ENV === 'production') {
+    const user = await getTokenFromRequest(request);
+    if (!user) {
       return unauthorizedResponse();
     }
     const { id } = await params;

@@ -22,7 +22,7 @@ export async function POST(request: Request) {
   const token = authHeader.split(" ")[1];
   blacklistToken(token);
 
-  const user = getTokenFromRequest(request);
+  const user = await getTokenFromRequest(request);
   if (user) {
     blacklistUser(user.userId);
   }

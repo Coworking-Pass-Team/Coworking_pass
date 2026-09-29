@@ -6,8 +6,8 @@ import { getKsaNow, parseDateAndTimeToKsaDate } from '@/lib/time-utils';
 
 export async function GET(request: Request) {
   try {
-    const user = getTokenFromRequest(request);
-    if (!user && process.env.NODE_ENV === 'production') {
+    const user = await getTokenFromRequest(request);
+    if (!user) {
       return unauthorizedResponse();
     }
 
@@ -18,9 +18,10 @@ export async function GET(request: Request) {
     const status = searchParams.get('status');
 
     const whereClause: any = {};
-    if (userId) {
+    const canViewOthers = user.role === 'SUPER_ADMIN' || user.role === 'PARTNER_ADMIN';
+    if (userId && (canViewOthers || userId === user.userId)) {
       whereClause.userId = userId;
-    } else if (user && user.role !== 'SUPER_ADMIN') {
+    } else if (!canViewOthers) {
       whereClause.userId = user.userId;
     }
 
@@ -82,7 +83,8 @@ export async function GET(request: Request) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const user = getTokenFromRequest(request);
+    const user = await getTokenFromRequest(request);
+    if (!user) return unauthorizedResponse();
 
     const body = await request.json();
     const { userId, workspaceId, sectionId, durationType, durationDetails, durationDays, durationMonths, bookingDate, status = 'CONFIRMED', spaceName, city } = body;
@@ -100,24 +102,15 @@ export async function POST(request: NextRequest) {
       return 'Riyadh';
     };
 
-    let effectiveUserId = userId || (user ? user.userId : null);
+    // Bookings always belong to the authenticated caller; only super admins may book on behalf of others
+    const effectiveUserId: string = user.role === 'SUPER_ADMIN' && userId ? userId : user.userId;
 
-    if (effectiveUserId) {
-      const existingUser = await prisma.user.findUnique({ where: { id: effectiveUserId } });
-      if (!existingUser) {
-        const firstUser = await prisma.user.findFirst();
-        if (firstUser) effectiveUserId = firstUser.id;
-      }
-    } else {
-      const firstUser = await prisma.user.findFirst();
-      if (firstUser) effectiveUserId = firstUser.id;
+    const bookingOwner = await prisma.user.findUnique({ where: { id: effectiveUserId }, select: { id: true, isBanned: true } });
+    if (!bookingOwner) {
+      return NextResponse.json({ error: 'User not found.' }, { status: 404 });
     }
-
-    if (!effectiveUserId) {
-      return NextResponse.json(
-        { error: 'Please log in or provide a valid user ID.' },
-        { status: 401 }
-      );
+    if (bookingOwner.isBanned) {
+      return NextResponse.json({ error: 'This account has been suspended. Please contact platform support.' }, { status: 403 });
     }
 
     const validDurations = ['DAILY', 'MONTHLY', 'YEARLY'];

@@ -4,7 +4,7 @@ import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-tok
 
 export async function GET(request: Request) {
   try {
-    const user = getTokenFromRequest(request);
+    const user = await getTokenFromRequest(request);
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
 
@@ -55,7 +55,7 @@ export async function GET(request: Request) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const user = getTokenFromRequest(request);
+    const user = await getTokenFromRequest(request);
 if (!user) return unauthorizedResponse();
     const { userId, totalEarned = 0, totalRedeemed = 0 } = await request.json()
 

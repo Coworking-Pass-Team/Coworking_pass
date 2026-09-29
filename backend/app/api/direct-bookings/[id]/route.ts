@@ -26,8 +26,8 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = getTokenFromRequest(request);
-    if (!user && process.env.NODE_ENV === 'production') {
+    const user = await getTokenFromRequest(request);
+    if (!user) {
       return unauthorizedResponse();
     }
     const { id } = await params;
@@ -45,6 +45,10 @@ export async function GET(
         { error: 'Booking not found.' },
         { status: 404 }
       );
+    }
+
+    if (user.role !== 'SUPER_ADMIN' && user.role !== 'PARTNER_ADMIN' && booking.userId !== user.userId) {
+      return NextResponse.json({ error: 'You are not allowed to view this booking.' }, { status: 403 });
     }
 
     return NextResponse.json(booking);
@@ -89,12 +93,20 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = getTokenFromRequest(request);
-    if (!user && process.env.NODE_ENV === 'production') {
+    const user = await getTokenFromRequest(request);
+    if (!user) {
       return unauthorizedResponse();
     }
     const { id } = await params;
     const body = await request.json();
+
+    const existing = await prisma.directBooking.findUnique({ where: { id }, select: { userId: true } });
+    if (!existing) {
+      return NextResponse.json({ error: 'Booking not found.' }, { status: 404 });
+    }
+    if (user.role !== 'SUPER_ADMIN' && user.role !== 'PARTNER_ADMIN' && existing.userId !== user.userId) {
+      return NextResponse.json({ error: 'You are not allowed to modify this booking.' }, { status: 403 });
+    }
 
     const updateData: any = {};
     if (body.durationType) updateData.durationType = body.durationType.toUpperCase();
@@ -150,8 +162,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = getTokenFromRequest(request);
-    if (!user && process.env.NODE_ENV === 'production') {
+    const user = await getTokenFromRequest(request);
+    if (!user) {
       return unauthorizedResponse();
     }
     const { id } = await params;
@@ -168,8 +180,12 @@ export async function DELETE(
       );
     }
 
-    //  سياسة الإلغاء (مع bypass للمدير)
-    if (!user || user.role !== 'SUPER_ADMIN') {
+    if (user.role !== 'SUPER_ADMIN' && user.role !== 'PARTNER_ADMIN' && booking.userId !== user.userId) {
+      return NextResponse.json({ error: 'You are not allowed to cancel this booking.' }, { status: 403 });
+    }
+
+    // Cancellation policy (super admins bypass)
+    if (user.role !== 'SUPER_ADMIN') {
       const now = new Date();
       const bookingTime = new Date(booking.bookingDate);
       const hoursDiff = (bookingTime.getTime() - now.getTime()) / (1000 * 60 * 60);

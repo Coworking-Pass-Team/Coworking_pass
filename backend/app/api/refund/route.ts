@@ -37,10 +37,13 @@ import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-tok
  */
 export async function POST(request: NextRequest) {
   try {
-    const user = getTokenFromRequest(request);
+    const user = await getTokenFromRequest(request);
     if (!user) return unauthorizedResponse();
 
-    const { bookingId, subscriptionId, userId } = await request.json()
+    const { bookingId, subscriptionId, userId: bodyUserId } = await request.json()
+
+    // Refunds are credited to the caller; only super admins may act for another user
+    const userId: string | undefined = user.role === 'SUPER_ADMIN' ? bodyUserId : user.userId
 
     if ((!bookingId && !subscriptionId) || !userId) {
       return NextResponse.json(
@@ -67,6 +70,13 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           { error: 'This subscription has already been cancelled and refunded.' },
           { status: 400 }
+        )
+      }
+
+      if (user.role !== 'SUPER_ADMIN' && subscription.userId !== user.userId) {
+        return NextResponse.json(
+          { error: 'You are not allowed to refund this subscription.' },
+          { status: 403 }
         )
       }
 
@@ -169,6 +179,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    if (user.role !== 'SUPER_ADMIN' && booking.userId !== user.userId) {
+      return NextResponse.json(
+        { error: 'You are not allowed to refund this booking.' },
+        { status: 403 }
+      )
+    }
+
     // 2. التحقق من أن الحجز قابل للاسترجاع
     if (booking.status === 'REFUNDED') {
       return NextResponse.json(
@@ -192,7 +209,12 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. حساب المبلغ (افتراضي أو من الحجز)
-    const refundAmount = 100
+    // Refund what was actually paid for this booking; fall back to the legacy flat amount
+    const originalPayment = await prisma.payment.findFirst({
+      where: { referenceId: bookingId, status: 'SUCCESS', NOT: { paymentFor: 'REFUND' } },
+      orderBy: { createdAt: 'desc' },
+    })
+    const refundAmount = originalPayment?.amount ?? 100
 
     // 4. تحديث حالة الحجز إلى REFUNDED
     const updatedBooking = await prisma.directBooking.update({

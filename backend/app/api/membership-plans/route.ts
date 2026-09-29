@@ -93,8 +93,8 @@ export async function GET(request: Request) {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = getTokenFromRequest(request);
-    if (!user && process.env.NODE_ENV === 'production') {
+    const user = await getTokenFromRequest(request);
+    if (!user) {
       return unauthorizedResponse();
     }
 

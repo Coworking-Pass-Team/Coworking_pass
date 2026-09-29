@@ -5,7 +5,7 @@ import { ensureDatabaseSchema } from '@/lib/db-schema-sync';
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
 export async function DELETE(request: Request) {
-  const user = getTokenFromRequest(request);
+  const user = await getTokenFromRequest(request);
   if (!user || user.role !== "SUPER_ADMIN") return unauthorizedResponse();
 
   try {

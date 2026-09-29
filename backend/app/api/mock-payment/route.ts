@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getTokenFromRequest, unauthorizedResponse } from '@/lib/auth/verify-token'
 
 
 
@@ -24,8 +25,13 @@ import { prisma } from '@/lib/prisma'
 // POST: محاكاة عملية دفع
 export async function POST(request: NextRequest) {
   try {
+    const authUser = await getTokenFromRequest(request)
+    if (!authUser) return unauthorizedResponse()
+
     const body = await request.json()
-    const { userId, amount, method = 'VISA', paymentFor, referenceId } = body
+    const { amount, method = 'VISA', paymentFor, referenceId } = body
+    // Payments are always recorded against the authenticated caller unless a super admin specifies a user
+    const userId = authUser.role === 'SUPER_ADMIN' && body.userId ? body.userId : authUser.userId
 
     if (!userId || !amount || !paymentFor) {
       return NextResponse.json(

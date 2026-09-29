@@ -4,7 +4,7 @@ import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-tok
 
 // GET /api/users — List all registered users (for Super Admin dashboard sync)
 export async function GET(request: Request) {
-  const user = getTokenFromRequest(request);
+  const user = await getTokenFromRequest(request);
   if (!user || user.role !== "SUPER_ADMIN") return unauthorizedResponse();
 
   try {

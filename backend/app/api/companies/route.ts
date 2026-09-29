@@ -20,7 +20,7 @@ import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-tok
 // GET /api/companies — عرض كل الشركات
 export async function GET(request: Request) {
   try {
-    const user = getTokenFromRequest(request);
+    const user = await getTokenFromRequest(request);
     if (!user) return unauthorizedResponse();
 
 
@@ -63,7 +63,7 @@ export async function GET(request: Request) {
 // POST /api/companies — إضافة شركة جديدة
 export async function POST(request: Request) {
   try {
-     const user = getTokenFromRequest(request);
+     const user = await getTokenFromRequest(request);
     if (!user) return unauthorizedResponse();
 
 

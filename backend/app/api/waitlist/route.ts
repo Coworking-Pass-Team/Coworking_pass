@@ -18,7 +18,7 @@ import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-tok
 // GET: جلب جميع طلبات الانتظار
 export async function GET(request: Request) {
   try {
-    const user = getTokenFromRequest(request);
+    const user = await getTokenFromRequest(request);
 if (!user) return unauthorizedResponse();
     const waitlist = await prisma.directBooking.findMany({
       where: { status: 'WAITLISTED' },
@@ -41,7 +41,7 @@ if (!user) return unauthorizedResponse();
 // POST: إضافة مستخدم لقائمة الانتظار
 export async function POST(request: NextRequest) {
   try {
-    const user = getTokenFromRequest(request);
+    const user = await getTokenFromRequest(request);
 if (!user) return unauthorizedResponse();
     const body = await request.json()
     const { userId, workspaceId, sectionId, durationType, bookingDate } = body

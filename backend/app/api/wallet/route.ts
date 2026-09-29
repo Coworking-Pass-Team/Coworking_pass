@@ -17,7 +17,7 @@ import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-tok
 // GET: جلب رصيد المحفظة
 export async function GET(request: NextRequest) {
   try {
-    const user = getTokenFromRequest(request);
+    const user = await getTokenFromRequest(request);
     if (!user) return unauthorizedResponse();
 
     const { searchParams } = new URL(request.url)
@@ -28,6 +28,10 @@ export async function GET(request: NextRequest) {
         { error: 'User ID is required.' },
         { status: 400 }
       )
+    }
+
+    if (user.role !== 'SUPER_ADMIN' && user.userId !== userId) {
+      return NextResponse.json({ error: 'You can only view your own wallet.' }, { status: 403 })
     }
 
     // جلب أو إنشاء محفظة للمستخدم
@@ -71,7 +75,7 @@ export async function GET(request: NextRequest) {
 // POST: إيداع/سحب/استرجاع من المحفظة
 export async function POST(request: NextRequest) {
   try {
-    const user = getTokenFromRequest(request);
+    const user = await getTokenFromRequest(request);
     if (!user) return unauthorizedResponse();
 
     const { userId, amount, type, description, referenceId } = await request.json()
@@ -81,6 +85,14 @@ export async function POST(request: NextRequest) {
         { error: 'All fields are required.' },
         { status: 400 }
       )
+    }
+
+    if (typeof amount !== 'number' || !Number.isFinite(amount) || amount <= 0) {
+      return NextResponse.json({ error: 'Amount must be a positive number.' }, { status: 400 })
+    }
+
+    if (user.role !== 'SUPER_ADMIN' && user.userId !== userId) {
+      return NextResponse.json({ error: 'You can only modify your own wallet.' }, { status: 403 })
     }
 
     const typeUpper = (type || '').toString().toUpperCase();
@@ -97,23 +109,27 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // التحقق من الرصيد في حالة السحب
-    if (!isCredit && wallet.balance < amount) {
-      return NextResponse.json(
-        { error: 'Insufficient balance.' },
-        { status: 400 }
-      )
+    // Atomic update: debits are conditional on sufficient balance so concurrent requests cannot overdraw
+    if (!isCredit) {
+      const debited = await prisma.wallet.updateMany({
+        where: { userId, balance: { gte: amount } },
+        data: { balance: { decrement: amount } }
+      })
+      if (debited.count === 0) {
+        return NextResponse.json(
+          { error: 'Insufficient balance.' },
+          { status: 400 }
+        )
+      }
+    } else {
+      await prisma.wallet.update({
+        where: { userId },
+        data: { balance: { increment: amount } }
+      })
     }
 
-    // تحديث الرصيد
-    const newBalance = isCredit
-      ? wallet.balance + amount
-      : wallet.balance - amount
-
-    const updatedWallet = await prisma.wallet.update({
-      where: { userId },
-      data: { balance: newBalance }
-    })
+    const updatedWallet = await prisma.wallet.findUniqueOrThrow({ where: { userId } })
+    const newBalance = updatedWallet.balance
 
     // تسجيل المعاملة
     const transaction = await prisma.walletTransaction.create({

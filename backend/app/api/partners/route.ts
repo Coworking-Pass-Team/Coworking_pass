@@ -5,7 +5,7 @@ import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-tok
 // GET /api/partners — List all partners
 export async function GET(request: Request) {
   try {
-    const user = getTokenFromRequest(request);
+    const user = await getTokenFromRequest(request);
     if (!user) return unauthorizedResponse();
 
     const partners = await prisma.partner.findMany({
@@ -49,7 +49,7 @@ export async function GET(request: Request) {
 // POST /api/partners — إضافة شريك جديد
 export async function POST(request: Request) {
   try {
-    const user = getTokenFromRequest(request);
+    const user = await getTokenFromRequest(request);
 if (!user) return unauthorizedResponse();
     const { brandName, contactEmail, taxNumber, revenueSharePercentage } =
       await request.json();

@@ -27,7 +27,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = getTokenFromRequest(request);
+    const user = await getTokenFromRequest(request);
 if (!user) return unauthorizedResponse();
     const { id } = await params;
     await prisma.ticketReply.delete({ where: { id } });
