@@ -179,6 +179,12 @@ export default function TeamBooking() {
     return null;
   }
 
+  // Blocked users cannot proceed with any booking
+  if (currentUser.isBlocked) {
+    navigate('login');
+    return null;
+  }
+
 
   const hasActiveSubscription = Boolean(currentUser?.hasActivePass);
 

@@ -188,6 +188,12 @@ export default function SpaceDetails() {
     );
   }
 
+  // Blocked users cannot browse or book spaces
+  if (currentUser?.isBlocked) {
+    navigate('login');
+    return null;
+  }
+
 
 
       const crowding = getSpaceCrowding ? getSpaceCrowding(space) : {
