@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/i18n';
 import React, { useState, useEffect } from 'react';
 import {
   Check, ArrowRight, Sparkles, HelpCircle, Building2, User, ChevronDown,
@@ -160,6 +161,7 @@ const faqs = [
 type PaymentMethodType = 'MADA' | 'APPLE_PAY' | 'CREDIT_CARD' | 'CORPORATE_INVOICE' | 'WALLET';
 
 export default function Pricing() {
+  const { t, translateMessage } = useI18n();
   const { currentUser, showToast, navigate, updateCurrentUser, addNotification, withdrawFromWallet, getPassRefundEligibility, cancelSubscriptionPass, addSupportTicket } = useApp();
   
   const isOrg = currentUser?.role === 'organization' || currentUser?.role === 'HR_ADMIN' || (currentUser?.role as any) === 'B2B';
@@ -395,15 +397,15 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
         <div className="text-center max-w-2xl mx-auto mb-8">
           <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-soot/5 border border-soot/10 text-moss text-xs font-semibold mb-3.5">
             <Sparkles size={13} className="text-eucalyptus shrink-0" />
-            <span>Clear, Transparent Memberships</span>
+            <span>{t('pricing.eyebrow')}</span>
           </div>
 
           <h1 className="text-3xl sm:text-5xl font-normal font-serif-display text-soot tracking-tight mb-3">
-            One Pass. Every Destination.
+            {t('pricing.title')}
           </h1>
 
           <p className="text-moss text-xs sm:text-sm leading-relaxed max-w-xl mx-auto">
-            Choose a flexible pass tailored to your workflow. Work across premium spaces throughout Saudi Arabia with zero long-term lease lock-ins.
+            {t('pricing.subtitle')}
           </p>
 
           {/* Segmented Switcher (Only visible to unauthenticated guests) */}
@@ -419,7 +421,7 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
                 }`}
               >
                 <User size={15} />
-                <span>Individual Members</span>
+                <span>{t('pricing.tabIndividual')}</span>
               </button>
 
               <button
@@ -432,7 +434,7 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
                 }`}
               >
                 <Building2 size={15} />
-                <span>Teams & Organizations</span>
+                <span>{t('pricing.tabTeams')}</span>
               </button>
             </div>
           ) : (
@@ -445,7 +447,7 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
               ) : (
                 <>
                   <User size={15} className="text-emerald-700 shrink-0" />
-                  <span>Individual Membership Plans</span>
+                  <span>{t('pricing.individualPlans')}</span>
                 </>
               )}
             </div>
@@ -463,15 +465,15 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
                 <div className="flex items-center gap-2.5">
                   <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100/90 px-2.5 py-0.5 rounded-full border border-emerald-300 flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
-                    Active Subscription
+                    {t('pricing.activeSub')}
                   </span>
-                  <span className="text-xs text-moss font-medium">ZATCA Compliant</span>
+                  <span className="text-xs text-moss font-medium">{t('pricing.zatca')}</span>
                 </div>
                 <h2 className="text-xl sm:text-2xl font-serif-display text-soot mt-1">
                   {currentTier || (isOrg ? 'Team Pass' : 'Monthly Pass')}
                 </h2>
                 <p className="text-xs text-moss mt-0.5">
-                  Full pass privileges active across verified coworking destinations in Saudi Arabia.
+                  {t('pricing.activeSubBody')}
                 </p>
               </div>
             </div>
@@ -482,14 +484,14 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
                 onClick={() => setShowManageModal(true)}
                 className="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-white border border-soot/15 text-soot hover:bg-plaster-dark/40 shadow-2xs transition-all cursor-pointer whitespace-nowrap"
               >
-                Manage Plan
+                {t('pricing.managePlan')}
               </button>
               <button
                 type="button"
                 onClick={() => navigate(isOrg ? 'org-dashboard' : 'ind-dashboard')}
                 className="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-soot text-plaster hover:bg-moss shadow-2xs transition-all cursor-pointer whitespace-nowrap"
               >
-                Go to Dashboard
+                {t('pricing.goDashboard')}
               </button>
             </div>
           </div>
@@ -520,14 +522,14 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
                   <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-10">
                     <span className="bg-emerald-700 text-white text-[11px] font-bold px-4 py-1 rounded-full uppercase tracking-wider shadow-md flex items-center gap-1.5 whitespace-nowrap">
                       <CheckCircle2 size={12} className="text-emerald-200 shrink-0" />
-                      <span>Your Current Plan</span>
+                      <span>{t('pricing.yourCurrent')}</span>
                     </span>
                   </div>
                 ) : isFeatured ? (
                   <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-10">
                     <span className="bg-soot text-plaster text-[11px] font-bold px-4 py-1 rounded-full uppercase tracking-wider shadow-md flex items-center gap-1.5 whitespace-nowrap">
                       <Sparkles size={11} className="text-eucalyptus shrink-0" />
-                      <span>{plan.badge || 'Recommended'}</span>
+                      <span>{translateMessage(plan.badge || 'Recommended')}</span>
                     </span>
                   </div>
                 ) : null}
@@ -536,14 +538,14 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
                   <div className="mb-5 pb-5 border-b border-soot/10">
                     {'tier' in plan && plan.tier && (
                       <span className="text-[11px] font-bold uppercase tracking-wider block mb-1 text-moss">
-                        {plan.tier}
+                        {translateMessage(plan.tier)}
                       </span>
                     )}
                     <h2 className="text-2xl font-serif-display font-normal text-soot">
-                      {plan.name}
+                      {translateMessage(plan.name)}
                     </h2>
                     <p className="text-xs mt-1.5 leading-relaxed text-moss">
-                      {plan.desc}
+                      {translateMessage(plan.desc)}
                     </p>
                   </div>
 
@@ -551,18 +553,18 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
                     {plan.price !== null ? (
                       <div className="flex items-baseline gap-1">
                         <span className="text-3xl sm:text-4xl font-normal font-serif-display tracking-tight text-soot">
-                          SAR {plan.price.toLocaleString()}
+                          {t('common.sar')} {plan.price.toLocaleString()}
                         </span>
-                        <span className="text-xs font-medium text-moss">{plan.period}</span>
+                        <span className="text-xs font-medium text-moss">{translateMessage(plan.period)}</span>
                       </div>
                     ) : (
                       <div className="text-2xl font-serif-display font-normal text-soot">
-                        Custom Quote
+                        {t('pricing.customQuote')}
                       </div>
                     )}
                     {plan.price !== null && (
                       <span className="text-[10px] text-moss block mt-1">
-                        Includes 15% Saudi VAT (ZATCA compliant)
+                        {t('pricing.includesVat')}
                       </span>
                     )}
                   </div>
@@ -570,14 +572,14 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
                   {/* Feature Checklist */}
                   <div className="space-y-3 mb-8">
                     <span className="text-[11px] font-semibold uppercase tracking-wider block mb-2 text-moss">
-                      Plan Inclusions
+                      {t('pricing.inclusions')}
                     </span>
                     {plan.features.map(f => (
                       <div key={f} className="flex items-start gap-2.5 text-xs sm:text-sm font-medium text-soot">
                         <div className="w-4 h-4 rounded-full bg-eucalyptus/25 text-soot flex items-center justify-center shrink-0 mt-0.5">
                           <Check size={11} className="stroke-[3]" />
                         </div>
-                        <span className="leading-snug">{f}</span>
+                        <span className="leading-snug">{translateMessage(f)}</span>
                       </div>
                     ))}
                   </div>
@@ -603,21 +605,21 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
                     {isCurrent ? (
                       <>
                         <CheckCircle2 size={15} className="text-emerald-700" />
-                        <span>Manage Current Plan</span>
+                        <span>{t('pricing.manageCurrent')}</span>
                       </>
                     ) : isUpgrade ? (
                       <>
-                        <span>Upgrade to {plan.name}</span>
+                        <span>{t('pricing.upgradeTo', { name: translateMessage(plan.name) })}</span>
                         <ArrowUpRight size={15} />
                       </>
                     ) : isSwitch ? (
                       <>
-                        <span>Switch to {plan.name}</span>
+                        <span>{t('pricing.switchTo', { name: translateMessage(plan.name) })}</span>
                         <ArrowRight size={14} />
                       </>
                     ) : (
                       <>
-                        <span>{plan.cta || 'Select Plan'}</span>
+                        <span>{translateMessage(plan.cta || 'Select Plan')}</span>
                         <ArrowRight size={14} />
                       </>
                     )}
@@ -642,13 +644,13 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
               style={{ color: 'var(--soot, #2D3536)' }}
               className="text-2xl sm:text-3xl font-serif-display font-normal"
             >
-              Frequently Asked Questions
+              {t('pricing.faqTitle')}
             </h2>
             <p 
               style={{ color: 'var(--moss, #697C70)' }}
               className="text-xs sm:text-sm mt-1.5 font-medium"
             >
-              Click on any question to view details
+              {t('pricing.faqHint')}
             </p>
           </div>
 
@@ -677,7 +679,7 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
                       style={{ color: 'var(--soot, #2D3536)' }}
                       className="font-serif-display text-base sm:text-lg font-normal tracking-wide"
                     >
-                      {item.q}
+                      {translateMessage(item.q)}
                     </span>
                     <ChevronDown
                       size={20}
@@ -691,7 +693,7 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
                       style={{ color: 'var(--moss, #697C70)' }}
                       className="mt-4 pt-3.5 border-t border-soot/10 text-xs sm:text-sm leading-relaxed"
                     >
-                      {item.a}
+                      {translateMessage(item.a)}
                     </div>
                   )}
                 </div>
@@ -707,8 +709,8 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
         <Modal
           open={Boolean(checkoutPlan)}
           onClose={() => setCheckoutPlan(null)}
-          title="Complete Your Membership"
-          subtitle={`Activating ${checkoutPlan.name} for ${currentUser?.name || 'your account'}`}
+          title={t('pricing.completeMembership')}
+          subtitle={t('pricing.activating', { plan: translateMessage(checkoutPlan.name), user: currentUser?.name || t('pricing.yourAccount') })}
           size="lg"
           footer={
             <>
@@ -718,7 +720,7 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
                 disabled={isProcessingPayment}
                 className="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold border border-soot/15 text-soot hover:bg-soot/5 cursor-pointer disabled:opacity-50"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 type="button"
@@ -729,11 +731,11 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
                 {isProcessingPayment ? (
                   <>
                     <RefreshCw size={14} className="animate-spin" />
-                    <span>Processing Payment...</span>
+                    <span>{t('pricing.processing')}</span>
                   </>
                 ) : (
                   <>
-                    <span>Confirm & Pay SAR {checkoutPlan.price.toLocaleString()}</span>
+                    <span>{t('pricing.confirmPay', { currency: t('common.sar'), amount: checkoutPlan.price.toLocaleString() })}</span>
                     <ShieldCheck size={16} />
                   </>
                 )}
@@ -747,30 +749,30 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
               <div className="flex items-center justify-between">
                 <div>
                   <span className="text-xs uppercase font-bold text-moss tracking-wider block">
-                    Selected Plan
+                    {t('pricing.selectedPlan')}
                   </span>
                   <h4 className="text-xl font-serif-display text-soot mt-0.5">
-                    {checkoutPlan.name}
+                    {translateMessage(checkoutPlan.name)}
                   </h4>
-                  <p className="text-xs text-moss mt-0.5">{checkoutPlan.desc}</p>
+                  <p className="text-xs text-moss mt-0.5">{translateMessage(checkoutPlan.desc)}</p>
                 </div>
-                <div className="text-right">
+                <div className="text-end">
                   <span className="text-2xl font-serif-display font-semibold text-soot">
-                    SAR {checkoutPlan.price.toLocaleString()}
+                    {t('common.sar')} {checkoutPlan.price.toLocaleString()}
                   </span>
-                  <span className="text-xs text-moss block">{checkoutPlan.period}</span>
+                  <span className="text-xs text-moss block">{translateMessage(checkoutPlan.period)}</span>
                 </div>
               </div>
 
               {/* Inclusions summary */}
               <div className="mt-4 pt-4 border-t border-soot/8 space-y-1.5">
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-moss block">
-                  Included Privileges
+                  {t('pricing.includedPrivileges')}
                 </span>
                 {checkoutPlan.features.slice(0, 3).map((f, i) => (
                   <div key={i} className="flex items-center gap-2 text-xs text-soot">
                     <Check size={13} className="text-emerald-600 shrink-0" />
-                    <span>{f}</span>
+                    <span>{translateMessage(f)}</span>
                   </div>
                 ))}
               </div>
@@ -779,21 +781,21 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
             {/* Price & Saudi VAT Breakdown */}
             <div className="bg-white border border-soot/10 rounded-2xl p-4 space-y-2.5 text-xs">
               <div className="flex justify-between text-moss">
-                <span>Subtotal (Excl. VAT)</span>
+                <span>{t('pricing.subtotalExcl')}</span>
                 <span className="font-semibold text-soot">
-                  SAR {(checkoutPlan.price / 1.15).toFixed(2)}
+                  {t('common.sar')} {(checkoutPlan.price / 1.15).toFixed(2)}
                 </span>
               </div>
               <div className="flex justify-between text-moss">
-                <span>Saudi VAT (15% ZATCA Compliant)</span>
+                <span>{t('pricing.vatLine')}</span>
                 <span className="font-semibold text-soot">
-                  SAR {(checkoutPlan.price - (checkoutPlan.price / 1.15)).toFixed(2)}
+                  {t('common.sar')} {(checkoutPlan.price - (checkoutPlan.price / 1.15)).toFixed(2)}
                 </span>
               </div>
               <div className="pt-2 border-t border-soot/10 flex justify-between text-sm font-bold text-soot">
-                <span className="font-serif-display text-base">Total Due Today</span>
+                <span className="font-serif-display text-base">{t('pricing.totalDue')}</span>
                 <span className="font-serif-display text-lg text-emerald-800">
-                  SAR {checkoutPlan.price.toLocaleString()}
+                  {t('common.sar')} {checkoutPlan.price.toLocaleString()}
                 </span>
               </div>
             </div>
@@ -801,7 +803,7 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
             {/* Payment Method Selector */}
             <div className="space-y-3">
               <label className="text-xs font-semibold text-soot uppercase tracking-wider block">
-                Select Payment Method
+                {t('pricing.selectPayment')}
               </label>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -809,7 +811,7 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
                 <button
                   type="button"
                   onClick={() => setSelectedPaymentMethod('MADA')}
-                  className={`p-3.5 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${
+                  className={`p-3.5 rounded-xl border text-start flex items-center justify-between transition-all cursor-pointer ${
                     selectedPaymentMethod === 'MADA'
                       ? 'border-emerald-700 bg-emerald-50/60 ring-2 ring-emerald-500/20 shadow-2xs'
                       : 'border-soot/15 bg-white hover:bg-plaster-dark/20'
@@ -820,8 +822,8 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
                       mada
                     </div>
                     <div>
-                      <div className="text-xs font-semibold text-soot">mada Debit Card</div>
-                      <div className="text-[10px] text-moss">Saudi local card (0% fee)</div>
+                      <div className="text-xs font-semibold text-soot">{t('pricing.mada')}</div>
+                      <div className="text-[10px] text-moss">{t('pricing.madaDesc')}</div>
                     </div>
                   </div>
                   {selectedPaymentMethod === 'MADA' && (
@@ -833,7 +835,7 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
                 <button
                   type="button"
                   onClick={() => setSelectedPaymentMethod('APPLE_PAY')}
-                  className={`p-3.5 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${
+                  className={`p-3.5 rounded-xl border text-start flex items-center justify-between transition-all cursor-pointer ${
                     selectedPaymentMethod === 'APPLE_PAY'
                       ? 'border-emerald-700 bg-emerald-50/60 ring-2 ring-emerald-500/20 shadow-2xs'
                       : 'border-soot/15 bg-white hover:bg-plaster-dark/20'
@@ -844,8 +846,8 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
                       Pay
                     </div>
                     <div>
-                      <div className="text-xs font-semibold text-soot">Apple Pay</div>
-                      <div className="text-[10px] text-moss">Fast &amp; encrypted checkout</div>
+                      <div className="text-xs font-semibold text-soot">{t('pricing.applePay')}</div>
+                      <div className="text-[10px] text-moss">{t('pricing.applePayDesc')}</div>
                     </div>
                   </div>
                   {selectedPaymentMethod === 'APPLE_PAY' && (
@@ -857,7 +859,7 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
                 <button
                   type="button"
                   onClick={() => setSelectedPaymentMethod('WALLET')}
-                  className={`p-3.5 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${
+                  className={`p-3.5 rounded-xl border text-start flex items-center justify-between transition-all cursor-pointer ${
                     selectedPaymentMethod === 'WALLET'
                       ? 'border-emerald-700 bg-emerald-50/60 ring-2 ring-emerald-500/20 shadow-2xs'
                       : 'border-soot/15 bg-white hover:bg-plaster-dark/20'
@@ -868,8 +870,8 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
                       <Wallet size={16} />
                     </div>
                     <div>
-                      <div className="text-xs font-semibold text-soot">Digital Wallet Balance</div>
-                      <div className="text-[10px] text-moss">Available: SAR {(currentUser?.walletBalance || 0).toLocaleString()}</div>
+                      <div className="text-xs font-semibold text-soot">{t('bf.walletBalance')}</div>
+                      <div className="text-[10px] text-moss">{t('pricing.walletAvailable', { currency: t('common.sar'), amount: (currentUser?.walletBalance || 0).toLocaleString() })}</div>
                     </div>
                   </div>
                   {selectedPaymentMethod === 'WALLET' && (
@@ -881,7 +883,7 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
                 <button
                   type="button"
                   onClick={() => setSelectedPaymentMethod('CREDIT_CARD')}
-                  className={`p-3.5 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${
+                  className={`p-3.5 rounded-xl border text-start flex items-center justify-between transition-all cursor-pointer ${
                     selectedPaymentMethod === 'CREDIT_CARD'
                       ? 'border-emerald-700 bg-emerald-50/60 ring-2 ring-emerald-500/20 shadow-2xs'
                       : 'border-soot/15 bg-white hover:bg-plaster-dark/20'
@@ -892,8 +894,8 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
                       <CreditCard size={18} />
                     </div>
                     <div>
-                      <div className="text-xs font-semibold text-soot">Credit Card</div>
-                      <div className="text-[10px] text-moss">Visa / Mastercard</div>
+                      <div className="text-xs font-semibold text-soot">{t('pricing.creditCard')}</div>
+                      <div className="text-[10px] text-moss">{t('pricing.visaMc')}</div>
                     </div>
                   </div>
                   {selectedPaymentMethod === 'CREDIT_CARD' && (
@@ -906,7 +908,7 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
                   <button
                     type="button"
                     onClick={() => setSelectedPaymentMethod('CORPORATE_INVOICE')}
-                    className={`p-3.5 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${
+                    className={`p-3.5 rounded-xl border text-start flex items-center justify-between transition-all cursor-pointer ${
                       selectedPaymentMethod === 'CORPORATE_INVOICE'
                         ? 'border-emerald-700 bg-emerald-50/60 ring-2 ring-emerald-500/20 shadow-2xs'
                         : 'border-soot/15 bg-white hover:bg-plaster-dark/20'
@@ -917,8 +919,8 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
                         <Building2 size={16} />
                       </div>
                       <div>
-                        <div className="text-xs font-semibold text-soot">Corporate Invoice</div>
-                        <div className="text-[10px] text-moss">30-day net payment terms</div>
+                        <div className="text-xs font-semibold text-soot">{t('pricing.corpInvoice')}</div>
+                        <div className="text-[10px] text-moss">{t('pricing.net30')}</div>
                       </div>
                     </div>
                     {selectedPaymentMethod === 'CORPORATE_INVOICE' && (
@@ -932,7 +934,7 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
             {/* Security Guarantee Note */}
             <div className="flex items-center gap-2 text-[11px] text-moss bg-soot/5 p-3 rounded-xl border border-soot/8">
               <ShieldCheck size={16} className="text-emerald-700 shrink-0" />
-              <span>Payments are encrypted with 256-bit SSL and comply with Saudi Central Bank (SAMA) standards.</span>
+              <span>{t('pricing.secureNote')}</span>
             </div>
           </div>
         </Modal>
@@ -943,8 +945,8 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
         <Modal
           open={showEnterpriseModal}
           onClose={() => setShowEnterpriseModal(false)}
-          title="Request an Enterprise Quote"
-          subtitle="Tell us about your team and our advisory team will prepare a tailored proposal"
+          title={t('pricing.enterpriseTitle')}
+          subtitle={t('pricing.enterpriseSubtitle')}
           size="md"
           footer={
             <>
@@ -953,24 +955,24 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
                 onClick={() => setShowEnterpriseModal(false)}
                 className="px-4 py-2.5 rounded-xl border border-soot/12 text-xs font-semibold text-soot hover:bg-plaster-dark/40 cursor-pointer"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 type="button"
                 onClick={submitEnterpriseInquiry}
                 className="px-4 py-2.5 rounded-xl bg-soot text-plaster text-xs font-semibold hover:bg-moss cursor-pointer"
               >
-                Send Request
+                {t('pricing.sendRequest')}
               </button>
             </>
           }
         >
           <div className="space-y-3">
             {([
-              ['Company name *', 'company', 'text'],
-              ['Contact name', 'contact', 'text'],
-              ['Contact email *', 'email', 'email'],
-              ['Desks required', 'desks', 'number'],
+              [t('pricing.ent.company'), 'company', 'text'],
+              [t('pricing.ent.contact'), 'contact', 'text'],
+              [t('pricing.ent.email'), 'email', 'email'],
+              [t('pricing.ent.desks'), 'desks', 'number'],
             ] as const).map(([label, key, type]) => (
               <div key={key}>
                 <label className="block text-[11px] font-semibold uppercase tracking-wider text-moss mb-1">{label}</label>
@@ -984,7 +986,7 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
               </div>
             ))}
             <div>
-              <label className="block text-[11px] font-semibold uppercase tracking-wider text-moss mb-1">Requirements</label>
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-moss mb-1">{t('pricing.requirements')}</label>
               <textarea
                 rows={3}
                 value={enterpriseForm.notes}
@@ -1004,8 +1006,8 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
             setShowManageModal(false);
             setShowCancelConfirm(false);
           }}
-          title="Manage Active Subscription"
-          subtitle="View details, check cancellation refund policy, or manage plan tier"
+          title={t('pricing.manageActive')}
+          subtitle={t('pricing.manageSubtitle')}
           size="md"
           footer={
             <>
@@ -1017,7 +1019,7 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
                 }}
                 className="px-4 py-2 rounded-xl text-xs font-semibold border border-soot/15 text-soot hover:bg-soot/5 cursor-pointer"
               >
-                Close
+                {t('common.close')}
               </button>
               {showCancelConfirm ? (
                 <div className="flex items-center gap-2">
@@ -1026,7 +1028,7 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
                     onClick={() => setShowCancelConfirm(false)}
                     className="px-3 py-2 rounded-xl text-xs font-semibold border border-soot/15 text-moss hover:bg-soot/5 cursor-pointer"
                   >
-                    Back
+                    {t('common.back')}
                   </button>
                   <button
                     type="button"
@@ -1037,8 +1039,8 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
                     }`}
                   >
                     {isCancelling ? 'Processing...' : refundEligibility?.isEligible
-                      ? `Confirm & Refund SAR ${refundEligibility.refundAmount.toLocaleString()}`
-                      : 'Confirm Cancellation (No Refund)'}
+                      ? t('pricing.confirmRefund', { currency: t('common.sar'), amount: refundEligibility.refundAmount.toLocaleString() })
+                      : t('pricing.confirmCancelNoRefund')}
                   </button>
                 </div>
               ) : (
@@ -1052,8 +1054,8 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
                   }`}
                 >
                   {refundEligibility?.isEligible
-                    ? `Cancel & Refund SAR ${refundEligibility.refundAmount.toLocaleString()}`
-                    : 'Cancel Subscription'}
+                    ? t('pricing.cancelRefund', { currency: t('common.sar'), amount: refundEligibility.refundAmount.toLocaleString() })
+                    : t('pricing.cancelSubscription')}
                 </button>
               )}
             </>
@@ -1067,7 +1069,7 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
                 </div>
                 <div>
                   <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider block">
-                    Current Status: Active
+                    {t('pricing.currentStatus')}
                   </span>
                   <div className="text-base font-serif-display text-soot">
                     {currentTier || (isOrg ? 'Team Pass' : 'Monthly Pass')}
@@ -1075,7 +1077,7 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
                 </div>
               </div>
               <span className="text-xs text-emerald-900 font-semibold bg-white px-2.5 py-1 rounded-full border border-emerald-200 shadow-2xs">
-                Auto-Renewing
+                {t('pricing.autoRenewing')}
               </span>
             </div>
 
@@ -1086,7 +1088,7 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
                   <div className="flex items-center gap-2">
                     <ShieldCheck size={16} className={refundEligibility.isEligible ? 'text-emerald-700' : 'text-amber-600'} />
                     <span className="font-semibold text-xs text-soot">
-                      Cancellation & Wallet Refund Policy
+                      {t('pricing.refundPolicy')}
                     </span>
                   </div>
                   <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider ${
@@ -1108,7 +1110,7 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
                     )}
                     <div className="min-w-0 flex-1">
                       <div className="font-semibold text-soot flex items-center justify-between">
-                        <span>Condition 1: Within First 3 Days of Purchase</span>
+                        <span>{t('pricing.cond1')}</span>
                         <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
                           refundEligibility.isWithin3Days ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
                         }`}>
@@ -1117,8 +1119,8 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
                       </div>
                       <p className="text-moss text-[11px] mt-0.5">
                         {refundEligibility.isWithin3Days
-                          ? `Pass purchased ${refundEligibility.hoursPassed}h ago (${refundEligibility.hoursRemainingInWindow}h remaining to cancel with refund)`
-                          : `Pass purchased ${refundEligibility.daysPassed} days ago (exceeds 3-day / 72-hour policy limit)`}
+                          ? t('pricing.purchasedHoursAgo', { hours: refundEligibility.hoursPassed, remaining: refundEligibility.hoursRemainingInWindow })
+                          : t('pricing.purchasedDaysAgo', { days: refundEligibility.daysPassed })}
                       </p>
                     </div>
                   </div>
@@ -1132,7 +1134,7 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
                     )}
                     <div className="min-w-0 flex-1">
                       <div className="font-semibold text-soot flex items-center justify-between">
-                        <span>Condition 2: Pass Has NOT Been Used</span>
+                        <span>{t('pricing.cond2')}</span>
                         <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
                           !refundEligibility.isUsed ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
                         }`}>
@@ -1141,8 +1143,8 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
                       </div>
                       <p className="text-moss text-[11px] mt-0.5">
                         {!refundEligibility.isUsed
-                          ? 'Zero reservations or hours consumed with this pass'
-                          : refundEligibility.usedReasons.join(' · ')}
+                          ? t('pricing.zeroUsage')
+                          : refundEligibility.usedReasons.map((x: string) => translateMessage(x)).join(' · ')}
                       </p>
                     </div>
                   </div>
@@ -1152,27 +1154,27 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
                 {refundEligibility.isEligible ? (
                   <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-950 flex items-center justify-between gap-3">
                     <div className="space-y-0.5">
-                      <span className="font-bold block text-emerald-900">Eligible for 100% Wallet Refund</span>
+                      <span className="font-bold block text-emerald-900">{t('pricing.eligibleRefund')}</span>
                       <p className="text-[11px] text-emerald-800">
-                        Cancelling will credit the full subscription amount directly into your digital wallet.
+                        {t('pricing.refundBody')}
                       </p>
                     </div>
-                    <div className="text-right shrink-0">
-                      <span className="text-[10px] uppercase font-bold text-emerald-800 block">Refund to Wallet</span>
-                      <span className="text-base font-bold text-emerald-950">SAR {refundEligibility.refundAmount.toLocaleString()}</span>
+                    <div className="text-end shrink-0">
+                      <span className="text-[10px] uppercase font-bold text-emerald-800 block">{t('pricing.refundToWallet')}</span>
+                      <span className="text-base font-bold text-emerald-950">{t('common.sar')} {refundEligibility.refundAmount.toLocaleString()}</span>
                     </div>
                   </div>
                 ) : (
                   <div className="p-3 bg-amber-50/90 rounded-xl border border-amber-200 text-xs text-amber-950 flex items-center justify-between gap-3">
                     <div className="space-y-0.5">
-                      <span className="font-bold block text-amber-900">Non-Refundable Cancellation</span>
+                      <span className="font-bold block text-amber-900">{t('myBookings.nonRefundable')}</span>
                       <p className="text-[11px] text-amber-800">
-                        As per policy, passes are non-refundable if used or after 3 days. SAR 0 will be refunded upon cancellation.
+                        {t('pricing.refundZero', { currency: t('common.sar') })}
                       </p>
                     </div>
-                    <div className="text-right shrink-0">
-                      <span className="text-[10px] uppercase font-bold text-amber-800 block">Refund to Wallet</span>
-                      <span className="text-base font-bold text-amber-950">SAR 0</span>
+                    <div className="text-end shrink-0">
+                      <span className="text-[10px] uppercase font-bold text-amber-800 block">{t('pricing.refundToWallet')}</span>
+                      <span className="text-base font-bold text-amber-950">{t('common.sar')} 0</span>
                     </div>
                   </div>
                 )}
@@ -1181,17 +1183,17 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
 
             <div className="bg-white border border-soot/10 rounded-2xl p-4 space-y-3 text-xs">
               <div className="flex justify-between">
-                <span className="text-moss">Member Name</span>
+                <span className="text-moss">{t('pricing.memberName')}</span>
                 <span className="font-semibold text-soot">{currentUser?.name}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-moss">Account Type</span>
+                <span className="text-moss">{t('pricing.accountType')}</span>
                 <span className="font-semibold text-soot">
                   {isOrg ? 'HR Admin (Organization)' : 'Individual Member (B2C)'}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-moss">Next Billing Date</span>
+                <span className="text-moss">{t('pricing.nextBilling')}</span>
                 <span className="font-semibold text-soot">
                   {new Date(Date.now() + 30 * 86400000).toLocaleDateString('en-US', {
                     month: 'short',
@@ -1201,7 +1203,7 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-moss">Payment Method</span>
+                <span className="text-moss">{t('pricing.paymentMethod')}</span>
                 <span className="font-semibold text-soot flex items-center gap-1">
                   <CreditCard size={13} /> mada (Ending in 4112)
                 </span>
@@ -1214,7 +1216,7 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
                 {isOrg ? 'Organization Plans Available to Switch' : 'Individual Plans Available to Switch'}
               </span>
               <p className="text-moss text-[11px]">
-                You can switch between plans for your {isOrg ? 'organization' : 'individual'} account anytime without losing your active days:
+                {t('pricing.switchBetween', { type: isOrg ? t('pricing.typeOrg') : t('pricing.typeInd') })}
               </p>
               <div className="space-y-2 pt-1">
                 {activePlans.filter(p => !isPlanCurrent(p)).map(p => {
@@ -1227,7 +1229,7 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
                           {p.tier && <span className="text-[10px] text-moss">({p.tier})</span>}
                         </div>
                         <div className="text-[11px] text-moss mt-0.5">
-                          {p.price ? `SAR ${p.price.toLocaleString()} ${p.period}` : p.period}
+                          {p.price ? `${t('common.sar')} ${p.price.toLocaleString()} ${p.period}` : p.period}
                         </div>
                       </div>
                       <button

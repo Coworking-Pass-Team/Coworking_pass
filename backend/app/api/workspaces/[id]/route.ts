@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { isValidHhmm } from "@/lib/operating-hours";
+import { pickBilingualFields } from "@/lib/bilingual";
 import { canViewHiddenWorkspace } from "@/lib/workspace-visibility";
 import { prisma } from "@/lib/prisma";
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
@@ -156,6 +157,7 @@ export async function PUT(
     if (isValidHhmm(data.closingTime)) workspaceData.closingTime = data.closingTime.trim();
     if (typeof data.is24Hours === 'boolean') workspaceData.is24Hours = data.is24Hours;
     if (typeof data.isVisible === 'boolean') workspaceData.isVisible = data.isVisible;
+    Object.assign(workspaceData, pickBilingualFields(data));
 
     const workspace = await prisma.workspace.update({
       where: { id },

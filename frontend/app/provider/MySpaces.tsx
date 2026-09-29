@@ -1,5 +1,7 @@
 'use client';
 
+import { useI18n } from '@/i18n';
+import { useSpaceText } from '@/i18n/space-text';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import {
   Search,
@@ -51,6 +53,8 @@ const CITIES = SAUDI_CITIES;
 const TYPES = ALL_SPACE_TYPES;
 
 export default function ProviderMySpaces() {
+  const { t } = useI18n();
+  const st = useSpaceText();
   const { nav, currentUser, spaces, partners, addSpace, updateSpace, toggleSpaceVisibility, deleteSpace, amenityRequests, requestCustomAmenity, getApprovedAmenities, fetchAmenities } = useApp();
   const [query, setQuery] = useState('');
   const [filterCity, setFilterCity] = useState('');
@@ -168,7 +172,7 @@ export default function ProviderMySpaces() {
 
   const filteredSpaces = mySpaces.filter((s) => {
     const q = query.trim().toLowerCase();
-    if (q && !s.name.toLowerCase().includes(q) && !s.city.toLowerCase().includes(q)) return false;
+    if (q && !s.name.toLowerCase().includes(q) && !(s.nameAr || '').toLowerCase().includes(q) && !s.city.toLowerCase().includes(q)) return false;
     if (filterCity && s.city !== filterCity) return false;
     if (categoryFilter !== 'all' && getSpaceCategory(s) !== categoryFilter) return false;
     return true;
@@ -239,10 +243,10 @@ export default function ProviderMySpaces() {
 
   const handleSave = () => {
     const errs: Record<string, string> = {};
-    if (!form.name || !form.name.trim()) errs.name = 'Workspace name is required.';
-    if (!form.city || !form.city.trim()) errs.city = 'City selection is required.';
-    if (!form.address || !form.address.trim()) errs.address = 'Address / Location is required.';
-    if (!form.is24Hours && (form.openingTime || '08:00') >= (form.closingTime || '22:00')) errs.openingTime = 'Closing time must be after opening time.';
+    if (!form.name || !form.name.trim()) errs.name = t('mySpaces.errName');
+    if (!form.city || !form.city.trim()) errs.city = t('mySpaces.errCity');
+    if (!form.address || !form.address.trim()) errs.address = t('mySpaces.errAddress');
+    if (!form.is24Hours && (form.openingTime || '08:00') >= (form.closingTime || '22:00')) errs.openingTime = t('mySpaces.errHours');
 
     if (Object.keys(errs).length > 0) {
       setFormErrors(errs);
@@ -461,17 +465,17 @@ export default function ProviderMySpaces() {
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <span className="text-xs font-semibold tracking-wider uppercase text-moss block mb-1">
-            Space Management
+            {t('mySpaces.eyebrow')}
           </span>
           <h1 className="text-3xl sm:text-4xl text-soot font-normal font-serif-display">
-            My Workspaces
+            {t('mySpaces.title')}
           </h1>
-          <p className="text-moss text-sm mt-1">Manage and update your listed workspace properties.</p>
+          <p className="text-moss text-sm mt-1">{t('mySpaces.subtitle')}</p>
         </div>
 
         <button type="button" onClick={openAdd} className="btn-primary">
           <Plus size={17} className="text-[#FAF8F5]/80" />
-          <span>Add space</span>
+          <span>{t('mySpaces.addSpace')}</span>
         </button>
       </div>
 
@@ -479,28 +483,28 @@ export default function ProviderMySpaces() {
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         {[
           {
-            label: 'Total Spaces',
+            label: t('mySpaces.totalSpaces'),
             count: mySpaces.length,
             badge: 'bg-soot/10 text-soot border border-soot/15',
             icon: Building2,
             iconBg: 'bg-soot text-plaster border-soot/20',
           },
           {
-            label: 'Visible Listings',
+            label: t('mySpaces.visibleListings'),
             count: visibleCount,
             badge: 'bg-emerald-500/15 text-emerald-800 border border-emerald-500/30',
             icon: Eye,
             iconBg: 'bg-emerald-500/15 text-emerald-800 border-emerald-500/30',
           },
           {
-            label: 'Hidden Spaces',
+            label: t('mySpaces.hiddenSpaces'),
             count: hiddenCount,
             badge: 'bg-amber-500/15 text-amber-800 border border-amber-500/30',
             icon: EyeOff,
             iconBg: 'bg-amber-500/15 text-amber-800 border-amber-500/30',
           },
           {
-            label: 'Fully Booked',
+            label: t('mySpaces.fullyBooked'),
             count: fullyBookedCount,
             badge: 'bg-red-500/15 text-red-700 border border-red-500/30',
             icon: AlertCircle,
@@ -530,10 +534,10 @@ export default function ProviderMySpaces() {
       {/* Category Tabs: All, Offices, Halls, Theaters */}
       <div className="flex flex-wrap gap-2.5">
         {[
-          { id: 'all' as const, label: 'All Workspaces', count: mySpaces.length, icon: Building2 },
-          { id: 'office' as const, label: 'Offices', count: mySpaces.filter((s) => getSpaceCategory(s) === 'office').length, icon: Building2 },
-          { id: 'hall' as const, label: 'Halls', count: mySpaces.filter((s) => getSpaceCategory(s) === 'hall').length, icon: Presentation },
-          { id: 'theater' as const, label: 'Theaters', count: mySpaces.filter((s) => getSpaceCategory(s) === 'theater').length, icon: Clapperboard },
+          { id: 'all' as const, label: t('mySpaces.allWorkspaces'), count: mySpaces.length, icon: Building2 },
+          { id: 'office' as const, label: t('categories.office'), count: mySpaces.filter((s) => getSpaceCategory(s) === 'office').length, icon: Building2 },
+          { id: 'hall' as const, label: t('categories.hall'), count: mySpaces.filter((s) => getSpaceCategory(s) === 'hall').length, icon: Presentation },
+          { id: 'theater' as const, label: t('categories.theater'), count: mySpaces.filter((s) => getSpaceCategory(s) === 'theater').length, icon: Clapperboard },
         ].map((tab) => {
           const isSelected = categoryFilter === tab.id;
           return (
@@ -564,13 +568,13 @@ export default function ProviderMySpaces() {
       {/* Search & Custom City Filter Bar */}
       <div className="flex flex-col sm:flex-row gap-3 bg-plaster-surface p-3 rounded-2xl border border-soot/10 shadow-2xs relative z-30">
         <div className="relative flex-1">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-moss" />
+          <Search size={16} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-moss" />
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by space name or city..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-soot/12 bg-plaster-dark/30 text-soot text-sm placeholder:text-moss/70 outline-none focus:border-eucalyptus focus:bg-plaster-surface transition-all"
+            placeholder={t('mySpaces.searchPlaceholder')}
+            className="w-full ps-10 pe-4 py-2.5 rounded-xl border border-soot/12 bg-plaster-dark/30 text-soot text-sm placeholder:text-moss/70 outline-none focus:border-eucalyptus focus:bg-plaster-surface transition-all"
           />
         </div>
 
@@ -579,12 +583,12 @@ export default function ProviderMySpaces() {
           <button
             type="button"
             onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/50 border border-soot/12 transition-all duration-200 text-left cursor-pointer focus:outline-none"
+            className="w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/50 border border-soot/12 transition-all duration-200 text-start cursor-pointer focus:outline-none"
           >
             <div className="flex items-center gap-2.5 min-w-0">
               <MapPin size={16} className="text-moss shrink-0" />
               <span className="text-sm font-medium text-soot truncate">
-                {filterCity || 'All Cities'}
+                {filterCity || t('mySpaces.allCities')}
               </span>
             </div>
             <ChevronDown
@@ -596,25 +600,25 @@ export default function ProviderMySpaces() {
           </button>
 
           {dropdownOpen && (
-            <div className="absolute top-full left-0 right-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
+            <div className="absolute top-full start-0 end-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
               <div className="max-h-52 overflow-y-auto space-y-0.5">
-                {['All Cities', ...CITIES].map((city) => {
-                  const isSelected = (city === 'All Cities' && !filterCity) || filterCity === city;
+                {[t('mySpaces.allCities'), ...CITIES].map((city) => {
+                  const isSelected = (city === t('mySpaces.allCities') && !filterCity) || filterCity === city;
                   return (
                     <button
                       key={city}
                       type="button"
                       onClick={() => {
-                        setFilterCity(city === 'All Cities' ? '' : city);
+                        setFilterCity(city === t('mySpaces.allCities') ? '' : city);
                         setDropdownOpen(false);
                       }}
-                      className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-sm font-medium transition-colors text-left cursor-pointer ${
+                      className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-sm font-medium transition-colors text-start cursor-pointer ${
                         isSelected
                           ? 'bg-soot text-plaster font-semibold'
                           : 'text-soot hover:bg-plaster-dark/60'
                       }`}
                     >
-                      <span>{city}</span>
+                      <span>{city === 'All Cities' ? t('mySpaces.allCities') : st.cityName(city)}</span>
                       {isSelected && <Check size={14} className="text-eucalyptus" />}
                     </button>
                   );
@@ -628,17 +632,17 @@ export default function ProviderMySpaces() {
       {/* Table Layout */}
       <div className="bg-plaster-surface rounded-3xl border border-soot/10 overflow-hidden shadow-2xs relative z-10">
         <div className="hidden md:grid grid-cols-12 gap-6 px-6 py-4 border-b border-soot/10 text-xs font-semibold uppercase tracking-wider text-moss bg-plaster-dark/40 items-center">
-          <div className="col-span-5">Space Name</div>
-          <div className="col-span-2">City</div>
-          <div className="col-span-2">Capacity</div>
-          <div className="col-span-2">Price Rate</div>
-          <div className="col-span-1 text-right">Actions</div>
+          <div className="col-span-5">{t('mySpaces.colName')}</div>
+          <div className="col-span-2">{t('mySpaces.colCity')}</div>
+          <div className="col-span-2">{t('mySpaces.colCapacity')}</div>
+          <div className="col-span-2">{t('mySpaces.colPrice')}</div>
+          <div className="col-span-1 text-end">{t('mySpaces.colActions')}</div>
         </div>
 
         {filteredSpaces.length === 0 ? (
           <div className="py-16 text-center text-moss">
             <Warehouse size={32} className="mx-auto mb-3 opacity-50" />
-            <p className="text-sm">No workspaces match your search filter.</p>
+            <p className="text-sm">{t('mySpaces.noMatch')}</p>
           </div>
         ) : (
           <div className="divide-y divide-soot/8">
@@ -656,20 +660,20 @@ export default function ProviderMySpaces() {
                   <div className="col-span-5 flex items-center gap-3.5 min-w-0">
                     <img
                       src={space.images?.[0] || FALLBACK_SPACE_IMAGE}
-                      alt={space.name || 'Workspace'}
+                      alt={st.name(space) || 'Workspace'}
                       className="w-11 h-11 rounded-xl object-cover border border-soot/10 shrink-0 shadow-2xs group-hover:scale-105 transition-transform"
                     />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold text-soot group-hover:text-emerald-900 transition-colors truncate">
-                          {space.name}
+                          {st.name(space)}
                         </span>
                         <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-soot/8 text-soot border border-soot/10 shrink-0 capitalize">
                           {cat}
                         </span>
                         {!space.isVisible && (
                           <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-red-500/10 text-red-700 shrink-0">
-                            Hidden
+                            {t('mySpaces.hidden')}
                           </span>
                         )}
                       </div>
@@ -702,7 +706,7 @@ export default function ProviderMySpaces() {
                             )}
                           </>
                         ) : (
-                          <span className="text-[10px] text-moss/60 italic">No amenities added</span>
+                          <span className="text-[10px] text-moss/60 italic">{t('mySpaces.noAmenities')}</span>
                         )}
                       </div>
                     </div>
@@ -711,7 +715,7 @@ export default function ProviderMySpaces() {
                   {/* City */}
                   <div className="col-span-2 mt-2 md:mt-0 text-sm text-soot font-medium flex items-center gap-1.5">
                     <MapPin size={14} className="text-moss shrink-0" />
-                    <span className="truncate">{space.city}</span>
+                    <span className="truncate">{st.city(space)}</span>
                   </div>
 
                   {/* Capacity */}
@@ -738,11 +742,11 @@ export default function ProviderMySpaces() {
 
                   {/* Space Price (Safe null check sathe) */}
                   <div className="col-span-2 mt-3 md:mt-0 text-sm font-semibold text-soot">
-                    SAR {isHourlyOnlySpace(space.type)
+                    {t('common.sar')} {isHourlyOnlySpace(space.type)
                       ? (space.pricing?.hourly ?? 150).toLocaleString()
                       : (space.pricing?.daily ?? 0).toLocaleString()}
-                    <span className="text-xs text-moss font-normal ml-1">
-                      {isHourlyOnlySpace(space.type) ? '/ hour' : '/ day'}
+                    <span className="text-xs text-moss font-normal ms-1">
+                      {isHourlyOnlySpace(space.type) ? t('mySpaces.perHour') : t('mySpaces.perDay')}
                     </span>
                   </div>
 
@@ -752,7 +756,7 @@ export default function ProviderMySpaces() {
                       type="button"
                       onClick={(e) => openEdit(e, space)}
                       className="p-2 rounded-xl text-moss hover:text-soot hover:bg-plaster-surface border border-transparent hover:border-soot/10 transition-all cursor-pointer"
-                      title="Edit Space"
+                      title={t('mySpaces.editSpace')}
                     >
                       <Pencil size={15} />
                     </button>
@@ -760,7 +764,7 @@ export default function ProviderMySpaces() {
                       type="button"
                       onClick={(e) => handleToggleVisibility(e, space.id)}
                       className="p-2 rounded-xl text-moss hover:text-soot hover:bg-plaster-surface border border-transparent hover:border-soot/10 transition-all cursor-pointer"
-                      title={space.isVisible ? 'Hide Space' : 'Show Space'}
+                      title={space.isVisible ? t('mySpaces.hideSpace') : t('mySpaces.showSpace')}
                     >
                       {space.isVisible ? <EyeOff size={15} /> : <Eye size={15} className="text-emerald-700" />}
                     </button>
@@ -768,7 +772,7 @@ export default function ProviderMySpaces() {
                       type="button"
                       onClick={(e) => handleDelete(e, space)}
                       className="p-2 rounded-xl text-moss hover:text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-all cursor-pointer"
-                      title="Delete Space"
+                      title={t('mySpaces.deleteSpace')}
                     >
                       <Trash2 size={15} />
                     </button>
@@ -784,16 +788,16 @@ export default function ProviderMySpaces() {
       <Modal
         open={editModal}
         onClose={() => setEditModal(false)}
-        title={editingSpace ? 'Edit Workspace' : 'Add New Workspace'}
+        title={editingSpace ? t('mySpaces.modalEdit') : t('mySpaces.modalAdd')}
         subtitle="Configure details, amenities, pricing, and media options."
         size="2xl"
         footer={
           <>
             <button type="button" onClick={() => setEditModal(false)} className="btn-secondary">
-              Cancel
+              {t('common.cancel')}
             </button>
             <button type="button" onClick={handleSave} className="btn-primary">
-              Save Changes
+              {t('common.saveChanges')}
             </button>
           </>
         }
@@ -801,21 +805,21 @@ export default function ProviderMySpaces() {
         {saved ? (
           <div className="py-12 text-center text-emerald-800">
             <Check size={40} className="mx-auto mb-2" />
-            <div className="text-lg font-semibold">Workspace updated successfully!</div>
+            <div className="text-lg font-semibold">{t('mySpaces.updated')}</div>
           </div>
         ) : (
           <div className="space-y-6 text-sm text-soot">
             {Object.keys(formErrors).length > 0 && (
               <div className="bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold rounded-2xl p-3.5 flex items-center gap-2">
                 <AlertCircle size={16} className="text-rose-600 shrink-0" />
-                <span>Please complete all required fields highlighted in red below.</span>
+                <span>{t('mySpaces.completeRequired')}</span>
               </div>
             )}
 
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">
-                  Workspace Name <span className="text-rose-600">*</span>
+                  {t('mySpaces.nameEn')} <span className="text-rose-600">*</span>
                 </label>
                 <input
                   value={form.name || ''}
@@ -823,7 +827,7 @@ export default function ProviderMySpaces() {
                     setForm((p) => ({ ...p, name: e.target.value }));
                     if (formErrors.name) setFormErrors((errs) => ({ ...errs, name: '' }));
                   }}
-                  placeholder="e.g. The Hub Olaya"
+                  placeholder={t('mySpaces.namePlaceholder')}
                   className={`w-full px-3.5 py-2.5 rounded-xl border bg-white text-soot text-sm outline-none transition-all ${
                     formErrors.name ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-soot/12 focus:border-eucalyptus'
                   }`}
@@ -834,7 +838,7 @@ export default function ProviderMySpaces() {
               {/* City Custom Dropdown */}
               <div className="relative" ref={modalCityRef}>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">
-                  City <span className="text-rose-600">*</span>
+                  {t('mySpaces.colCity')} <span className="text-rose-600">*</span>
                 </label>
                 <button
                   type="button"
@@ -842,7 +846,7 @@ export default function ProviderMySpaces() {
                     setModalCityOpen(!modalCityOpen);
                     setModalCitySearch('');
                   }}
-                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white border text-soot text-sm font-medium text-left transition-all duration-200 cursor-pointer focus:outline-none ${
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white border text-soot text-sm font-medium text-start transition-all duration-200 cursor-pointer focus:outline-none ${
                     formErrors.city ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-soot/12'
                   }`}
                 >
@@ -853,7 +857,7 @@ export default function ProviderMySpaces() {
                         return matched ? `${matched.name} (${matched.nameAr})` : form.city;
                       })()
                     ) : (
-                      'Select City'
+                      t('mySpaces.selectCity')
                     )}
                   </span>
                   <ChevronDown
@@ -866,22 +870,22 @@ export default function ProviderMySpaces() {
                 {formErrors.city && <p className="text-xs text-rose-600 font-medium mt-1">* {formErrors.city}</p>}
 
                 {modalCityOpen && (
-                  <div className="absolute top-full left-0 right-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100 flex flex-col max-h-64">
+                  <div className="absolute top-full start-0 end-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100 flex flex-col max-h-64">
                     <div className="p-1 border-b border-soot/10 mb-1 sticky top-0 bg-plaster-surface z-10">
                       <div className="relative">
-                        <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-moss/60 pointer-events-none" />
+                        <Search size={14} className="absolute start-2.5 top-1/2 -translate-y-1/2 text-moss/60 pointer-events-none" />
                         <input
                           type="text"
-                          placeholder="Search city / ابحث عن مدينة..."
+                          placeholder={t('mySpaces.cityPlaceholder')}
                           value={modalCitySearch}
                           onChange={(e) => setModalCitySearch(e.target.value)}
-                          className="w-full pl-8 pr-2.5 py-1.5 text-xs rounded-lg border border-soot/15 bg-white text-soot focus:outline-none focus:border-eucalyptus"
+                          className="w-full ps-8 pe-2.5 py-1.5 text-xs rounded-lg border border-soot/15 bg-white text-soot focus:outline-none focus:border-eucalyptus"
                           onClick={(e) => e.stopPropagation()}
                           autoFocus
                         />
                       </div>
                     </div>
-                    <div className="space-y-0.5 overflow-y-auto max-h-52 pr-0.5">
+                    <div className="space-y-0.5 overflow-y-auto max-h-52 pe-0.5">
                       {SAUDI_CITIES_DATA.filter((c) => {
                         if (!modalCitySearch.trim()) return true;
                         const q = modalCitySearch.toLowerCase().trim();
@@ -902,7 +906,7 @@ export default function ProviderMySpaces() {
                               setModalCityOpen(false);
                               setModalCitySearch('');
                             }}
-                            className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-sm font-medium transition-colors text-left cursor-pointer ${
+                            className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-sm font-medium transition-colors text-start cursor-pointer ${
                               isSelected
                                 ? 'bg-soot text-plaster font-semibold'
                                 : 'text-soot hover:bg-plaster-dark/60'
@@ -928,7 +932,7 @@ export default function ProviderMySpaces() {
                         );
                       }).length === 0 && (
                         <div className="py-3 text-center text-xs text-moss">
-                          No cities match your search
+                          {t('mySpaces.noCities')}
                         </div>
                       )}
                     </div>
@@ -937,9 +941,45 @@ export default function ProviderMySpaces() {
               </div>
             </div>
 
+            {/* Bilingual content: authored in both languages, stored as-is (never machine-translated) */}
+            <div className="rounded-2xl border border-soot/10 bg-plaster-dark/30 p-3.5 space-y-3">
+              <div>
+                <div className="text-[11px] font-bold uppercase tracking-wider text-soot">{t('mySpaces.bilingualTitle')}</div>
+                <p className="text-[11px] text-moss mt-0.5 leading-snug">{t('mySpaces.bilingualHint')}</p>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">
+                    {t('mySpaces.nameAr')}
+                  </label>
+                  <input
+                    dir="rtl"
+                    lang="ar"
+                    value={form.nameAr || ''}
+                    onChange={(e) => setForm((p) => ({ ...p, nameAr: e.target.value }))}
+                    placeholder={t('mySpaces.namePlaceholderAr')}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-eucalyptus"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">
+                    {t('mySpaces.cityAr')}
+                  </label>
+                  <input
+                    dir="rtl"
+                    lang="ar"
+                    value={form.cityAr || ''}
+                    onChange={(e) => setForm((p) => ({ ...p, cityAr: e.target.value }))}
+                    placeholder={SAUDI_CITIES_DATA.find((c) => c.name.toLowerCase() === (form.city || '').toLowerCase())?.nameAr || ''}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-eucalyptus"
+                  />
+                </div>
+              </div>
+            </div>
+
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">
-                Address / Location <span className="text-rose-600">*</span>
+                {t('mySpaces.addressEn')} <span className="text-rose-600">*</span>
               </label>
               <input
                 value={form.address || ''}
@@ -947,7 +987,7 @@ export default function ProviderMySpaces() {
                   setForm((p) => ({ ...p, address: e.target.value }));
                   if (formErrors.address) setFormErrors((errs) => ({ ...errs, address: '' }));
                 }}
-                placeholder="District, Street Name, City"
+                placeholder={t('mySpaces.addressPlaceholder')}
                 className={`w-full px-3.5 py-2.5 rounded-xl border bg-white text-soot text-sm outline-none transition-all ${
                   formErrors.address ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-soot/12 focus:border-eucalyptus'
                 }`}
@@ -957,13 +997,42 @@ export default function ProviderMySpaces() {
 
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">
-                Description
+                {t('mySpaces.addressAr')}
+              </label>
+              <input
+                dir="rtl"
+                lang="ar"
+                value={form.addressAr || ''}
+                onChange={(e) => setForm((p) => ({ ...p, addressAr: e.target.value }))}
+                placeholder={t('mySpaces.addressPlaceholderAr')}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-eucalyptus"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">
+                {t('mySpaces.descriptionEn')}
               </label>
               <textarea
                 value={form.description || ''}
                 onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
                 rows={3}
-                placeholder="Describe your workspace, vibe, and amenities..."
+                placeholder={t('mySpaces.descPlaceholder')}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-eucalyptus resize-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">
+                {t('mySpaces.descriptionAr')}
+              </label>
+              <textarea
+                dir="rtl"
+                lang="ar"
+                value={form.descriptionAr || ''}
+                onChange={(e) => setForm((p) => ({ ...p, descriptionAr: e.target.value }))}
+                rows={3}
+                placeholder={t('mySpaces.descPlaceholderAr')}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-eucalyptus resize-none"
               />
             </div>
@@ -972,15 +1041,15 @@ export default function ProviderMySpaces() {
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="relative" ref={modalTypeRef}>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">
-                  Type *
+                  {t('mySpaces.type')}
                 </label>
                 <button
                   type="button"
                   onClick={() => setModalTypeOpen(!modalTypeOpen)}
-                  className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white border border-soot/12 text-soot text-sm font-medium text-left transition-all duration-200 cursor-pointer focus:outline-none"
+                  className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white border border-soot/12 text-soot text-sm font-medium text-start transition-all duration-200 cursor-pointer focus:outline-none"
                 >
                   <span className="truncate">
-                    {TYPES.find((t) => t.value === form.type)?.label || 'Select Type'}
+                    {TYPES.find((t) => t.value === form.type)?.label || t('mySpaces.selectType')}
                   </span>
                   <ChevronDown
                     size={15}
@@ -991,7 +1060,7 @@ export default function ProviderMySpaces() {
                 </button>
 
                 {modalTypeOpen && (
-                  <div className="absolute top-full left-0 right-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100 max-h-52 overflow-y-auto">
+                  <div className="absolute top-full start-0 end-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100 max-h-52 overflow-y-auto">
                     <div className="space-y-0.5">
                       {TYPES.map((t) => {
                         const isSelected = form.type === t.value;
@@ -1003,7 +1072,7 @@ export default function ProviderMySpaces() {
                               setForm((p) => ({ ...p, type: t.value }));
                               setModalTypeOpen(false);
                             }}
-                            className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-sm font-medium transition-colors text-left cursor-pointer ${
+                            className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-sm font-medium transition-colors text-start cursor-pointer ${
                               isSelected
                                 ? 'bg-soot text-plaster font-semibold'
                                 : 'text-soot hover:bg-plaster-dark/60'
@@ -1021,7 +1090,7 @@ export default function ProviderMySpaces() {
 
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">
-                  Total Capacity
+                  {t('mySpaces.totalCapacity')}
                 </label>
                 <input
                   type="number"
@@ -1042,7 +1111,7 @@ export default function ProviderMySpaces() {
             {/* Operating hours */}
             <div className="space-y-3 pt-2">
               <div className="flex items-center justify-between border-b border-soot/10 pb-1.5">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-moss">Operating Hours</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-moss">{t('mySpaces.operatingHours')}</span>
                 <label className="flex items-center gap-2 text-xs font-semibold text-soot cursor-pointer">
                   <input
                     type="checkbox"
@@ -1050,13 +1119,13 @@ export default function ProviderMySpaces() {
                     onChange={(e) => setForm((p) => ({ ...p, is24Hours: e.target.checked }))}
                     className="accent-soot"
                   />
-                  Open 24 hours
+                  {t('mySpaces.open24')}
                 </label>
               </div>
               {!form.is24Hours && (
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">Opening Time</label>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">{t('mySpaces.openingTime')}</label>
                     <input
                       type="time"
                       value={form.openingTime || '08:00'}
@@ -1065,7 +1134,7 @@ export default function ProviderMySpaces() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">Closing Time</label>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">{t('mySpaces.closingTime')}</label>
                     <input
                       type="time"
                       value={form.closingTime || '22:00'}
@@ -1118,9 +1187,9 @@ export default function ProviderMySpaces() {
                 <div className="p-3.5 rounded-2xl bg-plaster-dark/40 border border-soot/10 space-y-2.5">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-soot">
-                      Multi-Hour Duration Pricing (SAR)
+                      {t('mySpaces.multiHour')}
                     </span>
-                    <span className="text-[10px] text-moss">Custom pricing for specific hourly durations</span>
+                    <span className="text-[10px] text-moss">{t('mySpaces.hourlyCustom')}</span>
                   </div>
                   <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                     {[1, 2, 3, 4, 6, 8].map((hours) => {
@@ -1153,9 +1222,9 @@ export default function ProviderMySpaces() {
               <div className="p-3.5 rounded-2xl bg-plaster-dark/40 border border-soot/10 space-y-2.5">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-soot">
-                    Multi-Month Duration Pricing (SAR)
+                    {t('mySpaces.multiMonth')}
                   </span>
-                  <span className="text-[10px] text-moss">Custom pricing for specific monthly durations</span>
+                  <span className="text-[10px] text-moss">{t('mySpaces.monthlyCustom')}</span>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                   {[1, 2, 3, 6, 12].map((months) => {
@@ -1186,12 +1255,12 @@ export default function ProviderMySpaces() {
             {/* Images Section */}
             <div className="space-y-3 pt-2">
               <span className="text-[11px] font-bold uppercase tracking-wider text-moss block border-b border-soot/10 pb-1.5">
-                Workspace Photos
+                {t('mySpaces.photos')}
               </span>
               <div className="flex flex-col sm:flex-row gap-2">
                 <input
                   type="text"
-                  placeholder="Paste direct image URL..."
+                  placeholder={t('mySpaces.imageUrlPlaceholder')}
                   value={imageUrlInput}
                   onChange={(e) => setImageUrlInput(e.target.value)}
                   className="flex-1 px-3 py-2 rounded-xl border border-soot/12 bg-white text-soot text-xs outline-none focus:border-eucalyptus"
@@ -1202,7 +1271,7 @@ export default function ProviderMySpaces() {
                     onClick={handleAddImageUrl}
                     className="px-3.5 py-2 rounded-xl bg-soot text-plaster text-xs font-medium cursor-pointer hover:bg-soot/90"
                   >
-                    Add URL
+                    {t('mySpaces.addUrl')}
                   </button>
                   <button
                     type="button"
@@ -1210,7 +1279,7 @@ export default function ProviderMySpaces() {
                     className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-soot/15 bg-white text-xs font-medium text-soot hover:bg-plaster-dark/40 cursor-pointer"
                   >
                     <Upload size={14} />
-                    <span>Upload</span>
+                    <span>{t('common.upload')}</span>
                   </button>
                   <input
                     ref={fileInputRef}
@@ -1231,7 +1300,7 @@ export default function ProviderMySpaces() {
                       <button
                         type="button"
                         onClick={() => removeImage(idx)}
-                        className="absolute top-1 right-1 p-1 bg-red-600/90 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                        className="absolute top-1 end-1 p-1 bg-red-600/90 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                       >
                         <Trash2 size={12} />
                       </button>
@@ -1245,9 +1314,9 @@ export default function ProviderMySpaces() {
             <div className="space-y-3 pt-2">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-moss block border-b border-soot/10 pb-1.5">
-                  Available Amenities
+                  {t('mySpaces.availableAmenities')}
                 </span>
-                <span className="text-[11px] text-moss">Custom amenities require Admin approval</span>
+                <span className="text-[11px] text-moss">{t('mySpaces.amenityApproval')}</span>
               </div>
 
               {/* Custom Amenity Input */}
@@ -1262,7 +1331,7 @@ export default function ProviderMySpaces() {
                       handleAddCustomAmenity();
                     }
                   }}
-                  placeholder="Request custom amenity (e.g. 3D Printer, Pod)..."
+                  placeholder={t('mySpaces.amenityPlaceholder')}
                   className="flex-1 px-3.5 py-2 rounded-xl border border-soot/12 bg-plaster-dark/30 text-soot text-xs placeholder:text-moss/70 outline-none focus:border-eucalyptus focus:bg-plaster-surface transition-all"
                 />
                 <button
@@ -1299,7 +1368,7 @@ export default function ProviderMySpaces() {
               {myAmenityRequests && myAmenityRequests.length > 0 && (
                 <div className="mt-3 pt-3 border-t border-soot/10">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-moss block mb-2">
-                    My Amenity Requests & Status
+                    {t('mySpaces.amenityRequests')}
                   </span>
                   <div className="flex flex-wrap gap-2">
                     {myAmenityRequests.map((req) => {
@@ -1351,15 +1420,15 @@ export default function ProviderMySpaces() {
       <Modal
         open={deleteModal}
         onClose={() => setDeleteModal(false)}
-        title="Delete Workspace Listing"
+        title={t('mySpaces.deleteListing')}
         size="sm"
         footer={
           <>
             <button type="button" onClick={() => setDeleteModal(false)} className="btn-secondary">
-              Cancel
+              {t('common.cancel')}
             </button>
             <button type="button" onClick={confirmDelete} className="btn-danger">
-              Confirm Delete
+              {t('common.confirmDelete')}
             </button>
           </>
         }
@@ -1368,7 +1437,7 @@ export default function ProviderMySpaces() {
           <p>
             Are you sure you want to delete <span className="font-semibold">{spaceToDelete?.name}</span>?
           </p>
-          <p className="text-xs text-moss">This workspace listing will be removed from the platform catalog.</p>
+          <p className="text-xs text-moss">{t('mySpaces.deleteWarning')}</p>
         </div>
       </Modal>
     </div>

@@ -285,3 +285,70 @@ a:active,
 .custom-phone-input .PhoneInputInput::placeholder {
   color: rgba(105, 124, 112, 0.5);
 }
+
+
+/* ------------------------------------------------------------------
+   RTL / Arabic support
+   ------------------------------------------------------------------ */
+html[dir="rtl"] body,
+html[dir="rtl"] button,
+html[dir="rtl"] input,
+html[dir="rtl"] select,
+html[dir="rtl"] textarea {
+  font-family: var(--font-arabic), 'Outfit', system-ui, sans-serif;
+}
+
+/* The Latin serif display font has no Arabic glyphs */
+html[dir="rtl"] h1,
+html[dir="rtl"] h2,
+html[dir="rtl"] h3,
+html[dir="rtl"] .font-serif-display,
+html[dir="rtl"] .font-display {
+  font-family: var(--font-arabic), system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+/* Arabic script must not be letter-spaced or force-uppercased */
+html[dir="rtl"] * {
+  letter-spacing: 0 !important;
+}
+html[dir="rtl"] .uppercase {
+  text-transform: none;
+}
+
+/* Directional icons mirror in RTL (back arrows, forward chevrons, external-link arrows) */
+html[dir="rtl"] svg.lucide-arrow-left,
+html[dir="rtl"] svg.lucide-arrow-right,
+html[dir="rtl"] svg.lucide-arrow-up-right,
+html[dir="rtl"] svg.lucide-arrow-down-right,
+html[dir="rtl"] svg.lucide-chevron-left,
+html[dir="rtl"] svg.lucide-chevron-right,
+html[dir="rtl"] svg.lucide-chevrons-left,
+html[dir="rtl"] svg.lucide-chevrons-right,
+html[dir="rtl"] svg.lucide-log-out,
+html[dir="rtl"] svg.lucide-log-in,
+html[dir="rtl"] svg.lucide-corner-down-right {
+  transform: scaleX(-1);
+}
+
+/* Phone numbers, emails, ids and prices stay left-to-right inside RTL text */
+html[dir="rtl"] input[type="email"],
+html[dir="rtl"] input[type="tel"],
+html[dir="rtl"] input[type="url"],
+html[dir="rtl"] input[type="number"],
+html[dir="rtl"] input[type="password"] {
+  direction: ltr;
+  text-align: right;
+}
+
+/* Flag emoji fallback: Windows browsers do not render regional-indicator flags */
+@font-face {
+  font-family: "Twemoji Country Flags";
+  unicode-range: U+1F1E6-1F1FF, U+1F3F4, U+E0062-E007F;
+  src: url("https://cdn.jsdelivr.net/npm/country-flag-emoji-polyfill@0.1/dist/TwemojiCountryFlags.woff2") format("woff2");
+  font-display: swap;
+}
+.flag-emoji {
+  font-family: "Twemoji Country Flags", "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+}

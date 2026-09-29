@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/i18n';
 import { Warehouse, CalendarDays, TrendingUp, Percent, ArrowRight, MapPin, Building2, Sparkles } from 'lucide-react';
 import { useApp } from '@/app/store';
 import { getBookingPrice, getSpaceCategory, isHourlyAllowed } from '@/types/types';
@@ -7,6 +8,7 @@ import { getBookingPrice, getSpaceCategory, isHourlyAllowed } from '@/types/type
 const FALLBACK_SPACE_IMAGE = 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80';
 
 export default function ProviderDashboard() {
+  const { t } = useI18n();
   const { currentUser, spaces, partners, bookings, navigate } = useApp();
   if (!currentUser) return null;
 
@@ -74,7 +76,7 @@ export default function ProviderDashboard() {
           },
           {
             label: 'Total Revenue',
-            value: `SAR ${totalRevenue.toLocaleString()}`,
+            value: `${t('common.sar')} ${totalRevenue.toLocaleString()}`,
             icon: TrendingUp,
             iconBg: 'bg-blue-500/15 text-blue-800 border-blue-500/30',
           },
@@ -163,8 +165,8 @@ export default function ProviderDashboard() {
                   </div>
 
                   {/* حل المشكلة FE-06: الحماية الكاملة لأسعار اليوم والساعة */}
-                  <div className="text-right text-xs font-semibold text-soot shrink-0">
-                    SAR {isHourlyAllowed(space) ? (space.pricing?.hourly ?? 150) : (space.pricing?.daily ?? 0)}
+                  <div className="text-end text-xs font-semibold text-soot shrink-0">
+                    {t('common.sar')} {isHourlyAllowed(space) ? (space.pricing?.hourly ?? 150) : (space.pricing?.daily ?? 0)}
                     <span className="text-[10px] text-moss font-normal block">
                       {isHourlyAllowed(space) ? '/ hour' : '/ day'}
                     </span>
@@ -215,7 +217,7 @@ export default function ProviderDashboard() {
                       {b.seats} seat{b.seats > 1 ? 's' : ''} · <span className="capitalize">{b.plan === 'hourly' ? `Hourly (${b.durationHours || 1} ${b.durationHours === 1 ? 'hr' : 'hrs'})` : b.plan}</span>
                     </div>
                   </div>
-                  <div className="text-right shrink-0">
+                  <div className="text-end shrink-0">
                     <span
                       className={`text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider ${
                         b.status === 'active'
@@ -227,7 +229,7 @@ export default function ProviderDashboard() {
                     >
                       {b.status}
                     </span>
-                    <span className="text-xs font-semibold text-soot block mt-1">SAR {getBookingPrice(b, spaces).toLocaleString()}</span>
+                    <span className="text-xs font-semibold text-soot block mt-1">{t('common.sar')} {getBookingPrice(b, spaces).toLocaleString()}</span>
                   </div>
                 </div>
               ))}
@@ -259,7 +261,7 @@ export default function ProviderDashboard() {
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-soot text-plaster hover:bg-soot/90 text-sm font-semibold shadow-xs transition-all cursor-pointer group"
             >
               <span>Manage Proposals</span>
-              <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+              <ArrowRight size={14} className="group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5 transition-transform" />
             </button>
           </div>
         </div>

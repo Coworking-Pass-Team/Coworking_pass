@@ -1,4 +1,5 @@
 'use client';
+import { useI18n } from '@/i18n';
 import React, { useState, useEffect } from 'react';
 import {
   CalendarDays,
@@ -22,6 +23,7 @@ import {
   ArrowUpRight
 } from 'lucide-react';
 import { useApp } from '@/app/store';
+import { useSpaceText } from '@/i18n/space-text';
 import BookingQrModal from '@/components/BookingQrModal';
 import SharedWalletModal from '@/components/ui/SharedWalletModal';
 import {
@@ -40,6 +42,8 @@ import {
 const FALLBACK_SPACE_IMAGE = 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80';
 
 export default function OrgDashboard() {
+  const { t, lang, localizeTime } = useI18n();
+  const st = useSpaceText();
   const { currentUser, spaces, bookings, favorites, navigate, companyWalletBalance, companyData, subscriptionsApi, fetchSubscriptions } = useApp();
   const [selectedCategory, setSelectedCategory] = useState<'all' | SpaceCategory>('all');
   const [selectedBookingForQr, setSelectedBookingForQr] = useState<Booking | null>(null);
@@ -80,7 +84,7 @@ export default function OrgDashboard() {
     .filter((sub) => sub.userId === currentUser.id && sub.status === 'ACTIVE')
     .sort((a, b) => new Date(b.endDate).getTime() - new Date(a.endDate).getTime())[0];
   const hasPass = Boolean(activeSubscription || currentUser.hasActivePass);
-  const passPlanName = activeSubscription?.plan?.planName || currentUser.membershipTier || (hasPass ? 'Enterprise Pass' : 'No active pass');
+  const passPlanName = activeSubscription?.plan?.planName || currentUser.membershipTier || (hasPass ? t('dash.org.corporateFallback') : t('dash.org.noPassPlan'));
   const tierKey = passPlanName.toLowerCase();
   const isBusinessPlan = tierKey.includes('business');
   const isUnlimitedHours = isBusinessPlan || tierKey.includes('enterprise');
@@ -97,7 +101,7 @@ export default function OrgDashboard() {
       : null;
   const daysToRenewal = passRenewalDate ? Math.ceil((passRenewalDate.getTime() - Date.now()) / (24 * 60 * 60 * 1000)) : null;
 
-  const orgTierName = currentUser.membershipTier || (currentUser.hasActivePass ? 'Enterprise Pass' : 'Corporate Plan');
+  const orgTierName = currentUser.membershipTier || (currentUser.hasActivePass ? t('dash.org.corporateFallback') : t('dash.org.corporatePlan'));
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -106,7 +110,7 @@ export default function OrgDashboard() {
         <div>
           <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
             <span className="text-xs font-semibold tracking-wider uppercase text-moss block">
-              Enterprise HR & Corporate Portal
+              {t('dash.org.eyebrow')}
             </span>
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E2E8E4] border border-[#2D3536]/15 text-soot text-xs font-semibold shadow-2xs">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
@@ -114,7 +118,7 @@ export default function OrgDashboard() {
             </span>
           </div>
           <h1 className="text-3xl sm:text-4xl text-soot font-normal font-serif-display">
-            {currentUser.orgName || 'Organization Dashboard'}
+            {currentUser.orgName || t('dash.org.orgDashboardTitle')}
           </h1>
           <p className="text-moss text-sm mt-1">
             Welcome, <span className="text-soot font-medium">{currentUser.name}</span> (HR Admin) · {currentUser.industry || 'Enterprise Solutions'} · {employees.length || currentUser.orgSize || 15} team members on pass
@@ -128,21 +132,21 @@ export default function OrgDashboard() {
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <span className="text-xs font-semibold text-moss">Corporate Shared Wallet</span>
+              <span className="text-xs font-semibold text-moss">{t('sharedWallet.title')}</span>
               <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-[#DDE6DF] text-soot border border-soot/10">
-                Shared Pool
+                {t('dash.org.sharedPool')}
               </span>
             </div>
             <div className="text-2xl font-serif-display font-normal text-soot tracking-tight">
-              SAR {(companyWalletBalance ?? companyData?.balance ?? 0).toLocaleString()}
+              {t('common.sar')} {(companyWalletBalance ?? companyData?.balance ?? 0).toLocaleString()}
             </div>
           </div>
           <button
             type="button"
             onClick={() => setIsSharedWalletOpen(true)}
-            className="ml-2 px-3.5 py-2 rounded-xl bg-soot hover:bg-soot-light text-plaster text-xs font-semibold shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
+            className="ms-2 px-3.5 py-2 rounded-xl bg-soot hover:bg-soot-light text-plaster text-xs font-semibold shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
           >
-            <span>Top Up</span>
+            <span>{t('dash.org.topUp')}</span>
             <ArrowUpRight size={13} />
           </button>
         </div>
@@ -152,14 +156,14 @@ export default function OrgDashboard() {
       <div className="bg-white rounded-3xl border border-soot/10 p-5 sm:p-6 shadow-xs">
         <div className="flex items-start justify-between flex-wrap gap-3 mb-5">
           <div>
-            <span className="text-xs font-semibold tracking-wider uppercase text-moss block mb-1">Pass Details & Quota Usage</span>
+            <span className="text-xs font-semibold tracking-wider uppercase text-moss block mb-1">{t('dash.org.passDetails')}</span>
             <h2 className="text-xl sm:text-2xl text-soot font-serif-display font-normal">{passPlanName}</h2>
           </div>
           <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${
             hasPass ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-amber-50 text-amber-800 border-amber-200'
           }`}>
             <span className={`w-1.5 h-1.5 rounded-full ${hasPass ? 'bg-emerald-600' : 'bg-amber-500'}`} />
-            {hasPass ? 'Active' : 'Inactive'}
+            {hasPass ? t('dash.org.active') : t('dash.org.inactive')}
           </span>
         </div>
 
@@ -167,13 +171,13 @@ export default function OrgDashboard() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {/* Meeting room / theater hours */}
             <div>
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-moss mb-1.5">Meeting Room & Theater Hours</div>
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-moss mb-1.5">{t('dash.org.hours')}</div>
               {isUnlimitedHours ? (
-                <div className="text-lg font-semibold text-soot">Unlimited</div>
+                <div className="text-lg font-semibold text-soot">{t('dash.org.unlimited')}</div>
               ) : (
                 <>
                   <div className="text-lg font-semibold text-soot">
-                    {remainingHours} <span className="text-moss text-sm font-medium">of {totalHours} hrs remaining</span>
+                    {remainingHours} <span className="text-moss text-sm font-medium">{t('dash.org.of', { total: totalHours })}</span>
                   </div>
                   <div className="h-2 bg-soot/8 rounded-full mt-2">
                     <div
@@ -181,29 +185,29 @@ export default function OrgDashboard() {
                       style={{ width: `${totalHours > 0 ? Math.min(100, (usedHours / totalHours) * 100) : 0}%` }}
                     />
                   </div>
-                  <div className="text-[11px] text-moss mt-1">{usedHours} hrs used this cycle</div>
+                  <div className="text-[11px] text-moss mt-1">{t('dash.org.usedCycle', { count: usedHours })}</div>
                 </>
               )}
             </div>
 
             {/* Renewal */}
             <div>
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-moss mb-1.5">Renewal / Expiry</div>
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-moss mb-1.5">{t('dash.org.renewal')}</div>
               <div className="text-lg font-semibold text-soot">
-                {passRenewalDate ? passRenewalDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                {passRenewalDate ? passRenewalDate.toLocaleDateString(lang === 'ar' ? 'ar-SA-u-nu-latn' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
               </div>
               {daysToRenewal !== null && (
                 <div className={`text-[11px] mt-1 ${daysToRenewal <= 7 ? 'text-amber-700 font-semibold' : 'text-moss'}`}>
-                  {daysToRenewal > 0 ? `${daysToRenewal} day${daysToRenewal === 1 ? '' : 's'} remaining` : 'Renewal due'}
+                  {daysToRenewal > 0 ? t(daysToRenewal === 1 ? 'dash.org.daysRemaining' : 'dash.org.daysRemainingMany', { count: daysToRenewal }) : t('dash.org.renewalDue')}
                 </div>
               )}
             </div>
 
             {/* Seats */}
             <div>
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-moss mb-1.5">Team Seat Allocation</div>
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-moss mb-1.5">{t('dash.org.seatAllocation')}</div>
               <div className="text-lg font-semibold text-soot">
-                {usedSeats} <span className="text-moss text-sm font-medium">of {totalSeats || '—'} seats used</span>
+                {usedSeats} <span className="text-moss text-sm font-medium">{t('dash.org.seatsUsed', { total: totalSeats || '—' })}</span>
               </div>
               <div className="h-2 bg-soot/8 rounded-full mt-2">
                 <div
@@ -211,18 +215,18 @@ export default function OrgDashboard() {
                   style={{ width: `${totalSeats > 0 ? Math.min(100, (usedSeats / totalSeats) * 100) : 0}%` }}
                 />
               </div>
-              <div className="text-[11px] text-moss mt-1">{totalSeats > 0 ? `${Math.max(0, totalSeats - usedSeats)} seats available` : 'No seat allocation set'}</div>
+              <div className="text-[11px] text-moss mt-1">{totalSeats > 0 ? t('dash.org.seatsAvailable', { count: Math.max(0, totalSeats - usedSeats) }) : t('dash.org.noSeatAllocation')}</div>
             </div>
           </div>
         ) : (
           <div className="flex items-center justify-between flex-wrap gap-3">
-            <p className="text-sm text-moss">Your organization has no active corporate pass. Choose a plan to unlock team seats and meeting-room hours.</p>
+            <p className="text-sm text-moss">{t('dash.org.noPass')}</p>
             <button
               type="button"
               onClick={() => navigate('pricing')}
               className="px-4 py-2.5 rounded-xl bg-soot text-plaster text-xs font-semibold hover:bg-moss cursor-pointer"
             >
-              View Plans
+              {t('dash.org.viewPlans')}
             </button>
           </div>
         )}
@@ -232,35 +236,35 @@ export default function OrgDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {[
           {
-            label: 'Active Bookings',
+            label: t('dash.activeBookings'),
             count: activeBookings.length,
             badge: 'bg-emerald-500/15 text-emerald-800 border border-emerald-500/30',
             icon: CalendarDays,
             iconBg: 'bg-emerald-500/15 text-emerald-800 border-emerald-500/30',
           },
           {
-            label: 'Total Bookings',
+            label: t('dash.totalBookings'),
             count: orgBookings.length,
             badge: 'bg-soot/10 text-soot border border-soot/15',
             icon: Bookmark,
             iconBg: 'bg-soot text-plaster border-soot/20',
           },
           {
-            label: 'Team Members',
+            label: t('footer.teamMembers'),
             count: employees.length || 1,
             badge: 'bg-amber-500/15 text-amber-800 border border-amber-500/30',
             icon: Users,
             iconBg: 'bg-amber-500/15 text-amber-800 border-amber-500/30',
           },
           {
-            label: 'Days Booked',
+            label: t('dash.daysBooked'),
             count: totalDaysBooked,
             badge: 'bg-blue-500/15 text-blue-800 border border-blue-500/30',
             icon: Clock,
             iconBg: 'bg-blue-500/15 text-blue-800 border-blue-500/30',
           },
           {
-            label: 'Loyalty Points',
+            label: t('dash.loyaltyPoints'),
             count: currentUser.loyaltyPoints || 0,
             badge: 'bg-amber-500/20 text-amber-900 border border-amber-500/40',
             icon: Sparkles,
@@ -269,8 +273,8 @@ export default function OrgDashboard() {
         ].map((stat) => (
           <div
             key={stat.label}
-            onClick={() => stat.label === 'Loyalty Points' ? navigate('loyalty') : undefined}
-            className={`bg-plaster-surface rounded-3xl border border-soot/12 p-5 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between group ${stat.label === 'Loyalty Points' ? 'cursor-pointer hover:border-amber-500/40' : ''}`}
+            onClick={() => stat.label === t('dash.loyaltyPoints') ? navigate('loyalty') : undefined}
+            className={`bg-plaster-surface rounded-3xl border border-soot/12 p-5 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between group ${stat.label === t('dash.loyaltyPoints') ? 'cursor-pointer hover:border-amber-500/40' : ''}`}
           >
             <div className="flex items-center gap-3.5">
               <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs ${stat.iconBg}`}>
@@ -290,12 +294,12 @@ export default function OrgDashboard() {
         {/* Active bookings column */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-serif-display text-soot">Active Team Bookings</h2>
+            <h2 className="text-xl font-serif-display text-soot">{t('dash.org.activeTeamBookings')}</h2>
             <button
               onClick={() => navigate('team-bookings')}
               className="text-xs font-semibold text-moss hover:text-soot flex items-center gap-1 cursor-pointer transition-colors"
             >
-              <span>View all</span>
+              <span>{t('landing.viewAll')}</span>
               <ArrowRight size={13} />
             </button>
           </div>
@@ -303,12 +307,12 @@ export default function OrgDashboard() {
           {activeBookings.length === 0 ? (
             <div className="bg-plaster-surface rounded-3xl border border-soot/10 p-8 text-center shadow-2xs min-h-[200px] flex flex-col items-center justify-center">
               <CalendarDays size={32} className="text-moss mx-auto mb-3" />
-              <div className="text-sm font-semibold text-soot mb-1">No active team bookings</div>
+              <div className="text-sm font-semibold text-soot mb-1">{t('dash.org.noTeamBookings')}</div>
               <button
                 onClick={() => navigate('browse')}
                 className="text-xs font-semibold text-moss hover:text-soot flex items-center gap-1 transition-colors cursor-pointer mt-2"
               >
-                Browse workspaces →
+                {t('dash.org.browseWorkspacesArrow')}
               </button>
             </div>
           ) : (
@@ -322,20 +326,20 @@ export default function OrgDashboard() {
                   <div className="flex items-center gap-3.5 min-w-0">
                     <img
                       src={b.spaceImage || FALLBACK_SPACE_IMAGE}
-                      alt={b.spaceName}
+                      alt={st.bookingName(b)}
                       className="w-12 h-12 rounded-xl object-cover border border-soot/10 shrink-0 shadow-2xs group-hover:scale-105 transition-transform"
                     />
                     <div className="min-w-0">
-                      <h4 className="font-semibold text-soot text-sm truncate group-hover:text-emerald-900 transition-colors">{b.spaceName}</h4>
+                      <h4 className="font-semibold text-soot text-sm truncate group-hover:text-emerald-900 transition-colors">{st.bookingName(b)}</h4>
                       <div className="flex items-center gap-1.5 text-xs text-moss mt-0.5 font-medium">
                         <MapPin size={12} className="shrink-0" />
-                        <span className="truncate">{b.spaceCity}</span>
+                        <span className="truncate">{st.bookingCity(b)}</span>
                         <span>•</span>
-                        <span className="truncate">{b.startDate} {b.plan === 'hourly' && b.startTime ? `(${b.startTime} – ${b.endTime || ''})` : (b.endDate && b.endDate !== b.startDate ? `→ ${b.endDate}` : '')}</span>
+                        <span className="truncate">{b.startDate} {b.plan === 'hourly' && b.startTime ? `(${localizeTime(b.startTime)} – ${localizeTime(b.endTime || '')})` : (b.endDate && b.endDate !== b.startDate ? `→ ${b.endDate}` : '')}</span>
                       </div>
                       <div className="mt-1.5 flex items-center gap-2 flex-wrap">
                         <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-500/15 text-emerald-800 border border-emerald-500/30 uppercase tracking-wider">
-                          {b.plan === 'hourly' ? `Hourly (${b.durationHours || 1} ${b.durationHours === 1 ? 'hr' : 'hrs'})` : `${b.plan} pass`} • {b.seats} seat{b.seats > 1 ? 's' : ''}
+                          {b.plan === 'hourly' ? t(b.durationHours === 1 ? 'booking.hourlyHrs' : 'booking.hourlyHrsMany', { count: b.durationHours || 1 }) : t(('booking.planPass.' + b.plan) as never)} • {t(b.seats > 1 ? 'booking.seatMany' : 'booking.seatOne', { count: b.seats })}
                         </span>
                         {b.employees && b.employees.length > 0 && (
                           <span className="text-[10px] text-moss bg-soot/5 px-2 py-0.5 rounded-full border border-soot/8 font-medium">
@@ -345,8 +349,8 @@ export default function OrgDashboard() {
                       </div>
                     </div>
                   </div>
-                  <div className="text-right shrink-0 flex flex-col items-end gap-1">
-                    <div className="text-sm font-semibold text-soot">SAR {getBookingPrice(b, spaces).toLocaleString()}</div>
+                  <div className="text-end shrink-0 flex flex-col items-end gap-1">
+                    <div className="text-sm font-semibold text-soot">{t('common.sar')} {getBookingPrice(b, spaces).toLocaleString()}</div>
                     <button
                       type="button"
                       onClick={(e) => {
@@ -356,7 +360,7 @@ export default function OrgDashboard() {
                       className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-[#2F6144] hover:bg-[#254F37] text-white text-[11px] font-semibold transition-all shadow-2xs cursor-pointer"
                     >
                       <QrCode size={12} />
-                      <span>QR Pass</span>
+                      <span>{t('booking.qrPass')}</span>
                     </button>
                   </div>
                 </div>
@@ -368,12 +372,12 @@ export default function OrgDashboard() {
         {/* Saved spaces column */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-serif-display text-soot">Saved Workspaces</h2>
+            <h2 className="text-xl font-serif-display text-soot">{t('dash.org.savedWorkspaces')}</h2>
             <button
               onClick={() => navigate('browse')}
               className="text-xs font-semibold text-moss hover:text-soot flex items-center gap-1 cursor-pointer transition-colors"
             >
-              <span>Browse more</span>
+              <span>{t('dash.browseMore')}</span>
               <ArrowRight size={13} />
             </button>
           </div>
@@ -381,12 +385,12 @@ export default function OrgDashboard() {
           {favoriteSpaces.length === 0 ? (
             <div className="bg-plaster-surface rounded-3xl border border-soot/10 p-8 text-center shadow-2xs min-h-[200px] flex flex-col items-center justify-center">
               <Star size={32} className="text-moss mx-auto mb-3" />
-              <div className="text-sm font-semibold text-soot mb-1">No saved spaces yet</div>
+              <div className="text-sm font-semibold text-soot mb-1">{t('dash.noSaved')}</div>
               <button
                 onClick={() => navigate('browse')}
                 className="text-xs font-semibold text-moss hover:text-soot flex items-center gap-1 transition-colors cursor-pointer mt-2"
               >
-                Browse workspaces →
+                {t('dash.org.browseWorkspacesArrow')}
               </button>
             </div>
           ) : (
@@ -416,7 +420,7 @@ export default function OrgDashboard() {
                       </div>
                     </div>
                   </div>
-                  <div className="text-right shrink-0">
+                  <div className="text-end shrink-0">
                     {(() => {
                       const isHourly = isHourlyAllowed(space);
                       const targetPlan = isHourly ? 'hourly' : 'daily';
@@ -430,20 +434,20 @@ export default function OrgDashboard() {
                         return (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-800 font-bold text-[10px] border border-emerald-500/30 uppercase tracking-wider shadow-2xs">
                             <Check size={11} className="text-emerald-800 shrink-0" />
-                            <span>Corporate Pass</span>
+                            <span>{t('dash.org.corporatePass')}</span>
                           </span>
                         );
                       }
                       if (planInfo.hasDiscount) {
                         return (
                           <div>
-                            <div className="text-sm font-semibold text-soot">SAR {planInfo.effectivePrice.toLocaleString()} {unitLabel}</div>
+                            <div className="text-sm font-semibold text-soot">{t('common.sar')} {planInfo.effectivePrice.toLocaleString()} {unitLabel}</div>
                             <div className="text-[10px] text-amber-800 font-bold">{planInfo.discountPercentage}% Pass Discount</div>
                           </div>
                         );
                       }
                       {/* Safe fallback for space pricing object */}
-                      return <div className="text-sm font-semibold text-soot">SAR {displayPrice.toLocaleString()} {unitLabel}</div>;
+                      return <div className="text-sm font-semibold text-soot">{t('common.sar')} {displayPrice.toLocaleString()} {unitLabel}</div>;
                     })()}
                   </div>
                 </div>
@@ -460,13 +464,13 @@ export default function OrgDashboard() {
             <span className="text-xs font-semibold tracking-wider uppercase text-moss block mb-1">
               Corporate Reservation & Discovery
             </span>
-            <h2 className="text-2xl font-serif-display text-soot">Book Workspaces for Your Team</h2>
+            <h2 className="text-2xl font-serif-display text-soot">{t('dash.org.bookForTeam')}</h2>
           </div>
           <button
             onClick={() => navigate('browse')}
             className="text-xs font-semibold text-moss hover:text-soot flex items-center gap-1 cursor-pointer transition-colors"
           >
-            <span>Open workspace directory</span>
+            <span>{t('dash.org.openDirectory')}</span>
             <ArrowRight size={13} />
           </button>
         </div>
@@ -474,10 +478,10 @@ export default function OrgDashboard() {
         {/* Category Filter Tabs */}
         <div className="flex flex-wrap gap-2">
           {[
-            { id: 'all', label: 'All Spaces' },
-            { id: 'office', label: 'Offices' },
-            { id: 'hall', label: 'Halls' },
-            { id: 'theater', label: 'Theaters' },
+            { id: 'all', label: t('categories.all') },
+            { id: 'office', label: t('categories.office') },
+            { id: 'hall', label: t('categories.hall') },
+            { id: 'theater', label: t('categories.theater') },
           ].map(cat => {
             const isSelected = selectedCategory === cat.id;
             const count = cat.id === 'all'
@@ -527,7 +531,7 @@ export default function OrgDashboard() {
                   <div className="absolute inset-0 bg-gradient-to-t from-soot/70 via-transparent to-transparent" />
                   
                   {/* Category & Type Badges */}
-                  <div className="absolute top-3 left-3 flex items-center gap-1.5 flex-wrap">
+                  <div className="absolute top-3 start-3 flex items-center gap-1.5 flex-wrap">
                     <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-white/95 text-soot backdrop-blur-md shadow-xs capitalize">
                       {cat}
                     </span>
@@ -536,7 +540,7 @@ export default function OrgDashboard() {
                     </span>
                   </div>
 
-                  <div className="absolute bottom-3 left-3 right-3 text-white">
+                  <div className="absolute bottom-3 start-3 end-3 text-white">
                     <h3 className="font-semibold text-base truncate font-serif-display">{space.name}</h3>
                     <div className="flex items-center gap-1 text-xs text-plaster/90 mt-0.5">
                       <MapPin size={11} className="text-eucalyptus shrink-0" />
@@ -552,9 +556,9 @@ export default function OrgDashboard() {
                     </div>
                     <div className="font-bold text-soot text-sm">
                       {planInfo.isCovered ? (
-                        <span className="text-emerald-800 font-semibold">Included in Plan</span>
+                        <span className="text-emerald-800 font-semibold">{t('dash.org.includedInPlan')}</span>
                       ) : (
-                        <span>SAR {planInfo.originalPrice.toLocaleString()} {isHourly ? '/hour' : '/seat'}</span>
+                        <span>{t('common.sar')} {planInfo.originalPrice.toLocaleString()} {isHourly ? '/hour' : '/seat'}</span>
                       )}
                     </div>
                   </div>
@@ -566,7 +570,7 @@ export default function OrgDashboard() {
                     }}
                     className="px-3.5 py-1.5 rounded-xl bg-[#DDE6DF] hover:bg-[#D0DDD3] text-soot font-semibold text-xs transition-colors shadow-2xs border border-soot/10 cursor-pointer"
                   >
-                    Book for Team
+                    {t('dash.org.bookForTeamBtn')}
                   </button>
                 </div>
               </div>
@@ -578,13 +582,13 @@ export default function OrgDashboard() {
       {/* Admin-Matching Action Cards */}
       <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {[
-          { label: 'Company Workspaces', desc: 'Manage corporate locations & suites', action: () => navigate('company-workspaces'), icon: Building2 },
-          { label: 'Browse Spaces', desc: 'Find and reserve desks & halls', action: () => navigate('browse'), icon: Building2 },
-          { label: 'Team Bookings', desc: 'Manage active reservations', action: () => navigate('team-bookings'), icon: CalendarDays },
-          { label: 'Manage Team', desc: 'Add colleagues to pass', action: () => navigate('company-team'), icon: Users },
+          { label: t('footer.companyWorkspaces'), desc: t('dash.org.qa1'), action: () => navigate('company-workspaces'), icon: Building2 },
+          { label: t('nav.browseSpaces'), desc: t('dash.org.qa2'), action: () => navigate('browse'), icon: Building2 },
+          { label: t('footer.teamBookings'), desc: t('dash.org.qa3'), action: () => navigate('team-bookings'), icon: CalendarDays },
+          { label: t('dash.org.manageTeam'), desc: t('dash.org.qa4'), action: () => navigate('company-team'), icon: Users },
           {
-            label: 'Shared Wallet',
-            desc: `SAR ${(companyWalletBalance ?? companyData?.balance ?? 0).toLocaleString()} · Team funds`,
+            label: t('dash.org.sharedWallet'),
+            desc: t('dash.org.walletDesc', { currency: t('common.sar'), amount: (companyWalletBalance ?? companyData?.balance ?? 0).toLocaleString() }),
             action: () => setIsSharedWalletOpen(true),
             icon: Wallet
           },
@@ -592,7 +596,7 @@ export default function OrgDashboard() {
           <button
             key={a.label}
             onClick={a.action}
-            className="bg-plaster-surface rounded-3xl border border-soot/12 p-5 text-left hover:border-eucalyptus/40 hover:shadow-md transition-all group cursor-pointer"
+            className="bg-plaster-surface rounded-3xl border border-soot/12 p-5 text-start hover:border-eucalyptus/40 hover:shadow-md transition-all group cursor-pointer"
           >
             <div className="w-11 h-11 rounded-2xl bg-soot text-plaster flex items-center justify-center mb-3 shadow-2xs group-hover:scale-105 transition-transform">
               <a.icon size={20} />

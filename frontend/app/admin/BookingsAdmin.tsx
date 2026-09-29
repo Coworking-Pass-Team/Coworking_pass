@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/i18n';
 import { useState, useRef, useEffect } from 'react';
 import {
   Search,
@@ -18,11 +19,16 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useApp } from '@/app/store';
+import { useSpaceText } from '@/i18n/space-text';
+import { useLabels } from '@/i18n/labels';
 import { Booking, BookingStatus, getBookingPrice, calculateDailyDurationDays } from '@/types/types';
 import { updateDirectBookingApi } from '@/services/authApi';
 import HourlyBookingsAdmin from './HourlyBookingsAdmin';
 
 export default function BookingsAdmin() {
+  const { t, localizeTime } = useI18n();
+  const st = useSpaceText();
+  const lb = useLabels();
   const { bookings, spaces, users, updateBookingStatus, deleteBooking, showToast, fetchHourlyBookings } = useApp();
   const [query, setQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
@@ -103,10 +109,10 @@ export default function BookingsAdmin() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-wrap">
         <div>
           <span className="text-xs font-semibold tracking-wider uppercase text-moss block mb-1">
-            Booking Management & Platform Activity
+            {t('admin.bk.eyebrow')}
           </span>
           <h1 className="text-3xl sm:text-4xl text-soot font-normal font-serif-display">
-            Manage Bookings
+            {t('admin.bk.title')}
           </h1>
         </div>
       </div>
@@ -115,7 +121,7 @@ export default function BookingsAdmin() {
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         {[
           {
-            label: 'Total Bookings',
+            label: t('dash.totalBookings'),
             count: bookings.length,
             badge: 'bg-soot/10 text-soot border border-soot/15',
             pct: '100%',
@@ -123,7 +129,7 @@ export default function BookingsAdmin() {
             iconBg: 'bg-soot text-plaster border-soot/20',
           },
           {
-            label: 'Active Bookings',
+            label: t('admin.bk.activeBookings'),
             count: activeCount,
             badge: 'bg-emerald-500/15 text-emerald-800 border border-emerald-500/30',
             pct: `${Math.round((activeCount / (bookings.length || 1)) * 100)}%`,
@@ -131,7 +137,7 @@ export default function BookingsAdmin() {
             iconBg: 'bg-emerald-500/15 text-emerald-800 border-emerald-500/30',
           },
           {
-            label: 'Completed Visits',
+            label: t('admin.bk.completedVisits'),
             count: previousCount,
             badge: 'bg-eucalyptus/25 text-soot border border-eucalyptus/35',
             pct: `${Math.round((previousCount / (bookings.length || 1)) * 100)}%`,
@@ -139,7 +145,7 @@ export default function BookingsAdmin() {
             iconBg: 'bg-eucalyptus/25 text-soot border-eucalyptus/35',
           },
           {
-            label: 'Cancelled',
+            label: t('admin.bk.cancelled'),
             count: cancelledCount,
             badge: 'bg-red-500/15 text-red-700 border border-red-500/30',
             pct: `${Math.round((cancelledCount / (bookings.length || 1)) * 100)}%`,
@@ -170,13 +176,13 @@ export default function BookingsAdmin() {
       {/* Search & Custom Dropdown Filters */}
       <div className="flex flex-col sm:flex-row gap-3 bg-plaster-surface p-3 rounded-2xl border border-soot/10 shadow-2xs relative z-30">
         <div className="relative flex-1">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-moss" />
+          <Search size={16} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-moss" />
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by workspace, city, or user name..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-soot/12 bg-plaster-dark/30 text-soot text-sm placeholder:text-moss/70 outline-none focus:border-eucalyptus focus:bg-plaster-surface transition-all"
+            placeholder={t('admin.bk.search')}
+            className="w-full ps-10 pe-4 py-2.5 rounded-xl border border-soot/12 bg-plaster-dark/30 text-soot text-sm placeholder:text-moss/70 outline-none focus:border-eucalyptus focus:bg-plaster-surface transition-all"
           />
         </div>
 
@@ -185,15 +191,15 @@ export default function BookingsAdmin() {
           <button
             type="button"
             onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
-            className="w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/50 border border-soot/12 transition-all duration-200 text-left cursor-pointer focus:outline-none"
+            className="w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/50 border border-soot/12 transition-all duration-200 text-start cursor-pointer focus:outline-none"
           >
             <span className="text-sm font-medium text-soot truncate">
               {filterStatus
                 ? filterStatus === 'active'
-                  ? 'Active'
+                  ? t('admin.bk.active')
                   : filterStatus === 'previous'
-                  ? 'Completed'
-                  : 'Cancelled'
+                  ? t('admin.bk.completed')
+                  : t('admin.bk.cancelled')
                 : 'All Status'}
             </span>
             <ChevronDown
@@ -205,13 +211,13 @@ export default function BookingsAdmin() {
           </button>
 
           {statusDropdownOpen && (
-            <div className="absolute top-full left-0 right-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
+            <div className="absolute top-full start-0 end-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
               <div className="space-y-0.5">
                 {[
-                  { value: '', label: 'All Status' },
-                  { value: 'active', label: 'Active Bookings' },
-                  { value: 'previous', label: 'Completed Visits' },
-                  { value: 'cancelled', label: 'Cancelled' },
+                  { value: '', label: 'admin.bk.allStatus' },
+                  { value: 'active', label: t('admin.bk.activeBookings') },
+                  { value: 'previous', label: t('admin.bk.completedVisits') },
+                  { value: 'cancelled', label: t('admin.bk.cancelled') },
                 ].map((item) => {
                   const isSelected = filterStatus === item.value;
                   return (
@@ -222,13 +228,13 @@ export default function BookingsAdmin() {
                         setFilterStatus(item.value);
                         setStatusDropdownOpen(false);
                       }}
-                      className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors text-left cursor-pointer ${
+                      className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors text-start cursor-pointer ${
                         isSelected
                           ? 'bg-soot text-plaster font-semibold'
                           : 'text-soot hover:bg-plaster-dark/60'
                       }`}
                     >
-                      <span>{item.label}</span>
+                      <span>{t(item.label as never)}</span>
                       {isSelected && <Check size={14} className="text-eucalyptus" />}
                     </button>
                   );
@@ -243,10 +249,10 @@ export default function BookingsAdmin() {
           <button
             type="button"
             onClick={() => setPlanDropdownOpen(!planDropdownOpen)}
-            className="w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/50 border border-soot/12 transition-all duration-200 text-left cursor-pointer focus:outline-none"
+            className="w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/50 border border-soot/12 transition-all duration-200 text-start cursor-pointer focus:outline-none"
           >
             <span className="text-sm font-medium text-soot truncate capitalize">
-              {filterPlan ? `${filterPlan} Pass` : 'All Plans'}
+              {filterPlan ? t(('admin.bk.' + filterPlan + 'Pass') as never) === ('admin.bk.' + filterPlan + 'Pass') ? lb.plan(filterPlan) : t(('admin.bk.' + (filterPlan === 'yearly' ? 'annual' : filterPlan) + 'Pass') as never) : t('admin.bk.allPlans')}
             </span>
             <ChevronDown
               size={15}
@@ -257,14 +263,14 @@ export default function BookingsAdmin() {
           </button>
 
           {planDropdownOpen && (
-            <div className="absolute top-full left-0 right-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
+            <div className="absolute top-full start-0 end-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
               <div className="space-y-0.5">
                 {[
-                  { value: '', label: 'All Plans' },
-                  { value: 'hourly', label: 'Hourly Pass' },
-                  { value: 'daily', label: 'Daily Pass' },
-                  { value: 'monthly', label: 'Monthly Pass' },
-                  { value: 'yearly', label: 'Annual Pass' },
+                  { value: '', label: 'admin.bk.allPlans' },
+                  { value: 'hourly', label: 'admin.bk.hourlyPass' },
+                  { value: 'daily', label: 'admin.bk.dailyPass' },
+                  { value: 'monthly', label: 'admin.bk.monthlyPass' },
+                  { value: 'yearly', label: 'admin.bk.annualPass' },
                 ].map((item) => {
                   const isSelected = filterPlan === item.value;
                   return (
@@ -275,13 +281,13 @@ export default function BookingsAdmin() {
                         setFilterPlan(item.value);
                         setPlanDropdownOpen(false);
                       }}
-                      className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors text-left cursor-pointer ${
+                      className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors text-start cursor-pointer ${
                         isSelected
                           ? 'bg-soot text-plaster font-semibold'
                           : 'text-soot hover:bg-plaster-dark/60'
                       }`}
                     >
-                      <span>{item.label}</span>
+                      <span>{t(item.label as never)}</span>
                       {isSelected && <Check size={14} className="text-eucalyptus" />}
                     </button>
                   );
@@ -295,12 +301,12 @@ export default function BookingsAdmin() {
       {/* Clean Table Layout */}
       <div className="bg-plaster-surface rounded-3xl border border-soot/10 overflow-hidden shadow-2xs relative z-10">
         <div className="hidden lg:grid grid-cols-12 gap-6 px-6 py-4 border-b border-soot/10 text-xs font-semibold uppercase tracking-wider text-moss bg-plaster-dark/40 items-center">
-          <div className="col-span-4">Workspace & Location</div>
-          <div className="col-span-2">Member / User</div>
-          <div className="col-span-2">Booking Period</div>
-          <div className="col-span-1">Plan & Seats</div>
-          <div className="col-span-1">Amount</div>
-          <div className="col-span-2 text-right">Status & Actions</div>
+          <div className="col-span-4">{t('myBookings.colWorkspace')}</div>
+          <div className="col-span-2">{t('admin.bk.colUser')}</div>
+          <div className="col-span-2">{t('myBookings.colPeriod')}</div>
+          <div className="col-span-1">{t('myBookings.colPlan')}</div>
+          <div className="col-span-1">{t('myBookings.colAmount')}</div>
+          <div className="col-span-2 text-end">{t('admin.bk.colStatus')}</div>
         </div>
 
         <div className="divide-y divide-soot/8">
@@ -314,16 +320,16 @@ export default function BookingsAdmin() {
               <div className="col-span-4 flex items-center gap-3.5 min-w-0">
                 <img
                   src={b.spaceImage}
-                  alt={b.spaceName}
+                  alt={st.bookingName(b)}
                   className="w-11 h-11 rounded-xl object-cover border border-soot/10 shrink-0 shadow-2xs group-hover:scale-105 transition-transform"
                 />
                 <div className="min-w-0 flex-1">
                   <div className="font-semibold text-soot text-sm group-hover:text-emerald-900 transition-colors truncate">
-                    {b.spaceName}
+                    {st.bookingName(b)}
                   </div>
                   <div className="flex items-center gap-1.5 text-xs text-moss mt-0.5 font-medium">
                     <MapPin size={12} className="shrink-0" />
-                    <span>{b.spaceCity}</span>
+                    <span>{st.bookingCity(b)}</span>
                   </div>
                 </div>
               </div>
@@ -340,7 +346,7 @@ export default function BookingsAdmin() {
                   <div className="text-[11px] text-moss">→ {b.endDate}</div>
                 )}
                 {b.startTime && (
-                  <div className="text-[11px] text-emerald-800 font-medium mt-0.5">{b.startTime} – {b.endTime}</div>
+                  <div className="text-[11px] text-emerald-800 font-medium mt-0.5">{localizeTime(b.startTime)} – {localizeTime(b.endTime)}</div>
                 )}
               </div>
 
@@ -348,12 +354,12 @@ export default function BookingsAdmin() {
               <div className="col-span-1 mt-2 lg:mt-0">
                 <div className="text-xs font-semibold text-soot capitalize">
                   {b.plan === 'hourly'
-                    ? `Hourly (${b.durationHours || 1} ${b.durationHours === 1 ? 'hr' : 'hrs'})`
+                    ? t(b.durationHours === 1 ? 'booking.hourlyHrs' : 'booking.hourlyHrsMany', { count: b.durationHours || 1 })
                     : b.plan === 'daily'
-                    ? `Daily Pass (${b.durationDays || (b.startDate && b.endDate ? calculateDailyDurationDays(b.startDate, b.endDate) : 1)} ${(b.durationDays || 1) === 1 ? 'day' : 'days'})`
+                    ? t((b.durationDays || 1) === 1 ? 'myBookings.dailyPassDays' : 'myBookings.dailyPassDaysMany', { count: b.durationDays || (b.startDate && b.endDate ? calculateDailyDurationDays(b.startDate, b.endDate) : 1) })
                     : b.plan === 'monthly'
-                    ? `${b.durationMonths || 1}mo Monthly`
-                    : `${b.plan} pass`}
+                    ? t('myBookings.monthlyMo', { count: b.durationMonths || 1 })
+                    : t(('booking.planPass.' + b.plan) as never)}
                 </div>
                 {(b.startTime || b.endTime) && (
                   <div className="text-[10px] text-emerald-800 font-medium">
@@ -368,7 +374,7 @@ export default function BookingsAdmin() {
 
               {/* Total Price */}
               <div className="col-span-1 mt-2 lg:mt-0 text-sm font-bold text-soot">
-                SAR {getBookingPrice(b, spaces).toLocaleString()}
+                {t('common.sar')} {getBookingPrice(b, spaces).toLocaleString()}
               </div>
 
               {/* Status Badge & Eye Details Button */}
@@ -387,14 +393,14 @@ export default function BookingsAdmin() {
                       b.status === 'active' ? 'bg-emerald-500' : b.status === 'previous' ? 'bg-soot' : 'bg-red-500'
                     }`}
                   />
-                  <span>{b.status === 'previous' ? 'Completed' : b.status}</span>
+                  <span>{b.status === 'previous' ? t('admin.bk.completed') : lb.status(b.status)}</span>
                 </span>
 
                 <button
                   type="button"
                   onClick={() => setSelectedBooking(b)}
                   className="p-2 rounded-xl text-moss hover:text-soot hover:bg-plaster-surface border border-transparent hover:border-soot/10 transition-all cursor-pointer"
-                  title="View Full Booking Details"
+                  title={t('admin.bk.viewTitle')}
                 >
                   <Eye size={15} />
                 </button>
@@ -403,12 +409,12 @@ export default function BookingsAdmin() {
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (confirm(`Are you sure you want to permanently delete booking "${b.id}" for workspace "${b.spaceName}"?`)) {
+                    if (confirm(`Are you sure you want to permanently delete booking "${b.id}" for workspace "${st.bookingName(b)}"?`)) {
                       deleteBooking(b.id);
                     }
                   }}
                   className="p-2 rounded-xl text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-all cursor-pointer"
-                  title="Permanently Delete Booking"
+                  title={t('admin.bk.deleteTitle')}
                 >
                   <Trash2 size={15} />
                 </button>
@@ -420,7 +426,7 @@ export default function BookingsAdmin() {
         {filtered.length === 0 && (
           <div className="py-20 text-center text-moss">
             <CalendarDays size={40} className="mx-auto mb-3 text-moss/50" />
-            <div className="text-base font-medium text-soot">No bookings found</div>
+            <div className="text-base font-medium text-soot">{t('admin.bk.none')}</div>
             <p className="text-xs text-moss mt-1">Try updating your filter criteria or search query.</p>
           </div>
         )}
@@ -439,7 +445,7 @@ export default function BookingsAdmin() {
             <div className="px-6 sm:px-8 py-5 border-b border-soot/10 flex items-center justify-between bg-plaster-dark/30">
               <div>
                 <h3 className="text-xl font-serif-display font-medium text-soot">
-                  Booking Overview
+                  {t('admin.bk.overview')}
                 </h3>
                 <p className="text-xs text-moss mt-0.5">Reference: #{selectedBooking.id.slice(-8).toUpperCase()}</p>
               </div>
@@ -457,19 +463,19 @@ export default function BookingsAdmin() {
               <div className="flex items-center gap-4 pb-5 border-b border-soot/10">
                 <img
                   src={selectedBooking.spaceImage}
-                  alt={selectedBooking.spaceName}
+                  alt={st.bookingName(selectedBooking)}
                   className="w-16 h-16 rounded-2xl object-cover border border-soot/10 shadow-xs"
                 />
                 <div>
                   <h4 className="font-semibold text-soot text-lg leading-tight">
-                    {selectedBooking.spaceName}
+                    {st.bookingName(selectedBooking)}
                   </h4>
                   <div className="flex items-center gap-1.5 text-xs text-moss mt-1 font-medium">
                     <MapPin size={13} className="text-moss" />
                     <span>{selectedBooking.spaceCity}</span>
                   </div>
                   <div className="text-xs text-soot font-semibold mt-1">
-                    Booked by: {getUserName(selectedBooking.userId)}
+                    {t('admin.bk.bookedBy', { name: getUserName(selectedBooking.userId) })}
                   </div>
                 </div>
               </div>
@@ -478,32 +484,32 @@ export default function BookingsAdmin() {
               <div className="space-y-3 text-sm">
                 {[
                   {
-                    label: 'Booking Plan',
+                    label: t('admin.bk.bookingPlan'),
                     value: selectedBooking.plan === 'hourly'
-                      ? `HOURLY RESERVATION (${selectedBooking.durationHours || 1} ${selectedBooking.durationHours === 1 ? 'HOUR' : 'HOURS'})`
+                      ? t(selectedBooking.durationHours === 1 ? 'admin.bk.planHourly' : 'admin.bk.planHourlyMany', { count: selectedBooking.durationHours || 1 })
                       : selectedBooking.plan === 'monthly'
-                      ? `MONTHLY PASS (${selectedBooking.durationMonths || 1} MONTH${(selectedBooking.durationMonths || 1) > 1 ? 'S' : ''})`
-                      : `${selectedBooking.plan.toUpperCase()} PASS`,
+                      ? t((selectedBooking.durationMonths || 1) > 1 ? 'admin.bk.planMonthlyMany' : 'admin.bk.planMonthly', { count: selectedBooking.durationMonths || 1 })
+                      : t(('booking.planPass.' + selectedBooking.plan) as never),
                     icon: CreditCard,
                   },
-                  { label: 'Reserved Seats', value: `${selectedBooking.seats} seat(s)`, icon: Users },
-                  { label: selectedBooking.plan === 'hourly' ? 'Booking Date' : 'Start Date', value: selectedBooking.startDate, icon: Calendar },
+                  { label: t('admin.bk.reservedSeats'), value: t('admin.bk.seatsValue', { count: selectedBooking.seats }), icon: Users },
+                  { label: selectedBooking.plan === 'hourly' ? t('qr.bookingDate') : t('spaceDetails.startDate'), value: selectedBooking.startDate, icon: Calendar },
                   ...(selectedBooking.plan === 'hourly'
                     ? [{
-                        label: 'Time Window',
-                        value: `${selectedBooking.startTime || '09:00 AM'} – ${selectedBooking.endTime || '05:00 PM'} (${selectedBooking.durationHours || 1} ${selectedBooking.durationHours === 1 ? 'hour' : 'hours'})`,
+                        label: t('qr.timeWindow'),
+                        value: t(selectedBooking.durationHours === 1 ? 'admin.bk.timeWindowValue' : 'admin.bk.timeWindowValueMany', { start: localizeTime(selectedBooking.startTime || '09:00 AM'), end: localizeTime(selectedBooking.endTime || '05:00 PM'), count: selectedBooking.durationHours || 1 }),
                         icon: Clock,
                       }]
                     : selectedBooking.startTime
                     ? [{
-                        label: 'Daily Allowed Hours',
-                        value: `${selectedBooking.startTime} – ${selectedBooking.endTime}`,
+                        label: t('qr.dailyHours'),
+                        value: `${localizeTime(selectedBooking.startTime)} – ${localizeTime(selectedBooking.endTime)}`,
                         icon: Clock,
                       }]
                     : []),
-                  ...(selectedBooking.durationMonths && selectedBooking.durationMonths > 1 ? [{ label: 'Duration (Months)', value: `${selectedBooking.durationMonths} Months`, icon: Calendar }] : []),
-                  ...(selectedBooking.plan !== 'hourly' && selectedBooking.endDate !== selectedBooking.startDate ? [{ label: 'End Date', value: selectedBooking.endDate, icon: Calendar }] : []),
-                  { label: 'Total Amount Paid', value: `SAR ${getBookingPrice(selectedBooking, spaces).toLocaleString()}`, icon: DollarSign },
+                  ...(selectedBooking.durationMonths && selectedBooking.durationMonths > 1 ? [{ label: t('admin.bk.durationMonths'), value: t('admin.bk.months', { count: selectedBooking.durationMonths }), icon: Calendar }] : []),
+                  ...(selectedBooking.plan !== 'hourly' && selectedBooking.endDate !== selectedBooking.startDate ? [{ label: t('spaceDetails.endDate'), value: selectedBooking.endDate, icon: Calendar }] : []),
+                  { label: t('admin.bk.totalPaid'), value: `${t('common.sar')} ${getBookingPrice(selectedBooking, spaces).toLocaleString()}`, icon: DollarSign },
                 ].map((row) => (
                   <div key={row.label} className="flex items-center justify-between py-1.5 border-b border-soot/6 last:border-0">
                     <span className="text-moss text-xs flex items-center gap-2">
@@ -517,7 +523,7 @@ export default function BookingsAdmin() {
 
               {/* Status Update Buttons */}
               <div className="space-y-2 pt-2">
-                <span className="text-xs font-semibold text-soot block">Update Booking Status</span>
+                <span className="text-xs font-semibold text-soot block">{t('admin.bk.updateStatus')}</span>
                 <div className="grid grid-cols-3 gap-2">
                   {(['active', 'previous', 'cancelled'] as BookingStatus[]).map((statusOption) => {
                     const isSelected = selectedBooking.status === statusOption;
@@ -532,7 +538,7 @@ export default function BookingsAdmin() {
                             : 'bg-white border-soot/15 text-soot hover:bg-plaster-dark/30 hover:border-soot/30'
                         }`}
                       >
-                        {statusOption === 'previous' ? 'Completed' : statusOption}
+                        {statusOption === 'previous' ? t('admin.bk.completed') : lb.status(statusOption)}
                       </button>
                     );
                   })}

@@ -4,6 +4,7 @@ import { ensureDatabaseSchema } from '@/lib/db-schema-sync';
 
 export interface StandardSpaceSeed {
   name: string;
+  nameAr?: string;
   city: string;
   category: 'office' | 'hall' | 'theater';
   type: string;
@@ -20,6 +21,7 @@ export interface StandardSpaceSeed {
 export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
   {
     name: 'The Hub Riyadh',
+    nameAr: 'ذا هب الرياض',
     city: 'Riyadh',
     category: 'office',
     type: 'mixed',
@@ -37,6 +39,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
   },
   {
     name: 'WorkBay Jeddah',
+    nameAr: 'وورك باي جدة',
     city: 'Jeddah',
     category: 'office',
     type: 'hot-desk',
@@ -53,6 +56,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
   },
   {
     name: 'Desk Society',
+    nameAr: 'ديسك سوسايتي',
     city: 'Riyadh',
     category: 'office',
     type: 'hot-desk',
@@ -69,6 +73,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
   },
   {
     name: 'The Collective Dammam',
+    nameAr: 'ذا كوليكتيف الدمام',
     city: 'Dammam',
     category: 'office',
     type: 'mixed',
@@ -85,6 +90,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
   },
   {
     name: 'Oasis Coworking',
+    nameAr: 'واحة للعمل المشترك',
     city: 'Al Khobar',
     category: 'office',
     type: 'private-office',
@@ -101,6 +107,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
   },
   {
     name: 'Red Sea Hub',
+    nameAr: 'ريد سي هب',
     city: 'Jeddah',
     category: 'office',
     type: 'mixed',
@@ -117,6 +124,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
   },
   {
     name: 'Khobar Tech Space',
+    nameAr: 'مساحة الخبر التقنية',
     city: 'Al Khobar',
     category: 'office',
     type: 'hot-desk',
@@ -133,6 +141,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
   },
   {
     name: 'Malqa Workspace',
+    nameAr: 'مساحة الملقا',
     city: 'Riyadh',
     category: 'office',
     type: 'private-office',
@@ -149,6 +158,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
   },
   {
     name: 'Al Majlis Grand Conference Hall',
+    nameAr: 'قاعة المجلس الكبرى للمؤتمرات',
     city: 'Riyadh',
     category: 'hall',
     type: 'conference-hall',
@@ -166,6 +176,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
   },
   {
     name: 'Horizon Interactive Training Hall',
+    nameAr: 'قاعة هورايزن التدريبية التفاعلية',
     city: 'Jeddah',
     category: 'hall',
     type: 'training-hall',
@@ -182,6 +193,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
   },
   {
     name: 'KAFD Grand Auditorium & Theater',
+    nameAr: 'مسرح وقاعة كافد الكبرى',
     city: 'Riyadh',
     category: 'theater',
     type: 'theater',
@@ -198,6 +210,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
   },
   {
     name: 'Red Sea Executive Auditorium',
+    nameAr: 'قاعة البحر الأحمر التنفيذية',
     city: 'Jeddah',
     category: 'theater',
     type: 'performance-theater',
@@ -214,6 +227,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
   },
   {
     name: 'Al Andalus Multi-Purpose Hall',
+    nameAr: 'قاعة الأندلس متعددة الأغراض',
     city: 'Jeddah',
     category: 'hall',
     type: 'multipurpose-hall',
@@ -230,6 +244,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
   },
   {
     name: 'Diriyah Heritage Meeting Hall',
+    nameAr: 'قاعة اجتماعات الدرعية التراثية',
     city: 'Riyadh',
     category: 'hall',
     type: 'meeting-hall',
@@ -246,6 +261,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
   },
   {
     name: 'TechFrontier Workshop Hall',
+    nameAr: 'قاعة ورش تك فرونتير',
     city: 'Dammam',
     category: 'hall',
     type: 'workshop-hall',
@@ -262,6 +278,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
   },
   {
     name: 'Oasis Corporate Event Hall',
+    nameAr: 'قاعة فعاليات الواحة للشركات',
     city: 'Riyadh',
     category: 'hall',
     type: 'event-hall',
@@ -278,6 +295,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
   },
   {
     name: 'Al Khobar Lecture & Seminar Hall',
+    nameAr: 'قاعة محاضرات وندوات الخبر',
     city: 'Al Khobar',
     category: 'hall',
     type: 'lecture-hall',
@@ -294,6 +312,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
   },
   {
     name: 'Dhahran Techno-Valley Theater',
+    nameAr: 'مسرح وادي الظهران التقني',
     city: 'Dammam',
     category: 'theater',
     type: 'conference-theater',
@@ -310,6 +329,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
   },
   {
     name: 'Makkah Grand Cultural Theater',
+    nameAr: 'مسرح مكة الثقافي الكبير',
     city: 'Mecca',
     category: 'theater',
     type: 'theater',
@@ -326,6 +346,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
   },
   {
     name: 'The Hive Shared Studio',
+    nameAr: 'ذا هايف ستوديو مشترك',
     city: 'Riyadh',
     category: 'office',
     type: 'shared-desk',
@@ -342,6 +363,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
   },
   {
     name: 'Madinah Tech Hub',
+    nameAr: 'مركز المدينة التقني',
     city: 'Madinah',
     category: 'office',
     type: 'mixed',
@@ -359,6 +381,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
   },
   {
     name: 'Creative Colony',
+    nameAr: 'كرييتف كولوني',
     city: 'Jeddah',
     category: 'office',
     type: 'hot-desk',
@@ -376,6 +399,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
   },
   {
     name: 'Gateway Business Center',
+    nameAr: 'مركز جيت واي للأعمال',
     city: 'Riyadh',
     category: 'office',
     type: 'private-office',
@@ -393,6 +417,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
   },
   {
     name: 'Red Sea Cultural Performance Theater',
+    nameAr: 'مسرح البحر الأحمر للفنون الأدائية',
     city: 'Jeddah',
     category: 'theater',
     type: 'performance-theater',
@@ -410,6 +435,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
   },
   {
     name: 'Al Faisaliah Executive Meeting Hall',
+    nameAr: 'قاعة اجتماعات الفيصلية التنفيذية',
     city: 'Riyadh',
     category: 'hall',
     type: 'meeting-hall',
@@ -427,6 +453,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
   },
   {
     name: 'Silicon Oasis Tech Workshop Hall',
+    nameAr: 'قاعة ورش واحة السيليكون التقنية',
     city: 'Al Khobar',
     category: 'hall',
     type: 'workshop-hall',
@@ -444,6 +471,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
   },
   {
     name: 'Dammam Tech Summit Conference Theater',
+    nameAr: 'مسرح مؤتمر قمة الدمام التقنية',
     city: 'Dammam',
     category: 'theater',
     type: 'conference-theater',
@@ -461,6 +489,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
   },
   {
     name: 'Makkah Cultural Arts Performance Theater',
+    nameAr: 'مسرح مكة للفنون الثقافية',
     city: 'Mecca',
     category: 'theater',
     type: 'performance-theater',
@@ -478,6 +507,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
   },
   {
     name: 'The Hive Dedicated & Shared Desks',
+    nameAr: 'ذا هايف مكاتب مخصصة ومشتركة',
     city: 'Riyadh',
     category: 'office',
     type: 'shared-desk',
@@ -522,6 +552,7 @@ export async function seedStandardWorkspaces() {
         data: {
           partnerId: partner.id,
           name: s.name,
+          nameAr: s.nameAr ?? null,
           city: s.city,
           locationMapUrl: `https://maps.google.com/?q=${s.latitude},${s.longitude}`,
           dailyRate: s.dailyRate,
@@ -535,6 +566,11 @@ export async function seedStandardWorkspaces() {
         },
         include: { sections: true },
       });
+    }
+
+    // Backfill the Arabic name on existing rows without overriding provider edits
+    if (s.nameAr && !(ws as any).nameAr) {
+      await prisma.workspace.update({ where: { id: ws.id }, data: { nameAr: s.nameAr } });
     }
 
     // 3. Ensure Sections exist based on space category

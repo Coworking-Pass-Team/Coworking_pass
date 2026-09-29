@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/i18n';
 import React, { useState } from 'react';
 import {
   CalendarDays,
@@ -15,6 +16,7 @@ import {
   QrCode
 } from 'lucide-react';
 import { useApp } from '@/app/store';
+import { useSpaceText } from '@/i18n/space-text';
 import BookingQrModal from '@/components/BookingQrModal';
 import {
   Space,
@@ -29,6 +31,8 @@ import {
 } from '@/types/types';
 
 export default function IndividualDashboard() {
+  const { t, localizeTime, translateMessage, formatDate } = useI18n();
+  const st = useSpaceText();
   const { currentUser, bookings, spaces, navigate, favorites } = useApp();
   const [selectedCategory, setSelectedCategory] = useState<'all' | SpaceCategory>('all');
   const [selectedBookingForQr, setSelectedBookingForQr] = useState<Booking | null>(null);
@@ -56,12 +60,12 @@ export default function IndividualDashboard() {
 
   const greeting = () => {
     const h = new Date().getHours();
-    if (h < 12) return 'Good morning';
-    if (h < 17) return 'Good afternoon';
-    return 'Good evening';
+    if (h < 12) return t('dash.greetingMorning');
+    if (h < 17) return t('dash.greetingAfternoon');
+    return t('dash.greetingEvening');
   };
 
-  const tierName = currentUser.membershipTier || (currentUser.hasActivePass ? 'All-Access Pass' : 'Standard Member');
+  const tierName = currentUser.membershipTier || (currentUser.hasActivePass ? t('dash.allAccessPass') : t('dash.standardMember'));
   const tierLower = tierName.toLowerCase();
 
   const userPassPlan: BookingPlan = tierLower.includes('yearly') || tierLower.includes('annual') || tierLower.includes('enterprise') || tierLower.includes('all-access')
@@ -88,17 +92,17 @@ export default function IndividualDashboard() {
         <div>
           <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
             <span className="text-xs font-semibold tracking-wider uppercase text-moss block">
-              Personal Workspace Portal
+              {t('dash.ind.eyebrow')}
             </span>
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E2E8E4] border border-[#2D3536]/15 text-soot text-xs font-semibold shadow-2xs">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
-              <span>{tierName}</span>
+              <span>{translateMessage(tierName)}</span>
             </span>
           </div>
           <h1 className="text-3xl sm:text-4xl text-soot font-normal font-serif-display">
             {greeting()}, {currentUser.name.split(' ')[0]}
           </h1>
-          <p className="text-moss text-sm mt-1">Welcome back to your Coworking Pass dashboard.</p>
+          <p className="text-moss text-sm mt-1">{t('dash.ind.welcome')}</p>
         </div>
       </div>
 
@@ -106,43 +110,43 @@ export default function IndividualDashboard() {
       <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 ${hasPass ? 'lg:grid-cols-6' : 'lg:grid-cols-5'} gap-4`}>
         {[
           {
-            label: 'Active Bookings',
+            label: t('dash.activeBookings'),
             count: activeBookings.length,
             badge: 'bg-emerald-500/15 text-emerald-800 border border-emerald-500/30',
             icon: CalendarDays,
             iconBg: 'bg-emerald-500/15 text-emerald-800 border-emerald-500/30',
           },
           ...(hasPass ? [{
-            label: 'Remaining Hours',
-            count: `${remainingHours} hrs`,
-            sublabel: `${remainingHours} / ${totalPlanHours} hrs · Renews Monthly`,
+            label: t('dash.remainingHours'),
+            count: t('dash.remainingHoursStat', { count: remainingHours }),
+            sublabel: t('dash.remainingSublabel', { remaining: remainingHours, total: totalPlanHours }),
             badge: 'bg-emerald-800/15 text-emerald-900 border border-emerald-800/30',
             icon: Clock,
             iconBg: 'bg-emerald-800 text-white border-emerald-900/30',
           }] : []),
           {
-            label: 'Total Reservations',
+            label: t('dash.totalReservations'),
             count: myBookings.length,
             badge: 'bg-soot/10 text-soot border border-soot/15',
             icon: Bookmark,
             iconBg: 'bg-soot text-plaster border-soot/20',
           },
           {
-            label: 'Saved Spaces',
+            label: t('dash.savedSpaces'),
             count: favorites.length,
             badge: 'bg-amber-500/15 text-amber-800 border border-amber-500/30',
             icon: Star,
             iconBg: 'bg-amber-500/15 text-amber-800 border-amber-500/30',
           },
           {
-            label: 'Days Booked',
+            label: t('dash.daysBooked'),
             count: totalDaysBooked,
             badge: 'bg-blue-500/15 text-blue-800 border border-blue-500/30',
             icon: Clock,
             iconBg: 'bg-blue-500/15 text-blue-800 border-blue-500/30',
           },
           {
-            label: 'Loyalty Points',
+            label: t('dash.loyaltyPoints'),
             count: currentUser.loyaltyPoints || 0,
             badge: 'bg-amber-500/20 text-amber-900 border border-amber-500/40',
             icon: Sparkles,
@@ -151,8 +155,8 @@ export default function IndividualDashboard() {
         ].map((stat) => (
           <div
             key={stat.label}
-            onClick={() => stat.label === 'Loyalty Points' ? navigate('loyalty') : undefined}
-            className={`bg-plaster-surface rounded-3xl border border-soot/12 p-5 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between group ${stat.label === 'Loyalty Points' ? 'cursor-pointer hover:border-amber-500/40' : ''}`}
+            onClick={() => stat.label === t('dash.loyaltyPoints') ? navigate('loyalty') : undefined}
+            className={`bg-plaster-surface rounded-3xl border border-soot/12 p-5 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between group ${stat.label === t('dash.loyaltyPoints') ? 'cursor-pointer hover:border-amber-500/40' : ''}`}
           >
             <div className="flex items-center gap-3.5 min-w-0">
               <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs ${stat.iconBg}`}>
@@ -178,36 +182,36 @@ export default function IndividualDashboard() {
               <div className="flex items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 font-semibold text-xs border border-emerald-300">
                   <CheckCircle2 size={13} className="text-emerald-700" />
-                  <span>Pass Benefit Active</span>
+                  <span>{t('dash.passBenefitActive')}</span>
                 </span>
-                <span className="text-xs font-semibold text-moss">· Renews Monthly</span>
+                <span className="text-xs font-semibold text-moss">{t('dash.renewsMonthly')}</span>
               </div>
               <h2 className="text-2xl font-serif-display text-soot">
-                Remaining Hours: <span className="text-emerald-900 font-bold">{remainingHours}</span> / {totalPlanHours} hrs
+                {t('dash.remainingHoursTitle', { remaining: remainingHours, total: totalPlanHours })}
               </h2>
               <p className="text-xs text-moss">
-                Monthly quota for meeting rooms & theaters included with your {tierName}. Automatically deducts upon reservation and renews every 30 days.
+                {t('dash.quotaBody', { tier: translateMessage(tierName) })}
               </p>
             </div>
 
-            <div className="flex items-center gap-3 sm:text-right shrink-0 flex-wrap">
+            <div className="flex items-center gap-3 sm:text-end shrink-0 flex-wrap">
               <div>
-                <span className="text-[11px] font-semibold text-moss uppercase tracking-wider block">Next Monthly Renewal</span>
-                <span className="text-sm font-bold text-soot">{nextRenewalDate}</span>
+                <span className="text-[11px] font-semibold text-moss uppercase tracking-wider block">{t('dash.nextRenewal')}</span>
+                <span className="text-sm font-bold text-soot">{formatDate(cycleStartDate.getTime() + 30 * 24 * 60 * 60 * 1000)}</span>
               </div>
               <button
                 type="button"
                 onClick={() => navigate('pricing')}
                 className="py-2.5 px-3.5 text-xs rounded-xl border border-soot/20 text-soot hover:bg-soot/5 font-semibold transition-colors cursor-pointer shadow-2xs"
               >
-                Manage Pass
+                {t('dash.managePass')}
               </button>
               <button
                 type="button"
                 onClick={() => navigate('browse')}
                 className="btn-primary py-2.5 px-4 text-xs shadow-xs cursor-pointer"
               >
-                <span>Book Space</span>
+                <span>{t('dash.bookSpace')}</span>
                 <ArrowRight size={13} />
               </button>
             </div>
@@ -216,8 +220,8 @@ export default function IndividualDashboard() {
           {/* Quota Usage Bar */}
           <div className="mt-4 pt-1 space-y-2">
             <div className="flex justify-between items-center text-xs font-semibold">
-              <span className="text-moss">Monthly Allowance Usage</span>
-              <span className="text-soot">{remainingHours} hrs remaining ({totalPlanHours - remainingHours} hrs used)</span>
+              <span className="text-moss">{t('dash.allowanceUsage')}</span>
+              <span className="text-soot">{t('dash.allowanceSummary', { remaining: remainingHours, used: totalPlanHours - remainingHours })}</span>
             </div>
             <div className="w-full bg-soot/10 h-2.5 rounded-full overflow-hidden">
               <div
@@ -239,7 +243,7 @@ export default function IndividualDashboard() {
               onClick={() => navigate('my-bookings')}
               className="text-xs font-semibold text-moss hover:text-soot flex items-center gap-1 cursor-pointer transition-colors"
             >
-              <span>View all</span>
+              <span>{t('landing.viewAll')}</span>
               <ArrowRight size={13} />
             </button>
           </div>
@@ -247,12 +251,12 @@ export default function IndividualDashboard() {
           {activeBookings.length === 0 ? (
             <div className="bg-plaster-surface rounded-3xl border border-soot/10 p-8 text-center shadow-2xs min-h-[200px] flex flex-col items-center justify-center">
               <CalendarDays size={32} className="text-moss mx-auto mb-3" />
-              <div className="text-sm font-semibold text-soot mb-1">No active bookings</div>
+              <div className="text-sm font-semibold text-soot mb-1">{t('dash.noActive')}</div>
               <button
                 onClick={() => navigate('browse')}
                 className="text-xs font-semibold text-moss hover:text-soot flex items-center gap-1 transition-colors cursor-pointer mt-2"
               >
-                Browse spaces →
+                {t('booking.browseArrow')}
               </button>
             </div>
           ) : (
@@ -264,23 +268,23 @@ export default function IndividualDashboard() {
                   className="p-4 hover:bg-plaster-dark/30 transition-colors flex items-center justify-between gap-4 cursor-pointer group"
                 >
                   <div className="flex items-center gap-3.5 min-w-0">
-                    <img src={b.spaceImage} alt={b.spaceName} className="w-12 h-12 rounded-xl object-cover border border-soot/10 shrink-0 shadow-2xs group-hover:scale-105 transition-transform" />
+                    <img src={b.spaceImage} alt={st.bookingName(b)} className="w-12 h-12 rounded-xl object-cover border border-soot/10 shrink-0 shadow-2xs group-hover:scale-105 transition-transform" />
                     <div className="min-w-0">
-                      <h4 className="font-semibold text-soot text-sm truncate group-hover:text-emerald-900 transition-colors">{b.spaceName}</h4>
+                      <h4 className="font-semibold text-soot text-sm truncate group-hover:text-emerald-900 transition-colors">{st.bookingName(b)}</h4>
                       <div className="flex items-center gap-1.5 text-xs text-moss mt-0.5 font-medium">
                         <MapPin size={12} className="shrink-0" />
-                        <span className="truncate">{b.spaceCity}</span>
+                        <span className="truncate">{st.bookingCity(b)}</span>
                         <span>•</span>
-                        <span className="truncate">{b.startDate} {b.plan === 'hourly' && b.startTime ? `(${b.startTime} – ${b.endTime || ''})` : (b.endDate && b.endDate !== b.startDate ? `→ ${b.endDate}` : '')}</span>
+                        <span className="truncate">{b.startDate} {b.plan === 'hourly' && b.startTime ? `(${localizeTime(b.startTime)} – ${localizeTime(b.endTime || '')})` : (b.endDate && b.endDate !== b.startDate ? `→ ${b.endDate}` : '')}</span>
                       </div>
                       <div className="mt-1.5 flex items-center gap-2">
                         <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-500/15 text-emerald-800 border border-emerald-500/30 uppercase tracking-wider">
-                          {b.plan === 'hourly' ? `Hourly (${b.durationHours || 1} ${b.durationHours === 1 ? 'hr' : 'hrs'})` : `${b.plan} pass`} • {b.seats} seat{b.seats > 1 ? 's' : ''}
+                          {b.plan === 'hourly' ? t(b.durationHours === 1 ? 'booking.hourlyHrs' : 'booking.hourlyHrsMany', { count: b.durationHours || 1 }) : t(('booking.planPass.' + b.plan) as never)} • {t(b.seats > 1 ? 'booking.seatMany' : 'booking.seatOne', { count: b.seats })}
                         </span>
                       </div>
                     </div>
                   </div>
-                  <div className="text-right shrink-0 flex flex-col items-end gap-1">
+                  <div className="text-end shrink-0 flex flex-col items-end gap-1">
                     <div className="text-sm font-semibold text-soot">
                       {(() => {
                         const price = getBookingPrice(b, spaces);
@@ -291,19 +295,19 @@ export default function IndividualDashboard() {
                           return (
                             <span className="text-xs font-bold text-emerald-900 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-300 inline-flex items-center gap-1 shadow-2xs">
                               <Clock size={11} className="text-emerald-700" />
-                              <span>{isHourly ? `${b.durationHours || 1} hrs (Pass)` : 'Included'}</span>
+                              <span>{isHourly ? t('booking.hrsPass', { count: b.durationHours || 1 }) : t('booking.included')}</span>
                             </span>
                           );
                         }
                         if (b.coveredHours && b.coveredHours > 0) {
                           return (
-                            <div className="text-right">
-                              <div className="font-semibold text-soot text-xs">SAR {price.toLocaleString()}</div>
-                              <div className="text-[10px] text-emerald-800 font-medium">{b.coveredHours}h Pass</div>
+                            <div className="text-end">
+                              <div className="font-semibold text-soot text-xs">{t('common.sar')} {price.toLocaleString()}</div>
+                              <div className="text-[10px] text-emerald-800 font-medium">{t('booking.hPass', { count: b.coveredHours })}</div>
                             </div>
                           );
                         }
-                        return `SAR ${price.toLocaleString()}`;
+                        return `${t('common.sar')} ${price.toLocaleString()}`;
                       })()}
                     </div>
                     <button
@@ -315,7 +319,7 @@ export default function IndividualDashboard() {
                       className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-[#2F6144] hover:bg-[#254F37] text-white text-[11px] font-semibold transition-all shadow-2xs cursor-pointer"
                     >
                       <QrCode size={12} />
-                      <span>QR Pass</span>
+                      <span>{t('booking.qrPass')}</span>
                     </button>
                   </div>
                 </div>
@@ -327,12 +331,12 @@ export default function IndividualDashboard() {
         {/* Saved spaces column */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-serif-display text-soot">Saved Spaces</h2>
+            <h2 className="text-xl font-serif-display text-soot">{t('dash.savedSpaces')}</h2>
             <button
               onClick={() => navigate('browse')}
               className="text-xs font-semibold text-moss hover:text-soot flex items-center gap-1 cursor-pointer transition-colors"
             >
-              <span>Browse more</span>
+              <span>{t('dash.browseMore')}</span>
               <ArrowRight size={13} />
             </button>
           </div>
@@ -340,12 +344,12 @@ export default function IndividualDashboard() {
           {favoriteSpaces.length === 0 ? (
             <div className="bg-plaster-surface rounded-3xl border border-soot/10 p-8 text-center shadow-2xs min-h-[200px] flex flex-col items-center justify-center">
               <Star size={32} className="text-moss mx-auto mb-3" />
-              <div className="text-sm font-semibold text-soot mb-1">No saved spaces yet</div>
+              <div className="text-sm font-semibold text-soot mb-1">{t('dash.noSaved')}</div>
               <button
                 onClick={() => navigate('browse')}
                 className="text-xs font-semibold text-moss hover:text-soot flex items-center gap-1 transition-colors cursor-pointer mt-2"
               >
-                Browse spaces →
+                {t('booking.browseArrow')}
               </button>
             </div>
           ) : (
@@ -359,14 +363,14 @@ export default function IndividualDashboard() {
                   <div className="flex items-center gap-3.5 min-w-0">
                     <img
                       src={space.images[0]}
-                      alt={space.name}
+                      alt={st.name(space)}
                       className="w-12 h-12 rounded-xl object-cover border border-soot/10 shrink-0 shadow-2xs group-hover:scale-105 transition-transform"
                     />
                     <div className="min-w-0">
                       <h4 className="font-semibold text-soot text-sm truncate group-hover:text-emerald-900 transition-colors">{space.name}</h4>
                       <div className="flex items-center gap-1.5 text-xs text-moss mt-0.5 font-medium">
                         <MapPin size={12} className="shrink-0" />
-                        <span>{space.city}</span>
+                        <span>{st.city(space)}</span>
                       </div>
                       <div className="flex items-center gap-1 text-xs text-moss mt-1 font-medium">
                         <Star size={12} className="fill-amber-400 text-amber-400" />
@@ -374,7 +378,7 @@ export default function IndividualDashboard() {
                       </div>
                     </div>
                   </div>
-                  <div className="text-right shrink-0">
+                  <div className="text-end shrink-0">
                     {(() => {
                       const isHourly = isHourlyAllowed(space);
                       const targetPlan = isHourly ? 'hourly' : userPassPlan;
@@ -388,19 +392,19 @@ export default function IndividualDashboard() {
                         return (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-800 font-bold text-[10px] border border-emerald-500/30 uppercase tracking-wider shadow-2xs">
                             <Check size={11} className="text-emerald-800 shrink-0" />
-                            <span>Included in Pass</span>
+                            <span>{t('spaceDetails.includedInPass')}</span>
                           </span>
                         );
                       }
                       if (planInfo.hasDiscount) {
                         return (
                           <div>
-                            <div className="text-sm font-semibold text-soot">SAR {planInfo.effectivePrice.toLocaleString()} {unitLabel}</div>
+                            <div className="text-sm font-semibold text-soot">{t('common.sar')} {planInfo.effectivePrice.toLocaleString()} {unitLabel}</div>
                             <div className="text-[10px] text-amber-800 font-bold">{planInfo.discountPercentage}% Pass Discount</div>
                           </div>
                         );
                       }
-                      return <div className="text-sm font-semibold text-soot">SAR {displayPrice.toLocaleString()} {unitLabel}</div>;
+                      return <div className="text-sm font-semibold text-soot">{t('common.sar')} {displayPrice.toLocaleString()} {unitLabel}</div>;
                     })()}
                   </div>
                 </div>
@@ -415,15 +419,15 @@ export default function IndividualDashboard() {
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
           <div>
             <span className="text-xs font-semibold tracking-wider uppercase text-moss block mb-1">
-              Discovery & Booking
+              {t('dash.discovery')}
             </span>
-            <h2 className="text-2xl font-serif-display text-soot">Explore Spaces by Category</h2>
+            <h2 className="text-2xl font-serif-display text-soot">{t('dash.exploreByCategory')}</h2>
           </div>
           <button
             onClick={() => navigate('browse')}
             className="text-xs font-semibold text-moss hover:text-soot flex items-center gap-1 cursor-pointer transition-colors"
           >
-            <span>Open full catalog</span>
+            <span>{t('dash.openCatalog')}</span>
             <ArrowRight size={13} />
           </button>
         </div>
@@ -431,10 +435,10 @@ export default function IndividualDashboard() {
         {/* Category Filter Tabs */}
         <div className="flex flex-wrap gap-2">
           {[
-            { id: 'all', label: 'All Spaces' },
-            { id: 'office', label: 'Offices' },
-            { id: 'hall', label: 'Halls' },
-            { id: 'theater', label: 'Theaters' },
+            { id: 'all', label: t('categories.all') },
+            { id: 'office', label: t('categories.office') },
+            { id: 'hall', label: t('categories.hall') },
+            { id: 'theater', label: t('categories.theater') },
           ].map(cat => {
             const isSelected = selectedCategory === cat.id;
             const count = cat.id === 'all'
@@ -477,26 +481,26 @@ export default function IndividualDashboard() {
                 <div className="relative h-44 overflow-hidden">
                   <img
                     src={space.images[0]}
-                    alt={space.name}
+                    alt={st.name(space)}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-soot/70 via-transparent to-transparent" />
                   
                   {/* Category & Type Badges */}
-                  <div className="absolute top-3 left-3 flex items-center gap-1.5 flex-wrap">
+                  <div className="absolute top-3 start-3 flex items-center gap-1.5 flex-wrap">
                     <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-white/95 text-soot backdrop-blur-md shadow-xs capitalize">
-                      {cat}
+                      {t(('categories.' + cat) as never)}
                     </span>
                     <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-soot/80 text-white backdrop-blur-md shadow-xs capitalize">
-                      {space.type.replace('-', ' ')}
+                      {st.typeLabel(space.type)}
                     </span>
                   </div>
 
-                  <div className="absolute bottom-3 left-3 right-3 text-white">
-                    <h3 className="font-semibold text-base truncate font-serif-display">{space.name}</h3>
+                  <div className="absolute bottom-3 start-3 end-3 text-white">
+                    <h3 className="font-semibold text-base truncate font-serif-display">{st.name(space)}</h3>
                     <div className="flex items-center gap-1 text-xs text-plaster/90 mt-0.5">
                       <MapPin size={11} className="text-eucalyptus shrink-0" />
-                      <span className="truncate">{space.city} • {space.address}</span>
+                      <span className="truncate">{st.city(space)} • {st.address(space)}</span>
                     </div>
                   </div>
                 </div>
@@ -504,13 +508,13 @@ export default function IndividualDashboard() {
                 <div className="p-4 flex items-center justify-between gap-3 border-t border-soot/6">
                   <div>
                     <div className="text-xs text-moss">
-                      {isHourly ? 'Hourly Rate' : 'Daily Pass'}
+                      {isHourly ? t('dash.hourlyRate') : t('dash.dailyPass')}
                     </div>
                     <div className="font-bold text-soot text-sm">
                       {planInfo.isCovered ? (
-                        <span className="text-emerald-800 font-semibold">Included in Pass</span>
+                        <span className="text-emerald-800 font-semibold">{t('spaceDetails.includedInPass')}</span>
                       ) : (
-                        <span>SAR {planInfo.originalPrice.toLocaleString()} {isHourly ? '/hour' : '/day'}</span>
+                        <span>{t('common.sar')} {planInfo.originalPrice.toLocaleString()} {isHourly ? t('dash.perHourShort') : t('dash.perDayShort')}</span>
                       )}
                     </div>
                   </div>
@@ -522,7 +526,7 @@ export default function IndividualDashboard() {
                     }}
                     className="px-3.5 py-1.5 rounded-xl bg-[#DDE6DF] hover:bg-[#D0DDD3] text-soot font-semibold text-xs transition-colors shadow-2xs border border-soot/10 cursor-pointer"
                   >
-                    Book Now
+                    {t('dash.bookNow')}
                   </button>
                 </div>
               </div>

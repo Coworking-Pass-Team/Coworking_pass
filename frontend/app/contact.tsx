@@ -193,7 +193,7 @@ export default function Contact() {
                 Thank you for reaching out, <strong className="text-soot">{name}</strong>. Your support ticket regarding <span className={`px-2 py-0.5 rounded-md border text-xs font-semibold ${inquiryLabels[inquiryType].badgeColor}`}>{inquiryLabels[inquiryType].label}</span> has been logged. We will contact you at <strong className="text-soot">{email}</strong> shortly.
               </p>
               {attachedImage && (
-                <div className="p-3 bg-plaster-dark/30 rounded-2xl border border-soot/10 max-w-xs mx-auto text-left flex items-center gap-3">
+                <div className="p-3 bg-plaster-dark/30 rounded-2xl border border-soot/10 max-w-xs mx-auto text-start flex items-center gap-3">
                   <img src={attachedImage} alt="Attachment" className="w-12 h-12 object-cover rounded-xl border border-soot/10" />
                   <div className="text-xs truncate">
                     <span className="font-semibold text-soot block truncate">{fileName}</span>
@@ -228,7 +228,7 @@ export default function Contact() {
                   <button
                     type="button"
                     onClick={() => setInquiryType('general')}
-                    className={`p-3.5 rounded-2xl border text-left transition-all duration-200 cursor-pointer flex flex-col justify-between ${
+                    className={`p-3.5 rounded-2xl border text-start transition-all duration-200 cursor-pointer flex flex-col justify-between ${
                       inquiryType === 'general'
                         ? 'border-emerald-600 bg-emerald-50/70 text-emerald-950 shadow-2xs ring-1 ring-emerald-600'
                         : 'border-soot/12 bg-plaster-dark/20 text-soot hover:bg-plaster-dark/40'
@@ -246,7 +246,7 @@ export default function Contact() {
                   <button
                     type="button"
                     onClick={() => setInquiryType('complaint')}
-                    className={`p-3.5 rounded-2xl border text-left transition-all duration-200 cursor-pointer flex flex-col justify-between ${
+                    className={`p-3.5 rounded-2xl border text-start transition-all duration-200 cursor-pointer flex flex-col justify-between ${
                       inquiryType === 'complaint'
                         ? 'border-rose-600 bg-rose-50/70 text-rose-950 shadow-2xs ring-1 ring-rose-600'
                         : 'border-soot/12 bg-plaster-dark/20 text-soot hover:bg-plaster-dark/40'
@@ -264,7 +264,7 @@ export default function Contact() {
                   <button
                     type="button"
                     onClick={() => setInquiryType('refund')}
-                    className={`p-3.5 rounded-2xl border text-left transition-all duration-200 cursor-pointer flex flex-col justify-between ${
+                    className={`p-3.5 rounded-2xl border text-start transition-all duration-200 cursor-pointer flex flex-col justify-between ${
                       inquiryType === 'refund'
                         ? 'border-amber-600 bg-amber-50/70 text-amber-950 shadow-2xs ring-1 ring-amber-600'
                         : 'border-soot/12 bg-plaster-dark/20 text-soot hover:bg-plaster-dark/40'

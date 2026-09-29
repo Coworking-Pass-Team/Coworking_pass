@@ -44,6 +44,7 @@ import {
   isHourlyAllowed,
   hhmmTo12h,
 } from '@/types/types';
+import { useI18n } from '@/i18n';
 import AccountSuspendedModal from '@/components/AccountSuspendedModal';
 import { INITIAL_SPACES, INITIAL_USERS, INITIAL_BOOKINGS, INITIAL_SUPPORT_TICKETS } from '@/data/data';
 import {
@@ -571,6 +572,7 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | null>(null);
 
 export function AppProvider({ children }: { children: ReactNode }) {
+  const { translateMessage } = useI18n();
   const [nav, setNav] = useState<NavState>({ screen: 'landing', params: {} });
   const [history, setHistory] = useState<NavState[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -2639,10 +2641,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
           return {
             id: w.id,
             name: w.name,
+            nameAr: (w as any).nameAr || undefined,
             city: w.city,
+            cityAr: (w as any).cityAr || undefined,
             district: '',
-            address: w.city,
-            description: existing?.description || `Workspace managed by ${w.partner?.brandName || 'Partner'}`,
+            address: (w as any).address || w.city,
+            addressAr: (w as any).addressAr || undefined,
+            description: (w as any).description || existing?.description || `Workspace managed by ${w.partner?.brandName || 'Partner'}`,
+            descriptionAr: (w as any).descriptionAr || undefined,
             type: preservedType,
             images: finalImages,
             amenities: finalAmenities,
@@ -2727,6 +2733,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     openingTime?: string;
     closingTime?: string;
     is24Hours?: boolean;
+    nameAr?: string;
+    description?: string;
+    descriptionAr?: string;
+    address?: string;
+    addressAr?: string;
+    cityAr?: string;
   }): Promise<{ success: boolean; workspace?: WorkspaceApi; error?: string }> => {
     try {
       const headers: Record<string, string> = {
@@ -2777,6 +2789,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       closingTime: string;
       is24Hours: boolean;
       isVisible: boolean;
+      nameAr: string;
+      description: string;
+      descriptionAr: string;
+      address: string;
+      addressAr: string;
+      cityAr: string;
     }>
   ): Promise<{ success: boolean; workspace?: WorkspaceApi; error?: string }> => {
     try {
@@ -3339,7 +3357,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
-    setToast({ message, type });
+    // Fixed English system sentences are shown in Arabic when the Arabic UI is active
+    setToast({ message: translateMessage(message), type });
     setTimeout(() => setToast(null), 3500);
   };
 
@@ -4065,6 +4084,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
             openingTime: space.openingTime,
             closingTime: space.closingTime,
             is24Hours: space.is24Hours,
+            nameAr: space.nameAr,
+            description: space.description,
+            descriptionAr: space.descriptionAr,
+            address: space.address,
+            addressAr: space.addressAr,
+            cityAr: space.cityAr,
           });
 
           if (createRes.success && createRes.workspace) {
@@ -4210,6 +4235,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (updates.openingTime !== undefined) payload.openingTime = updates.openingTime;
         if (updates.closingTime !== undefined) payload.closingTime = updates.closingTime;
         if (updates.is24Hours !== undefined) payload.is24Hours = updates.is24Hours;
+        if (updates.nameAr !== undefined) payload.nameAr = updates.nameAr;
+        if (updates.description !== undefined) payload.description = updates.description;
+        if (updates.descriptionAr !== undefined) payload.descriptionAr = updates.descriptionAr;
+        if (updates.address !== undefined) payload.address = updates.address;
+        if (updates.addressAr !== undefined) payload.addressAr = updates.addressAr;
+        if (updates.cityAr !== undefined) payload.cityAr = updates.cityAr;
 
         if (targetDbId && (Object.keys(payload).length > 0 || updates.type)) {
           if (Object.keys(payload).length > 0) {

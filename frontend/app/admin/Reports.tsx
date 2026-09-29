@@ -1,7 +1,9 @@
 'use client';
+import { useI18n } from '@/i18n';
 import { useState, useEffect } from 'react';
 import { TrendingUp, CalendarDays, Users, Building2, BarChart3 } from 'lucide-react';
 import { useApp } from '@/app/store';
+import { useSpaceText } from '@/i18n/space-text';
 import { getAdminReportApi, ReportPeriod } from '@/services/authApi';
 
 const PERIODS = ['Today', 'This week', 'This month', 'This year'];
@@ -83,6 +85,8 @@ interface ReportData {
 }
 
 export default function Reports() {
+  const { t, translateMessage } = useI18n();
+  const st = useSpaceText();
   const { spaces } = useApp();
   const [period, setPeriod] = useState('This month');
   const [report, setReport] = useState<ReportData | null>(null);
@@ -104,26 +108,26 @@ export default function Reports() {
   }, [period]);
 
   const stats = report ? [
-    { label: 'Net revenue', value: `SAR ${Math.round(report.revenue).toLocaleString()}`, icon: TrendingUp, color: 'text-moss' },
-    { label: 'Total bookings', value: report.totalBookings, icon: CalendarDays, color: 'text-eucalyptus' },
-    { label: 'Active bookings', value: report.activeBookings, icon: CalendarDays, color: 'text-soot' },
-    { label: 'Cancelled / refunded', value: report.cancelledBookings, icon: CalendarDays, color: 'text-red-400' },
-    { label: 'Total users', value: report.totalUsers, icon: Users, color: 'text-mist' },
-    { label: 'Organizations', value: report.organizations, icon: Building2, color: 'text-moss' },
-    { label: 'Available spaces', value: report.availableSpaces, icon: Building2, color: 'text-eucalyptus' },
-    { label: 'Fully booked', value: report.fullyBookedSpaces, icon: Building2, color: 'text-red-400' },
+    { label: t('reports.netRevenue'), value: `${t('common.sar')} ${Math.round(report.revenue).toLocaleString()}`, icon: TrendingUp, color: 'text-moss' },
+    { label: t('reports.totalBookings'), value: report.totalBookings, icon: CalendarDays, color: 'text-eucalyptus' },
+    { label: t('admin.dash.activeBookings'), value: report.activeBookings, icon: CalendarDays, color: 'text-soot' },
+    { label: t('reports.cancelledRefunded'), value: report.cancelledBookings, icon: CalendarDays, color: 'text-red-400' },
+    { label: t('admin.dash.totalUsers'), value: report.totalUsers, icon: Users, color: 'text-mist' },
+    { label: t('admin.dash.organizations'), value: report.organizations, icon: Building2, color: 'text-moss' },
+    { label: t('reports.availableSpaces'), value: report.availableSpaces, icon: Building2, color: 'text-eucalyptus' },
+    { label: t('admin.dash.fullyBooked'), value: report.fullyBookedSpaces, icon: Building2, color: 'text-red-400' },
   ] : [];
 
-  const revenueData = report?.revenueByCity ?? [];
-  const bookingsByPlan = report?.bookingsByPlan ?? [];
+  const revenueData = (report?.revenueByCity ?? []).map(x => ({ ...x, label: x.label === 'Passes & other' ? t('reports.passesOther') : st.cityName(x.label) }));
+  const bookingsByPlan = (report?.bookingsByPlan ?? []).map(x => ({ ...x, label: t(('reports.plan.' + x.label) as never) }));
   const occupancyData = (report?.occupancy ?? []).map(o => ({ label: o.name.split(' ')[0], value: o.occupancyPercent }));
-  const userGrowth = report?.usersByType ?? [];
+  const userGrowth = (report?.usersByType ?? []).map(x => ({ ...x, label: t(('reports.type.' + x.label) as never) }));
   const topSpaces = (report?.topSpaces ?? []).map(t => ({ ...t, images: spaces.find(sp => sp.id === t.id)?.images ?? [] }));
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
       <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
-        <h1 className="text-4xl text-soot" style={{ fontFamily: 'DM Serif Display, serif' }}>Reports & Analytics</h1>
+        <h1 className="text-4xl text-soot" style={{ fontFamily: 'DM Serif Display, serif' }}>{t('reports.title')}</h1>
         <div className="flex gap-1 bg-white border border-soot/8 rounded-xl p-1 shadow-xs">
           {PERIODS.map(p => (
             <button
@@ -131,14 +135,14 @@ export default function Reports() {
               onClick={() => setPeriod(p)}
               className={`px-3.5 py-2 rounded-lg text-sm font-semibold transition-all ${period === p ? 'bg-soot text-plaster' : 'text-moss hover:text-soot'}`}
             >
-              {p}
+              {t(('reports.period.' + p.replace(/ /g, '')) as never)}
             </button>
           ))}
         </div>
       </div>
 
-      {loading && <div className="text-sm text-moss mb-6">Loading live report...</div>}
-      {error && <div className="text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-xl p-3 mb-6">{error}</div>}
+      {loading && <div className="text-sm text-moss mb-6">{t('reports.loading')}</div>}
+      {error && <div className="text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-xl p-3 mb-6">{translateMessage(error)}</div>}
 
       {/* Stats grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -158,7 +162,7 @@ export default function Reports() {
         <div className="bg-white rounded-2xl border border-soot/8 p-6 shadow-2xs">
           <div className="flex items-center gap-2 mb-1">
             <BarChart3 size={18} className="text-moss" />
-            <h2 className="font-bold text-soot text-base">Net revenue by city (SAR)</h2>
+            <h2 className="font-bold text-soot text-base">{t('reports.revenueByCity')}</h2>
           </div>
           <p className="text-sm text-moss mb-2">{period}</p>
           <BarChart data={revenueData} color="#98AA9D" />
@@ -168,7 +172,7 @@ export default function Reports() {
         <div className="bg-white rounded-2xl border border-soot/8 p-6 shadow-2xs">
           <div className="flex items-center gap-2 mb-1">
             <CalendarDays size={18} className="text-moss" />
-            <h2 className="font-bold text-soot text-base">Bookings by plan</h2>
+            <h2 className="font-bold text-soot text-base">{t('reports.bookingsByPlan')}</h2>
           </div>
           <p className="text-sm text-moss mb-2">{period}</p>
           <BarChart data={bookingsByPlan} color="#697C70" />
@@ -178,9 +182,9 @@ export default function Reports() {
         <div className="bg-white rounded-2xl border border-soot/8 p-6 shadow-2xs">
           <div className="flex items-center gap-2 mb-1">
             <Building2 size={18} className="text-moss" />
-            <h2 className="font-bold text-soot text-base">Space occupancy (%)</h2>
+            <h2 className="font-bold text-soot text-base">{t('reports.spaceOccupancy')}</h2>
           </div>
-          <p className="text-sm text-moss mb-2">Current status</p>
+          <p className="text-sm text-moss mb-2">{t('reports.currentStatus')}</p>
           <BarChart data={occupancyData} color="#B3C9D6" />
         </div>
 
@@ -188,16 +192,16 @@ export default function Reports() {
         <div className="bg-white rounded-2xl border border-soot/8 p-6 shadow-2xs">
           <div className="flex items-center gap-2 mb-1">
             <Users size={18} className="text-moss" />
-            <h2 className="font-bold text-soot text-base">Users by account type</h2>
+            <h2 className="font-bold text-soot text-base">{t('reports.usersByType')}</h2>
           </div>
-          <p className="text-sm text-moss mb-2">Current totals</p>
+          <p className="text-sm text-moss mb-2">{t('reports.currentTotals')}</p>
           <BarChart data={userGrowth} color="#2D3536" />
         </div>
       </div>
 
       {/* Top spaces table */}
       <div className="bg-white rounded-2xl border border-soot/8 p-6 shadow-2xs">
-        <h2 className="font-bold text-soot text-lg mb-5">Top performing spaces</h2>
+        <h2 className="font-bold text-soot text-lg mb-5">{t('reports.topSpaces')}</h2>
         <div className="divide-y divide-soot/5">
           {topSpaces.map((space, i) => (
             <div key={space.id} className="flex items-center gap-4 py-4">
@@ -209,13 +213,13 @@ export default function Reports() {
                 <div className="font-semibold text-soot text-base truncate">{space.name}</div>
                 <div className="text-sm text-moss">{space.city}</div>
               </div>
-              <div className="text-right shrink-0">
-                <div className="font-bold text-soot text-base">SAR {space.revenue.toLocaleString()}</div>
-                <div className="text-sm text-moss">{space.bookingCount} bookings</div>
+              <div className="text-end shrink-0">
+                <div className="font-bold text-soot text-base">{t('common.sar')} {space.revenue.toLocaleString()}</div>
+                <div className="text-sm text-moss">{t('reports.bookingsCount', { count: space.bookingCount })}</div>
               </div>
               <div className="w-28 shrink-0 hidden sm:block">
                 <div className="flex justify-between text-xs text-moss mb-1">
-                  <span>Occupancy</span>
+                  <span>{t('reports.occupancy')}</span>
                   <span className="font-semibold">{space.occupancyPercent}%</span>
                 </div>
                 <div className="h-2 bg-soot/8 rounded-full">

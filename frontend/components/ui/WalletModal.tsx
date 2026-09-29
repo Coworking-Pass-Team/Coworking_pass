@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/i18n';
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { 
@@ -14,6 +15,7 @@ interface WalletModalProps {
 }
 
 export default function WalletModal({ isOpen, onClose }: WalletModalProps) {
+  const { t, dir, translateMessage } = useI18n();
   const { currentUser, walletTransactions, fetchWallet, depositToWallet, withdrawFromWallet } = useApp();
   const [activeTab, setActiveTab] = useState<'overview' | 'deposit' | 'withdraw'>('overview');
   const [amountInput, setAmountInput] = useState<string>('');
@@ -75,7 +77,7 @@ export default function WalletModal({ isOpen, onClose }: WalletModalProps) {
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200" dir="ltr">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200" dir={dir}>
       <div className="bg-[#FAF8F5] dark:bg-[#1A1F20] w-full max-w-lg rounded-3xl shadow-2xl border border-[#2D3536]/15 dark:border-white/10 overflow-hidden flex flex-col max-h-[90vh]">
         
         {/* Header */}
@@ -85,8 +87,8 @@ export default function WalletModal({ isOpen, onClose }: WalletModalProps) {
               <Wallet size={20} />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-soot dark:text-white">Digital Wallet</h2>
-              <p className="text-xs text-soot/60 dark:text-white/60">Manage your balance, refunds & transactions</p>
+              <h2 className="text-lg font-bold text-soot dark:text-white">{t('wallet.title')}</h2>
+              <p className="text-xs text-soot/60 dark:text-white/60">{t('wallet.subtitle')}</p>
             </div>
           </div>
           <button
@@ -102,12 +104,12 @@ export default function WalletModal({ isOpen, onClose }: WalletModalProps) {
           
           {/* Balance Card */}
           <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#1C2D27] via-[#2A3F37] to-[#12211C] p-6 text-white shadow-xl">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-moss/20 rounded-full blur-2xl pointer-events-none" />
+            <div className="absolute top-0 end-0 w-32 h-32 bg-moss/20 rounded-full blur-2xl pointer-events-none" />
             <div className="flex justify-between items-start mb-4">
               <div>
-                <span className="text-xs font-medium text-emerald-200/80 tracking-wide uppercase">Available Balance</span>
+                <span className="text-xs font-medium text-emerald-200/80 tracking-wide uppercase">{t('wallet.availableBalance')}</span>
                 <div className="text-3xl font-extrabold mt-1 tracking-tight flex items-baseline gap-1.5">
-                  <span className="text-sm font-semibold text-emerald-300">SAR</span>
+                  <span className="text-sm font-semibold text-emerald-300">{t('common.sar')}</span>
                   <span>{currentBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
               </div>
@@ -120,7 +122,7 @@ export default function WalletModal({ isOpen, onClose }: WalletModalProps) {
                 }}
                 disabled={isLoadingWallet}
                 className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
-                title="Refresh balance"
+                title={t('wallet.refresh')}
               >
                 <RefreshCw size={16} className={isLoadingWallet ? 'animate-spin' : ''} />
               </button>
@@ -136,7 +138,7 @@ export default function WalletModal({ isOpen, onClose }: WalletModalProps) {
                 className="flex-1 py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer"
               >
                 <PlusCircle size={16} />
-                <span>Top-up Wallet</span>
+                <span>{t('wallet.topUp')}</span>
               </button>
               <button
                 onClick={() => {
@@ -147,7 +149,7 @@ export default function WalletModal({ isOpen, onClose }: WalletModalProps) {
                 className="flex-1 py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 <MinusCircle size={16} />
-                <span>Withdraw</span>
+                <span>{t('wallet.withdraw')}</span>
               </button>
             </div>
           </div>
@@ -158,14 +160,14 @@ export default function WalletModal({ isOpen, onClose }: WalletModalProps) {
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-bold text-emerald-900 dark:text-emerald-300 flex items-center gap-2">
                   <PlusCircle size={16} />
-                  Top-up Wallet Balance
+                  {t('wallet.topUpBalance')}
                 </h3>
                 <button
                   type="button"
                   onClick={() => setActiveTab('overview')}
                   className="text-xs text-soot/60 dark:text-white/60 hover:underline"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
               </div>
 
@@ -184,7 +186,7 @@ export default function WalletModal({ isOpen, onClose }: WalletModalProps) {
                           : 'bg-white dark:bg-white/5 border-soot/15 text-soot dark:text-white hover:border-emerald-500'
                       }`}
                     >
-                      +SAR {val}
+                      {t('wallet.quickAmount', { amount: val })}
                     </button>
                   ))}
                 </div>
@@ -198,7 +200,7 @@ export default function WalletModal({ isOpen, onClose }: WalletModalProps) {
                   min="1"
                   step="any"
                   required
-                  placeholder="Enter amount..."
+                  placeholder={t('wallet.enterAmount')}
                   value={amountInput}
                   onChange={(e) => setAmountInput(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-xl border border-soot/15 dark:border-white/15 bg-white dark:bg-[#121617] text-soot dark:text-white text-sm focus:outline-none focus:border-emerald-500"
@@ -210,7 +212,7 @@ export default function WalletModal({ isOpen, onClose }: WalletModalProps) {
                 <label className="block text-xs font-semibold text-soot/70 dark:text-white/70 mb-1">Description / Notes (Optional)</label>
                 <input
                   type="text"
-                  placeholder="Credit card top-up..."
+                  placeholder={t('wallet.notesTopUp')}
                   value={descriptionInput}
                   onChange={(e) => setDescriptionInput(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-xl border border-soot/15 dark:border-white/15 bg-white dark:bg-[#121617] text-soot dark:text-white text-sm focus:outline-none focus:border-emerald-500"
@@ -227,7 +229,7 @@ export default function WalletModal({ isOpen, onClose }: WalletModalProps) {
                 ) : (
                   <>
                     <CheckCircle2 size={16} />
-                    <span>Confirm Deposit</span>
+                    <span>{t('wallet.confirmDeposit')}</span>
                   </>
                 )}
               </button>
@@ -239,14 +241,14 @@ export default function WalletModal({ isOpen, onClose }: WalletModalProps) {
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-bold text-amber-900 dark:text-amber-300 flex items-center gap-2">
                   <MinusCircle size={16} />
-                  Withdraw Funds
+                  {t('wallet.withdrawFunds')}
                 </h3>
                 <button
                   type="button"
                   onClick={() => setActiveTab('overview')}
                   className="text-xs text-soot/60 dark:text-white/60 hover:underline"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
               </div>
 
@@ -259,7 +261,7 @@ export default function WalletModal({ isOpen, onClose }: WalletModalProps) {
                   max={currentBalance}
                   step="any"
                   required
-                  placeholder={`Available: SAR ${currentBalance}`}
+                  placeholder={t('wallet.availablePlaceholder', { amount: currentBalance })}
                   value={amountInput}
                   onChange={(e) => setAmountInput(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-xl border border-soot/15 dark:border-white/15 bg-white dark:bg-[#121617] text-soot dark:text-white text-sm focus:outline-none focus:border-amber-500"
@@ -268,10 +270,10 @@ export default function WalletModal({ isOpen, onClose }: WalletModalProps) {
 
               {/* Description Input */}
               <div>
-                <label className="block text-xs font-semibold text-soot/70 dark:text-white/70 mb-1">Notes / Reason</label>
+                <label className="block text-xs font-semibold text-soot/70 dark:text-white/70 mb-1">{t('wallet.notes')}</label>
                 <input
                   type="text"
-                  placeholder="Bank account transfer..."
+                  placeholder={t('wallet.notesWithdraw')}
                   value={descriptionInput}
                   onChange={(e) => setDescriptionInput(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-xl border border-soot/15 dark:border-white/15 bg-white dark:bg-[#121617] text-soot dark:text-white text-sm focus:outline-none focus:border-amber-500"
@@ -288,7 +290,7 @@ export default function WalletModal({ isOpen, onClose }: WalletModalProps) {
                 ) : (
                   <>
                     <CheckCircle2 size={16} />
-                    <span>Confirm Withdrawal</span>
+                    <span>{t('wallet.confirmWithdrawal')}</span>
                   </>
                 )}
               </button>
@@ -300,20 +302,20 @@ export default function WalletModal({ isOpen, onClose }: WalletModalProps) {
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-soot dark:text-white flex items-center gap-2">
                 <History size={16} className="text-moss" />
-                Recent Transactions
+                {t('wallet.recentTransactions')}
               </h3>
               <span className="text-xs text-soot/60 dark:text-white/60 font-medium">
-                {walletTransactions.length} transaction{walletTransactions.length === 1 ? '' : 's'}
+                {t(walletTransactions.length === 1 ? 'wallet.transactionsCount' : 'wallet.transactionsCountMany', { count: walletTransactions.length })}
               </span>
             </div>
 
             {walletTransactions.length === 0 ? (
               <div className="p-8 text-center bg-white/50 dark:bg-white/5 rounded-2xl border border-dashed border-soot/15 dark:border-white/10">
                 <Wallet className="mx-auto mb-2 text-soot/30 dark:text-white/30" size={32} />
-                <p className="text-xs text-soot/60 dark:text-white/60 font-medium">No previous wallet transactions recorded yet</p>
+                <p className="text-xs text-soot/60 dark:text-white/60 font-medium">{t('wallet.noTransactions')}</p>
               </div>
             ) : (
-              <div className="space-y-2.5 max-h-60 overflow-y-auto pl-1">
+              <div className="space-y-2.5 max-h-60 overflow-y-auto ps-1">
                 {walletTransactions.map((tx) => {
                   const txTypeUpper = (tx.type || '').toString().toUpperCase();
                   const descRaw = tx.description || '';
@@ -332,7 +334,7 @@ export default function WalletModal({ isOpen, onClose }: WalletModalProps) {
 
                   let formattedDesc = descRaw;
                   if (!formattedDesc) {
-                    formattedDesc = isDeposit ? 'Wallet Top-up' : isRefund ? 'Booking Refund' : 'Withdrawal';
+                    formattedDesc = isDeposit ? t('wallet.descTopUp') : isRefund ? t('wallet.descRefund') : t('wallet.descWithdrawal');
                   } else {
                     formattedDesc = formattedDesc
                       .replace(/شحن رصيد المحفظة/g, 'Wallet Top-up')
@@ -362,7 +364,7 @@ export default function WalletModal({ isOpen, onClose }: WalletModalProps) {
                         </div>
                         <div>
                           <div className="text-xs font-bold text-soot dark:text-white">
-                            {formattedDesc}
+                            {translateMessage(formattedDesc)}
                           </div>
                           <div className="text-[10px] text-soot/50 dark:text-white/50 flex items-center gap-2 mt-0.5">
                             <span>{new Date(tx.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
@@ -371,14 +373,14 @@ export default function WalletModal({ isOpen, onClose }: WalletModalProps) {
                         </div>
                       </div>
 
-                      <div className="text-right">
+                      <div className="text-end">
                         <div className={`text-sm font-extrabold ${
                           isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
                         }`}>
                           {isPositive ? '+' : '-'}{tx.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })} SAR
                         </div>
                         <div className="text-[10px] text-soot/50 dark:text-white/50">
-                          Balance after: SAR {displayBalanceAfter.toLocaleString('en-US')}
+                          Balance after: {t('common.sar')} {displayBalanceAfter.toLocaleString('en-US')}
                         </div>
                       </div>
                     </div>
@@ -394,13 +396,13 @@ export default function WalletModal({ isOpen, onClose }: WalletModalProps) {
         <div className="px-6 py-4 bg-[#E8E4DF] dark:bg-[#252B2C] border-t border-[#2D3536]/10 dark:border-white/10 flex items-center justify-between text-xs text-soot/60 dark:text-white/60 shrink-0">
           <div className="flex items-center gap-1.5">
             <ShieldCheck size={14} className="text-emerald-600 dark:text-emerald-400" />
-            <span>Secure & Encrypted Transactions</span>
+            <span>{t('wallet.secure')}</span>
           </div>
           <button
             onClick={onClose}
             className="px-4 py-1.5 rounded-xl bg-soot/10 dark:bg-white/10 hover:bg-soot/20 dark:hover:bg-white/20 text-soot dark:text-white font-semibold transition-colors cursor-pointer"
           >
-            Close
+            {t('common.close')}
           </button>
         </div>
 

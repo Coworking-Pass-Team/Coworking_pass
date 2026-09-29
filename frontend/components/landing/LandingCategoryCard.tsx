@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/i18n';
 import Link from 'next/link';
 import { ArrowRight, Building2, Presentation, Clapperboard } from 'lucide-react';
 import { useApp } from '@/app/store';
@@ -7,18 +8,18 @@ import { SpaceCategory } from '@/types/types';
 
 interface LandingCategoryCardProps {
   category: SpaceCategory;
-  title: string;
   count: number;
-  description: string;
 }
 
 export default function LandingCategoryCard({
   category,
-  title,
   count,
-  description,
 }: LandingCategoryCardProps) {
   const { navigate } = useApp();
+  const { t } = useI18n();
+  // Copy comes from the localization dictionary (English / Arabic), keyed by category
+  const title = t(`landing.category.${category}.title` as const);
+  const description = t(`landing.category.${category}.desc` as const);
 
   const handleClick = () => {
     if (typeof navigate === 'function') {
@@ -54,14 +55,14 @@ export default function LandingCategoryCard({
       href={`/spaces?category=${category}`}
       onClick={handleClick}
       className="p-6 rounded-3xl bg-plaster-surface border border-soot/12 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-between focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus"
-      aria-label={`Browse ${title} (${count} available)`}
+      aria-label={t('landing.categoryAria', { title, count })}
     >
       <div>
         {getIcon()}
         <div className="flex items-center justify-between mb-1.5">
           <h3 className="text-xl font-semibold text-soot font-serif-display">{title}</h3>
           <span className="text-xs font-bold text-moss bg-plaster-dark/60 px-2.5 py-0.5 rounded-full">
-            {count} Available
+            {t('landing.categoryAvailable', { count })}
           </span>
         </div>
         <p className="text-xs text-moss leading-relaxed mb-4">
@@ -69,8 +70,8 @@ export default function LandingCategoryCard({
         </p>
       </div>
       <div className="flex items-center gap-1.5 text-xs font-semibold text-soot group-hover:text-emerald-900 transition-colors pt-3 border-t border-soot/8">
-        <span>Browse {title}</span>
-        <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+        <span>{t('landing.categoryBrowse', { title })}</span>
+        <ArrowRight size={14} className="group-hover:translate-x-1 rtl:group-hover:-translate-x-1 transition-transform" />
       </div>
     </Link>
   );

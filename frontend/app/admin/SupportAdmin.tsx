@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/i18n';
 import React, { useState, useRef, useEffect } from 'react';
 import {
   HelpCircle,
@@ -26,6 +27,7 @@ import { SupportTicket, TicketCategory, TicketStatus, TicketPriority } from '@/t
 import Modal from '@/components/ui/Modal';
 
 export default function SupportAdmin() {
+  const { t, translateMessage } = useI18n();
   const { supportTickets, updateTicketStatus, replyToTicket, fetchTickets } = useApp();
 
   useEffect(() => {
@@ -150,13 +152,13 @@ export default function SupportAdmin() {
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-soot/5 border border-soot/10 text-moss text-xs font-semibold mb-2">
             <ShieldAlert size={14} className="text-soot" />
-            <span>Admin Control Desk</span>
+            <span>{t('support.eyebrow')}</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-normal font-serif-display text-soot tracking-tight">
             Support &amp; Complaints Desk
           </h1>
           <p className="text-moss text-xs sm:text-sm mt-1">
-            Review member complaints, process pass refund requests, and answer platform inquiries.
+            {t('support.subtitle')}
           </p>
         </div>
       </div>
@@ -223,20 +225,20 @@ export default function SupportAdmin() {
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 relative z-30">
           {/* Search Box */}
           <div className="relative flex-1 min-w-[240px]">
-            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-moss" />
+            <Search size={16} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-moss" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search ticket #, name, or subject..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-soot/12 bg-plaster-dark/30 text-soot text-xs sm:text-sm placeholder:text-moss/70 outline-none focus:border-eucalyptus focus:bg-plaster-surface transition-all"
+              placeholder={t('support.search')}
+              className="w-full ps-10 pe-4 py-2.5 rounded-xl border border-soot/12 bg-plaster-dark/30 text-soot text-xs sm:text-sm placeholder:text-moss/70 outline-none focus:border-eucalyptus focus:bg-plaster-surface transition-all"
             />
           </div>
 
           {/* Custom Filter Dropdowns Inline */}
           <div className="flex flex-wrap items-center gap-2.5">
             <span className="font-semibold text-soot uppercase text-xs tracking-wider flex items-center gap-1.5">
-              <Filter size={13} /> Filter By:
+              <Filter size={13} /> {t('support.filterBy')}
             </span>
 
             {/* Custom Status Dropdown Menu */}
@@ -244,7 +246,7 @@ export default function SupportAdmin() {
               <button
                 type="button"
                 onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
-                className="w-full flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/50 border border-soot/12 transition-all duration-200 text-left cursor-pointer focus:outline-none"
+                className="w-full flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/50 border border-soot/12 transition-all duration-200 text-start cursor-pointer focus:outline-none"
               >
                 <span className="text-xs sm:text-sm font-semibold text-soot truncate">
                   {statusOptions.find(o => o.value === statusFilter)?.label || 'All Statuses'}
@@ -258,7 +260,7 @@ export default function SupportAdmin() {
               </button>
 
               {statusDropdownOpen && (
-                <div className="absolute top-full right-0 mt-1.5 w-44 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
+                <div className="absolute top-full end-0 mt-1.5 w-44 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
                   <div className="space-y-0.5">
                     {statusOptions.map((item) => {
                       const isSelected = statusFilter === item.value;
@@ -270,7 +272,7 @@ export default function SupportAdmin() {
                             setStatusFilter(item.value);
                             setStatusDropdownOpen(false);
                           }}
-                          className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors text-left cursor-pointer ${
+                          className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors text-start cursor-pointer ${
                             isSelected
                               ? 'bg-soot text-plaster font-semibold'
                               : 'text-soot hover:bg-plaster-dark/60'
@@ -291,7 +293,7 @@ export default function SupportAdmin() {
               <button
                 type="button"
                 onClick={() => setPriorityDropdownOpen(!priorityDropdownOpen)}
-                className="w-full flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/50 border border-soot/12 transition-all duration-200 text-left cursor-pointer focus:outline-none"
+                className="w-full flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/50 border border-soot/12 transition-all duration-200 text-start cursor-pointer focus:outline-none"
               >
                 <span className="text-xs sm:text-sm font-semibold text-soot truncate">
                   {priorityOptions.find(o => o.value === priorityFilter)?.label || 'All Priorities'}
@@ -305,7 +307,7 @@ export default function SupportAdmin() {
               </button>
 
               {priorityDropdownOpen && (
-                <div className="absolute top-full right-0 mt-1.5 w-44 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
+                <div className="absolute top-full end-0 mt-1.5 w-44 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
                   <div className="space-y-0.5">
                     {priorityOptions.map((item) => {
                       const isSelected = priorityFilter === item.value;
@@ -317,7 +319,7 @@ export default function SupportAdmin() {
                             setPriorityFilter(item.value);
                             setPriorityDropdownOpen(false);
                           }}
-                          className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors text-left cursor-pointer ${
+                          className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors text-start cursor-pointer ${
                             isSelected
                               ? 'bg-soot text-plaster font-semibold'
                               : 'text-soot hover:bg-plaster-dark/60'
@@ -409,24 +411,24 @@ export default function SupportAdmin() {
         {filteredTickets.length === 0 ? (
           <div className="py-16 text-center text-moss space-y-3">
             <HelpCircle size={38} className="mx-auto opacity-30 text-moss" />
-            <p className="text-sm sm:text-base font-semibold text-soot">No tickets match your filters</p>
+            <p className="text-sm sm:text-base font-semibold text-soot">{t('support.noMatch')}</p>
             <p className="text-xs sm:text-sm max-w-sm mx-auto text-moss">
-              Try adjusting your search term or topic filter to view customer inquiries.
+              {t('support.noMatchBody')}
             </p>
           </div>
         ) : (
           <div className="w-full overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[900px] lg:min-w-0">
+            <table className="w-full text-start border-collapse min-w-[900px] lg:min-w-0">
               <thead>
                 <tr className="bg-plaster-dark/40 text-moss border-b border-soot/10 font-semibold uppercase text-xs tracking-wider">
-                  <th className="px-4 py-4 min-w-[130px]">Ticket</th>
-                  <th className="px-4 py-4 min-w-[180px]">Customer</th>
+                  <th className="px-4 py-4 min-w-[130px]">{t('support.colTicket')}</th>
+                  <th className="px-4 py-4 min-w-[180px]">{t('support.colCustomer')}</th>
                   <th className="px-4 py-4 min-w-[280px]">Topic &amp; Subject</th>
-                  <th className="px-4 py-4 min-w-[110px]">Proof</th>
-                  <th className="px-4 py-4 min-w-[100px]">Priority</th>
-                  <th className="px-4 py-4 min-w-[120px]">Status</th>
-                  <th className="px-4 py-4 min-w-[130px]">Submitted</th>
-                  <th className="px-4 py-4 text-right min-w-[110px]">Actions</th>
+                  <th className="px-4 py-4 min-w-[110px]">{t('support.colProof')}</th>
+                  <th className="px-4 py-4 min-w-[100px]">{t('support.colPriority')}</th>
+                  <th className="px-4 py-4 min-w-[120px]">{t('admin.users.colStatus')}</th>
+                  <th className="px-4 py-4 min-w-[130px]">{t('support.colSubmitted')}</th>
+                  <th className="px-4 py-4 text-end min-w-[110px]">{t('mySpaces.colActions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-soot/8">
@@ -447,7 +449,7 @@ export default function SupportAdmin() {
                         </div>
                         <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-lg border border-soot/12 bg-soot/6 text-soot mt-1.5 whitespace-nowrap">
                           <CategoryIcon size={12} className="text-moss shrink-0" />
-                          <span>{categoryBadges[ticket.category].label}</span>
+                          <span>{translateMessage(categoryBadges[ticket.category].label)}</span>
                         </span>
                       </td>
 
@@ -487,17 +489,17 @@ export default function SupportAdmin() {
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-plaster-dark/60 hover:bg-soot hover:text-plaster text-soot border border-soot/12 text-xs font-medium transition-all shadow-2xs cursor-pointer whitespace-nowrap"
                           >
                             <Paperclip size={13} className="text-moss group-hover:text-plaster shrink-0" />
-                            <span>Attached</span>
+                            <span>{t('support.attached')}</span>
                           </button>
                         ) : (
-                          <span className="text-moss/40 text-xs font-mono whitespace-nowrap">None</span>
+                          <span className="text-moss/40 text-xs font-mono whitespace-nowrap">{t('support.none')}</span>
                         )}
                       </td>
 
                       {/* Priority */}
                       <td className="px-4 py-4 align-top whitespace-nowrap">
                         <span className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-xl font-semibold capitalize whitespace-nowrap ${priorityBadges[ticket.priority].bg}`}>
-                          <span>{priorityBadges[ticket.priority].label}</span>
+                          <span>{translateMessage(priorityBadges[ticket.priority].label)}</span>
                         </span>
                       </td>
 
@@ -505,7 +507,7 @@ export default function SupportAdmin() {
                       <td className="px-4 py-4 align-top whitespace-nowrap">
                         <span className={`inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-xl font-semibold capitalize whitespace-nowrap ${statusBadges[ticket.status].bg}`}>
                           <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${statusBadges[ticket.status].dot}`} />
-                          <span>{statusBadges[ticket.status].label}</span>
+                          <span>{translateMessage(statusBadges[ticket.status].label)}</span>
                         </span>
                       </td>
 
@@ -515,7 +517,7 @@ export default function SupportAdmin() {
                       </td>
 
                       {/* Action */}
-                      <td className="px-4 py-4 align-top text-right whitespace-nowrap">
+                      <td className="px-4 py-4 align-top text-end whitespace-nowrap">
                         <button
                           type="button"
                           onClick={(e) => {
@@ -525,7 +527,7 @@ export default function SupportAdmin() {
                           className="px-3.5 py-1.5 rounded-xl bg-soot text-plaster hover:bg-soot/85 text-xs font-semibold transition-all shadow-2xs cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap"
                         >
                           <Eye size={13} />
-                          <span>Review</span>
+                          <span>{t('support.review')}</span>
                         </button>
                       </td>
                     </tr>
@@ -549,11 +551,11 @@ export default function SupportAdmin() {
             <div className="p-5 rounded-2xl bg-plaster-surface border border-soot/12 space-y-3 shadow-2xs">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-lg border border-soot/12 bg-soot/8 text-soot">
-                  {categoryBadges[selectedTicket.category].label}
+                  {translateMessage(categoryBadges[selectedTicket.category].label)}
                 </span>
                 <span className={`inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-xl font-semibold capitalize ${statusBadges[selectedTicket.status].bg}`}>
                   <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${statusBadges[selectedTicket.status].dot}`} />
-                  <span>{statusBadges[selectedTicket.status].label}</span>
+                  <span>{translateMessage(statusBadges[selectedTicket.status].label)}</span>
                 </span>
               </div>
 
@@ -571,12 +573,12 @@ export default function SupportAdmin() {
             <div className="p-4 rounded-2xl bg-plaster-dark/30 border border-soot/10 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
               <div className="flex items-center gap-2.5 min-w-0">
                 <UserIcon size={15} className="text-moss shrink-0" />
-                <span className="font-medium text-moss shrink-0">Member:</span>
+                <span className="font-medium text-moss shrink-0">{t('support.member')}</span>
                 <span className="font-semibold text-soot truncate">{selectedTicket.userName}</span>
               </div>
               <div className="flex items-center gap-2.5 min-w-0">
                 <Mail size={15} className="text-moss shrink-0" />
-                <span className="font-medium text-moss shrink-0">Email:</span>
+                <span className="font-medium text-moss shrink-0">{t('support.email')}</span>
                 <span className="font-mono text-soot break-all truncate">{selectedTicket.userEmail}</span>
               </div>
             </div>
@@ -584,7 +586,7 @@ export default function SupportAdmin() {
             {/* Original Complaint / Question Message */}
             <div className="space-y-2">
               <label className="text-xs font-semibold text-soot uppercase tracking-wider block">
-                Member Message
+                {t('support.memberMessage')}
               </label>
               <div className="p-4 rounded-2xl bg-plaster-surface border border-soot/12 text-xs sm:text-sm text-soot leading-relaxed whitespace-pre-wrap">
                 {selectedTicket.message}
@@ -596,7 +598,7 @@ export default function SupportAdmin() {
               <div className="space-y-2">
                 <label className="text-xs font-semibold text-soot uppercase tracking-wider block flex items-center gap-1.5">
                   <Paperclip size={13} className="text-moss" />
-                  Attached Proof Document
+                  {t('support.proofDoc')}
                 </label>
                 <div
                   onClick={() => setPreviewImage(selectedTicket.attachedImage || null)}
@@ -604,11 +606,11 @@ export default function SupportAdmin() {
                 >
                   <img
                     src={selectedTicket.attachedImage}
-                    alt="Proof Attachment"
+                    alt={t('support.proofAlt')}
                     className="max-h-48 object-contain rounded-xl group-hover:scale-105 transition-transform"
                   />
                   <div className="absolute inset-0 bg-soot/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1.5">
-                    <Eye size={16} /> Click to expand full document
+                    <Eye size={16} /> {t('support.expand')}
                   </div>
                 </div>
               </div>
@@ -618,13 +620,13 @@ export default function SupportAdmin() {
             <div className="space-y-2 pt-2 border-t border-soot/10">
               <label className="text-xs font-semibold text-soot uppercase tracking-wider block flex items-center gap-1.5">
                 <MessageSquare size={13} className="text-moss" />
-                Send Response to Member
+                {t('support.sendResponse')}
               </label>
               <textarea
                 rows={3}
                 value={adminReplyText}
                 onChange={(e) => setAdminReplyText(e.target.value)}
-                placeholder="Type your official resolution or response to send to the member..."
+                placeholder={t('support.replyPlaceholder')}
                 className="w-full p-3.5 rounded-2xl border border-soot/12 bg-plaster-surface text-soot text-xs sm:text-sm placeholder:text-moss/60 focus:outline-none focus:ring-2 focus:ring-eucalyptus/40 transition-all"
               />
               <div className="flex justify-end">
@@ -650,7 +652,7 @@ export default function SupportAdmin() {
                 rows={2}
                 value={adminNotesText}
                 onChange={(e) => setAdminNotesText(e.target.value)}
-                placeholder="Add internal notes for venue managers or admin staff..."
+                placeholder={t('support.notesPlaceholder')}
                 className="w-full p-3.5 rounded-2xl border border-soot/12 bg-plaster-surface text-soot text-xs sm:text-sm placeholder:text-moss/60 focus:outline-none focus:ring-2 focus:ring-eucalyptus/40 transition-all"
               />
             </div>
@@ -658,7 +660,7 @@ export default function SupportAdmin() {
             {/* Quick Status Update Buttons - Matching Bookings Admin */}
             <div className="space-y-2 pt-3 border-t border-soot/10">
               <span className="text-xs font-semibold text-soot block uppercase tracking-wider">
-                Update Ticket Status
+                {t('support.updateStatus')}
               </span>
               <div className="grid grid-cols-3 gap-2.5">
                 {[
@@ -699,7 +701,7 @@ export default function SupportAdmin() {
             <div className="bg-plaster-dark/30 rounded-2xl p-2 border border-soot/10 flex items-center justify-center min-h-[300px]">
               <img
                 src={previewImage}
-                alt="Proof Preview Full"
+                alt={t('support.proofPreviewAlt')}
                 className="max-h-[70vh] w-auto object-contain rounded-xl shadow-md"
               />
             </div>
@@ -709,7 +711,7 @@ export default function SupportAdmin() {
                 onClick={() => setPreviewImage(null)}
                 className="px-4 py-2 rounded-xl bg-soot text-plaster text-xs font-semibold hover:bg-soot/85 transition-colors cursor-pointer"
               >
-                Close Preview
+                {t('support.closePreview')}
               </button>
             </div>
           </div>

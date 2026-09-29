@@ -1,7 +1,9 @@
 'use client';
+import { useI18n } from '@/i18n';
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Search, SlidersHorizontal, X, MapPin, ChevronDown, Check, ArrowUpDown, Sparkles, Building2, Presentation, Clapperboard, LayoutGrid, Navigation, Loader2, MapPinOff, Info } from 'lucide-react';
 import { useApp } from '@/app/store';
+import { useSpaceText } from '@/i18n/space-text';
 import SpaceCard from '@/components/spaces/spaceCard';
 import Badge from '@/components/ui/Badge';
 import App from '@/app/app';
@@ -73,6 +75,8 @@ export default function Browse() {
 }
 
 function BrowseView() {
+  const { t, translateMessage } = useI18n();
+  const st = useSpaceText();
   const { spaces, navigate, currentUser, nav, userLocation, locationStatus, locationErrorMessage, requestUserLocation } = useApp();
   const initialCity = nav?.params?.city || (typeof window !== 'undefined' ? (window as any).__browseCity || '' : '');
   const initialCategory = (nav?.params?.category as ('all' | SpaceCategory)) || 'all';
@@ -169,6 +173,8 @@ function BrowseView() {
     });
   }, [visible, userLocation]);
 
+  const sortLabel = (option: string) => t(('browse.sort.' + option.replace(/[^A-Za-z]/g, '')) as never);
+
   const handleSortChange = async (option: string) => {
     setSort(option);
     setSortDropdownOpen(false);
@@ -188,6 +194,9 @@ function BrowseView() {
       if (
         query &&
         !s.name?.toLowerCase().includes(query.toLowerCase()) &&
+        !(s.nameAr || '').toLowerCase().includes(query.toLowerCase()) &&
+        !(s.cityAr || '').toLowerCase().includes(query.toLowerCase()) &&
+        !(s.addressAr || '').toLowerCase().includes(query.toLowerCase()) &&
         !s.city?.toLowerCase().includes(query.toLowerCase()) &&
         !s.address?.toLowerCase().includes(query.toLowerCase())
       ) {
@@ -257,20 +266,20 @@ function BrowseView() {
           <div>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-soot/5 border border-soot/10 text-moss text-xs font-semibold mb-3">
               <Sparkles size={13} className="text-eucalyptus shrink-0" />
-              <span>Verified Saudi Workspaces</span>
+              <span>{t('browse.verified')}</span>
             </div>
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-normal font-serif-display text-soot tracking-tight">
-              Browse Workspaces
+              {t('browse.title')}
             </h1>
             <p className="text-moss text-xs sm:text-sm mt-1.5 max-w-2xl leading-relaxed">
-              Discover and book flexible, fully-equipped offices, halls, and theaters across Saudi Arabia.
+              {t('browse.subtitle')}
             </p>
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="text-xs text-moss font-medium">Showing:</span>
+            <span className="text-xs text-moss font-medium">{t('browse.showing')}</span>
             <Badge variant="eucalyptus" className="px-3.5 py-1.5 text-xs font-semibold">
-              {filtered.length} {filtered.length === 1 ? 'Space' : 'Spaces'} Available
+              {t(filtered.length === 1 ? 'browse.spacesAvailableOne' : 'browse.spacesAvailableMany', { count: filtered.length })}
             </Badge>
           </div>
         </div>
@@ -295,7 +304,7 @@ function BrowseView() {
                 }`}
               >
                 <Icon size={15} />
-                <span>{tab.label}</span>
+                <span>{t(('categories.' + tab.id) as never)}</span>
                 <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${
                   isSelected ? 'bg-plaster/20 text-plaster' : 'bg-plaster-dark/60 text-soot'
                 }`}>
@@ -308,19 +317,19 @@ function BrowseView() {
 
         <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3 mb-6">
           <div className="relative flex-1">
-            <Search size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-moss pointer-events-none" />
+            <Search size={17} className="absolute start-4 top-1/2 -translate-y-1/2 text-moss pointer-events-none" />
             <input
               type="text"
-              placeholder="Search by space name, district, or keywords..."
+              placeholder={t('browse.searchPlaceholder')}
               value={query}
               onChange={e => setQuery(e.target.value)}
-              className="w-full pl-11 pr-10 py-3 rounded-2xl border border-soot/15 bg-plaster-surface text-soot text-sm placeholder:text-moss/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all"
+              className="w-full ps-11 pe-10 py-3 rounded-2xl border border-soot/15 bg-plaster-surface text-soot text-sm placeholder:text-moss/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all"
             />
             {query && (
               <button
                 onClick={() => setQuery('')}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-moss hover:text-soot p-1 cursor-pointer"
-                aria-label="Clear search"
+                className="absolute end-3.5 top-1/2 -translate-y-1/2 text-moss hover:text-soot p-1 cursor-pointer"
+                aria-label={t('browse.clearSearch')}
               >
                 <X size={15} />
               </button>
@@ -335,7 +344,7 @@ function BrowseView() {
             >
               <div className="flex items-center gap-2 truncate">
                 <MapPin size={15} className="text-moss shrink-0" />
-                <span className="truncate">{city || 'All Cities'}</span>
+                <span className="truncate">{city ? st.cityName(city) : t('browse.allCities')}</span>
               </div>
               <ChevronDown
                 size={15}
@@ -344,7 +353,7 @@ function BrowseView() {
             </button>
 
             {cityDropdownOpen && (
-              <div className="absolute top-full left-0 right-0 mt-2 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
+              <div className="absolute top-full start-0 end-0 mt-2 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
                 <div className="max-h-56 overflow-y-auto space-y-0.5">
                   {CITIES.map(c => {
                     const isSelected = (c === 'All Cities' && !city) || city === c;
@@ -356,13 +365,13 @@ function BrowseView() {
                           setCity(c === 'All Cities' ? '' : c);
                           setCityDropdownOpen(false);
                         }}
-                        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors cursor-pointer text-left ${
+                        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors cursor-pointer text-start ${
                           isSelected
                             ? 'bg-soot text-plaster font-semibold'
                             : 'text-soot hover:bg-plaster-dark/60'
                         }`}
                       >
-                        <span>{c}</span>
+                        <span>{c === 'All Cities' ? t('browse.allCities') : st.cityName(c)}</span>
                         {isSelected && <Check size={14} className="text-eucalyptus" />}
                       </button>
                     );
@@ -382,9 +391,9 @@ function BrowseView() {
             }`}
           >
             <SlidersHorizontal size={15} />
-            <span>Filters</span>
+            <span>{t('browse.filters')}</span>
             {hasActiveFilters && (
-              <span className="w-2 h-2 rounded-full bg-eucalyptus ml-0.5" />
+              <span className="w-2 h-2 rounded-full bg-eucalyptus ms-0.5" />
             )}
           </button>
 
@@ -396,7 +405,7 @@ function BrowseView() {
             >
               <div className="flex items-center gap-2 truncate">
                 <ArrowUpDown size={14} className="text-moss shrink-0" />
-                <span className="truncate">{sort}</span>
+                <span className="truncate">{sortLabel(sort)}</span>
               </div>
               <ChevronDown
                 size={15}
@@ -405,7 +414,7 @@ function BrowseView() {
             </button>
 
             {sortDropdownOpen && (
-              <div className="absolute top-full right-0 w-52 mt-2 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
+              <div className="absolute top-full end-0 w-52 mt-2 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
                 <div className="space-y-0.5">
                   {SORT_OPTIONS.map(o => {
                     const isSelected = sort === o;
@@ -414,13 +423,13 @@ function BrowseView() {
                         key={o}
                         type="button"
                         onClick={() => handleSortChange(o)}
-                        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors cursor-pointer text-left ${
+                        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors cursor-pointer text-start ${
                           isSelected
                             ? 'bg-soot text-plaster font-semibold'
                             : 'text-soot hover:bg-plaster-dark/60'
                         }`}
                       >
-                        <span>{o}</span>
+                        <span>{sortLabel(o)}</span>
                         {isSelected && <Check size={14} className="text-eucalyptus" />}
                       </button>
                     );
@@ -437,14 +446,14 @@ function BrowseView() {
               <div className="px-4 py-3 bg-white border border-soot/12 rounded-2xl flex items-center justify-between gap-3 text-xs sm:text-sm text-soot shadow-2xs animate-pulse">
                 <div className="flex items-center gap-2.5">
                   <Loader2 size={16} className="animate-spin text-eucalyptus shrink-0" />
-                  <span>Locating your current position to calculate accurate distances to workspaces...</span>
+                  <span>{t('browse.locating')}</span>
                 </div>
               </div>
             ) : locationStatus === 'granted' && userLocation && sort === 'Nearest to Me' ? (
               <div className="px-4 py-2.5 bg-emerald-50/90 border border-emerald-200/80 rounded-2xl flex items-center justify-between gap-3 text-xs sm:text-sm text-emerald-900 shadow-2xs">
                 <div className="flex items-center gap-2">
                   <Navigation size={14} className="fill-emerald-700 text-emerald-700 shrink-0" />
-                  <span className="font-medium">Accurate GPS distances enabled · Sorted by nearest distance</span>
+                  <span className="font-medium">{t('browse.gpsEnabled')}</span>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <button
@@ -452,13 +461,13 @@ function BrowseView() {
                     onClick={() => requestUserLocation(true)}
                     className="text-[11px] font-semibold text-emerald-800 hover:text-emerald-950 underline cursor-pointer"
                   >
-                    Refresh
+                    {t('browse.refresh')}
                   </button>
                   <button
                     type="button"
                     onClick={() => setDismissedLocationBanner(true)}
                     className="text-emerald-800/70 hover:text-emerald-950 p-0.5 cursor-pointer"
-                    aria-label="Dismiss banner"
+                    aria-label={t('browse.dismiss')}
                   >
                     <X size={14} />
                   </button>
@@ -469,9 +478,9 @@ function BrowseView() {
                 <div className="flex items-start gap-2.5">
                   <MapPinOff size={16} className="text-amber-700 shrink-0 mt-0.5" />
                   <div>
-                    <span className="font-semibold block text-amber-950">Location Permission Denied</span>
+                    <span className="font-semibold block text-amber-950">{t('browse.locationDenied')}</span>
                     <span className="text-amber-900/90 text-xs leading-relaxed">
-                      Enabling location access is required to calculate accurate distances and sort workspaces by nearest to you. All workspaces remain fully functional and searchable in standard order.
+                      {t('browse.locationDeniedBody')}
                     </span>
                   </div>
                 </div>
@@ -481,13 +490,13 @@ function BrowseView() {
                     onClick={() => requestUserLocation(true)}
                     className="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs transition-colors cursor-pointer shadow-2xs"
                   >
-                    Enable Location
+                    {t('browse.enableLocation')}
                   </button>
                   <button
                     type="button"
                     onClick={() => setDismissedLocationBanner(true)}
                     className="text-amber-800 hover:text-amber-950 p-1 cursor-pointer"
-                    aria-label="Dismiss banner"
+                    aria-label={t('browse.dismiss')}
                   >
                     <X size={14} />
                   </button>
@@ -498,9 +507,9 @@ function BrowseView() {
                 <div className="flex items-start gap-2.5">
                   <MapPinOff size={16} className="text-amber-700 shrink-0 mt-0.5" />
                   <div>
-                    <span className="font-semibold block text-amber-950">Location Services Unavailable</span>
+                    <span className="font-semibold block text-amber-950">{t('browse.locationUnavailable')}</span>
                     <span className="text-amber-900/90 text-xs leading-relaxed">
-                      {locationErrorMessage || 'Location services or GPS appear to be disabled or unavailable on your device. Please ensure location services are enabled for accurate distance results.'}
+                      {locationErrorMessage ? translateMessage(locationErrorMessage) : t('browse.locationServicesUnavailableFallback')}
                     </span>
                   </div>
                 </div>
@@ -510,13 +519,13 @@ function BrowseView() {
                     onClick={() => requestUserLocation(true)}
                     className="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs transition-colors cursor-pointer shadow-2xs"
                   >
-                    Try Again
+                    {t('browse.tryAgain')}
                   </button>
                   <button
                     type="button"
                     onClick={() => setDismissedLocationBanner(true)}
                     className="text-amber-800 hover:text-amber-950 p-1 cursor-pointer"
-                    aria-label="Dismiss banner"
+                    aria-label={t('browse.dismiss')}
                   >
                     <X size={14} />
                   </button>
@@ -526,13 +535,13 @@ function BrowseView() {
               <div className="px-4 py-3 bg-soot/5 border border-soot/10 rounded-2xl flex items-center justify-between gap-3 text-xs sm:text-sm text-soot shadow-2xs">
                 <div className="flex items-center gap-2">
                   <Info size={15} className="text-moss shrink-0" />
-                  <span>Geolocation is not supported by your browser or device. Workspaces are shown in default order.</span>
+                  <span>{t('browse.geoUnsupported')}</span>
                 </div>
                 <button
                   type="button"
                   onClick={() => setDismissedLocationBanner(true)}
                   className="text-moss hover:text-soot p-0.5 cursor-pointer"
-                  aria-label="Dismiss banner"
+                  aria-label={t('browse.dismiss')}
                 >
                   <X size={14} />
                 </button>
@@ -546,7 +555,7 @@ function BrowseView() {
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-soot/10">
               <div className="flex items-center gap-2">
                 <SlidersHorizontal size={16} className="text-moss" />
-                <span className="font-semibold text-soot text-base font-serif-display">Refine Results</span>
+                <span className="font-semibold text-soot text-base font-serif-display">{t('browse.refine')}</span>
               </div>
               {hasActiveFilters && (
                 <button
@@ -555,7 +564,7 @@ function BrowseView() {
                   className="flex items-center gap-1.5 text-xs font-semibold text-moss hover:text-red-700 transition-colors cursor-pointer"
                 >
                   <X size={13} />
-                  <span>Reset All</span>
+                  <span>{t('browse.resetAll')}</span>
                 </button>
               )}
             </div>
@@ -563,21 +572,21 @@ function BrowseView() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               <div>
                 <label className="text-xs font-semibold uppercase tracking-wider text-moss mb-3 block">
-                  Workspace Type
+                  {t('browse.workspaceType')}
                 </label>
                 <div className="flex flex-col gap-1.5">
-                  {ALL_TYPES.map(t => (
+                  {ALL_TYPES.map(typeItem => (
                     <button
-                      key={t.id}
+                      key={typeItem.id}
                       type="button"
-                      onClick={() => setSpaceType(t.id)}
-                      className={`text-left text-xs sm:text-sm px-3.5 py-2 rounded-xl transition-all font-medium cursor-pointer ${
-                        spaceType === t.id
+                      onClick={() => setSpaceType(typeItem.id)}
+                      className={`text-start text-xs sm:text-sm px-3.5 py-2 rounded-xl transition-all font-medium cursor-pointer ${
+                        spaceType === typeItem.id
                           ? 'bg-soot text-plaster font-semibold shadow-xs'
                           : 'text-soot hover:bg-plaster-dark/50'
                       }`}
                     >
-                      {t.label}
+                      {typeItem.id === 'all' ? t('browse.allTypes') : st.typeLabel(typeItem.id)}
                     </button>
                   ))}
                 </div>
@@ -586,10 +595,10 @@ function BrowseView() {
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <label className="text-xs font-semibold uppercase tracking-wider text-moss">
-                    Max Rate
+                    {t('browse.maxRate')}
                   </label>
                   <span className="text-xs font-bold text-soot bg-soot/5 px-2 py-0.5 rounded-md">
-                    SAR {maxPrice}
+                    {t('common.sar')} {maxPrice}
                   </span>
                 </div>
                 <input
@@ -602,14 +611,14 @@ function BrowseView() {
                   className="w-full accent-soot cursor-pointer"
                 />
                 <div className="flex justify-between text-[11px] text-moss mt-2 font-medium">
-                  <span>SAR 50</span>
-                  <span>SAR 5,000</span>
+                  <span>{t('common.sar')} 50</span>
+                  <span>{t('common.sar')} 5,000</span>
                 </div>
               </div>
 
               <div>
                 <label className="text-xs font-semibold uppercase tracking-wider text-moss mb-3 block">
-                  Included Amenities
+                  {t('browse.includedAmenities')}
                 </label>
                 <div className="flex flex-wrap gap-2">
                   {AMENITIES.map(a => {
@@ -625,7 +634,7 @@ function BrowseView() {
                             : 'border-soot/15 text-moss hover:text-soot hover:bg-plaster-dark/40 bg-plaster-dark/15'
                         }`}
                       >
-                        {a}
+                        {st.amenity(a)}
                       </button>
                     );
                   })}
@@ -634,7 +643,7 @@ function BrowseView() {
 
               <div>
                 <span id="availability-filter-label" className="text-xs font-semibold uppercase tracking-wider text-moss mb-3 block">
-                  Availability
+                  {t('browse.availabilityLabel')}
                 </span>
                 <button
                   type="button"
@@ -642,9 +651,9 @@ function BrowseView() {
                   aria-checked={availableOnly}
                   aria-labelledby="availability-filter-label"
                   onClick={() => setAvailableOnly(!availableOnly)}
-                  className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-plaster-dark/30 border border-soot/10 cursor-pointer hover:bg-plaster-dark/50 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus focus-visible:ring-offset-1 text-left"
+                  className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-plaster-dark/30 border border-soot/10 cursor-pointer hover:bg-plaster-dark/50 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus focus-visible:ring-offset-1 text-start"
                 >
-                  <span className="text-xs sm:text-sm font-medium text-soot">Available Desks Only</span>
+                  <span className="text-xs sm:text-sm font-medium text-soot">{t('browse.availableOnly')}</span>
                   <span
                     aria-hidden="true"
                     className={`w-11 h-6 rounded-full transition-colors relative inline-block shrink-0 ${
@@ -653,7 +662,7 @@ function BrowseView() {
                   >
                     <span
                       className={`absolute top-0.5 w-5 h-5 bg-plaster rounded-full shadow-md transition-transform duration-200 block ${
-                        availableOnly ? 'translate-x-5.5' : 'translate-x-0.5'
+                        availableOnly ? 'translate-x-5.5 rtl:-translate-x-5.5' : 'translate-x-0.5 rtl:-translate-x-0.5'
                       }`}
                     />
                   </span>
@@ -668,16 +677,16 @@ function BrowseView() {
             <div className="w-14 h-14 rounded-2xl bg-soot/5 flex items-center justify-center mx-auto mb-4">
               <Search size={24} className="text-moss" />
             </div>
-            <h3 className="text-xl font-normal font-serif-display text-soot mb-1.5">No spaces found</h3>
+            <h3 className="text-xl font-normal font-serif-display text-soot mb-1.5">{t('browse.noSpaces')}</h3>
             <p className="text-moss text-xs sm:text-sm mb-6 max-w-sm mx-auto leading-relaxed">
-              We couldn&apos;t find any workspaces matching your exact criteria. Try adjusting your search or clearing active filters.
+              {t('browse.noResultsBody')}
             </p>
             <button
               type="button"
               onClick={clearFilters}
               className="btn-primary"
             >
-              Reset Filters
+              {t('browse.resetFilters')}
             </button>
           </div>
         ) : (

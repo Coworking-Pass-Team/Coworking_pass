@@ -1,9 +1,11 @@
 'use client';
 
+import { useI18n } from '@/i18n';
 import Link from 'next/link';
 import { MapPin, Star, Check } from 'lucide-react';
 import { Space, getEffectiveSpacePrice } from '@/types/types';
 import { useApp } from '@/app/store';
+import { useSpaceText } from '@/i18n/space-text';
 import Badge from '@/components/ui/Badge';
 
 interface LandingSpaceCardProps {
@@ -11,6 +13,8 @@ interface LandingSpaceCardProps {
 }
 
 export default function LandingSpaceCard({ space }: LandingSpaceCardProps) {
+  const { t } = useI18n();
+  const st = useSpaceText();
   const { navigate, currentUser } = useApp();
 
   const handleClick = (e: React.MouseEvent) => {
@@ -29,45 +33,45 @@ export default function LandingSpaceCard({ space }: LandingSpaceCardProps) {
       href={`/spaces/${space.id}`}
       onClick={handleClick}
       className="group block bg-plaster-dark/40 hover:bg-plaster-dark/80 rounded-3xl border border-soot/12 overflow-hidden transition-all duration-200 active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus"
-      aria-label={`View details for ${space.name} in ${space.city}`}
+      aria-label={t('landing.viewDetails', { name: st.name(space), city: st.city(space) })}
     >
       <div className="relative h-56 overflow-hidden">
         <img
           src={imageUrl}
-          alt={space.name}
+          alt={st.name(space)}
           loading="lazy"
           decoding="async"
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-soot/70 via-soot/20 to-transparent" />
         
-        <div className="absolute bottom-4 left-4 right-4">
+        <div className="absolute bottom-4 start-4 end-4">
           <h3 className="text-white font-semibold text-lg leading-snug font-serif-display truncate">
-            {space.name}
+            {st.name(space)}
           </h3>
           <div className="flex items-center gap-1.5 text-plaster/90 text-xs font-medium mt-1 truncate">
             <MapPin size={13} className="text-eucalyptus shrink-0" />
-            <span className="truncate">{space.city} • {space.address}</span>
+            <span className="truncate">{st.city(space)} • {st.address(space)}</span>
           </div>
         </div>
 
-        <div className="absolute top-4 right-4 bg-plaster-surface/95 backdrop-blur-md rounded-2xl px-3 py-1.5 text-center border border-soot/12 shadow-xs">
+        <div className="absolute top-4 end-4 bg-plaster-surface/95 backdrop-blur-md rounded-2xl px-3 py-1.5 text-center border border-soot/12 shadow-xs">
           {planInfo.isCovered ? (
             <div className="flex items-center gap-1 text-soot font-bold text-xs">
               <Check size={12} className="text-moss shrink-0" />
-              <span>Included</span>
+              <span>{t('space.included')}</span>
             </div>
           ) : planInfo.hasDiscount ? (
             <div>
-              <div className="text-soot font-bold text-xs">SAR {planInfo.effectivePrice}</div>
-              <div className="text-moss text-[9px] font-medium">{planInfo.discountPercentage}% Off</div>
+              <div className="text-soot font-bold text-xs">{t('common.sar')} {planInfo.effectivePrice}</div>
+              <div className="text-moss text-[9px] font-medium">{t('space.percentOff', { percent: planInfo.discountPercentage ?? 0 })}</div>
             </div>
           ) : (
             <>
               <div className="text-soot font-bold text-sm">
-                {space.pricing?.daily ? `SAR ${space.pricing.daily}` : 'Contact for price'}
+                {space.pricing?.daily ? `${t('common.sar')} ${space.pricing.daily}` : t('landing.contactForPrice')}
               </div>
-              <div className="text-moss text-[10px] font-medium">/ day</div>
+              <div className="text-moss text-[10px] font-medium">{t('space.perDay')}</div>
             </>
           )}
         </div>
@@ -77,10 +81,10 @@ export default function LandingSpaceCard({ space }: LandingSpaceCardProps) {
         <div className="flex items-center gap-1.5 text-sm text-soot font-semibold">
           <Star size={14} fill="currentColor" className="text-eucalyptus shrink-0" />
           <span>{space.rating}</span>
-          <span className="text-moss font-normal text-xs">({space.reviewCount} reviews)</span>
+          <span className="text-moss font-normal text-xs">{t('spaceDetails.reviews', { count: space.reviewCount })}</span>
         </div>
         <Badge variant={space.availableCapacity === 0 ? 'danger' : space.availableCapacity <= 5 ? 'warning' : 'eucalyptus'}>
-          {space.availableCapacity === 0 ? 'Fully Booked' : space.availableCapacity <= 5 ? 'Almost Full' : 'Available'}
+          {space.availableCapacity === 0 ? t('landing.fullyBooked') : space.availableCapacity <= 5 ? t('landing.almostFull') : t('space.available')}
         </Badge>
       </div>
     </Link>

@@ -62,7 +62,7 @@ export default function Modal({ open, onClose, title, subtitle, children, footer
             </button>
           </div>
         ) : (
-          <div className="absolute top-4 right-4 z-20">
+          <div className="absolute top-4 end-4 z-20">
             <button
               onClick={onClose}
               className="p-2 rounded-full text-moss hover:text-soot hover:bg-soot/8 transition-colors cursor-pointer focus:outline-none"

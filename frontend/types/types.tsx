@@ -246,6 +246,11 @@ export interface SpacePricing {
 export interface Space {
   id: string;
   name: string;
+  /** Arabic name authored by the provider/admin (never machine-translated) */
+  nameAr?: string;
+  descriptionAr?: string;
+  addressAr?: string;
+  cityAr?: string;
   category?: SpaceCategory;
   city: string;
   region?: string;

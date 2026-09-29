@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/i18n';
 import React, { useEffect, useRef } from 'react';
 import { ShieldAlert } from 'lucide-react';
 
@@ -12,6 +13,7 @@ interface AccountSuspendedModalProps {
  * It cannot be dismissed with Escape or by clicking outside: the only way out is signing out.
  */
 export default function AccountSuspendedModal({ onSignOut }: AccountSuspendedModalProps) {
+  const { t } = useI18n();
   const buttonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -51,14 +53,14 @@ export default function AccountSuspendedModal({ onSignOut }: AccountSuspendedMod
           <ShieldAlert size={32} className="text-rose-600" />
         </div>
         <h2 id="account-suspended-title" className="text-xl sm:text-2xl font-semibold text-soot">
-          ⚠️ Account Suspended
+          {t('suspended.title')}
         </h2>
         <p id="account-suspended-body" className="text-sm text-moss leading-relaxed">
-          Your account has been suspended by the platform administration. Please contact customer support at{' '}
+          {t('suspended.body')}{' '}
           <a href="mailto:support@coworkingpass.sa" className="font-semibold text-soot underline">
             support@coworkingpass.sa
           </a>{' '}
-          to resolve this issue.
+          {t('suspended.bodyEnd')}
         </p>
         <button
           ref={buttonRef}
@@ -66,7 +68,7 @@ export default function AccountSuspendedModal({ onSignOut }: AccountSuspendedMod
           onClick={onSignOut}
           className="w-full py-3.5 rounded-xl bg-soot text-plaster font-semibold text-sm hover:bg-moss active:scale-[0.99] transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-eucalyptus"
         >
-          Acknowledge &amp; Sign Out
+          {t('suspended.signOut')}
         </button>
       </div>
     </div>

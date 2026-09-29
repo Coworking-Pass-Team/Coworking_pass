@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/i18n';
 import React, { useState, useMemo } from 'react';
 import {
   Clock,
@@ -27,6 +28,7 @@ const FALLBACK_SPACE_IMAGE =
   'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80';
 
 export default function WaitlistPage() {
+  const { t } = useI18n();
   const {
     currentUser,
     spaces,
@@ -210,13 +212,13 @@ export default function WaitlistPage() {
       {/* Search Bar */}
       {waitlistItems.length > 0 && (
         <div className="relative">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-moss" />
+          <Search size={16} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-moss" />
           <input
             type="text"
             placeholder="Search waitlisted spaces by name, city, or district..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-plaster-surface border border-soot/15 text-sm text-soot placeholder:text-moss/60 focus:outline-none focus:ring-2 focus:ring-soot/20"
+            className="w-full ps-10 pe-4 py-2.5 rounded-2xl bg-plaster-surface border border-soot/15 text-sm text-soot placeholder:text-moss/60 focus:outline-none focus:ring-2 focus:ring-soot/20"
           />
         </div>
       )}
@@ -309,7 +311,7 @@ export default function WaitlistPage() {
                           <span>·</span>
                         </>
                       )}
-                      <span>Daily: SAR {space?.pricing?.daily || 100}</span>
+                      <span>Daily: {t('common.sar')} {space?.pricing?.daily || 100}</span>
                     </div>
 
                     <p className="text-xs text-moss mt-2 line-clamp-1">

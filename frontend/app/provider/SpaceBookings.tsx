@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/i18n';
 import { useState, useRef, useEffect } from 'react';
 import {
   Search,
@@ -19,6 +20,7 @@ import { useApp } from '@/app/store';
 import { Booking, BookingStatus, getBookingPrice, calculateDailyDurationDays } from '@/types/types';
 
 export default function ProviderSpaceBookings() {
+  const { t } = useI18n();
   const { currentUser, spaces, partners, bookings, users, updateBookingStatus, showToast } = useApp();
   const [query, setQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
@@ -127,7 +129,7 @@ export default function ProviderSpaceBookings() {
         {[
           {
             label: 'Total Revenue',
-            count: `SAR ${totalRevenue.toLocaleString()}`,
+            count: `${t('common.sar')} ${totalRevenue.toLocaleString()}`,
             badge: 'bg-emerald-500/15 text-emerald-800 border border-emerald-500/30',
             icon: DollarSign,
             iconBg: 'bg-emerald-500/15 text-emerald-800 border-emerald-500/30',
@@ -174,13 +176,13 @@ export default function ProviderSpaceBookings() {
       {/* Search & Filter Bar */}
       <div className="flex flex-col sm:flex-row gap-3 bg-plaster-surface p-3 rounded-2xl border border-soot/10 shadow-2xs relative z-30">
         <div className="relative flex-1">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-moss" />
+          <Search size={16} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-moss" />
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search by space name, city, or member name..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-soot/12 bg-plaster-dark/30 text-soot text-sm placeholder:text-moss/70 outline-none focus:border-eucalyptus focus:bg-plaster-surface transition-all"
+            className="w-full ps-10 pe-4 py-2.5 rounded-xl border border-soot/12 bg-plaster-dark/30 text-soot text-sm placeholder:text-moss/70 outline-none focus:border-eucalyptus focus:bg-plaster-surface transition-all"
           />
         </div>
 
@@ -189,7 +191,7 @@ export default function ProviderSpaceBookings() {
           <button
             type="button"
             onClick={() => setSpaceDropdownOpen(!spaceDropdownOpen)}
-            className="w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/50 border border-soot/12 transition-all duration-200 text-left cursor-pointer focus:outline-none"
+            className="w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/50 border border-soot/12 transition-all duration-200 text-start cursor-pointer focus:outline-none"
           >
             <div className="flex items-center gap-2 min-w-0">
               <Building2 size={15} className="text-moss shrink-0" />
@@ -206,7 +208,7 @@ export default function ProviderSpaceBookings() {
           </button>
 
           {spaceDropdownOpen && (
-            <div className="absolute top-full left-0 right-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
+            <div className="absolute top-full start-0 end-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
               <div className="max-h-52 overflow-y-auto space-y-0.5">
                 <button
                   type="button"
@@ -214,7 +216,7 @@ export default function ProviderSpaceBookings() {
                     setFilterSpace('');
                     setSpaceDropdownOpen(false);
                   }}
-                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors text-left cursor-pointer ${
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors text-start cursor-pointer ${
                     !filterSpace ? 'bg-soot text-plaster font-semibold' : 'text-soot hover:bg-plaster-dark/60'
                   }`}
                 >
@@ -231,7 +233,7 @@ export default function ProviderSpaceBookings() {
                         setFilterSpace(s.id);
                         setSpaceDropdownOpen(false);
                       }}
-                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors text-left cursor-pointer ${
+                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors text-start cursor-pointer ${
                         isSelected ? 'bg-soot text-plaster font-semibold' : 'text-soot hover:bg-plaster-dark/60'
                       }`}
                     >
@@ -250,7 +252,7 @@ export default function ProviderSpaceBookings() {
           <button
             type="button"
             onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
-            className="w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/50 border border-soot/12 transition-all duration-200 text-left cursor-pointer focus:outline-none"
+            className="w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/50 border border-soot/12 transition-all duration-200 text-start cursor-pointer focus:outline-none"
           >
             <span className="text-sm font-medium text-soot truncate capitalize">
               {filterStatus ? `${filterStatus} Bookings` : 'All Status'}
@@ -264,7 +266,7 @@ export default function ProviderSpaceBookings() {
           </button>
 
           {statusDropdownOpen && (
-            <div className="absolute top-full left-0 right-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
+            <div className="absolute top-full start-0 end-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
               <div className="space-y-0.5">
                 {[
                   { value: '', label: 'All Status' },
@@ -281,7 +283,7 @@ export default function ProviderSpaceBookings() {
                         setFilterStatus(st.value);
                         setStatusDropdownOpen(false);
                       }}
-                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors text-left cursor-pointer ${
+                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors text-start cursor-pointer ${
                         isSelected ? 'bg-soot text-plaster font-semibold' : 'text-soot hover:bg-plaster-dark/60'
                       }`}
                     >
@@ -304,7 +306,7 @@ export default function ProviderSpaceBookings() {
           <div className="col-span-2">Booking Period</div>
           <div className="col-span-1">Plan & Seats</div>
           <div className="col-span-1">Amount</div>
-          <div className="col-span-2 text-right">Status & Actions</div>
+          <div className="col-span-2 text-end">Status & Actions</div>
         </div>
 
         {filtered.length === 0 ? (
@@ -350,10 +352,10 @@ export default function ProviderSpaceBookings() {
                     <span>{b.startDate}</span>
                   </div>
                   {b.startDate !== b.endDate && (
-                    <div className="text-moss text-[11px] mt-0.5 pl-4">to {b.endDate}</div>
+                    <div className="text-moss text-[11px] mt-0.5 ps-4">to {b.endDate}</div>
                   )}
                   {b.startTime && (
-                    <div className="text-[11px] text-emerald-800 font-medium mt-0.5 pl-4">{b.startTime} – {b.endTime}</div>
+                    <div className="text-[11px] text-emerald-800 font-medium mt-0.5 ps-4">{b.startTime} – {b.endTime}</div>
                   )}
                 </div>
 
@@ -373,7 +375,7 @@ export default function ProviderSpaceBookings() {
 
                 {/* Revenue Amount */}
                 <div className="col-span-1 mt-2 lg:mt-0 text-sm font-semibold text-soot">
-                  SAR {getBookingPrice(b, spaces).toLocaleString()}
+                  {t('common.sar')} {getBookingPrice(b, spaces).toLocaleString()}
                 </div>
 
                 {/* Status & Actions */}
@@ -495,7 +497,7 @@ export default function ProviderSpaceBookings() {
                 <div>
                   <span className="text-xs text-plaster/70 block">Total Revenue Collected</span>
                   <span className="text-2xl font-serif-display font-normal">
-                    SAR {getBookingPrice(selectedBooking, spaces).toLocaleString()}
+                    {t('common.sar')} {getBookingPrice(selectedBooking, spaces).toLocaleString()}
                   </span>
                 </div>
                 <span
@@ -539,7 +541,7 @@ export default function ProviderSpaceBookings() {
             </div>
 
             {/* Footer */}
-            <div className="p-4 bg-plaster-dark/20 text-right">
+            <div className="p-4 bg-plaster-dark/20 text-end">
               <button
                 type="button"
                 onClick={() => setSelectedBooking(null)}

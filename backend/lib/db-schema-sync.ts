@@ -101,6 +101,13 @@ export async function ensureDatabaseSchema(force = false): Promise<{ success: bo
       ).then(() => executedStatements.push(`Ticket.${column}`)).catch((err) => console.warn("[Schema Sync] Ticket column warning:", err));
     }
 
+    // Bilingual (English / Arabic) workspace content, authored by providers and admins
+    for (const column of ['nameAr', 'description', 'descriptionAr', 'address', 'addressAr', 'cityAr']) {
+      await prisma.$executeRawUnsafe(
+        `ALTER TABLE "Workspace" ADD COLUMN IF NOT EXISTS "${column}" TEXT;`
+      ).then(() => executedStatements.push(`Workspace.${column}`)).catch((err) => console.warn("[Schema Sync] Workspace bilingual column warning:", err));
+    }
+
     // 4b. Ensure the corporate wallet ledger table exists
     await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "CompanyWalletTransaction" (

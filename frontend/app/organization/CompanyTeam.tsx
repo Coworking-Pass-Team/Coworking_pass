@@ -210,13 +210,13 @@ export default function CompanyTeam() {
       {/* Admin-Matching Search & Custom Dropdown Filter Bar */}
       <div className="flex flex-col sm:flex-row gap-3 bg-plaster-surface p-3 rounded-2xl border border-soot/10 shadow-2xs relative z-30">
         <div className="relative flex-1">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-moss" />
+          <Search size={16} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-moss" />
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search team member by name, email, or department..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-soot/12 bg-plaster-dark/30 text-soot text-sm placeholder:text-moss/70 outline-none focus:border-eucalyptus focus:bg-plaster-surface transition-all"
+            className="w-full ps-10 pe-4 py-2.5 rounded-xl border border-soot/12 bg-plaster-dark/30 text-soot text-sm placeholder:text-moss/70 outline-none focus:border-eucalyptus focus:bg-plaster-surface transition-all"
           />
         </div>
 
@@ -225,7 +225,7 @@ export default function CompanyTeam() {
           <button
             type="button"
             onClick={() => setRoleDropdownOpen(!roleDropdownOpen)}
-            className="w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/50 border border-soot/12 transition-all duration-200 text-left cursor-pointer focus:outline-none"
+            className="w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/50 border border-soot/12 transition-all duration-200 text-start cursor-pointer focus:outline-none"
           >
             <span className="text-sm font-medium text-soot truncate">
               {roleFilter === 'All' ? 'All Roles' : roleFilter}
@@ -239,7 +239,7 @@ export default function CompanyTeam() {
           </button>
 
           {roleDropdownOpen && (
-            <div className="absolute top-full left-0 right-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
+            <div className="absolute top-full start-0 end-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
               <div className="space-y-0.5">
                 {['All', ...COMPANY_ROLES].map((role) => {
                   const isSelected = roleFilter === role;
@@ -251,7 +251,7 @@ export default function CompanyTeam() {
                         setRoleFilter(role);
                         setRoleDropdownOpen(false);
                       }}
-                      className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors text-left cursor-pointer ${
+                      className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors text-start cursor-pointer ${
                         isSelected
                           ? 'bg-soot text-plaster font-semibold'
                           : 'text-soot hover:bg-plaster-dark/60'
@@ -275,7 +275,7 @@ export default function CompanyTeam() {
           <div className="col-span-3">Department</div>
           <div className="col-span-3">Company Role</div>
           <div className="col-span-1">Status</div>
-          <div className="col-span-1 text-right">Actions</div>
+          <div className="col-span-1 text-end">Actions</div>
         </div>
 
         {filtered.length === 0 ? (
@@ -405,7 +405,7 @@ export default function CompanyTeam() {
             <button
               type="button"
               onClick={() => setAddRoleOpen(!addRoleOpen)}
-              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white border border-soot/12 text-soot text-sm font-medium text-left transition-all duration-200 cursor-pointer focus:outline-none"
+              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white border border-soot/12 text-soot text-sm font-medium text-start transition-all duration-200 cursor-pointer focus:outline-none"
             >
               <span className="truncate">{newMember.role}</span>
               <ChevronDown
@@ -417,7 +417,7 @@ export default function CompanyTeam() {
             </button>
 
             {addRoleOpen && (
-              <div className="absolute top-full left-0 right-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100 max-h-52 overflow-y-auto">
+              <div className="absolute top-full start-0 end-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100 max-h-52 overflow-y-auto">
                 <div className="space-y-0.5">
                   {COMPANY_ROLES.map((r) => {
                     const isSelected = newMember.role === r;
@@ -429,7 +429,7 @@ export default function CompanyTeam() {
                           setNewMember((p) => ({ ...p, role: r }));
                           setAddRoleOpen(false);
                         }}
-                        className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-sm font-medium transition-colors text-left cursor-pointer ${
+                        className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-sm font-medium transition-colors text-start cursor-pointer ${
                           isSelected
                             ? 'bg-soot text-plaster font-semibold'
                             : 'text-soot hover:bg-plaster-dark/60'
@@ -487,7 +487,7 @@ export default function CompanyTeam() {
               <button
                 type="button"
                 onClick={() => setEditRoleOpen(!editRoleOpen)}
-                className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white border border-soot/12 text-soot text-sm font-medium text-left transition-all duration-200 cursor-pointer focus:outline-none"
+                className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white border border-soot/12 text-soot text-sm font-medium text-start transition-all duration-200 cursor-pointer focus:outline-none"
               >
                 <span className="truncate">{editModal.role}</span>
                 <ChevronDown
@@ -499,7 +499,7 @@ export default function CompanyTeam() {
               </button>
 
               {editRoleOpen && (
-                <div className="absolute top-full left-0 right-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100 max-h-52 overflow-y-auto">
+                <div className="absolute top-full start-0 end-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100 max-h-52 overflow-y-auto">
                   <div className="space-y-0.5">
                     {COMPANY_ROLES.map((r) => {
                       const isSelected = editModal.role === r;
@@ -511,7 +511,7 @@ export default function CompanyTeam() {
                             setEditModal((p) => (p ? { ...p, role: r } : null));
                             setEditRoleOpen(false);
                           }}
-                          className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-sm font-medium transition-colors text-left cursor-pointer ${
+                          className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-sm font-medium transition-colors text-start cursor-pointer ${
                             isSelected
                               ? 'bg-soot text-plaster font-semibold'
                               : 'text-soot hover:bg-plaster-dark/60'

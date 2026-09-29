@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/i18n';
 import React, { useState, useRef, useEffect } from 'react';
 import {
   ArrowLeft,
@@ -22,6 +23,7 @@ import {
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { useApp } from '@/app/store';
+import { useSpaceText } from '@/i18n/space-text';
 import BookingQrModal from '@/components/BookingQrModal';
 import { createDirectBookingApi, createHourlyBookingApi, createPaymentApi, createPointsTransactionApi, getLoyaltyPointsApi } from '@/services/authApi';
 import {
@@ -95,12 +97,14 @@ function Row({ label, value }: { label: string; value: string | React.ReactNode 
   return (
     <div className="flex justify-between items-center py-2.5">
       <span className="text-moss text-sm font-normal">{label}</span>
-      <span className="text-soot font-medium text-sm text-right">{value}</span>
+      <span className="text-soot font-medium text-sm text-end">{value}</span>
     </div>
   );
 }
 
 export default function BookingFlow() {
+  const { t, localizeTime, translateMessage } = useI18n();
+  const st = useSpaceText();
   const { nav, navigate, goBack, spaces, bookings, currentUser, addBooking, showToast, addToCart, updateCurrentUser, withdrawFromWallet, checkSeatAvailability } = useApp();
   
   const urlId = typeof window !== 'undefined' ? window.location.pathname.split('/').pop() : '';
@@ -205,7 +209,7 @@ export default function BookingFlow() {
 
   const handleEndDateChange = (newEnd: string) => {
     if (newEnd < startDate) {
-      showToast('End date cannot be earlier than start date.', 'error');
+      showToast(t('bf.errEndEarlier'), 'error');
       setDailyEndDate(startDate);
       return;
     }
@@ -313,48 +317,48 @@ export default function BookingFlow() {
   const finalPayablePrice = Math.max(0, totalPrice - walletDeduction);
 
   const priceLabel = isHourly
-    ? `for ${durationHours} hour${durationHours > 1 ? 's' : ''}`
+    ? t(durationHours > 1 ? 'bf.forHoursMany' : 'bf.forHours', { count: durationHours })
     : plan === 'monthly'
-    ? `for ${durationMonths} month${durationMonths > 1 ? 's' : ''}`
+    ? t(durationMonths > 1 ? 'bf.forMonthsMany' : 'bf.forMonths', { count: durationMonths })
     : plan === 'daily'
-    ? durationDays > 1 ? `for ${durationDays} days` : '/day'
-    : '/year';
+    ? durationDays > 1 ? t('bf.forDays', { count: durationDays }) : t('bf.perDay')
+    : t('bf.perYear');
 
   // Validation
   const validateStep = () => {
     if (step === 1) {
       if (!startDate) {
-        showToast('Please select a booking start date.', 'error');
+        showToast(t('bf.errStartDate'), 'error');
         return false;
       }
 
       if (plan === 'daily') {
         if (!dailyEndDate) {
-          showToast('Please select an end date for your daily reservation.', 'error');
+          showToast(t('bf.errEndDate'), 'error');
           return false;
         }
         if (dailyEndDate < startDate) {
-          showToast('End date must be the same day as or later than start date.', 'error');
+          showToast(t('bf.errEndSameOrLater'), 'error');
           return false;
         }
       }
 
       if (isHourlySpace || isHourly) {
         if (!startTime || !endTime) {
-          showToast('Please select both a start time and an end time.', 'error');
+          showToast(t('bf.errTimes'), 'error');
           return false;
         }
         // Validate operating hours
         const hoursCheck = isTimeWithinOpenHours(startDate, startTime, endTime, space.openHours);
         if (!hoursCheck.valid) {
-          showToast(hoursCheck.reason || 'Requested time is outside space operating hours.', 'error');
+          showToast(translateMessage(hoursCheck.reason || '') || t('bf.errOutsideHours'), 'error');
           return false;
         }
 
         // Validate space overlap & capacity
         const overlapCheck = checkSpaceOverlap(bookings, space.id, startDate, startTime, endTime, space.totalCapacity);
         if (!overlapCheck.available) {
-          showToast(`This space is fully reserved at ${startTime}. Please select a different time or date.`, 'error');
+          showToast(t('bf.errFullyReserved', { time: localizeTime(startTime) }), 'error');
           return false;
         }
       }
@@ -399,7 +403,7 @@ export default function BookingFlow() {
         seats,
       });
       if (!availability.ok) {
-        showToast(availability.message || 'This time is no longer available.', 'error');
+        showToast(availability.message || t('bf.errNoLongerAvailable'), 'error');
         submittingRef.current = false;
         setLoading(false);
         return;
@@ -492,21 +496,21 @@ export default function BookingFlow() {
       setConfirmedBooking(booking);
       setStep(3);
       setLoading(false);
-      showToast('Workspace booked successfully!', 'success');
+      showToast(t('bf.bookedToast'), 'success');
     }, 900);
   };
 
   // Confirmation screen
   if (step === 3 && confirmedBooking) {
     const durationSummaryText = isHourly
-      ? `Hourly Reservation (${startTime} – ${endTime} · ${durationHours} ${durationHours === 1 ? 'hour' : 'hours'})`
+      ? t(durationHours === 1 ? 'bf.hourlyReservation' : 'bf.hourlyReservationMany', { start: localizeTime(startTime), end: localizeTime(endTime), count: durationHours })
       : isHourlySpace
       ? `${plan.toUpperCase()} RESERVATION (${plan === 'daily' ? `${durationDays} ${durationDays === 1 ? 'Day' : 'Days'}` : plan === 'monthly' ? `${durationMonths} Month${durationMonths > 1 ? 's' : ''}` : '1 Year'} · Allowed Hours: ${startTime} – ${endTime})`
       : plan === 'monthly'
-      ? `Monthly Pass (${durationMonths} Month${durationMonths > 1 ? 's' : ''})`
+      ? t(durationMonths > 1 ? 'bf.monthlyPassTitleMany' : 'bf.monthlyPassTitle', { count: durationMonths })
       : plan === 'daily'
-      ? `Daily Pass (${durationDays} ${durationDays === 1 ? 'Day' : 'Days'})`
-      : 'Yearly Pass (1 Year)';
+      ? t(durationDays === 1 ? 'bf.dailyPassTitle' : 'bf.dailyPassTitleMany', { count: durationDays })
+      : t('bf.yearlyPassTitle');
 
     return (
       <div className="max-w-xl mx-auto px-6 py-12">
@@ -515,17 +519,17 @@ export default function BookingFlow() {
             <Check size={32} className="text-moss" />
           </div>
           <h1 className="text-3xl sm:text-4xl text-soot font-normal mb-2 font-serif-display">
-            Booking Confirmed!
+            {t('bf.confirmedTitle')}
           </h1>
           <p className="text-moss text-sm mb-8 font-normal">
-            Your reservation is confirmed and active in your My Bookings section.
+            {t('bf.confirmedBody')}
           </p>
 
-          <div className="bg-white rounded-3xl border border-soot/8 p-6 sm:p-8 text-left mb-8 shadow-sm">
+          <div className="bg-white rounded-3xl border border-soot/8 p-6 sm:p-8 text-start mb-8 shadow-sm">
             <div className="flex items-center gap-4 mb-6 pb-6 border-b border-soot/8">
               <img
                 src={space.images?.[0] || FALLBACK_SPACE_IMAGE}
-                alt={space.name || 'Workspace'}
+                alt={st.name(space) || 'Workspace'}
                 className="w-16 h-16 rounded-2xl object-cover shadow-sm"
               />
               <div>
@@ -537,31 +541,31 @@ export default function BookingFlow() {
               </div>
             </div>
             <div className="space-y-2.5 text-sm">
-              <Row label="Booking Reference" value={`#${confirmedBooking.id.slice(-8).toUpperCase()}`} />
-              <Row label="Space Category" value={getSpaceCategory(space).toUpperCase()} />
-              <Row label="Workspace Type" value={deskType.replace('-', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())} />
-              <Row label="Plan / Duration" value={durationSummaryText} />
-              <Row label={isHourly ? "Booking Date" : "Start Date"} value={startDate} />
+              <Row label={t('bf.bookingReference')} value={`#${confirmedBooking.id.slice(-8).toUpperCase()}`} />
+              <Row label={t('bf.spaceCategory')} value={getSpaceCategory(space).toUpperCase()} />
+              <Row label={t('bf.workspaceType')} value={deskType.replace('-', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())} />
+              <Row label={t('bf.planDuration')} value={durationSummaryText} />
+              <Row label={isHourly ? t('qr.bookingDate') : t('spaceDetails.startDate')} value={startDate} />
               {isHourly ? (
-                <Row label="Time Window" value={`${startTime} – ${endTime} (${durationHours} ${durationHours === 1 ? 'hour' : 'hours'})`} />
+                <Row label={t('qr.timeWindow')} value={`${startTime} – ${endTime} (${durationHours} ${durationHours === 1 ? 'hour' : 'hours'})`} />
               ) : (
-                <Row label="End Date" value={endDate} />
+                <Row label={t('spaceDetails.endDate')} value={endDate} />
               )}
               {plan === 'daily' && (
                 <>
-                  <Row label="Selected Date Range" value={formatDateRange(startDate, endDate)} />
-                  <Row label="Reservation Duration" value={`${durationDays} ${durationDays === 1 ? 'Day' : 'Days'}`} />
+                  <Row label={t('bf.selectedRange')} value={formatDateRange(startDate, endDate)} />
+                  <Row label={t('bf.reservationDuration')} value={`${durationDays} ${durationDays === 1 ? 'Day' : 'Days'}`} />
                 </>
               )}
-              <Row label="Reserved Seats" value={`${seats} seat${seats > 1 ? 's' : ''}`} />
+              <Row label={t('bf.reservedSeats')} value={`${seats} seat${seats > 1 ? 's' : ''}`} />
               <div className="pt-3 border-t border-soot/8 flex justify-between items-center font-semibold text-base">
                 <span className="text-soot">{totalPrice === 0 ? 'Reservation Status' : 'Total Paid (incl. VAT)'}</span>
                 {totalPrice === 0 ? (
                   <span className="text-moss font-bold text-xs sm:text-sm bg-eucalyptus/25 px-3 py-1 rounded-full border border-eucalyptus/30">
-                    Included in your Subscription Pass
+                    {t('bf.includedSubscription')}
                   </span>
                 ) : (
-                  <span className="text-soot font-bold text-lg">SAR {totalPrice.toLocaleString()}</span>
+                  <span className="text-soot font-bold text-lg">{t('common.sar')} {totalPrice.toLocaleString()}</span>
                 )}
               </div>
             </div>
@@ -569,20 +573,20 @@ export default function BookingFlow() {
             {/* Entry QR Code Pass Card Matching Mockup */}
             <div className="mt-6 pt-6 border-t border-soot/8 bg-[#FAF7F2] -mx-6 -mb-6 sm:-mx-8 sm:-mb-8 p-6 rounded-b-3xl text-center space-y-3">
               <div>
-                <h3 className="text-base font-semibold text-soot font-serif-display">Entry QR code</h3>
-                <p className="text-xs text-moss mt-0.5">Show at the space entrance for instant check-in verification.</p>
+                <h3 className="text-base font-semibold text-soot font-serif-display">{t('qr.entryQr')}</h3>
+                <p className="text-xs text-moss mt-0.5">{t('bf.qrHint')}</p>
               </div>
 
               <div className="inline-flex p-3 bg-white rounded-2xl border border-soot/12 shadow-2xs mx-auto">
                 {confirmationQrDataUrl ? (
                   <img
                     src={confirmationQrDataUrl}
-                    alt="Booking QR Code"
+                    alt={t('bf.qrAlt')}
                     className="w-40 h-40 object-contain rounded-lg"
                   />
                 ) : (
                   <div className="w-40 h-40 flex items-center justify-center text-moss text-xs">
-                    Generating pass...
+                    {t('qr.generating')}
                   </div>
                 )}
               </div>
@@ -594,7 +598,7 @@ export default function BookingFlow() {
                   className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-soot text-plaster text-xs font-semibold hover:bg-black transition-colors cursor-pointer shadow-2xs"
                 >
                   <QrCode size={14} />
-                  <span>Open Full Entry Pass Modal</span>
+                  <span>{t('bf.openFullPass')}</span>
                 </button>
               </div>
             </div>
@@ -605,13 +609,13 @@ export default function BookingFlow() {
               onClick={() => navigate('my-bookings')}
               className="flex-1 py-3.5 px-6 rounded-full bg-[#DDE6DF] text-soot font-medium text-sm hover:bg-[#D0DDD3] transition-all shadow-xs border border-soot/8 cursor-pointer"
             >
-              View My Bookings
+              {t('bf.viewMyBookings')}
             </button>
             <button
               onClick={() => navigate('browse')}
               className="flex-1 py-3.5 px-6 rounded-full border border-soot/15 text-soot font-medium text-sm hover:bg-soot/5 transition-all bg-white cursor-pointer"
             >
-              Browse More Spaces
+              {t('bf.browseMore')}
             </button>
           </div>
         </div>
@@ -635,14 +639,14 @@ export default function BookingFlow() {
           type="button"
           onClick={back}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-soot/12 bg-white hover:bg-plaster-dark/40 text-soot text-xs sm:text-sm font-semibold transition-all cursor-pointer shadow-2xs group active:scale-98"
-          title={step === 0 ? 'Back to Space Details' : `Back to Step ${step}`}
+          title={step === 0 ? t('bf.backToDetails') : t('bf.backToStep', { step })}
         >
-          <ArrowLeft size={15} className="group-hover:-translate-x-0.5 transition-transform" />
-          <span>{step === 0 ? 'Back to Workspace' : 'Previous Step'}</span>
+          <ArrowLeft size={15} className="group-hover:-translate-x-0.5 rtl:group-hover:translate-x-0.5 transition-transform" />
+          <span>{step === 0 ? t('bf.backToWorkspace') : t('bf.previousStep')}</span>
         </button>
 
         <span className="text-xs font-semibold text-moss">
-          Step {step + 1} of 3
+          {t('bf.stepOf', { step: step + 1 })}
         </span>
       </div>
 
@@ -666,17 +670,17 @@ export default function BookingFlow() {
         </div>
 
         {/* Live Dynamic Price Display */}
-        <div className="text-right shrink-0 bg-plaster-dark/40 px-4 py-2.5 rounded-2xl border border-soot/10">
+        <div className="text-end shrink-0 bg-plaster-dark/40 px-4 py-2.5 rounded-2xl border border-soot/10">
           {planInfo.effectivePrice === 0 ? (
             <>
               <span className="text-[10px] font-bold uppercase tracking-wider text-moss block">
-                Subscription Status
+                {t('bf.subscriptionStatus')}
               </span>
               <div className="font-bold text-emerald-800 text-sm sm:text-base leading-tight mt-0.5">
-                Active Pass
+                {t('bf.activePass')}
               </div>
               <div className="text-[11px] text-moss mt-0.5">
-                Included in your Plan
+                {t('bf.includedInPlan')}
               </div>
             </>
           ) : (
@@ -685,14 +689,14 @@ export default function BookingFlow() {
                 {seats > 1 ? `Total (${seats} Seats)` : 'Total Price'}
               </span>
               <div className="font-bold text-soot text-lg sm:text-xl leading-tight">
-                SAR {(planInfo.effectivePrice * seats).toLocaleString()}
+                {t('common.sar')} {(planInfo.effectivePrice * seats).toLocaleString()}
               </div>
               <div className="text-[11px] text-moss mt-0.5">
                 {(planInfo.coveredHours || 0) > 0
-                  ? `${planInfo.coveredHours}h covered · ${planInfo.payableHours}h extra`
+                  ? t('bf.coveredExtra', { covered: planInfo.coveredHours ?? 0, extra: planInfo.payableHours ?? 0 })
                   : planInfo.isCovered
-                  ? 'Included with Pass'
-                  : `SAR ${planPrice.toLocaleString()} ${priceLabel}`}
+                  ? t('bf.includedWithPass')
+                  : `${t('common.sar')} ${planPrice.toLocaleString()} ${priceLabel}`}
               </div>
             </>
           )}
@@ -705,22 +709,22 @@ export default function BookingFlow() {
           <div>
             <h2 className="text-2xl text-soot font-normal mb-1 font-serif-display">
               {isHourlySpace
-                ? 'Select Hourly Booking Plan'
+                ? t('bf.selectHourlyPlan')
                 : isOffice
-                ? 'Choose Office Pass Plan'
-                : 'Choose Your Pass & Duration'}
+                ? t('bf.chooseOfficePlan')
+                : t('bf.chooseYourPass')}
             </h2>
             <p className="text-moss text-sm">
               {isHourlySpace
-                ? 'Theaters and Halls are priced and reserved on an hourly duration basis.'
-                : 'Offices support Daily, Monthly (multi-month), and Yearly reservations.'}
+                ? t('bf.hallsHourly')
+                : t('bf.officesPlans')}
             </p>
           </div>
 
           {/* Workspace Desk Type Selector */}
           {!isHourlySpace && !isOffice && (
             <div>
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-moss mb-3">Workspace Type</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-moss mb-3">{t('bf.workspaceType')}</h3>
               <div className="grid grid-cols-3 gap-3">
                 {(['hot-desk', 'private-office', 'meeting-room'] as BookingType[]).map(t => (
                   <button
@@ -749,7 +753,7 @@ export default function BookingFlow() {
                   key={p}
                   type="button"
                   onClick={() => setPlan(p)}
-                  className={`w-full p-4 sm:p-5 rounded-2xl border text-left transition-all flex items-center justify-between cursor-pointer ${
+                  className={`w-full p-4 sm:p-5 rounded-2xl border text-start transition-all flex items-center justify-between cursor-pointer ${
                     isSelected
                       ? 'border-eucalyptus bg-[#E5ECE9]/60 shadow-sm'
                       : 'border-soot/8 bg-white hover:border-soot/20'
@@ -757,10 +761,10 @@ export default function BookingFlow() {
                 >
                   <div>
                     <div className="font-semibold text-soot text-base capitalize flex items-center gap-2">
-                      <span>{p} Plan</span>
+                      <span>{t('bf.planLabel', { plan: t(('bf.planName.' + p) as never) })}</span>
                       {p === 'hourly' && (
                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-eucalyptus/30 text-soot font-semibold uppercase tracking-wider">
-                          Hourly Booking
+                          {t('bf.hourlyBooking')}
                         </span>
                       )}
                       {p === 'monthly' && durationMonths > 1 && (
@@ -771,24 +775,24 @@ export default function BookingFlow() {
                     </div>
                     <div className="text-xs text-moss mt-1">
                       {p === 'hourly'
-                        ? `Reserve for specific hours with custom duration pricing`
+                        ? t('bf.hourlyDesc')
                         : p === 'daily'
-                        ? 'Full single day workspace access'
+                        ? t('bf.planDailyDesc')
                         : p === 'monthly'
-                        ? 'Reserve for 1, 2, 3, 6, or 12 months with flexible terms'
-                        : 'Dedicated full-year workspace with maximum annual savings'}
+                        ? t('bf.planMonthlyDesc')
+                        : t('bf.planYearlyDesc')}
                     </div>
                   </div>
 
-                  <div className="text-right shrink-0 pl-4">
+                  <div className="text-end shrink-0 ps-4">
                     {hasActiveSubscription || pInfo.isCovered ? (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-eucalyptus/30 text-soot font-semibold text-xs border border-eucalyptus/40 shadow-2xs">
                         <Check size={11} className="text-moss shrink-0" />
-                        <span>Included in your Pass</span>
+                        <span>{t('spaceDetails.includedInYourPass')}</span>
                       </span>
                     ) : pInfo.hasDiscount ? (
                       <div>
-                        <div className="font-bold text-soot text-base">SAR {pInfo.effectivePrice.toLocaleString()}</div>
+                        <div className="font-bold text-soot text-base">{t('common.sar')} {pInfo.effectivePrice.toLocaleString()}</div>
                         <div className="text-[10px] text-amber-900 font-semibold bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-full mt-0.5">
                           {pInfo.discountPercentage}% Pass Discount
                         </div>
@@ -796,10 +800,10 @@ export default function BookingFlow() {
                     ) : (
                       <>
                         <div className="font-bold text-soot text-lg">
-                          SAR {pInfo.originalPrice.toLocaleString()}
+                          {t('common.sar')} {pInfo.originalPrice.toLocaleString()}
                         </div>
                         <div className="text-xs text-moss">
-                          /{p === 'hourly' ? `${durationHours}h` : p === 'daily' ? 'day' : p === 'monthly' ? `${durationMonths}mo` : 'year'}
+                          /{p === 'hourly' ? t('bf.unitHour', { count: durationHours }) : p === 'daily' ? t('bf.unitDay') : p === 'monthly' ? t('bf.unitMonth', { count: durationMonths }) : t('bf.unitYear')}
                         </div>
                       </>
                     )}
@@ -816,12 +820,12 @@ export default function BookingFlow() {
                 <div>
                   <h4 className="text-xs font-semibold uppercase tracking-wider text-moss flex items-center gap-1.5">
                     <Calendar size={13} />
-                    <span>Select Number of Months</span>
+                    <span>{t('spaceDetails.selectMonths')}</span>
                   </h4>
-                  <p className="text-xs text-moss mt-0.5">Choose duration: 1, 2, 3, 6, or 12 months</p>
+                  <p className="text-xs text-moss mt-0.5">{t('bf.chooseMonths')}</p>
                 </div>
                 <div className="text-sm font-bold text-soot">
-                  {durationMonths} {durationMonths === 1 ? 'Month' : 'Months'} {hasActiveSubscription ? '· Included in Pass' : `· SAR ${((space.pricing?.monthly ?? 1800) * durationMonths).toLocaleString()}`}
+                  {durationMonths} {durationMonths === 1 ? 'Month' : 'Months'} {hasActiveSubscription ? '· Included in Pass' : `· ${t('common.sar')} ${((space.pricing?.monthly ?? 1800) * durationMonths).toLocaleString()}`}
                 </div>
               </div>
 
@@ -842,7 +846,7 @@ export default function BookingFlow() {
                     >
                       <div className="text-xs font-semibold">{m} Mo{m > 1 ? 's' : ''}</div>
                       <div className="text-[10px] font-bold text-soot mt-0.5">
-                        {hasActiveSubscription ? 'Included' : `SAR ${priceForM.toLocaleString()}`}
+                        {hasActiveSubscription ? 'Included' : `${t('common.sar')} ${priceForM.toLocaleString()}`}
                       </div>
                     </button>
                   );
@@ -858,12 +862,12 @@ export default function BookingFlow() {
                 <div>
                   <h4 className="text-xs font-semibold uppercase tracking-wider text-moss flex items-center gap-1.5">
                     <Clock size={13} />
-                    <span>Specify Reservation Date & Time</span>
+                    <span>{t('bf.specifyDateTime')}</span>
                   </h4>
-                  <p className="text-xs text-moss mt-0.5">Select your booking date, start time, and end time</p>
+                  <p className="text-xs text-moss mt-0.5">{t('bf.selectDateTimeHint')}</p>
                 </div>
-                <div className="text-sm font-bold text-soot whitespace-nowrap shrink-0 text-right">
-                  {durationHours} {durationHours === 1 ? 'Hour' : 'Hours'} {planInfo.effectivePrice === 0 ? '· Included in Pass' : (planInfo.coveredHours || 0) > 0 ? `· ${planInfo.coveredHours}h Covered · SAR ${(planInfo.effectivePrice * seats).toLocaleString()}` : `· SAR ${getHourlyPriceForDuration(space, durationHours)}`}
+                <div className="text-sm font-bold text-soot whitespace-nowrap shrink-0 text-end">
+                  {durationHours} {durationHours === 1 ? 'Hour' : 'Hours'} {planInfo.effectivePrice === 0 ? '· Included in Pass' : (planInfo.coveredHours || 0) > 0 ? `· ${planInfo.coveredHours}h Covered · ${t('common.sar')} ${(planInfo.effectivePrice * seats).toLocaleString()}` : `· ${t('common.sar')} ${getHourlyPriceForDuration(space, durationHours)}`}
                 </div>
               </div>
 
@@ -871,7 +875,7 @@ export default function BookingFlow() {
               <div>
                 <label className="block text-[11px] font-semibold text-moss mb-1 flex items-center gap-1">
                   <Calendar size={12} />
-                  <span>Reservation Date</span>
+                  <span>{t('spaceDetails.reservationDate')}</span>
                 </label>
                 <input
                   type="date"
@@ -884,7 +888,7 @@ export default function BookingFlow() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-semibold text-moss mb-1">Start Time</label>
+                  <label className="block text-[11px] font-semibold text-moss mb-1">{t('bf.startTime')}</label>
                   <select
                     value={startTime}
                     onChange={(e) => handleStartTimeChange(e.target.value)}
@@ -899,7 +903,7 @@ export default function BookingFlow() {
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-semibold text-moss mb-1">End Time</label>
+                  <label className="block text-[11px] font-semibold text-moss mb-1">{t('bf.endTime')}</label>
                   <select
                     value={endTime}
                     onChange={(e) => handleEndTimeChange(e.target.value)}
@@ -916,11 +920,11 @@ export default function BookingFlow() {
 
               <div className="bg-white p-3 rounded-xl border border-soot/8 flex items-center justify-between text-xs">
                 <div>
-                  <span className="text-moss block text-[10px] uppercase font-semibold">Selected Schedule</span>
+                  <span className="text-moss block text-[10px] uppercase font-semibold">{t('bf.selectedSchedule')}</span>
                   <span className="font-semibold text-soot">{startDate} · {startTime} – {endTime}</span>
                 </div>
-                <div className="text-right">
-                  <span className="text-moss block text-[10px] uppercase font-semibold">Total Duration</span>
+                <div className="text-end">
+                  <span className="text-moss block text-[10px] uppercase font-semibold">{t('bf.totalDuration')}</span>
                   <span className="font-bold text-soot">{durationHours} {durationHours === 1 ? 'Hour' : 'Hours'}</span>
                 </div>
               </div>
@@ -932,9 +936,9 @@ export default function BookingFlow() {
             <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-xs flex items-start gap-2.5">
               <Clock size={16} className="text-amber-700 shrink-0 mt-0.5" />
               <div>
-                <span className="font-semibold text-soot block">Allowed Daily Hours Policy for Theaters & Halls</span>
+                <span className="font-semibold text-soot block">{t('bf.dailyHoursPolicy')}</span>
                 <span className="text-moss text-[11px] leading-relaxed">
-                  Reservations for this venue are booked on a Daily Pass basis with a 2-hour session within the venue operating hours ({space.openHours || 'Operating hours apply'}). You will select your 2-hour time slot in the next step.
+                  {t('bf.hallDailyNotice', { hours: localizeTime(space.openHours) || t('bf.operatingHoursApply') })}
                 </span>
               </div>
             </div>
@@ -946,14 +950,14 @@ export default function BookingFlow() {
               onClick={back}
               className="py-3.5 px-6 rounded-full border border-soot/15 text-soot font-medium text-sm hover:bg-soot/5 transition-all bg-white cursor-pointer"
             >
-              Back
+              {t('common.back')}
             </button>
             <button
               type="button"
               onClick={next}
               className="flex-1 py-3.5 px-6 rounded-full bg-[#DDE6DF] text-soot hover:bg-[#D0DDD3] font-medium text-sm transition-all flex items-center justify-center gap-2 shadow-xs border border-soot/8 cursor-pointer"
             >
-              <span>{planInfo.effectivePrice === 0 ? 'Continue to Schedule & Details' : `Continue to Schedule & Details (SAR ${(planInfo.effectivePrice * seats).toLocaleString()})`}</span>
+              <span>{planInfo.effectivePrice === 0 ? t('bf.continueSchedule') : t('bf.continueSchedulePrice', { currency: t('common.sar'), amount: (planInfo.effectivePrice * seats).toLocaleString() })}</span>
               <ChevronRight size={16} />
             </button>
           </div>
@@ -965,9 +969,9 @@ export default function BookingFlow() {
         <div className="bg-white rounded-3xl border border-soot/8 p-6 sm:p-8 shadow-sm space-y-6">
           <div>
             <h2 className="text-2xl text-soot font-normal mb-1 font-serif-display">
-              Schedule & Seats
+              {t('bf.scheduleSeats')}
             </h2>
-            <p className="text-moss text-sm">Choose your date, duration, and required capacity</p>
+            <p className="text-moss text-sm">{t('bf.chooseDateDuration')}</p>
           </div>
 
           <div className="space-y-6">
@@ -978,9 +982,9 @@ export default function BookingFlow() {
                   <div>
                     <h4 className="text-xs font-semibold uppercase tracking-wider text-moss flex items-center gap-1.5">
                       <Calendar size={13} />
-                      <span>Daily Pass Date Range</span>
+                      <span>{t('bf.dailyRange')}</span>
                     </h4>
-                    <p className="text-xs text-moss mt-0.5">Specify your reservation start and end dates</p>
+                    <p className="text-xs text-moss mt-0.5">{t('bf.specifyRange')}</p>
                   </div>
                   <div className="text-xs font-bold text-soot bg-white px-3 py-1 rounded-full border border-soot/10 shadow-2xs whitespace-nowrap">
                     {durationDays} {durationDays === 1 ? 'Day' : 'Days'} Duration
@@ -991,7 +995,7 @@ export default function BookingFlow() {
                   <div>
                     <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-2 flex items-center gap-1.5">
                       <Calendar size={13} />
-                      <span>Start Date</span>
+                      <span>{t('spaceDetails.startDate')}</span>
                     </label>
                     <input
                       type="date"
@@ -1005,7 +1009,7 @@ export default function BookingFlow() {
                   <div>
                     <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-2 flex items-center gap-1.5">
                       <Calendar size={13} />
-                      <span>End Date</span>
+                      <span>{t('spaceDetails.endDate')}</span>
                     </label>
                     <input
                       type="date"
@@ -1015,17 +1019,17 @@ export default function BookingFlow() {
                       className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-soot/12 text-soot text-sm font-medium focus:outline-none focus:border-eucalyptus cursor-pointer shadow-2xs"
                     />
                     <span className="text-[10px] text-moss mt-1 block">
-                      Must be same day as or later than Start Date
+                      {t('bf.endAfterStart')}
                     </span>
                   </div>
                 </div>
 
                 <div className="bg-white p-3.5 rounded-xl border border-soot/8 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                   <div>
-                    <span className="text-moss block text-[10px] uppercase font-semibold">Selected Date Range</span>
+                    <span className="text-moss block text-[10px] uppercase font-semibold">{t('bf.selectedRange')}</span>
                     <span className="font-semibold text-soot text-sm">{formatDateRange(startDate, endDate)}</span>
                   </div>
-                  <div className="text-left sm:text-right">
+                  <div className="text-start sm:text-end">
                     <span className="text-moss block text-[10px] uppercase font-semibold">
                       {hasActiveSubscription ? 'Pass Coverage' : 'Daily Rate Calculation'}
                     </span>
@@ -1033,7 +1037,7 @@ export default function BookingFlow() {
                       {hasActiveSubscription ? (
                         <span className="text-emerald-800">Included in your Pass ({durationDays} {durationDays === 1 ? 'day' : 'days'})</span>
                       ) : (
-                        `SAR ${(space.pricing?.daily ?? 150).toLocaleString()} × ${durationDays} ${durationDays === 1 ? 'day' : 'days'} = SAR ${((space.pricing?.daily ?? 150) * durationDays).toLocaleString()} / seat`
+                        t('bf.dailyTotalLine', { currency: t('common.sar'), rate: (space.pricing?.daily ?? 150).toLocaleString(), days: durationDays, unit: durationDays === 1 ? t('bf.dayUnit') : t('bf.daysUnit'), total: ((space.pricing?.daily ?? 150) * durationDays).toLocaleString() })
                       )}
                     </span>
                   </div>
@@ -1043,7 +1047,7 @@ export default function BookingFlow() {
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-2 flex items-center gap-1.5">
                   <Calendar size={13} />
-                  <span>{isHourlySpace ? 'Reservation Date' : isHourly ? 'Booking Date' : 'Start Date'}</span>
+                  <span>{isHourlySpace ? t('spaceDetails.reservationDate') : isHourly ? t('qr.bookingDate') : t('spaceDetails.startDate')}</span>
                 </label>
                 <input
                   type="date"
@@ -1065,7 +1069,7 @@ export default function BookingFlow() {
                   <div>
                     <h4 className="text-xs font-semibold uppercase tracking-wider text-moss flex items-center gap-1.5">
                       <Clock size={13} />
-                      <span>Select Hourly Duration & Time</span>
+                      <span>{t('bf.hourlyDurationTime')}</span>
                     </h4>
                     <p className="text-xs text-moss mt-0.5">
                       {`Operating hours: ${space.openHours || 'Standard Operating Hours'}`}
@@ -1079,7 +1083,7 @@ export default function BookingFlow() {
                 {!isHourlySpace && (
                 <div className="space-y-1.5">
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-moss block">
-                    Duration (Hours)
+                    {t('bf.durationHours')}
                   </span>
                   <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                     {[1, 2, 3, 4, 6, 8].map(h => {
@@ -1098,7 +1102,7 @@ export default function BookingFlow() {
                         >
                           <div className="font-bold text-xs">{h} {h === 1 ? 'Hour' : 'Hours'}</div>
                           <div className={`text-[10px] mt-0.5 ${isSelected ? 'text-plaster/80 font-medium' : 'text-moss'}`}>
-                            {hasActiveSubscription && hPrice.isCovered ? 'Pass Quota' : `SAR ${hPrice.effectivePrice.toLocaleString()}`}
+                            {hasActiveSubscription && hPrice.isCovered ? 'Pass Quota' : `${t('common.sar')} ${hPrice.effectivePrice.toLocaleString()}`}
                           </div>
                         </button>
                       );
@@ -1111,11 +1115,11 @@ export default function BookingFlow() {
                 {isHourlySpace ? (
                   <div className="space-y-1.5">
                     <span className="text-[10px] font-semibold uppercase tracking-wider text-moss block">
-                      Available 2-Hour Sessions
+                      {t('spaceDetails.sessions2h')}
                     </span>
                     {fixedSlots.length === 0 ? (
                       <div className="text-xs text-rose-800 bg-rose-50 border border-rose-200 rounded-xl p-3">
-                        No sessions are available within this venue's operating hours.
+                        {t('spaceDetails.noSessions')}
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -1145,7 +1149,7 @@ export default function BookingFlow() {
                   <div>
                     <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-2 flex items-center gap-1.5">
                       <Clock size={13} />
-                      <span>{isHourlySpace ? 'Session Start Time' : 'Start Time'}</span>
+                      <span>{isHourlySpace ? t('spaceDetails.sessionStart') : t('bf.startTime')}</span>
                     </label>
                     <select
                       value={startTime}
@@ -1163,7 +1167,7 @@ export default function BookingFlow() {
                   <div>
                     <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-2 flex items-center gap-1.5">
                       <Clock size={13} />
-                      <span>{isHourlySpace ? 'Session End Time' : 'End Time'}</span>
+                      <span>{isHourlySpace ? t('spaceDetails.sessionEnd') : t('bf.endTime')}</span>
                     </label>
                     <input
                       type="text"
@@ -1180,14 +1184,14 @@ export default function BookingFlow() {
                 <div className="bg-white p-3 rounded-xl border border-soot/8 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                   <div>
                     <span className="text-moss block text-[10px] uppercase font-semibold">
-                      Scheduled Reservation Window
+                      {t('spaceDetails.reservationWindow')}
                     </span>
                     <span className="font-semibold text-soot">
                       {startDate} · {startTime} – {endTime} ({durationHours} {durationHours === 1 ? 'hour' : 'hours'})
                     </span>
                   </div>
-                  <div className="text-left sm:text-right">
-                    <span className="text-moss block text-[10px] uppercase font-semibold">Venue Operating Hours</span>
+                  <div className="text-start sm:text-end">
+                    <span className="text-moss block text-[10px] uppercase font-semibold">{t('spaceDetails.venueHours')}</span>
                     <span className="font-semibold text-soot">{space.openHours || 'Standard Operating Hours'}</span>
                   </div>
                 </div>
@@ -1199,7 +1203,7 @@ export default function BookingFlow() {
               <div className="p-4 rounded-2xl bg-[#F9F8F5] border border-soot/8 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold uppercase tracking-wider text-moss">
-                    Monthly Duration
+                    {t('bf.monthlyDuration')}
                   </span>
                   <span className="text-xs font-bold text-soot">{durationMonths} Months</span>
                 </div>
@@ -1221,18 +1225,18 @@ export default function BookingFlow() {
                 </div>
                 <div className="bg-white p-3 rounded-xl border border-soot/8 flex items-center justify-between text-xs">
                   <div>
-                    <span className="text-moss block text-[10px] uppercase font-semibold">Period</span>
+                    <span className="text-moss block text-[10px] uppercase font-semibold">{t('bf.period')}</span>
                     <span className="font-semibold text-soot">{startDate} → {endDate}</span>
                   </div>
-                  <div className="text-right">
+                  <div className="text-end">
                     <span className="text-moss block text-[10px] uppercase font-semibold">
                       {hasActiveSubscription ? 'Plan Coverage' : 'Months Total'}
                     </span>
                     <span className="font-bold text-soot">
                       {hasActiveSubscription ? (
-                        <span className="text-emerald-800">Included in Pass</span>
+                        <span className="text-emerald-800">{t('spaceDetails.includedInPass')}</span>
                       ) : (
-                        `SAR ${getMonthlyPriceForDuration(space, durationMonths).toLocaleString()}`
+                        `${t('common.sar')} ${getMonthlyPriceForDuration(space, durationMonths).toLocaleString()}`
                       )}
                     </span>
                   </div>
@@ -1243,7 +1247,7 @@ export default function BookingFlow() {
             {/* Number of Seats */}
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-2">
-                Number of Reserved Desks / Seats
+                {t('bf.numReserved')}
               </label>
               <div className="flex items-center gap-4">
                 <button
@@ -1270,12 +1274,12 @@ export default function BookingFlow() {
             {/* Special Requests */}
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-2">
-                Special Requests or Notes (Optional)
+                {t('bf.notes')}
               </label>
               <textarea
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
-                placeholder="e.g., quiet zone preferred, monitor needed..."
+                placeholder={t('bf.notesPlaceholder')}
                 rows={3}
                 className="w-full px-4 py-3 rounded-2xl border border-soot/10 bg-[#F9F8F5] text-soot text-sm outline-none focus:border-eucalyptus focus:bg-white resize-none"
               />
@@ -1287,13 +1291,13 @@ export default function BookingFlow() {
               onClick={back}
               className="py-3.5 px-6 rounded-full border border-soot/15 text-soot font-medium text-sm hover:bg-soot/5 transition-all bg-white cursor-pointer"
             >
-              Back
+              {t('common.back')}
             </button>
             <button
               onClick={next}
               className="flex-1 py-3.5 px-6 rounded-full bg-[#DDE6DF] text-soot hover:bg-[#D0DDD3] font-medium text-sm transition-all flex items-center justify-center gap-2 shadow-xs border border-soot/8 cursor-pointer"
             >
-              <span>{totalPrice === 0 ? 'Review Reservation' : 'Review Booking & Price'}</span>
+              <span>{totalPrice === 0 ? t('bf.reviewReservation') : t('bf.reviewBookingPrice')}</span>
               <ChevronRight size={16} />
             </button>
           </div>
@@ -1309,34 +1313,34 @@ export default function BookingFlow() {
             </h2>
             <p className="text-moss text-sm">
               {totalPrice === 0
-                ? 'Review your reservation details and confirm your workspace access'
-                : 'Review your booking summary and confirm payment'}
+                ? t('bf.reviewHintCovered')
+                : t('bf.reviewHintPay')}
             </p>
           </div>
 
           <div className="space-y-4">
             {/* Booking Details Summary */}
             <div className="p-5 rounded-2xl bg-[#F9F8F5] border border-soot/8 divide-y divide-soot/6">
-              <Row label="Workspace" value={space.name} />
-              <Row label="Location" value={`${space.address}, ${space.city}`} />
-              <Row label="Desk Type" value={deskType.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())} />
-              <Row label="Plan / Mode" value={isHourly ? `Hourly Reservation (${durationHours} hours)` : plan === 'daily' ? `Daily Pass (${durationDays} ${durationDays === 1 ? 'day' : 'days'})` : `${plan.charAt(0).toUpperCase() + plan.slice(1)} Pass`} />
-              <Row label={isHourly ? "Booking Date" : "Start Date"} value={startDate} />
+              <Row label={t('bf.workspace')} value={space.name} />
+              <Row label={t('bf.location')} value={`${space.address}, ${space.city}`} />
+              <Row label={t('bf.deskType')} value={deskType.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())} />
+              <Row label={t('bf.planMode')} value={isHourly ? `Hourly Reservation (${durationHours} hours)` : plan === 'daily' ? `Daily Pass (${durationDays} ${durationDays === 1 ? 'day' : 'days'})` : `${plan.charAt(0).toUpperCase() + plan.slice(1)} Pass`} />
+              <Row label={isHourly ? t('qr.bookingDate') : t('spaceDetails.startDate')} value={startDate} />
               {isHourly ? (
-                <Row label="Time Window" value={`${startTime} – ${endTime} (${durationHours} ${durationHours === 1 ? 'hour' : 'hours'})`} />
+                <Row label={t('qr.timeWindow')} value={`${startTime} – ${endTime} (${durationHours} ${durationHours === 1 ? 'hour' : 'hours'})`} />
               ) : (
-                <Row label="End Date" value={endDate} />
+                <Row label={t('spaceDetails.endDate')} value={endDate} />
               )}
               {plan === 'daily' && (
                 <>
-                  <Row label="Selected Date Range" value={formatDateRange(startDate, endDate)} />
-                  <Row label="Reservation Duration" value={`${durationDays} ${durationDays === 1 ? 'Day' : 'Days'}`} />
+                  <Row label={t('bf.selectedRange')} value={formatDateRange(startDate, endDate)} />
+                  <Row label={t('bf.reservationDuration')} value={`${durationDays} ${durationDays === 1 ? 'Day' : 'Days'}`} />
                 </>
               )}
               {isHourlySpace && (
-                <Row label="Daily Allowed Hours" value={`${startTime} – ${endTime} (${durationHours} ${durationHours === 1 ? 'hour' : 'hours'}/day)`} />
+                <Row label={t('qr.dailyHours')} value={`${startTime} – ${endTime} (${durationHours} ${durationHours === 1 ? 'hour' : 'hours'}/day)`} />
               )}
-              <Row label="Reserved Seats" value={`${seats} seat${seats > 1 ? 's' : ''}`} />
+              <Row label={t('bf.reservedSeats')} value={`${seats} seat${seats > 1 ? 's' : ''}`} />
             </div>
 
             {totalPrice === 0 ? (
@@ -1346,40 +1350,40 @@ export default function BookingFlow() {
                   <div className="flex items-center gap-2">
                     <ShieldCheck size={18} className="text-emerald-700" />
                     <span className="text-xs font-semibold uppercase tracking-wider text-soot">
-                      Subscription Plan Coverage
+                      {t('bf.planCoverage')}
                     </span>
                   </div>
                   <span className="text-xs font-bold text-emerald-800 bg-white px-2.5 py-0.5 rounded-full border border-emerald-300 shadow-2xs">
-                    Active Pass
+                    {t('bf.activePass')}
                   </span>
                 </div>
 
                 <div className="space-y-2 text-xs">
                   <div className="flex justify-between items-center">
-                    <span className="text-moss">Covered by</span>
+                    <span className="text-moss">{t('bf.coveredBy')}</span>
                     <span className="font-semibold text-soot">{currentUser.membershipTier || 'All-Access Pass'}</span>
                   </div>
                   {(planInfo.coveredHours || 0) > 0 && (
                     <div className="flex justify-between items-center">
-                      <span className="text-moss">Plan Hours Applied</span>
+                      <span className="text-moss">{t('bf.planHoursApplied')}</span>
                       <span className="font-semibold text-emerald-800">
                         {planInfo.coveredHours} {planInfo.coveredHours === 1 ? 'Hour' : 'Hours'} ({currentUser.remainingHours !== undefined ? currentUser.remainingHours : 0} hrs remaining in monthly quota)
                       </span>
                     </div>
                   )}
                   <div className="flex justify-between items-center">
-                    <span className="text-moss">Reserved Seats</span>
+                    <span className="text-moss">{t('bf.reservedSeats')}</span>
                     <span className="font-semibold text-soot">{seats} {seats > 1 ? 'Seats' : 'Seat'} (Included)</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-moss">Payment Required</span>
-                    <span className="font-semibold text-emerald-800">None · Covered by your Active Plan</span>
+                    <span className="text-moss">{t('bf.paymentRequired')}</span>
+                    <span className="font-semibold text-emerald-800">{t('bf.noneCovered')}</span>
                   </div>
                 </div>
 
                 <div className="pt-2 border-t border-soot/8 flex items-center gap-2 text-[11px] text-moss">
                   <Info size={13} className="shrink-0 text-emerald-700" />
-                  <span>Your active subscription plan covers this reservation. No additional billing will occur.</span>
+                  <span>{t('bf.coveredBody')}</span>
                 </div>
               </div>
             ) : (
@@ -1389,10 +1393,10 @@ export default function BookingFlow() {
                   <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200/80 space-y-1.5">
                     <div className="flex items-center gap-2 text-amber-900 font-semibold text-xs">
                       <Info size={14} className="text-amber-700 shrink-0" />
-                      <span>Partial Plan Quota Applied</span>
+                      <span>{t('bf.partialQuota')}</span>
                     </div>
                     <p className="text-xs text-amber-800/90 leading-relaxed">
-                      {planInfo.coveredHours} free {planInfo.coveredHours === 1 ? 'hour is' : 'hours are'} covered by your {currentUser.membershipTier || 'Pass'} quota ({currentUser.remainingHours !== undefined ? currentUser.remainingHours : 0} hrs remaining). The remaining {planInfo.payableHours} {planInfo.payableHours === 1 ? 'hour is' : 'hours are'} charged at SAR {space.pricing?.hourly ?? 0}/hour.
+                      {planInfo.coveredHours} free {planInfo.coveredHours === 1 ? 'hour is' : 'hours are'} covered by your {currentUser.membershipTier || 'Pass'} quota ({currentUser.remainingHours !== undefined ? currentUser.remainingHours : 0} hrs remaining). The remaining {planInfo.payableHours} {planInfo.payableHours === 1 ? 'hour is' : 'hours are'} charged at {t('common.sar')} {space.pricing?.hourly ?? 0}/hour.
                     </p>
                   </div>
                 )}
@@ -1400,10 +1404,10 @@ export default function BookingFlow() {
                   <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200/80 space-y-1.5">
                     <div className="flex items-center gap-2 text-amber-900 font-semibold text-xs">
                       <Info size={14} className="text-amber-700 shrink-0" />
-                      <span>Monthly Hours Quota Depleted</span>
+                      <span>{t('bf.quotaDepleted')}</span>
                     </div>
                     <p className="text-xs text-amber-800/90 leading-relaxed">
-                      You have 0 meeting room & theater credits remaining this cycle. Standard hourly rates apply until your plan quota renews next month.
+                      {t('bf.quotaDepletedBody')}
                     </p>
                   </div>
                 )}
@@ -1414,7 +1418,7 @@ export default function BookingFlow() {
                     <div className="flex items-center gap-2">
                       <Sparkles size={16} className="text-amber-600 shrink-0" />
                       <div>
-                        <div className="text-xs font-semibold text-soot">Loyalty Rewards Program</div>
+                        <div className="text-xs font-semibold text-soot">{t('bf.loyaltyProgram')}</div>
                         <div className="text-[11px] text-moss">Balance: {availablePoints} points</div>
                       </div>
                     </div>
@@ -1426,7 +1430,7 @@ export default function BookingFlow() {
                           onChange={(e) => setUseLoyaltyPoints(e.target.checked)}
                           className="rounded border-soot/20 text-eucalyptus focus:ring-eucalyptus cursor-pointer"
                         />
-                        <span>Use {maxRedeemablePoints} pts (-SAR {(maxRedeemablePoints / 100) * 25})</span>
+                        <span>{t('bf.usePoints', { points: maxRedeemablePoints, currency: t('common.sar'), amount: (maxRedeemablePoints / 100) * 25 })}</span>
                       </label>
                     )}
                   </div>
@@ -1434,10 +1438,10 @@ export default function BookingFlow() {
                     <div className="text-[11px] font-medium text-amber-900 bg-amber-500/15 px-3 py-1.5 rounded-xl border border-amber-500/30 flex items-center justify-between">
                       <span className="flex items-center gap-1.5">
                         <Sparkles size={13} className="text-amber-600 shrink-0 animate-pulse" />
-                        <span>You will earn <strong>+{earnedPoints} loyalty points</strong> upon booking completion!</span>
+                        <span>{t('bf.willEarn')} <strong>{t('bf.loyaltyPointsPlus', { points: earnedPoints })}</strong> {t('bf.uponCompletion')}</span>
                       </span>
                       {multiplier > 1 && (
-                        <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-600 text-white px-2 py-0.5 rounded-full ml-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-600 text-white px-2 py-0.5 rounded-full ms-2">
                           {multiplier}× Points
                         </span>
                       )}
@@ -1451,8 +1455,8 @@ export default function BookingFlow() {
                     <div className="flex items-center gap-2">
                       <Wallet size={16} className="text-emerald-700 shrink-0" />
                       <div>
-                        <div className="text-xs font-semibold text-soot">Digital Wallet Balance</div>
-                        <div className="text-[11px] text-moss">Available Balance: SAR {userWalletBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+                        <div className="text-xs font-semibold text-soot">{t('bf.walletBalance')}</div>
+                        <div className="text-[11px] text-moss">Available Balance: {t('common.sar')} {userWalletBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
                       </div>
                     </div>
                     {userWalletBalance > 0 && totalPrice > 0 && (
@@ -1463,14 +1467,14 @@ export default function BookingFlow() {
                           onChange={(e) => setUseWalletBalance(e.target.checked)}
                           className="rounded border-soot/20 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
                         />
-                        <span>Use Wallet (SAR {walletDeduction.toLocaleString()})</span>
+                        <span>{t('bf.useWallet', { currency: t('common.sar'), amount: walletDeduction.toLocaleString() })}</span>
                       </label>
                     )}
                   </div>
                   {useWalletBalance && walletDeduction > 0 && (
                     <div className="text-[11px] font-medium text-emerald-950 bg-emerald-500/15 px-3 py-1.5 rounded-xl border border-emerald-500/30 flex items-center justify-between">
-                      <span>Wallet Balance Applied</span>
-                      <span className="font-bold text-emerald-700">- SAR {walletDeduction.toLocaleString()}</span>
+                      <span>{t('bf.walletApplied')}</span>
+                      <span className="font-bold text-emerald-700">- {t('common.sar')} {walletDeduction.toLocaleString()}</span>
                     </div>
                   )}
                 </div>
@@ -1480,79 +1484,79 @@ export default function BookingFlow() {
                   <div className="flex items-center gap-2 pb-2 border-b border-soot/8">
                     <Receipt size={16} className="text-moss" />
                     <span className="text-xs font-semibold uppercase tracking-wider text-soot">
-                      Price Breakdown & Payment Receipt
+                      {t('bf.priceBreakdown')}
                     </span>
                   </div>
 
                   {(planInfo.coveredHours || 0) > 0 ? (
                     <>
                       <Row
-                        label="Plan Quota Hours Applied"
+                        label={t('bf.quotaHoursApplied')}
                         value={`-${planInfo.coveredHours} hrs (SAR 0 · Covered)`}
                       />
                       <Row
-                        label={`Extra Payable Hours (${planInfo.payableHours} hrs × SAR ${space.pricing?.hourly ?? 0})`}
-                        value={`SAR ${(planInfo.effectivePrice * seats).toLocaleString()}`}
+                        label={t('bf.extraPayable', { hours: planInfo.payableHours ?? 0, currency: t('common.sar'), rate: space.pricing?.hourly ?? 0 })}
+                        value={`${t('common.sar')} ${(planInfo.effectivePrice * seats).toLocaleString()}`}
                       />
                     </>
                   ) : (
                     <>
                       <Row
-                        label={`Rate per Seat (${isHourly ? `${startTime} – ${endTime} (${durationHours}h)` : plan === 'monthly' ? `${durationMonths} Mo Monthly` : plan === 'daily' ? `Daily (${durationDays}${durationDays === 1 ? 'day' : 'days'})` : `${plan} pass`})`}
-                        value={planInfo.isCovered ? 'Included in your Plan' : `SAR ${planInfo.originalPrice.toLocaleString()}`}
+                        label={t('bf.ratePerSeat', { detail: isHourly ? `${localizeTime(startTime)} – ${localizeTime(endTime)} (${t('bf.unitHour', { count: durationHours })})` : plan === 'monthly' ? t('myBookings.monthlyMo', { count: durationMonths }) : plan === 'daily' ? t('bf.rateDaily', { count: durationDays, unit: durationDays === 1 ? t('bf.dayUnit') : t('bf.daysUnit') }) : t(('booking.planPass.' + plan) as never) })}
+                        value={planInfo.isCovered ? 'Included in your Plan' : `${t('common.sar')} ${planInfo.originalPrice.toLocaleString()}`}
                       />
                       <Row
-                        label={`Number of Reserved Seats`}
+                        label={t('bf.numberSeats')}
                         value={`× ${seats}`}
                       />
                       <Row
-                        label={`Subtotal`}
-                        value={planInfo.isCovered ? 'Included in your Plan' : `SAR ${(planInfo.originalPrice * seats).toLocaleString()}`}
+                        label={t('bf.subtotal')}
+                        value={planInfo.isCovered ? 'Included in your Plan' : `${t('common.sar')} ${(planInfo.originalPrice * seats).toLocaleString()}`}
                       />
                     </>
                   )}
                   {pointsDiscount > 0 && (
                     <Row
-                      label="Loyalty Points Discount"
-                      value={`- SAR ${pointsDiscount.toLocaleString()}`}
+                      label={t('bf.loyaltyDiscount')}
+                      value={`- ${t('common.sar')} ${pointsDiscount.toLocaleString()}`}
                     />
                   )}
                   {walletDeduction > 0 && (
                     <Row
-                      label="Wallet Balance Applied"
-                      value={`- SAR ${walletDeduction.toLocaleString()}`}
+                      label={t('bf.walletApplied')}
+                      value={`- ${t('common.sar')} ${walletDeduction.toLocaleString()}`}
                     />
                   )}
                   <Row
-                    label="VAT (15% included in price)"
-                    value={planInfo.effectivePrice === 0 ? 'SAR 0' : `SAR ${((planInfo.effectivePrice * seats) * 0.15).toFixed(0)}`}
+                    label={t('bf.vat')}
+                    value={planInfo.effectivePrice === 0 ? 'SAR 0' : `${t('common.sar')} ${((planInfo.effectivePrice * seats) * 0.15).toFixed(0)}`}
                   />
 
                   {/* Highlighted Final Payable Amount */}
                   <div className="pt-3 border-t border-soot/10 flex justify-between items-center bg-plaster-dark/30 -mx-5 -mb-5 p-5 rounded-b-2xl">
                     <div>
-                      <span className="text-sm font-bold text-soot block">Total Payable Amount</span>
-                      <span className="text-xs text-moss">Instant confirmation & access</span>
+                      <span className="text-sm font-bold text-soot block">{t('bf.totalPayable')}</span>
+                      <span className="text-xs text-moss">{t('bf.instantConfirm')}</span>
                     </div>
 
-                    <div className="text-right">
+                    <div className="text-end">
                       {finalPayablePrice === 0 ? (
                         <div>
-                          <span className="text-2xl font-bold text-soot">SAR 0 to Pay</span>
-                          <div className="text-xs text-moss font-semibold bg-eucalyptus/25 border border-eucalyptus/30 px-2.5 py-0.5 rounded-full inline-block ml-2">
+                          <span className="text-2xl font-bold text-soot">{t('bf.zeroToPay')}</span>
+                          <div className="text-xs text-moss font-semibold bg-eucalyptus/25 border border-eucalyptus/30 px-2.5 py-0.5 rounded-full inline-block ms-2">
                             {walletDeduction >= totalPrice && totalPrice > 0 ? 'Paid with Wallet' : 'Included in your Plan'}
                           </div>
                         </div>
                       ) : planInfo.isPartiallyCovered ? (
                         <div>
-                          <span className="text-2xl font-bold text-soot">SAR {finalPayablePrice.toLocaleString()} to Pay</span>
+                          <span className="text-2xl font-bold text-soot">{t('common.sar')} {finalPayablePrice.toLocaleString()} to Pay</span>
                           <div className="text-xs text-amber-900 font-semibold bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 rounded-full block mt-0.5">
                             {(planInfo.coveredSeats || 0) > 0 ? `${planInfo.coveredSeats} Seat Included in Plan` : `${planInfo.coveredHours || 0}h Included in Plan`}
                           </div>
                         </div>
                       ) : (
                         <span className="text-2xl font-bold text-soot">
-                          SAR {finalPayablePrice.toLocaleString()}
+                          {t('common.sar')} {finalPayablePrice.toLocaleString()}
                         </span>
                       )}
                     </div>
@@ -1567,7 +1571,7 @@ export default function BookingFlow() {
               onClick={back}
               className="py-3.5 px-6 rounded-full border border-soot/15 text-soot font-medium text-sm hover:bg-soot/5 transition-all bg-white cursor-pointer"
             >
-              Back
+              {t('common.back')}
             </button>
             <button
               type="button"
@@ -1597,7 +1601,7 @@ export default function BookingFlow() {
               className="py-3.5 px-5 rounded-full border border-soot/15 text-soot font-medium text-sm hover:bg-soot/5 transition-all bg-white flex items-center justify-center gap-2 cursor-pointer shadow-2xs"
             >
               <ShoppingBag size={16} />
-              <span>{totalPrice === 0 ? 'Add to Cart (Covered by Pass)' : 'Add to Cart'}</span>
+              <span>{totalPrice === 0 ? t('spaceDetails.addToCartCovered') : t('bf.addToCart')}</span>
             </button>
             <button
               onClick={confirmBooking}
@@ -1605,7 +1609,7 @@ export default function BookingFlow() {
               className="flex-1 py-3.5 px-6 rounded-full bg-[#DDE6DF] text-soot font-medium text-sm hover:bg-[#D0DDD3] transition-all flex items-center justify-center gap-2 shadow-xs border border-soot/8 cursor-pointer disabled:opacity-50"
             >
               {loading ? (
-                <span>Confirming Reservation...</span>
+                <span>{t('bf.confirming')}</span>
               ) : totalPrice === 0 ? (
                 <>
                   <Check size={16} className="text-moss" />
@@ -1614,7 +1618,7 @@ export default function BookingFlow() {
               ) : (
                 <>
                   <CreditCard size={16} />
-                  <span>Pay Now (SAR {totalPrice.toLocaleString()})</span>
+                  <span>{t('bf.payNow', { currency: t('common.sar'), amount: totalPrice.toLocaleString() })}</span>
                 </>
               )}
             </button>

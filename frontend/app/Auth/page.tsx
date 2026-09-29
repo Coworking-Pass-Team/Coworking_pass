@@ -1,4 +1,5 @@
 'use client';
+import { useI18n } from '@/i18n';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Eye,
@@ -57,19 +58,20 @@ function AuthVisualBanner({
   role: string;
   tag?: string;
 }) {
+  const { t, translateMessage } = useI18n();
   return (
     <div className="hidden lg:block lg:w-1/2 p-4 lg:p-6 h-[100dvh]">
       <div className="relative h-full w-full rounded-3xl overflow-hidden border border-soot/12 shadow-2xl bg-soot">
         <img
           src="https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=1200&auto=format&fit=crop&q=80"
-          alt="Modern coworking interior"
+          alt={t('auth.interiorAlt')}
           className="w-full h-full object-cover saturate-110"
           loading="lazy"
           decoding="async"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-soot/95 via-soot/40 to-transparent pointer-events-none" />
 
-        <div className="absolute bottom-6 left-6 right-6 bg-plaster-surface/95 backdrop-blur-md rounded-2xl p-5 border border-soot/12 shadow-xl">
+        <div className="absolute bottom-6 start-6 end-6 bg-plaster-surface/95 backdrop-blur-md rounded-2xl p-5 border border-soot/12 shadow-xl">
           <div className="flex items-center gap-2 text-moss text-xs font-bold uppercase tracking-wider mb-2">
             <CheckCircle2 size={15} className="text-eucalyptus shrink-0" />
             <span className="text-soot">{tag}</span>
@@ -87,6 +89,7 @@ function AuthVisualBanner({
 }
 
 export function LoginScreen() {
+  const { t, translateMessage } = useI18n();
   const { login, navigate } = useApp();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -99,12 +102,12 @@ export function LoginScreen() {
     e.preventDefault();
     setError('');
     const errs: Record<string, string> = {};
-    if (!email || !email.trim()) errs.email = 'Email address is required.';
-    if (!password) errs.password = 'Password is required.';
+    if (!email || !email.trim()) errs.email = t('auth.errEmail');
+    if (!password) errs.password = t('auth.errPassword');
 
     if (Object.keys(errs).length > 0) {
       setFieldErrors(errs);
-      setError('Please fill in all required fields highlighted in red.');
+      setError(t('auth.errRequired'));
       return;
     }
     setFieldErrors({});
@@ -129,8 +132,8 @@ export function LoginScreen() {
             onClick={() => navigate('landing')}
             className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-soot/5 hover:bg-soot/10 border border-soot/10 text-xs font-semibold text-soot transition-all duration-200 cursor-pointer group"
           >
-            <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />
-            <span>Back to Home</span>
+            <ArrowLeft size={14} className="group-hover:-translate-x-0.5 rtl:group-hover:translate-x-0.5 transition-transform" />
+            <span>{t('auth.backHome')}</span>
           </button>
         </div>
 
@@ -139,13 +142,13 @@ export function LoginScreen() {
           <div className="mb-7">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-soot/5 border border-soot/10 text-moss text-xs font-semibold mb-3.5">
               <Sparkles size={13} className="text-eucalyptus shrink-0" />
-              <span>Member Portal</span>
+              <span>{t('auth.memberPortal')}</span>
             </div>
             <h1 className="text-3xl sm:text-4xl font-normal font-serif-display text-soot tracking-tight mb-2">
-              Welcome back
+              {t('auth.welcomeBack')}
             </h1>
             <p className="text-moss text-xs sm:text-sm leading-relaxed">
-              Sign in to manage your active passes, bookings, and team access.
+              {t('auth.signInSubtitle')}
             </p>
           </div>
 
@@ -159,16 +162,16 @@ export function LoginScreen() {
                     </div>
                     <div className="flex-1 text-xs sm:text-sm">
                       <div className="font-bold text-amber-950 mb-1 flex items-center gap-1.5">
-                        <span>Partner Account Under Review</span>
+                        <span>{t('auth.partnerUnderReview')}</span>
                         <Badge variant="mist" className="text-[10px] bg-amber-200/70 text-amber-800 border-amber-300">
-                          Pending Approval
+                          {t('auth.pendingApproval')}
                         </Badge>
                       </div>
                       <p className="text-amber-900/90 leading-relaxed font-normal">
-                        {error}
+                        {translateMessage(error)}
                       </p>
                       <p className="text-amber-800/80 text-[11px] mt-2 font-medium">
-                        You will receive an official email confirmation as soon as platform administrators review and approve your account.
+                        {t('auth.pendingBody')}
                       </p>
                     </div>
                   </div>
@@ -180,16 +183,16 @@ export function LoginScreen() {
                       <AlertTriangle size={18} />
                     </div>
                     <div className="flex-1 text-xs sm:text-sm">
-                      <div className="font-bold text-rose-950 mb-1">Application Not Approved</div>
+                      <div className="font-bold text-rose-950 mb-1">{t('auth.notApproved')}</div>
                       <p className="text-rose-900/90 leading-relaxed font-normal">
-                        {error}
+                        {translateMessage(error)}
                       </p>
                     </div>
                   </div>
                 </div>
               ) : (
                 <div className="bg-red-500/10 border border-red-500/20 text-red-700 text-xs sm:text-sm font-medium rounded-xl px-4 py-3">
-                  {error}
+                  {translateMessage(error)}
                 </div>
               )
             )}
@@ -197,10 +200,10 @@ export function LoginScreen() {
             {/* Email */}
             <div>
               <label className="block text-xs font-semibold text-soot mb-1.5 uppercase tracking-wider">
-                Email Address <span className="text-rose-600">*</span>
+                {t('auth.emailAddress')} <span className="text-rose-600">*</span>
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-moss">
+                <div className="absolute inset-y-0 start-0 ps-3.5 flex items-center pointer-events-none text-moss">
                   <Mail size={16} />
                 </div>
                 <input
@@ -211,30 +214,30 @@ export function LoginScreen() {
                     if (fieldErrors.email) setFieldErrors((errs) => ({ ...errs, email: '' }));
                   }}
                   placeholder="name@company.com"
-                  className={`w-full pl-10 pr-4 py-3 rounded-xl bg-plaster-surface border ${
+                  className={`w-full ps-10 pe-4 py-3 rounded-xl bg-plaster-surface border ${
                     fieldErrors.email ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-soot/15 focus-visible:ring-2 focus-visible:ring-eucalyptus'
                   } text-soot placeholder:text-moss/50 text-sm shadow-xs transition-all`}
                 />
               </div>
-              {fieldErrors.email && <p className="text-xs text-rose-600 font-medium mt-1">* {fieldErrors.email}</p>}
+              {fieldErrors.email && <p className="text-xs text-rose-600 font-medium mt-1">* {translateMessage(fieldErrors.email)}</p>}
             </div>
 
             {/* Password */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="block text-xs font-semibold text-soot uppercase tracking-wider">
-                  Password <span className="text-rose-600">*</span>
+                  {t('auth.password')} <span className="text-rose-600">*</span>
                 </label>
                 <button
                   type="button"
                   onClick={() => navigate('forgot-password')}
                   className="text-xs font-medium text-moss hover:text-soot hover:underline transition-colors cursor-pointer"
                 >
-                  Forgot password?
+                  {t('auth.forgotPassword')}
                 </button>
               </div>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-moss">
+                <div className="absolute inset-y-0 start-0 ps-3.5 flex items-center pointer-events-none text-moss">
                   <Lock size={16} />
                 </div>
                 <input
@@ -245,20 +248,20 @@ export function LoginScreen() {
                     if (fieldErrors.password) setFieldErrors((errs) => ({ ...errs, password: '' }));
                   }}
                   placeholder="••••••••"
-                  className={`w-full pl-10 pr-11 py-3 rounded-xl bg-plaster-surface border ${
+                  className={`w-full ps-10 pe-11 py-3 rounded-xl bg-plaster-surface border ${
                     fieldErrors.password ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-soot/15 focus-visible:ring-2 focus-visible:ring-eucalyptus'
                   } text-soot placeholder:text-moss/50 text-sm shadow-xs transition-all`}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-moss hover:text-soot cursor-pointer"
-                  aria-label="Toggle password visibility"
+                  className="absolute inset-y-0 end-0 pe-3.5 flex items-center text-moss hover:text-soot cursor-pointer"
+                  aria-label={t('auth.togglePassword')}
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
-              {fieldErrors.password && <p className="text-xs text-rose-600 font-medium mt-1">* {fieldErrors.password}</p>}
+              {fieldErrors.password && <p className="text-xs text-rose-600 font-medium mt-1">* {translateMessage(fieldErrors.password)}</p>}
             </div>
 
             {/* Submit Button */}
@@ -268,10 +271,10 @@ export function LoginScreen() {
               className="btn-primary w-full py-3.5 mt-3 disabled:opacity-70"
             >
               {loading ? (
-                <span>Signing in...</span>
+                <span>{t('auth.signingIn')}</span>
               ) : (
                 <>
-                  <span>Sign in to Dashboard</span>
+                  <span>{t('auth.signInDashboard')}</span>
                   <ArrowRight size={16} />
                 </>
               )}
@@ -285,7 +288,7 @@ export function LoginScreen() {
               onClick={() => navigate('signup')}
               className="text-soot font-bold hover:underline cursor-pointer"
             >
-              Create an account
+              {t('auth.createAccount')}
             </button>
           </p>
         </div>
@@ -341,6 +344,7 @@ function CustomCountrySelect({
   readOnly,
   iconComponent: Icon
 }: CustomCountrySelectProps) {
+  const { t, translateMessage } = useI18n();
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -408,9 +412,9 @@ function CustomCountrySelect({
         type="button"
         disabled={disabled || readOnly}
         onClick={() => setIsOpen((prev) => !prev)}
-        className="flex items-center gap-1.5 pr-2.5 mr-2.5 border-r border-soot/15 text-soot hover:text-soot-light transition-colors cursor-pointer select-none focus:outline-none shrink-0"
+        className="flex items-center gap-1.5 pe-2.5 me-2.5 border-e border-soot/15 text-soot hover:text-soot-light transition-colors cursor-pointer select-none focus:outline-none shrink-0"
         aria-expanded={isOpen}
-        aria-label="Select Country"
+        aria-label={t('auth.selectCountry')}
       >
         <div className="w-5 h-3.5 rounded-[2px] overflow-hidden shadow-xs border border-soot/10 flex items-center justify-center shrink-0">
           {value && Icon ? (
@@ -427,26 +431,26 @@ function CustomCountrySelect({
 
       {isOpen && (
         <div
-          className="absolute left-0 top-full mt-2 w-72 sm:w-80 bg-plaster-surface rounded-2xl border border-soot/15 shadow-xl py-2 z-50 animate-in fade-in zoom-in-95 duration-150"
+          className="absolute start-0 top-full mt-2 w-72 sm:w-80 bg-plaster-surface rounded-2xl border border-soot/15 shadow-xl py-2 z-50 animate-in fade-in zoom-in-95 duration-150"
           style={{ boxShadow: '0 12px 30px -4px rgba(45, 53, 54, 0.18)' }}
         >
           {/* Search Header */}
           <div className="px-2.5 pb-2 mb-1 border-b border-soot/8">
             <div className="relative">
-              <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-moss pointer-events-none" />
+              <Search size={13} className="absolute start-2.5 top-1/2 -translate-y-1/2 text-moss pointer-events-none" />
               <input
                 ref={searchInputRef}
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search country or code..."
-                className="w-full pl-8 pr-7 py-1.5 rounded-lg bg-plaster-dark/30 border border-soot/10 text-xs text-soot placeholder:text-moss/60 focus:outline-none focus:ring-1 focus:ring-eucalyptus"
+                placeholder={t('auth.searchCountry')}
+                className="w-full ps-8 pe-7 py-1.5 rounded-lg bg-plaster-dark/30 border border-soot/10 text-xs text-soot placeholder:text-moss/60 focus:outline-none focus:ring-1 focus:ring-eucalyptus"
               />
               {search && (
                 <button
                   type="button"
                   onClick={() => setSearch('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-moss hover:text-soot text-xs cursor-pointer"
+                  className="absolute end-2 top-1/2 -translate-y-1/2 text-moss hover:text-soot text-xs cursor-pointer"
                 >
                   ✕
                 </button>
@@ -457,7 +461,7 @@ function CustomCountrySelect({
           {/* Country List (compact, limited height, scrollable) */}
           <div className="max-h-56 overflow-y-auto px-1 space-y-0.5" style={{ scrollbarWidth: 'thin' }}>
             {filteredOptions.length === 0 ? (
-              <div className="py-4 text-center text-xs text-moss">No countries found</div>
+              <div className="py-4 text-center text-xs text-moss">{t('auth.noCountries')}</div>
             ) : (
               filteredOptions.map((opt) => {
                 const isSelected = opt.value === value;
@@ -471,13 +475,13 @@ function CustomCountrySelect({
                       setIsOpen(false);
                       setSearch('');
                     }}
-                    className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-left transition-colors cursor-pointer text-xs ${
+                    className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-start transition-colors cursor-pointer text-xs ${
                       isSelected
                         ? 'bg-eucalyptus/25 text-soot font-semibold'
                         : 'hover:bg-soot/5 text-soot'
                     }`}
                   >
-                    <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                    <div className="flex items-center gap-2.5 min-w-0 pe-2">
                       <div className="w-5 h-3.5 rounded-[2px] overflow-hidden shadow-xs border border-soot/10 shrink-0 flex items-center justify-center">
                         {opt.value && Icon ? (
                           <Icon country={opt.value} label={opt.label} />
@@ -505,6 +509,7 @@ function CustomCountrySelect({
 }
 
 export function SignUpScreen() {
+  const { t, translateMessage } = useI18n();
   const { signup, requestSignupOtp, setPendingUser, navigate } = useApp();
 
   const [step, setStep] = useState<1 | 2>(1);
@@ -535,14 +540,14 @@ export function SignUpScreen() {
   const validateStep2 = () => {
     const e: Record<string, string> = {};
     if (!name.trim()) e.name = 'Full name is required.';
-    if (!email.trim()) e.email = 'Email address is required.';
+    if (!email.trim()) e.email = t('auth.errEmail');
     else if (!/\S+@\S+\.\S+/.test(email)) e.email = 'Enter a valid email address.';
     if (!phone || !phone.trim()) {
       e.phone = 'Phone number is required.';
     } else if (!isValidPhoneNumber(phone)) {
       e.phone = 'Please enter a valid international phone number.';
     }
-    if (!password) e.password = 'Password is required.';
+    if (!password) e.password = t('auth.errPassword');
     else if (password.length < 6) e.password = 'Password must be at least 6 characters.';
     if (password !== confirm) e.confirm = 'Passwords do not match.';
     if (!agreedToTerms) e.agreedToTerms = 'You must agree to the Terms of Service and Privacy Policy.';
@@ -603,7 +608,7 @@ export function SignUpScreen() {
             onClick={() => (step === 2 ? setStep(1) : navigate('landing'))}
             className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-soot/5 hover:bg-soot/10 border border-soot/10 text-xs font-semibold text-soot transition-all duration-200 cursor-pointer group"
           >
-            <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />
+            <ArrowLeft size={14} className="group-hover:-translate-x-0.5 rtl:group-hover:translate-x-0.5 transition-transform" />
             <span>{step === 2 ? 'Change Role' : 'Home'}</span>
           </button>
         </div>
@@ -631,7 +636,7 @@ export function SignUpScreen() {
               <button
                 type="button"
                 onClick={() => handleSelectRoleAndNext('individual')}
-                className="w-full p-4 rounded-2xl border border-soot/12 bg-plaster-surface hover:bg-plaster-dark/40 text-left transition-all duration-200 group shadow-xs hover:shadow-md cursor-pointer active:scale-[0.99]"
+                className="w-full p-4 rounded-2xl border border-soot/12 bg-plaster-surface hover:bg-plaster-dark/40 text-start transition-all duration-200 group shadow-xs hover:shadow-md cursor-pointer active:scale-[0.99]"
               >
                 <div className="flex items-start gap-3.5">
                   <div className="w-11 h-11 rounded-xl bg-eucalyptus/25 text-soot flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
@@ -639,11 +644,11 @@ export function SignUpScreen() {
                   </div>
                   <div className="flex-1">
                     <div className="font-semibold text-soot text-sm sm:text-base flex items-center justify-between">
-                      <span>Individual Member</span>
+                      <span>{t('nav.roleIndividual')}</span>
                       <Badge variant="eucalyptus">B2C</Badge>
                     </div>
                     <p className="text-xs text-moss mt-1 leading-relaxed">
-                      For freelancers, solo workers, and remote employees needing day/monthly desk passes.
+                      {t('auth.roleIndividualDesc')}
                     </p>
                   </div>
                 </div>
@@ -652,7 +657,7 @@ export function SignUpScreen() {
               <button
                 type="button"
                 onClick={() => handleSelectRoleAndNext('organization')}
-                className="w-full p-4 rounded-2xl border border-soot/12 bg-plaster-surface hover:bg-plaster-dark/40 text-left transition-all duration-200 group shadow-xs hover:shadow-md cursor-pointer active:scale-[0.99]"
+                className="w-full p-4 rounded-2xl border border-soot/12 bg-plaster-surface hover:bg-plaster-dark/40 text-start transition-all duration-200 group shadow-xs hover:shadow-md cursor-pointer active:scale-[0.99]"
               >
                 <div className="flex items-start gap-3.5">
                   <div className="w-11 h-11 rounded-xl bg-soot text-plaster flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
@@ -660,11 +665,11 @@ export function SignUpScreen() {
                   </div>
                   <div className="flex-1">
                     <div className="font-semibold text-soot text-sm sm:text-base flex items-center justify-between">
-                      <span>Organization / B2B</span>
+                      <span>{t('auth.roleOrg')}</span>
                       <Badge variant="soot">HR_ADMIN</Badge>
                     </div>
                     <p className="text-xs text-moss mt-1 leading-relaxed">
-                      For corporate teams purchasing employee passes, managing centralized billing and bookings.
+                      {t('auth.roleOrgDesc')}
                     </p>
                   </div>
                 </div>
@@ -673,7 +678,7 @@ export function SignUpScreen() {
               <button
                 type="button"
                 onClick={() => handleSelectRoleAndNext('provider')}
-                className="w-full p-4 rounded-2xl border border-soot/12 bg-plaster-surface hover:bg-plaster-dark/40 text-left transition-all duration-200 group shadow-xs hover:shadow-md cursor-pointer active:scale-[0.99]"
+                className="w-full p-4 rounded-2xl border border-soot/12 bg-plaster-surface hover:bg-plaster-dark/40 text-start transition-all duration-200 group shadow-xs hover:shadow-md cursor-pointer active:scale-[0.99]"
               >
                 <div className="flex items-start gap-3.5">
                   <div className="w-11 h-11 rounded-xl bg-mist-light text-soot flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
@@ -681,11 +686,11 @@ export function SignUpScreen() {
                   </div>
                   <div className="flex-1">
                     <div className="font-semibold text-soot text-sm sm:text-base flex items-center justify-between">
-                      <span>Space Venue Partner</span>
+                      <span>{t('auth.roleProvider')}</span>
                       <Badge variant="mist">PARTNER_ADMIN</Badge>
                     </div>
                     <p className="text-xs text-moss mt-1 leading-relaxed">
-                      For venue owners listing spaces and tracking check-ins across the Kingdom.
+                      {t('auth.roleProviderDesc')}
                     </p>
                   </div>
                 </div>
@@ -697,28 +702,28 @@ export function SignUpScreen() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">
-                    Full Name <span className="text-rose-600">*</span>
+                    {t('auth.fullName')} <span className="text-rose-600">*</span>
                   </label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-moss">
+                    <div className="absolute inset-y-0 start-0 ps-3.5 flex items-center pointer-events-none text-moss">
                       <UserIcon size={15} />
                     </div>
                     <input
                       type="text"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      placeholder="Ahmed Al-Mansoori"
-                      className={`w-full pl-9 pr-3 py-2.5 rounded-xl bg-plaster-surface border ${
+                      placeholder={t('auth.namePlaceholder')}
+                      className={`w-full ps-9 pe-3 py-2.5 rounded-xl bg-plaster-surface border ${
                         errors.name ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-soot/15 focus-visible:ring-2 focus-visible:ring-eucalyptus'
                       } text-soot placeholder:text-moss/50 text-sm shadow-xs transition-all`}
                     />
                   </div>
-                  {errors.name && <p className="text-rose-600 text-xs mt-0.5 font-medium">* {errors.name}</p>}
+                  {errors.name && <p className="text-rose-600 text-xs mt-0.5 font-medium">* {translateMessage(errors.name)}</p>}
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">
-                    Phone Number <span className="text-rose-600">*</span>
+                    {t('auth.phoneNumber')} <span className="text-rose-600">*</span>
                   </label>
                   <div
                     className={`relative z-20 w-full h-[42px] px-3 flex items-center rounded-xl bg-plaster-surface border transition-all ${
@@ -746,21 +751,21 @@ export function SignUpScreen() {
                       countrySelectComponent={CustomCountrySelect}
                       numberInputProps={{
                         className:
-                          'w-full bg-transparent border-none outline-none text-soot placeholder:text-moss/50 text-sm font-sans focus:outline-none focus:ring-0 pl-1',
+                          'w-full bg-transparent border-none outline-none text-soot placeholder:text-moss/50 text-sm font-sans focus:outline-none focus:ring-0 ps-1',
                       }}
                     />
                   </div>
-                  {errors.phone && <p className="text-rose-600 text-xs mt-0.5 font-medium">* {errors.phone}</p>}
+                  {errors.phone && <p className="text-rose-600 text-xs mt-0.5 font-medium">* {translateMessage(errors.phone)}</p>}
                 </div>
               </div>
 
               {/* Email */}
               <div>
                 <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">
-                  Email Address <span className="text-rose-600">*</span>
+                  {t('auth.emailAddress')} <span className="text-rose-600">*</span>
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-moss">
+                  <div className="absolute inset-y-0 start-0 ps-3.5 flex items-center pointer-events-none text-moss">
                     <Mail size={15} />
                   </div>
                   <input
@@ -768,42 +773,42 @@ export function SignUpScreen() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@example.com"
-                    className={`w-full pl-9 pr-3 py-2.5 rounded-xl bg-plaster-surface border ${
+                    className={`w-full ps-9 pe-3 py-2.5 rounded-xl bg-plaster-surface border ${
                       errors.email ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-soot/15 focus-visible:ring-2 focus-visible:ring-eucalyptus'
                     } text-soot placeholder:text-moss/50 text-sm shadow-xs transition-all`}
                   />
                 </div>
-                {errors.email && <p className="text-rose-600 text-xs mt-0.5 font-medium">* {errors.email}</p>}
+                {errors.email && <p className="text-rose-600 text-xs mt-0.5 font-medium">* {translateMessage(errors.email)}</p>}
               </div>
 
               {/* Organization Fields */}
               {role === 'organization' && (
                 <div className="p-3.5 rounded-2xl bg-plaster-surface border border-soot/12 space-y-3 shadow-xs">
                   <div className="text-xs font-semibold text-soot uppercase tracking-wider flex items-center justify-between">
-                    <span>Company Details</span>
+                    <span>{t('auth.companyDetails')}</span>
                     <Badge variant="soot">HR_ADMIN</Badge>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-soot mb-1">Company Name *</label>
+                    <label className="block text-xs font-medium text-soot mb-1">{t('auth.companyName')}</label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-moss">
+                      <div className="absolute inset-y-0 start-0 ps-3.5 flex items-center pointer-events-none text-moss">
                         <Building2 size={15} />
                       </div>
                       <input
                         type="text"
                         value={orgName}
                         onChange={(e) => setOrgName(e.target.value)}
-                        placeholder="Saudi Tech Solutions LLC"
-                        className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-plaster-dark/20 border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs"
+                        placeholder={t('auth.companyPlaceholder')}
+                        className="w-full ps-9 pe-3 py-2.5 rounded-xl bg-plaster-dark/20 border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs"
                       />
                     </div>
-                    {errors.orgName && <p className="text-red-500 text-xs mt-0.5 font-medium">{errors.orgName}</p>}
+                    {errors.orgName && <p className="text-red-500 text-xs mt-0.5 font-medium">{translateMessage(errors.orgName)}</p>}
                   </div>
                   <div className="grid grid-cols-2 gap-2.5">
                     <div>
-                      <label className="block text-xs font-medium text-soot mb-1">Team Size</label>
+                      <label className="block text-xs font-medium text-soot mb-1">{t('auth.teamSize')}</label>
                       <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-moss">
+                        <div className="absolute inset-y-0 start-0 ps-3 flex items-center pointer-events-none text-moss">
                           <Users size={14} />
                         </div>
                         <input
@@ -812,22 +817,22 @@ export function SignUpScreen() {
                           value={orgSize}
                           onChange={(e) => setOrgSize(e.target.value)}
                           placeholder="15"
-                          className="w-full pl-8 pr-2 py-2 rounded-xl bg-plaster-dark/20 border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs"
+                          className="w-full ps-8 pe-2 py-2 rounded-xl bg-plaster-dark/20 border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs"
                         />
                       </div>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-soot mb-1">Industry</label>
+                      <label className="block text-xs font-medium text-soot mb-1">{t('auth.industry')}</label>
                       <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-moss">
+                        <div className="absolute inset-y-0 start-0 ps-3 flex items-center pointer-events-none text-moss">
                           <Briefcase size={14} />
                         </div>
                         <input
                           type="text"
                           value={industry}
                           onChange={(e) => setIndustry(e.target.value)}
-                          placeholder="Technology"
-                          className="w-full pl-8 pr-2 py-2 rounded-xl bg-plaster-dark/20 border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs"
+                          placeholder={t('auth.industryPlaceholder')}
+                          className="w-full ps-8 pe-2 py-2 rounded-xl bg-plaster-dark/20 border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs"
                         />
                       </div>
                     </div>
@@ -839,29 +844,29 @@ export function SignUpScreen() {
               {role === 'provider' && (
                 <div className="p-3.5 rounded-2xl bg-plaster-surface border border-soot/12 space-y-3 shadow-xs">
                   <div className="text-xs font-semibold text-soot uppercase tracking-wider flex items-center justify-between">
-                    <span>Partner Information</span>
+                    <span>{t('auth.partnerInfo')}</span>
                     <Badge variant="mist">PARTNER_ADMIN</Badge>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-soot mb-1">Partner / Brand Name *</label>
+                    <label className="block text-xs font-medium text-soot mb-1">{t('auth.brandName')}</label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-moss">
+                      <div className="absolute inset-y-0 start-0 ps-3.5 flex items-center pointer-events-none text-moss">
                         <Warehouse size={15} />
                       </div>
                       <input
                         type="text"
                         value={businessName}
                         onChange={(e) => setBusinessName(e.target.value)}
-                        placeholder="The Hub Riyadh Holdings"
-                        className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-plaster-dark/20 border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs"
+                        placeholder={t('auth.brandPlaceholder')}
+                        className="w-full ps-9 pe-3 py-2.5 rounded-xl bg-plaster-dark/20 border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs"
                       />
                     </div>
-                    {errors.businessName && <p className="text-red-500 text-xs mt-0.5 font-medium">{errors.businessName}</p>}
+                    {errors.businessName && <p className="text-red-500 text-xs mt-0.5 font-medium">{translateMessage(errors.businessName)}</p>}
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-soot mb-1">CR Number *</label>
+                    <label className="block text-xs font-medium text-soot mb-1">{t('auth.crNumber')}</label>
                     <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-moss">
+                      <div className="absolute inset-y-0 start-0 ps-3.5 flex items-center pointer-events-none text-moss">
                         <FileText size={15} />
                       </div>
                       <input
@@ -873,10 +878,10 @@ export function SignUpScreen() {
                         }}
                         maxLength={10}
                         placeholder="1010xxxxxx"
-                        className={`w-full pl-9 pr-3 py-2.5 rounded-xl bg-plaster-dark/20 border ${errors.crNumber ? 'border-red-500' : 'border-soot/15'} text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs`}
+                        className={`w-full ps-9 pe-3 py-2.5 rounded-xl bg-plaster-dark/20 border ${errors.crNumber ? 'border-red-500' : 'border-soot/15'} text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs`}
                       />
                     </div>
-                    {errors.crNumber && <p className="text-red-500 text-xs mt-0.5 font-medium">{errors.crNumber}</p>}
+                    {errors.crNumber && <p className="text-red-500 text-xs mt-0.5 font-medium">{translateMessage(errors.crNumber)}</p>}
                   </div>
                 </div>
               )}
@@ -884,45 +889,45 @@ export function SignUpScreen() {
               {/* Password & Confirm Row */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">Password *</label>
+                  <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">{t('auth.passwordRequired')}</label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-moss">
+                    <div className="absolute inset-y-0 start-0 ps-3.5 flex items-center pointer-events-none text-moss">
                       <Lock size={15} />
                     </div>
                     <input
                       type={showPassword ? 'text' : 'password'}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Min. 6 chars"
-                      className="w-full pl-9 pr-9 py-2.5 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all"
+                      placeholder={t('auth.minChars')}
+                      className="w-full ps-9 pe-9 py-2.5 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-moss hover:text-soot cursor-pointer"
-                      aria-label="Toggle password visibility"
+                      className="absolute inset-y-0 end-0 pe-2.5 flex items-center text-moss hover:text-soot cursor-pointer"
+                      aria-label={t('auth.togglePassword')}
                     >
                       {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                     </button>
                   </div>
-                  {errors.password && <p className="text-red-500 text-xs mt-0.5 font-medium">{errors.password}</p>}
+                  {errors.password && <p className="text-red-500 text-xs mt-0.5 font-medium">{translateMessage(errors.password)}</p>}
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">Confirm Password *</label>
+                  <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">{t('auth.confirmPasswordRequired')}</label>
                   <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-moss">
+                    <div className="absolute inset-y-0 start-0 ps-3.5 flex items-center pointer-events-none text-moss">
                       <Lock size={15} />
                     </div>
                     <input
                       type="password"
                       value={confirm}
                       onChange={(e) => setConfirm(e.target.value)}
-                      placeholder="Repeat password"
-                      className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all"
+                      placeholder={t('auth.repeatPassword')}
+                      className="w-full ps-9 pe-3 py-2.5 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all"
                     />
                   </div>
-                  {errors.confirm && <p className="text-red-500 text-xs mt-0.5 font-medium">{errors.confirm}</p>}
+                  {errors.confirm && <p className="text-red-500 text-xs mt-0.5 font-medium">{translateMessage(errors.confirm)}</p>}
                 </div>
               </div>
 
@@ -945,7 +950,7 @@ export function SignUpScreen() {
                     className="mt-0.5 h-4 w-4 rounded border-soot/20 text-soot focus:ring-eucalyptus accent-soot cursor-pointer shrink-0"
                   />
                   <span className="leading-relaxed">
-                    I agree to the{' '}
+                    {t('auth.agreePrefix')}{' '}
                     <button
                       type="button"
                       onClick={(evt) => {
@@ -954,9 +959,9 @@ export function SignUpScreen() {
                       }}
                       className="text-soot font-bold underline hover:text-emerald-800 cursor-pointer"
                     >
-                      Terms of Service
+                      {t('auth.terms')}
                     </button>{' '}
-                    and{' '}
+                    {t('auth.and')}{' '}
                     <button
                       type="button"
                       onClick={(evt) => {
@@ -965,19 +970,19 @@ export function SignUpScreen() {
                       }}
                       className="text-soot font-bold underline hover:text-emerald-800 cursor-pointer"
                     >
-                      Privacy Policy
+                      {t('auth.privacy')}
                     </button>{' '}
                     <span className="text-rose-600">*</span>
                   </span>
                 </label>
                 {errors.agreedToTerms && (
-                  <p className="text-rose-600 text-xs mt-1 font-medium">* {errors.agreedToTerms}</p>
+                  <p className="text-rose-600 text-xs mt-1 font-medium">* {translateMessage(errors.agreedToTerms)}</p>
                 )}
               </div>
 
               {errors.global && (
                 <div className="bg-red-500/10 border border-red-500/20 text-red-700 text-xs sm:text-sm font-medium rounded-xl px-4 py-3 mt-2">
-                  {errors.global}
+                  {translateMessage(errors.global ?? '')}
                 </div>
               )}
 
@@ -987,10 +992,10 @@ export function SignUpScreen() {
                 className="btn-primary w-full py-3.5 mt-3 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (
-                  <span>Registering account...</span>
+                  <span>{t('auth.registering')}</span>
                 ) : (
                   <>
-                    <span>Complete Registration & Sign In</span>
+                    <span>{t('auth.completeRegistration')}</span>
                     <ArrowRight size={16} />
                   </>
                 )}
@@ -1005,7 +1010,7 @@ export function SignUpScreen() {
               onClick={() => navigate('login')}
               className="text-soot font-bold hover:underline cursor-pointer"
             >
-              Log in
+              {t('nav.logIn')}
             </button>
           </p>
         </div>
@@ -1027,6 +1032,7 @@ export function SignUpScreen() {
 }
 
 export function ChooseAccountType() {
+  const { t, translateMessage } = useI18n();
   const { navigate, requestSignupOtp, pendingUser, setPendingUser } = useApp();
   const [selected, setSelected] = useState<'individual' | 'organization' | 'provider' | null>(null);
   const [orgName, setOrgName] = useState('');
@@ -1086,18 +1092,18 @@ export function ChooseAccountType() {
             onClick={() => navigate('landing')}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-soot/5 hover:bg-soot/10 border border-soot/10 text-xs font-semibold text-soot transition-all duration-200 cursor-pointer group"
           >
-            <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />
-            <span>Home</span>
+            <ArrowLeft size={14} className="group-hover:-translate-x-0.5 rtl:group-hover:translate-x-0.5 transition-transform" />
+            <span>{t('nav.home')}</span>
           </button>
         </div>
 
         <div className="w-full max-w-lg mx-auto my-auto py-6">
           <div className="mb-6">
             <h1 className="text-3xl sm:text-4xl font-normal font-serif-display text-soot tracking-tight mb-2">
-              Finish Setup
+              {t('auth.finishSetup')}
             </h1>
             <p className="text-moss text-xs sm:text-sm leading-relaxed">
-              Select how you will use Coworking Pass to complete onboarding.
+              {t('auth.selectUsage')}
             </p>
           </div>
 
@@ -1105,7 +1111,7 @@ export function ChooseAccountType() {
             <button
               type="button"
               onClick={() => setSelected('individual')}
-              className={`w-full p-4 rounded-2xl border text-left transition-all duration-200 cursor-pointer active:scale-[0.99] ${
+              className={`w-full p-4 rounded-2xl border text-start transition-all duration-200 cursor-pointer active:scale-[0.99] ${
                 selected === 'individual'
                   ? 'border-eucalyptus-dark bg-eucalyptus/25 shadow-sm'
                   : 'border-soot/12 bg-plaster-surface hover:bg-plaster-dark/40'
@@ -1116,9 +1122,9 @@ export function ChooseAccountType() {
                   <UserIcon size={20} />
                 </div>
                 <div>
-                  <div className="font-semibold text-soot text-sm sm:text-base">Individual Member</div>
+                  <div className="font-semibold text-soot text-sm sm:text-base">{t('nav.roleIndividual')}</div>
                   <div className="text-xs text-moss mt-0.5 leading-relaxed">
-                    For freelancers, remote workers, and solo professionals looking for flexible workspace.
+                    {t('auth.chooseIndividualDesc')}
                   </div>
                 </div>
               </div>
@@ -1127,7 +1133,7 @@ export function ChooseAccountType() {
             <button
               type="button"
               onClick={() => setSelected('organization')}
-              className={`w-full p-4 rounded-2xl border text-left transition-all duration-200 cursor-pointer active:scale-[0.99] ${
+              className={`w-full p-4 rounded-2xl border text-start transition-all duration-200 cursor-pointer active:scale-[0.99] ${
                 selected === 'organization'
                   ? 'border-soot bg-soot text-plaster shadow-sm'
                   : 'border-soot/12 bg-plaster-surface hover:bg-plaster-dark/40'
@@ -1138,9 +1144,9 @@ export function ChooseAccountType() {
                   <Building2 size={20} />
                 </div>
                 <div>
-                  <div className={`font-semibold text-sm sm:text-base ${selected === 'organization' ? 'text-plaster' : 'text-soot'}`}>Organization / B2B</div>
+                  <div className={`font-semibold text-sm sm:text-base ${selected === 'organization' ? 'text-plaster' : 'text-soot'}`}>{t('auth.roleOrg')}</div>
                   <div className={`text-xs mt-0.5 leading-relaxed ${selected === 'organization' ? 'text-plaster/80' : 'text-moss'}`}>
-                    For companies booking spaces for teams, managing multiple employees, and team bookings.
+                    {t('auth.chooseOrgDesc')}
                   </div>
                 </div>
               </div>
@@ -1149,7 +1155,7 @@ export function ChooseAccountType() {
             <button
               type="button"
               onClick={() => setSelected('provider')}
-              className={`w-full p-4 rounded-2xl border text-left transition-all duration-200 cursor-pointer active:scale-[0.99] ${
+              className={`w-full p-4 rounded-2xl border text-start transition-all duration-200 cursor-pointer active:scale-[0.99] ${
                 selected === 'provider'
                   ? 'border-mist-dark bg-mist-light/70 shadow-sm'
                   : 'border-soot/12 bg-plaster-surface hover:bg-plaster-dark/40'
@@ -1160,9 +1166,9 @@ export function ChooseAccountType() {
                   <Warehouse size={20} />
                 </div>
                 <div>
-                  <div className="font-semibold text-soot text-sm sm:text-base">Space Venue Partner</div>
+                  <div className="font-semibold text-soot text-sm sm:text-base">{t('auth.roleProvider')}</div>
                   <div className="text-xs text-moss mt-0.5 leading-relaxed">
-                    For businesses that own a coworking space and want to list it and track its bookings.
+                    {t('auth.chooseProviderDesc')}
                   </div>
                 </div>
               </div>
@@ -1172,17 +1178,17 @@ export function ChooseAccountType() {
           {selected === 'provider' && (
             <div className="bg-plaster-dark/35 rounded-2xl border border-soot/12 p-4 mb-5 space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">Business Name *</label>
+                <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">{t('auth.businessName')}</label>
                 <input
                   type="text"
                   value={businessName}
                   onChange={(e) => setBusinessName(e.target.value)}
-                  placeholder="The Hub Riyadh Holdings"
+                  placeholder={t('auth.brandPlaceholder')}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/60 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">CR Number *</label>
+                <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">{t('auth.crNumber')}</label>
                 <input
                   type="text"
                   value={crNumber}
@@ -1202,18 +1208,18 @@ export function ChooseAccountType() {
           {selected === 'organization' && (
             <div className="bg-plaster-dark/35 rounded-2xl border border-soot/12 p-4 mb-5 space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">Organization Name *</label>
+                <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">{t('auth.orgName')}</label>
                 <input
                   type="text"
                   value={orgName}
                   onChange={(e) => setOrgName(e.target.value)}
-                  placeholder="Saudi Tech Solutions"
+                  placeholder={t('auth.orgPlaceholder')}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/60 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">Team Size</label>
+                  <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">{t('auth.teamSize')}</label>
                   <input
                     type="number"
                     min="1"
@@ -1224,12 +1230,12 @@ export function ChooseAccountType() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">Industry</label>
+                  <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">{t('auth.industry')}</label>
                   <input
                     type="text"
                     value={industry}
                     onChange={(e) => setIndustry(e.target.value)}
-                    placeholder="Technology"
+                    placeholder={t('auth.industryPlaceholder')}
                     className="w-full px-3.5 py-2.5 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/60 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs"
                   />
                 </div>
@@ -1244,7 +1250,7 @@ export function ChooseAccountType() {
             className="btn-primary w-full py-3.5 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Check size={17} className="text-eucalyptus" />
-            <span>Complete Setup</span>
+            <span>{t('auth.completeSetup')}</span>
             <ArrowRight size={16} />
           </button>
         </div>
@@ -1264,6 +1270,7 @@ export function ChooseAccountType() {
 }
 
 export function ForgotPasswordScreen() {
+  const { t, translateMessage } = useI18n();
   const { navigate, requestForgotPasswordOtp } = useApp();
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
@@ -1272,11 +1279,11 @@ export function ForgotPasswordScreen() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) {
-      setError('Please enter your email address.');
+      setError(t('auth.errEnterEmail'));
       return;
     }
     if (!/\S+@\S+\.\S+/.test(email.trim())) {
-      setError('Please enter a valid email address.');
+      setError(t('auth.errValidEmail'));
       return;
     }
     setError('');
@@ -1300,8 +1307,8 @@ export function ForgotPasswordScreen() {
             onClick={() => navigate('login')}
             className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-soot/5 hover:bg-soot/10 border border-soot/10 text-xs font-semibold text-soot transition-all duration-200 cursor-pointer group"
           >
-            <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />
-            <span>Back to Sign in</span>
+            <ArrowLeft size={14} className="group-hover:-translate-x-0.5 rtl:group-hover:translate-x-0.5 transition-transform" />
+            <span>{t('auth.backToSignIn')}</span>
           </button>
         </div>
 
@@ -1310,10 +1317,10 @@ export function ForgotPasswordScreen() {
           <div className="mb-7">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-eucalyptus/20 border border-eucalyptus/40 text-soot text-xs font-semibold mb-3.5">
               <ShieldCheck size={14} className="text-emerald-800 shrink-0" />
-              <span>Password Recovery</span>
+              <span>{t('auth.passwordRecovery')}</span>
             </div>
             <h1 className="text-3xl sm:text-4xl font-normal font-serif-display text-soot tracking-tight mb-2">
-              Forgot your password?
+              {t('auth.forgotYourPassword')}
             </h1>
             <p className="text-moss text-xs sm:text-sm leading-relaxed">
               Enter your registered account email and we&apos;ll send a 6-digit one-time verification code to reset your password.
@@ -1323,16 +1330,16 @@ export function ForgotPasswordScreen() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
               <div className="bg-red-500/10 border border-red-500/20 text-red-700 text-xs sm:text-sm font-medium rounded-xl px-4 py-3">
-                {error}
+                {translateMessage(error)}
               </div>
             )}
 
             <div>
               <label className="block text-xs font-semibold text-soot mb-1.5 uppercase tracking-wider">
-                Email Address
+                {t('auth.emailAddress')}
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-moss">
+                <div className="absolute inset-y-0 start-0 ps-3.5 flex items-center pointer-events-none text-moss">
                   <Mail size={16} />
                 </div>
                 <input
@@ -1343,7 +1350,7 @@ export function ForgotPasswordScreen() {
                     if (error) setError('');
                   }}
                   placeholder="you@example.com"
-                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all"
+                  className="w-full ps-10 pe-4 py-3 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all"
                   required
                 />
               </div>
@@ -1355,10 +1362,10 @@ export function ForgotPasswordScreen() {
               className="btn-primary w-full py-3.5 mt-2 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
               {loading ? (
-                <span>Sending code...</span>
+                <span>{t('auth.sendingCode')}</span>
               ) : (
                 <>
-                  <span>Send Verification Code</span>
+                  <span>{t('auth.sendCode')}</span>
                   <ArrowRight size={16} />
                 </>
               )}
@@ -1372,7 +1379,7 @@ export function ForgotPasswordScreen() {
               onClick={() => navigate('login')}
               className="text-soot font-bold hover:underline cursor-pointer"
             >
-              Sign in
+              {t('auth.signInLower')}
             </button>
           </p>
         </div>
@@ -1394,6 +1401,7 @@ export function ForgotPasswordScreen() {
 }
 
 export function OtpVerificationScreen() {
+  const { t, translateMessage } = useI18n();
   const { otpSession, verifyOtp, resendOtp, cancelOtp, navigate } = useApp();
   const [digits, setDigits] = useState<string[]>(['', '', '', '', '', '']);
   const [error, setError] = useState('');
@@ -1479,7 +1487,7 @@ export function OtpVerificationScreen() {
     e.preventDefault();
     const code = digits.join('');
     if (code.length < 6) {
-      setError('Please enter all 6 digits of the verification code.');
+      setError(t('auth.errCode'));
       return;
     }
 
@@ -1512,7 +1520,7 @@ export function OtpVerificationScreen() {
     setError('');
   };
 
-  const recipient = otpSession?.targetEmailOrPhone || 'your registered contact';
+  const recipient = otpSession?.targetEmailOrPhone || translateMessage('your registered contact');
   const isSignup = otpSession?.mode === 'signup';
   const isForgotPassword = otpSession?.mode === 'forgot-password';
   const isProviderSignup = isSignup && (otpSession?.role === 'provider' || otpSession?.role === 'PARTNER_ADMIN');
@@ -1530,8 +1538,8 @@ export function OtpVerificationScreen() {
               onClick={() => navigate('login')}
               className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-soot/5 hover:bg-soot/10 border border-soot/10 text-xs font-semibold text-soot transition-all duration-200 cursor-pointer group"
             >
-              <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />
-              <span>Sign In</span>
+              <ArrowLeft size={14} className="group-hover:-translate-x-0.5 rtl:group-hover:translate-x-0.5 transition-transform" />
+              <span>{t('auth.signInButton')}</span>
             </button>
           </div>
 
@@ -1543,13 +1551,13 @@ export function OtpVerificationScreen() {
               </div>
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-800 text-xs font-semibold mb-3">
                 <Sparkles size={13} className="text-amber-600 shrink-0" />
-                <span>Space Partner Application Pending Review</span>
+                <span>{t('auth.partnerPending')}</span>
               </div>
               <h1 className="text-2xl sm:text-3xl font-normal font-serif-display text-soot tracking-tight mb-2">
-                Email Verified Successfully!
+                {t('auth.emailVerifiedTitle')}
               </h1>
               <p className="text-moss text-xs sm:text-sm leading-relaxed">
-                Thank you for joining the Coworking Pass network. Your venue registration and Commercial Registration details have been received and are currently under review by our administration team.
+                {t('auth.emailVerifiedBody')}
               </p>
             </div>
 
@@ -1560,8 +1568,8 @@ export function OtpVerificationScreen() {
                   <CheckCircle2 size={16} />
                 </div>
                 <div className="flex-1 text-xs">
-                  <span className="font-semibold text-soot block">Email Verification</span>
-                  <span className="text-moss">Account verified: <strong className="text-soot">{pendingEmail || recipient}</strong></span>
+                  <span className="font-semibold text-soot block">{t('auth.emailVerification')}</span>
+                  <span className="text-moss">{t('auth.accountVerified')} <strong className="text-soot">{pendingEmail || recipient}</strong></span>
                 </div>
               </div>
 
@@ -1570,8 +1578,8 @@ export function OtpVerificationScreen() {
                   <Clock size={16} className="text-amber-600" />
                 </div>
                 <div className="flex-1 text-xs">
-                  <span className="font-semibold text-amber-900 block">Commercial Registration & Venue Review</span>
-                  <span className="text-amber-800/80">Administrators are verifying credentials before activating your partner account.</span>
+                  <span className="font-semibold text-amber-900 block">{t('auth.crReview')}</span>
+                  <span className="text-amber-800/80">{t('auth.crReviewBody')}</span>
                 </div>
               </div>
 
@@ -1580,8 +1588,8 @@ export function OtpVerificationScreen() {
                   <Mail size={16} />
                 </div>
                 <div className="flex-1 text-xs">
-                  <span className="font-semibold text-soot block">Email Approval Notification</span>
-                  <span className="text-moss">You will receive an official confirmation email once approved to start listing your spaces and accepting bookings.</span>
+                  <span className="font-semibold text-soot block">{t('auth.approvalNotice')}</span>
+                  <span className="text-moss">{t('auth.approvalNoticeBody')}</span>
                 </div>
               </div>
             </div>
@@ -1592,7 +1600,7 @@ export function OtpVerificationScreen() {
                 onClick={() => navigate('login')}
                 className="btn-primary w-full py-3.5 flex items-center justify-center gap-2 cursor-pointer"
               >
-                <span>Proceed to Sign In</span>
+                <span>{t('auth.proceedSignIn')}</span>
                 <ArrowRight size={16} />
               </button>
 
@@ -1601,7 +1609,7 @@ export function OtpVerificationScreen() {
                 onClick={() => navigate('landing')}
                 className="w-full py-2.5 text-xs font-semibold text-moss hover:text-soot transition-colors text-center cursor-pointer"
               >
-                Return to Home
+                {t('auth.returnHome')}
               </button>
             </div>
           </div>
@@ -1635,7 +1643,7 @@ export function OtpVerificationScreen() {
             onClick={cancelOtp}
             className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-soot/5 hover:bg-soot/10 border border-soot/10 text-xs font-semibold text-soot transition-all duration-200 cursor-pointer group"
           >
-            <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />
+            <ArrowLeft size={14} className="group-hover:-translate-x-0.5 rtl:group-hover:translate-x-0.5 transition-transform" />
             <span>{isSignup ? 'Back to Sign Up' : isForgotPassword ? 'Back to Forgot Password' : 'Back to Sign In'}</span>
           </button>
         </div>
@@ -1648,7 +1656,7 @@ export function OtpVerificationScreen() {
               <span>{isForgotPassword ? 'Password Recovery Verification' : 'Two-Factor Security Verification'}</span>
             </div>
             <h1 className="text-3xl sm:text-4xl font-normal font-serif-display text-soot tracking-tight mb-2">
-              Enter verification code
+              {t('auth.enterCode')}
             </h1>
             <p className="text-moss text-xs sm:text-sm leading-relaxed">
               We&apos;ve sent a 6-digit one-time code to{' '}
@@ -1658,7 +1666,7 @@ export function OtpVerificationScreen() {
               <div className="mt-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-900 text-xs flex items-start gap-2">
                 <Clock size={15} className="text-amber-600 shrink-0 mt-0.5" />
                 <span>
-                  Notice: Upon verification, your Space Partner account will be reviewed and verified by platform administration before login access is activated.
+                  {t('auth.partnerNotice')}
                 </span>
               </div>
             )}
@@ -1667,7 +1675,7 @@ export function OtpVerificationScreen() {
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
               <div className="bg-red-500/10 border border-red-500/20 text-red-700 text-xs sm:text-sm font-medium rounded-xl px-4 py-3">
-                {error}
+                {translateMessage(error)}
               </div>
             )}
 
@@ -1708,10 +1716,10 @@ export function OtpVerificationScreen() {
               className="btn-primary w-full py-3.5 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {loading ? (
-                <span>Verifying code...</span>
+                <span>{t('auth.verifyingCode')}</span>
               ) : (
                 <>
-                  <span>Verify & Continue</span>
+                  <span>{t('auth.verifyContinue')}</span>
                   <CheckCircle2 size={16} />
                 </>
               )}
@@ -1734,7 +1742,7 @@ export function OtpVerificationScreen() {
                     onClick={handleResend}
                     className="text-soot font-bold hover:underline cursor-pointer"
                   >
-                    Resend Code
+                    {t('auth.resendCode')}
                   </button>
                 </span>
               )}
@@ -1746,7 +1754,7 @@ export function OtpVerificationScreen() {
                 onClick={cancelOtp}
                 className="text-moss hover:text-soot underline transition-colors cursor-pointer text-[11px]"
               >
-                Use a different account or return
+                {t('auth.differentAccount')}
               </button>
             </div>
           </div>
@@ -1770,6 +1778,7 @@ export function OtpVerificationScreen() {
 }
 
 export function ResetPasswordScreen() {
+  const { t, translateMessage } = useI18n();
   const { navigate, resetPassword, pendingResetUser } = useApp();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -1781,15 +1790,15 @@ export function ResetPasswordScreen() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!password) {
-      setError('Please enter a new password.');
+      setError(t('auth.errNewPassword'));
       return;
     }
     if (password.length < 6) {
-      setError('Password must be at least 6 characters long.');
+      setError(t('auth.errPasswordLength'));
       return;
     }
     if (password !== confirmPassword) {
-      setError('Passwords do not match. Please verify and try again.');
+      setError(t('auth.errMismatch'));
       return;
     }
 
@@ -1805,7 +1814,7 @@ export function ResetPasswordScreen() {
     }, 400);
   };
 
-  const userEmail = pendingResetUser?.email || pendingResetUser?.username || 'your account';
+  const userEmail = pendingResetUser?.email || pendingResetUser?.username || translateMessage('your account');
 
   return (
     <div className="min-h-screen w-full flex bg-plaster text-soot">
@@ -1819,8 +1828,8 @@ export function ResetPasswordScreen() {
             onClick={() => navigate('login')}
             className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-soot/5 hover:bg-soot/10 border border-soot/10 text-xs font-semibold text-soot transition-all duration-200 cursor-pointer group"
           >
-            <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />
-            <span>Back to Sign in</span>
+            <ArrowLeft size={14} className="group-hover:-translate-x-0.5 rtl:group-hover:translate-x-0.5 transition-transform" />
+            <span>{t('auth.backToSignIn')}</span>
           </button>
         </div>
 
@@ -1829,29 +1838,29 @@ export function ResetPasswordScreen() {
           <div className="mb-7">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-eucalyptus/20 border border-eucalyptus/40 text-soot text-xs font-semibold mb-3.5">
               <Lock size={14} className="text-emerald-800 shrink-0" />
-              <span>Identity Verified</span>
+              <span>{t('auth.identityVerified')}</span>
             </div>
             <h1 className="text-3xl sm:text-4xl font-normal font-serif-display text-soot tracking-tight mb-2">
-              Set new password
+              {t('auth.setNewPassword')}
             </h1>
             <p className="text-moss text-xs sm:text-sm leading-relaxed">
-              Create a new secure password for <span className="font-semibold text-soot">{userEmail}</span>.
+              {t('auth.createSecurePasswordFor')} <span className="font-semibold text-soot">{userEmail}</span>.
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
               <div className="bg-red-500/10 border border-red-500/20 text-red-700 text-xs sm:text-sm font-medium rounded-xl px-4 py-3">
-                {error}
+                {translateMessage(error)}
               </div>
             )}
 
             <div>
               <label className="block text-xs font-semibold text-soot mb-1.5 uppercase tracking-wider">
-                New Password
+                {t('auth.newPassword')}
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-moss">
+                <div className="absolute inset-y-0 start-0 ps-3.5 flex items-center pointer-events-none text-moss">
                   <Lock size={16} />
                 </div>
                 <input
@@ -1861,14 +1870,14 @@ export function ResetPasswordScreen() {
                     setPassword(e.target.value);
                     if (error) setError('');
                   }}
-                  placeholder="At least 6 characters"
-                  className="w-full pl-10 pr-11 py-3 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all"
+                  placeholder={t('auth.atLeast6')}
+                  className="w-full ps-10 pe-11 py-3 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-moss hover:text-soot cursor-pointer"
+                  className="absolute inset-y-0 end-0 pe-3.5 flex items-center text-moss hover:text-soot cursor-pointer"
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
@@ -1877,10 +1886,10 @@ export function ResetPasswordScreen() {
 
             <div>
               <label className="block text-xs font-semibold text-soot mb-1.5 uppercase tracking-wider">
-                Confirm New Password
+                {t('auth.confirmNewPassword')}
               </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-moss">
+                <div className="absolute inset-y-0 start-0 ps-3.5 flex items-center pointer-events-none text-moss">
                   <Lock size={16} />
                 </div>
                 <input
@@ -1890,14 +1899,14 @@ export function ResetPasswordScreen() {
                     setConfirmPassword(e.target.value);
                     if (error) setError('');
                   }}
-                  placeholder="Repeat new password"
-                  className="w-full pl-10 pr-11 py-3 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all"
+                  placeholder={t('auth.repeatNewPassword')}
+                  className="w-full ps-10 pe-11 py-3 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-moss hover:text-soot cursor-pointer"
+                  className="absolute inset-y-0 end-0 pe-3.5 flex items-center text-moss hover:text-soot cursor-pointer"
                 >
                   {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
@@ -1910,10 +1919,10 @@ export function ResetPasswordScreen() {
               className="btn-primary w-full py-3.5 mt-2 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
               {loading ? (
-                <span>Saving new password...</span>
+                <span>{t('auth.savingPassword')}</span>
               ) : (
                 <>
-                  <span>Save Password & Sign In</span>
+                  <span>{t('auth.savePassword')}</span>
                   <CheckCircle2 size={16} />
                 </>
               )}
@@ -1921,13 +1930,13 @@ export function ResetPasswordScreen() {
           </form>
 
           <p className="text-center text-xs sm:text-sm text-moss mt-6 pt-4 border-t border-soot/10">
-            Cancel and return to{' '}
+            {t('auth.cancelReturn')}{' '}
             <button
               type="button"
               onClick={() => navigate('login')}
               className="text-soot font-bold hover:underline cursor-pointer"
             >
-              Sign in
+              {t('auth.signInLower')}
             </button>
           </p>
         </div>

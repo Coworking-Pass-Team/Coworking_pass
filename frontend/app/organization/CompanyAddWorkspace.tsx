@@ -277,7 +277,7 @@ export default function CompanyAddWorkspace() {
                       key={wt.type}
                       type="button"
                       onClick={() => setType(wt.type)}
-                      className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
+                      className={`p-3.5 rounded-2xl border text-start transition-all cursor-pointer ${
                         isSelected
                           ? 'border-eucalyptus-dark bg-eucalyptus/20 shadow-xs ring-1 ring-eucalyptus'
                           : 'border-soot/12 bg-plaster hover:bg-plaster-dark/40'
@@ -561,7 +561,7 @@ export default function CompanyAddWorkspace() {
                   key={amenity}
                   type="button"
                   onClick={() => toggleAmenity(amenity)}
-                  className={`p-3 rounded-xl border text-xs font-medium text-left transition-all cursor-pointer flex items-center justify-between ${
+                  className={`p-3 rounded-xl border text-xs font-medium text-start transition-all cursor-pointer flex items-center justify-between ${
                     checked
                       ? 'border-eucalyptus-dark bg-eucalyptus/25 text-soot font-semibold shadow-xs'
                       : 'border-soot/10 bg-plaster text-moss hover:bg-plaster-dark/40 hover:text-soot'
@@ -569,9 +569,9 @@ export default function CompanyAddWorkspace() {
                 >
                   <span>{amenity}</span>
                   {checked ? (
-                    <CheckCircle2 size={15} className="text-emerald-800 shrink-0 ml-1.5" />
+                    <CheckCircle2 size={15} className="text-emerald-800 shrink-0 ms-1.5" />
                   ) : (
-                    <div className="w-3.5 h-3.5 rounded-full border border-soot/20 shrink-0 ml-1.5" />
+                    <div className="w-3.5 h-3.5 rounded-full border border-soot/20 shrink-0 ms-1.5" />
                   )}
                 </button>
               );

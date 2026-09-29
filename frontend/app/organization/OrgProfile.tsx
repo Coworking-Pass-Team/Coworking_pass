@@ -555,7 +555,7 @@ export default function OrgProfile() {
                     <button
                       type="button"
                       onClick={() => handleRemoveEmployee(emp.id)}
-                      className="p-2 text-moss/60 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors cursor-pointer shrink-0 ml-2"
+                      className="p-2 text-moss/60 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors cursor-pointer shrink-0 ms-2"
                       title="Remove member"
                     >
                       <Trash2 size={14} />
@@ -584,7 +584,7 @@ export default function OrgProfile() {
                 { key: 'passUsage', label: 'Individual employee check-in alerts', desc: 'Real-time notifications for every desk badge scan' },
               ].map(item => (
                 <div key={item.key} className="flex items-center justify-between pt-4 first:pt-0">
-                  <div className="pr-4">
+                  <div className="pe-4">
                     <div className="text-sm font-medium text-soot">{item.label}</div>
                     <div className="text-xs text-moss mt-0.5 font-normal">{item.desc}</div>
                   </div>
@@ -602,7 +602,7 @@ export default function OrgProfile() {
                   >
                     <div
                       className={`w-4 h-4 rounded-full bg-white transition-transform ${
-                        notifications[item.key as keyof typeof notifications] ? 'translate-x-7' : 'translate-x-1'
+                        notifications[item.key as keyof typeof notifications] ? 'translate-x-7 rtl:-translate-x-7' : 'translate-x-1 rtl:-translate-x-1'
                       }`}
                     />
                   </button>
@@ -722,7 +722,7 @@ export default function OrgProfile() {
                 >
                   <div
                     className={`w-4 h-4 rounded-full bg-white transition-transform ${
-                      privacy.allowTeamSelfBooking ? 'translate-x-7' : 'translate-x-1'
+                      privacy.allowTeamSelfBooking ? 'translate-x-7 rtl:-translate-x-7' : 'translate-x-1 rtl:-translate-x-1'
                     }`}
                   />
                 </button>
@@ -742,7 +742,7 @@ export default function OrgProfile() {
                 >
                   <div
                     className={`w-4 h-4 rounded-full bg-white transition-transform ${
-                      privacy.centralBilling ? 'translate-x-7' : 'translate-x-1'
+                      privacy.centralBilling ? 'translate-x-7 rtl:-translate-x-7' : 'translate-x-1 rtl:-translate-x-1'
                     }`}
                   />
                 </button>
@@ -789,7 +789,7 @@ export default function OrgProfile() {
               />
             </div>
 
-            <div className="flex-1 min-w-0 text-center sm:text-left space-y-2.5">
+            <div className="flex-1 min-w-0 text-center sm:text-start space-y-2.5">
               <div>
                 <div className="text-sm font-medium text-soot">Company Logo</div>
                 <p className="text-xs text-moss font-normal mt-0.5">

@@ -95,7 +95,7 @@ export default function UserAvatar({
         <button
           type="button"
           onClick={onCameraClick || onClick}
-          className="absolute bottom-0 right-0 p-2 rounded-full bg-[#DDE6DF] text-soot hover:bg-[#D0DDD3] shadow-md transition-all active:scale-90 border-2 border-white cursor-pointer"
+          className="absolute bottom-0 end-0 p-2 rounded-full bg-[#DDE6DF] text-soot hover:bg-[#D0DDD3] shadow-md transition-all active:scale-90 border-2 border-white cursor-pointer"
           title="Change photo"
         >
           <Camera size={14} />
