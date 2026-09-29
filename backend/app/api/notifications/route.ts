@@ -6,8 +6,11 @@ import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-tok
 export async function GET(request: Request) {
   try {
     const user = await getTokenFromRequest(request);
+    if (!user) return unauthorizedResponse(request);
+
+    // Every account, including admins, only receives its own notifications
     const notifications = await prisma.notification.findMany({
-      where: user && user.role !== 'SUPER_ADMIN' ? { userId: user.userId } : undefined,
+      where: { userId: user.userId },
       include: {
         user: { select: { name: true, email: true } }
       },
@@ -69,6 +72,17 @@ if (!user) return unauthorizedResponse(request);
       )
     }
 
+    // Notifications may target the caller, or (admin / venue owner alerts) another account of an allowed kind
+    if (userId !== user.userId && user.role !== 'SUPER_ADMIN') {
+      const target = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } })
+      if (!target || target.role !== 'PARTNER_ADMIN') {
+        return NextResponse.json(
+          { error: 'You are not allowed to send notifications to this account.' },
+          { status: 403 }
+        )
+      }
+    }
+
     const notification = await prisma.notification.create({
       data: {
         userId,
@@ -96,8 +110,20 @@ if (!user) return unauthorizedResponse(request);
 
 export async function PUT(request: NextRequest) {
   try {
+    const user = await getTokenFromRequest(request);
+    if (!user) return unauthorizedResponse(request);
+
     const { id, isRead } = await request.json()
-    
+
+    // Only the recipient may change a notification
+    const existing = await prisma.notification.findUnique({ where: { id }, select: { userId: true } })
+    if (!existing) {
+      return NextResponse.json({ error: 'Notification not found.' }, { status: 404 })
+    }
+    if (existing.userId !== user.userId) {
+      return NextResponse.json({ error: 'You are not allowed to modify this notification.' }, { status: 403 })
+    }
+
     const notification = await prisma.notification.update({
       where: { id },
       data: { isRead }

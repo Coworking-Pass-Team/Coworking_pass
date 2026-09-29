@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getTokenFromRequest, unauthorizedResponse, invalidateBanCache } from "@/lib/auth/verify-token";
 import { Role } from "@prisma/client";
+import { deleteUserCascade } from "@/lib/cascade-delete";
 import { blacklistUser, removeFromBlacklist } from "@/lib/auth/token-blacklist";
 /**
  * @swagger
@@ -217,14 +218,27 @@ export async function DELETE(
       return NextResponse.json({ error: "You are not allowed to delete this account." }, { status: 403 });
     }
 
-    await prisma.user.delete({ where: { id } });
+    const target = await prisma.user.findUnique({ where: { id }, select: { role: true } });
+    if (!target) {
+      return NextResponse.json({ error: "User not found." }, { status: 404 });
+    }
+    if (target.role === "SUPER_ADMIN") {
+      return NextResponse.json({ error: "Super admin accounts cannot be deleted." }, { status: 400 });
+    }
+
+    // Remove the account together with everything it owns in one transaction
+    await prisma.$transaction((tx) => deleteUserCascade(tx, id), { timeout: 30000 });
+
+    // Make sure any active session of the deleted account stops working immediately
+    blacklistUser(id);
+    invalidateBanCache(id);
 
     return NextResponse.json({ message: "Account and associated data deleted successfully." });
   } catch (error) {
-    console.error(error);
+    console.error("Error deleting user:", error);
     return NextResponse.json(
-      { error: "User not found or an error occurred." },
-      { status: 404 }
+      { error: "Failed to delete the user account. Please try again." },
+      { status: 500 }
     );
   }
 }

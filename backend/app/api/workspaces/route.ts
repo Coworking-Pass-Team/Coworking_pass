@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getOccupiedSeatsToday } from "@/lib/capacity";
+import { redactHiddenWorkspace } from "@/lib/workspace-visibility";
 import { isValidHhmm } from "@/lib/operating-hours";
 import { prisma } from "@/lib/prisma";
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
@@ -89,7 +90,16 @@ export async function GET(request: Request) {
     // Live availability for today, computed from confirmed bookings
     const occupiedByWorkspace = await getOccupiedSeatsToday(workspaces.map((w: any) => w.id));
 
-    const formatted = workspaces.map((w: any) => ({
+    // Hidden workspaces are redacted for everyone except admins and the owning partner
+    const caller = await getTokenFromRequest(request);
+    const isAdmin = caller?.role === 'SUPER_ADMIN';
+    const ownerEmail = caller?.role === 'PARTNER_ADMIN'
+      ? (await prisma.user.findUnique({ where: { id: caller.userId }, select: { email: true } }))?.email?.toLowerCase()
+      : undefined;
+
+    const formatted = workspaces.map((w: any) => w.isVisible === false && !isAdmin && !(ownerEmail && w.partner?.contactEmail?.toLowerCase() === ownerEmail)
+      ? redactHiddenWorkspace(w)
+      : ({
       ...w,
       occupiedSeats: occupiedByWorkspace.get(w.id) || 0,
       availableCapacity: Math.max(0, (Number(w.totalCapacity) || 0) - (occupiedByWorkspace.get(w.id) || 0)),

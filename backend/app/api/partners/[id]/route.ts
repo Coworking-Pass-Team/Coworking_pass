@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { deletePartnerCascade } from "@/lib/cascade-delete";
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 import { sendPartnerApprovalEmail, sendPartnerRejectionEmail } from "@/lib/mailer";
 
@@ -79,14 +80,20 @@ if (!user) return unauthorizedResponse(request);
     }
     const { id } = await params;
 
-    await prisma.partner.delete({ where: { id } });
+    const existing = await prisma.partner.findUnique({ where: { id }, select: { id: true } });
+    if (!existing) {
+      return NextResponse.json({ error: "Partner not found." }, { status: 404 });
+    }
+
+    // Deleting a partner also removes its venues and their bookings
+    await prisma.$transaction((tx) => deletePartnerCascade(tx, id), { timeout: 30000 });
 
     return NextResponse.json({ message: "Partner deleted successfully." });
   } catch (error) {
-    console.error(error);
+    console.error("Error deleting partner:", error);
     return NextResponse.json(
-      { error: "Partner not found or an error occurred." },
-      { status: 404 }
+      { error: "Failed to delete the partner. Please try again." },
+      { status: 500 }
     );
   }
 }

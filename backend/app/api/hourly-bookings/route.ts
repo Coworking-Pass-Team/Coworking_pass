@@ -4,6 +4,7 @@ import { getTokenFromRequest, unauthorizedResponse, suspendedResponse } from "@/
 import { seedStandardWorkspaces } from '@/lib/seed-data';
 import { getKsaNow, parseDateAndTimeToKsaDate } from '@/lib/time-utils';
 import { getOccupiedSeats } from '@/lib/capacity';
+import { hiddenWorkspaceError } from '@/lib/workspace-visibility';
 import { validateHourlyWindow } from '@/lib/operating-hours';
 
 
@@ -326,6 +327,12 @@ const requestedType = (validSectionTypes.includes(sectionType) && sectionType !=
     }
 
     targetSectionId = sec.id;
+
+    // Hidden workspaces cannot be booked by the public
+    const hiddenError = await hiddenWorkspaceError(ws.id, user);
+    if (hiddenError) {
+      return NextResponse.json({ error: hiddenError }, { status: 403 });
+    }
 
     // Reject windows outside the venue's operating hours and, for halls/theaters, anything but a fixed 2-hour session
     const windowError = validateHourlyWindow({ workspace: ws, sectionType: sec.type, start: startObj, end: endObj });

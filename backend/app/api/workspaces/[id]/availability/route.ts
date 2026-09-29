@@ -22,10 +22,14 @@ export async function GET(
 
     const workspace = await prisma.workspace.findUnique({
       where: { id },
-      select: { id: true, totalCapacity: true, openingTime: true, closingTime: true, is24Hours: true, sections: { select: { type: true } } },
+      select: { id: true, isVisible: true, totalCapacity: true, openingTime: true, closingTime: true, is24Hours: true, sections: { select: { type: true } } },
     });
     if (!workspace) {
       return NextResponse.json({ error: "Workspace not found." }, { status: 404 });
+    }
+
+    if (workspace.isVisible === false) {
+      return NextResponse.json({ available: false, reason: "This workspace is currently unavailable." });
     }
 
     let from: Date;

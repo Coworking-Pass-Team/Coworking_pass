@@ -47,6 +47,7 @@ export async function GET(request: Request) {
       where: {
         latitude: { not: null },
         longitude: { not: null },
+        isVisible: true,
       },
     });
 
