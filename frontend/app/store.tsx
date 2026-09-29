@@ -497,6 +497,7 @@ interface AppContextType {
   fetchUsers: () => Promise<User[]>;
   blockUser: (id: string) => void;
   unblockUser: (id: string) => void;
+  deleteUser: (userId: string) => Promise<{ success: boolean; error?: string }>;
   changeUserRole: (id: string, role: UserRole) => void;
 
   waitlist: Record<string, boolean>;
@@ -4968,6 +4969,34 @@ export function AppProvider({ children }: { children: ReactNode }) {
     showToast('User has been unblocked.');
   };
 
+  // Delete a user (individual or organization) via DELETE /api/users/{id}
+  const deleteUser = async (userId: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const storedToken = getStoredToken();
+      if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+
+      const response = await fetch(`${getApiBaseUrl()}/users/${userId}`, {
+        method: 'DELETE',
+        headers,
+      });
+
+      const resData = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(resData.error || 'Failed to delete user');
+      }
+
+      // Remove user from local state
+      setUsers(prev => prev.filter(u => u.id !== userId));
+      showToast('User account deleted successfully.', 'success');
+      return { success: true };
+    } catch (err: any) {
+      console.error(`Error deleting user via DELETE /api/users/${userId}:`, err);
+      showToast(err.message || 'Failed to delete user account', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
   const changeUserRole = (id: string, role: UserRole) => {
     setUsers(prev => prev.map(u => u.id === id ? { ...u, role } : u));
     showToast('User permissions updated.');
@@ -5764,7 +5793,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       notifications: userNotifications,
       unreadNotificationsCount: userNotifications.filter(n => !n.read).length,
       markNotificationRead, toggleNotificationRead, markAllNotificationsRead, deleteNotification, clearAllNotifications, addNotification, generateFakeNotification,
-      users, fetchUsers, blockUser, unblockUser, changeUserRole,
+      users, fetchUsers, blockUser, unblockUser, deleteUser, changeUserRole,
       waitlist, autobooking, autobookingCard, joinWaitlist, leaveWaitlist, enableAutoBooking, disableAutoBooking,
       addPaymentCard,
       cart, isCartOpen, setIsCartOpen, openCart, closeCart, addToCart, removeFromCart, updateCartItemSeats, updateCartItem, clearCart, checkoutCart,
