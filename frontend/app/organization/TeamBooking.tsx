@@ -171,6 +171,13 @@ export default function TeamBooking() {
 
   if (!space || !currentUser) return null;
 
+  // Block non-admin users from booking a hidden space
+  if (!space.isVisible && currentUser.role !== 'admin') {
+    navigate('browse');
+    return null;
+  }
+
+
   const hasActiveSubscription = Boolean(currentUser?.hasActivePass);
 
   const effectiveDailyEndDate = dailyEndDate && dailyEndDate >= startDate ? dailyEndDate : startDate;

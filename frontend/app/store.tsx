@@ -4092,7 +4092,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const toggleSpaceVisibility = (id: string) => {
-    setSpaces(prev => prev.map(s => s.id === id ? { ...s, isVisible: !s.isVisible } : s));
+    // Find the space and compute new visibility value
+    const target = spaces.find(s => s.id === id);
+    if (!target) return;
+    const newVisible = !target.isVisible;
+
+    // Optimistically update local state immediately
+    setSpaces(prev => prev.map(s => s.id === id ? { ...s, isVisible: newVisible } : s));
+
+    // Persist visibility change to the API if the space has a DB ID
+    const dbId = (target as any).dbId || (workspacesApi.find(w => w.id === id || w.id === (target as any).dbId)?.id);
+    if (dbId) {
+      updateWorkspace(dbId, { isVisible: newVisible } as any).catch((err: any) => {
+        console.error('Failed to persist space visibility to API:', err);
+        // Revert optimistic update on failure
+        setSpaces(prev => prev.map(s => s.id === id ? { ...s, isVisible: !newVisible } : s));
+      });
+    }
   };
 
   const deleteSpace = (id: string) => {
