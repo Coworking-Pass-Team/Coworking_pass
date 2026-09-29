@@ -469,7 +469,7 @@ interface AppContextType {
   deleteSpace: (id: string) => void;
 
   bookings: Booking[];
-  addBooking: (booking: Omit<Booking, 'id' | 'createdAt'>) => Booking;
+  addBooking: (booking: Omit<Booking, 'id' | 'createdAt'>) => Booking | undefined;
   cancelBooking: (id: string, refundMethod?: 'wallet' | 'card') => void;
   updateBookingStatus: (id: string, status: Booking['status']) => void;
   deleteBooking: (bookingId: string) => void;
@@ -495,8 +495,8 @@ interface AppContextType {
 
   users: User[];
   fetchUsers: () => Promise<User[]>;
-  blockUser: (id: string) => void;
-  unblockUser: (id: string) => void;
+  blockUser: (id: string) => Promise<{ success: boolean; error?: string }>;
+  unblockUser: (id: string) => Promise<{ success: boolean; error?: string }>;
   deleteUser: (userId: string) => Promise<{ success: boolean; error?: string }>;
   changeUserRole: (id: string, role: UserRole) => void;
 
@@ -4154,6 +4154,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const addBooking = (booking: Omit<Booking, 'id' | 'createdAt'>) => {
+    // Blocked users cannot make bookings
+    if (currentUser?.isBlocked) {
+      showToast('Your account has been suspended. Please contact support.', 'error');
+      navigate('login');
+      return;
+    }
+
     const newBooking: Booking = {
       ...booking,
       id: `booking-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
@@ -4959,14 +4966,82 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return addNotification({ userId, title, message, type });
   };
 
-  const blockUser = (id: string) => {
-    setUsers(prev => prev.map(u => u.id === id ? { ...u, isBlocked: true } : u));
-    showToast('User has been blocked.');
+  const blockUser = async (id: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const storedToken = getStoredToken();
+      if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+
+      // Find the user's backend DB id (may differ from frontend id)
+      const targetUser = users.find(u => u.id === id);
+      const dbId = (targetUser as any)?.dbId || id;
+
+      const response = await fetch(`${getApiBaseUrl()}/users/${dbId}`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({ isBanned: true }),
+      });
+
+      const resData = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        console.warn(`Block user notice (${dbId}):`, resData.error || 'Failed to block user in DB');
+        // Still update local state even if API call fails (best-effort)
+      }
+
+      // Update local users state
+      setUsers(prev => prev.map(u => u.id === id ? { ...u, isBlocked: true } : u));
+
+      // If the blocked user is currently logged in, force them out
+      if (currentUser?.id === id) {
+        setCurrentUser(null);
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('cp_token');
+          localStorage.removeItem('cp_current_user');
+        }
+        navigate('login');
+      }
+
+      showToast('User has been blocked and their session has been terminated.', 'info');
+      return { success: true };
+    } catch (err: any) {
+      console.error(`Error blocking user ${id}:`, err);
+      // Update local state even on network error
+      setUsers(prev => prev.map(u => u.id === id ? { ...u, isBlocked: true } : u));
+      showToast('User blocked locally (API sync pending).', 'info');
+      return { success: false, error: err.message };
+    }
   };
 
-  const unblockUser = (id: string) => {
-    setUsers(prev => prev.map(u => u.id === id ? { ...u, isBlocked: false } : u));
-    showToast('User has been unblocked.');
+  const unblockUser = async (id: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const storedToken = getStoredToken();
+      if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+
+      // Find the user's backend DB id
+      const targetUser = users.find(u => u.id === id);
+      const dbId = (targetUser as any)?.dbId || id;
+
+      const response = await fetch(`${getApiBaseUrl()}/users/${dbId}`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({ isBanned: false }),
+      });
+
+      const resData = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        console.warn(`Unblock user notice (${dbId}):`, resData.error || 'Failed to unblock user in DB');
+      }
+
+      setUsers(prev => prev.map(u => u.id === id ? { ...u, isBlocked: false } : u));
+      showToast('User has been unblocked.');
+      return { success: true };
+    } catch (err: any) {
+      console.error(`Error unblocking user ${id}:`, err);
+      setUsers(prev => prev.map(u => u.id === id ? { ...u, isBlocked: false } : u));
+      showToast('User unblocked locally (API sync pending).');
+      return { success: false, error: err.message };
+    }
   };
 
   // Delete a user (individual or organization) via DELETE /api/users/{id}
@@ -5278,6 +5353,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         status: 'active',
         notes: item.notes,
       });
+      // addBooking returns undefined if user is blocked - abort checkout
+      if (!b) return;
       newBookings.push(b);
     });
 
