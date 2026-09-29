@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
 export async function GET(request: Request) {
-  const user = getTokenFromRequest(request);
+  const user = await getTokenFromRequest(request);
   if (!user || user.role !== "SUPER_ADMIN") return unauthorizedResponse();
 
   try {

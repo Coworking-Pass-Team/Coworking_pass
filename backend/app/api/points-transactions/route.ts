@@ -5,7 +5,7 @@ import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-tok
 
 export async function GET(request: Request) {
   try {
-    const user = getTokenFromRequest(request);
+    const user = await getTokenFromRequest(request);
 if (!user) return unauthorizedResponse();
     const transactions = await prisma.pointsTransaction.findMany({
       include: {
@@ -54,7 +54,7 @@ if (!user) return unauthorizedResponse();
 
 export async function POST(request: NextRequest) {
   try {
-    const user = getTokenFromRequest(request);
+    const user = await getTokenFromRequest(request);
     const body = await request.json()
     const { userId, type, points, description, referenceId } = body
 

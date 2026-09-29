@@ -7,7 +7,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = getTokenFromRequest(request);
+    const user = await getTokenFromRequest(request);
 if (!user) return unauthorizedResponse();
     const { id } = await params
     const booking = await prisma.hourlyBooking.findUnique({
@@ -68,13 +68,26 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = getTokenFromRequest(request);
+    const user = await getTokenFromRequest(request);
 if (!user) return unauthorizedResponse();
     const { id } = await params
     const body = await request.json()
+
+    const existing = await prisma.hourlyBooking.findUnique({ where: { id }, select: { userId: true } })
+    if (!existing) {
+      return NextResponse.json({ error: 'Booking not found.' }, { status: 404 })
+    }
+    if (user.role !== 'SUPER_ADMIN' && user.role !== 'PARTNER_ADMIN' && existing.userId !== user.userId) {
+      return NextResponse.json({ error: 'You are not allowed to modify this booking.' }, { status: 403 })
+    }
+
+    // Only the lifecycle status may change after creation
+    const data: { status?: any } = {}
+    if (body.status !== undefined) data.status = body.status
+
     const booking = await prisma.hourlyBooking.update({
       where: { id },
-      data: body,
+      data,
       include: {
         user: { select: { name: true, email: true } },
         section: true,
@@ -96,7 +109,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = getTokenFromRequest(request);
+    const user = await getTokenFromRequest(request);
 if (!user) return unauthorizedResponse();
 
     const { id } = await params

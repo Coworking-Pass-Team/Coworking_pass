@@ -7,7 +7,7 @@ const VALID_PERIOD_TYPES = ["PER_DAY", "PER_MONTH"];
 // GET /api/hourly-packages — عرض كل باقات الساعات
 export async function GET(request: Request) {
   try {
-    const user = getTokenFromRequest(request);
+    const user = await getTokenFromRequest(request);
 if (!user) return unauthorizedResponse();
     const packages = await prisma.hourlyPackage.findMany({
       include: { section: true },
@@ -57,7 +57,7 @@ if (!user) return unauthorizedResponse();
 // POST /api/hourly-packages — إضافة باقة ساعات جديدة
 export async function POST(request: Request) {
   try {
-    const user = getTokenFromRequest(request);
+    const user = await getTokenFromRequest(request);
 if (!user) return unauthorizedResponse();
     const { sectionId, packageName, hoursAmount, periodType, price } =
       await request.json();

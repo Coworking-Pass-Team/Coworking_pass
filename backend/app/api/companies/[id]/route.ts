@@ -27,8 +27,8 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = getTokenFromRequest(request);
-    if (!user && process.env.NODE_ENV === 'production') {
+    const user = await getTokenFromRequest(request);
+    if (!user) {
       return unauthorizedResponse();
     }
 
@@ -95,10 +95,25 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = getTokenFromRequest(request);
-if (!user) return unauthorizedResponse();
+    const user = await getTokenFromRequest(request);
+    if (!user) return unauthorizedResponse();
     const { id } = await params;
-    const data = await request.json();
+    const body = await request.json();
+
+    const existing = await prisma.company.findUnique({ where: { id } });
+    if (!existing) {
+      return NextResponse.json({ error: "Company not found." }, { status: 404 });
+    }
+    if (user.role !== "SUPER_ADMIN" && !(user.role === "HR_ADMIN" && existing.hrAdminId === user.userId)) {
+      return NextResponse.json({ error: "You are not allowed to modify this company." }, { status: 403 });
+    }
+
+    // Whitelist fields; the wallet balance can only change via the deposit/withdraw endpoints
+    const data: { companyName?: string; totalPassesAllocated?: number } = {};
+    if (typeof body.companyName === "string" && body.companyName.trim()) data.companyName = body.companyName.trim();
+    if (Number.isInteger(body.totalPassesAllocated) && body.totalPassesAllocated >= 0) {
+      data.totalPassesAllocated = body.totalPassesAllocated;
+    }
 
     const company = await prisma.company.update({
       where: { id },
@@ -121,8 +136,11 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = getTokenFromRequest(request);
+    const user = await getTokenFromRequest(request);
 if (!user) return unauthorizedResponse();
+    if (user.role !== "SUPER_ADMIN") {
+      return NextResponse.json({ error: "Only super admins can delete companies." }, { status: 403 });
+    }
     const { id } = await params;
 
     await prisma.company.delete({ where: { id } });

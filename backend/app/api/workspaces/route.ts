@@ -140,7 +140,7 @@ export async function GET(request: Request) {
 // POST /api/workspaces — إضافة مساحة عمل جديدة
 export async function POST(request: Request) {
   try {
-    const user = getTokenFromRequest(request);
+    const user = await getTokenFromRequest(request);
     if (!user) return unauthorizedResponse();
 
     // Verify that the requester is a space partner or platform admin

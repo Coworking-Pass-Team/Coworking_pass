@@ -25,7 +25,7 @@ const DEFAULT_AMENITIES = [
 // GET /api/amenities — عرض كل المرافق
 export async function GET(request: Request) {
   try {
-    const user = getTokenFromRequest(request);
+    const user = await getTokenFromRequest(request);
     if (!user) return unauthorizedResponse();
 
     let amenities = await prisma.amenityCatalog.findMany();
@@ -79,7 +79,7 @@ export async function GET(request: Request) {
 // POST /api/amenities — اقتراح مرفق جديد
 export async function POST(request: Request) {
   try {
-    const user = getTokenFromRequest(request);
+    const user = await getTokenFromRequest(request);
 if (!user) return unauthorizedResponse();
     const { name, icon, isDefault, requestedBy } = await request.json();
 

@@ -5,7 +5,7 @@ import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-tok
 // GET /api/tickets — عرض كل التذاكر
 export async function GET(request: Request) {
   try {
-    const user = getTokenFromRequest(request);
+    const user = await getTokenFromRequest(request);
 if (!user) return unauthorizedResponse();
     const tickets = await prisma.ticket.findMany({
       include: { company: true, user: true, replies: true },
@@ -46,7 +46,7 @@ if (!user) return unauthorizedResponse();
 // POST /api/tickets — إنشاء تذكرة جديدة
 export async function POST(request: Request) {
   try {
-    const user = getTokenFromRequest(request);
+    const user = await getTokenFromRequest(request);
 if (!user) return unauthorizedResponse();
     const { companyId, userId, subject } = await request.json();
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
+import { getTokenFromRequest, unauthorizedResponse, invalidateBanCache } from "@/lib/auth/verify-token";
+import { Role } from "@prisma/client";
 import { blacklistUser, removeFromBlacklist } from "@/lib/auth/token-blacklist";
 /**
  * @swagger
@@ -25,7 +26,7 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const user = getTokenFromRequest(request);
+  const user = await getTokenFromRequest(request);
   if (!user) return unauthorizedResponse();
 
   try {
@@ -86,25 +87,47 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const user = getTokenFromRequest(request);
+  const user = await getTokenFromRequest(request);
   if (!user) return unauthorizedResponse();
 
   try {
     const { id } = await params;
-    const data = await request.json();
+    const body = await request.json();
+    const isAdmin = user.role === "SUPER_ADMIN";
 
-    // Permission check: allow SUPER_ADMIN or admin
-    if (data.isBanned !== undefined && user.role !== "SUPER_ADMIN" && user.role !== "admin") {
-      return NextResponse.json(
-        { error: "This action requires administrator privileges." },
-        { status: 403 }
-      );
+    // Only the account owner or a super admin may modify a profile
+    if (!isAdmin && user.userId !== id) {
+      return NextResponse.json({ error: "You are not allowed to modify this account." }, { status: 403 });
     }
-    if (data.isBanned === true) {
-  blacklistUser(id);
-} else if (data.isBanned === false) {
-  removeFromBlacklist(id);
-}
+
+    // Whitelist updatable fields to prevent mass assignment (role, emailVerified, etc.)
+    const data: { name?: string; isBanned?: boolean; role?: Role } = {};
+    if (typeof body.name === "string" && body.name.trim()) data.name = body.name.trim();
+
+    if (body.isBanned !== undefined || body.role !== undefined) {
+      if (!isAdmin) {
+        return NextResponse.json(
+          { error: "This action requires administrator privileges." },
+          { status: 403 }
+        );
+      }
+      if (typeof body.isBanned === "boolean") {
+        if (body.isBanned && id === user.userId) {
+          return NextResponse.json({ error: "You cannot block your own account." }, { status: 400 });
+        }
+        data.isBanned = body.isBanned;
+      }
+      if (body.role !== undefined) {
+        if (!Object.values(Role).includes(body.role)) {
+          return NextResponse.json({ error: "Invalid role." }, { status: 400 });
+        }
+        data.role = body.role as Role;
+      }
+    }
+
+    if (Object.keys(data).length === 0) {
+      return NextResponse.json({ error: "No valid fields to update." }, { status: 400 });
+    }
 
     const updated = await prisma.user.update({
       where: { id },
@@ -117,6 +140,14 @@ export async function PUT(
         isBanned: true,
       },
     });
+
+    // Apply session changes only after the database write succeeded
+    if (data.isBanned === true) {
+      blacklistUser(id);
+    } else if (data.isBanned === false) {
+      removeFromBlacklist(id);
+    }
+    invalidateBanCache(id);
 
     return NextResponse.json({ message: "User profile updated successfully.", user: updated });
   } catch (error) {
@@ -151,11 +182,16 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const user = getTokenFromRequest(request);
+  const user = await getTokenFromRequest(request);
   if (!user) return unauthorizedResponse();
 
   try {
     const { id } = await params;
+
+    // Only the account owner or a super admin may delete an account
+    if (user.role !== "SUPER_ADMIN" && user.userId !== id) {
+      return NextResponse.json({ error: "You are not allowed to delete this account." }, { status: 403 });
+    }
 
     await prisma.user.delete({ where: { id } });
 

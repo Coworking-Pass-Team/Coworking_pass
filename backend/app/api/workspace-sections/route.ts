@@ -64,7 +64,7 @@ export async function GET(request: Request) {
 // POST /api/workspace-sections — إضافة قسم جديد لمساحة عمل
 export async function POST(request: Request) {
   try {
-    const user = getTokenFromRequest(request);
+    const user = await getTokenFromRequest(request);
 if (!user) return unauthorizedResponse();
     const { workspaceId, type, name, capacity, dailyRate, monthlyRate, yearlyRate } =
       await request.json();

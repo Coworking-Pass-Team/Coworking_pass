@@ -47,7 +47,7 @@ import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-tok
 export async function GET(request: NextRequest) {
   try {
     //  1. التحقق من التوكن
-    const user = getTokenFromRequest(request);
+    const user = await getTokenFromRequest(request);
     if (!user) return unauthorizedResponse();
 
     // 2. إجمالي الإيرادات (من المدفوعات الناجحة)

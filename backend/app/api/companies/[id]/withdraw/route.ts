@@ -42,13 +42,10 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = getTokenFromRequest(request);
-    if (!user && process.env.NODE_ENV === 'production') {
-      return unauthorizedResponse();
-    }
+    const user = await getTokenFromRequest(request);
+    if (!user) return unauthorizedResponse();
 
-    // Role check: HR_ADMIN, SUPER_ADMIN, organization, or admin
-    if (user && user.role !== 'HR_ADMIN' && user.role !== 'SUPER_ADMIN' && user.role !== 'organization' && user.role !== 'admin') {
+    if (user.role !== 'HR_ADMIN' && user.role !== 'SUPER_ADMIN') {
       return NextResponse.json(
         { error: 'Unauthorized. Only Organization HR Admin permitted.' },
         { status: 403 }
@@ -58,14 +55,13 @@ export async function POST(
     const { id } = await params;
     const { amount } = await request.json();
 
-    if (!amount || amount <= 0) {
+    if (typeof amount !== 'number' || !Number.isFinite(amount) || amount <= 0) {
       return NextResponse.json(
         { error: 'Amount is required and must be greater than zero.' },
         { status: 400 }
       );
     }
 
-    // Check company existence
     const company = await prisma.company.findUnique({
       where: { id }
     });
@@ -77,18 +73,29 @@ export async function POST(
       );
     }
 
-    if (company.balance < amount) {
+    // An HR admin may only spend from their own company wallet
+    if (user.role === 'HR_ADMIN' && company.hrAdminId !== user.userId) {
+      return NextResponse.json(
+        { error: 'You can only manage your own company wallet.' },
+        { status: 403 }
+      );
+    }
+
+    // Atomic conditional decrement: the balance check and deduction happen in one statement,
+    // so concurrent withdrawals cannot overdraw the wallet
+    const deducted = await prisma.company.updateMany({
+      where: { id, balance: { gte: amount } },
+      data: { balance: { decrement: amount } }
+    });
+
+    if (deducted.count === 0) {
       return NextResponse.json(
         { error: 'Insufficient company wallet balance.' },
         { status: 400 }
       );
     }
 
-    // Deduct amount
-    const updatedCompany = await prisma.company.update({
-      where: { id },
-      data: { balance: { decrement: amount } }
-    });
+    const updatedCompany = await prisma.company.findUniqueOrThrow({ where: { id } });
 
     return NextResponse.json({
       message: 'Withdrawal successful.',

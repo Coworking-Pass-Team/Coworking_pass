@@ -4,13 +4,17 @@ import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-tok
 
 export async function GET(request: Request) {
   try {
-    const user = getTokenFromRequest(request);
-    if (!user && process.env.NODE_ENV === 'production') {
+    const user = await getTokenFromRequest(request);
+    if (!user) {
       return unauthorizedResponse();
     }
 
     const { searchParams } = new URL(request.url);
-    const userIdFilter = searchParams.get('userId') || (user && user.role !== 'SUPER_ADMIN' ? user.userId : undefined);
+    const requestedUserId = searchParams.get('userId');
+    const canViewOthers = user.role === 'SUPER_ADMIN' || user.role === 'PARTNER_ADMIN';
+    const userIdFilter = (requestedUserId && (canViewOthers || requestedUserId === user.userId))
+      ? requestedUserId
+      : (canViewOthers ? undefined : user.userId);
 
     const whereClause: any = {};
     if (userIdFilter) {
@@ -71,15 +75,15 @@ export async function GET(request: Request) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const user = getTokenFromRequest(request);
-    if (!user && process.env.NODE_ENV === 'production') {
+    const user = await getTokenFromRequest(request);
+    if (!user) {
       return unauthorizedResponse();
     }
 
     const body = await request.json();
     const { userId, planId, startDate, endDate, status = 'ACTIVE' } = body;
 
-    const effectiveUserId = userId || (user ? user.userId : null);
+    const effectiveUserId = (user && user.role === 'SUPER_ADMIN' && userId) ? userId : (user ? user.userId : null);
 
     if (!effectiveUserId || !planId || !startDate || !endDate) {
       return NextResponse.json(

@@ -26,7 +26,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   // ✅ التحقق من التوكن (الحماية)
-  const user = getTokenFromRequest(request);
+  const user = await getTokenFromRequest(request);
   if (!user) return unauthorizedResponse();
 
   try {
