@@ -1592,6 +1592,7 @@ export type Screen =
   | 'provider-profile'
   | 'provider-settings'
   | 'notifications'
+  | 'waitlist'
   | 'cart'
   | 'loyalty'
   | 'privacy-policy'
@@ -1792,6 +1793,21 @@ export interface LoyaltyProposalForm {
   description: string;
   workspaceId?: string;
   bonusMultiplier?: number;
+}
+
+export interface WaitlistEntry {
+  id: string;
+  userId: string;
+  spaceId: string;
+  spaceName?: string;
+  spaceCity?: string;
+  spaceDistrict?: string;
+  spaceImage?: string;
+  joinedAt: string;
+  preferredDate?: string;
+  status: 'WAITLISTED' | 'PROMOTED' | 'CANCELLED';
+  queuePosition?: number;
+  autoBookingEnabled?: boolean;
 }
 
 /**
