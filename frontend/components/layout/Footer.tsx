@@ -73,6 +73,7 @@ export default function Footer() {
                   <li><button onClick={() => navigate('company-workspaces')} className="text-plaster/75 hover:text-eucalyptus transition-colors text-left">Company Workspaces</button></li>
                   <li><button onClick={() => navigate('browse')} className="text-plaster/75 hover:text-eucalyptus transition-colors text-left">Browse Spaces</button></li>
                   <li><button onClick={() => navigate('team-bookings')} className="text-plaster/75 hover:text-eucalyptus transition-colors text-left">Team Bookings</button></li>
+                  <li><button onClick={() => navigate('waitlist')} className="text-plaster/75 hover:text-eucalyptus transition-colors text-left">Workspace Waitlist</button></li>
                   <li><button onClick={() => navigate('company-team')} className="text-plaster/75 hover:text-eucalyptus transition-colors text-left">Team Members</button></li>
                 </>
               )}
@@ -81,6 +82,7 @@ export default function Footer() {
                   <li><button onClick={() => navigate('ind-dashboard')} className="text-plaster/75 hover:text-eucalyptus transition-colors text-left">Member Dashboard</button></li>
                   <li><button onClick={() => navigate('browse')} className="text-plaster/75 hover:text-eucalyptus transition-colors text-left">Browse Workspaces</button></li>
                   <li><button onClick={() => navigate('my-bookings')} className="text-plaster/75 hover:text-eucalyptus transition-colors text-left">My Active Bookings</button></li>
+                  <li><button onClick={() => navigate('waitlist')} className="text-plaster/75 hover:text-eucalyptus transition-colors text-left">Priority Waitlist</button></li>
                   <li><button onClick={() => navigate('ind-profile')} className="text-plaster/75 hover:text-eucalyptus transition-colors text-left">My Profile</button></li>
                 </>
               )}

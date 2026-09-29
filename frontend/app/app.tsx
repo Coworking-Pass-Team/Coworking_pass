@@ -22,6 +22,7 @@ import MyBookings from './individual/MyBookings';
 import LoyaltyPage from '@/app/loyalty/page';
 import LegalPage from '@/app/legal/page';
 import ProfileSettings from './individual/ProfileSettings';
+import WaitlistPage from '@/app/WaitlistPage';
 
 // Organization screens
 import OrgDashboard from './organization/Dashboard';
@@ -138,6 +139,7 @@ function Router() {
         {screen === 'admin-reports' && <Reports />}
         {screen === 'admin-settings' && <AdminSettings />}
         {screen === 'notifications' && <Notifications />}
+        {screen === 'waitlist' && <WaitlistPage />}
         {screen === 'loyalty' && <LoyaltyPage />}
         {screen === 'browse' && <Browse />}
         {screen === 'space-details' && <SpaceDetails />}
@@ -159,6 +161,7 @@ function Router() {
         {screen === 'company-team' && <CompanyTeam />}
         {screen === 'team-booking' && <TeamBooking />}
         {screen === 'team-bookings' && <TeamBookings />}
+        {screen === 'waitlist' && <WaitlistPage />}
         {screen === 'org-profile' && <OrgProfile />}
         {screen === 'org-settings' && <OrgProfile />}
         {screen === 'notifications' && <Notifications />}
@@ -183,6 +186,7 @@ function Router() {
         {screen === 'provider-profile' && <ProviderProfileSettings />}
         {screen === 'provider-settings' && <ProviderProfileSettings />}
         {screen === 'notifications' && <Notifications />}
+        {screen === 'waitlist' && <WaitlistPage />}
         {screen === 'loyalty' && <LoyaltyPage />}
         {screen === 'browse' && <Browse />}
         {screen === 'space-details' && <SpaceDetails />}
@@ -203,6 +207,7 @@ function Router() {
       {screen === 'booking-confirm' && <BookingFlow />}
       {screen === 'my-bookings' && <MyBookings />}
       {screen === 'booking-details' && <MyBookings />}
+      {screen === 'waitlist' && <WaitlistPage />}
       {screen === 'ind-profile' && <ProfileSettings mode="profile" />}
       {screen === 'ind-settings' && <ProfileSettings mode="settings" />}
       {screen === 'notifications' && <Notifications />}

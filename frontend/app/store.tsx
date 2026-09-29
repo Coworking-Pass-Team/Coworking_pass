@@ -3036,6 +3036,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
       }
 
+      const savedWaitlist = localStorage.getItem('cp_waitlist');
+      if (savedWaitlist) {
+        try {
+          setWaitlist(JSON.parse(savedWaitlist));
+        } catch (e) {
+          // Keep default state
+        }
+      }
+
       fetchTickets().catch(() => { });
       fetchPartners().catch(() => { });
       fetchWorkspaces().catch(() => { });
@@ -4874,7 +4883,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const joinWaitlist = async (spaceId: string, options?: { preferredDate?: string; alertPreferences?: { sms: boolean; email: boolean; whatsapp: boolean } }) => {
     const userId = currentUser?.id || 'user-1';
     const key = `${userId}_${spaceId}`;
-    setWaitlist(prev => ({ ...prev, [key]: true }));
+    setWaitlist(prev => {
+      const next = { ...prev, [key]: true };
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('cp_waitlist', JSON.stringify(next));
+        } catch (_) {}
+      }
+      return next;
+    });
 
     const targetSpace = spaces.find(s => s.id === spaceId) || workspacesApi.find(w => w.id === spaceId);
 
@@ -4894,7 +4911,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           userId,
           workspaceId: actualWorkspaceId,
           sectionId: actualSectionId,
-          durationType: 'DAILY', // القيمة الإجبارية التي يشترطها الـ Backend
+          durationType: 'DAILY',
           bookingDate: options?.preferredDate || new Date().toISOString().split('T')[0],
         }),
       });
@@ -4920,14 +4937,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
-
-
   const leaveWaitlist = (spaceId: string) => {
     const userId = currentUser?.id || 'user-1';
     const key = `${userId}_${spaceId}`;
     setWaitlist(prev => {
       const next = { ...prev };
       delete next[key];
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('cp_waitlist', JSON.stringify(next));
+        } catch (_) {}
+      }
       return next;
     });
     showToast('You have left the priority waitlist.', 'info');

@@ -1,6 +1,6 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
-import { Menu, X, User as UserIcon, LogOut, ChevronDown, Calendar, Building2, Users, Settings, CreditCard, HelpCircle, Wallet, Bell, CheckCheck, ChevronRight, Sparkles, ShoppingBag } from 'lucide-react';
+import { Menu, X, User as UserIcon, LogOut, ChevronDown, Calendar, Building2, Users, Settings, CreditCard, HelpCircle, Wallet, Bell, CheckCheck, ChevronRight, Sparkles, ShoppingBag, Clock } from 'lucide-react';
 import { useApp } from '@/app/store';
 import Logo from './logo';
 import WalletModal from '@/components/ui/WalletModal';
@@ -240,6 +240,7 @@ export default function Navbar() {
         { label: 'Browse', screen: 'browse' as const },
         { label: 'Passes', screen: 'pricing' as const },
         { label: 'Bookings', screen: 'team-bookings' as const },
+        { label: 'Waitlist', screen: 'waitlist' as const },
         { label: 'Team', screen: 'company-team' as const },
       ];
     }
@@ -266,9 +267,10 @@ export default function Navbar() {
 
     return [
       { label: 'Dashboard', screen: 'ind-dashboard' as const },
-      { label: 'Browse Spaces', screen: 'browse' as const },
-      { label: 'Pricing & Plans', screen: 'pricing' as const },
-      { label: 'My Bookings', screen: 'my-bookings' as const },
+      { label: 'Browse', screen: 'browse' as const },
+      { label: 'Passes', screen: 'pricing' as const },
+      { label: 'Bookings', screen: 'my-bookings' as const },
+      { label: 'Waitlist', screen: 'waitlist' as const },
     ];
   };
 
@@ -390,6 +392,19 @@ export default function Navbar() {
                     <UserIcon size={15} className="text-moss" />
                     <span>My Profile & Account</span>
                   </button>
+
+                  {isConsumerOrOrg && (
+                    <button
+                      onClick={() => {
+                        navigate('waitlist');
+                        setDropdownOpen(false);
+                      }}
+                      className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold text-soot hover:bg-plaster-dark/50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                    >
+                      <Clock size={15} className="text-moss" />
+                      <span>Priority Waitlist</span>
+                    </button>
+                  )}
 
                   <button
                     onClick={() => {
