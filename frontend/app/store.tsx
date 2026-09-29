@@ -480,6 +480,7 @@ interface AppContextType {
   rejectAmenityRequest: (requestId: string, reason?: string) => void;
   deleteAmenityRequest: (requestId: string) => void;
   getApprovedAmenities: () => string[];
+  fetchAmenities: () => Promise<void>;
 
   notifications: Notification[];
   unreadNotificationsCount: number;
@@ -1577,9 +1578,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
           if (requests.length > 0) {
             setAmenityRequests((prev) => {
-              const map = new Map(prev.map((r) => [r.id, r]));
-              requests.forEach((r) => map.set(r.id, r));
-              return Array.from(map.values());
+              const nameMap = new Map<string, AmenityRequest>();
+              // Keep non-conflicting existing requests
+              prev.forEach((r) => {
+                if (r && r.amenityName) {
+                  nameMap.set(r.amenityName.trim().toLowerCase(), r);
+                }
+              });
+              // DB requests take priority and update matching names
+              requests.forEach((r) => {
+                const key = r.amenityName.trim().toLowerCase();
+                const existing = nameMap.get(key);
+                nameMap.set(key, {
+                  ...existing,
+                  ...r,
+                  providerId: existing?.providerId || r.providerId || 'user-p1',
+                  providerName: existing?.providerName || r.providerName || 'Workspace Provider',
+                  spaceId: existing?.spaceId || r.spaceId,
+                  spaceName: existing?.spaceName || r.spaceName,
+                  status: r.status,
+                });
+              });
+              const merged = Array.from(nameMap.values());
+              if (typeof window !== 'undefined') {
+                localStorage.setItem('cp_amenity_requests', JSON.stringify(merged));
+              }
+              return merged;
             });
           }
         }
@@ -2982,7 +3006,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const savedAmenityReqs = localStorage.getItem('cp_amenity_requests');
       if (savedAmenityReqs) {
         try {
-          setAmenityRequests(JSON.parse(savedAmenityReqs));
+          const parsed = JSON.parse(savedAmenityReqs);
+          if (Array.isArray(parsed)) {
+            const dedupedMap = new Map<string, AmenityRequest>();
+            parsed.forEach((r: AmenityRequest) => {
+              if (r && r.amenityName) {
+                const key = r.amenityName.trim().toLowerCase();
+                const existing = dedupedMap.get(key);
+                if (!existing || (existing.status === 'PENDING_APPROVAL' && r.status !== 'PENDING_APPROVAL')) {
+                  dedupedMap.set(key, r);
+                }
+              }
+            });
+            const cleaned = Array.from(dedupedMap.values());
+            setAmenityRequests(cleaned);
+            localStorage.setItem('cp_amenity_requests', JSON.stringify(cleaned));
+          }
         } catch (e) {
           // Keep default state
         }
@@ -5253,7 +5292,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (res.ok) {
           const resData = await res.json();
           if (resData.amenity?.id) {
-            setAmenityRequests(prev => prev.map(r => r.id === newReq.id ? { ...r, id: resData.amenity.id } : r));
+            setAmenityRequests((prev) => {
+              const updatedWithId = prev.map((r) =>
+                r.id === newReq.id || r.amenityName.trim().toLowerCase() === trimmed.toLowerCase()
+                  ? { ...r, id: resData.amenity.id }
+                  : r
+              );
+              if (typeof window !== 'undefined') {
+                localStorage.setItem('cp_amenity_requests', JSON.stringify(updatedWithId));
+              }
+              return updatedWithId;
+            });
           }
         }
       } catch (err) {
@@ -5273,27 +5322,46 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const approveAmenityRequest = (requestId: string) => {
-    const req = amenityRequests.find(r => r.id === requestId);
+    const req = amenityRequests.find((r) => r.id === requestId);
     if (!req) return;
 
-    const updatedReqs = amenityRequests.map(r =>
-      r.id === requestId ? { ...r, status: 'APPROVED' as AmenityRequestStatus } : r
-    );
+    const targetName = req.amenityName.trim().toLowerCase();
+
+    // Update ALL requests with matching ID or amenityName to APPROVED
+    // and deduplicate so there is only one request per amenityName
+    const dedupedMap = new Map<string, AmenityRequest>();
+    amenityRequests.forEach((r) => {
+      const key = r.amenityName.trim().toLowerCase();
+      const isMatch = r.id === requestId || key === targetName;
+      const updatedItem: AmenityRequest = isMatch ? { ...r, status: 'APPROVED' as AmenityRequestStatus } : r;
+
+      const existing = dedupedMap.get(key);
+      if (!existing || updatedItem.status === 'APPROVED') {
+        dedupedMap.set(key, updatedItem);
+      }
+    });
+
+    const updatedReqs = Array.from(dedupedMap.values());
     setAmenityRequests(updatedReqs);
 
     const existsInApproved = approvedCustomAmenities.some(
-      a => a.toLowerCase() === req.amenityName.toLowerCase()
+      (a) => a.toLowerCase() === targetName
     );
     const newApproved = existsInApproved ? approvedCustomAmenities : [...approvedCustomAmenities, req.amenityName];
     setApprovedCustomAmenities(newApproved);
 
     if (req.spaceId) {
-      const targetSpace = spaces.find(s => s.id === req.spaceId);
+      const targetSpace = spaces.find((s) => s.id === req.spaceId);
       if (targetSpace && !targetSpace.amenities.includes(req.amenityName)) {
         updateSpace(targetSpace.id, {
           amenities: [...targetSpace.amenities, req.amenityName],
         });
       }
+    }
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cp_amenity_requests', JSON.stringify(updatedReqs));
+      localStorage.setItem('cp_approved_amenities', JSON.stringify(newApproved));
     }
 
     (async () => {
@@ -5336,11 +5404,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
     })();
 
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('cp_amenity_requests', JSON.stringify(updatedReqs));
-      localStorage.setItem('cp_approved_amenities', JSON.stringify(newApproved));
-    }
-
     addNotification({
       userId: req.providerId,
       title: 'Amenity Request Approved',
@@ -5352,15 +5415,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const rejectAmenityRequest = (requestId: string, reason?: string) => {
-    const req = amenityRequests.find(r => r.id === requestId);
+    const req = amenityRequests.find((r) => r.id === requestId);
     if (!req) return;
 
-    const updatedReqs = amenityRequests.map(r =>
-      r.id === requestId
-        ? { ...r, status: 'REJECTED' as AmenityRequestStatus, rejectionReason: reason || 'Does not meet catalog guidelines.' }
-        : r
-    );
+    const targetName = req.amenityName.trim().toLowerCase();
+    const effectiveReason = reason || 'Does not meet catalog guidelines.';
+
+    const dedupedMap = new Map<string, AmenityRequest>();
+    amenityRequests.forEach((r) => {
+      const key = r.amenityName.trim().toLowerCase();
+      const isMatch = r.id === requestId || key === targetName;
+      const updatedItem: AmenityRequest = isMatch
+        ? { ...r, status: 'REJECTED' as AmenityRequestStatus, rejectionReason: effectiveReason }
+        : r;
+
+      const existing = dedupedMap.get(key);
+      if (!existing || isMatch) {
+        dedupedMap.set(key, updatedItem);
+      }
+    });
+
+    const updatedReqs = Array.from(dedupedMap.values());
     setAmenityRequests(updatedReqs);
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cp_amenity_requests', JSON.stringify(updatedReqs));
+    }
 
     (async () => {
       try {
@@ -5525,7 +5605,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const deleteAmenityRequest = (requestId: string) => {
-    const updated = amenityRequests.filter((r) => r.id !== requestId);
+    const target = amenityRequests.find((r) => r.id === requestId);
+    const targetName = target ? target.amenityName.trim().toLowerCase() : '';
+    const updated = amenityRequests.filter(
+      (r) => r.id !== requestId && (!targetName || r.amenityName.trim().toLowerCase() !== targetName)
+    );
     setAmenityRequests(updated);
     if (typeof window !== 'undefined') {
       localStorage.setItem('cp_amenity_requests', JSON.stringify(updated));
@@ -5562,7 +5646,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       userLocation, locationStatus, locationErrorMessage, requestUserLocation,
       spaces, favorites, toggleFavorite, addSpace, updateSpace, toggleSpaceVisibility, deleteSpace,
       bookings, addBooking, cancelBooking, updateBookingStatus, deleteBooking,
-      amenityRequests, approvedCustomAmenities, requestCustomAmenity, approveAmenityRequest, rejectAmenityRequest, deleteAmenityRequest, getApprovedAmenities,
+      amenityRequests, approvedCustomAmenities, requestCustomAmenity, approveAmenityRequest, rejectAmenityRequest, deleteAmenityRequest, getApprovedAmenities, fetchAmenities,
       supportTickets, fetchTickets, addSupportTicket, updateTicketStatus, replyToTicket,
       notifications: userNotifications,
       unreadNotificationsCount: userNotifications.filter(n => !n.read).length,
