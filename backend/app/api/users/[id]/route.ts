@@ -93,8 +93,8 @@ export async function PUT(
     const { id } = await params;
     const data = await request.json();
 
-    // حظر/رفع حظر — صلاحية SUPER_ADMIN فقط
-    if (data.isBanned !== undefined && user.role !== "SUPER_ADMIN") {
+    // Permission check: allow SUPER_ADMIN or admin
+    if (data.isBanned !== undefined && user.role !== "SUPER_ADMIN" && user.role !== "admin") {
       return NextResponse.json(
         { error: "This action requires administrator privileges." },
         { status: 403 }

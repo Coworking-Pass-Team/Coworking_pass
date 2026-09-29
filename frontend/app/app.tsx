@@ -13,6 +13,7 @@ import SpaceDetails from './spaces/[id]/page';
 import Pricing from './Pricing';
 import Contact from './contact';
 import { LoginScreen, SignUpScreen, ChooseAccountType, ForgotPasswordScreen, OtpVerificationScreen, ResetPasswordScreen } from '@/app/Auth/page';
+import AccountSuspendedScreen from './Auth/AccountSuspendedScreen';
 import Notifications from '@/Notifications';
 
 // Individual screens
@@ -89,8 +90,22 @@ export function Toast() {
 }
 
 function Router() {
-  const { nav, currentUser } = useApp();
+  const { nav, currentUser, logout } = useApp();
   const screen = nav.screen;
+
+  // Account suspended screen: show when screen is 'account-suspended' or if currentUser is blocked
+  if (screen === 'account-suspended' || currentUser?.isBlocked) {
+    if (currentUser?.isBlocked && typeof window !== 'undefined') {
+      localStorage.removeItem('cp_token');
+      localStorage.removeItem('cp_currentUser');
+      localStorage.removeItem('token');
+      localStorage.removeItem('jwt');
+      if (logout) {
+        setTimeout(() => logout(), 0);
+      }
+    }
+    return <AccountSuspendedScreen />;
+  }
 
   // Home / Landing page (accessible to both guests and authenticated users)
   if (screen === 'landing') return <Landing />;
