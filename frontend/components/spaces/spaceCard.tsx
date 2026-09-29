@@ -1,8 +1,10 @@
 'use client';
 
+import { useI18n } from '@/i18n';
 import { Heart, MapPin, Star, Users, Check, Navigation } from 'lucide-react';
 import { Space, BookingPlan, getEffectiveSpacePrice, isHourlyAllowed, formatDistance } from '@/types/types';
 import { useApp } from '@/app/store';
+import { useSpaceText } from '@/i18n/space-text';
 
 interface SpaceCardProps {
   space: Space;
@@ -11,6 +13,8 @@ interface SpaceCardProps {
 }
 
 export default function SpaceCard({ space, distance, onSelect }: SpaceCardProps) {
+  const { t } = useI18n();
+  const st = useSpaceText();
   const { favorites, toggleFavorite, currentUser, getSpaceCrowding } = useApp();
   const isFav = favorites.includes(space.id) || (space.name ? favorites.includes(space.name) : false);
   const userTier = (currentUser?.membershipTier || '').toLowerCase();
@@ -43,10 +47,10 @@ export default function SpaceCard({ space, distance, onSelect }: SpaceCardProps)
   const isFullyBooked = crowding.availableCapacity === 0 || crowding.level === 'Busy';
 
   const availability = isFullyBooked
-    ? { label: 'Limited', badgeClass: 'bg-soot/80 text-white border-white/10 backdrop-blur-md font-semibold' }
+    ? { label: t('space.limited'), badgeClass: 'bg-soot/80 text-white border-white/10 backdrop-blur-md font-semibold' }
     : isAlmostFull
-    ? { label: 'Limited', badgeClass: 'bg-amber-100/90 text-amber-900 border-amber-200/90 backdrop-blur-md font-semibold' }
-    : { label: 'Available', badgeClass: 'bg-white/90 text-soot border-soot/10 backdrop-blur-md font-semibold' };
+    ? { label: t('space.limited'), badgeClass: 'bg-amber-100/90 text-amber-900 border-amber-200/90 backdrop-blur-md font-semibold' }
+    : { label: t('space.available'), badgeClass: 'bg-white/90 text-soot border-soot/10 backdrop-blur-md font-semibold' };
 
   const formattedDist = distance !== undefined && distance !== null && !isNaN(distance)
     ? formatDistance(distance)
@@ -63,13 +67,13 @@ export default function SpaceCard({ space, distance, onSelect }: SpaceCardProps)
       <div className="relative overflow-hidden h-48 sm:h-52 bg-soot/5">
         <img
           src={space.images?.[0] ? space.images[0] : 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80'}
-          alt={space.name || 'Workspace'}
+          alt={st.name(space) || 'Workspace'}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-soot/60 via-transparent to-black/10" />
 
         {/* Top-left Status Badge */}
-        <div className="absolute top-3.5 left-3.5 flex items-center gap-1.5 flex-wrap max-w-[85%]">
+        <div className="absolute top-3.5 start-3.5 flex items-center gap-1.5 flex-wrap max-w-[85%]">
           <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs border shadow-xs backdrop-blur-md ${availability.badgeClass}`}>
             {availability.label}
           </span>
@@ -79,7 +83,7 @@ export default function SpaceCard({ space, distance, onSelect }: SpaceCardProps)
         {currentUser && (
           <button
             type="button"
-            className="absolute top-3.5 right-3.5 w-8 h-8 rounded-full bg-white/90 hover:bg-white backdrop-blur-sm flex items-center justify-center shadow-xs transition-transform active:scale-90 cursor-pointer"
+            className="absolute top-3.5 end-3.5 w-8 h-8 rounded-full bg-white/90 hover:bg-white backdrop-blur-sm flex items-center justify-center shadow-xs transition-transform active:scale-90 cursor-pointer"
             onClick={e => {
               e.stopPropagation();
               toggleFavorite(space.id);
@@ -95,7 +99,7 @@ export default function SpaceCard({ space, distance, onSelect }: SpaceCardProps)
         )}
 
         {/* Bottom-left Rating Overlay */}
-        <div className="absolute bottom-3 left-3.5 flex items-center gap-1.5 text-white text-xs font-medium drop-shadow-sm">
+        <div className="absolute bottom-3 start-3.5 flex items-center gap-1.5 text-white text-xs font-medium drop-shadow-sm">
           <Star size={12} fill="#FDB813" stroke="#FDB813" />
           <span>{space.rating}</span>
           <span className="opacity-80">({space.reviewCount})</span>
@@ -108,28 +112,28 @@ export default function SpaceCard({ space, distance, onSelect }: SpaceCardProps)
           {/* Title and Price */}
           <div className="flex items-start justify-between gap-2.5 mb-1.5">
             <h3 className="font-semibold text-soot text-sm sm:text-base leading-snug group-hover:text-emerald-950 transition-colors line-clamp-1 flex-1 min-w-0">
-              {space.name}
+              {st.name(space)}
             </h3>
-            <div className="text-right shrink-0">
+            <div className="text-end shrink-0">
               {planInfo.isCovered ? (
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-eucalyptus/30 text-soot font-semibold text-[11px] border border-eucalyptus/40 shadow-2xs whitespace-nowrap">
                   <Check size={11} className="text-moss shrink-0" />
-                  <span>Included</span>
+                  <span>{t('space.included')}</span>
                 </span>
               ) : planInfo.hasDiscount ? (
                 <div>
-                  <div className="text-soot font-bold text-xs sm:text-sm">SAR {planInfo.effectivePrice}</div>
-                  <div className="text-moss text-[10px] font-medium font-mono">{planInfo.discountPercentage}% Off</div>
-                  <div className="text-moss text-[10px]">{isHourlySpace ? '/ hour' : '/ day'}</div>
+                  <div className="text-soot font-bold text-xs sm:text-sm">{t('common.sar')} {planInfo.effectivePrice}</div>
+                  <div className="text-moss text-[10px] font-medium font-mono">{t('space.percentOff', { percent: planInfo.discountPercentage ?? 0 })}</div>
+                  <div className="text-moss text-[10px]">{isHourlySpace ? t('space.perHour') : t('space.perDay')}</div>
                 </div>
               ) : (
                 <>
                   {/* Safe price extraction */}
                   <div className="text-soot font-bold text-xs sm:text-sm">
-                    SAR {isHourlySpace ? (space.pricing?.hourly ?? (space.pricing?.daily ? Math.round(space.pricing.daily / 4) : 150)) : (space.pricing?.daily ?? 0)}
+                    {t('common.sar')} {isHourlySpace ? (space.pricing?.hourly ?? (space.pricing?.daily ? Math.round(space.pricing.daily / 4) : 150)) : (space.pricing?.daily ?? 0)}
                   </div>
                   <div className="text-moss text-[10px] sm:text-[11px] font-normal block -mt-0.5">
-                    {isHourlySpace ? '/ hour' : '/ day'}
+                    {isHourlySpace ? t('space.perHour') : t('space.perDay')}
                   </div>
                 </>
               )}
@@ -140,7 +144,7 @@ export default function SpaceCard({ space, distance, onSelect }: SpaceCardProps)
           <div className="flex items-center gap-3 text-moss text-xs mb-3 flex-wrap">
             <div className="flex items-center gap-1 truncate">
               <MapPin size={12} className="shrink-0 text-moss" />
-              <span className="truncate">{space.city}</span>
+              <span className="truncate">{st.city(space)}</span>
             </div>
             {formattedDist && (
               <div className="flex items-center gap-1 text-moss text-xs">
@@ -157,7 +161,7 @@ export default function SpaceCard({ space, distance, onSelect }: SpaceCardProps)
                 key={typeof a === 'string' ? a : (a as any)?.name}
                 className="text-[11px] px-2.5 py-1 rounded-lg bg-[#F5F3ED] text-soot/80 font-medium border border-soot/5"
               >
-                {typeof a === 'string' ? a : (a as any)?.name}
+                {st.amenity(typeof a === 'string' ? a : (a as any)?.name)}
               </span>
             ))}
             {amenitiesList.length > 3 && (
@@ -170,16 +174,16 @@ export default function SpaceCard({ space, distance, onSelect }: SpaceCardProps)
           {/* Available Capacity */}
           <div className="flex items-center gap-1.5 text-xs text-moss mb-3">
             <Users size={13} className="text-moss shrink-0" />
-            <span>{crowding.availableCapacity}/{crowding.totalCapacity} available</span>
+            <span>{t('space.seatsAvailable', { available: crowding.availableCapacity, total: crowding.totalCapacity })}</span>
           </div>
         </div>
 
         {/* Crowding Indicator Progress Bar Matching Screenshot */}
         <div className="space-y-1.5 pt-3 border-t border-soot/6">
           <div className="flex items-center justify-between text-xs">
-            <span className="text-moss font-normal">Capacity</span>
+            <span className="text-moss font-normal">{t('space.capacity')}</span>
             <span className={`font-semibold text-xs ${crowding.textColor}`}>
-              {crowding.level}
+              {t(('crowding.' + crowding.level) as never)}
             </span>
           </div>
           <div className="w-full h-1.5 rounded-full bg-[#E5EBE7] overflow-hidden">

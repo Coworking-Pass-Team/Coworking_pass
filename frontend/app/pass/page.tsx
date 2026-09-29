@@ -103,15 +103,15 @@ function PassVerificationContent() {
         )}
 
         {/* Pass Details Card */}
-        <div className="bg-[#FAF7F2] rounded-2xl p-4 sm:p-5 text-left border border-soot/8 space-y-3.5 text-xs sm:text-sm">
+        <div className="bg-[#FAF7F2] rounded-2xl p-4 sm:p-5 text-start border border-soot/8 space-y-3.5 text-xs sm:text-sm">
           <div className="flex items-center justify-between pb-3 border-b border-soot/8">
             <span className="text-moss">Workspace</span>
-            <span className="font-bold text-soot text-right">{displayName}</span>
+            <span className="font-bold text-soot text-end">{displayName}</span>
           </div>
 
           <div className="flex items-center justify-between pb-3 border-b border-soot/8">
             <span className="text-moss">Location</span>
-            <span className="font-medium text-soot text-right flex items-center gap-1">
+            <span className="font-medium text-soot text-end flex items-center gap-1">
               <MapPin size={13} className="text-moss" />
               {displayCity}
             </span>
@@ -127,7 +127,7 @@ function PassVerificationContent() {
               <span className="text-moss">
                 {plan.toLowerCase().includes('daily') || plan === 'daily' ? 'Date Range' : 'Booking Date'}
               </span>
-              <span className="font-semibold text-soot text-right">
+              <span className="font-semibold text-soot text-end">
                 {endDate && endDate !== startDate ? `${startDate} to ${endDate}` : startDate}
               </span>
             </div>
@@ -145,7 +145,7 @@ function PassVerificationContent() {
           {startTime && endTime && (
             <div className="flex items-center justify-between pb-3 border-b border-soot/8">
               <span className="text-moss">Allowed Hours</span>
-              <span className="font-semibold text-emerald-800 text-right">
+              <span className="font-semibold text-emerald-800 text-end">
                 {startTime} – {endTime}
               </span>
             </div>
@@ -170,7 +170,7 @@ function PassVerificationContent() {
         </div>
 
         {/* Database Sync Status */}
-        <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-xl p-3 flex items-start gap-2.5 text-left text-xs text-emerald-900">
+        <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-xl p-3 flex items-start gap-2.5 text-start text-xs text-emerald-900">
           <Database size={15} className="text-emerald-700 shrink-0 mt-0.5" />
           <div>
             <div className="font-semibold">Database Live Sync</div>

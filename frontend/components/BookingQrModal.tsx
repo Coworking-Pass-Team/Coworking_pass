@@ -1,10 +1,12 @@
 'use client';
 
+import { useI18n } from '@/i18n';
 import React, { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import { ShieldCheck, MapPin, Calendar, Users, Clock, X } from 'lucide-react';
 import { Booking, getBookingPrice, Space, calculateDailyDurationDays, formatDateRange } from '@/types/types';
 import { useApp } from '@/app/store';
+import { useSpaceText } from '@/i18n/space-text';
 
 interface BookingQrModalProps {
   booking: Booking | null;
@@ -19,6 +21,8 @@ export default function BookingQrModal({
   space: propSpace,
 }: BookingQrModalProps) {
   const { spaces, currentUser } = useApp();
+  const { t, localizeTime, translateMessage } = useI18n();
+  const st = useSpaceText();
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
 
   const targetSpace = propSpace || (booking ? spaces.find(s => s.id === booking.spaceId) : null);
@@ -83,8 +87,8 @@ export default function BookingQrModal({
         {/* Header with Close */}
         <div className="flex items-center justify-between px-1">
           <div>
-            <h3 className="text-base font-semibold text-soot">Reservation Pass</h3>
-            <p className="text-[11px] text-moss">Ref: {booking.id}</p>
+            <h3 className="text-base font-semibold text-soot">{t('qr.title')}</h3>
+            <p className="text-[11px] text-moss">{t('qr.ref', { id: booking.id })}</p>
           </div>
           <button
             type="button"
@@ -99,25 +103,25 @@ export default function BookingQrModal({
         <div className="bg-white rounded-2xl p-4 border border-soot/8 shadow-2xs space-y-2.5 text-xs">
           <div className="flex items-start justify-between pb-2.5 border-b border-soot/8">
             <div>
-              <div className="font-bold text-soot text-sm">{booking.spaceName}</div>
+              <div className="font-bold text-soot text-sm">{st.bookingName(booking)}</div>
               <div className="flex items-center gap-1 text-moss text-[11px] mt-0.5">
                 <MapPin size={11} />
-                <span>{booking.spaceCity || targetSpace?.city || 'Saudi Arabia'}</span>
+                <span>{st.bookingCity(booking) || (targetSpace ? st.city(targetSpace) : '') || t('qr.saudiArabia')}</span>
               </div>
             </div>
             <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
               {booking.plan === 'daily'
-                ? `Daily (${durationDays} ${durationDays === 1 ? 'Day' : 'Days'})`
+                ? t(durationDays === 1 ? 'qr.dailyDays' : 'qr.dailyDaysMany', { count: durationDays })
                 : booking.plan === 'hourly'
-                ? `Hourly (${booking.durationHours || 1}h)`
-                : `${booking.plan} pass`}
+                ? t('qr.hourlyH', { count: booking.durationHours || 1 })
+                : t(('booking.planPass.' + booking.plan) as never)}
             </span>
           </div>
 
           <div className="grid grid-cols-2 gap-2 text-[11px]">
             <div>
               <span className="text-moss block">
-                {booking.plan === 'daily' ? 'Date Range' : booking.plan === 'hourly' ? 'Booking Date' : 'Start Date'}
+                {booking.plan === 'daily' ? t('qr.dateRange') : booking.plan === 'hourly' ? t('qr.bookingDate') : t('qr.startDate')}
               </span>
               <span className="font-semibold text-soot block">
                 {booking.plan === 'daily'
@@ -125,20 +129,20 @@ export default function BookingQrModal({
                   : booking.startDate}
               </span>
               {booking.plan !== 'daily' && booking.endDate && booking.endDate !== booking.startDate && (
-                <span className="text-[10px] text-moss block">to {booking.endDate}</span>
+                <span className="text-[10px] text-moss block">{t('qr.to', { date: booking.endDate })}</span>
               )}
             </div>
 
             <div>
               <span className="text-moss block">
-                {booking.plan === 'daily' ? 'Duration' : booking.plan === 'hourly' ? 'Time Window' : 'Seats'}
+                {booking.plan === 'daily' ? t('qr.duration') : booking.plan === 'hourly' ? t('qr.timeWindow') : t('qr.seats')}
               </span>
               <span className="font-semibold text-soot block">
                 {booking.plan === 'daily'
-                  ? `${durationDays} ${durationDays === 1 ? 'Calendar Day' : 'Calendar Days'}`
+                  ? t(durationDays === 1 ? 'qr.calendarDay' : 'qr.calendarDays', { count: durationDays })
                   : booking.plan === 'hourly'
-                  ? `${booking.startTime || ''} – ${booking.endTime || ''}`
-                  : `${booking.seats} Seat(s)`}
+                  ? `${localizeTime(booking.startTime || '')} – ${localizeTime(booking.endTime || '')}`
+                  : t('qr.seatsCount', { count: booking.seats })}
               </span>
             </div>
           </div>
@@ -146,20 +150,20 @@ export default function BookingQrModal({
           {booking.startTime && booking.endTime && booking.plan !== 'hourly' && (
             <div className="flex items-center justify-between pt-2 border-t border-soot/8 text-[11px]">
               <span className="text-moss flex items-center gap-1">
-                <Clock size={11} /> Daily Allowed Hours
+                <Clock size={11} /> {t('qr.dailyHours')}
               </span>
               <span className="font-semibold text-emerald-800">
-                {booking.startTime} – {booking.endTime} ({booking.durationHours || 1} hrs/day)
+                {t('qr.hrsPerDay', { start: localizeTime(booking.startTime), end: localizeTime(booking.endTime), count: booking.durationHours || 1 })}
               </span>
             </div>
           )}
 
           <div className="flex items-center justify-between pt-2 border-t border-soot/8 text-xs font-semibold">
             <span className="text-moss font-normal flex items-center gap-1">
-              <Users size={12} /> {booking.seats} Seat{booking.seats > 1 ? 's' : ''} Reserved
+              <Users size={12} /> {t(booking.seats > 1 ? 'qr.seatsReserved' : 'qr.seatReserved', { count: booking.seats })}
             </span>
             <span className="text-soot font-bold">
-              {hasActiveSubscription || totalPrice === 0 ? 'Status: Covered by Pass' : `Total: ${totalPriceDisplay}`}
+              {hasActiveSubscription || totalPrice === 0 ? t('qr.coveredStatus') : t('qr.total', { amount: translateMessage(String(totalPriceDisplay)) })}
             </span>
           </div>
         </div>
@@ -168,10 +172,10 @@ export default function BookingQrModal({
         <div className="bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-6 text-center border border-soot/8 shadow-2xs space-y-3">
           <div>
             <h4 className="text-base sm:text-lg font-medium text-soot font-serif-display">
-              Entry QR code
+              {t('qr.entryQr')}
             </h4>
             <p className="text-xs text-moss mt-0.5">
-              Show at the space entrance for authorized verification.
+              {t('qr.entryHint')}
             </p>
           </div>
 
@@ -180,19 +184,19 @@ export default function BookingQrModal({
             {qrDataUrl ? (
               <img
                 src={qrDataUrl}
-                alt="Entry QR Code"
+                alt={t('qr.entryAlt')}
                 className="w-48 h-48 sm:w-56 sm:h-56 object-contain rounded-xl"
               />
             ) : (
               <div className="w-48 h-48 sm:w-56 sm:h-56 flex items-center justify-center text-moss text-xs">
-                Generating pass...
+                {t('qr.generating')}
               </div>
             )}
           </div>
 
           <div className="flex items-center justify-center gap-1.5 text-xs text-moss font-medium pt-1">
             <ShieldCheck size={14} className="text-emerald-700 shrink-0" />
-            <span>Encrypted &amp; Authorized by Coworking Pass</span>
+            <span>{t('qr.encrypted')}</span>
           </div>
         </div>
 
@@ -201,7 +205,7 @@ export default function BookingQrModal({
           onClick={onClose}
           className="w-full py-3 px-4 rounded-2xl bg-soot text-plaster text-xs sm:text-sm font-semibold hover:bg-moss transition-all cursor-pointer shadow-xs"
         >
-          Close Pass
+          {t('qr.close')}
         </button>
       </div>
     </div>

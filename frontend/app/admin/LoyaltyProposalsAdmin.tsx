@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/i18n';
 import React, { useState } from 'react';
 import {
   Sparkles,
@@ -31,6 +32,7 @@ import { LoyaltyRule, LoyaltyRuleType, ApprovalStatus } from '@/types/types';
 import Modal from '@/components/ui/Modal';
 
 export default function LoyaltyProposalsAdmin() {
+  const { t, translateMessage } = useI18n();
   const { currentUser, loyaltyRules, fetchLoyaltyRules, updateLoyaltyRuleStatus, deleteLoyaltyRule, showToast } = useApp();
 
   useEffect(() => {
@@ -144,7 +146,7 @@ export default function LoyaltyProposalsAdmin() {
         <div>
           <div className="flex items-center gap-2 mb-1.5">
             <span className="text-xs font-semibold tracking-wider uppercase text-moss bg-soot/5 px-2.5 py-0.5 rounded-md">
-              Super Admin Management
+              {t('loyaltyAdmin.eyebrow')}
             </span>
             {pendingCount > 0 && (
               <span className="text-xs font-bold text-amber-900 bg-amber-500/15 px-2.5 py-0.5 rounded-full border border-amber-500/30 animate-pulse">
@@ -153,11 +155,11 @@ export default function LoyaltyProposalsAdmin() {
             )}
           </div>
           <h1 className="text-3xl sm:text-4xl text-soot font-normal font-serif-display tracking-tight flex items-center gap-3">
-            <span>Loyalty Points Proposals</span>
+            <span>{t('loyaltyAdmin.title')}</span>
             <Sparkles className="text-emerald-700 w-7 h-7 shrink-0 hidden sm:inline" />
           </h1>
           <p className="text-moss text-sm mt-1 max-w-2xl">
-            Review, evaluate economic impact, approve, or reject point-earning and redemption discount rules submitted by Space Providers.
+            {t('loyaltyAdmin.subtitle')}
           </p>
         </div>
       </div>
@@ -171,7 +173,7 @@ export default function LoyaltyProposalsAdmin() {
             </div>
             <div>
               <div className="text-2xl font-semibold text-soot tracking-tight font-sans">{totalCount}</div>
-              <div className="text-xs font-medium text-moss mt-0.5">Total Proposals</div>
+              <div className="text-xs font-medium text-moss mt-0.5">{t('loyaltyAdmin.total')}</div>
             </div>
           </div>
         </div>
@@ -183,7 +185,7 @@ export default function LoyaltyProposalsAdmin() {
             </div>
             <div>
               <div className="text-2xl font-semibold text-amber-800 tracking-tight font-sans">{pendingCount}</div>
-              <div className="text-xs font-medium text-moss mt-0.5">Pending Approval</div>
+              <div className="text-xs font-medium text-moss mt-0.5">{t('auth.pendingApproval')}</div>
             </div>
           </div>
         </div>
@@ -195,7 +197,7 @@ export default function LoyaltyProposalsAdmin() {
             </div>
             <div>
               <div className="text-2xl font-semibold text-emerald-800 tracking-tight font-sans">{approvedCount}</div>
-              <div className="text-xs font-medium text-moss mt-0.5">Approved & Active</div>
+              <div className="text-xs font-medium text-moss mt-0.5">{t('loyaltyAdmin.approvedActive')}</div>
             </div>
           </div>
         </div>
@@ -207,7 +209,7 @@ export default function LoyaltyProposalsAdmin() {
             </div>
             <div>
               <div className="text-2xl font-semibold text-rose-800 tracking-tight font-sans">{rejectedCount}</div>
-              <div className="text-xs font-medium text-moss mt-0.5">Rejected Proposals</div>
+              <div className="text-xs font-medium text-moss mt-0.5">{t('loyaltyAdmin.rejected')}</div>
             </div>
           </div>
         </div>
@@ -220,10 +222,10 @@ export default function LoyaltyProposalsAdmin() {
           <div className="flex items-center gap-1 p-1 bg-soot/5 rounded-2xl overflow-x-auto">
             {(
               [
-                { key: 'ALL', label: 'All Proposals', count: totalCount },
-                { key: 'PENDING_APPROVAL', label: 'Pending Review', count: pendingCount },
-                { key: 'APPROVED', label: 'Approved', count: approvedCount },
-                { key: 'REJECTED', label: 'Rejected', count: rejectedCount },
+                { key: 'ALL', label: translateMessage('All Proposals'), count: totalCount },
+                { key: 'PENDING_APPROVAL', label: translateMessage('Pending Review'), count: pendingCount },
+                { key: 'APPROVED', label: translateMessage('Approved'), count: approvedCount },
+                { key: 'REJECTED', label: translateMessage('Rejected'), count: rejectedCount },
               ] as const
             ).map((tab) => {
               const active = statusFilter === tab.key;
@@ -258,8 +260,8 @@ export default function LoyaltyProposalsAdmin() {
               onChange={(e) => setTypeFilter(e.target.value as any)}
               className="px-3.5 py-2 rounded-xl bg-white border border-soot/15 text-xs text-soot font-medium focus:outline-none focus:ring-2 focus:ring-soot/20 cursor-pointer shadow-2xs"
             >
-              <option value="ALL">All Rule Types</option>
-              <option value="EARNING">Earning Rules (Points Accumulation)</option>
+              <option value="ALL">{t('loyaltyAdmin.allTypes')}</option>
+              <option value="EARNING">{translateMessage('Earning Rules (Points Accumulation)')}</option>
               <option value="REDEMPTION">Redemption Rules (Discounts)</option>
             </select>
           </div>
@@ -267,13 +269,13 @@ export default function LoyaltyProposalsAdmin() {
 
         {/* Search Input */}
         <div className="relative">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-moss" />
+          <Search size={16} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-moss" />
           <input
             type="text"
-            placeholder="Search by rule title, provider name, email, workspace, or rationale..."
+            placeholder={t('loyaltyAdmin.search')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-white border border-soot/15 text-sm text-soot placeholder:text-moss/60 focus:outline-none focus:ring-2 focus:ring-soot/20 shadow-2xs"
+            className="w-full ps-10 pe-4 py-2.5 rounded-2xl bg-white border border-soot/15 text-sm text-soot placeholder:text-moss/60 focus:outline-none focus:ring-2 focus:ring-soot/20 shadow-2xs"
           />
         </div>
       </div>
@@ -284,7 +286,7 @@ export default function LoyaltyProposalsAdmin() {
           <div className="w-14 h-14 rounded-2xl bg-[#DDE6DF] text-soot flex items-center justify-center mx-auto shadow-2xs">
             <Sparkles size={26} className="text-moss" />
           </div>
-          <h3 className="text-lg font-serif-display text-soot">No Loyalty Proposals Found</h3>
+          <h3 className="text-lg font-serif-display text-soot">{t('loyaltyAdmin.none')}</h3>
           <p className="text-moss text-xs sm:text-sm max-w-md mx-auto">
             {searchQuery || statusFilter !== 'ALL' || typeFilter !== 'ALL'
               ? 'No proposals matched your active filters. Try clearing your search query.'
@@ -347,30 +349,30 @@ export default function LoyaltyProposalsAdmin() {
                   {/* Economic Parameters Box */}
                   <div className="p-3.5 rounded-2xl bg-plaster-surface border border-soot/8 space-y-1.5 text-xs">
                     <div className="flex items-center justify-between text-soot">
-                      <span className="text-moss font-medium">Exchange Rate:</span>
+                      <span className="text-moss font-medium">{t('loyaltyAdmin.exchangeRate')}</span>
                       <span className="font-bold">
                         {isEarning
-                          ? `+${rule.pointsValue} pts / SAR ${rule.monetaryValue}`
-                          : `${rule.pointsValue} pts = SAR ${rule.monetaryValue} off`}
+                          ? `+${rule.pointsValue} ${t('loyaltyAdmin.pts')} / ${rule.monetaryValue} ${t('common.sar')}`
+                          : `${rule.pointsValue} ${t('loyaltyAdmin.pts')} = ${rule.monetaryValue} ${t('common.sar')}`}
                       </span>
                     </div>
 
                     {rule.bonusMultiplier && rule.bonusMultiplier > 1 && (
                       <div className="flex items-center justify-between text-xs pt-1 border-t border-soot/6">
-                        <span className="text-moss font-medium">Multiplier:</span>
+                        <span className="text-moss font-medium">{t('loyaltyAdmin.multiplier')}</span>
                         <span className="font-bold text-emerald-800">{rule.bonusMultiplier}× Boost</span>
                       </div>
                     )}
 
                     <div className="flex items-center justify-between text-xs pt-1 border-t border-soot/6">
-                      <span className="text-moss font-medium">Submitted By:</span>
+                      <span className="text-moss font-medium">{t('loyaltyAdmin.submittedBy')}</span>
                       <span className="font-semibold text-soot truncate max-w-[150px]">
                         {rule.proposerName || 'Space Provider'}
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between text-xs pt-1 border-t border-soot/6">
-                      <span className="text-moss font-medium">Target Space:</span>
+                      <span className="text-moss font-medium">{t('loyaltyAdmin.targetSpace')}</span>
                       <span className="text-soot font-medium truncate max-w-[150px]">
                         {rule.workspaceName || 'All Listed Workspaces'}
                       </span>
@@ -380,7 +382,7 @@ export default function LoyaltyProposalsAdmin() {
                   {/* Admin Rejection Reason Display if Rejected */}
                   {isRejected && rule.adminFeedback && (
                     <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-xs space-y-1">
-                      <span className="font-bold text-rose-900 block">Rejection Feedback:</span>
+                      <span className="font-bold text-rose-900 block">{t('loyaltyAdmin.rejectionFeedback')}</span>
                       <p className="text-rose-800 leading-relaxed">{rule.adminFeedback}</p>
                     </div>
                   )}
@@ -395,7 +397,7 @@ export default function LoyaltyProposalsAdmin() {
                       className="flex-1 py-2 px-3 rounded-xl bg-plaster hover:bg-plaster-dark/40 text-soot text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                     >
                       <Eye size={13} />
-                      <span>View Details</span>
+                      <span>{t('loyaltyAdmin.viewDetails')}</span>
                     </button>
 
                     {isPending && (
@@ -407,7 +409,7 @@ export default function LoyaltyProposalsAdmin() {
                           title="Approve Proposal"
                         >
                           <Check size={13} />
-                          <span>Approve</span>
+                          <span>{t('loyaltyAdmin.approve')}</span>
                         </button>
                         <button
                           type="button"
@@ -416,7 +418,7 @@ export default function LoyaltyProposalsAdmin() {
                           title="Reject Proposal"
                         >
                           <X size={13} />
-                          <span>Reject</span>
+                          <span>{t('admin.spaces.reject')}</span>
                         </button>
                       </>
                     )}
@@ -426,7 +428,7 @@ export default function LoyaltyProposalsAdmin() {
                         type="button"
                         onClick={(e) => handleDelete(rule.id, e)}
                         className="p-2 text-rose-700 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
-                        title="Delete record"
+                        title={t('loyaltyAdmin.deleteRecord')}
                       >
                         <Trash2 size={15} />
                       </button>
@@ -444,13 +446,13 @@ export default function LoyaltyProposalsAdmin() {
         <Modal
           open={Boolean(selectedDetailRule)}
           onClose={() => setSelectedDetailRule(null)}
-          title="Complete Proposal Details"
+          title={t('loyaltyAdmin.detailsTitle')}
         >
           <div className="space-y-5">
             <div className="flex items-start justify-between gap-3 pb-3 border-b border-soot/8">
               <div>
                 <span className="text-[10px] uppercase font-bold tracking-wider text-moss">
-                  Proposal Rule Title
+                  {t('loyaltyAdmin.ruleTitle')}
                 </span>
                 <h3 className="text-xl font-serif-display text-soot font-medium">
                   {selectedDetailRule.ruleName}
@@ -476,15 +478,15 @@ export default function LoyaltyProposalsAdmin() {
             {/* Grid specs */}
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div className="p-3 bg-plaster-surface rounded-2xl border border-soot/8">
-                <span className="text-moss font-medium block">Rule Type</span>
+                <span className="text-moss font-medium block">{t('loyaltyAdmin.ruleType')}</span>
                 <span className="font-bold text-soot text-sm mt-0.5 block">
-                  {selectedDetailRule.ruleType === 'EARNING' ? 'Points Earning' : 'Points Redemption'}
+                  {selectedDetailRule.ruleType === 'EARNING' ? translateMessage('Points Earning') : translateMessage('Points Redemption')}
                 </span>
               </div>
               <div className="p-3 bg-plaster-surface rounded-2xl border border-soot/8">
-                <span className="text-moss font-medium block">Exchange Value</span>
+                <span className="text-moss font-medium block">{t('loyaltyAdmin.exchangeValue')}</span>
                 <span className="font-bold text-soot text-sm mt-0.5 block">
-                  {selectedDetailRule.pointsValue} pts / SAR {selectedDetailRule.monetaryValue}
+                  {selectedDetailRule.pointsValue} {t('loyaltyAdmin.pts')} / {selectedDetailRule.monetaryValue} {t('common.sar')}
                 </span>
               </div>
             </div>
@@ -492,36 +494,36 @@ export default function LoyaltyProposalsAdmin() {
             {/* Provider & Space details */}
             <div className="p-4 bg-plaster-surface rounded-2xl border border-soot/8 space-y-2 text-xs">
               <div className="flex justify-between">
-                <span className="text-moss">Proposer / Space Provider:</span>
+                <span className="text-moss">{t('loyaltyAdmin.proposer')}</span>
                 <span className="font-bold text-soot">{selectedDetailRule.proposerName || 'Space Provider'}</span>
               </div>
               {selectedDetailRule.proposerEmail && (
                 <div className="flex justify-between">
-                  <span className="text-moss">Contact Email:</span>
+                  <span className="text-moss">{t('loyaltyAdmin.contact')}</span>
                   <span className="text-soot font-medium">{selectedDetailRule.proposerEmail}</span>
                 </div>
               )}
               <div className="flex justify-between">
-                <span className="text-moss">Target Workspace:</span>
+                <span className="text-moss">{t('loyaltyAdmin.targetWorkspace')}</span>
                 <span className="text-soot font-semibold">
                   {selectedDetailRule.workspaceName || 'All Listed Workspaces'}
                 </span>
               </div>
               {selectedDetailRule.bonusMultiplier && selectedDetailRule.bonusMultiplier > 1 && (
                 <div className="flex justify-between">
-                  <span className="text-moss">Bonus Multiplier:</span>
+                  <span className="text-moss">{t('loyaltyAdmin.bonusMultiplier')}</span>
                   <span className="font-bold text-emerald-800">{selectedDetailRule.bonusMultiplier}× Boost</span>
                 </div>
               )}
               <div className="flex justify-between pt-1 border-t border-soot/6">
-                <span className="text-moss">Submission Date:</span>
+                <span className="text-moss">{t('loyaltyAdmin.submissionDate')}</span>
                 <span className="text-soot">{new Date(selectedDetailRule.createdAt).toLocaleDateString()}</span>
               </div>
             </div>
 
             {/* Description / Business Rationale */}
             <div>
-              <span className="text-xs font-bold text-soot block mb-1">Provider Business Rationale:</span>
+              <span className="text-xs font-bold text-soot block mb-1">{t('loyaltyAdmin.rationale')}</span>
               <p className="text-xs sm:text-sm text-moss bg-plaster-surface p-3.5 rounded-2xl border border-soot/8 leading-relaxed">
                 {selectedDetailRule.description || 'No detailed business rationale was provided by the space partner.'}
               </p>
@@ -530,7 +532,7 @@ export default function LoyaltyProposalsAdmin() {
             {/* Admin Feedback note if present */}
             {selectedDetailRule.adminFeedback && (
               <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 space-y-1">
-                <span className="text-xs font-bold text-rose-900 block">Rejection Feedback / Notes:</span>
+                <span className="text-xs font-bold text-rose-900 block">{t('loyaltyAdmin.rejectionNotes')}</span>
                 <p className="text-xs text-rose-800 leading-relaxed">{selectedDetailRule.adminFeedback}</p>
               </div>
             )}
@@ -556,7 +558,7 @@ export default function LoyaltyProposalsAdmin() {
                     }}
                     className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold cursor-pointer shadow-xs"
                   >
-                    Reject Proposal
+                    {t('loyaltyAdmin.rejectProposal')}
                   </button>
                   <button
                     type="button"
@@ -567,7 +569,7 @@ export default function LoyaltyProposalsAdmin() {
                     }}
                     className="px-5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold cursor-pointer shadow-xs"
                   >
-                    Approve Proposal
+                    {t('loyaltyAdmin.approveProposal')}
                   </button>
                 </div>
               )}
@@ -581,13 +583,13 @@ export default function LoyaltyProposalsAdmin() {
         <Modal
           open={Boolean(approveConfirmRule)}
           onClose={() => !isProcessing && setApproveConfirmRule(null)}
-          title="Confirm Proposal Approval"
+          title={t('loyaltyAdmin.confirmApproval')}
         >
           <div className="space-y-5">
             <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-start gap-3">
               <CheckCircle2 size={22} className="text-emerald-700 shrink-0 mt-0.5" />
               <div className="space-y-1">
-                <h4 className="text-sm font-bold text-emerald-950">Approve & Activate Loyalty Rule</h4>
+                <h4 className="text-sm font-bold text-emerald-950">{t('loyaltyAdmin.approveActivate')}</h4>
                 <p className="text-xs text-emerald-800 leading-relaxed">
                   Are you sure you want to approve <span className="font-bold text-emerald-950">"{approveConfirmRule.ruleName}"</span>?
                 </p>
@@ -596,25 +598,25 @@ export default function LoyaltyProposalsAdmin() {
 
             <div className="p-3.5 bg-plaster-surface rounded-2xl border border-soot/8 text-xs space-y-1.5">
               <div className="flex justify-between">
-                <span className="text-moss">Rule Type:</span>
+                <span className="text-moss">{t('loyaltyAdmin.ruleTypeColon')}</span>
                 <span className="font-bold text-soot">
-                  {approveConfirmRule.ruleType === 'EARNING' ? 'Points Earning' : 'Points Redemption'}
+                  {approveConfirmRule.ruleType === 'EARNING' ? translateMessage('Points Earning') : translateMessage('Points Redemption')}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-moss">Exchange Value:</span>
+                <span className="text-moss">{t('loyaltyAdmin.exchangeValueColon')}</span>
                 <span className="font-bold text-soot">
-                  {approveConfirmRule.pointsValue} pts / SAR {approveConfirmRule.monetaryValue}
+                  {approveConfirmRule.pointsValue} {t('loyaltyAdmin.pts')} / {approveConfirmRule.monetaryValue} {t('common.sar')}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-moss">Provider:</span>
+                <span className="text-moss">{t('admin.spaces.provider')}</span>
                 <span className="font-semibold text-soot">{approveConfirmRule.proposerName || 'Space Provider'}</span>
               </div>
             </div>
 
             <p className="text-xs text-moss">
-              Once approved, this loyalty points rule will immediately become active on the platform and members booking this space will receive or redeem points accordingly.
+              {t('loyaltyAdmin.approveBody')}
             </p>
 
             <div className="flex items-center justify-end gap-3 pt-3 border-t border-soot/8">
@@ -645,15 +647,15 @@ export default function LoyaltyProposalsAdmin() {
         <Modal
           open={Boolean(rejectRule)}
           onClose={() => !isProcessing && setRejectRule(null)}
-          title="Reject Loyalty Points Proposal"
+          title={t('loyaltyAdmin.rejectTitle')}
         >
           <div className="space-y-5">
             <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-start gap-3">
               <AlertCircle size={22} className="text-rose-700 shrink-0 mt-0.5" />
               <div className="space-y-1">
-                <h4 className="text-sm font-bold text-rose-950">Provide Rejection Reason</h4>
+                <h4 className="text-sm font-bold text-rose-950">{t('loyaltyAdmin.provideReason')}</h4>
                 <p className="text-xs text-rose-800 leading-relaxed">
-                  Rejecting <span className="font-bold text-rose-950">"{rejectRule.ruleName}"</span> requires explaining the reason or providing actionable feedback to the space provider.
+                  Rejecting <span className="font-bold text-rose-950">"{rejectRule.ruleName}"</span> {t('loyaltyAdmin.requiresReason')}
                 </p>
               </div>
             </div>
@@ -661,7 +663,7 @@ export default function LoyaltyProposalsAdmin() {
             {/* Rejection Reason Form */}
             <div>
               <label className="block text-xs font-bold text-soot uppercase tracking-wider mb-1.5">
-                Rejection Feedback & Notes *
+                {t('loyaltyAdmin.feedbackReq')}
               </label>
               <textarea
                 rows={4}
@@ -671,7 +673,7 @@ export default function LoyaltyProposalsAdmin() {
                   setRejectionReason(e.target.value);
                   if (rejectionError) setRejectionError('');
                 }}
-                placeholder="e.g. The proposed points exchange value of 500 pts = SAR 100 exceeds our platform cap. Please adjust to 500 pts = SAR 25 and resubmit..."
+                placeholder={t('loyaltyAdmin.rejectPlaceholder')}
                 className={`w-full px-3.5 py-2.5 rounded-xl bg-white border ${
                   rejectionError ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-soot/15'
                 } text-xs sm:text-sm text-soot placeholder:text-moss/60 focus:outline-none focus:ring-2 focus:ring-soot/20 resize-none`}

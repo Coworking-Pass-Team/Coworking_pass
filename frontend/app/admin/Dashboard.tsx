@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/i18n';
 import React from 'react';
 import { 
   Building2, 
@@ -17,6 +18,8 @@ import {
   Sparkles
 } from 'lucide-react';
 import { useApp } from '@/app/store';
+import { useSpaceText } from '@/i18n/space-text';
+import { useLabels } from '@/i18n/labels';
 import { getBookingPrice } from '@/types/types';
 
 export interface GrowthRateResult {
@@ -114,6 +117,9 @@ export function calculateGrowthRate(
 }
 
 export default function AdminDashboard() {
+  const { t, translateMessage } = useI18n();
+  const st = useSpaceText();
+  const lb = useLabels();
   const { spaces, users, bookings, loyaltyRules, navigate, partners, fetchPartners, fetchUsers } = useApp();
 
   React.useEffect(() => {
@@ -220,7 +226,7 @@ export default function AdminDashboard() {
       {/* Header */}
       <div className="mb-8">
         <span className="text-moss text-xs font-semibold uppercase tracking-wider block mb-1">
-          System Overview
+          {t('admin.dash.eyebrow')}
         </span>
         <h1 className="text-3xl sm:text-4xl text-soot font-normal font-serif-display">
           Dashboard
@@ -240,11 +246,11 @@ export default function AdminDashboard() {
                   New Space Partner Applications Pending Approval ({pendingPartnersCount})
                 </span>
                 <span className="text-[11px] font-semibold bg-amber-500/20 text-amber-900 px-2 py-0.5 rounded-full border border-amber-500/30">
-                  Action Required
+                  {t('admin.dash.actionRequired')}
                 </span>
               </div>
               <p className="text-xs text-moss mt-0.5">
-                New coworking venue providers have submitted registration and commercial verification details awaiting admin approval.
+                {t('admin.dash.actionBody')}
               </p>
             </div>
           </div>
@@ -253,7 +259,7 @@ export default function AdminDashboard() {
             onClick={() => navigate('admin-users', { filter: 'pending' })}
             className="px-4 py-2 rounded-xl bg-soot text-plaster text-xs font-semibold hover:bg-soot/90 transition-all flex items-center gap-1.5 shrink-0 shadow-2xs cursor-pointer"
           >
-            <span>Review Requests</span>
+            <span>{t('admin.dash.reviewRequests')}</span>
             <ArrowRight size={14} />
           </button>
         </div>
@@ -268,14 +274,14 @@ export default function AdminDashboard() {
               <TrendingUp size={19} />
             </div>
             <span className={`text-xs px-2.5 py-0.5 rounded-full transition-colors ${revenueGrowth.badgeClass}`}>
-              {revenueGrowth.formatted}
+              {translateMessage(revenueGrowth.formatted)}
             </span>
           </div>
           <div>
             <div className="text-2xl sm:text-3xl font-normal font-serif-display text-soot tracking-tight">
-              SAR {totalRevenue.toLocaleString()}
+              {t('common.sar')} {totalRevenue.toLocaleString()}
             </div>
-            <div className="text-xs text-moss mt-1 font-medium">Total revenue</div>
+            <div className="text-xs text-moss mt-1 font-medium">{t('admin.dash.totalRevenue')}</div>
           </div>
         </div>
 
@@ -286,14 +292,14 @@ export default function AdminDashboard() {
               <CalendarDays size={19} />
             </div>
             <span className={`text-xs px-2.5 py-0.5 rounded-full transition-colors ${bookingsGrowth.badgeClass}`}>
-              {bookingsGrowth.formatted}
+              {translateMessage(bookingsGrowth.formatted)}
             </span>
           </div>
           <div>
             <div className="text-2xl sm:text-3xl font-normal font-serif-display text-soot tracking-tight">
               {activeBookings.length}
             </div>
-            <div className="text-xs text-moss mt-1 font-medium">Active bookings</div>
+            <div className="text-xs text-moss mt-1 font-medium">{t('admin.dash.activeBookings')}</div>
           </div>
         </div>
 
@@ -304,14 +310,14 @@ export default function AdminDashboard() {
               <Users size={19} />
             </div>
             <span className={`text-xs px-2.5 py-0.5 rounded-full transition-colors ${usersGrowth.badgeClass}`}>
-              {usersGrowth.formatted}
+              {translateMessage(usersGrowth.formatted)}
             </span>
           </div>
           <div>
             <div className="text-2xl sm:text-3xl font-normal font-serif-display text-soot tracking-tight">
               {nonAdminUsers.length}
             </div>
-            <div className="text-xs text-moss mt-1 font-medium">Total users</div>
+            <div className="text-xs text-moss mt-1 font-medium">{t('admin.dash.totalUsers')}</div>
           </div>
         </div>
 
@@ -322,14 +328,14 @@ export default function AdminDashboard() {
               <Building2 size={19} />
             </div>
             <span className={`text-xs px-2.5 py-0.5 rounded-full transition-colors ${spacesGrowth.badgeClass}`}>
-              {spacesGrowth.formatted}
+              {translateMessage(spacesGrowth.formatted)}
             </span>
           </div>
           <div>
             <div className="text-2xl sm:text-3xl font-normal font-serif-display text-soot tracking-tight">
               {visibleSpaces.length}
             </div>
-            <div className="text-xs text-moss mt-1 font-medium">Active spaces</div>
+            <div className="text-xs text-moss mt-1 font-medium">{t('admin.dash.activeSpaces')}</div>
           </div>
         </div>
       </div>
@@ -338,25 +344,25 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
         {[
           { 
-            label: 'Individuals', 
+            label: t('admin.dash.individuals'), 
             value: individuals.length, 
             icon: UserCheck, 
             accent: 'bg-soot/5 text-soot' 
           },
           { 
-            label: 'Organizations', 
+            label: t('admin.dash.organizations'), 
             value: orgs.length, 
             icon: Building, 
             accent: 'bg-eucalyptus/20 text-soot' 
           },
           { 
-            label: 'Fully booked', 
+            label: t('admin.dash.fullyBooked'), 
             value: fullyBooked, 
             icon: AlertCircle, 
             accent: fullyBooked > 0 ? 'bg-amber-50 text-amber-700' : 'bg-soot/5 text-moss' 
           },
           { 
-            label: 'Cancelled', 
+            label: t('admin.dash.cancelled'), 
             value: cancelledBookings.length, 
             icon: CalendarX, 
             accent: cancelledBookings.length > 0 ? 'bg-red-50 text-red-600' : 'bg-soot/5 text-moss' 
@@ -388,15 +394,15 @@ export default function AdminDashboard() {
           <div>
             <div className="flex items-center justify-between mb-5 pb-4 border-b border-soot/8">
               <div>
-                <h2 className="text-lg font-serif-display font-normal text-soot">Recent Bookings</h2>
-                <p className="text-xs text-moss">Latest workspace transactions</p>
+                <h2 className="text-lg font-serif-display font-normal text-soot">{t('admin.dash.recentBookings')}</h2>
+                <p className="text-xs text-moss">{t('admin.dash.latestTransactions')}</p>
               </div>
               <button
                 type="button"
                 onClick={() => navigate('admin-bookings')}
                 className="text-xs font-semibold text-soot hover:text-moss flex items-center gap-1.5 transition-colors cursor-pointer"
               >
-                <span>View all</span>
+                <span>{t('landing.viewAll')}</span>
                 <ArrowRight size={13} />
               </button>
             </div>
@@ -407,17 +413,17 @@ export default function AdminDashboard() {
                   <div className="flex items-center gap-3 min-w-0">
                     <img 
                       src={b.spaceImage} 
-                      alt={b.spaceName} 
+                      alt={st.bookingName(b)} 
                       className="w-11 h-11 rounded-2xl object-cover shrink-0 border border-soot/8 shadow-2xs" 
                     />
                     <div className="min-w-0">
-                      <div className="text-sm font-semibold text-soot truncate">{b.spaceName}</div>
-                      <div className="text-xs text-moss truncate mt-0.5">{b.spaceCity} · <span className="capitalize">{b.plan === 'hourly' ? `Hourly (${b.durationHours || 1} ${b.durationHours === 1 ? 'hr' : 'hrs'})` : b.plan}</span></div>
+                      <div className="text-sm font-semibold text-soot truncate">{st.bookingName(b)}</div>
+                      <div className="text-xs text-moss truncate mt-0.5">{st.bookingCity(b)} · <span className="capitalize">{b.plan === 'hourly' ? t(b.durationHours === 1 ? 'admin.dash.hourlyHrs' : 'admin.dash.hourlyHrsMany', { count: b.durationHours || 1 }) : lb.plan(b.plan)}</span></div>
                     </div>
                   </div>
 
-                  <div className="text-right shrink-0">
-                    <div className="text-sm font-medium text-soot">SAR {getBookingPrice(b, spaces).toLocaleString()}</div>
+                  <div className="text-end shrink-0">
+                    <div className="text-sm font-medium text-soot">{t('common.sar')} {getBookingPrice(b, spaces).toLocaleString()}</div>
                     <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize mt-1 ${
                       b.status === 'active'
                         ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
@@ -425,7 +431,7 @@ export default function AdminDashboard() {
                         ? 'bg-soot/5 text-moss'
                         : 'bg-red-50 text-red-600 border border-red-100'
                     }`}>
-                      {b.status}
+                      {lb.status(b.status)}
                     </span>
                   </div>
                 </div>
@@ -439,15 +445,15 @@ export default function AdminDashboard() {
           <div>
             <div className="flex items-center justify-between mb-5 pb-4 border-b border-soot/8">
               <div>
-                <h2 className="text-lg font-serif-display font-normal text-soot">Recent Members</h2>
-                <p className="text-xs text-moss">Newly joined accounts</p>
+                <h2 className="text-lg font-serif-display font-normal text-soot">{t('admin.dash.recentMembers')}</h2>
+                <p className="text-xs text-moss">{t('admin.dash.newlyJoined')}</p>
               </div>
               <button
                 type="button"
                 onClick={() => navigate('admin-users')}
                 className="text-xs font-semibold text-soot hover:text-moss flex items-center gap-1.5 transition-colors cursor-pointer"
               >
-                <span>View all</span>
+                <span>{t('landing.viewAll')}</span>
                 <ArrowRight size={13} />
               </button>
             </div>
@@ -469,7 +475,7 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
-                  <div className="shrink-0 text-right">
+                  <div className="shrink-0 text-end">
                     <span className={`inline-flex items-center text-[10px] font-semibold px-2.5 py-0.5 rounded-full capitalize ${
                       u.isBlocked
                         ? 'bg-red-50 text-red-600 border border-red-100'
@@ -477,7 +483,7 @@ export default function AdminDashboard() {
                         ? 'bg-eucalyptus/20 text-soot'
                         : 'bg-soot/5 text-moss'
                     }`}>
-                      {u.isBlocked ? 'Blocked' : u.role}
+                      {u.isBlocked ? t('admin.users.blocked') : lb.role(u.role)}
                     </span>
                   </div>
                 </div>
@@ -491,32 +497,32 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { 
-            label: 'Manage Spaces', 
-            desc: 'Review capacity, pricing, and live listings', 
+            label: t('admin.dash.qa.spaces'), 
+            desc: t('admin.dash.qa.spacesDesc'), 
             screen: 'admin-spaces' as const,
             icon: Building2 
           },
           { 
-            label: 'User Accounts', 
-            desc: 'Audit roles, permissions, and security status', 
+            label: t('admin.dash.qa.users'), 
+            desc: t('admin.dash.qa.usersDesc'), 
             screen: 'admin-users' as const,
             icon: Users 
           },
           { 
-            label: 'Support Desk', 
-            desc: 'Review complaints, refunds & inquiries', 
+            label: t('admin.dash.qa.support'), 
+            desc: t('admin.dash.qa.supportDesc'), 
             screen: 'admin-support' as const,
             icon: HelpCircle 
           },
           { 
-            label: 'Loyalty Proposals', 
-            desc: 'Review and moderate partner loyalty points rules', 
+            label: t('admin.dash.qa.loyalty'), 
+            desc: t('admin.dash.qa.loyaltyDesc'), 
             screen: 'admin-loyalty-proposals' as const,
             icon: Sparkles 
           },
           { 
-            label: 'Analytics & Reports', 
-            desc: 'Export VAT statements and utilization insights', 
+            label: t('admin.dash.qa.reports'), 
+            desc: t('admin.dash.qa.reportsDesc'), 
             screen: 'admin-reports' as const,
             icon: BarChart3 
           },
@@ -526,7 +532,7 @@ export default function AdminDashboard() {
             key={l.screen}
             type="button"
             onClick={() => navigate(l.screen)}
-            className="p-5 rounded-3xl bg-white border border-soot/10 shadow-xs hover:shadow-md hover:border-soot/25 transition-all text-left flex items-start justify-between gap-3 group cursor-pointer"
+            className="p-5 rounded-3xl bg-white border border-soot/10 shadow-xs hover:shadow-md hover:border-soot/25 transition-all text-start flex items-start justify-between gap-3 group cursor-pointer"
           >
             <div className="flex items-start gap-3.5">
               <div className="w-10 h-10 rounded-2xl bg-soot/5 text-soot flex items-center justify-center shrink-0 group-hover:bg-soot group-hover:text-plaster transition-colors">

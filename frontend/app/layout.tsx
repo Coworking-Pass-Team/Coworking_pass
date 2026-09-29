@@ -1,6 +1,17 @@
 import type { Metadata } from 'next';
+import { cookies } from 'next/headers';
+import { Tajawal } from 'next/font/google';
 import '@/app/globals.css';
 import { AppProvider } from '@/app/store';
+import { I18nProvider, LANG_COOKIE, DEFAULT_LANG, type Lang } from '@/i18n';
+
+// Arabic UI font (the Latin display/sans fonts have no Arabic glyphs)
+const arabicFont = Tajawal({
+  subsets: ['arabic', 'latin'],
+  weight: ['300', '400', '500', '700', '800'],
+  variable: '--font-arabic',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'Coworking Pass - Saudi Arabia\'s Coworking Platform',
@@ -10,17 +21,23 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // The language preference is mirrored in a cookie so the server renders the right lang/dir (no flash)
+  const stored = (await cookies()).get(LANG_COOKIE)?.value;
+  const lang: Lang = stored === 'en' || stored === 'ar' ? stored : DEFAULT_LANG;
+
   return (
-    <html lang="en" className="h-full">
+    <html lang={lang} dir={lang === 'ar' ? 'rtl' : 'ltr'} className={`h-full ${arabicFont.variable}`} suppressHydrationWarning>
       <body className="h-full bg-plaster text-soot antialiased">
-        <AppProvider>
-          {children}
-        </AppProvider>
+        <I18nProvider initialLang={lang}>
+          <AppProvider>
+            {children}
+          </AppProvider>
+        </I18nProvider>
       </body>
     </html>
   );

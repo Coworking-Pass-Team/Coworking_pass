@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/i18n';
 import React, { useState, useEffect } from 'react';
 import {
   CreditCard,
@@ -19,6 +20,7 @@ import { useApp } from '@/app/store';
 import { getPaymentsApi, PaymentItemApi } from '@/services/authApi';
 
 export default function PaymentsAdmin() {
+  const { t } = useI18n();
   const { fetchPayments, paymentsApi } = useApp();
   const [payments, setPayments] = useState<PaymentItemApi[]>([]);
   const [loading, setLoading] = useState(true);
@@ -102,7 +104,7 @@ export default function PaymentsAdmin() {
             </div>
           </div>
           <div className="text-2xl font-bold font-serif-display text-emerald-950">
-            SAR {totalVolume.toLocaleString()}
+            {t('common.sar')} {totalVolume.toLocaleString()}
           </div>
           <span className="text-[11px] text-emerald-700 font-medium mt-1 block">
             {successCount} Successful Checkout Records
@@ -168,13 +170,13 @@ export default function PaymentsAdmin() {
         <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 my-6">
           {/* Search Box */}
           <div className="relative flex-1">
-            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-moss pointer-events-none" />
+            <Search size={16} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-moss pointer-events-none" />
             <input
               type="text"
               placeholder="Search by Payment ID, User Email, Name, or Reference ID..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-soot/15 bg-plaster-surface text-soot text-xs sm:text-sm placeholder:text-moss/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-2xs"
+              className="w-full ps-10 pe-4 py-2.5 rounded-2xl border border-soot/15 bg-plaster-surface text-soot text-xs sm:text-sm placeholder:text-moss/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-2xs"
             />
           </div>
 
@@ -231,7 +233,7 @@ export default function PaymentsAdmin() {
           </div>
         ) : (
           <div className="overflow-x-auto rounded-2xl border border-soot/10 shadow-2xs">
-            <table className="w-full text-left text-xs sm:text-sm">
+            <table className="w-full text-start text-xs sm:text-sm">
               <thead className="bg-plaster-dark/60 border-b border-soot/10 text-moss uppercase tracking-wider font-semibold">
                 <tr>
                   <th className="py-3.5 px-4">Payment ID</th>
@@ -270,7 +272,7 @@ export default function PaymentsAdmin() {
                           </span>
                         </div>
                         {p.workspace?.city && (
-                          <div className="pl-5 mt-0.5">
+                          <div className="ps-5 mt-0.5">
                             <span className="bg-soot/6 text-soot text-[10px] font-medium px-2 py-0.5 rounded-md">
                               {p.workspace.city}
                             </span>
@@ -278,7 +280,7 @@ export default function PaymentsAdmin() {
                         )}
                       </td>
                       <td className="py-3.5 px-4 font-bold text-soot">
-                        SAR {p.amount}
+                        {t('common.sar')} {p.amount}
                       </td>
                       <td className="py-3.5 px-4">
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-soot/5 border border-soot/10 text-soot font-semibold text-xs">
@@ -301,7 +303,7 @@ export default function PaymentsAdmin() {
                           <span>{dateStr}</span>
                         </div>
                         {timeStr && (
-                          <div className="text-[11px] text-moss/80 font-mono pl-4 mt-0.5">
+                          <div className="text-[11px] text-moss/80 font-mono ps-4 mt-0.5">
                             {timeStr}
                           </div>
                         )}

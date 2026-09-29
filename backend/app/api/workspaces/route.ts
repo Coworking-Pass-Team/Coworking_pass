@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getOccupiedSeatsToday } from "@/lib/capacity";
 import { redactHiddenWorkspace } from "@/lib/workspace-visibility";
 import { isValidHhmm } from "@/lib/operating-hours";
+import { pickBilingualFields } from "@/lib/bilingual";
 import { prisma } from "@/lib/prisma";
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
@@ -245,6 +246,7 @@ export async function POST(request: Request) {
         ...(isValidHhmm(openingTime) && { openingTime: openingTime.trim() }),
         ...(isValidHhmm(closingTime) && { closingTime: closingTime.trim() }),
         ...(typeof is24Hours === 'boolean' && { is24Hours }),
+        ...pickBilingualFields(body),
       },
     });
 

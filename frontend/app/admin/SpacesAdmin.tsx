@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/i18n';
 import { useState, useRef, useEffect } from 'react';
 import {
   Search,
@@ -24,7 +25,8 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import { useApp } from '@/app/store';
-import { Space, SpaceBookingPackage, SpaceCategory, ALL_SPACE_TYPES, isHourlyOnlySpace, isOfficeSpace, isHourlyAllowed, getSpaceCategory, AmenityRequest, SAUDI_CITIES, SAUDI_CITIES_DATA } from '@/types/types';
+import { useSpaceText } from '@/i18n/space-text';
+import { Space, SpaceBookingPackage, SpaceCategory, ALL_SPACE_TYPES, isHourlyOnlySpace, isOfficeSpace, isHourlyAllowed, getSpaceCategory, AmenityRequest, SAUDI_CITIES, SAUDI_CITIES_DATA, hhmmTo12h } from '@/types/types';
 
 const AMENITY_OPTIONS = [
   'WiFi',
@@ -84,7 +86,10 @@ const emptyForm = (): Partial<Space> => ({
   reviewCount: 0,
   isVisible: true,
   isFeatured: false,
-  openHours: 'Sun–Thu: 8am–9pm',
+  openHours: '08:00 AM - 10:00 PM',
+  openingTime: '08:00',
+  closingTime: '22:00',
+  is24Hours: false,
   phone: '',
   email: '',
   images: [
@@ -93,6 +98,8 @@ const emptyForm = (): Partial<Space> => ({
 });
 
 export default function SpacesAdmin() {
+  const { t } = useI18n();
+  const st = useSpaceText();
   const { spaces, addSpace, updateSpace, toggleSpaceVisibility, deleteSpace, navigate, amenityRequests, approveAmenityRequest, rejectAmenityRequest, deleteAmenityRequest, getApprovedAmenities } = useApp();
   const [query, setQuery] = useState('');
   const [filterCity, setFilterCity] = useState('');
@@ -229,9 +236,10 @@ export default function SpacesAdmin() {
 
   const handleSave = () => {
     const errs: Record<string, string> = {};
-    if (!form.name || !form.name.trim()) errs.name = 'Workspace name is required.';
-    if (!form.city || !form.city.trim()) errs.city = 'City selection is required.';
-    if (!form.address || !form.address.trim()) errs.address = 'Full address is required.';
+    if (!form.name || !form.name.trim()) errs.name = t('mySpaces.errName');
+    if (!form.city || !form.city.trim()) errs.city = t('mySpaces.errCity');
+    if (!form.address || !form.address.trim()) errs.address = t('admin.spaces.errAddress');
+    if (!form.is24Hours && (form.openingTime || '08:00') >= (form.closingTime || '22:00')) errs.openingTime = t('mySpaces.errHours');
 
     if (Object.keys(errs).length > 0) {
       setFormErrors(errs);
@@ -239,10 +247,15 @@ export default function SpacesAdmin() {
     }
     setFormErrors({});
 
+    const hoursForm = {
+      ...form,
+      openHours: form.is24Hours ? '24/7' : `${hhmmTo12h(form.openingTime || '08:00')} - ${hhmmTo12h(form.closingTime || '22:00')}`,
+    } as Space;
+
     if (editingSpace) {
-      updateSpace(editingSpace.id, form as Space);
+      updateSpace(editingSpace.id, hoursForm);
     } else {
-      addSpace(form as Omit<Space, 'id'>);
+      addSpace(hoursForm as Omit<Space, 'id'>);
     }
     setSaved(true);
     setTimeout(() => {
@@ -407,10 +420,10 @@ export default function SpacesAdmin() {
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <span className="text-xs font-semibold tracking-wider uppercase text-moss block mb-1">
-            Workspace Catalog
+            {t('admin.spaces.eyebrow')}
           </span>
           <h1 className="text-3xl sm:text-4xl text-soot font-normal font-serif-display">
-            Manage Spaces
+            {t('admin.spaces.title')}
           </h1>
         </div>
 
@@ -420,7 +433,7 @@ export default function SpacesAdmin() {
           className="btn-primary"
         >
           <Plus size={17} className="text-[#FAF8F5]/80" />
-          <span>Add space</span>
+          <span>{t('mySpaces.addSpace')}</span>
         </button>
       </div>
 
@@ -525,13 +538,13 @@ export default function SpacesAdmin() {
       {/* Search & Custom City Dropdown Bar */}
       <div className="flex flex-col sm:flex-row gap-3 bg-plaster-surface p-3 rounded-2xl border border-soot/10 shadow-2xs relative z-30">
         <div className="relative flex-1">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-moss" />
+          <Search size={16} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-moss" />
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by space name or city..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-soot/12 bg-plaster-dark/30 text-soot text-sm placeholder:text-moss/70 outline-none focus:border-eucalyptus focus:bg-plaster-surface transition-all"
+            placeholder={t('mySpaces.searchPlaceholder')}
+            className="w-full ps-10 pe-4 py-2.5 rounded-xl border border-soot/12 bg-plaster-dark/30 text-soot text-sm placeholder:text-moss/70 outline-none focus:border-eucalyptus focus:bg-plaster-surface transition-all"
           />
         </div>
 
@@ -540,7 +553,7 @@ export default function SpacesAdmin() {
           <button
             type="button"
             onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/50 border border-soot/12 transition-all duration-200 text-left cursor-pointer focus:outline-none"
+            className="w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/50 border border-soot/12 transition-all duration-200 text-start cursor-pointer focus:outline-none"
             aria-haspopup="listbox"
             aria-expanded={dropdownOpen}
           >
@@ -559,7 +572,7 @@ export default function SpacesAdmin() {
           </button>
 
           {dropdownOpen && (
-            <div className="absolute top-full left-0 right-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
+            <div className="absolute top-full start-0 end-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
               <div className="max-h-52 overflow-y-auto space-y-0.5">
                 {['All Cities', ...CITIES].map((city) => {
                   const isSelected = (city === 'All Cities' && !filterCity) || filterCity === city;
@@ -571,7 +584,7 @@ export default function SpacesAdmin() {
                         setFilterCity(city === 'All Cities' ? '' : city);
                         setDropdownOpen(false);
                       }}
-                      className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-sm font-medium transition-colors text-left cursor-pointer ${
+                      className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-sm font-medium transition-colors text-start cursor-pointer ${
                         isSelected
                           ? 'bg-soot text-plaster font-semibold'
                           : 'text-soot hover:bg-plaster-dark/60'
@@ -597,10 +610,10 @@ export default function SpacesAdmin() {
               <div className="max-w-xl">
                 <h2 className="text-xl font-serif-display font-medium text-soot flex items-center gap-2">
                   <Sparkles size={20} className="text-amber-600 shrink-0" />
-                  <span>Custom Amenity Requests</span>
+                  <span>{t('admin.spaces.amenityRequests')}</span>
                 </h2>
                 <p className="text-xs text-moss mt-1 leading-relaxed">
-                  Review custom amenities requested by Workspace Providers. Approving an amenity adds it to the global platform catalog for all providers.
+                  {t('admin.spaces.amenityReview')}
                 </p>
               </div>
 
@@ -669,15 +682,15 @@ export default function SpacesAdmin() {
 
                     <div className="text-xs text-moss space-y-1 bg-plaster-dark/30 p-3 rounded-2xl border border-soot/8">
                       <div>
-                        <span className="font-semibold text-soot">Provider:</span> {req.providerName}
+                        <span className="font-semibold text-soot">{t('admin.spaces.provider')}</span> {req.providerName}
                       </div>
                       {req.spaceName && (
                         <div>
-                          <span className="font-semibold text-soot">Workspace:</span> {req.spaceName}
+                          <span className="font-semibold text-soot">{t('admin.spaces.workspace')}</span> {req.spaceName}
                         </div>
                       )}
                       <div>
-                        <span className="font-semibold text-soot">Submitted:</span> {new Date(req.createdAt).toLocaleDateString()}
+                        <span className="font-semibold text-soot">{t('admin.spaces.submitted')}</span> {new Date(req.createdAt).toLocaleDateString()}
                       </div>
                       {req.rejectionReason && (
                         <div className="text-rose-700 pt-1 font-medium border-t border-soot/10 mt-1">
@@ -696,7 +709,7 @@ export default function SpacesAdmin() {
                         className="flex-1 px-3 py-2 rounded-xl bg-emerald-800 text-white hover:bg-emerald-900 text-xs font-semibold cursor-pointer transition-all flex items-center justify-center gap-1.5 shadow-2xs"
                       >
                         <CheckCircle2 size={15} />
-                        <span>Accept & Catalog</span>
+                        <span>{t('admin.spaces.accept')}</span>
                       </button>
                       <button
                         type="button"
@@ -704,7 +717,7 @@ export default function SpacesAdmin() {
                         className="px-3 py-2 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100 text-xs font-semibold cursor-pointer transition-all flex items-center justify-center gap-1.5"
                       >
                         <XCircle size={15} />
-                        <span>Reject</span>
+                        <span>{t('admin.spaces.reject')}</span>
                       </button>
                       <button
                         type="button"
@@ -713,7 +726,7 @@ export default function SpacesAdmin() {
                             deleteAmenityRequest(req.id);
                           }
                         }}
-                        title="Delete Amenity"
+                        title={t('admin.spaces.deleteAmenity')}
                         className="p-2 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 transition-colors cursor-pointer border border-rose-200"
                       >
                         <Trash2 size={15} />
@@ -722,7 +735,7 @@ export default function SpacesAdmin() {
                   ) : (
                     <div className="flex items-center justify-between pt-2 border-t border-soot/10">
                       <span className="text-[11px] text-moss font-medium italic">
-                        Decision logged
+                        {t('admin.spaces.decisionLogged')}
                       </span>
                       <button
                         type="button"
@@ -731,11 +744,11 @@ export default function SpacesAdmin() {
                             deleteAmenityRequest(req.id);
                           }
                         }}
-                        title="Delete Amenity from Catalog"
+                        title={t('admin.spaces.deleteAmenityCatalog')}
                         className="px-2.5 py-1.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100 text-xs font-semibold cursor-pointer transition-all flex items-center gap-1.5"
                       >
                         <Trash2 size={14} />
-                        <span>Delete</span>
+                        <span>{t('common.delete')}</span>
                       </button>
                     </div>
                   )}
@@ -746,8 +759,8 @@ export default function SpacesAdmin() {
           {(amenityRequests || []).filter((r) => amenityStatusFilter === 'ALL' || r.status === amenityStatusFilter).length === 0 && (
             <div className="py-16 text-center text-moss bg-plaster-surface rounded-3xl border border-soot/10">
               <Sparkles size={36} className="mx-auto mb-2 text-moss/50" />
-              <div className="text-base font-medium text-soot">No custom amenity requests found</div>
-              <p className="text-xs text-moss mt-1">Check back later when providers submit new amenity requests.</p>
+              <div className="text-base font-medium text-soot">{t('admin.spaces.noRequests')}</div>
+              <p className="text-xs text-moss mt-1">{t('admin.spaces.noRequestsBody')}</p>
             </div>
           )}
         </div>
@@ -755,11 +768,11 @@ export default function SpacesAdmin() {
         /* Table Layout for Workspaces */
         <div className="bg-plaster-surface rounded-3xl border border-soot/10 overflow-hidden shadow-2xs relative z-10">
           <div className="hidden md:grid grid-cols-12 gap-6 px-6 py-4 border-b border-soot/10 text-xs font-semibold uppercase tracking-wider text-moss bg-plaster-dark/40 items-center">
-            <div className="col-span-5">Space Name</div>
-            <div className="col-span-2">City</div>
-            <div className="col-span-2">Capacity</div>
-            <div className="col-span-2">Price Rate</div>
-            <div className="col-span-1 text-right">Actions</div>
+            <div className="col-span-5">{t('mySpaces.colName')}</div>
+            <div className="col-span-2">{t('mySpaces.colCity')}</div>
+            <div className="col-span-2">{t('mySpaces.colCapacity')}</div>
+            <div className="col-span-2">{t('mySpaces.colPrice')}</div>
+            <div className="col-span-1 text-end">{t('mySpaces.colActions')}</div>
           </div>
 
           <div className="divide-y divide-soot/8">
@@ -778,13 +791,13 @@ export default function SpacesAdmin() {
                   <div className="col-span-5 flex items-center gap-3.5 min-w-0">
                     <img
                       src={space.images[0]}
-                      alt={space.name}
+                      alt={st.name(space)}
                       className="w-11 h-11 rounded-xl object-cover border border-soot/10 shrink-0 shadow-2xs group-hover:scale-105 transition-transform"
                     />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold text-soot group-hover:text-emerald-900 transition-colors truncate">
-                          {space.name}
+                          {st.name(space)}
                         </span>
                         <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-soot/8 text-soot border border-soot/10 shrink-0 capitalize">
                           {cat}
@@ -824,7 +837,7 @@ export default function SpacesAdmin() {
                             )}
                           </>
                         ) : (
-                          <span className="text-[10px] text-moss/60 italic">No amenities added</span>
+                          <span className="text-[10px] text-moss/60 italic">{t('mySpaces.noAmenities')}</span>
                         )}
                       </div>
                     </div>
@@ -833,7 +846,7 @@ export default function SpacesAdmin() {
                   {/* City */}
                   <div className="col-span-2 mt-2 md:mt-0 text-sm text-soot font-medium flex items-center gap-1.5">
                     <MapPin size={14} className="text-moss shrink-0" />
-                    <span className="truncate">{space.city}</span>
+                    <span className="truncate">{st.city(space)}</span>
                   </div>
 
                   {/* Capacity */}
@@ -860,8 +873,8 @@ export default function SpacesAdmin() {
 
                   {/* Space Price */}
                   <div className="col-span-2 mt-3 md:mt-0 text-sm font-semibold text-soot">
-                    SAR {isHourlyOnlySpace(space.type) ? (space.pricing?.hourly || 150).toLocaleString() : space.pricing?.daily?.toLocaleString()}
-                    <span className="text-xs text-moss font-normal ml-1">
+                    {t('common.sar')} {isHourlyOnlySpace(space.type) ? (space.pricing?.hourly || 150).toLocaleString() : space.pricing?.daily?.toLocaleString()}
+                    <span className="text-xs text-moss font-normal ms-1">
                       {isHourlyOnlySpace(space.type) ? '/ hour' : '/ day'}
                     </span>
                   </div>
@@ -872,7 +885,7 @@ export default function SpacesAdmin() {
                       type="button"
                       onClick={(e) => openEdit(e, space)}
                       className="p-2 rounded-xl text-moss hover:text-soot hover:bg-plaster-surface border border-transparent hover:border-soot/10 transition-all cursor-pointer"
-                      title="Edit Space"
+                      title={t('mySpaces.editSpace')}
                     >
                       <Pencil size={15} />
                     </button>
@@ -888,7 +901,7 @@ export default function SpacesAdmin() {
                       type="button"
                       onClick={(e) => handleDelete(e, space)}
                       className="p-2 rounded-xl text-moss hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-100 transition-all cursor-pointer"
-                      title="Delete Space"
+                      title={t('mySpaces.deleteSpace')}
                     >
                       <Trash2 size={15} />
                     </button>
@@ -901,8 +914,8 @@ export default function SpacesAdmin() {
           {filtered.length === 0 && (
             <div className="py-20 text-center text-moss">
               <Building2 size={40} className="mx-auto mb-3 text-moss/50" />
-              <div className="text-base font-medium text-soot">No spaces found</div>
-              <p className="text-xs text-moss mt-1">Try changing your search terms or filter criteria.</p>
+              <div className="text-base font-medium text-soot">{t('browse.noSpaces')}</div>
+              <p className="text-xs text-moss mt-1">{t('admin.spaces.tryChanging')}</p>
             </div>
           )}
         </div>
@@ -922,7 +935,7 @@ export default function SpacesAdmin() {
                 <h3 className="text-xl font-serif-display font-medium text-soot">
                   {editingSpace ? 'Edit Workspace' : 'Add New Workspace'}
                 </h3>
-                <p className="text-xs text-moss mt-0.5">Configure details, amenities, and visibility options.</p>
+                <p className="text-xs text-moss mt-0.5">{t('admin.spaces.configure')}</p>
               </div>
               <button
                 type="button"
@@ -944,19 +957,19 @@ export default function SpacesAdmin() {
               {Object.keys(formErrors).length > 0 && (
                 <div className="bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold rounded-2xl p-3.5 flex items-center gap-2">
                   <AlertCircle size={16} className="text-rose-600 shrink-0" />
-                  <span>Please complete all required fields highlighted in red below.</span>
+                  <span>{t('mySpaces.completeRequired')}</span>
                 </div>
               )}
 
               <div className="space-y-4">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-moss block border-b border-soot/10 pb-1.5">
-                  General Details
+                  {t('admin.spaces.general')}
                 </span>
 
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold text-soot mb-1.5">
-                      Space Name <span className="text-rose-600">*</span>
+                      {t('admin.spaces.nameEn')} <span className="text-rose-600">*</span>
                     </label>
                     <input
                       type="text"
@@ -965,7 +978,7 @@ export default function SpacesAdmin() {
                         setForm((p) => ({ ...p, name: e.target.value }));
                         if (formErrors.name) setFormErrors((errs) => ({ ...errs, name: '' }));
                       }}
-                      placeholder="e.g. Olaya Hub"
+                      placeholder={t('admin.spaces.namePlaceholder')}
                       className={`w-full px-3.5 py-2.5 rounded-xl border bg-white text-soot text-sm placeholder:text-moss/60 outline-none transition-all shadow-2xs ${
                         formErrors.name ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-soot/15 focus:border-soot'
                       }`}
@@ -976,7 +989,7 @@ export default function SpacesAdmin() {
                   {/* Custom Styled City Dropdown */}
                   <div className="relative" ref={modalCityRef}>
                     <label className="block text-xs font-semibold text-soot mb-1.5">
-                      City <span className="text-rose-600">*</span>
+                      {t('mySpaces.colCity')} <span className="text-rose-600">*</span>
                     </label>
                     <button
                       type="button"
@@ -984,7 +997,7 @@ export default function SpacesAdmin() {
                         setModalCityOpen(!modalCityOpen);
                         setModalCitySearch('');
                       }}
-                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border bg-white text-soot text-sm font-medium text-left transition-all duration-200 cursor-pointer focus:outline-none shadow-2xs ${
+                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border bg-white text-soot text-sm font-medium text-start transition-all duration-200 cursor-pointer focus:outline-none shadow-2xs ${
                         formErrors.city ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-soot/12'
                       }`}
                     >
@@ -1008,22 +1021,22 @@ export default function SpacesAdmin() {
                     {formErrors.city && <p className="text-xs text-rose-600 font-medium mt-1">* {formErrors.city}</p>}
 
                     {modalCityOpen && (
-                      <div className="absolute top-full left-0 right-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100 flex flex-col max-h-64">
+                      <div className="absolute top-full start-0 end-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100 flex flex-col max-h-64">
                         <div className="p-1 border-b border-soot/10 mb-1 sticky top-0 bg-plaster-surface z-10">
                           <div className="relative">
-                            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-moss/60 pointer-events-none" />
+                            <Search size={14} className="absolute start-2.5 top-1/2 -translate-y-1/2 text-moss/60 pointer-events-none" />
                             <input
                               type="text"
-                              placeholder="Search city / ابحث عن مدينة..."
+                              placeholder={t('mySpaces.cityPlaceholder')}
                               value={modalCitySearch}
                               onChange={(e) => setModalCitySearch(e.target.value)}
-                              className="w-full pl-8 pr-2.5 py-1.5 text-xs rounded-lg border border-soot/15 bg-white text-soot focus:outline-none focus:border-eucalyptus"
+                              className="w-full ps-8 pe-2.5 py-1.5 text-xs rounded-lg border border-soot/15 bg-white text-soot focus:outline-none focus:border-eucalyptus"
                               onClick={(e) => e.stopPropagation()}
                               autoFocus
                             />
                           </div>
                         </div>
-                        <div className="space-y-0.5 overflow-y-auto max-h-52 pr-0.5">
+                        <div className="space-y-0.5 overflow-y-auto max-h-52 pe-0.5">
                           {SAUDI_CITIES_DATA.filter((c) => {
                             if (!modalCitySearch.trim()) return true;
                             const q = modalCitySearch.toLowerCase().trim();
@@ -1044,7 +1057,7 @@ export default function SpacesAdmin() {
                                   setModalCityOpen(false);
                                   setModalCitySearch('');
                                 }}
-                                className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-sm font-medium transition-colors text-left cursor-pointer ${
+                                className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-sm font-medium transition-colors text-start cursor-pointer ${
                                   isSelected
                                     ? 'bg-soot text-plaster font-semibold'
                                     : 'text-soot hover:bg-plaster-dark/60'
@@ -1070,7 +1083,7 @@ export default function SpacesAdmin() {
                             );
                           }).length === 0 && (
                             <div className="py-3 text-center text-xs text-moss">
-                              No cities match your search
+                              {t('mySpaces.noCities')}
                             </div>
                           )}
                         </div>
@@ -1080,7 +1093,7 @@ export default function SpacesAdmin() {
 
                   <div className="sm:col-span-2">
                     <label className="block text-xs font-semibold text-soot mb-1.5">
-                      Full Address <span className="text-rose-600">*</span>
+                      {t('admin.spaces.addressEn')} <span className="text-rose-600">*</span>
                     </label>
                     <input
                       type="text"
@@ -1089,7 +1102,7 @@ export default function SpacesAdmin() {
                         setForm((p) => ({ ...p, address: e.target.value }));
                         if (formErrors.address) setFormErrors((errs) => ({ ...errs, address: '' }));
                       }}
-                      placeholder="District, Street Name, Building Number"
+                      placeholder={t('admin.spaces.addressPlaceholder')}
                       className={`w-full px-3.5 py-2.5 rounded-xl border bg-white text-soot text-sm placeholder:text-moss/60 outline-none transition-all shadow-2xs ${
                         formErrors.address ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-soot/15 focus:border-soot'
                       }`}
@@ -1099,23 +1112,117 @@ export default function SpacesAdmin() {
 
                   {/* Description */}
                   <div className="sm:col-span-2">
-                    <label className="block text-xs font-semibold text-soot mb-1.5">Description</label>
+                    <label className="block text-xs font-semibold text-soot mb-1.5">{t('admin.spaces.descEn')}</label>
                     <textarea
                       rows={3}
                       value={form.description || ''}
                       onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
-                      placeholder="Write a comprehensive description about the workspace, ambiance, facilities, and unique perks..."
+                      placeholder={t('admin.spaces.descPlaceholder')}
                       className="w-full px-3.5 py-2.5 rounded-xl border border-soot/15 bg-white text-soot text-sm placeholder:text-moss/60 outline-none focus:border-soot transition-all resize-y shadow-2xs"
                     />
                   </div>
 
+                  {/* Bilingual content: authored in both languages, stored as-is (never machine-translated) */}
+                  <div className="sm:col-span-2 rounded-2xl border border-soot/10 bg-plaster-dark/30 p-3.5 space-y-3">
+                    <div>
+                      <div className="text-[11px] font-bold uppercase tracking-wider text-soot">{t('mySpaces.bilingualTitle')}</div>
+                      <p className="text-[11px] text-moss mt-0.5 leading-snug">{t('mySpaces.bilingualHint')}</p>
+                    </div>
+                    <div className="grid sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-soot mb-1.5">{t('mySpaces.nameAr')}</label>
+                        <input
+                          dir="rtl"
+                          lang="ar"
+                          type="text"
+                          value={form.nameAr || ''}
+                          onChange={(e) => setForm((p) => ({ ...p, nameAr: e.target.value }))}
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-soot/15 bg-white text-soot text-sm outline-none focus:border-soot shadow-2xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-soot mb-1.5">{t('mySpaces.cityAr')}</label>
+                        <input
+                          dir="rtl"
+                          lang="ar"
+                          type="text"
+                          value={form.cityAr || ''}
+                          onChange={(e) => setForm((p) => ({ ...p, cityAr: e.target.value }))}
+                          placeholder={SAUDI_CITIES_DATA.find((c) => c.name.toLowerCase() === (form.city || '').toLowerCase())?.nameAr || ''}
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-soot/15 bg-white text-soot text-sm outline-none focus:border-soot shadow-2xs"
+                        />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label className="block text-xs font-semibold text-soot mb-1.5">{t('mySpaces.addressAr')}</label>
+                        <input
+                          dir="rtl"
+                          lang="ar"
+                          type="text"
+                          value={form.addressAr || ''}
+                          onChange={(e) => setForm((p) => ({ ...p, addressAr: e.target.value }))}
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-soot/15 bg-white text-soot text-sm outline-none focus:border-soot shadow-2xs"
+                        />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label className="block text-xs font-semibold text-soot mb-1.5">{t('mySpaces.descriptionAr')}</label>
+                        <textarea
+                          dir="rtl"
+                          lang="ar"
+                          rows={3}
+                          value={form.descriptionAr || ''}
+                          onChange={(e) => setForm((p) => ({ ...p, descriptionAr: e.target.value }))}
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-soot/15 bg-white text-soot text-sm outline-none focus:border-soot resize-y shadow-2xs"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Operating hours */}
+                  <div className="sm:col-span-2 space-y-3">
+                    <div className="flex items-center justify-between border-b border-soot/10 pb-1.5">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-moss">{t('mySpaces.operatingHours')}</span>
+                      <label className="flex items-center gap-2 text-xs font-semibold text-soot cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(form.is24Hours)}
+                          onChange={(e) => setForm((p) => ({ ...p, is24Hours: e.target.checked }))}
+                          className="accent-soot"
+                        />
+                        {t('mySpaces.open24')}
+                      </label>
+                    </div>
+                    {!form.is24Hours && (
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-semibold text-soot mb-1.5">{t('mySpaces.openingTime')}</label>
+                          <input
+                            type="time"
+                            value={form.openingTime || '08:00'}
+                            onChange={(e) => setForm((p) => ({ ...p, openingTime: e.target.value }))}
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-soot/15 bg-white text-soot text-sm outline-none focus:border-soot shadow-2xs"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-soot mb-1.5">{t('mySpaces.closingTime')}</label>
+                          <input
+                            type="time"
+                            value={form.closingTime || '22:00'}
+                            onChange={(e) => setForm((p) => ({ ...p, closingTime: e.target.value }))}
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-soot/15 bg-white text-soot text-sm outline-none focus:border-soot shadow-2xs"
+                          />
+                        </div>
+                      </div>
+                    )}
+                    {formErrors.openingTime && <p className="text-xs text-rose-600 font-medium">* {formErrors.openingTime}</p>}
+                  </div>
+
                   {/* Custom Workspace Type Dropdown */}
                   <div className="relative" ref={modalTypeRef}>
-                    <label className="block text-xs font-semibold text-soot mb-1.5">Workspace Type</label>
+                    <label className="block text-xs font-semibold text-soot mb-1.5">{t('browse.workspaceType')}</label>
                     <button
                       type="button"
                       onClick={() => setModalTypeOpen(!modalTypeOpen)}
-                      className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border border-soot/12 bg-white text-soot text-sm font-medium text-left transition-all duration-200 cursor-pointer focus:outline-none shadow-2xs"
+                      className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border border-soot/12 bg-white text-soot text-sm font-medium text-start transition-all duration-200 cursor-pointer focus:outline-none shadow-2xs"
                     >
                       <span className="capitalize truncate">
                         {TYPES.find((t) => t.value === (form.type || 'mixed'))?.label || 'Mixed Space'}
@@ -1129,7 +1236,7 @@ export default function SpacesAdmin() {
                     </button>
 
                     {modalTypeOpen && (
-                      <div className="absolute top-full left-0 right-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100 max-h-52 overflow-y-auto">
+                      <div className="absolute top-full start-0 end-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100 max-h-52 overflow-y-auto">
                         <div className="space-y-0.5">
                           {TYPES.map((t) => {
                             const isSelected = form.type === t.value;
@@ -1141,7 +1248,7 @@ export default function SpacesAdmin() {
                                   handleTypeChange(t.value);
                                   setModalTypeOpen(false);
                                 }}
-                                className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-sm font-medium transition-colors text-left cursor-pointer ${
+                                className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-sm font-medium transition-colors text-start cursor-pointer ${
                                   isSelected
                                     ? 'bg-soot text-plaster font-semibold'
                                     : 'text-soot hover:bg-plaster-dark/60'
@@ -1178,27 +1285,27 @@ export default function SpacesAdmin() {
               {/* Booking System / Hourly Packages (الزيادة من كودهم بتصميم متناسق) */}
               <div className="rounded-2xl border border-soot/12 bg-plaster-dark/40 p-4 space-y-3">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-moss block">
-                  Booking Mode & Packages
+                  {t('admin.spaces.bookingMode')}
                 </span>
                 {isHourlyOnlySpace(form.type) ? (
                   <div className="space-y-3">
                     <p className="text-xs text-moss">
-                      Halls and Theaters use hourly booking packages.
+                      {t('admin.spaces.hallsHourly')}
                     </p>
                     <div className="space-y-2">
                       {(form.bookingPackages || []).map((pkg, index) => (
                         <div key={pkg.id} className="grid sm:grid-cols-[2fr_1fr_1fr_1fr_auto] gap-2 items-end bg-white p-2.5 rounded-xl border border-soot/10">
                           <div>
-                            <label className="block text-[10px] font-medium text-moss mb-1">Package name</label>
+                            <label className="block text-[10px] font-medium text-moss mb-1">{t('admin.spaces.pkgName')}</label>
                             <input
                               value={pkg.name}
                               onChange={(e) => updatePackage(index, { name: e.target.value })}
-                              placeholder="e.g. 2 hours per day"
+                              placeholder={t('admin.spaces.pkgPlaceholder')}
                               className="w-full px-2.5 py-1.5 rounded-lg border border-soot/12 text-xs outline-none focus:border-soot"
                             />
                           </div>
                           <div>
-                            <label className="block text-[10px] font-medium text-moss mb-1">Period</label>
+                            <label className="block text-[10px] font-medium text-moss mb-1">{t('bf.period')}</label>
                             <div className="flex bg-plaster-dark/30 p-0.5 rounded-lg border border-soot/12">
                               <button
                                 type="button"
@@ -1221,7 +1328,7 @@ export default function SpacesAdmin() {
                             </div>
                           </div>
                           <div>
-                            <label className="block text-[10px] font-medium text-moss mb-1">Hours</label>
+                            <label className="block text-[10px] font-medium text-moss mb-1">{t('admin.spaces.hours')}</label>
                             <input
                               type="number"
                               min="1"
@@ -1231,7 +1338,7 @@ export default function SpacesAdmin() {
                             />
                           </div>
                           <div>
-                            <label className="block text-[10px] font-medium text-moss mb-1">Price SAR</label>
+                            <label className="block text-[10px] font-medium text-moss mb-1">{t('admin.spaces.priceSar')}</label>
                             <input
                               type="number"
                               min="0"
@@ -1244,7 +1351,7 @@ export default function SpacesAdmin() {
                             type="button"
                             onClick={() => removePackage(index)}
                             className="p-2 text-moss hover:text-red-600 transition-colors"
-                            title="Remove package"
+                            title={t('admin.spaces.removePkg')}
                           >
                             <Trash2 size={15} />
                           </button>
@@ -1261,7 +1368,7 @@ export default function SpacesAdmin() {
                   </div>
                 ) : (
                   <p className="text-xs text-moss">
-                    Shared desks and private offices support standard subscription pricing (Daily, Monthly, Yearly).
+                    {t('admin.spaces.desksPricing')}
                   </p>
                 )}
               </div>
@@ -1308,7 +1415,7 @@ export default function SpacesAdmin() {
                       <span className="text-[10px] font-bold uppercase tracking-wider text-soot">
                         Multi-Hour Duration Pricing (SAR)
                       </span>
-                      <span className="text-[10px] text-moss">Custom pricing for specific hourly durations</span>
+                      <span className="text-[10px] text-moss">{t('mySpaces.hourlyCustom')}</span>
                     </div>
                     <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                       {[1, 2, 3, 4, 6, 8].map((hours) => {
@@ -1343,7 +1450,7 @@ export default function SpacesAdmin() {
                     <span className="text-[10px] font-bold uppercase tracking-wider text-soot">
                       Multi-Month Duration Pricing (SAR)
                     </span>
-                    <span className="text-[10px] text-moss">Custom pricing for specific monthly durations</span>
+                    <span className="text-[10px] text-moss">{t('mySpaces.monthlyCustom')}</span>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                     {[1, 2, 3, 6, 12].map((months) => {
@@ -1374,7 +1481,7 @@ export default function SpacesAdmin() {
               {/* Amenities */}
               <div className="space-y-3 pt-1">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-moss block border-b border-soot/10 pb-1.5">
-                  Available Amenities
+                  {t('mySpaces.availableAmenities')}
                 </span>
 
                 {/* Custom Amenity Input */}
@@ -1389,7 +1496,7 @@ export default function SpacesAdmin() {
                         handleAddCustomAmenity();
                       }
                     }}
-                    placeholder="Add custom amenity..."
+                    placeholder={t('admin.spaces.addAmenity')}
                     className="flex-1 px-3.5 py-2 rounded-xl border border-soot/12 bg-plaster-dark/30 text-soot text-xs placeholder:text-moss/70 outline-none focus:border-eucalyptus focus:bg-plaster-surface transition-all"
                   />
                   <button
@@ -1398,7 +1505,7 @@ export default function SpacesAdmin() {
                     className="px-3.5 py-2 rounded-xl bg-soot text-plaster hover:bg-soot/90 text-xs font-semibold cursor-pointer transition-all shrink-0 flex items-center gap-1 shadow-2xs"
                   >
                     <Plus size={14} />
-                    <span>Add</span>
+                    <span>{t('admin.spaces.add')}</span>
                   </button>
                 </div>
 
@@ -1445,7 +1552,7 @@ export default function SpacesAdmin() {
                               handleRemoveCustomAmenity(item);
                             }}
                             className="p-0.5 hover:bg-white/20 rounded-md transition-colors"
-                            title="Remove custom amenity"
+                            title={t('admin.spaces.removeAmenity')}
                           >
                             <X size={13} className={selected ? 'text-plaster/80 hover:text-white' : 'text-soot/70 hover:text-soot'} />
                           </button>
@@ -1459,7 +1566,7 @@ export default function SpacesAdmin() {
               <div className="space-y-3 pt-1">
                 <div className="flex items-center justify-between border-b border-soot/10 pb-1.5">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-moss">
-                    Workspace Photos & Images
+                    {t('admin.spaces.photos')}
                   </span>
                   <button
                     type="button"
@@ -1467,7 +1574,7 @@ export default function SpacesAdmin() {
                     className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#DDE6DF] text-soot hover:bg-[#D0DDD3] text-xs font-semibold border border-soot/8 cursor-pointer shadow-2xs"
                   >
                     <Upload size={13} />
-                    <span>Upload Photo</span>
+                    <span>{t('admin.spaces.uploadPhoto')}</span>
                   </button>
                   <input
                     ref={fileInputRef}
@@ -1483,7 +1590,7 @@ export default function SpacesAdmin() {
                     type="text"
                     value={imageUrlInput}
                     onChange={(e) => setImageUrlInput(e.target.value)}
-                    placeholder="Or paste image URL (e.g. https://...)"
+                    placeholder={t('admin.spaces.pasteUrl')}
                     className="flex-1 px-3.5 py-2 rounded-xl border border-soot/15 bg-white text-soot text-xs outline-none focus:border-soot shadow-2xs"
                   />
                   <button
@@ -1491,7 +1598,7 @@ export default function SpacesAdmin() {
                     onClick={handleAddImageUrl}
                     className="btn-secondary text-xs px-3.5 py-2"
                   >
-                    Add URL
+                    {t('mySpaces.addUrl')}
                   </button>
                 </div>
 
@@ -1505,8 +1612,8 @@ export default function SpacesAdmin() {
                       <button
                         type="button"
                         onClick={() => handleRemoveImage(idx)}
-                        className="absolute top-1.5 right-1.5 p-1 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 cursor-pointer"
-                        title="Remove image"
+                        className="absolute top-1.5 end-1.5 p-1 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 cursor-pointer"
+                        title={t('admin.spaces.removeImage')}
                       >
                         <X size={12} />
                       </button>
@@ -1524,7 +1631,7 @@ export default function SpacesAdmin() {
                     onChange={(e) => setForm((p) => ({ ...p, isVisible: e.target.checked }))}
                     className="w-4 h-4 rounded accent-soot cursor-pointer"
                   />
-                  <span className="text-xs sm:text-sm font-semibold text-soot">Visible to Members</span>
+                  <span className="text-xs sm:text-sm font-semibold text-soot">{t('admin.spaces.visible')}</span>
                 </label>
 
                 <label className="flex items-center gap-2.5 cursor-pointer">
@@ -1534,7 +1641,7 @@ export default function SpacesAdmin() {
                     onChange={(e) => setForm((p) => ({ ...p, isFeatured: e.target.checked }))}
                     className="w-4 h-4 rounded accent-soot cursor-pointer"
                   />
-                  <span className="text-xs sm:text-sm font-semibold text-soot">Feature on Highlights</span>
+                  <span className="text-xs sm:text-sm font-semibold text-soot">{t('admin.spaces.feature')}</span>
                 </label>
               </div>
             </div>
@@ -1571,10 +1678,10 @@ export default function SpacesAdmin() {
               </div>
               <div>
                 <h3 className="text-base font-semibold text-soot mb-1 font-serif-display">
-                  Delete Space Permanently?
+                  {t('admin.spaces.deleteTitle')}
                 </h3>
                 <p className="text-xs text-moss leading-relaxed">
-                  Are you sure you want to remove <strong className="text-soot">{spaceToDelete?.name}</strong>? All associated records will be removed.
+                  Are you sure you want to remove <strong className="text-soot">{spaceToDelete?.name}</strong>{t('admin.spaces.deleteAssoc')}
                 </p>
               </div>
             </div>
@@ -1596,7 +1703,7 @@ export default function SpacesAdmin() {
                 }}
                 className="btn-danger flex-1"
               >
-                Delete
+                {t('common.delete')}
               </button>
             </div>
           </div>
@@ -1613,7 +1720,7 @@ export default function SpacesAdmin() {
           <div className="relative w-full max-w-md bg-plaster-surface rounded-3xl shadow-2xl border border-soot/15 p-6 space-y-4 z-10">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-serif-display font-medium text-soot">
-                Reject Custom Amenity
+                {t('admin.spaces.rejectTitle')}
               </h3>
               <button
                 type="button"
@@ -1635,7 +1742,7 @@ export default function SpacesAdmin() {
               <textarea
                 value={rejectionReasonInput}
                 onChange={(e) => setRejectionReasonInput(e.target.value)}
-                placeholder="Explain why this amenity was declined (e.g. Non-standard naming or safety concern)..."
+                placeholder={t('admin.spaces.declineReason')}
                 rows={3}
                 className="w-full px-3 py-2 rounded-xl border border-soot/15 bg-plaster-dark/30 text-soot text-xs placeholder:text-moss/70 outline-none focus:border-eucalyptus focus:bg-plaster-surface transition-all"
               />
@@ -1658,7 +1765,7 @@ export default function SpacesAdmin() {
                 }}
                 className="px-4 py-2 rounded-xl bg-rose-600 text-white hover:bg-rose-700 text-xs font-semibold cursor-pointer shadow-2xs"
               >
-                Decline Request
+                {t('admin.spaces.decline')}
               </button>
             </div>
           </div>

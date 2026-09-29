@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/i18n';
 import React, { useState, useEffect } from 'react';
 import {
   DollarSign,
@@ -15,6 +16,7 @@ import { useApp } from '@/app/store';
 import { getPayoutsApi, PayoutItemApi } from '@/services/authApi';
 
 export default function PayoutsAdmin() {
+  const { t } = useI18n();
   const { partners, payoutsApi, fetchPayouts } = useApp();
   const [payouts, setPayouts] = useState<PayoutItemApi[]>([]);
   const [loading, setLoading] = useState(true);
@@ -85,7 +87,7 @@ export default function PayoutsAdmin() {
             </div>
           </div>
           <div className="text-2xl font-bold font-serif-display text-amber-950">
-            SAR {totalAmountDue.toLocaleString()}
+            {t('common.sar')} {totalAmountDue.toLocaleString()}
           </div>
           <span className="text-[11px] text-amber-700 font-medium mt-1 block">
             {pendingCount} Pending Transfers
@@ -151,13 +153,13 @@ export default function PayoutsAdmin() {
         <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 my-6">
           {/* Search Box */}
           <div className="relative flex-1">
-            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-moss pointer-events-none" />
+            <Search size={16} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-moss pointer-events-none" />
             <input
               type="text"
               placeholder="Search by Payout ID, Partner Name, Partner ID, or Billing Month..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-soot/15 bg-plaster-surface text-soot text-xs sm:text-sm placeholder:text-moss/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-2xs"
+              className="w-full ps-10 pe-4 py-2.5 rounded-2xl border border-soot/15 bg-plaster-surface text-soot text-xs sm:text-sm placeholder:text-moss/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-2xs"
             />
           </div>
 
@@ -196,7 +198,7 @@ export default function PayoutsAdmin() {
           </div>
         ) : (
           <div className="overflow-x-auto rounded-2xl border border-soot/10 shadow-2xs">
-            <table className="w-full text-left text-xs sm:text-sm">
+            <table className="w-full text-start text-xs sm:text-sm">
               <thead className="bg-plaster-dark/60 border-b border-soot/10 text-moss uppercase tracking-wider font-semibold">
                 <tr>
                   <th className="py-3.5 px-4">Payout ID</th>
@@ -231,7 +233,7 @@ export default function PayoutsAdmin() {
                         {p.totalVisitsReceived} visits
                       </td>
                       <td className="py-3.5 px-4 font-bold text-soot">
-                        SAR {p.amountDue}
+                        {t('common.sar')} {p.amountDue}
                       </td>
                       <td className="py-3.5 px-4">
                         <span

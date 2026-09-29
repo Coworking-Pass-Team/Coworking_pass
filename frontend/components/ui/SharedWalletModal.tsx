@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/i18n';
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import {
@@ -24,6 +25,7 @@ interface SharedWalletModalProps {
 }
 
 export default function SharedWalletModal({ isOpen, onClose }: SharedWalletModalProps) {
+  const { t, dir } = useI18n();
   const {
     currentUser,
     companyWalletBalance,
@@ -72,7 +74,7 @@ export default function SharedWalletModal({ isOpen, onClose }: SharedWalletModal
     setIsSubmitting(false);
 
     if (res.success) {
-      setSuccessMessage(`Successfully added SAR ${num.toLocaleString()} to corporate wallet.`);
+      setSuccessMessage(`Successfully added ${t('common.sar')} ${num.toLocaleString()} to corporate wallet.`);
       setAmountInput('');
       setTimeout(() => {
         setSuccessMessage(null);
@@ -82,7 +84,7 @@ export default function SharedWalletModal({ isOpen, onClose }: SharedWalletModal
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-soot/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200" dir="ltr">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-soot/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200" dir={dir}>
       <div className="bg-plaster-surface w-full max-w-lg rounded-3xl shadow-2xl border border-soot/12 overflow-hidden flex flex-col max-h-[90vh]">
         {/* Modal Header */}
         <div className="px-6 py-5 bg-plaster-dark/40 border-b border-soot/10 flex items-center justify-between shrink-0">
@@ -92,9 +94,9 @@ export default function SharedWalletModal({ isOpen, onClose }: SharedWalletModal
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-lg font-serif-display font-normal text-soot">Corporate Shared Wallet</h2>
+                <h2 className="text-lg font-serif-display font-normal text-soot">{t('sharedWallet.title')}</h2>
                 <span className="text-[10px] px-2.5 py-0.5 rounded-full font-semibold bg-[#DDE6DF] text-soot border border-soot/10 tracking-wide uppercase">
-                  B2B Pool
+                  {t('sharedWallet.pool')}
                 </span>
               </div>
               <p className="text-xs text-moss">{companyName} · All-Access Pass Allocation</p>
@@ -103,7 +105,7 @@ export default function SharedWalletModal({ isOpen, onClose }: SharedWalletModal
           <button
             onClick={onClose}
             className="w-8 h-8 rounded-full bg-soot/5 hover:bg-soot/10 text-soot flex items-center justify-center transition-colors cursor-pointer"
-            aria-label="Close modal"
+            aria-label={t('common.closeModal')}
           >
             <X size={18} />
           </button>
@@ -113,19 +115,19 @@ export default function SharedWalletModal({ isOpen, onClose }: SharedWalletModal
         <div className="p-6 overflow-y-auto space-y-6 flex-1">
           {/* Main Shared Wallet Balance Card */}
           <div className="relative overflow-hidden rounded-3xl bg-soot p-6 text-plaster shadow-xl border border-soot/20">
-            <div className="absolute -top-10 -right-10 w-40 h-40 bg-[#DDE6DF]/15 rounded-full blur-2xl pointer-events-none" />
+            <div className="absolute -top-10 -end-10 w-40 h-40 bg-[#DDE6DF]/15 rounded-full blur-2xl pointer-events-none" />
             <div className="flex justify-between items-start mb-4">
               <div>
                 <span className="text-xs font-semibold text-plaster/70 tracking-wider uppercase flex items-center gap-1.5">
                   <Coins size={14} className="text-[#98AA9D]" />
-                  <span>Available Balance</span>
+                  <span>{t('wallet.availableBalance')}</span>
                 </span>
                 <div className="text-3xl sm:text-4xl font-serif-display font-normal mt-1 tracking-tight flex items-baseline gap-2 text-plaster">
-                  <span className="text-base font-sans font-medium text-plaster/70">SAR</span>
+                  <span className="text-base font-sans font-medium text-plaster/70">{t('common.sar')}</span>
                   <span>{currentBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
                 <div className="text-xs text-plaster/60 mt-1 font-sans">
-                  Shared corporate funds available for verified team bookings
+                  {t('sharedWallet.subtitle')}
                 </div>
               </div>
               <button
@@ -135,7 +137,7 @@ export default function SharedWalletModal({ isOpen, onClose }: SharedWalletModal
                 }}
                 disabled={isLoadingWallet}
                 className="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-plaster transition-colors cursor-pointer"
-                title="Refresh live balance"
+                title={t('sharedWallet.refresh')}
               >
                 <RefreshCw size={15} className={isLoadingWallet ? 'animate-spin' : ''} />
               </button>
@@ -173,21 +175,21 @@ export default function SharedWalletModal({ isOpen, onClose }: SharedWalletModal
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-soot flex items-center gap-2">
                   <PlusCircle size={16} className="text-moss" />
-                  Top Up Company Balance
+                  {t('sharedWallet.topUp')}
                 </h3>
                 <button
                   type="button"
                   onClick={() => setActiveTab('overview')}
                   className="text-xs text-moss hover:text-soot underline cursor-pointer"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
               </div>
 
               {/* Quick Amount Buttons */}
               <div>
                 <label className="block text-xs font-semibold text-soot mb-2">
-                  Quick Amount (SAR)
+                  {t('sharedWallet.quickAmount')}
                 </label>
                 <div className="grid grid-cols-4 gap-2">
                   {[500, 1000, 2500, 5000].map((val) => (
@@ -210,7 +212,7 @@ export default function SharedWalletModal({ isOpen, onClose }: SharedWalletModal
               {/* Amount Input */}
               <div>
                 <label className="block text-xs font-semibold text-soot mb-1">
-                  Deposit Amount (SAR) *
+                  {t('sharedWallet.depositAmount')}
                 </label>
                 <div className="relative">
                   <input
@@ -218,13 +220,13 @@ export default function SharedWalletModal({ isOpen, onClose }: SharedWalletModal
                     min="1"
                     step="any"
                     required
-                    placeholder="e.g. 1500"
+                    placeholder={t('sharedWallet.placeholder')}
                     value={amountInput}
                     onChange={(e) => setAmountInput(e.target.value)}
                     className="w-full px-4 py-2.5 rounded-xl border border-soot/15 bg-plaster-surface text-soot text-sm focus:outline-none focus:ring-2 focus:ring-soot/20"
                   />
-                  <span className="absolute right-3.5 top-2.5 text-xs text-moss font-semibold pointer-events-none">
-                    SAR
+                  <span className="absolute end-3.5 top-2.5 text-xs text-moss font-semibold pointer-events-none">
+                    {t('common.sar')}
                   </span>
                 </div>
               </div>
@@ -239,7 +241,7 @@ export default function SharedWalletModal({ isOpen, onClose }: SharedWalletModal
                 ) : (
                   <>
                     <CheckCircle2 size={16} className="text-[#98AA9D]" />
-                    <span>Confirm Deposit</span>
+                    <span>{t('wallet.confirmDeposit')}</span>
                   </>
                 )}
               </button>
@@ -253,7 +255,7 @@ export default function SharedWalletModal({ isOpen, onClose }: SharedWalletModal
                 <Users size={18} />
               </div>
               <div>
-                <div className="text-xs text-moss font-medium">Enrolled Members</div>
+                <div className="text-xs text-moss font-medium">{t('sharedWallet.enrolled')}</div>
                 <div className="text-base font-serif-display font-normal text-soot">{employeeCount} Team Members</div>
               </div>
             </div>
@@ -263,7 +265,7 @@ export default function SharedWalletModal({ isOpen, onClose }: SharedWalletModal
                 <Briefcase size={18} />
               </div>
               <div>
-                <div className="text-xs text-moss font-medium">Allocated Credits</div>
+                <div className="text-xs text-moss font-medium">{t('sharedWallet.allocated')}</div>
                 <div className="text-base font-serif-display font-normal text-soot">{totalPassesAllocated} Monthly Passes</div>
               </div>
             </div>
@@ -273,24 +275,24 @@ export default function SharedWalletModal({ isOpen, onClose }: SharedWalletModal
           <div className="p-4 rounded-2xl bg-plaster-dark/20 border border-soot/10 space-y-2 text-xs text-moss">
             <div className="font-semibold text-soot flex items-center gap-1.5">
               <ShieldCheck size={15} className="text-[#697C70]" />
-              <span>How Corporate Shared Wallet Works:</span>
+              <span>{t('sharedWallet.howTitle')}</span>
             </div>
             <ul className="space-y-1.5 list-disc list-inside text-moss leading-relaxed">
-              <li>Corporate balance is shared across all registered company employees.</li>
-              <li>Booking fees for workspaces and meeting rooms are automatically deducted from this balance.</li>
-              <li>Company HR & Admin can top up funds at any time with instant balance updates.</li>
+              <li>{t('sharedWallet.how1')}</li>
+              <li>{t('sharedWallet.how2')}</li>
+              <li>{t('sharedWallet.how3')}</li>
             </ul>
           </div>
         </div>
 
         {/* Modal Footer */}
         <div className="px-6 py-4 bg-plaster-dark/30 border-t border-soot/10 flex items-center justify-between text-xs text-moss">
-          <span>Enterprise Billing · Coworking Pass</span>
+          <span>{t('sharedWallet.billing')}</span>
           <button
             onClick={onClose}
             className="px-4 py-2 rounded-xl bg-soot/5 hover:bg-soot/10 text-soot font-medium transition-colors cursor-pointer"
           >
-            Close
+            {t('common.close')}
           </button>
         </div>
       </div>

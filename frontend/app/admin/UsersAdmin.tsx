@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/i18n';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import {
   Search,
@@ -30,18 +31,19 @@ import { createCompanyApi } from '@/services/authApi';
 import Badge from '@/components/ui/Badge';
 
 const FORM_ROLES: { value: UserRole; label: string }[] = [
-  { value: 'individual', label: 'Individual Member' },
-  { value: 'organization', label: 'Organization (B2B)' },
-  { value: 'provider', label: 'Space Partner' },
+  { value: 'individual', label: 'role.individual' },
+  { value: 'organization', label: 'role.organization' },
+  { value: 'provider', label: 'role.provider' },
 ];
 
 const ROW_ROLES: { value: UserRole; label: string }[] = [
-  { value: 'individual', label: 'Individual Member' },
-  { value: 'organization', label: 'Organization (B2B)' },
-  { value: 'provider', label: 'Space Partner' },
+  { value: 'individual', label: 'role.individual' },
+  { value: 'organization', label: 'role.organization' },
+  { value: 'provider', label: 'role.provider' },
 ];
 
 export default function UsersAdmin() {
+  const { t } = useI18n();
   const {
     nav,
     users,
@@ -297,10 +299,10 @@ export default function UsersAdmin() {
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <span className="text-xs font-semibold tracking-wider uppercase text-moss block mb-1">
-            User Management & Directory
+            {t('admin.users.eyebrow')}
           </span>
           <h1 className="text-3xl sm:text-4xl text-soot font-normal font-serif-display">
-            Manage Users
+            {t('footer.manageUsers')}
           </h1>
         </div>
 
@@ -310,7 +312,7 @@ export default function UsersAdmin() {
           className="btn-primary"
         >
           <Plus size={17} className="text-[#FAF8F5]/80" />
-          <span>Add User</span>
+          <span>{t('admin.users.addUser')}</span>
         </button>
       </div>
 
@@ -325,14 +327,14 @@ export default function UsersAdmin() {
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="text-base font-bold text-soot">
-                    Pending Space Partner Applications
+                    {t('admin.users.pendingApps')}
                   </h2>
                   <span className="px-2.5 py-0.5 rounded-full bg-amber-500 text-white text-xs font-bold shadow-2xs">
                     {pendingPartnersCount} Action Required
                   </span>
                 </div>
                 <p className="text-xs text-moss mt-0.5">
-                  The following coworking venue providers have submitted registration and commercial verification details awaiting platform approval.
+                  {t('admin.users.pendingAppsBody')}
                 </p>
               </div>
             </div>
@@ -350,14 +352,14 @@ export default function UsersAdmin() {
                       {partner.brandName}
                     </span>
                     <span className="text-[10px] font-semibold bg-amber-500/15 text-amber-900 border border-amber-500/30 px-2 py-0.5 rounded-full shrink-0">
-                      Pending Review
+                      {t('admin.users.pendingReview')}
                     </span>
                   </div>
                   <div className="text-xs text-moss font-mono mb-2 truncate" title={partner.contactEmail}>
                     {partner.contactEmail}
                   </div>
                   <div className="text-xs text-moss/90 flex items-center gap-1.5 bg-plaster-dark/40 px-3 py-1.5 rounded-xl border border-soot/5">
-                    <span className="font-medium">CR / Tax No:</span>
+                    <span className="font-medium">{t('admin.users.crTax')}</span>
                     <span className="font-mono font-bold text-soot">{partner.taxNumber || 'Not provided'}</span>
                   </div>
                   {partner.createdAt && (
@@ -376,12 +378,12 @@ export default function UsersAdmin() {
                     className="flex-1 py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs"
                   >
                     <Check size={15} />
-                    <span>Approve Partner</span>
+                    <span>{t('admin.users.approvePartner')}</span>
                   </button>
                   <button
                     type="button"
                     onClick={async () => {
-                      const reason = prompt('Reason for rejecting partner application (optional):');
+                      const reason = prompt(t('admin.users.rejectPrompt'));
                       if (reason !== null) {
                         await rejectPartner(partner.id, reason);
                       }
@@ -389,7 +391,7 @@ export default function UsersAdmin() {
                     className="py-2.5 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold flex items-center justify-center gap-1 transition-colors cursor-pointer"
                   >
                     <X size={15} />
-                    <span>Reject</span>
+                    <span>{t('admin.spaces.reject')}</span>
                   </button>
                 </div>
               </div>
@@ -402,7 +404,7 @@ export default function UsersAdmin() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {[
           {
-            label: 'Total Users',
+            label: t('admin.users.totalUsers'),
             count: nonAdmins.length,
             badge: 'bg-soot/10 text-soot border border-soot/15',
             icon: UsersIcon,
@@ -411,7 +413,7 @@ export default function UsersAdmin() {
             onClick: () => { setFilterRole(''); setFilterStatus(''); },
           },
           {
-            label: 'Pending Approval',
+            label: t('auth.pendingApproval'),
             count: pendingPartnersCount,
             badge: pendingPartnersCount > 0
               ? 'bg-amber-500/20 text-amber-900 border border-amber-500/35 font-bold'
@@ -424,7 +426,7 @@ export default function UsersAdmin() {
             onClick: () => { setFilterRole(filterRole === 'pending' ? '' : 'pending'); setFilterStatus(''); },
           },
           {
-            label: 'Active Members',
+            label: t('admin.users.activeMembers'),
             count: activeCount,
             badge: 'bg-emerald-500/15 text-emerald-800 border border-emerald-500/30',
             icon: UserCheck,
@@ -433,7 +435,7 @@ export default function UsersAdmin() {
             onClick: () => { setFilterStatus(filterStatus === 'active' ? '' : 'active'); setFilterRole(''); },
           },
           {
-            label: 'Blocked Accounts',
+            label: t('admin.users.blockedAccounts'),
             count: blockedCount,
             badge: 'bg-red-500/15 text-red-700 border border-red-500/30',
             icon: UserX,
@@ -477,13 +479,13 @@ export default function UsersAdmin() {
       {/* Search & Custom Styled Dropdowns */}
       <div className="flex flex-col sm:flex-row gap-3 bg-plaster-surface p-3 rounded-2xl border border-soot/10 shadow-2xs relative z-30">
         <div className="relative flex-1">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-moss" />
+          <Search size={16} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-moss" />
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search users by name, company, CR number, or email..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-soot/12 bg-plaster-dark/30 text-soot text-sm placeholder:text-moss/70 outline-none focus:border-eucalyptus focus:bg-plaster-surface transition-all"
+            placeholder={t('admin.users.searchPlaceholder')}
+            className="w-full ps-10 pe-4 py-2.5 rounded-xl border border-soot/12 bg-plaster-dark/30 text-soot text-sm placeholder:text-moss/70 outline-none focus:border-eucalyptus focus:bg-plaster-surface transition-all"
           />
         </div>
 
@@ -492,10 +494,10 @@ export default function UsersAdmin() {
           <button
             type="button"
             onClick={() => setRoleDropdownOpen(!roleDropdownOpen)}
-            className="w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/50 border border-soot/12 transition-all duration-200 text-left cursor-pointer focus:outline-none relative z-1000"
+            className="w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/50 border border-soot/12 transition-all duration-200 text-start cursor-pointer focus:outline-none relative z-1000"
           >
             <span className="text-sm font-medium text-soot truncate">
-              {filterRole ? (filterRole === 'individual' ? 'Individual' : filterRole === 'organization' ? 'Organization' : filterRole === 'provider' ? 'Provider' : 'Pending Approvals') : 'All Roles'}
+              {filterRole ? (filterRole === 'individual' ? t('admin.users.roleShortIndividual') : filterRole === 'organization' ? t('admin.users.roleShortOrg') : filterRole === 'provider' ? t('admin.users.roleShortProvider') : t('admin.users.pendingApprovals')) : t('admin.users.allRoles')}
             </span>
             <ChevronDown
               size={15}
@@ -506,14 +508,14 @@ export default function UsersAdmin() {
           </button>
 
           {roleDropdownOpen && (
-            <div className="absolute top-full left-0 right-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
+            <div className="absolute top-full start-0 end-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
               <div className="space-y-0.5">
                 {[
-                  { value: '', label: 'All Roles' },
-                  { value: 'pending', label: 'Pending Approvals' },
-                  { value: 'individual', label: 'Individual Member' },
-                  { value: 'organization', label: 'Organization (B2B)' },
-                  { value: 'provider', label: 'Space Partner' },
+                  { value: '', label: 'admin.users.allRoles' },
+                  { value: 'pending', label: 'admin.users.pendingApprovals' },
+                  { value: 'individual', label: 'role.individual' },
+                  { value: 'organization', label: 'role.organization' },
+                  { value: 'provider', label: 'role.provider' },
                 ].map((item) => {
                   const isSelected = filterRole === item.value;
                   return (
@@ -524,13 +526,13 @@ export default function UsersAdmin() {
                         setFilterRole(item.value);
                         setRoleDropdownOpen(false);
                       }}
-                      className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors text-left cursor-pointer ${
+                      className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors text-start cursor-pointer ${
                         isSelected
                           ? 'bg-soot text-plaster font-semibold'
                           : 'text-soot hover:bg-plaster-dark/60'
                       }`}
                     >
-                      <span>{item.label}</span>
+                      <span>{t(item.label as never)}</span>
                       {isSelected && <Check size={14} className="text-eucalyptus" />}
                     </button>
                   );
@@ -545,10 +547,10 @@ export default function UsersAdmin() {
           <button
             type="button"
             onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
-            className="w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/50 border border-soot/12 transition-all duration-200 text-left cursor-pointer focus:outline-none"
+            className="w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/50 border border-soot/12 transition-all duration-200 text-start cursor-pointer focus:outline-none"
           >
             <span className="text-sm font-medium text-soot truncate">
-              {filterStatus ? (filterStatus === 'active' ? 'Active' : 'Blocked') : 'All Status'}
+              {filterStatus ? (filterStatus === 'active' ? t('admin.users.active') : t('admin.users.blocked')) : t('admin.users.allStatus')}
             </span>
             <ChevronDown
               size={15}
@@ -559,12 +561,12 @@ export default function UsersAdmin() {
           </button>
 
           {statusDropdownOpen && (
-            <div className="absolute top-full left-0 right-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
+            <div className="absolute top-full start-0 end-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
               <div className="space-y-0.5">
                 {[
-                  { value: '', label: 'All Status' },
-                  { value: 'active', label: 'Active' },
-                  { value: 'blocked', label: 'Blocked' },
+                  { value: '', label: 'admin.users.allStatus' },
+                  { value: 'active', label: 'admin.users.active' },
+                  { value: 'blocked', label: 'admin.users.blocked' },
                 ].map((item) => {
                   const isSelected = filterStatus === item.value;
                   return (
@@ -575,13 +577,13 @@ export default function UsersAdmin() {
                         setFilterStatus(item.value);
                         setStatusDropdownOpen(false);
                       }}
-                      className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors text-left cursor-pointer ${
+                      className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors text-start cursor-pointer ${
                         isSelected
                           ? 'bg-soot text-plaster font-semibold'
                           : 'text-soot hover:bg-plaster-dark/60'
                       }`}
                     >
-                      <span>{item.label}</span>
+                      <span>{t(item.label as never)}</span>
                       {isSelected && <Check size={14} className="text-eucalyptus" />}
                     </button>
                   );
@@ -595,11 +597,11 @@ export default function UsersAdmin() {
       {/* Clean Table Layout Matching SpacesAdmin */}
       <div className="bg-plaster-surface rounded-3xl border border-soot/10 overflow-hidden shadow-2xs relative z-10">
         <div className="hidden md:grid grid-cols-12 gap-6 px-6 py-4 border-b border-soot/10 text-xs font-semibold uppercase tracking-wider text-moss bg-plaster-dark/40 items-center">
-          <div className="col-span-5">User Details</div>
-          <div className="col-span-2">Account Role</div>
-          <div className="col-span-2">Status</div>
-          <div className="col-span-2">Joined Date</div>
-          <div className="col-span-1 text-right">Actions</div>
+          <div className="col-span-5">{t('admin.users.colUser')}</div>
+          <div className="col-span-2">{t('admin.users.colRole')}</div>
+          <div className="col-span-2">{t('admin.users.colStatus')}</div>
+          <div className="col-span-2">{t('admin.users.colJoined')}</div>
+          <div className="col-span-1 text-end">{t('mySpaces.colActions')}</div>
         </div>
 
         <div className="divide-y divide-soot/8">
@@ -637,7 +639,7 @@ export default function UsersAdmin() {
                       </span>
                       {partnerCr && (
                         <span className="text-[10px] font-mono font-medium text-moss bg-soot/5 border border-soot/10 px-1.5 py-0.5 rounded">
-                          CR: {partnerCr}
+                          {t('admin.users.crLine', { cr: partnerCr })}
                         </span>
                       )}
                     </div>
@@ -657,17 +659,17 @@ export default function UsersAdmin() {
                   </button>
 
                   {isDropdownActive && (
-                    <div className="absolute top-full left-0 mt-1 w-44 p-1 bg-plaster-surface border border-soot/15 rounded-xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100 relative z-50">
+                    <div className="absolute top-full start-0 mt-1 w-44 p-1 bg-plaster-surface border border-soot/15 rounded-xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100 relative z-50">
                       {ROW_ROLES.map((r) => (
                         <button
                           key={r.value}
                           type="button"
                           onClick={() => handleRoleChange(u.id, r.value)}
-                          className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors text-left cursor-pointer ${
+                          className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors text-start cursor-pointer ${
                             u.role === r.value ? 'bg-soot text-plaster font-semibold' : 'text-soot hover:bg-plaster-dark/60'
                           }`}
                         >
-                          <span>{r.label}</span>
+                          <span>{t(r.label as never)}</span>
                           {u.role === r.value && <Check size={12} className="text-eucalyptus" />}
                         </button>
                       ))}
@@ -681,12 +683,12 @@ export default function UsersAdmin() {
                     effectiveStatus === 'PENDING_APPROVAL' ? (
                       <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-xl font-semibold bg-amber-500/15 text-amber-900 border border-amber-500/30 shadow-2xs animate-pulse">
                         <Clock size={12} className="text-amber-700" />
-                        <span>Pending Approval</span>
+                        <span>{t('auth.pendingApproval')}</span>
                       </span>
                     ) : effectiveStatus === 'REJECTED' ? (
                       <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-xl font-semibold bg-rose-500/15 text-rose-800 border border-rose-500/30">
                         <XCircle size={12} className="text-rose-600" />
-                        <span>Rejected</span>
+                        <span>{t('admin.users.rejected')}</span>
                       </span>
                     ) : (
                       <span
@@ -697,7 +699,7 @@ export default function UsersAdmin() {
                         }`}
                       >
                         <span className={`w-1.5 h-1.5 rounded-full ${u.isBlocked ? 'bg-red-500' : 'bg-emerald-500'}`} />
-                        <span>{u.isBlocked ? 'Blocked' : 'Approved Partner'}</span>
+                        <span>{u.isBlocked ? t('admin.users.blocked') : t('admin.users.approvedPartner')}</span>
                       </span>
                     )
                   ) : (
@@ -709,7 +711,7 @@ export default function UsersAdmin() {
                       }`}
                     >
                       <span className={`w-1.5 h-1.5 rounded-full ${u.isBlocked ? 'bg-red-500' : 'bg-emerald-500'}`} />
-                      <span>{u.isBlocked ? 'Blocked' : 'Active'}</span>
+                      <span>{u.isBlocked ? t('admin.users.blocked') : t('admin.users.active')}</span>
                     </span>
                   )}
                 </div>
@@ -731,7 +733,7 @@ export default function UsersAdmin() {
                           await approvePartner(pId);
                         }}
                         className="p-2 rounded-xl bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border border-emerald-300 transition-all cursor-pointer font-medium"
-                        title="Approve Partner & Send Email Notification"
+                        title={t('admin.users.approveTitle')}
                       >
                         <Check size={15} />
                       </button>
@@ -739,7 +741,7 @@ export default function UsersAdmin() {
                         type="button"
                         onClick={async (e) => {
                           e.stopPropagation();
-                          const reason = prompt('Reason for rejecting partner application (optional):');
+                          const reason = prompt(t('admin.users.rejectPrompt'));
                           if (reason !== null) {
                             const pId = partner?.id || u.id.replace('partner-', '');
                             await rejectPartner(pId, reason);
@@ -756,7 +758,7 @@ export default function UsersAdmin() {
                     type="button"
                     onClick={(e) => openEditModal(e, u)}
                     className="p-2 rounded-xl text-moss hover:text-soot hover:bg-plaster-surface border border-transparent hover:border-soot/10 transition-all cursor-pointer"
-                    title="Edit User Details"
+                    title={t('admin.users.editTitle')}
                   >
                     <Pencil size={15} />
                   </button>
@@ -767,7 +769,7 @@ export default function UsersAdmin() {
                       setDetailsModal(true);
                     }}
                     className="p-2 rounded-xl text-moss hover:text-soot hover:bg-plaster-surface border border-transparent hover:border-soot/10 transition-all cursor-pointer"
-                    title="View Full Profile Details"
+                    title={t('admin.users.viewTitle')}
                   >
                     <Eye size={15} />
                   </button>
@@ -782,7 +784,7 @@ export default function UsersAdmin() {
                         ? 'text-emerald-700 hover:bg-emerald-50 hover:border-emerald-200'
                         : 'text-moss hover:text-red-600 hover:bg-red-50 hover:border-red-100'
                     }`}
-                    title={u.isBlocked ? 'Unblock User' : 'Block User'}
+                    title={u.isBlocked ? t('admin.users.unblockUser') : t('admin.users.blockUser')}
                   >
                     {u.isBlocked ? <Shield size={15} /> : <ShieldOff size={15} />}
                   </button>
@@ -790,7 +792,7 @@ export default function UsersAdmin() {
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (confirm(`Are you sure you want to delete user "${u.name}"? This action cannot be undone.`)) {
+                      if (confirm(t('admin.users.confirmDelete', { name: u.name }))) {
                         if (isProvider && partner?.id) {
                           // For provider users, delete via partner API (which cascades)
                           deletePartner(partner.id);
@@ -801,7 +803,7 @@ export default function UsersAdmin() {
                       }
                     }}
                     className="p-2 rounded-xl text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-all cursor-pointer"
-                    title="Delete User/Partner"
+                    title={t('admin.users.deleteTitle')}
                   >
                     <Trash2 size={15} />
                   </button>
@@ -814,8 +816,8 @@ export default function UsersAdmin() {
         {filtered.length === 0 && (
           <div className="py-20 text-center text-moss">
             <UsersIcon size={40} className="mx-auto mb-3 text-moss/50" />
-            <div className="text-base font-medium text-soot">No matching users found</div>
-            <p className="text-xs text-moss mt-1">Try updating your search query or filter options.</p>
+            <div className="text-base font-medium text-soot">{t('admin.users.noMatch')}</div>
+            <p className="text-xs text-moss mt-1">{t('admin.users.tryUpdating')}</p>
           </div>
         )}
       </div>
@@ -833,9 +835,9 @@ export default function UsersAdmin() {
             <div className="px-6 sm:px-8 py-5 border-b border-soot/10 flex items-center justify-between bg-plaster-dark/30 shrink-0 rounded-t-3xl">
               <div>
                 <h3 className="text-xl font-serif-display font-medium text-soot">
-                  {editingUser ? 'Edit User Profile' : 'Add New User'}
+                  {editingUser ? t('admin.users.editProfile') : t('admin.users.addNew')}
                 </h3>
-                <p className="text-xs text-moss mt-0.5">Manage user credentials, role permissions, and contact details.</p>
+                <p className="text-xs text-moss mt-0.5">{t('admin.users.formSubtitle')}</p>
               </div>
               <button
                 type="button"
@@ -849,48 +851,48 @@ export default function UsersAdmin() {
             {/* Modal Body (Scrollable container so form fields & organization details don't cut off buttons) */}
             <div className="p-6 sm:px-8 overflow-y-auto space-y-4 flex-1">
               <div>
-                <label className="block text-xs font-semibold text-soot mb-1.5">Full Name *</label>
+                <label className="block text-xs font-semibold text-soot mb-1.5">{t('admin.users.fullName')}</label>
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Faisal Al-Otaibi"
+                  placeholder={t('admin.users.namePlaceholder')}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-soot/15 bg-white text-soot text-sm placeholder:text-moss/60 outline-none focus:border-soot transition-all shadow-2xs"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-soot mb-1.5">Email Address *</label>
+                <label className="block text-xs font-semibold text-soot mb-1.5">{t('admin.users.emailReq')}</label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="user@example.sa"
+                  placeholder={t('admin.users.emailPlaceholder')}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-soot/15 bg-white text-soot text-sm placeholder:text-moss/60 outline-none focus:border-soot transition-all shadow-2xs"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-soot mb-1.5">Phone Number</label>
+                <label className="block text-xs font-semibold text-soot mb-1.5">{t('admin.users.phone')}</label>
                 <input
                   type="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+966 50 123 4567"
+                  placeholder={t('admin.users.phonePlaceholder')}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-soot/15 bg-white text-soot text-sm placeholder:text-moss/60 outline-none focus:border-soot transition-all shadow-2xs"
                 />
               </div>
 
               {/* Custom Role Selector Dropdown List */}
               <div className="relative">
-                <label className="block text-xs font-semibold text-soot mb-1.5">Account Role *</label>
+                <label className="block text-xs font-semibold text-soot mb-1.5">{t('admin.users.roleReq')}</label>
                 <button
                   type="button"
                   onClick={() => setModalRoleDropdownOpen(!modalRoleDropdownOpen)}
-                  className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border border-soot/15 bg-white hover:bg-plaster-dark/30 text-soot text-sm text-left transition-all cursor-pointer focus:outline-none shadow-2xs"
+                  className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border border-soot/15 bg-white hover:bg-plaster-dark/30 text-soot text-sm text-start transition-all cursor-pointer focus:outline-none shadow-2xs"
                 >
                   <span className="font-medium truncate">
-                    {FORM_ROLES.find((r) => r.value === role)?.label || 'Select Role'}
+                    {FORM_ROLES.find((r) => r.value === role)?.label ? t(FORM_ROLES.find((r) => r.value === role)!.label as never) : t('admin.users.selectRole')}
                   </span>
                   <ChevronDown size={15} className={`text-moss transition-transform duration-200 ${modalRoleDropdownOpen ? 'rotate-180 text-soot' : ''}`} />
                 </button>
@@ -907,13 +909,13 @@ export default function UsersAdmin() {
                             setRole(r.value);
                             setModalRoleDropdownOpen(false);
                           }}
-                          className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg text-xs font-medium text-left transition-colors cursor-pointer ${
+                          className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg text-xs font-medium text-start transition-colors cursor-pointer ${
                             isSelected
                               ? 'bg-soot text-plaster font-semibold'
                               : 'text-soot hover:bg-plaster-dark/50'
                           }`}
                         >
-                          <span>{r.label}</span>
+                          <span>{t(r.label as never)}</span>
                           {isSelected && <Check size={14} className="text-eucalyptus" />}
                         </button>
                       );
@@ -928,18 +930,18 @@ export default function UsersAdmin() {
                     Organization Details (B2B)
                   </span>
                   <div>
-                    <label className="block text-xs font-semibold text-soot mb-1">Company Name</label>
+                    <label className="block text-xs font-semibold text-soot mb-1">{t('admin.users.companyName')}</label>
                     <input
                       type="text"
                       value={orgName}
                       onChange={(e) => setOrgName(e.target.value)}
-                      placeholder="Saudi Tech Systems LLC"
+                      placeholder={t('admin.users.companyPlaceholder')}
                       className="w-full px-3 py-2 rounded-xl border border-soot/15 bg-white text-soot text-sm shadow-2xs"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-semibold text-soot mb-1">Team Size</label>
+                      <label className="block text-xs font-semibold text-soot mb-1">{t('auth.teamSize')}</label>
                       <input
                         type="number"
                         value={orgSize}
@@ -948,12 +950,12 @@ export default function UsersAdmin() {
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-soot mb-1">Industry</label>
+                      <label className="block text-xs font-semibold text-soot mb-1">{t('admin.users.industry')}</label>
                       <input
                         type="text"
                         value={industry}
                         onChange={(e) => setIndustry(e.target.value)}
-                        placeholder="Technology"
+                        placeholder={t('auth.industryPlaceholder')}
                         className="w-full px-3 py-2 rounded-xl border border-soot/15 bg-white text-soot text-sm shadow-2xs"
                       />
                     </div>
@@ -976,7 +978,7 @@ export default function UsersAdmin() {
                 onClick={handleSaveUser}
                 className="btn-primary"
               >
-                {editingUser ? 'Save Changes' : 'Create User'}
+                {editingUser ? t('admin.users.saveChanges') : t('admin.users.createUser')}
               </button>
             </div>
           </div>
@@ -998,9 +1000,9 @@ export default function UsersAdmin() {
             <div className="px-6 sm:px-8 py-5 border-b border-soot/10 flex items-center justify-between bg-plaster-dark/30">
               <div>
                 <h3 className="text-xl font-serif-display font-medium text-soot">
-                  User Overview
+                  {t('admin.users.overview')}
                 </h3>
-                <p className="text-xs text-moss mt-0.5">Account status and profile details.</p>
+                <p className="text-xs text-moss mt-0.5">{t('admin.users.profileDetails')}</p>
               </div>
               <button
                 type="button"
@@ -1035,7 +1037,7 @@ export default function UsersAdmin() {
                         selectedUser.isBlocked ? 'bg-red-500/10 text-red-700' : 'bg-emerald-500/10 text-emerald-800'
                       }`}
                     >
-                      {selectedUser.isBlocked ? 'Blocked' : 'Active Account'}
+                      {selectedUser.isBlocked ? t('admin.users.blocked') : t('admin.users.activeAccount')}
                     </span>
                   </div>
                 </div>
@@ -1043,35 +1045,35 @@ export default function UsersAdmin() {
 
               <div className="space-y-3 text-sm">
                 {[
-                  { label: 'Phone Number', value: selectedUser.phone || 'N/A', icon: Phone },
-                  { label: 'Member Since', value: selectedUser.joinDate, icon: Calendar },
+                  { label: t('admin.users.phone'), value: selectedUser.phone || t('admin.users.na'), icon: Phone },
+                  { label: t('admin.users.memberSince'), value: selectedUser.joinDate, icon: Calendar },
                   ...(selectedUser.role === 'organization'
                     ? [
-                        { label: 'Company Name', value: selectedUser.orgName || 'N/A', icon: Building2 },
-                        { label: 'Team Members', value: String(selectedUser.orgSize || '10'), icon: UsersIcon },
-                        { label: 'Industry', value: selectedUser.industry || 'Technology', icon: Building2 },
+                        { label: t('admin.users.companyName'), value: selectedUser.orgName || t('admin.users.na'), icon: Building2 },
+                        { label: t('admin.users.teamMembers'), value: String(selectedUser.orgSize || '10'), icon: UsersIcon },
+                        { label: t('admin.users.industry'), value: selectedUser.industry || t('auth.industryPlaceholder'), icon: Building2 },
                       ]
                     : []),
                   ...(selectedUser.role === 'provider'
                     ? [
                         {
-                          label: 'Business / Brand Name',
+                          label: t('admin.users.brandName'),
                           value: selectedUser.businessName || getPartnerForUser(selectedUser)?.brandName || selectedUser.name,
                           icon: Building2,
                         },
                         {
-                          label: 'Commercial Reg. (CR)',
+                          label: t('admin.users.crReg'),
                           value: selectedUser.crNumber || getPartnerForUser(selectedUser)?.taxNumber || 'N/A',
                           icon: ShieldAlert,
                         },
                         {
-                          label: 'Verification Status',
+                          label: t('admin.users.verificationStatus'),
                           value:
                             getPartnerEffectiveStatus(selectedUser) === 'PENDING_APPROVAL'
-                              ? 'Pending Admin Verification'
+                              ? t('admin.users.pendingVerification')
                               : getPartnerEffectiveStatus(selectedUser) === 'REJECTED'
-                              ? 'Rejected'
-                              : 'Approved Partner',
+                              ? t('admin.users.rejected')
+                              : t('admin.users.approvedPartner'),
                           icon: CheckCircle2,
                         },
                       ]
@@ -1097,7 +1099,7 @@ export default function UsersAdmin() {
                 }}
                 className="px-5 py-2.5 rounded-xl border border-soot/20 text-soot text-sm font-semibold hover:bg-soot/8 transition-colors cursor-pointer"
               >
-                Close
+                {t('common.close')}
               </button>
 
               {selectedUser.role === 'provider' && getPartnerEffectiveStatus(selectedUser) === 'PENDING_APPROVAL' && (
@@ -1113,12 +1115,12 @@ export default function UsersAdmin() {
                     className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
                   >
                     <Check size={16} />
-                    <span>Approve Partner</span>
+                    <span>{t('admin.users.approvePartner')}</span>
                   </button>
                   <button
                     type="button"
                     onClick={async () => {
-                      const reason = prompt('Reason for rejecting partner application (optional):');
+                      const reason = prompt(t('admin.users.rejectPrompt'));
                       if (reason !== null) {
                         const pId = getPartnerForUser(selectedUser)?.id || selectedUser.id.replace('partner-', '');
                         await rejectPartner(pId, reason);
@@ -1129,7 +1131,7 @@ export default function UsersAdmin() {
                     className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-rose-600 text-white hover:bg-rose-700 shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
                   >
                     <X size={16} />
-                    <span>Reject Application</span>
+                    <span>{t('admin.users.rejectApp')}</span>
                   </button>
                 </>
               )}
@@ -1146,7 +1148,7 @@ export default function UsersAdmin() {
                     : 'bg-red-600 text-white hover:bg-red-700'
                 }`}
               >
-                {selectedUser.isBlocked ? 'Unblock Account' : 'Block Account'}
+                {selectedUser.isBlocked ? t('admin.users.unblockAccount') : t('admin.users.blockAccount')}
               </button>
             </div>
           </div>
@@ -1174,8 +1176,8 @@ export default function UsersAdmin() {
                 </h3>
                 <p className="text-xs text-moss leading-relaxed">
                   {selectedUser.isBlocked
-                    ? `Are you sure you want to unblock ${selectedUser.name}? They will regain full access to their Coworking Pass account.`
-                    : `Are you sure you want to block ${selectedUser.name}? Their access to the platform will be restricted immediately.`}
+                    ? t('admin.users.confirmUnblock', { name: selectedUser.name })
+                    : t('admin.users.confirmBlock', { name: selectedUser.name })}
                 </p>
               </div>
             </div>

@@ -1,11 +1,13 @@
 'use client';
 
+import { useI18n } from '@/i18n';
 import React from 'react';
 import { ShieldAlert, Mail, ArrowLeft, Phone, AlertCircle, Headphones } from 'lucide-react';
 import { useApp } from '@/app/store';
 import LogoImage from '@/components/layout/logo';
 
 export default function AccountSuspendedScreen() {
+  const { t } = useI18n();
   const { navigate, logout } = useApp();
 
   const handleBackToLogin = () => {
@@ -44,29 +46,29 @@ export default function AccountSuspendedScreen() {
         <div className="space-y-2">
           <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-rose-800 bg-rose-100/90 px-3 py-1 rounded-full border border-rose-200">
             <span className="w-1.5 h-1.5 rounded-full bg-rose-600" />
-            Account Suspended · تم تعليق الحساب
+            {t('suspended.badge')}
           </span>
           <h2 className="text-2xl font-serif-display font-normal text-soot mt-2">
-            Access Restricted
+            {t('suspended.restricted')}
           </h2>
           <p className="text-xs sm:text-sm text-moss leading-relaxed">
-            Your account has been suspended by the platform administration. Access to workspaces, reservations, and corporate pool benefits has been disabled.
+            {t('suspended.screenBody')}
           </p>
           <p className="text-xs text-moss/90 leading-relaxed font-sans pt-1 border-t border-soot/6">
-            تم تعليق هذا الحساب من قِبل إدارة المنصة. تم تقييد الوصول لجميع المساحات والحجوزات. يرجى التواصل مع فريق الدعم للمساعدة في إعادة التفعيل.
+            {t('suspended.contactSupportHelp')}
           </p>
         </div>
 
         {/* Contact Support Direct Box */}
-        <div className="p-4 sm:p-5 rounded-2xl bg-plaster-dark/40 border border-soot/8 text-left space-y-3">
+        <div className="p-4 sm:p-5 rounded-2xl bg-plaster-dark/40 border border-soot/8 text-start space-y-3">
           <div className="text-xs font-semibold text-soot flex items-center gap-2">
             <Headphones size={15} className="text-moss" />
-            <span>Support & Assistance / الدعم والمساعدة:</span>
+            <span>{t('suspended.supportAssistance')}</span>
           </div>
 
           <div className="space-y-2 text-xs text-moss">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] text-moss/80">Support Email:</span>
+              <span className="text-[11px] text-moss/80">{t('suspended.supportEmail')}</span>
               <a
                 href="mailto:support@coworkingpass.sa?subject=Account%20Suspension%20Review"
                 className="font-semibold text-soot hover:text-moss underline decoration-soot/30 transition-colors"
@@ -75,12 +77,12 @@ export default function AccountSuspendedScreen() {
               </a>
             </div>
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] text-moss/80">Phone / WhatsApp:</span>
-              <span className="font-semibold text-soot">+966 11 234 5678</span>
+              <span className="text-[11px] text-moss/80">{t('suspended.phone')}</span>
+              <span className="font-semibold text-soot" dir="ltr">+966 11 234 5678</span>
             </div>
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] text-moss/80">Operating Hours:</span>
-              <span className="font-semibold text-soot">Sun–Thu 8:00 AM – 8:00 PM</span>
+              <span className="text-[11px] text-moss/80">{t('suspended.hoursLabel')}</span>
+              <span className="font-semibold text-soot">{t('suspended.hoursValue')}</span>
             </div>
           </div>
         </div>
@@ -92,7 +94,7 @@ export default function AccountSuspendedScreen() {
             className="w-full py-3.5 px-4 rounded-xl font-semibold text-sm bg-soot text-plaster hover:bg-moss active:scale-[0.99] transition-all duration-200 shadow-md flex items-center justify-center gap-2 cursor-pointer"
           >
             <Mail size={16} />
-            <span>Contact Support Team</span>
+            <span>{t('suspended.contactTeam')}</span>
           </a>
 
           <button
@@ -101,7 +103,7 @@ export default function AccountSuspendedScreen() {
             className="w-full py-3 px-4 rounded-xl font-semibold text-xs border border-soot/12 text-soot bg-white hover:bg-plaster-dark/40 active:scale-[0.99] transition-all cursor-pointer shadow-2xs flex items-center justify-center gap-2"
           >
             <ArrowLeft size={14} />
-            <span>Back to Sign In / تسجيل الخروج</span>
+            <span>{t('suspended.backToSignIn')}</span>
           </button>
         </div>
 

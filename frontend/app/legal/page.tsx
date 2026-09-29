@@ -103,7 +103,7 @@ export default function LegalPage() {
               <Building2 size={18} className="text-moss" />
               <span>2. Universal Pass & Fair Usage Policy</span>
             </h3>
-            <ul className="list-disc list-inside space-y-1.5 text-moss text-xs sm:text-sm pl-2">
+            <ul className="list-disc list-inside space-y-1.5 text-moss text-xs sm:text-sm ps-2">
               <li>Universal Pass memberships allow access to all partner workspaces across Saudi Arabia with a single subscription.</li>
               <li>To prevent double-booking and ensure fair access, pass holders may reserve <strong>only one active workspace seat at a time</strong>.</li>
               <li>System automatically blocks simultaneous overlap reservations. Members can cancel and switch to another location for free.</li>

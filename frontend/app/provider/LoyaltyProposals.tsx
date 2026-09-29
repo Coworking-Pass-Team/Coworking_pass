@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/i18n';
 import React, { useState, useEffect } from 'react';
 import {
   Sparkles,
@@ -22,6 +23,7 @@ import { LoyaltyRule, LoyaltyRuleType, ApprovalStatus } from '@/types/types';
 import Modal from '@/components/ui/Modal';
 
 export default function ProviderLoyaltyProposals() {
+  const { t } = useI18n();
   const { currentUser, spaces, partners, loyaltyRules, fetchLoyaltyRules, createLoyaltyProposal, deleteLoyaltyRule, showToast } = useApp();
 
   useEffect(() => {
@@ -285,13 +287,13 @@ export default function ProviderLoyaltyProposals() {
         </div>
 
         <div className="relative">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-moss" />
+          <Search size={16} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-moss" />
           <input
             type="text"
             placeholder="Search proposals by rule name, description, or target workspace..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-plaster-surface border border-soot/15 text-sm text-soot placeholder:text-moss/60 focus:outline-none focus:ring-2 focus:ring-soot/20"
+            className="w-full ps-10 pe-4 py-2.5 rounded-2xl bg-plaster-surface border border-soot/15 text-sm text-soot placeholder:text-moss/60 focus:outline-none focus:ring-2 focus:ring-soot/20"
           />
         </div>
       </div>
@@ -311,7 +313,7 @@ export default function ProviderLoyaltyProposals() {
             </p>
           </div>
 
-          <div className="pt-4 border-t border-soot/8 max-w-2xl mx-auto text-left">
+          <div className="pt-4 border-t border-soot/8 max-w-2xl mx-auto text-start">
             <span className="text-xs font-bold text-moss uppercase tracking-wider block mb-3 text-center">
               Or start from a popular template:
             </span>
@@ -343,11 +345,11 @@ export default function ProviderLoyaltyProposals() {
                   key={template.name}
                   type="button"
                   onClick={() => handleOpenModal(template)}
-                  className="p-3.5 rounded-2xl bg-white border border-soot/10 hover:border-soot/30 hover:shadow-sm text-left transition-all group cursor-pointer"
+                  className="p-3.5 rounded-2xl bg-white border border-soot/10 hover:border-soot/30 hover:shadow-sm text-start transition-all group cursor-pointer"
                 >
                   <div className="flex items-center justify-between text-xs font-bold text-soot group-hover:text-emerald-800">
                     <span>{template.name}</span>
-                    <ArrowRight size={13} className="text-moss group-hover:translate-x-0.5 transition-transform" />
+                    <ArrowRight size={13} className="text-moss group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5 transition-transform" />
                   </div>
                   <p className="text-[11px] text-moss mt-1 line-clamp-2">{template.desc}</p>
                 </button>
@@ -414,8 +416,8 @@ export default function ProviderLoyaltyProposals() {
                       <span className="text-moss font-medium">Points Exchange:</span>
                       <span className="font-bold text-soot">
                         {isEarning
-                          ? `+${rule.pointsValue} pts / SAR ${rule.monetaryValue}`
-                          : `${rule.pointsValue} pts = SAR ${rule.monetaryValue} off`}
+                          ? `+${rule.pointsValue} pts / ${t('common.sar')} ${rule.monetaryValue}`
+                          : `${rule.pointsValue} pts = ${t('common.sar')} ${rule.monetaryValue} off`}
                       </span>
                     </div>
 
@@ -479,7 +481,7 @@ export default function ProviderLoyaltyProposals() {
               <button
                 type="button"
                 onClick={() => setRuleType('EARNING')}
-                className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
+                className={`p-3.5 rounded-2xl border text-start transition-all cursor-pointer ${
                   ruleType === 'EARNING'
                     ? 'bg-[#E2EBE5] border-emerald-700/40 text-soot shadow-xs'
                     : 'bg-white border-soot/12 text-moss hover:bg-soot/5'
@@ -497,7 +499,7 @@ export default function ProviderLoyaltyProposals() {
               <button
                 type="button"
                 onClick={() => setRuleType('REDEMPTION')}
-                className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
+                className={`p-3.5 rounded-2xl border text-start transition-all cursor-pointer ${
                   ruleType === 'REDEMPTION'
                     ? 'bg-[#E2EBE5] border-emerald-700/40 text-soot shadow-xs'
                     : 'bg-white border-soot/12 text-moss hover:bg-soot/5'
@@ -608,8 +610,8 @@ export default function ProviderLoyaltyProposals() {
               <div>
                 <span className="font-semibold text-soot">Mechanism:</span>{' '}
                 {ruleType === 'EARNING'
-                  ? `Members receive +${pointsValue || 0} points for every SAR ${monetaryValue || 0} spent`
-                  : `Members can redeem ${pointsValue || 0} points to receive an instant SAR ${monetaryValue || 0} discount`}
+                  ? `Members receive +${pointsValue || 0} points for every ${t('common.sar')} ${monetaryValue || 0} spent`
+                  : `Members can redeem ${pointsValue || 0} points to receive an instant ${t('common.sar')} ${monetaryValue || 0} discount`}
               </div>
             </div>
           </div>
@@ -680,7 +682,7 @@ export default function ProviderLoyaltyProposals() {
               <div className="p-3 bg-white rounded-2xl border border-soot/10">
                 <span className="text-moss font-medium block">Exchange Rate</span>
                 <span className="font-bold text-soot text-sm mt-0.5 block">
-                  {selectedRuleDetail.pointsValue} pts / SAR {selectedRuleDetail.monetaryValue}
+                  {selectedRuleDetail.pointsValue} pts / {t('common.sar')} {selectedRuleDetail.monetaryValue}
                 </span>
               </div>
             </div>

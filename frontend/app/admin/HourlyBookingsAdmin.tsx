@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/i18n';
 import React, { useState, useEffect } from 'react';
 import { 
   Clock, 
@@ -35,6 +36,7 @@ import {
 import Modal from '@/components/ui/Modal';
 
 export default function HourlyBookingsAdmin() {
+  const { t } = useI18n();
   const { showToast, users, hourlyBookingsApi, fetchHourlyBookings, bookings: storeBookings, spaces } = useApp();
   const [bookings, setBookings] = useState<HourlyBookingItemApi[]>([]);
   const [sections, setSections] = useState<any[]>([]);
@@ -382,7 +384,7 @@ export default function HourlyBookingsAdmin() {
 
         {/* Search Input */}
         <div className="relative w-full sm:w-72">
-          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-moss">
+          <div className="absolute inset-y-0 start-0 ps-3.5 flex items-center pointer-events-none text-moss">
             <Search size={15} />
           </div>
           <input
@@ -390,7 +392,7 @@ export default function HourlyBookingsAdmin() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by ID, User, or Section..."
-            className="w-full pl-10 pr-4 py-2 text-xs rounded-xl bg-white border border-soot/12 text-soot placeholder:text-moss/60 focus:outline-none focus:ring-2 focus:ring-eucalyptus shadow-2xs"
+            className="w-full ps-10 pe-4 py-2 text-xs rounded-xl bg-white border border-soot/12 text-soot placeholder:text-moss/60 focus:outline-none focus:ring-2 focus:ring-eucalyptus shadow-2xs"
           />
         </div>
       </div>
@@ -497,7 +499,7 @@ export default function HourlyBookingsAdmin() {
                       <span className="truncate">{b.user?.name || 'User'}</span>
                     </div>
                     {b.user?.email && (
-                      <div className="text-[11px] text-moss/80 truncate pl-8">
+                      <div className="text-[11px] text-moss/80 truncate ps-8">
                         {b.user.email}
                       </div>
                     )}
@@ -560,7 +562,7 @@ export default function HourlyBookingsAdmin() {
         title="Create Hourly Booking"
         subtitle="Create a new hourly booking record synced directly to the PostgreSQL database"
       >
-        <form onSubmit={handleCreateBooking} className="space-y-4 pt-2 text-left">
+        <form onSubmit={handleCreateBooking} className="space-y-4 pt-2 text-start">
           {formError && (
             <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl text-rose-700 text-xs font-medium flex items-center gap-2">
               <AlertCircle size={16} className="shrink-0" />
@@ -631,7 +633,7 @@ export default function HourlyBookingsAdmin() {
               >
                 {packages.map(p => (
                   <option key={p.id} value={p.id}>
-                    {p.packageName} ({p.hoursAmount} hrs - SAR {p.price})
+                    {p.packageName} ({p.hoursAmount} hrs - {t('common.sar')} {p.price})
                   </option>
                 ))}
               </select>
@@ -707,7 +709,7 @@ export default function HourlyBookingsAdmin() {
         title="Update Booking Status"
         subtitle={`Update booking status for ID (${editingBookingId?.slice(0, 10)}...) in database`}
       >
-        <form onSubmit={handleUpdateBooking} className="space-y-4 pt-2 text-left">
+        <form onSubmit={handleUpdateBooking} className="space-y-4 pt-2 text-start">
           {editFormError && (
             <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl text-rose-700 text-xs font-medium flex items-center gap-2">
               <AlertCircle size={16} className="shrink-0" />

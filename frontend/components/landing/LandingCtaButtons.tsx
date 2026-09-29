@@ -1,9 +1,11 @@
 'use client';
 
+import { useI18n } from '@/i18n';
 import Link from 'next/link';
 import { useApp } from '@/app/store';
 
 export default function LandingCtaButtons() {
+  const { t } = useI18n();
   const { navigate } = useApp();
 
   return (
@@ -15,7 +17,7 @@ export default function LandingCtaButtons() {
         }}
         className="btn-primary w-full sm:w-auto px-8 py-3.5 text-center inline-flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus"
       >
-        Get started free
+        {t('landing.getStarted')}
       </Link>
       <Link
         href="/spaces"
@@ -24,7 +26,7 @@ export default function LandingCtaButtons() {
         }}
         className="btn-secondary !bg-plaster !text-soot hover:!bg-plaster w-full sm:w-auto px-8 py-3.5 inline-flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus"
       >
-        Browse spaces
+        {t('landing.browseSpaces')}
       </Link>
     </div>
   );

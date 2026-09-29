@@ -510,7 +510,7 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
                 { key: 'promotions', label: 'Partner network discounts & perks', desc: 'Special offers from newly onboarded coworking venues' },
               ].map(item => (
                 <div key={item.key} className="flex items-center justify-between pt-4 first:pt-0">
-                  <div className="pr-4">
+                  <div className="pe-4">
                     <div className="text-sm font-medium text-soot">{item.label}</div>
                     <div className="text-xs text-moss mt-0.5 font-normal">{item.desc}</div>
                   </div>
@@ -528,7 +528,7 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
                   >
                     <div
                       className={`w-4 h-4 rounded-full bg-white transition-transform ${
-                        notifications[item.key as keyof typeof notifications] ? 'translate-x-7' : 'translate-x-1'
+                        notifications[item.key as keyof typeof notifications] ? 'translate-x-7 rtl:-translate-x-7' : 'translate-x-1 rtl:-translate-x-1'
                       }`}
                     />
                   </button>
@@ -702,7 +702,7 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
               />
             </div>
 
-            <div className="flex-1 min-w-0 text-center sm:text-left space-y-2.5">
+            <div className="flex-1 min-w-0 text-center sm:text-start space-y-2.5">
               <div>
                 <div className="text-sm font-medium text-soot">Profile Photo</div>
                 <p className="text-xs text-moss font-normal mt-0.5">

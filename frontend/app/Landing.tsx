@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/i18n';
 import { useState, useRef, useEffect } from 'react';
 import { ArrowRight, MapPin, Star, Users, Zap, Headphones, Shield, ChevronDown, Quote, Check, Building2, Presentation, Clapperboard } from 'lucide-react';
 import { useApp } from '@/app/store';
@@ -14,6 +15,7 @@ const FALLBACK_SPACE_IMAGE = 'https://images.unsplash.com/photo-1497366216548-37
 const cities = ['All Cities', ...SAUDI_CITIES];
 
 export default function Landing() {
+  const { t } = useI18n();
   const { navigate, spaces, currentUser } = useApp();
   const [searchCity, setSearchCity] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -78,7 +80,7 @@ export default function Landing() {
               <button
                 type="button"
                 onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="w-full flex items-center justify-between gap-3 px-3.5 py-2 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/60 border border-soot/12 transition-all duration-200 text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus focus-visible:ring-offset-1"
+                className="w-full flex items-center justify-between gap-3 px-3.5 py-2 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/60 border border-soot/12 transition-all duration-200 text-start cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus focus-visible:ring-offset-1"
                 aria-haspopup="listbox"
                 aria-expanded={dropdownOpen}
               >
@@ -96,7 +98,7 @@ export default function Landing() {
               </button>
 
               {dropdownOpen && (
-                <div className="absolute top-full left-0 right-0 mt-1.5 p-1 bg-[#FAF8F3] border border-soot/15 rounded-2xl shadow-2xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
+                <div className="absolute top-full start-0 end-0 mt-1.5 p-1 bg-[#FAF8F3] border border-soot/15 rounded-2xl shadow-2xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
                   <div className="max-h-56 overflow-y-auto space-y-0.5">
                     {cities.map(city => {
                       const isSelected = (city === 'All Cities' && !searchCity) || searchCity === city;
@@ -108,7 +110,7 @@ export default function Landing() {
                             setSearchCity(city === 'All Cities' ? '' : city);
                             setDropdownOpen(false);
                           }}
-                          className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-sm font-medium transition-colors duration-150 text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus ${isSelected
+                          className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-sm font-medium transition-colors duration-150 text-start cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus ${isSelected
                             ? 'bg-soot text-plaster font-semibold'
                             : 'text-soot hover:bg-plaster-dark/70 hover:text-soot'
                             }`}
@@ -175,7 +177,7 @@ export default function Landing() {
           <button
             type="button"
             onClick={() => navigate('browse', { category: 'office' })}
-            className="w-full text-left p-6 rounded-3xl bg-plaster-surface border border-soot/12 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-between focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus"
+            className="w-full text-start p-6 rounded-3xl bg-plaster-surface border border-soot/12 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-between focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus"
             aria-label={`Browse Offices (${officeCount} available)`}
           >
             <div>
@@ -194,7 +196,7 @@ export default function Landing() {
             </div>
             <div className="flex items-center gap-1.5 text-xs font-semibold text-soot group-hover:text-emerald-900 transition-colors pt-3 border-t border-soot/8">
               <span>Browse Offices</span>
-              <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+              <ArrowRight size={14} className="group-hover:translate-x-1 rtl:group-hover:-translate-x-1 transition-transform" />
             </div>
           </button>
 
@@ -202,7 +204,7 @@ export default function Landing() {
           <button
             type="button"
             onClick={() => navigate('browse', { category: 'hall' })}
-            className="w-full text-left p-6 rounded-3xl bg-plaster-surface border border-soot/12 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-between focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus"
+            className="w-full text-start p-6 rounded-3xl bg-plaster-surface border border-soot/12 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-between focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus"
             aria-label={`Browse Halls (${hallCount} available)`}
           >
             <div>
@@ -221,7 +223,7 @@ export default function Landing() {
             </div>
             <div className="flex items-center gap-1.5 text-xs font-semibold text-soot group-hover:text-emerald-900 transition-colors pt-3 border-t border-soot/8">
               <span>Browse Halls</span>
-              <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+              <ArrowRight size={14} className="group-hover:translate-x-1 rtl:group-hover:-translate-x-1 transition-transform" />
             </div>
           </button>
 
@@ -229,7 +231,7 @@ export default function Landing() {
           <button
             type="button"
             onClick={() => navigate('browse', { category: 'theater' })}
-            className="w-full text-left p-6 rounded-3xl bg-plaster-surface border border-soot/12 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-between focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus"
+            className="w-full text-start p-6 rounded-3xl bg-plaster-surface border border-soot/12 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-between focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus"
             aria-label={`Browse Theaters (${theaterCount} available)`}
           >
             <div>
@@ -248,7 +250,7 @@ export default function Landing() {
             </div>
             <div className="flex items-center gap-1.5 text-xs font-semibold text-soot group-hover:text-emerald-900 transition-colors pt-3 border-t border-soot/8">
               <span>Browse Theaters</span>
-              <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+              <ArrowRight size={14} className="group-hover:translate-x-1 rtl:group-hover:-translate-x-1 transition-transform" />
             </div>
           </button>
         </div>
@@ -275,7 +277,7 @@ export default function Landing() {
               key={space.id}
               type="button"
               onClick={() => navigate('space-details', { spaceId: space.id })}
-              className="w-full text-left group cursor-pointer bg-plaster-dark/40 hover:bg-plaster-dark/80 rounded-3xl border border-soot/12 overflow-hidden transition-colors duration-200 active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus"
+              className="w-full text-start group cursor-pointer bg-plaster-dark/40 hover:bg-plaster-dark/80 rounded-3xl border border-soot/12 overflow-hidden transition-colors duration-200 active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus"
               aria-label={`View space details for ${space.name}`}
             >
               <div className="relative h-56 overflow-hidden">
@@ -288,7 +290,7 @@ export default function Landing() {
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-soot/70 via-soot/20 to-transparent" />
-                <div className="absolute bottom-4 left-4 right-4">
+                <div className="absolute bottom-4 start-4 end-4">
                   <div className="text-white font-semibold text-lg leading-snug font-serif-display">{space.name}</div>
                   {/* حل المشكلة FE-08: استبدال الرمز المشوه بنقطة فاصلة سليمة */}
                   <div className="flex items-center gap-1.5 text-plaster/90 text-xs font-medium mt-1">
@@ -296,7 +298,7 @@ export default function Landing() {
                     <span>{space.city} • {space.address}</span>
                   </div>
                 </div>
-                <div className="absolute top-4 right-4 bg-plaster-surface/95 backdrop-blur-md rounded-2xl px-3 py-1.5 text-center border border-soot/12 shadow-xs">
+                <div className="absolute top-4 end-4 bg-plaster-surface/95 backdrop-blur-md rounded-2xl px-3 py-1.5 text-center border border-soot/12 shadow-xs">
                   {(() => {
                     const planInfo = getEffectiveSpacePrice(currentUser, space, 'daily');
                     if (planInfo.isCovered) {
@@ -310,7 +312,7 @@ export default function Landing() {
                     if (planInfo.hasDiscount) {
                       return (
                         <div>
-                          <div className="text-soot font-bold text-xs">SAR {planInfo.effectivePrice}</div>
+                          <div className="text-soot font-bold text-xs">{t('common.sar')} {planInfo.effectivePrice}</div>
                           <div className="text-moss text-[9px] font-medium">{planInfo.discountPercentage}% Off</div>
                         </div>
                       );
@@ -318,7 +320,7 @@ export default function Landing() {
                     return (
                       <>
                         <div className="text-soot font-bold text-sm">
-                          {space.pricing?.daily ? `SAR ${space.pricing.daily}` : 'Contact for price'}
+                          {space.pricing?.daily ? `${t('common.sar')} ${space.pricing.daily}` : 'Contact for price'}
                         </div>
                         <div className="text-moss text-[10px] font-medium">/ day</div>
                       </>
@@ -381,7 +383,7 @@ export default function Landing() {
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-soot/70 via-soot/20 to-transparent" />
-                  <div className="absolute bottom-3 left-3 right-3 bg-plaster-surface/95 backdrop-blur-md px-3 py-1.5 rounded-xl border border-soot/10 flex items-center justify-between shadow-md">
+                  <div className="absolute bottom-3 start-3 end-3 bg-plaster-surface/95 backdrop-blur-md px-3 py-1.5 rounded-xl border border-soot/10 flex items-center justify-between shadow-md">
                     <div className="flex items-center gap-2">
                       <MapPin size={13} className="text-moss shrink-0" />
                       <span className="text-[11px] font-semibold text-soot">Riyadh &bull; Digital City</span>
@@ -416,7 +418,7 @@ export default function Landing() {
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-soot/70 via-soot/20 to-transparent" />
-                  <div className="absolute bottom-3 left-3 right-3 bg-plaster-surface/95 backdrop-blur-md px-3 py-1.5 rounded-xl border border-soot/10 flex items-center justify-between shadow-md">
+                  <div className="absolute bottom-3 start-3 end-3 bg-plaster-surface/95 backdrop-blur-md px-3 py-1.5 rounded-xl border border-soot/10 flex items-center justify-between shadow-md">
                     <div className="flex items-center gap-2">
                       <Zap size={13} className="text-moss shrink-0" />
                       <span className="text-[11px] font-semibold text-soot">Flexible Passes</span>
@@ -451,7 +453,7 @@ export default function Landing() {
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-soot/70 via-soot/20 to-transparent" />
-                  <div className="absolute bottom-3 left-3 right-3 bg-plaster-surface/95 backdrop-blur-md px-3 py-1.5 rounded-xl border border-soot/10 flex items-center justify-between shadow-md">
+                  <div className="absolute bottom-3 start-3 end-3 bg-plaster-surface/95 backdrop-blur-md px-3 py-1.5 rounded-xl border border-soot/10 flex items-center justify-between shadow-md">
                     <div className="flex items-center gap-2">
                       <Check size={13} className="text-eucalyptus shrink-0 stroke-[3]" />
                       <span className="text-[11px] font-semibold text-soot">Instant Check-in</span>
@@ -582,8 +584,8 @@ export default function Landing() {
       <section className="py-20 max-w-6xl mx-auto px-4 sm:px-6 w-full">
         <div className="relative w-full bg-soot rounded-3xl p-10 sm:p-16 text-center overflow-hidden border border-soot/20 shadow-2xl">
           {/* Background Glow Accents */}
-          <div className="absolute top-0 right-0 -mr-24 -mt-24 w-80 h-80 rounded-full bg-eucalyptus/10 blur-3xl pointer-events-none" />
-          <div className="absolute bottom-0 left-0 -ml-24 -mb-24 w-80 h-80 rounded-full bg-eucalyptus/5 blur-3xl pointer-events-none" />
+          <div className="absolute top-0 end-0 -me-24 -mt-24 w-80 h-80 rounded-full bg-eucalyptus/10 blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 start-0 -ms-24 -mb-24 w-80 h-80 rounded-full bg-eucalyptus/5 blur-3xl pointer-events-none" />
 
           <div className="relative z-10 max-w-3xl mx-auto">
             <h2 className="text-3xl sm:text-5xl text-plaster mb-4 font-normal font-serif-display tracking-tight">

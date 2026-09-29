@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/i18n';
 import React, { useState, useEffect } from 'react';
 import { 
   CreditCard, 
@@ -27,6 +28,7 @@ import {
 import Modal from '@/components/ui/Modal';
 
 export default function MembershipPlansAdmin() {
+  const { t } = useI18n();
   const { showToast } = useApp();
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -233,7 +235,7 @@ export default function MembershipPlansAdmin() {
         </div>
 
         <div className="relative w-full sm:w-64">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-moss">
+          <div className="absolute inset-y-0 start-0 ps-3 flex items-center pointer-events-none text-moss">
             <Search size={14} />
           </div>
           <input
@@ -241,7 +243,7 @@ export default function MembershipPlansAdmin() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search plans..."
-            className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl bg-white border border-soot/12 text-soot placeholder:text-moss/60 focus:outline-none focus:ring-2 focus:ring-eucalyptus"
+            className="w-full ps-9 pe-3 py-1.5 text-xs rounded-xl bg-white border border-soot/12 text-soot placeholder:text-moss/60 focus:outline-none focus:ring-2 focus:ring-eucalyptus"
           />
         </div>
       </div>
@@ -305,7 +307,7 @@ export default function MembershipPlansAdmin() {
                   <div className="mt-4 mb-5 pb-4 border-b border-soot/8">
                     <div className="flex items-baseline gap-1">
                       <span className="text-3xl font-serif-display font-normal text-soot tracking-tight">
-                        SAR {plan.price.toLocaleString()}
+                        {t('common.sar')} {plan.price.toLocaleString()}
                       </span>
                       <span className="text-xs text-moss">/ plan</span>
                     </div>
@@ -399,7 +401,7 @@ export default function MembershipPlansAdmin() {
               Price (SAR) <span className="text-rose-600">*</span>
             </label>
             <div className="relative">
-              <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-xs text-moss font-semibold pointer-events-none">
+              <span className="absolute inset-y-0 start-0 ps-3.5 flex items-center text-xs text-moss font-semibold pointer-events-none">
                 SAR
               </span>
               <input
@@ -409,7 +411,7 @@ export default function MembershipPlansAdmin() {
                 value={price}
                 onChange={(e) => setPrice(e.target.value ? Number(e.target.value) : '')}
                 placeholder="1500"
-                className="w-full pl-12 pr-3.5 py-2.5 rounded-xl border border-soot/15 text-soot text-sm focus:outline-none focus:ring-2 focus:ring-eucalyptus shadow-2xs"
+                className="w-full ps-12 pe-3.5 py-2.5 rounded-xl border border-soot/15 text-soot text-sm focus:outline-none focus:ring-2 focus:ring-eucalyptus shadow-2xs"
               />
             </div>
           </div>
@@ -503,7 +505,7 @@ export default function MembershipPlansAdmin() {
               Price (SAR) <span className="text-rose-600">*</span>
             </label>
             <div className="relative">
-              <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-xs text-moss font-semibold pointer-events-none">
+              <span className="absolute inset-y-0 start-0 ps-3.5 flex items-center text-xs text-moss font-semibold pointer-events-none">
                 SAR
               </span>
               <input
@@ -513,7 +515,7 @@ export default function MembershipPlansAdmin() {
                 value={editPrice}
                 onChange={(e) => setEditPrice(e.target.value ? Number(e.target.value) : '')}
                 placeholder="1500"
-                className="w-full pl-12 pr-3.5 py-2.5 rounded-xl border border-soot/15 text-soot text-sm focus:outline-none focus:ring-2 focus:ring-eucalyptus shadow-2xs"
+                className="w-full ps-12 pe-3.5 py-2.5 rounded-xl border border-soot/15 text-soot text-sm focus:outline-none focus:ring-2 focus:ring-eucalyptus shadow-2xs"
               />
             </div>
           </div>

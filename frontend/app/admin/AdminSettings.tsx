@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/i18n';
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Shield,
@@ -40,6 +41,7 @@ import PaymentsAdmin from './PaymentsAdmin';
 import PayoutsAdmin from './PayoutsAdmin';
 
 export default function AdminSettings() {
+  const { t } = useI18n();
   const { currentUser, updateCurrentUser, logout, showToast, navigate, nav, loyaltyRules, fetchLoyaltyRules, updateLoyaltyRuleStatus, deleteLoyaltyRule } = useApp();
 
   const [activeTab, setActiveTab] = useState<'profile' | 'plans' | 'subscriptions' | 'payments' | 'payouts' | 'loyalty' | 'settings'>('profile');
@@ -330,8 +332,8 @@ export default function AdminSettings() {
                         <span className="text-moss">Exchange Rate:</span>
                         <span className="font-bold">
                           {isEarning
-                            ? `+${rule.pointsValue} pts / SAR ${rule.monetaryValue}`
-                            : `${rule.pointsValue} pts = SAR ${rule.monetaryValue} off`}
+                            ? `+${rule.pointsValue} pts / ${t('common.sar')} ${rule.monetaryValue}`
+                            : `${rule.pointsValue} pts = ${t('common.sar')} ${rule.monetaryValue} off`}
                         </span>
                       </div>
                       {rule.bonusMultiplier && rule.bonusMultiplier > 1 && (
@@ -654,7 +656,7 @@ export default function AdminSettings() {
                 >
                   <div
                     className={`w-4 h-4 rounded-full bg-white transition-transform ${
-                      systemSettings.autoApproveSpaces ? 'translate-x-7' : 'translate-x-1'
+                      systemSettings.autoApproveSpaces ? 'translate-x-7 rtl:-translate-x-7' : 'translate-x-1 rtl:-translate-x-1'
                     }`}
                   />
                 </button>
@@ -674,7 +676,7 @@ export default function AdminSettings() {
                 >
                   <div
                     className={`w-4 h-4 rounded-full bg-white transition-transform ${
-                      systemSettings.auditLogging ? 'translate-x-7' : 'translate-x-1'
+                      systemSettings.auditLogging ? 'translate-x-7 rtl:-translate-x-7' : 'translate-x-1 rtl:-translate-x-1'
                     }`}
                   />
                 </button>
@@ -694,7 +696,7 @@ export default function AdminSettings() {
                 >
                   <div
                     className={`w-4 h-4 rounded-full bg-white transition-transform ${
-                      systemSettings.maintenanceMode ? 'translate-x-7' : 'translate-x-1'
+                      systemSettings.maintenanceMode ? 'translate-x-7 rtl:-translate-x-7' : 'translate-x-1 rtl:-translate-x-1'
                     }`}
                   />
                 </button>

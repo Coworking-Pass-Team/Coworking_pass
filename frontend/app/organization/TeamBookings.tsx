@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/i18n';
 import { useState, useRef, useEffect } from 'react';
 import {
   Search,
@@ -28,6 +29,7 @@ import Modal from '@/components/ui/Modal';
 import BookingQrModal from '@/components/BookingQrModal';
 
 export default function TeamBookings() {
+  const { t } = useI18n();
   const { bookings, spaces, currentUser, navigate, cancelBooking, showToast } = useApp();
   const [activeTab, setActiveTab] = useState<BookingStatus>('active');
   const [query, setQuery] = useState('');
@@ -146,7 +148,7 @@ export default function TeamBookings() {
           },
           {
             label: 'Total Spend',
-            count: `SAR ${totalSpend.toLocaleString()}`,
+            count: `${t('common.sar')} ${totalSpend.toLocaleString()}`,
             badge: 'bg-blue-500/15 text-blue-800 border border-blue-500/30',
             icon: DollarSign,
             iconBg: 'bg-blue-500/15 text-blue-800 border-blue-500/30',
@@ -172,13 +174,13 @@ export default function TeamBookings() {
       {/* Admin-Matching Search & Tab Filter Bar */}
       <div className="flex flex-col sm:flex-row gap-3 bg-plaster-surface p-3 rounded-2xl border border-soot/10 shadow-2xs items-center justify-between">
         <div className="relative flex-1 w-full">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-moss" />
+          <Search size={16} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-moss" />
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search by workspace name or city..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-soot/12 bg-plaster-dark/30 text-soot text-sm placeholder:text-moss/70 outline-none focus:border-eucalyptus focus:bg-plaster-surface transition-all"
+            className="w-full ps-10 pe-4 py-2.5 rounded-xl border border-soot/12 bg-plaster-dark/30 text-soot text-sm placeholder:text-moss/70 outline-none focus:border-eucalyptus focus:bg-plaster-surface transition-all"
           />
         </div>
 
@@ -217,7 +219,7 @@ export default function TeamBookings() {
           <div className="col-span-2">Booking Period</div>
           <div className="col-span-2">Plan & Seats</div>
           <div className="col-span-1">Amount</div>
-          <div className="col-span-1 text-right">Actions</div>
+          <div className="col-span-1 text-end">Actions</div>
         </div>
 
         {filtered.length === 0 ? (
@@ -270,7 +272,7 @@ export default function TeamBookings() {
                     <span>{b.startDate}</span>
                   </div>
                   {b.startDate !== b.endDate && (
-                    <div className="text-moss text-[11px] mt-0.5 pl-4">to {b.endDate}</div>
+                    <div className="text-moss text-[11px] mt-0.5 ps-4">to {b.endDate}</div>
                   )}
                 </div>
 
@@ -300,7 +302,7 @@ export default function TeamBookings() {
                       <span>Included in Plan</span>
                     </span>
                   ) : (
-                    `SAR ${getBookingPrice(b, spaces).toLocaleString()}`
+                    `${t('common.sar')} ${getBookingPrice(b, spaces).toLocaleString()}`
                   )}
                 </div>
 
@@ -414,7 +416,7 @@ export default function TeamBookings() {
                     <button
                       type="button"
                       onClick={() => setRefundMethod('wallet')}
-                      className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
+                      className={`p-2.5 rounded-xl border text-start flex flex-col justify-between transition-all cursor-pointer ${
                         refundMethod === 'wallet'
                           ? 'border-emerald-600 bg-emerald-50/50 text-emerald-950 ring-1 ring-emerald-600'
                           : 'border-soot/12 bg-white text-soot hover:bg-plaster-dark/20'
@@ -430,7 +432,7 @@ export default function TeamBookings() {
                     <button
                       type="button"
                       onClick={() => setRefundMethod('card')}
-                      className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
+                      className={`p-2.5 rounded-xl border text-start flex flex-col justify-between transition-all cursor-pointer ${
                         refundMethod === 'card'
                           ? 'border-emerald-600 bg-emerald-50/50 text-emerald-950 ring-1 ring-emerald-600'
                           : 'border-soot/12 bg-white text-soot hover:bg-plaster-dark/20'

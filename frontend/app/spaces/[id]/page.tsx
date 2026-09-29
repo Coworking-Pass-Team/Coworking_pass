@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/i18n';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
@@ -22,6 +23,7 @@ import {
   ShoppingBag
 } from 'lucide-react';
 import { useApp } from '@/app/store';
+import { useSpaceText } from '@/i18n/space-text';
 import {
   BookingPlan,
   isUserPassHolder,
@@ -58,6 +60,8 @@ export default function SpaceDetails() {
 }
 
 function SpaceDetailsView() {
+  const { t, translateMessage, localizeTime } = useI18n();
+  const st = useSpaceText();
   const {
     nav,
     navigate,
@@ -180,8 +184,8 @@ function SpaceDetailsView() {
   if (!space) {
     return (
       <div className="min-h-screen bg-plaster text-soot flex flex-col items-center justify-center p-8">
-        <h2 className="text-2xl font-serif-display text-soot mb-2">Space not found</h2>
-        <p className="text-moss text-xs sm:text-sm mb-4">The requested workspace could not be found or has been removed.</p>
+        <h2 className="text-2xl font-serif-display text-soot mb-2">{t('spaceDetails.notFound')}</h2>
+        <p className="text-moss text-xs sm:text-sm mb-4">{t('spaceDetails.notFoundBody')}</p>
         <button
           type="button"
           onClick={() => {
@@ -193,8 +197,8 @@ function SpaceDetailsView() {
           }}
           className="mt-3 inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-soot/12 bg-white hover:bg-plaster-dark/40 text-soot text-xs sm:text-sm font-semibold transition-all cursor-pointer shadow-2xs group active:scale-98"
         >
-          <ArrowLeft size={15} className="group-hover:-translate-x-0.5 transition-transform" />
-          <span>Back to Browse Workspaces</span>
+          <ArrowLeft size={15} className="group-hover:-translate-x-0.5 rtl:group-hover:translate-x-0.5 transition-transform" />
+          <span>{t('spaceDetails.backToBrowse')}</span>
         </button>
       </div>
     );
@@ -204,8 +208,8 @@ function SpaceDetailsView() {
   if (!space.isVisible && currentUser?.role !== 'admin') {
     return (
       <div className="min-h-screen bg-plaster text-soot flex flex-col items-center justify-center p-8">
-        <h2 className="text-2xl font-serif-display text-soot mb-2">Space not available</h2>
-        <p className="text-moss text-xs sm:text-sm mb-4">This workspace is currently unavailable or has been removed.</p>
+        <h2 className="text-2xl font-serif-display text-soot mb-2">{t('spaceDetails.notAvailable')}</h2>
+        <p className="text-moss text-xs sm:text-sm mb-4">{t('spaceDetails.notAvailableBody')}</p>
         <button
           type="button"
           onClick={() => {
@@ -217,8 +221,8 @@ function SpaceDetailsView() {
           }}
           className="mt-3 inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-soot/12 bg-white hover:bg-plaster-dark/40 text-soot text-xs sm:text-sm font-semibold transition-all cursor-pointer shadow-2xs group active:scale-98"
         >
-          <ArrowLeft size={15} className="group-hover:-translate-x-0.5 transition-transform" />
-          <span>Back to Browse Workspaces</span>
+          <ArrowLeft size={15} className="group-hover:-translate-x-0.5 rtl:group-hover:translate-x-0.5 transition-transform" />
+          <span>{t('spaceDetails.backToBrowse')}</span>
         </button>
       </div>
     );
@@ -260,7 +264,7 @@ function SpaceDetailsView() {
     if (!currentUser) { navigate('login'); return; }
     const hasTimeWindow = isHourlySpace || selectedPlan === 'hourly';
     if (hasTimeWindow && (!bookingDate || !startTime || !endTime || !availableStartTimes.includes(startTime))) {
-      showToast?.('Please select a valid reservation date and session time within the venue operating hours.', 'error');
+      showToast?.(t('spaceDetails.invalidSession'), 'error');
       return;
     }
     const params = {
@@ -297,10 +301,10 @@ function SpaceDetailsView() {
   };
 
   const availabilityInfo = isFullyBooked
-    ? { label: 'Limited Spots', color: 'text-rose-800 bg-rose-100/90 border-rose-200/90 backdrop-blur-md font-semibold' }
+    ? { label: t('spaceDetails.limitedSpots'), color: 'text-rose-800 bg-rose-100/90 border-rose-200/90 backdrop-blur-md font-semibold' }
     : crowding.availableCapacity <= 5
-    ? { label: `Only ${crowding.availableCapacity} left!`, color: 'text-amber-900 bg-amber-100/90 border-amber-200/90 backdrop-blur-md font-semibold' }
-    : { label: `${crowding.availableCapacity} seats available`, color: 'text-emerald-900 bg-emerald-100/90 border-emerald-200/90 backdrop-blur-md font-semibold' };
+    ? { label: t('spaceDetails.onlyLeft', { count: crowding.availableCapacity }), color: 'text-amber-900 bg-amber-100/90 border-amber-200/90 backdrop-blur-md font-semibold' }
+    : { label: t('spaceDetails.seatsAvailable', { count: crowding.availableCapacity }), color: 'text-emerald-900 bg-emerald-100/90 border-emerald-200/90 backdrop-blur-md font-semibold' };
 
   const isOrganization = currentUser?.role === 'organization' || (currentUser?.role as any) === 'HR_ADMIN';
   // For org users, effective seats affect total price; for individuals, always 1 seat
@@ -330,12 +334,12 @@ function SpaceDetailsView() {
   );
 
   const planLabel = selectedPlan === 'hourly'
-    ? durationHours > 1 ? `for ${durationHours} hours` : '/ hour'
+    ? durationHours > 1 ? t('spaceDetails.forHours', { count: durationHours }) : t('spaceDetails.perHour')
     : selectedPlan === 'monthly'
-    ? durationMonths > 1 ? `for ${durationMonths} months` : '/ month'
+    ? durationMonths > 1 ? t('spaceDetails.forMonths', { count: durationMonths }) : t('spaceDetails.perMonth')
     : selectedPlan === 'daily'
-    ? dailyDurationDays > 1 ? `for ${dailyDurationDays} days` : '/ day'
-    : '/ year';
+    ? dailyDurationDays > 1 ? t('spaceDetails.forDays', { count: dailyDurationDays }) : t('spaceDetails.perDay')
+    : t('spaceDetails.perYear');
 
   const hoursDisplay = (space as any).openHours || (space as any).hours || 'Sun–Thu: 8am–10pm | Fri: 2pm–10pm';
   const phoneDisplay = space.phone || '+966 11 234 5678';
@@ -350,12 +354,12 @@ function SpaceDetailsView() {
             onClick={handleBack}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-soot/12 bg-white hover:bg-plaster-dark/40 text-soot text-xs sm:text-sm font-semibold transition-all cursor-pointer shadow-2xs group active:scale-98"
           >
-            <ArrowLeft size={15} className="group-hover:-translate-x-0.5 transition-transform" />
-            <span>Back to Workspaces</span>
+            <ArrowLeft size={15} className="group-hover:-translate-x-0.5 rtl:group-hover:translate-x-0.5 transition-transform" />
+            <span>{t('spaceDetails.backToWorkspaces')}</span>
           </button>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs text-moss">Space ID:</span>
+            <span className="text-xs text-moss">{t('spaceDetails.spaceId')}</span>
             <span className="text-xs font-semibold text-soot bg-soot/5 px-2 py-0.5 rounded-md uppercase">
               {space.id}
             </span>
@@ -377,16 +381,16 @@ function SpaceDetailsView() {
                   <button
                     type="button"
                     onClick={() => setImgIndex(i => (i - 1 + space.images.length) % space.images.length)}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-plaster-surface/90 hover:bg-plaster-surface text-soot flex items-center justify-center backdrop-blur-md shadow-md transition-all cursor-pointer"
-                    aria-label="Previous image"
+                    className="absolute start-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-plaster-surface/90 hover:bg-plaster-surface text-soot flex items-center justify-center backdrop-blur-md shadow-md transition-all cursor-pointer"
+                    aria-label={t('spaceDetails.prevImage')}
                   >
                     <ChevronLeft size={18} />
                   </button>
                   <button
                     type="button"
                     onClick={() => setImgIndex(i => (i + 1) % space.images.length)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-plaster-surface/90 hover:bg-plaster-surface text-soot flex items-center justify-center backdrop-blur-md shadow-md transition-all cursor-pointer"
-                    aria-label="Next image"
+                    className="absolute end-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-plaster-surface/90 hover:bg-plaster-surface text-soot flex items-center justify-center backdrop-blur-md shadow-md transition-all cursor-pointer"
+                    aria-label={t('spaceDetails.nextImage')}
                   >
                     <ChevronRight size={18} />
                   </button>
@@ -406,13 +410,13 @@ function SpaceDetailsView() {
                 </>
               )}
 
-              <div className="absolute top-4 right-4">
+              <div className="absolute top-4 end-4">
                 {currentUser && (
                   <button
                     type="button"
                     onClick={() => toggleFavorite(space.id)}
                     className="w-10 h-10 rounded-full bg-plaster-surface/90 hover:bg-plaster-surface flex items-center justify-center backdrop-blur-md shadow-md transition-all cursor-pointer"
-                    aria-label="Save space"
+                    aria-label={t('spaceDetails.saveSpace')}
                   >
                     <Heart
                       size={17}
@@ -428,11 +432,11 @@ function SpaceDetailsView() {
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div>
                   <h1 className="text-3xl sm:text-4xl font-normal font-serif-display text-soot tracking-tight">
-                    {space.name}
+                    {st.name(space)}
                   </h1>
                   <div className="flex items-center gap-1.5 mt-2 text-xs sm:text-sm text-moss">
                     <MapPin size={14} className="shrink-0" />
-                    <span>{space.address}</span>
+                    <span>{st.address(space) || st.city(space)}</span>
                   </div>
                 </div>
 
@@ -443,7 +447,7 @@ function SpaceDetailsView() {
                 {(space.loyaltyPointsMultiplier || 1) > 1 && (
                   <span className="shrink-0 text-xs font-semibold px-3 py-1 rounded-full bg-amber-500/15 text-amber-900 border border-amber-500/30 flex items-center gap-1">
                     <Sparkles size={12} className="text-amber-600" />
-                    <span>{space.loyaltyPointsMultiplier}× Points Bonus</span>
+                    <span>{t('spaceDetails.pointsBonus', { multiplier: space.loyaltyPointsMultiplier ?? 1 })}</span>
                   </span>
                 )}
               </div>
@@ -452,28 +456,28 @@ function SpaceDetailsView() {
                 <div className="flex items-center gap-1.5 text-soot font-medium">
                   <Star size={14} fill="#98AA9D" className="text-eucalyptus" />
                   <span>{space.rating}</span>
-                  <span className="text-moss">({space.reviewCount} reviews)</span>
+                  <span className="text-moss">{t('spaceDetails.reviews', { count: space.reviewCount })}</span>
                 </div>
                 <span className="text-soot/20">&bull;</span>
                 <div className="flex items-center gap-1.5 text-moss">
                   <Users size={14} />
-                  <span>Total Capacity: {space.totalCapacity} desks</span>
+                  <span>{t('spaceDetails.totalCapacityDesks', { count: space.totalCapacity })}</span>
                 </div>
               </div>
             </div>
 
             <div className="space-y-2">
               <h2 className="text-base sm:text-lg font-semibold text-soot font-serif-display">
-                About this workspace
+                {t('spaceDetails.about')}
               </h2>
               <p className="text-moss text-xs sm:text-sm leading-relaxed max-w-2xl">
-                {space.description}
+                {st.description(space)}
               </p>
             </div>
 
             <div className="space-y-3">
               <h2 className="text-base sm:text-lg font-semibold text-soot font-serif-display">
-                Included Amenities
+                {t('spaceDetails.amenities')}
               </h2>
               <div className="flex flex-wrap gap-2">
                 {Array.isArray(space.amenities) && space.amenities.length > 0 ? (
@@ -485,21 +489,21 @@ function SpaceDetailsView() {
                         className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-plaster-surface border border-soot/12 text-xs font-medium text-soot shadow-xs"
                       >
                         <Check size={13} className="text-eucalyptus stroke-[2.5]" />
-                        <span>{amenityName}</span>
+                        <span>{st.amenity(amenityName)}</span>
                       </div>
                     );
                   })
                 ) : (
-                  <p className="text-xs text-moss font-medium">No specific amenities added to this workspace yet.</p>
+                  <p className="text-xs text-moss font-medium">{t('spaceDetails.noAmenities')}</p>
                 )}
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-3">
               {[
-                { icon: Clock, label: 'Operating Hours', value: hoursDisplay },
-                { icon: Phone, label: 'Direct Line', value: phoneDisplay },
-                { icon: Mail, label: 'Inquiries', value: emailDisplay },
+                { icon: Clock, label: t('spaceDetails.operatingHoursLabel'), value: localizeTime(hoursDisplay) },
+                { icon: Phone, label: t('spaceDetails.directLine'), value: phoneDisplay },
+                { icon: Mail, label: t('spaceDetails.inquiries'), value: emailDisplay },
               ].map(item => (
                 <div
                   key={item.label}
@@ -538,13 +542,13 @@ function SpaceDetailsView() {
             <div className="bg-plaster-surface rounded-3xl border border-soot/12 p-6 sm:p-7 shadow-xl">
               <div className="mb-6 pb-5 border-b border-soot/10">
                 <span className="text-xs font-semibold uppercase tracking-wider text-moss block mb-1.5">
-                  {currentPlanInfo.effectivePrice === 0 ? 'Pass Coverage' : currentPlanInfo.isCovered ? 'Workspace Rate' : currentPlanInfo.hasDiscount ? 'Plan Upgrade Rate' : 'Membership Rate'}
+                  {currentPlanInfo.effectivePrice === 0 ? t('spaceDetails.passCoverage') : currentPlanInfo.isCovered ? t('spaceDetails.workspaceRate') : currentPlanInfo.hasDiscount ? t('spaceDetails.planUpgradeRate') : t('spaceDetails.membershipRate')}
                 </span>
 
                 <div className="space-y-2">
                   <div className="flex items-baseline gap-2 flex-wrap">
                     <span className="text-3xl font-semibold text-soot tracking-tight whitespace-nowrap">
-                      {currentPlanInfo.effectivePrice === 0 ? 'Included in your Pass' : `SAR ${currentPlanInfo.effectivePrice.toLocaleString()}`}
+                      {currentPlanInfo.effectivePrice === 0 ? t('spaceDetails.includedInYourPass') : `${t('common.sar')} ${currentPlanInfo.effectivePrice.toLocaleString()}`}
                     </span>
                     {currentPlanInfo.effectivePrice > 0 && (
                       <span className="text-sm font-medium text-moss whitespace-nowrap">{planLabel}</span>
@@ -554,19 +558,19 @@ function SpaceDetailsView() {
                   {currentPlanInfo.effectivePrice === 0 ? (
                     <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-eucalyptus/30 text-soot font-semibold text-xs border border-eucalyptus/40 shadow-2xs">
                       <Check size={13} className="text-moss shrink-0" />
-                      <span>Active Subscription · Covered by your Pass</span>
+                      <span>{t('spaceDetails.activeSubscription')}</span>
                     </div>
                   ) : (currentPlanInfo.coveredHours || 0) > 0 ? (
                     <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-900 font-semibold text-xs border border-amber-500/30">
-                      <span>{currentPlanInfo.coveredHours}h Covered by Pass · {currentPlanInfo.payableHours}h Extra</span>
+                      <span>{t('spaceDetails.coveredExtra', { covered: currentPlanInfo.coveredHours ?? 0, extra: currentPlanInfo.payableHours ?? 0 })}</span>
                     </div>
                   ) : currentPlanInfo.isPartiallyCovered ? (
                     <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-900 font-semibold text-xs border border-amber-500/30">
-                      <span>{currentPlanInfo.badgeLabel}</span>
+                      <span>{translateMessage(currentPlanInfo.badgeLabel)}</span>
                     </div>
                   ) : currentPlanInfo.hasDiscount ? (
                     <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-900 font-semibold text-xs border border-amber-500/30">
-                      <span>{currentPlanInfo.discountPercentage}% Pass Discount · SAR ${currentPlanInfo.effectivePrice.toLocaleString()}</span>
+                      <span>{t('spaceDetails.passDiscount', { percent: currentPlanInfo.discountPercentage ?? 0, price: currentPlanInfo.effectivePrice.toLocaleString() })}</span>
                     </div>
                   ) : null}
                 </div>
@@ -576,10 +580,10 @@ function SpaceDetailsView() {
                 <div>
                   <div className="flex items-center justify-between mb-2.5 gap-2">
                     <label className="text-xs font-semibold uppercase tracking-wider text-moss whitespace-nowrap">
-                      Select Booking Plan
+                      {t('spaceDetails.selectPlan')}
                     </label>
                     <span className="text-[10px] font-semibold text-soot bg-[#E5ECE9] px-2.5 py-0.5 rounded-full whitespace-nowrap">
-                      {isHourlyAllowed(space) ? 'Hourly Duration Booking' : 'Daily • Monthly • Yearly'}
+                      {isHourlyAllowed(space) ? t('spaceDetails.hourlyDurationBooking') : t('spaceDetails.periodicPlans')}
                     </span>
                   </div>
 
@@ -605,9 +609,9 @@ function SpaceDetailsView() {
                               : 'bg-plaster-dark/30 border-soot/10 text-moss hover:text-soot hover:bg-plaster-dark/60'
                           }`}
                         >
-                          <div className="capitalize text-xs font-semibold">{plan}</div>
+                          <div className="capitalize text-xs font-semibold">{t(('spaceDetails.plan.' + plan) as never)}</div>
                           <div className={`text-[10px] mt-1 ${isSelected ? 'text-plaster/80 font-medium' : 'text-moss/80'}`}>
-                            {hasActiveSubscription || planP.isCovered ? 'Included in Pass' : `SAR ${planP.effectivePrice.toLocaleString()}`}
+                            {hasActiveSubscription || planP.isCovered ? t('spaceDetails.includedInPass') : `${t('common.sar')} ${planP.effectivePrice.toLocaleString()}`}
                           </div>
                         </button>
                       );
@@ -620,10 +624,10 @@ function SpaceDetailsView() {
                     <div className="flex items-center justify-between flex-wrap gap-2">
                       <label className="text-[11px] font-semibold uppercase tracking-wider text-moss flex items-center gap-1.5">
                         <Calendar size={13} />
-                        <span>Select Number of Months</span>
+                        <span>{t('spaceDetails.selectMonths')}</span>
                       </label>
                       <span className="text-xs font-bold text-soot bg-white px-3 py-1 rounded-full border border-soot/10 shadow-2xs">
-                        {durationMonths} Month{durationMonths > 1 ? 's' : ''} {hasActiveSubscription ? '· Included in Pass' : `(${currentPlanInfo.isCovered ? 'Included in your Plan · SAR 0 to Pay' : `SAR ${currentPlanInfo.effectivePrice.toLocaleString()}`})`}
+                        {t(durationMonths > 1 ? 'spaceDetails.monthsCountMany' : 'spaceDetails.monthsCount', { count: durationMonths })} {hasActiveSubscription ? `· ${t('spaceDetails.includedInPass')}` : `(${currentPlanInfo.isCovered ? t('spaceDetails.includedInPlanPay') : `${t('common.sar')} ${currentPlanInfo.effectivePrice.toLocaleString()}`})`}
                       </span>
                     </div>
                     <div className="grid grid-cols-5 gap-2">
@@ -642,9 +646,9 @@ function SpaceDetailsView() {
                                 : 'bg-white border-soot/10 text-moss hover:text-soot hover:border-soot/30'
                             }`}
                           >
-                            <div className="font-bold text-xs">{m} {m === 1 ? 'Mo' : 'Mos'}</div>
+                            <div className="font-bold text-xs">{t(m === 1 ? 'spaceDetails.monthShort' : 'spaceDetails.monthsShort', { count: m })}</div>
                             <div className={`text-[10px] mt-1 ${isSelected ? 'text-plaster/80 font-medium' : 'text-moss'}`}>
-                              {hasActiveSubscription || isTierCovered ? 'Included in Pass' : `SAR ${tierPrice.toLocaleString()}`}
+                              {hasActiveSubscription || isTierCovered ? t('spaceDetails.includedInPass') : `${t('common.sar')} ${tierPrice.toLocaleString()}`}
                             </div>
                           </button>
                         );
@@ -658,10 +662,10 @@ function SpaceDetailsView() {
                     <div className="flex items-center justify-between gap-2">
                       <label className="text-[11px] font-semibold uppercase tracking-wider text-moss flex items-center gap-1.5 whitespace-nowrap">
                         <Calendar size={12} className="shrink-0" />
-                        <span>Specify Daily Pass Dates</span>
+                        <span>{t('spaceDetails.dailyDates')}</span>
                       </label>
                       <span className="text-xs font-bold text-soot bg-white px-2.5 py-1 rounded-full border border-soot/10 shadow-2xs whitespace-nowrap shrink-0">
-                        {dailyDurationDays} {dailyDurationDays === 1 ? 'Day' : 'Days'}
+                        {t(dailyDurationDays === 1 ? 'spaceDetails.dayCount' : 'spaceDetails.daysCount', { count: dailyDurationDays })}
                       </span>
                     </div>
 
@@ -669,7 +673,7 @@ function SpaceDetailsView() {
                       <div>
                         <label className="block text-[11px] font-semibold text-moss mb-1 flex items-center gap-1">
                           <Calendar size={11} />
-                          <span>Start Date</span>
+                          <span>{t('spaceDetails.startDate')}</span>
                         </label>
                         <input
                           type="date"
@@ -683,7 +687,7 @@ function SpaceDetailsView() {
                       <div>
                         <label className="block text-[11px] font-semibold text-moss mb-1 flex items-center gap-1">
                           <Calendar size={11} />
-                          <span>End Date</span>
+                          <span>{t('spaceDetails.endDate')}</span>
                         </label>
                         <input
                           type="date"
@@ -700,15 +704,15 @@ function SpaceDetailsView() {
                         <span className="text-moss block text-[10px] uppercase font-semibold">Selected Range</span>
                         <span className="font-semibold text-soot">{formatDateRange(bookingDate, effectiveDailyEndDate)}</span>
                       </div>
-                      <div className="text-right">
+                      <div className="text-end">
                         <span className="text-moss block text-[10px] uppercase font-semibold">
-                          {hasActiveSubscription ? 'Pass Coverage' : 'Duration Total'}
+                          {hasActiveSubscription ? t('spaceDetails.passCoverage') : t('spaceDetails.durationTotal')}
                         </span>
                         <span className="font-bold text-soot">
                           {hasActiveSubscription || currentPlanInfo.isCovered ? (
-                            <span className="text-emerald-800">Included in Pass</span>
+                            <span className="text-emerald-800">{t('spaceDetails.includedInPass')}</span>
                           ) : (
-                            `SAR ${currentPlanInfo.effectivePrice.toLocaleString()}`
+                            `${t('common.sar')} ${currentPlanInfo.effectivePrice.toLocaleString()}`
                           )}
                         </span>
                       </div>
@@ -720,7 +724,7 @@ function SpaceDetailsView() {
                   <div className="p-4 rounded-2xl bg-plaster-dark/40 border border-soot/10 space-y-2">
                     <label className="block text-[11px] font-semibold text-moss mb-1 flex items-center gap-1">
                       <Calendar size={11} />
-                      <span>Start Date</span>
+                      <span>{t('spaceDetails.startDate')}</span>
                     </label>
                     <input
                       type="date"
@@ -730,7 +734,7 @@ function SpaceDetailsView() {
                       className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-soot/12 text-soot text-xs font-medium focus:outline-none focus:border-eucalyptus cursor-pointer shadow-2xs"
                     />
                     <div className="text-[11px] text-moss flex justify-between pt-1">
-                      <span>Period End:</span>
+                      <span>{t('spaceDetails.periodEnd')}</span>
                       <span className="font-semibold text-soot">
                         {calculateEndDate(bookingDate, selectedPlan, durationMonths)}
                       </span>
@@ -746,7 +750,7 @@ function SpaceDetailsView() {
                         <span>Select Hourly Booking Duration</span>
                       </label>
                       <span className="text-xs font-bold text-emerald-900 bg-emerald-100/80 px-2.5 py-1 rounded-full border border-emerald-300 shadow-2xs whitespace-nowrap shrink-0">
-                        {durationHours} {durationHours === 1 ? 'Hour' : 'Hours'} Duration
+                        {t(durationHours === 1 ? 'spaceDetails.hoursDuration' : 'spaceDetails.hoursDurationMany', { count: durationHours })}
                       </span>
                     </div>
 
@@ -771,11 +775,11 @@ function SpaceDetailsView() {
                                   : 'bg-white border-soot/10 text-moss hover:text-soot hover:border-soot/30'
                               }`}
                             >
-                              <div className="font-bold text-xs">{h} {h === 1 ? 'Hour' : 'Hours'}</div>
+                              <div className="font-bold text-xs">{t(h === 1 ? 'spaceDetails.hourOne' : 'spaceDetails.hourMany', { count: h })}</div>
                               <div className={`text-[10px] mt-0.5 ${isSelected ? 'text-plaster/80 font-medium' : 'text-moss'}`}>
                                 {hasActiveSubscription && hourlyP.isCovered
                                   ? 'Pass Quota'
-                                  : `SAR ${hourlyP.effectivePrice.toLocaleString()}`}
+                                  : `${t('common.sar')} ${hourlyP.effectivePrice.toLocaleString()}`}
                               </div>
                             </button>
                           );
@@ -788,7 +792,7 @@ function SpaceDetailsView() {
                     <div>
                       <label className="block text-[11px] font-semibold text-moss mb-1 flex items-center gap-1">
                         <Calendar size={11} />
-                        <span>Reservation Date</span>
+                        <span>{t('spaceDetails.reservationDate')}</span>
                       </label>
                       <input
                         type="date"
@@ -805,11 +809,11 @@ function SpaceDetailsView() {
                     {isHourlySpace ? (
                       <div className="space-y-1.5">
                         <span className="text-[10px] font-semibold uppercase tracking-wider text-moss block">
-                          Available 2-Hour Sessions
+                          {t('spaceDetails.sessions2h')}
                         </span>
                         {fixedSlots.length === 0 ? (
                           <div className="text-xs text-rose-800 bg-rose-50 border border-rose-200 rounded-xl p-3">
-                            No sessions are available within this venue's operating hours.
+                            {t('spaceDetails.noSessions')}
                           </div>
                         ) : (
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
@@ -826,7 +830,7 @@ function SpaceDetailsView() {
                                       : 'bg-white border-soot/10 text-moss hover:text-soot hover:border-soot/30'
                                   }`}
                                 >
-                                  {slot.start} – {slot.end}
+                                  {localizeTime(slot.start)} – {localizeTime(slot.end)}
                                 </button>
                               );
                             })}
@@ -838,16 +842,16 @@ function SpaceDetailsView() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-[11px] font-semibold text-moss mb-1">
-                          Session Start Time
+                          {t('spaceDetails.sessionStart')}
                         </label>
                         <select
                           value={startTime}
                           onChange={(e) => handleStartTimeChange(e.target.value)}
                           className="w-full px-3 py-2.5 rounded-xl bg-white border border-soot/12 text-soot text-xs font-medium focus:outline-none focus:border-eucalyptus cursor-pointer shadow-2xs"
                         >
-                          {availableStartTimes.map((t) => (
-                            <option key={t} value={t}>
-                              {t}
+                          {availableStartTimes.map((tm) => (
+                            <option key={tm} value={tm}>
+                              {localizeTime(tm)}
                             </option>
                           ))}
                         </select>
@@ -855,13 +859,13 @@ function SpaceDetailsView() {
 
                       <div>
                         <label className="block text-[11px] font-semibold text-moss mb-1">
-                          Session End Time
+                          {t('spaceDetails.sessionEnd')}
                         </label>
                         <input
                           type="text"
                           readOnly
                           disabled
-                          value={`${endTime} (${durationHours} ${durationHours === 1 ? 'Hour' : 'Hours'})`}
+                          value={`${localizeTime(endTime)} (${t(durationHours === 1 ? 'spaceDetails.hourOne' : 'spaceDetails.hourMany', { count: durationHours })})`}
                           className="w-full px-3 py-2.5 rounded-xl bg-soot/5 border border-soot/10 text-moss text-xs font-medium cursor-not-allowed shadow-2xs"
                         />
                       </div>
@@ -873,15 +877,15 @@ function SpaceDetailsView() {
                     <div className="bg-white p-3 rounded-xl border border-soot/8 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                       <div>
                         <span className="text-moss block text-[10px] uppercase font-semibold">
-                          Scheduled Reservation Window
+                          {t('spaceDetails.reservationWindow')}
                         </span>
                         <span className="font-semibold text-soot">
-                          {bookingDate} · {startTime} – {endTime} ({durationHours} {durationHours === 1 ? 'hour' : 'hours'})
+                          {bookingDate} · {localizeTime(startTime)} – {localizeTime(endTime)} ({t(durationHours === 1 ? 'spaceDetails.hourLower' : 'spaceDetails.hoursLower', { count: durationHours })})
                         </span>
                       </div>
-                      <div className="text-left sm:text-right">
-                        <span className="text-moss block text-[10px] uppercase font-semibold">Venue Operating Hours</span>
-                        <span className="font-semibold text-soot">{space.openHours || 'Standard Operating Hours'}</span>
+                      <div className="text-start sm:text-end">
+                        <span className="text-moss block text-[10px] uppercase font-semibold">{t('spaceDetails.venueHours')}</span>
+                        <span className="font-semibold text-soot">{localizeTime(space.openHours) || t('spaceDetails.standardHours')}</span>
                       </div>
                     </div>
                   </div>
@@ -890,7 +894,7 @@ function SpaceDetailsView() {
                 {selectedPlan === 'yearly' && !passActive && (
                   <div className="mt-2.5 text-[11px] text-moss bg-eucalyptus/20 border border-eucalyptus/30 rounded-xl px-3 py-1.5 flex items-center gap-1.5">
                     <Sparkles size={12} className="text-soot shrink-0" />
-                    <span>Save {Math.round((1 - (space.pricing?.yearly || 18000) / ((space.pricing?.monthly || 1800) * 12)) * 100)}% with annual commitment</span>
+                    <span>{t('spaceDetails.saveAnnual', { percent: Math.round((1 - (space.pricing?.yearly || 18000) / ((space.pricing?.monthly || 1800) * 12)) * 100) })}</span>
                   </div>
                 )}
               </div>
@@ -902,14 +906,14 @@ function SpaceDetailsView() {
                     <div>
                       <label className="text-[11px] font-semibold uppercase tracking-wider text-moss flex items-center gap-1.5">
                         <Users size={13} />
-                        <span>Number of Seats</span>
+                        <span>{t('spaceDetails.numberOfSeats')}</span>
                       </label>
                       <p className="text-[10px] text-moss mt-0.5">
                         Select how many desks / seats for your team
                       </p>
                     </div>
                     <span className="text-xs font-bold text-soot bg-white px-3 py-1 rounded-full border border-soot/10 shadow-2xs">
-                      {selectedSeats} {selectedSeats === 1 ? 'Seat' : 'Seats'}
+                      {t(selectedSeats === 1 ? 'spaceDetails.seatOne' : 'spaceDetails.seatMany', { count: selectedSeats })}
                     </span>
                   </div>
 
@@ -925,7 +929,7 @@ function SpaceDetailsView() {
                     </button>
                     <div className="flex-1 text-center">
                       <span className="text-2xl font-serif-display font-normal text-soot">{selectedSeats}</span>
-                      <span className="text-xs text-moss ml-1">{selectedSeats === 1 ? 'seat' : 'seats'}</span>
+                      <span className="text-xs text-moss ms-1">{selectedSeats === 1 ? t('spaceDetails.seatSingular') : t('spaceDetails.seatPlural')}</span>
                     </div>
                     <button
                       type="button"
@@ -958,21 +962,21 @@ function SpaceDetailsView() {
                   {/* Price breakdown per seat and total */}
                   <div className="bg-white rounded-xl p-3 border border-soot/8 text-xs space-y-1">
                     <div className="flex justify-between text-moss">
-                      <span>Price per seat</span>
+                      <span>{t('spaceDetails.pricePerSeat')}</span>
                       <span className="font-semibold text-soot">
-                        {perSeatInfo.isCovered ? 'Covered by Plan' : `SAR ${perSeatInfo.effectivePrice.toLocaleString()}`}
+                        {perSeatInfo.isCovered ? t('spaceDetails.coveredByPlan') : `${t('common.sar')} ${perSeatInfo.effectivePrice.toLocaleString()}`}
                       </span>
                     </div>
                     <div className="flex justify-between text-moss">
-                      <span>Seats selected</span>
+                      <span>{t('spaceDetails.seatsSelected')}</span>
                       <span className="font-semibold text-soot">× {selectedSeats}</span>
                     </div>
                     <div className="flex justify-between pt-1.5 border-t border-soot/8">
-                      <span className="font-semibold text-soot">Total</span>
+                      <span className="font-semibold text-soot">{t('common.total')}</span>
                       <span className="font-bold text-soot">
                         {currentPlanInfo.isCovered
-                          ? <span className="text-emerald-700">Included in Pass</span>
-                          : `SAR ${currentPlanInfo.effectivePrice.toLocaleString()}`}
+                          ? <span className="text-emerald-700">{t('spaceDetails.includedInPass')}</span>
+                          : `${t('common.sar')} ${currentPlanInfo.effectivePrice.toLocaleString()}`}
                       </span>
                     </div>
                   </div>
@@ -981,9 +985,9 @@ function SpaceDetailsView() {
 
               <div className="mb-6 p-4 rounded-2xl bg-[#FAF7F2] border border-soot/10 space-y-2">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-moss font-normal">Capacity</span>
+                  <span className="text-moss font-normal">{t('space.capacity')}</span>
                   <span className={`font-semibold ${isFullyBooked ? 'text-rose-700' : crowding.textColor}`}>
-                    {isFullyBooked ? 'Busy / Full' : crowding.level}
+                    {isFullyBooked ? t('spaceDetails.busyFull') : t(('crowding.' + crowding.level) as never)}
                   </span>
                 </div>
                 <div className="w-full h-2 rounded-full bg-[#E5EBE7] overflow-hidden">
@@ -995,9 +999,9 @@ function SpaceDetailsView() {
                   />
                 </div>
                 <div className="flex items-center justify-between text-[11px] text-moss pt-0.5">
-                  <span>{isFullyBooked ? '0' : crowding.availableCapacity} / {crowding.totalCapacity} available</span>
+                  <span>{t('spaceDetails.availableOf', { available: isFullyBooked ? 0 : crowding.availableCapacity, total: crowding.totalCapacity })}</span>
                   <span className="text-[10px] font-medium text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60">
-                    {crowding.scannedCount} QR Check-ins Today
+                    {t('spaceDetails.qrCheckins', { count: crowding.scannedCount })}
                   </span>
                 </div>
               </div>
@@ -1009,10 +1013,10 @@ function SpaceDetailsView() {
                       <Bell size={16} className="text-soot" />
                     </div>
                     <div className="text-soot font-semibold text-xs mb-0.5">
-                      Currently at Maximum Capacity
+                      {t('spaceDetails.maxCapacity')}
                     </div>
                     <div className="text-moss text-[11px]">
-                      Join the priority waitlist to secure the next available desk
+                      {t('spaceDetails.joinWaitlistHint')}
                     </div>
                   </div>
 
@@ -1020,14 +1024,14 @@ function SpaceDetailsView() {
                     <div className="bg-eucalyptus/25 border border-eucalyptus/35 rounded-2xl p-4 text-center space-y-2">
                       <div className="text-soot font-semibold text-xs flex items-center justify-center gap-2">
                         <Check size={14} className="text-soot stroke-[2.5]" />
-                        <span>You are on the priority waitlist</span>
+                        <span>{t('spaceDetails.onWaitlist')}</span>
                       </div>
                       <button
                         type="button"
                         onClick={() => leaveWaitlist(space.id)}
                         className="text-[11px] text-moss hover:text-red-700 font-medium underline transition-colors cursor-pointer"
                       >
-                        Leave Waitlist
+                        {t('spaceDetails.leaveWaitlist')}
                       </button>
                     </div>
                   ) : (
@@ -1041,7 +1045,7 @@ function SpaceDetailsView() {
                       className="w-full py-3.5 rounded-xl bg-soot text-plaster font-semibold text-sm hover:bg-moss active:scale-[0.99] transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer"
                     >
                       <Bell size={15} />
-                      <span>Join Priority Waitlist</span>
+                      <span>{t('spaceDetails.joinWaitlist')}</span>
                     </button>
                   )}
                 </div>
@@ -1054,11 +1058,11 @@ function SpaceDetailsView() {
                   >
                     <span>{currentUser
                       ? (currentPlanInfo.effectivePrice === 0
-                        ? 'Reserve Workspace (Covered by Pass)'
+                        ? t('spaceDetails.reserveCovered')
                         : isOrganization && selectedSeats > 1
-                          ? `Proceed to Reservation (SAR ${currentPlanInfo.effectivePrice.toLocaleString()} · ${selectedSeats} Seats)`
-                          : `Proceed to Reservation (SAR ${currentPlanInfo.effectivePrice.toLocaleString()})`)
-                      : 'Sign in to Reserve'}</span>
+                          ? t('spaceDetails.proceedSeats', { currency: t('common.sar'), price: currentPlanInfo.effectivePrice.toLocaleString(), seats: selectedSeats })
+                          : t('spaceDetails.proceed', { currency: t('common.sar'), price: currentPlanInfo.effectivePrice.toLocaleString() }))
+                      : t('spaceDetails.signInToReserve')}</span>
                     <ArrowRight size={16} />
                   </button>
 
@@ -1092,7 +1096,7 @@ function SpaceDetailsView() {
                       className="w-full py-3 px-4 rounded-xl font-semibold text-xs border border-soot/15 text-soot bg-white hover:bg-plaster-dark/40 active:scale-[0.99] transition-all duration-200 shadow-2xs flex items-center justify-center gap-2 cursor-pointer"
                     >
                       <ShoppingBag size={15} />
-                      <span>{currentPlanInfo.effectivePrice === 0 ? 'Add to Cart (Covered by Pass)' : 'Add Pass to Cart'}</span>
+                      <span>{currentPlanInfo.effectivePrice === 0 ? t('spaceDetails.addToCartCovered') : t('spaceDetails.addPassToCart')}</span>
                     </button>
                   )}
                 </div>
@@ -1100,20 +1104,20 @@ function SpaceDetailsView() {
 
               {!currentUser && (
                 <p className="text-center text-xs text-moss mt-4 pt-3.5 border-t border-soot/10">
-                  New to the network?{' '}
+                  {t('spaceDetails.newToNetwork')}{' '}
                   <button
                     type="button"
                     onClick={() => navigate('signup')}
                     className="text-soot font-bold hover:underline cursor-pointer"
                   >
-                    Create account
+                    {t('spaceDetails.createAccount')}
                   </button>
                 </p>
               )}
 
               <div className="mt-5 pt-4 border-t border-soot/10 flex items-center justify-center gap-2 text-[11px] text-moss">
                 <ShieldCheck size={13} className="text-eucalyptus shrink-0" />
-                <span>Verified by Coworking Pass Saudi Network</span>
+                <span>{t('spaceDetails.verified')}</span>
               </div>
             </div>
           </div>
@@ -1123,7 +1127,7 @@ function SpaceDetailsView() {
       <Modal
         open={waitlistModal}
         onClose={() => setWaitlistModal(false)}
-        title="Priority Waitlist"
+        title={t('spaceDetails.waitlistTitle')}
         size="md"
       >
         <div className="p-6 text-soot">
@@ -1132,16 +1136,16 @@ function SpaceDetailsView() {
               <div className="w-14 h-14 rounded-2xl bg-eucalyptus/25 flex items-center justify-center mx-auto mb-4">
                 <Check size={26} className="text-soot stroke-[2.5]" />
               </div>
-              <h3 className="text-2xl font-normal font-serif-display text-soot mb-1.5">You’re in line</h3>
+              <h3 className="text-2xl font-normal font-serif-display text-soot mb-1.5">{t('spaceDetails.inLine')}</h3>
               <p className="text-xs sm:text-sm text-moss leading-relaxed max-w-xs mx-auto mb-6">
-                We’ll send an instant notification as soon as a desk opens up at {space.name}.
+                {t('spaceDetails.notifyWhenOpens', { name: st.name(space) })}
               </p>
               <button
                 type="button"
                 onClick={() => setWaitlistModal(false)}
                 className="w-full py-3 rounded-xl bg-soot text-plaster text-xs sm:text-sm font-semibold hover:bg-moss transition-colors cursor-pointer"
               >
-                Close
+                {t('common.close')}
               </button>
             </div>
           ) : (
@@ -1149,14 +1153,14 @@ function SpaceDetailsView() {
               <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-plaster-dark/30 border border-soot/12">
                 <img
                   src={space.images?.[0] || 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80'}
-                  alt={space.name}
+                  alt={st.name(space)}
                   className="w-12 h-12 rounded-xl object-cover"
                 />
                 <div>
                   <div className="font-semibold text-soot text-xs sm:text-sm">{space.name}</div>
                   <div className="flex items-center gap-1 text-[11px] text-moss mt-0.5">
                     <MapPin size={10} />
-                    <span>{space.city}</span>
+                    <span>{st.city(space)}</span>
                   </div>
                 </div>
               </div>
@@ -1174,7 +1178,7 @@ function SpaceDetailsView() {
 
               <div>
                 <label className="block text-xs font-semibold text-soot mb-1.5 uppercase tracking-wider">
-                  Preferred Date
+                  {t('spaceDetails.preferredDate')}
                 </label>
                 <input
                   type="date"
@@ -1187,7 +1191,7 @@ function SpaceDetailsView() {
 
               <div>
                 <label className="block text-xs font-semibold text-soot mb-2 uppercase tracking-wider">
-                  Alert Channels
+                  {t('spaceDetails.alertChannels')}
                 </label>
                 <div className="flex flex-wrap gap-4 text-xs text-soot">
                   <label className="flex items-center gap-2 cursor-pointer">
@@ -1197,7 +1201,7 @@ function SpaceDetailsView() {
                       onChange={e => setSmsAlerts(e.target.checked)}
                       className="accent-soot"
                     />
-                    <span>SMS</span>
+                    <span>{t('spaceDetails.sms')}</span>
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
@@ -1206,7 +1210,7 @@ function SpaceDetailsView() {
                       onChange={e => setEmailAlerts(e.target.checked)}
                       className="accent-soot"
                     />
-                    <span>Email</span>
+                    <span>{t('spaceDetails.email')}</span>
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
@@ -1215,7 +1219,7 @@ function SpaceDetailsView() {
                       onChange={e => setWhatsappAlerts(e.target.checked)}
                       className="accent-soot"
                     />
-                    <span>WhatsApp</span>
+                    <span>{t('spaceDetails.whatsapp')}</span>
                   </label>
                 </div>
               </div>
@@ -1224,7 +1228,7 @@ function SpaceDetailsView() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-xs font-semibold text-soot">
                     <Sparkles size={15} className="text-moss" />
-                    <span>Enable Instant Auto-Booking</span>
+                    <span>{t('spaceDetails.autoBooking')}</span>
                   </div>
                   <button
                     type="button"
@@ -1241,13 +1245,13 @@ function SpaceDetailsView() {
                   >
                     <div
                       className={`w-4 h-4 rounded-full bg-white transition-transform ${
-                        autoBookOn ? 'translate-x-6' : 'translate-x-1'
+                        autoBookOn ? 'translate-x-6 rtl:-translate-x-6' : 'translate-x-1 rtl:-translate-x-1'
                       }`}
                     />
                   </button>
                 </div>
                 <p className="text-[11px] text-moss leading-relaxed">
-                  Automatically reserve and charge your default card as soon as a desk opens up.
+                  {t('spaceDetails.autoBookingBody')}
                 </p>
               </div>
 
@@ -1256,7 +1260,7 @@ function SpaceDetailsView() {
                 onClick={handleJoinWaitlist}
                 className="w-full py-3.5 rounded-xl bg-soot text-plaster font-semibold text-xs sm:text-sm hover:bg-moss transition-all cursor-pointer shadow-md mt-2"
               >
-                Confirm Waitlist Registration
+                {t('spaceDetails.confirmWaitlist')}
               </button>
             </div>
           )}

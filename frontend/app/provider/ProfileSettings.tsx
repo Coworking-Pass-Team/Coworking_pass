@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/i18n';
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Warehouse,
@@ -30,6 +31,7 @@ import Modal from '@/components/ui/Modal';
 import UserAvatar from '@/components/ui/UserAvatar';
 
 export default function ProviderProfileSettings() {
+  const { t } = useI18n();
   const { currentUser, navigate, nav, updateCurrentUser, spaces, partners, showToast } = useApp();
   if (!currentUser) return null;
 
@@ -454,7 +456,7 @@ export default function ProviderProfileSettings() {
                         <span>{space.city} · <span className="capitalize">{space.type.replace('-', ' ')}</span></span>
                       </div>
                       <div className="text-xs font-medium text-soot mt-1">
-                        SAR {space.pricing.daily} <span className="text-[10px] text-moss font-normal">/day</span>
+                        {t('common.sar')} {space.pricing.daily} <span className="text-[10px] text-moss font-normal">/day</span>
                       </div>
                     </div>
                   </div>
@@ -481,7 +483,7 @@ export default function ProviderProfileSettings() {
                 { key: 'monthlyPayouts', label: 'Monthly payout & earnings statement', desc: 'Detailed revenue statement delivered at the end of each settlement period' },
               ].map(item => (
                 <div key={item.key} className="flex items-center justify-between pt-4 first:pt-0">
-                  <div className="pr-4">
+                  <div className="pe-4">
                     <div className="text-sm font-medium text-soot">{item.label}</div>
                     <div className="text-xs text-moss mt-0.5 font-normal">{item.desc}</div>
                   </div>
@@ -499,7 +501,7 @@ export default function ProviderProfileSettings() {
                   >
                     <div
                       className={`w-4 h-4 rounded-full bg-white transition-transform ${
-                        notifications[item.key as keyof typeof notifications] ? 'translate-x-7' : 'translate-x-1'
+                        notifications[item.key as keyof typeof notifications] ? 'translate-x-7 rtl:-translate-x-7' : 'translate-x-1 rtl:-translate-x-1'
                       }`}
                     />
                   </button>
@@ -530,7 +532,7 @@ export default function ProviderProfileSettings() {
                 >
                   <div
                     className={`w-4 h-4 rounded-full bg-white transition-transform ${
-                      payoutSettings.autoPayout ? 'translate-x-7' : 'translate-x-1'
+                      payoutSettings.autoPayout ? 'translate-x-7 rtl:-translate-x-7' : 'translate-x-1 rtl:-translate-x-1'
                     }`}
                   />
                 </button>
@@ -550,7 +552,7 @@ export default function ProviderProfileSettings() {
                 >
                   <div
                     className={`w-4 h-4 rounded-full bg-white transition-transform ${
-                      payoutSettings.instantBooking ? 'translate-x-7' : 'translate-x-1'
+                      payoutSettings.instantBooking ? 'translate-x-7 rtl:-translate-x-7' : 'translate-x-1 rtl:-translate-x-1'
                     }`}
                   />
                 </button>
@@ -597,7 +599,7 @@ export default function ProviderProfileSettings() {
               />
             </div>
 
-            <div className="flex-1 min-w-0 text-center sm:text-left space-y-2.5">
+            <div className="flex-1 min-w-0 text-center sm:text-start space-y-2.5">
               <div>
                 <div className="text-sm font-medium text-soot">Brand Logo / Profile Picture</div>
                 <p className="text-xs text-moss font-normal mt-0.5">

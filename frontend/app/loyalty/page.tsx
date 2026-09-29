@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/i18n';
 import React, { useState, useEffect } from 'react';
 import {
   Sparkles,
@@ -21,6 +22,7 @@ import { useApp } from '@/app/store';
 import { getLoyaltyPointsApi, getPointsTransactionsApi } from '@/services/authApi';
 
 export default function LoyaltyPage() {
+  const { t } = useI18n();
   const { currentUser, spaces, bookings, navigate, updateCurrentUser } = useApp();
   const [dbTransactions, setDbTransactions] = useState<any[]>([]);
   const [loadingDb, setLoadingDb] = useState(false);
@@ -143,7 +145,7 @@ export default function LoyaltyPage() {
                 {points.toLocaleString()} <span className="text-lg font-sans text-plaster/70 font-normal">pts</span>
               </div>
               <div className="text-xs text-eucalyptus font-semibold mt-1">
-                = SAR {cashEquivalent.toFixed(2)} Instant Cashback Value
+                = {t('common.sar')} {cashEquivalent.toFixed(2)} Instant Cashback Value
               </div>
             </div>
 
@@ -163,7 +165,7 @@ export default function LoyaltyPage() {
             </button>
           </div>
 
-          <div className="absolute -bottom-12 -right-12 w-56 h-56 rounded-full bg-eucalyptus/20 blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-12 -end-12 w-56 h-56 rounded-full bg-eucalyptus/20 blur-3xl pointer-events-none" />
         </div>
 
         {/* Tier Status & Progress */}
@@ -174,7 +176,7 @@ export default function LoyaltyPage() {
                 <span className="text-xs font-bold uppercase tracking-wider text-moss block mb-1">Current Membership Tier</span>
                 <h3 className="text-2xl font-semibold text-soot font-serif-display">{tier.name}</h3>
               </div>
-              <div className="text-right">
+              <div className="text-end">
                 <span className="text-xs font-medium text-moss block">Next Tier Target</span>
                 <span className="text-xs font-bold text-soot">{tier.nextTier}</span>
               </div>
@@ -286,7 +288,7 @@ export default function LoyaltyPage() {
                       alt={space.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
-                    <div className="absolute top-3.5 left-3.5 bg-soot text-plaster border border-soot/20 text-xs font-bold px-3 py-1 rounded-full shadow-2xs flex items-center gap-1">
+                    <div className="absolute top-3.5 start-3.5 bg-soot text-plaster border border-soot/20 text-xs font-bold px-3 py-1 rounded-full shadow-2xs flex items-center gap-1">
                       <Sparkles size={13} className="text-eucalyptus" />
                       <span>{space.loyaltyPointsMultiplier}× Bonus Points</span>
                     </div>
@@ -311,8 +313,8 @@ export default function LoyaltyPage() {
                 </div>
 
                 <div className="p-5 pt-0 flex items-center justify-between border-t border-soot/6 mt-3">
-                  <span className="text-xs font-semibold text-soot">SAR {space.pricing.daily}/day</span>
-                  <span className="text-xs font-bold text-emerald-800 flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                  <span className="text-xs font-semibold text-soot">{t('common.sar')} {space.pricing.daily}/day</span>
+                  <span className="text-xs font-bold text-emerald-800 flex items-center gap-1 group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5 transition-transform">
                     <span>Book & Earn Extra</span>
                     <ArrowUpRight size={14} />
                   </span>
@@ -336,7 +338,7 @@ export default function LoyaltyPage() {
               <div className="col-span-5">Activity Description</div>
               <div className="col-span-3">Type</div>
               <div className="col-span-2">Date</div>
-              <div className="col-span-2 text-right">Points</div>
+              <div className="col-span-2 text-end">Points</div>
             </div>
 
             <div className="divide-y divide-soot/8">
@@ -356,7 +358,7 @@ export default function LoyaltyPage() {
                     <div className="col-span-2 text-moss mt-1 md:mt-0 font-medium">
                       {t.createdAt ? new Date(t.createdAt).toLocaleDateString() : 'Recent'}
                     </div>
-                    <div className={`col-span-2 text-right font-bold mt-1 md:mt-0 ${isEarned ? 'text-emerald-800' : 'text-rose-800'}`}>
+                    <div className={`col-span-2 text-end font-bold mt-1 md:mt-0 ${isEarned ? 'text-emerald-800' : 'text-rose-800'}`}>
                       {isEarned ? `+${t.points}` : `-${t.points}`} pts
                     </div>
                   </div>
@@ -378,7 +380,7 @@ export default function LoyaltyPage() {
               <div className="col-span-5">Reservation Activity</div>
               <div className="col-span-3">Booking Date</div>
               <div className="col-span-2">Pass Amount</div>
-              <div className="col-span-2 text-right">Points Earned</div>
+              <div className="col-span-2 text-end">Points Earned</div>
             </div>
 
             <div className="divide-y divide-soot/8">
@@ -394,8 +396,8 @@ export default function LoyaltyPage() {
                       <span>{b.spaceName} ({b.plan} pass)</span>
                     </div>
                     <div className="col-span-3 text-moss mt-1 md:mt-0 font-medium">{b.startDate}</div>
-                    <div className="col-span-2 text-soot font-semibold mt-1 md:mt-0">SAR {(b.totalPrice || 0).toLocaleString()}</div>
-                    <div className="col-span-2 text-right font-bold text-emerald-800 mt-1 md:mt-0">
+                    <div className="col-span-2 text-soot font-semibold mt-1 md:mt-0">{t('common.sar')} {(b.totalPrice || 0).toLocaleString()}</div>
+                    <div className="col-span-2 text-end font-bold text-emerald-800 mt-1 md:mt-0">
                       +{ptsEarned} pts
                     </div>
                   </div>

@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/i18n';
 import { useState, useRef, useEffect } from 'react';
 import {
   Search,
@@ -27,6 +28,7 @@ import { getHourlyBookingsApi, updateHourlyBookingApi, HourlyBookingItemApi } fr
 const FALLBACK_SPACE_IMAGE = 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80';
 
 export default function CompanyBookings() {
+  const { t } = useI18n();
   const { currentUser, bookings, spaces, users, cancelBooking, showToast } = useApp();
   const [bookingCategory, setBookingCategory] = useState<'direct' | 'hourly'>('direct');
   const [hourlyBookings, setHourlyBookings] = useState<HourlyBookingItemApi[]>([]);
@@ -257,7 +259,7 @@ export default function CompanyBookings() {
             {[
               {
                 label: 'Total Revenue',
-                count: `SAR ${totalRevenue.toLocaleString()}`,
+                count: `${t('common.sar')} ${totalRevenue.toLocaleString()}`,
                 badge: 'bg-emerald-500/15 text-emerald-800 border border-emerald-500/30',
                 icon: DollarSign,
                 iconBg: 'bg-emerald-500/15 text-emerald-800 border-emerald-500/30',
@@ -304,13 +306,13 @@ export default function CompanyBookings() {
           {/* Search & Filter */}
           <div className="flex flex-col sm:flex-row gap-3 bg-plaster-surface p-3 rounded-2xl border border-soot/10 shadow-2xs relative z-30">
             <div className="relative flex-1">
-              <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-moss" />
+              <Search size={16} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-moss" />
               <input
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search by space name, city, or user..."
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-soot/12 bg-plaster-dark/30 text-soot text-sm placeholder:text-moss/70 outline-none focus:border-eucalyptus focus:bg-plaster-surface transition-all"
+                className="w-full ps-10 pe-4 py-2.5 rounded-xl border border-soot/12 bg-plaster-dark/30 text-soot text-sm placeholder:text-moss/70 outline-none focus:border-eucalyptus focus:bg-plaster-surface transition-all"
               />
             </div>
 
@@ -318,7 +320,7 @@ export default function CompanyBookings() {
               <button
                 type="button"
                 onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
-                className="w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/50 border border-soot/12 transition-all duration-200 text-left cursor-pointer focus:outline-none"
+                className="w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/50 border border-soot/12 transition-all duration-200 text-start cursor-pointer focus:outline-none"
               >
                 <span className="text-sm font-medium text-soot truncate capitalize">
                   {filterStatus ? `${filterStatus} Bookings` : 'All Status'}
@@ -332,7 +334,7 @@ export default function CompanyBookings() {
               </button>
 
               {statusDropdownOpen && (
-                <div className="absolute top-full left-0 right-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
+                <div className="absolute top-full start-0 end-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
                   <div className="space-y-0.5">
                     {[
                       { value: '', label: 'All Status' },
@@ -349,7 +351,7 @@ export default function CompanyBookings() {
                             setFilterStatus(item.value);
                             setStatusDropdownOpen(false);
                           }}
-                          className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors text-left cursor-pointer ${
+                          className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors text-start cursor-pointer ${
                             isSelected
                               ? 'bg-soot text-plaster font-semibold'
                               : 'text-soot hover:bg-plaster-dark/60'
@@ -374,7 +376,7 @@ export default function CompanyBookings() {
               <div className="col-span-2">Booking Period</div>
               <div className="col-span-1">Seats</div>
               <div className="col-span-1">Amount</div>
-              <div className="col-span-2 text-right">Status & Actions</div>
+              <div className="col-span-2 text-end">Status & Actions</div>
             </div>
 
             {filtered.length === 0 ? (
@@ -417,7 +419,7 @@ export default function CompanyBookings() {
                         <span>{b.startDate}</span>
                       </div>
                       {b.startDate !== b.endDate && (
-                        <div className="text-moss text-[11px] mt-0.5 pl-4">to {b.endDate}</div>
+                        <div className="text-moss text-[11px] mt-0.5 ps-4">to {b.endDate}</div>
                       )}
                     </div>
 
@@ -426,7 +428,7 @@ export default function CompanyBookings() {
                     </div>
 
                     <div className="col-span-1 mt-2 lg:mt-0 text-sm font-semibold text-soot">
-                      SAR {getBookingPrice(b, spaces).toLocaleString()}
+                      {t('common.sar')} {getBookingPrice(b, spaces).toLocaleString()}
                     </div>
 
                     <div className="col-span-2 mt-4 lg:mt-0 flex items-center justify-end gap-2">

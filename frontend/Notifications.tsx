@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/i18n';
 import React, { useState } from 'react';
 import {
   Bell,
@@ -17,6 +18,7 @@ import {
 import { useApp } from '@/app/store';
 
 export default function Notifications() {
+  const { t, translateMessage } = useI18n();
   const {
     notifications,
     markAllNotificationsRead,
@@ -81,15 +83,15 @@ export default function Notifications() {
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-3xl text-soot font-semibold" style={{ fontFamily: 'DM Serif Display, serif' }}>
-              Notifications
+              {t('nav.notifications')}
             </h1>
             {unreadCount > 0 && (
               <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-eucalyptus/20 text-soot border border-eucalyptus/30">
-                {unreadCount} new
+                {t('notifPage.newCount', { count: unreadCount })}
               </span>
             )}
           </div>
-          <p className="text-sm text-moss mt-1">All your account updates, booking status changes, and alerts.</p>
+          <p className="text-sm text-moss mt-1">{t('notifPage.subtitle')}</p>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
@@ -99,7 +101,7 @@ export default function Notifications() {
               onClick={markAllNotificationsRead}
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-soot/12 bg-white text-xs font-medium text-soot hover:bg-soot/5 transition-colors shadow-2xs cursor-pointer"
             >
-              <CheckCheck size={14} /> Mark all read
+              <CheckCheck size={14} /> {t('nav.markAllRead')}
             </button>
           )}
 
@@ -108,9 +110,9 @@ export default function Notifications() {
               type="button"
               onClick={clearAllNotifications}
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-rose-200 bg-rose-50/50 text-xs font-medium text-rose-700 hover:bg-rose-100/70 transition-colors cursor-pointer"
-              title="Clear all notifications"
+              title={t('notifPage.clearAllTitle')}
             >
-              <Trash2 size={14} /> Clear all
+              <Trash2 size={14} /> {t('notifPage.clearAll')}
             </button>
           )}
         </div>
@@ -119,11 +121,11 @@ export default function Notifications() {
       {/* Filter Tabs */}
       <div className="flex items-center gap-1 border-b border-soot/10 pb-2 overflow-x-auto scrollbar-none">
         {[
-          { id: 'all', label: 'All', count: notifications.length },
-          { id: 'unread', label: 'Unread', count: unreadCount },
-          { id: 'bookings', label: 'Bookings', count: notifications.filter((n: any) => n.type === 'booking' || n.type === 'cancelled').length },
-          { id: 'reminders', label: 'Reminders & Payments', count: notifications.filter((n: any) => n.type === 'reminder' || n.type === 'payment').length },
-          { id: 'system', label: 'System & Info', count: notifications.filter((n: any) => n.type === 'system' || n.type === 'info').length },
+          { id: 'all', label: t('notifPage.tabAll'), count: notifications.length },
+          { id: 'unread', label: t('notifPage.tabUnread'), count: unreadCount },
+          { id: 'bookings', label: t('nav.bookings'), count: notifications.filter((n: any) => n.type === 'booking' || n.type === 'cancelled').length },
+          { id: 'reminders', label: t('notifPage.tabReminders'), count: notifications.filter((n: any) => n.type === 'reminder' || n.type === 'payment').length },
+          { id: 'system', label: t('notifPage.tabSystem'), count: notifications.filter((n: any) => n.type === 'system' || n.type === 'info').length },
         ].map(tab => (
           <button
             key={tab.id}
@@ -149,11 +151,11 @@ export default function Notifications() {
         {filteredNotifications.length === 0 ? (
           <div className="py-20 text-center px-4">
             <Bell size={36} className="mx-auto text-moss/40 mb-3" />
-            <h3 className="text-base font-semibold text-soot">No notifications found</h3>
+            <h3 className="text-base font-semibold text-soot">{t('notifPage.none')}</h3>
             <p className="text-sm text-moss max-w-sm mx-auto mt-1">
               {activeTab === 'unread'
-                ? 'You are all caught up on your notifications!'
-                : 'You have no notification entries in this section.'}
+                ? t('notifPage.caughtUp')
+                : t('notifPage.noneInSection')}
             </p>
           </div>
         ) : (
@@ -178,13 +180,13 @@ export default function Notifications() {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <h2 className={`text-sm ${notification.read ? 'font-medium text-soot' : 'font-bold text-soot'}`}>
-                      {notification.title}
+                      {translateMessage(notification.title)}
                     </h2>
                     {!notification.read && (
-                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0 mt-1 shadow-xs" title="Unread" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0 mt-1 shadow-xs" title={t('notifPage.tabUnread')} />
                     )}
                   </div>
-                  <p className="text-sm text-moss mt-1 leading-relaxed">{notification.message}</p>
+                  <p className="text-sm text-moss mt-1 leading-relaxed">{translateMessage(notification.message)}</p>
                   <div className="flex items-center gap-3 mt-2 text-xs text-moss/70 font-medium">
                     <span>{notification.createdAt}</span>
                     <span className="capitalize px-2 py-0.5 rounded-md bg-soot/5 text-soot/70 text-[10px]">
@@ -199,7 +201,7 @@ export default function Notifications() {
                     type="button"
                     onClick={() => toggleNotificationRead(notification.id)}
                     className="p-2 rounded-lg text-moss hover:text-soot hover:bg-soot/10 transition-colors cursor-pointer"
-                    title={notification.read ? 'Mark as Unread' : 'Mark as Read'}
+                    title={notification.read ? t('notifPage.markUnread') : t('notifPage.markRead')}
                   >
                     {notification.read ? <RotateCcw size={15} /> : <CheckCircle2 size={15} className="text-emerald-600" />}
                   </button>
@@ -207,7 +209,7 @@ export default function Notifications() {
                     type="button"
                     onClick={() => deleteNotification(notification.id)}
                     className="p-2 rounded-lg text-moss hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                    title="Delete Notification"
+                    title={t('notifPage.delete')}
                   >
                     <Trash2 size={15} />
                   </button>

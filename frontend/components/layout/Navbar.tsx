@@ -1,12 +1,15 @@
 'use client';
+import { useI18n } from '@/i18n';
 import { useState, useRef, useEffect } from 'react';
 import { Menu, X, User as UserIcon, LogOut, ChevronDown, Calendar, Building2, Users, Settings, CreditCard, HelpCircle, Wallet, Bell, CheckCheck, ChevronRight, Sparkles, ShoppingBag, Clock } from 'lucide-react';
 import { useApp } from '@/app/store';
 import Logo from './logo';
+import LanguageSwitcher from './LanguageSwitcher';
 import WalletModal from '@/components/ui/WalletModal';
 import SharedWalletModal from '@/components/ui/SharedWalletModal';
 
 export function WalletButton({ onClick, className = '' }: { onClick?: () => void; className?: string }) {
+  const { t } = useI18n();
   const { currentUser, companyWalletBalance } = useApp();
   if (!currentUser) return null;
 
@@ -20,8 +23,8 @@ export function WalletButton({ onClick, className = '' }: { onClick?: () => void
       type="button"
       onClick={onClick}
       className={`flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 rounded-full bg-[#E2E8E4] hover:bg-[#DDE6DF] border border-[#2D3536]/15 text-soot text-xs font-semibold shadow-2xs transition-all cursor-pointer shrink-0 ${className}`}
-      title={isOrg ? 'Corporate Shared Wallet' : 'Digital Wallet'}
-      aria-label={`Wallet balance: SAR ${balance.toLocaleString()}`}
+      title={isOrg ? t('nav.corporateWallet') : t('nav.digitalWallet')}
+      aria-label={t('nav.walletBalance', { amount: balance.toLocaleString() })}
     >
       <Wallet size={14} className="text-moss shrink-0" />
       <span className="font-bold text-soot flex items-center gap-0.5">
@@ -33,6 +36,7 @@ export function WalletButton({ onClick, className = '' }: { onClick?: () => void
 }
 
 export function LoyaltyButton() {
+  const { t } = useI18n();
   const { navigate, currentUser } = useApp();
   if (!currentUser) return null;
 
@@ -45,16 +49,17 @@ export function LoyaltyButton() {
       type="button"
       onClick={() => navigate('loyalty')}
       className="flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 rounded-full bg-[#E2E8E4] hover:bg-[#DDE6DF] border border-[#2D3536]/15 text-soot text-xs font-semibold shadow-2xs transition-all cursor-pointer shrink-0"
-      title="Loyalty Rewards Hub"
+      title={t('nav.loyaltyHub')}
     >
       <Sparkles size={14} className="text-moss shrink-0" />
-      <span className="hidden xl:inline">{points.toLocaleString()} pts</span>
+      <span className="hidden xl:inline">{t('nav.pts', { points: points.toLocaleString() })}</span>
       <span className="xl:hidden">{points.toLocaleString()}</span>
     </button>
   );
 }
 
 export function NotificationButton() {
+  const { t, translateMessage } = useI18n();
   const { navigate, notifications, unreadNotificationsCount, markNotificationRead, markAllNotificationsRead } = useApp();
   const [isOpen, setIsOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
@@ -78,27 +83,27 @@ export function NotificationButton() {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        aria-label="Notifications"
+        aria-label={t('nav.notifications')}
         className="relative p-2 sm:p-2.5 rounded-2xl text-moss hover:text-soot hover:bg-soot/5 transition-colors cursor-pointer shrink-0"
-        title="Notifications"
+        title={t('nav.notifications')}
       >
         <Bell size={19} />
         {unreadNotificationsCount > 0 && (
-          <span className="absolute top-1.5 right-1.5 min-w-4 h-4 px-1 rounded-full bg-red-500 text-white text-[9px] leading-4 text-center font-semibold animate-pulse">
+          <span className="absolute top-1.5 end-1.5 min-w-4 h-4 px-1 rounded-full bg-red-500 text-white text-[9px] leading-4 text-center font-semibold animate-pulse">
             {unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}
           </span>
         )}
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-soot/10 z-[60] overflow-hidden divide-y divide-soot/5 animate-in fade-in-50 zoom-in-95 duration-100">
+        <div className="absolute end-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-soot/10 z-[60] overflow-hidden divide-y divide-soot/5 animate-in fade-in-50 zoom-in-95 duration-100">
           <div className="p-3.5 bg-moss text-[#FAF8F5] flex items-center justify-between shadow-2xs border-b border-white/10">
             <div className="flex items-center gap-2">
               <Bell size={16} className="text-[#DDE6DF]" />
-              <span className="text-xs font-bold tracking-wide text-[#FAF8F5]">Notifications</span>
+              <span className="text-xs font-bold tracking-wide text-[#FAF8F5]">{t('nav.notifications')}</span>
               {unreadNotificationsCount > 0 && (
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#DDE6DF] text-soot shadow-2xs">
-                  {unreadNotificationsCount} unread
+                  {t('nav.unread', { count: unreadNotificationsCount })}
                 </span>
               )}
             </div>
@@ -108,10 +113,10 @@ export function NotificationButton() {
                   type="button"
                   onClick={markAllNotificationsRead}
                   className="px-2.5 py-1 rounded-lg bg-white/15 hover:bg-white/25 text-[#FAF8F5] transition-colors cursor-pointer flex items-center gap-1.5 text-[11px] font-medium border border-white/20"
-                  title="Mark all as read"
+                  title={t('nav.markAllReadTitle')}
                 >
                   <CheckCheck size={13} className="text-[#DDE6DF]" />
-                  <span>Mark all read</span>
+                  <span>{t('nav.markAllRead')}</span>
                 </button>
               )}
             </div>
@@ -121,7 +126,7 @@ export function NotificationButton() {
             {notifications.length === 0 ? (
               <div className="p-6 text-center text-moss">
                 <Bell size={24} className="mx-auto opacity-40 mb-2 text-moss" />
-                <p className="text-xs font-medium">No notifications yet.</p>
+                <p className="text-xs font-medium">{t('nav.noNotifications')}</p>
               </div>
             ) : (
               notifications.slice(0, 5).map((n) => (
@@ -144,11 +149,11 @@ export function NotificationButton() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
                       <p className={`text-xs ${n.read ? 'font-medium text-soot' : 'font-bold text-soot'} truncate`}>
-                        {n.title}
+                        {translateMessage(n.title)}
                       </p>
                       <span className="text-[10px] text-moss/80 shrink-0 font-medium">{n.createdAt}</span>
                     </div>
-                    <p className="text-xs text-moss line-clamp-2 mt-0.5 leading-snug">{n.message}</p>
+                    <p className="text-xs text-moss line-clamp-2 mt-0.5 leading-snug">{translateMessage(n.message)}</p>
                   </div>
                 </div>
               ))
@@ -164,7 +169,7 @@ export function NotificationButton() {
               }}
               className="text-xs font-semibold text-soot hover:text-eucalyptus flex items-center justify-center gap-1 w-full py-1 cursor-pointer transition-colors"
             >
-              <span>View all notifications</span>
+              <span>{t('nav.viewAllNotifications')}</span>
               <ChevronRight size={13} className="text-moss" />
             </button>
           </div>
@@ -175,6 +180,7 @@ export function NotificationButton() {
 }
 
 export function CartButton({ className = '' }: { className?: string }) {
+  const { t } = useI18n();
   const { cart, openCart, currentUser } = useApp();
   if (!currentUser) return null;
 
@@ -186,13 +192,13 @@ export function CartButton({ className = '' }: { className?: string }) {
     <button
       type="button"
       onClick={openCart}
-      aria-label={`Shopping Cart (${itemCount} reservation${itemCount !== 1 ? 's' : ''})`}
+      aria-label={t('nav.cartAria', { count: itemCount })}
       className={`relative p-2 sm:p-2.5 rounded-2xl text-moss hover:text-soot hover:bg-soot/5 transition-colors cursor-pointer shrink-0 flex items-center justify-center ${className}`}
-      title={itemCount > 0 ? `Shopping Cart (${itemCount} item${itemCount !== 1 ? 's' : ''})` : 'Shopping Cart (Empty)'}
+      title={itemCount > 0 ? t('nav.cartItems', { count: itemCount }) : t('nav.cartEmpty')}
     >
       <ShoppingBag size={19} />
       {itemCount > 0 && (
-        <span className="absolute top-1 right-1 min-w-4 h-4 px-1 rounded-full bg-soot text-plaster text-[9px] leading-4 text-center font-bold shadow-2xs flex items-center justify-center">
+        <span className="absolute top-1 end-1 min-w-4 h-4 px-1 rounded-full bg-soot text-plaster text-[9px] leading-4 text-center font-bold shadow-2xs flex items-center justify-center">
           {itemCount > 9 ? '9+' : itemCount}
         </span>
       )}
@@ -201,6 +207,7 @@ export function CartButton({ className = '' }: { className?: string }) {
 }
 
 export default function Navbar() {
+  const { t } = useI18n();
   const { navigate, nav, currentUser, logout, companyWalletBalance } = useApp();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -224,10 +231,10 @@ export default function Navbar() {
   const getNavLinks = () => {
     if (!currentUser) {
       return [
-        { label: 'Home', screen: 'landing' as const },
-        { label: 'Browse Spaces', screen: 'browse' as const },
-        { label: 'Pricing & Plans', screen: 'pricing' as const },
-        { label: 'Contact Us', screen: 'contact' as const },
+        { label: t('nav.home'), screen: 'landing' as const },
+        { label: t('nav.browseSpaces'), screen: 'browse' as const },
+        { label: t('nav.pricingPlans'), screen: 'pricing' as const },
+        { label: t('nav.contactUs'), screen: 'contact' as const },
       ];
     }
 
@@ -235,42 +242,42 @@ export default function Navbar() {
 
     if (role === 'organization') {
       return [
-        { label: 'Dashboard', screen: 'org-dashboard' as const },
-        { label: 'Workspaces', screen: 'company-workspaces' as const },
-        { label: 'Browse', screen: 'browse' as const },
-        { label: 'Passes', screen: 'pricing' as const },
-        { label: 'Bookings', screen: 'team-bookings' as const },
-        { label: 'Waitlist', screen: 'waitlist' as const },
-        { label: 'Team', screen: 'company-team' as const },
+        { label: t('nav.dashboard'), screen: 'org-dashboard' as const },
+        { label: t('nav.workspaces'), screen: 'company-workspaces' as const },
+        { label: t('nav.browse'), screen: 'browse' as const },
+        { label: t('nav.passes'), screen: 'pricing' as const },
+        { label: t('nav.bookings'), screen: 'team-bookings' as const },
+        { label: t('nav.waitlist'), screen: 'waitlist' as const },
+        { label: t('nav.team'), screen: 'company-team' as const },
       ];
     }
 
     if (role === 'provider') {
       return [
-        { label: 'Dashboard', screen: 'provider-dashboard' as const },
-        { label: 'My Spaces', screen: 'provider-spaces' as const },
-        { label: 'Bookings', screen: 'provider-bookings' as const },
-        { label: 'Loyalty Proposals', screen: 'provider-loyalty-proposals' as const },
+        { label: t('nav.dashboard'), screen: 'provider-dashboard' as const },
+        { label: t('nav.mySpaces'), screen: 'provider-spaces' as const },
+        { label: t('nav.bookings'), screen: 'provider-bookings' as const },
+        { label: t('nav.loyaltyProposals'), screen: 'provider-loyalty-proposals' as const },
       ];
     }
 
     if (role === 'admin') {
       return [
-        { label: 'Dashboard', screen: 'admin-dashboard' as const },
-        { label: 'Spaces', screen: 'admin-spaces' as const },
-        { label: 'Users', screen: 'admin-users' as const },
-        { label: 'Bookings', screen: 'admin-bookings' as const },
-        { label: 'Loyalty Proposals', screen: 'admin-loyalty-proposals' as const },
-        { label: 'Reports', screen: 'admin-reports' as const },
+        { label: t('nav.dashboard'), screen: 'admin-dashboard' as const },
+        { label: t('nav.spaces'), screen: 'admin-spaces' as const },
+        { label: t('nav.users'), screen: 'admin-users' as const },
+        { label: t('nav.bookings'), screen: 'admin-bookings' as const },
+        { label: t('nav.loyaltyProposals'), screen: 'admin-loyalty-proposals' as const },
+        { label: t('nav.reports'), screen: 'admin-reports' as const },
       ];
     }
 
     return [
-      { label: 'Dashboard', screen: 'ind-dashboard' as const },
-      { label: 'Browse', screen: 'browse' as const },
-      { label: 'Passes', screen: 'pricing' as const },
-      { label: 'Bookings', screen: 'my-bookings' as const },
-      { label: 'Waitlist', screen: 'waitlist' as const },
+      { label: t('nav.dashboard'), screen: 'ind-dashboard' as const },
+      { label: t('nav.browse'), screen: 'browse' as const },
+      { label: t('nav.passes'), screen: 'pricing' as const },
+      { label: t('nav.bookings'), screen: 'my-bookings' as const },
+      { label: t('nav.waitlist'), screen: 'waitlist' as const },
     ];
   };
 
@@ -288,10 +295,10 @@ export default function Navbar() {
 
   const getRoleLabel = () => {
     if (!currentUser) return '';
-    if (currentUser.role === 'admin') return 'Admin Portal';
-    if (currentUser.role === 'organization') return 'HR Admin (B2B)';
-    if (currentUser.role === 'provider') return 'Space Partner';
-    return 'Individual Member';
+    if (currentUser.role === 'admin') return t('nav.roleAdmin');
+    if (currentUser.role === 'organization') return t('nav.roleOrg');
+    if (currentUser.role === 'provider') return t('nav.roleProvider');
+    return t('nav.roleIndividual');
   };
 
   const isConsumerOrOrg = currentUser && currentUser.role !== 'admin' && currentUser.role !== 'provider';
@@ -305,12 +312,12 @@ export default function Navbar() {
             type="button"
             onClick={() => navigate('landing')}
             className="flex items-center gap-2 group focus:outline-none focus-visible:ring-2 focus-visible:ring-soot/30 rounded-xl p-1 transition-all shrink-0 cursor-pointer"
-            title="Go to Home"
-            aria-label="Coworking Pass Home"
+            title={t('nav.goHome')}
+            aria-label={t('nav.homeAria')}
           >
             <Logo className="h-8 sm:h-9 xl:h-10 w-auto shrink-0" />
             <span className="font-serif-display font-normal text-soot text-lg sm:text-xl xl:text-2xl tracking-tight group-hover:text-soot-light transition-colors hidden sm:block whitespace-nowrap">
-              Coworking Pass
+              {t('common.appName')}
             </span>
           </button>
 
@@ -335,7 +342,9 @@ export default function Navbar() {
         </div>
 
         {/* Right Section: Header Actions */}
-        <div className="hidden lg:flex items-center gap-1.5 xl:gap-2 shrink-0 ml-2">
+        <div className="hidden lg:flex items-center gap-1.5 xl:gap-2 shrink-0 ms-2">
+          <LanguageSwitcher />
+
           {currentUser && <CartButton />}
 
           {isConsumerOrOrg && (
@@ -351,15 +360,15 @@ export default function Navbar() {
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="flex items-center gap-1.5 xl:gap-2 p-1 xl:p-1.5 pr-2 xl:pr-3 rounded-2xl border border-soot/12 bg-plaster-dark/30 hover:bg-plaster-dark/60 transition-all duration-200 cursor-pointer active:scale-98 focus:outline-none focus:ring-2 focus:ring-soot/20"
-                aria-label="User profile menu"
+                className="flex items-center gap-1.5 xl:gap-2 p-1 xl:p-1.5 pe-2 xl:pe-3 rounded-2xl border border-soot/12 bg-plaster-dark/30 hover:bg-plaster-dark/60 transition-all duration-200 cursor-pointer active:scale-98 focus:outline-none focus:ring-2 focus:ring-soot/20"
+                aria-label={t('nav.profileMenu')}
               >
                 <img
                   src={currentUser.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=faces'}
                   alt={currentUser.name}
                   className="w-8 h-8 xl:w-9 xl:h-9 rounded-xl object-cover border border-soot/10 shadow-xs shrink-0"
                 />
-                <div className="text-left hidden 2xl:block max-w-[110px] 2xl:max-w-[140px]">
+                <div className="text-start hidden 2xl:block max-w-[110px] 2xl:max-w-[140px]">
                   <div className="text-xs font-semibold text-soot leading-tight truncate">{currentUser.name}</div>
                   <div className="text-[10px] text-moss font-medium truncate">{getRoleLabel()}</div>
                 </div>
@@ -367,7 +376,7 @@ export default function Navbar() {
               </button>
 
               <div
-                className={`absolute right-0 mt-2 w-64 bg-plaster-surface rounded-3xl border border-soot/12 shadow-2xl p-2 z-[60] animate-in fade-in zoom-in-95 duration-150 ${
+                className={`absolute end-0 mt-2 w-64 bg-plaster-surface rounded-3xl border border-soot/12 shadow-2xl p-2 z-[60] animate-in fade-in zoom-in-95 duration-150 ${
                   dropdownOpen ? 'block' : 'hidden'
                 }`}
               >
@@ -387,10 +396,10 @@ export default function Navbar() {
                       navigate(profileScreen);
                       setDropdownOpen(false);
                     }}
-                    className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold text-soot hover:bg-plaster-dark/50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                    className="w-full text-start px-3.5 py-2.5 rounded-xl text-xs font-semibold text-soot hover:bg-plaster-dark/50 flex items-center gap-2.5 transition-colors cursor-pointer"
                   >
                     <UserIcon size={15} className="text-moss" />
-                    <span>My Profile & Account</span>
+                    <span>{t('nav.myProfileAccount')}</span>
                   </button>
 
                   {isConsumerOrOrg && (
@@ -399,10 +408,10 @@ export default function Navbar() {
                         navigate('waitlist');
                         setDropdownOpen(false);
                       }}
-                      className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold text-soot hover:bg-plaster-dark/50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                      className="w-full text-start px-3.5 py-2.5 rounded-xl text-xs font-semibold text-soot hover:bg-plaster-dark/50 flex items-center gap-2.5 transition-colors cursor-pointer"
                     >
                       <Clock size={15} className="text-moss" />
-                      <span>Priority Waitlist</span>
+                      <span>{t('nav.priorityWaitlist')}</span>
                     </button>
                   )}
 
@@ -411,10 +420,10 @@ export default function Navbar() {
                       navigate(currentUser.role === 'admin' ? 'admin-support' : 'contact');
                       setDropdownOpen(false);
                     }}
-                    className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold text-soot hover:bg-plaster-dark/50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                    className="w-full text-start px-3.5 py-2.5 rounded-xl text-xs font-semibold text-soot hover:bg-plaster-dark/50 flex items-center gap-2.5 transition-colors cursor-pointer"
                   >
                     <HelpCircle size={15} className="text-moss" />
-                    <span>Help & Support Desk</span>
+                    <span>{t('nav.helpSupport')}</span>
                   </button>
 
                   <div className="pt-1 mt-1 border-t border-soot/8">
@@ -423,10 +432,10 @@ export default function Navbar() {
                         logout();
                         setDropdownOpen(false);
                       }}
-                      className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold text-red-600 hover:bg-red-50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                      className="w-full text-start px-3.5 py-2.5 rounded-xl text-xs font-semibold text-red-600 hover:bg-red-50 flex items-center gap-2.5 transition-colors cursor-pointer"
                     >
                       <LogOut size={15} />
-                      <span>Sign Out</span>
+                      <span>{t('nav.signOut')}</span>
                     </button>
                   </div>
                 </div>
@@ -438,13 +447,13 @@ export default function Navbar() {
                 onClick={() => navigate('login')}
                 className="px-3.5 xl:px-5 py-1.5 xl:py-2.5 rounded-full text-xs xl:text-sm font-medium text-soot hover:bg-soot/5 active:scale-98 transition-all duration-200 cursor-pointer whitespace-nowrap"
               >
-                Log in
+                {t('nav.logIn')}
               </button>
               <button
                 onClick={() => navigate('signup')}
                 className="px-4 xl:px-6 py-1.5 xl:py-2.5 rounded-full text-xs xl:text-sm font-medium bg-[#DDE6DF] text-soot hover:bg-[#D0DDD3] border border-soot/8 shadow-xs active:scale-98 transition-all duration-200 cursor-pointer whitespace-nowrap"
               >
-                Sign up
+                {t('nav.signUp')}
               </button>
             </>
           )}
@@ -452,6 +461,7 @@ export default function Navbar() {
 
         {/* Mobile Header Buttons */}
         <div className="flex lg:hidden items-center gap-1 sm:gap-2 shrink-0">
+          <LanguageSwitcher />
           {currentUser && <CartButton />}
 
           {isConsumerOrOrg && (
@@ -470,7 +480,7 @@ export default function Navbar() {
           <button
             className="p-2 rounded-xl text-soot hover:bg-plaster-dark/50 active:scale-95 transition-all focus:outline-none cursor-pointer shrink-0"
             onClick={() => setMobileOpen(!mobileOpen)}
-            aria-label="Toggle Navigation Menu"
+            aria-label={t('nav.toggleMenu')}
           >
             {mobileOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
@@ -507,7 +517,7 @@ export default function Navbar() {
                     navigate(l.screen);
                     setMobileOpen(false);
                   }}
-                  className={`w-full text-left px-4 py-3 rounded-xl text-base font-medium transition-all duration-150 cursor-pointer ${
+                  className={`w-full text-start px-4 py-3 rounded-xl text-base font-medium transition-all duration-150 cursor-pointer ${
                     isActive
                       ? 'bg-soot text-plaster font-semibold'
                       : 'text-moss hover:text-soot hover:bg-plaster-dark/40'
@@ -524,13 +534,13 @@ export default function Navbar() {
                   navigate(profileScreen);
                   setMobileOpen(false);
                 }}
-                className={`w-full text-left px-4 py-3 rounded-xl text-base font-medium transition-all duration-150 cursor-pointer flex items-center justify-between ${
+                className={`w-full text-start px-4 py-3 rounded-xl text-base font-medium transition-all duration-150 cursor-pointer flex items-center justify-between ${
                   nav.screen === profileScreen
                     ? 'bg-soot text-plaster font-semibold'
                     : 'text-moss hover:text-soot hover:bg-plaster-dark/40'
                 }`}
               >
-                <span>My Profile & Settings</span>
+                <span>{t('nav.myProfileSettings')}</span>
                 <UserIcon size={18} />
               </button>
             )}
@@ -546,7 +556,7 @@ export default function Navbar() {
                 className="w-full px-4 py-3 rounded-xl text-base font-semibold bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 <LogOut size={18} />
-                <span>Sign Out</span>
+                <span>{t('nav.signOut')}</span>
               </button>
             ) : (
               <>
@@ -557,7 +567,7 @@ export default function Navbar() {
                   }}
                   className="w-full px-4 py-3 rounded-xl text-base font-medium border border-soot/15 text-soot hover:bg-plaster-dark/40 active:scale-98 transition-all cursor-pointer"
                 >
-                  Log in
+                  {t('nav.logIn')}
                 </button>
                 <button
                   onClick={() => {
@@ -566,7 +576,7 @@ export default function Navbar() {
                   }}
                   className="w-full px-4 py-3 rounded-xl text-base font-semibold bg-soot text-plaster hover:bg-moss active:scale-98 transition-all cursor-pointer"
                 >
-                  Sign up
+                  {t('nav.signUp')}
                 </button>
               </>
             )}

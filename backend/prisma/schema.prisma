@@ -215,7 +215,13 @@ model Workspace {
   id             String  @id @default(uuid())
   partnerId      String
   name           String
+  nameAr         String?
+  description    String?
+  descriptionAr  String?
+  address        String?
+  addressAr      String?
   city           String
+  cityAr         String?
   locationMapUrl String?
   dailyRate      Float?
   monthlyRate    Float?

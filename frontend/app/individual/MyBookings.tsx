@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/i18n';
 import React, { useState, useEffect } from 'react';
 import {
   MapPin,
@@ -22,6 +23,7 @@ import {
   QrCode,
 } from 'lucide-react';
 import { useApp } from '@/app/store';
+import { useSpaceText } from '@/i18n/space-text';
 import { Booking, BookingStatus, getHourlyPriceForDuration, getBookingPrice, isCancellationRefundEligible, calculateDailyDurationDays } from '@/types/types';
 import Modal from '@/components/ui/Modal';
 import BookingQrModal from '@/components/BookingQrModal';
@@ -30,6 +32,8 @@ import { deleteDirectBookingApi, getHourlyBookingsApi, updateHourlyBookingApi, H
 const FALLBACK_SPACE_IMAGE = 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80';
 
 export default function MyBookings() {
+  const { t, formatDate, localizeTime } = useI18n();
+  const st = useSpaceText();
   const { bookings, spaces, currentUser, navigate, cancelBooking, nav, showToast, fetchDirectBookings } = useApp();
   const [bookingCategory, setBookingCategory] = useState<'direct' | 'hourly'>('direct');
   const [hourlyBookings, setHourlyBookings] = useState<HourlyBookingItemApi[]>([]);
@@ -106,12 +110,12 @@ export default function MyBookings() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-wrap">
         <div>
           <span className="text-xs font-semibold tracking-wider uppercase text-moss block mb-1">
-            Personal Reservations & Pass Activity
+            {t('myBookings.eyebrow')}
           </span>
           <h1 className="text-3xl sm:text-4xl text-soot font-normal font-serif-display">
-            My Bookings
+            {t('myBookings.title')}
           </h1>
-          <p className="text-moss text-sm mt-1">Manage and view your active and past workspace reservations.</p>
+          <p className="text-moss text-sm mt-1">{t('myBookings.subtitle')}</p>
         </div>
 
         {/* Category Switcher */}
@@ -139,7 +143,7 @@ export default function MyBookings() {
             }`}
           >
             <Clock size={15} />
-            <span>Hourly Bookings</span>
+            <span>{t('myBookings.hourlyBookings')}</span>
           </button>
         </div>
       </div>
@@ -148,7 +152,7 @@ export default function MyBookings() {
         <div className="space-y-6">
           <div className="bg-white rounded-3xl p-6 border border-soot/10 shadow-xs flex items-center justify-between">
             <div>
-              <h3 className="text-xl font-normal font-serif-display text-soot">Hourly Package Reservations</h3>
+              <h3 className="text-xl font-normal font-serif-display text-soot">{t('myBookings.hourlyPackages')}</h3>
               <p className="text-xs text-moss mt-0.5">Your hourly meeting room &amp; desk packages booked across Saudi Arabia.</p>
             </div>
             <button
@@ -168,11 +172,11 @@ export default function MyBookings() {
 
           {loadingHourly ? (
             <div className="text-center py-12 bg-white rounded-3xl border border-soot/8 text-moss text-xs">
-              Loading hourly bookings...
+              {t('myBookings.loadingHourly')}
             </div>
           ) : hourlyBookings.length === 0 ? (
             <div className="text-center py-12 bg-white rounded-3xl border border-soot/8 text-moss text-xs">
-              No hourly bookings found.
+              {t('myBookings.noHourly')}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -180,16 +184,16 @@ export default function MyBookings() {
                 <div key={hb.id} className="bg-white rounded-3xl p-6 border border-soot/10 shadow-xs space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full uppercase tracking-wider">
-                      {hb.status}
+                      {t(('booking.status.' + String(hb.status).toLowerCase()) as never) === ('booking.status.' + String(hb.status).toLowerCase()) ? hb.status : t(('booking.status.' + String(hb.status).toLowerCase()) as never)}
                     </span>
                     <span className="text-xs font-mono text-moss">{hb.id.slice(0, 10)}...</span>
                   </div>
                   <h4 className="text-base font-semibold text-soot font-serif-display">
-                    {hb.package?.packageName || hb.section?.name || 'Hourly Package'}
+                    {hb.package?.packageName || hb.section?.name || t('myBookings.hourlyPackageFallback')}
                   </h4>
                   <div className="text-xs text-moss space-y-1 pt-2 border-t border-soot/6">
-                    <div>Start Date: <span className="font-medium text-soot">{hb.startDate ? new Date(hb.startDate).toLocaleDateString() : 'N/A'}</span></div>
-                    <div>End Date: <span className="font-medium text-soot">{hb.endDate ? new Date(hb.endDate).toLocaleDateString() : 'N/A'}</span></div>
+                    <div>{t('myBookings.startDate')} <span className="font-medium text-soot">{hb.startDate ? formatDate(hb.startDate) : t('myBookings.na')}</span></div>
+                    <div>{t('myBookings.endDate')} <span className="font-medium text-soot">{hb.endDate ? formatDate(hb.endDate) : t('myBookings.na')}</span></div>
                   </div>
                   <div className="flex items-center gap-2 pt-1">
                     <button
@@ -222,7 +226,7 @@ export default function MyBookings() {
                       className="flex-1 py-2 px-3 rounded-xl bg-soot text-plaster text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-black transition-colors cursor-pointer"
                     >
                       <QrCode size={14} />
-                      <span>View QR Pass</span>
+                      <span>{t('myBookings.viewQr')}</span>
                     </button>
 
                     {hb.status !== 'CANCELLED' && (
@@ -230,12 +234,12 @@ export default function MyBookings() {
                         type="button"
                         onClick={async () => {
                           await updateHourlyBookingApi(hb.id, { status: 'CANCELLED' });
-                          showToast('Hourly booking cancelled successfully', 'info');
+                          showToast(t('myBookings.hourlyCancelled'), 'info');
                           setHourlyBookings(prev => prev.map(b => b.id === hb.id ? { ...b, status: 'CANCELLED' } : b));
                         }}
                         className="py-2 px-3 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 text-xs font-semibold hover:bg-rose-100 transition-colors cursor-pointer"
                       >
-                        Cancel
+                        {t('common.cancel')}
                       </button>
                     )}
                   </div>
@@ -251,29 +255,29 @@ export default function MyBookings() {
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         {[
           {
-            label: 'Active Bookings',
+            label: t('dash.activeBookings'),
             count: activeCount,
             badge: 'bg-emerald-500/15 text-emerald-800 border border-emerald-500/30',
             icon: CalendarDays,
             iconBg: 'bg-emerald-500/15 text-emerald-800 border-emerald-500/30',
           },
           {
-            label: 'Previous Visits',
+            label: t('myBookings.stat.previous'),
             count: previousCount,
             badge: 'bg-soot/10 text-soot border border-soot/15',
             icon: Clock,
             iconBg: 'bg-soot text-plaster border-soot/20',
           },
           {
-            label: 'Cancelled',
+            label: t('myBookings.tab.cancelled'),
             count: cancelledCount,
             badge: 'bg-red-500/15 text-red-700 border border-red-500/30',
             icon: Ban,
             iconBg: 'bg-red-500/15 text-red-700 border-red-500/30',
           },
           {
-            label: 'Total Spend',
-            count: `SAR ${totalSpend.toLocaleString()}`,
+            label: t('myBookings.stat.totalSpend'),
+            count: `${t('common.sar')} ${totalSpend.toLocaleString()}`,
             badge: 'bg-blue-500/15 text-blue-800 border border-blue-500/30',
             icon: DollarSign,
             iconBg: 'bg-blue-500/15 text-blue-800 border-blue-500/30',
@@ -299,22 +303,22 @@ export default function MyBookings() {
       {/* Admin-Matching Search & Tab Bar */}
       <div className="flex flex-col sm:flex-row gap-3 bg-plaster-surface p-3 rounded-2xl border border-soot/10 shadow-2xs items-center justify-between">
         <div className="relative flex-1 w-full">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-moss" />
+          <Search size={16} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-moss" />
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by workspace name or city..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-soot/12 bg-plaster-dark/30 text-soot text-sm placeholder:text-moss/70 outline-none focus:border-eucalyptus focus:bg-plaster-surface transition-all"
+            placeholder={t('myBookings.searchPlaceholder')}
+            className="w-full ps-10 pe-4 py-2.5 rounded-xl border border-soot/12 bg-plaster-dark/30 text-soot text-sm placeholder:text-moss/70 outline-none focus:border-eucalyptus focus:bg-plaster-surface transition-all"
           />
         </div>
 
         {/* Tab Buttons */}
         <div className="flex items-center gap-1 bg-plaster-dark/30 p-1 rounded-xl border border-soot/10 shrink-0 w-full sm:w-auto overflow-x-auto">
           {[
-            { id: 'active', label: 'Active', count: activeCount },
-            { id: 'previous', label: 'Previous', count: previousCount },
-            { id: 'cancelled', label: 'Cancelled', count: cancelledCount },
+            { id: 'active', label: t('myBookings.tab.active'), count: activeCount },
+            { id: 'previous', label: t('myBookings.tab.previous'), count: previousCount },
+            { id: 'cancelled', label: t('myBookings.tab.cancelled'), count: cancelledCount },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -339,17 +343,17 @@ export default function MyBookings() {
       {/* Admin-Matching 12-Column Table Layout */}
       <div className="bg-plaster-surface rounded-3xl border border-soot/10 overflow-hidden shadow-2xs relative z-10">
         <div className="hidden lg:grid grid-cols-12 gap-6 px-6 py-4 border-b border-soot/10 text-xs font-semibold uppercase tracking-wider text-moss bg-plaster-dark/40 items-center">
-          <div className="col-span-5">Workspace & Location</div>
-          <div className="col-span-3">Booking Period</div>
-          <div className="col-span-2">Plan & Seats</div>
-          <div className="col-span-1">Amount</div>
-          <div className="col-span-1 text-right">Actions</div>
+          <div className="col-span-5">{t('myBookings.colWorkspace')}</div>
+          <div className="col-span-3">{t('myBookings.colPeriod')}</div>
+          <div className="col-span-2">{t('myBookings.colPlan')}</div>
+          <div className="col-span-1">{t('myBookings.colAmount')}</div>
+          <div className="col-span-1 text-end">{t('mySpaces.colActions')}</div>
         </div>
 
         {filtered.length === 0 ? (
           <div className="py-16 text-center text-moss">
             <CalendarDays size={32} className="mx-auto mb-3 opacity-50" />
-            <p className="text-sm">No reservations found in this section.</p>
+            <p className="text-sm">{t('myBookings.noneHere')}</p>
           </div>
         ) : (
           <div className="divide-y divide-soot/8">
@@ -368,11 +372,11 @@ export default function MyBookings() {
                   />
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-semibold text-soot group-hover:text-emerald-900 transition-colors truncate">
-                      {b.spaceName}
+                      {st.bookingName(b)}
                     </div>
                     <div className="flex items-center gap-1.5 text-xs text-moss mt-0.5 font-medium">
                       <MapPin size={12} className="text-moss shrink-0" />
-                      <span className="truncate">{b.spaceCity}</span>
+                      <span className="truncate">{st.bookingCity(b)}</span>
                     </div>
                   </div>
                 </div>
@@ -384,26 +388,26 @@ export default function MyBookings() {
                     <span>{b.startDate}</span>
                   </div>
                   {b.startDate !== b.endDate && (
-                    <div className="text-moss text-[11px] mt-0.5 pl-4">to {b.endDate}</div>
+                    <div className="text-moss text-[11px] mt-0.5 ps-4">{t('myBookings.periodTo', { date: b.endDate })}</div>
                   )}
                 </div>
 
                 {/* Plan & Seats */}
                 <div className="col-span-2 mt-2 lg:mt-0 text-xs font-semibold text-soot capitalize">
                   {b.plan === 'hourly'
-                    ? `Hourly (${b.durationHours || 1} ${b.durationHours === 1 ? 'hr' : 'hrs'})`
+                    ? t(b.durationHours === 1 ? 'booking.hourlyHrs' : 'booking.hourlyHrsMany', { count: b.durationHours || 1 })
                     : b.plan === 'daily'
-                    ? `Daily Pass (${b.durationDays || (b.startDate && b.endDate ? calculateDailyDurationDays(b.startDate, b.endDate) : 1)} ${(b.durationDays || 1) === 1 ? 'day' : 'days'})`
+                    ? t((b.durationDays || 1) === 1 ? 'myBookings.dailyPassDays' : 'myBookings.dailyPassDaysMany', { count: b.durationDays || (b.startDate && b.endDate ? calculateDailyDurationDays(b.startDate, b.endDate) : 1) })
                     : b.plan === 'monthly'
-                    ? `${b.durationMonths || 1}mo Monthly`
-                    : `${b.plan} pass`}
+                    ? t('myBookings.monthlyMo', { count: b.durationMonths || 1 })
+                    : t(('booking.planPass.' + b.plan) as never)}
                   {(b.startTime || b.endTime) && (
                     <span className="block text-[10px] font-medium text-emerald-800 normal-case">
-                      {b.startTime} – {b.endTime}
+                      {localizeTime(b.startTime)} – {localizeTime(b.endTime)}
                     </span>
                   )}
                   <span className="block text-[11px] font-normal text-moss">
-                    {b.seats} seat{b.seats > 1 ? 's' : ''}
+                    {t(b.seats > 1 ? 'booking.seatMany' : 'booking.seatOne', { count: b.seats })}
                   </span>
                 </div>
 
@@ -419,9 +423,9 @@ export default function MyBookings() {
                         <div className="inline-flex flex-col items-start gap-0.5">
                           <span className="text-xs font-bold text-emerald-900 bg-emerald-100 px-2.5 py-1 rounded-full border border-emerald-300 inline-flex items-center gap-1 shadow-2xs whitespace-nowrap">
                             <Clock size={11} className="text-emerald-700 shrink-0" />
-                            <span>{isHourly ? `${b.durationHours || 1} ${(b.durationHours || 1) === 1 ? 'Hour' : 'Hours'}` : 'Included'}</span>
+                            <span>{isHourly ? t((b.durationHours || 1) === 1 ? 'myBookings.hoursCovered' : 'myBookings.hoursCoveredMany', { count: b.durationHours || 1 }) : t('booking.included')}</span>
                           </span>
-                          <span className="text-[10px] text-emerald-800 font-semibold pl-1">Covered by Pass</span>
+                          <span className="text-[10px] text-emerald-800 font-semibold ps-1">{t('myBookings.coveredByPass')}</span>
                         </div>
                       );
                     }
@@ -429,13 +433,13 @@ export default function MyBookings() {
                     if (b.coveredHours && b.coveredHours > 0) {
                       return (
                         <div>
-                          <div className="font-semibold text-soot text-xs">SAR {price.toLocaleString()}</div>
-                          <div className="text-[10px] text-emerald-800 font-semibold">{b.coveredHours}h Pass Quota</div>
+                          <div className="font-semibold text-soot text-xs">{t('common.sar')} {price.toLocaleString()}</div>
+                          <div className="text-[10px] text-emerald-800 font-semibold">{t('myBookings.passQuota', { count: b.coveredHours })}</div>
                         </div>
                       );
                     }
 
-                    return `SAR ${price.toLocaleString()}`;
+                    return `${t('common.sar')} ${price.toLocaleString()}`;
                   })()}
                 </div>
 
@@ -448,7 +452,7 @@ export default function MyBookings() {
                       setSelectedBooking(b);
                     }}
                     className="p-2 rounded-xl text-moss hover:text-soot hover:bg-plaster-surface border border-transparent hover:border-soot/10 transition-all cursor-pointer"
-                    title="View Details"
+                    title={t('myBookings.viewDetails')}
                   >
                     <Eye size={15} />
                   </button>
@@ -464,8 +468,8 @@ export default function MyBookings() {
                         className="p-2 rounded-xl text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-all cursor-pointer"
                         title={
                           eligible
-                            ? 'Cancel Reservation (Eligible for Full Refund)'
-                            : `Cancel Reservation (Non-refundable: within ${requiredHours}h of start)`
+                            ? t('myBookings.cancelEligible')
+                            : t('myBookings.cancelNonRefundable', { hours: requiredHours })
                         }
                       >
                         <X size={15} />
@@ -500,22 +504,22 @@ export default function MyBookings() {
           <Modal
             open={!!cancelModal}
             onClose={() => setCancelModal(null)}
-            title="Cancel Reservation"
+            title={t('myBookings.cancelReservation')}
             size="sm"
             footer={
               <>
                 <button type="button" onClick={() => setCancelModal(null)} className="btn-secondary">
-                  Keep Booking
+                  {t('myBookings.keepBooking')}
                 </button>
                 <button type="button" onClick={handleCancelConfirm} className="btn-danger">
-                  Confirm Cancel
+                  {t('myBookings.confirmCancel')}
                 </button>
               </>
             }
           >
             <div className="text-sm text-soot space-y-3 py-2">
               <p>
-                Are you sure you want to cancel your reservation for <span className="font-semibold">{cancelModal.spaceName}</span>?
+                {t('myBookings.confirmQuestion')} <span className="font-semibold">{st.bookingName(cancelModal)}</span>?
               </p>
 
               {/* Legal Refund Status Banner */}
@@ -523,20 +527,20 @@ export default function MyBookings() {
                 <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs text-emerald-900 space-y-1">
                   <div className="font-semibold flex items-center gap-1.5 text-emerald-950">
                     <Check size={14} className="text-emerald-700" />
-                    <span>Eligible for Full Refund (SAR {bookingPrice.toLocaleString()})</span>
+                    <span>{t('myBookings.eligibleFull', { currency: t('common.sar'), amount: bookingPrice.toLocaleString() })}</span>
                   </div>
                   <p className="text-emerald-800 text-[11px]">
-                    Cancelled at least {requiredHours} hours before start time as per Legal Terms.
+                    {t('myBookings.eligibleBody', { hours: requiredHours })}
                   </p>
                 </div>
               ) : (
                 <div className="bg-rose-50 border border-rose-200 rounded-xl p-3 text-xs text-rose-900 space-y-1">
                   <div className="font-semibold flex items-center gap-1.5 text-rose-950">
                     <AlertCircle size={14} className="text-rose-700" />
-                    <span>Non-Refundable Cancellation</span>
+                    <span>{t('myBookings.nonRefundable')}</span>
                   </div>
                   <p className="text-rose-800 text-[11px]">
-                    Per Legal Terms (Section 5), cancellations within {requiredHours} hours of start time are non-refundable. Desk capacity will still be released.
+                    {t('myBookings.nonRefBody', { hours: requiredHours })}
                   </p>
                 </div>
               )}
@@ -544,12 +548,12 @@ export default function MyBookings() {
               {/* Refund Destination Selection if Eligible */}
               {eligible && (
                 <div className="space-y-2 pt-1 border-t border-soot/8">
-                  <label className="text-xs font-semibold text-soot block">Choose Refund Destination:</label>
+                  <label className="text-xs font-semibold text-soot block">{t('myBookings.refundDestination')}</label>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <button
                       type="button"
                       onClick={() => setRefundMethod('wallet')}
-                      className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
+                      className={`p-2.5 rounded-xl border text-start flex flex-col justify-between transition-all cursor-pointer ${
                         refundMethod === 'wallet'
                           ? 'border-emerald-600 bg-emerald-50/50 text-emerald-950 ring-1 ring-emerald-600'
                           : 'border-soot/12 bg-white text-soot hover:bg-plaster-dark/20'
@@ -557,15 +561,15 @@ export default function MyBookings() {
                     >
                       <span className="font-semibold text-[11px] flex items-center gap-1.5">
                         <Zap size={13} className="text-amber-600 shrink-0" />
-                        <span>Instant Wallet</span>
+                        <span>{t('myBookings.instantWallet')}</span>
                       </span>
-                      <span className="text-[10px] text-moss mt-1">Available immediately</span>
+                      <span className="text-[10px] text-moss mt-1">{t('myBookings.availableNow')}</span>
                     </button>
 
                     <button
                       type="button"
                       onClick={() => setRefundMethod('card')}
-                      className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
+                      className={`p-2.5 rounded-xl border text-start flex flex-col justify-between transition-all cursor-pointer ${
                         refundMethod === 'card'
                           ? 'border-emerald-600 bg-emerald-50/50 text-emerald-950 ring-1 ring-emerald-600'
                           : 'border-soot/12 bg-white text-soot hover:bg-plaster-dark/20'
@@ -573,9 +577,9 @@ export default function MyBookings() {
                     >
                       <span className="font-semibold text-[11px] flex items-center gap-1.5">
                         <CreditCard size={13} className="text-soot shrink-0" />
-                        <span>Original Card</span>
+                        <span>{t('myBookings.originalCard')}</span>
                       </span>
-                      <span className="text-[10px] text-moss mt-1">5-14 business days</span>
+                      <span className="text-[10px] text-moss mt-1">{t('myBookings.businessDays')}</span>
                     </button>
                   </div>
                 </div>

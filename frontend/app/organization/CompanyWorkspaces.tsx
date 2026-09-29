@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/i18n';
 import { useState, useRef, useEffect } from 'react';
 import {
   Search,
@@ -33,6 +34,7 @@ const SPACE_TYPES = [
 ];
 
 export default function CompanyWorkspaces() {
+  const { t } = useI18n();
   const { currentUser, spaces, navigate, toggleSpaceVisibility, deleteSpace, getSpaceCrowding } = useApp();
   const [query, setQuery] = useState('');
   const [filterCity, setFilterCity] = useState('All Cities');
@@ -196,13 +198,13 @@ export default function CompanyWorkspaces() {
       {/* Search & Filter Bar */}
       <div className="flex flex-col sm:flex-row gap-3 bg-plaster-surface p-3 rounded-2xl border border-soot/10 shadow-2xs relative z-30">
         <div className="relative flex-1">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-moss pointer-events-none" />
+          <Search size={16} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-moss pointer-events-none" />
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search by space name, city, or district..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-soot/12 bg-plaster-dark/30 text-soot text-sm placeholder:text-moss/70 outline-none focus:border-eucalyptus focus:bg-plaster-surface transition-all"
+            className="w-full ps-10 pe-4 py-2.5 rounded-xl border border-soot/12 bg-plaster-dark/30 text-soot text-sm placeholder:text-moss/70 outline-none focus:border-eucalyptus focus:bg-plaster-surface transition-all"
           />
         </div>
 
@@ -211,7 +213,7 @@ export default function CompanyWorkspaces() {
           <button
             type="button"
             onClick={() => setCityDropdownOpen(!cityDropdownOpen)}
-            className="w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/50 border border-soot/12 transition-all duration-200 text-left cursor-pointer focus:outline-none"
+            className="w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/50 border border-soot/12 transition-all duration-200 text-start cursor-pointer focus:outline-none"
           >
             <div className="flex items-center gap-2 min-w-0">
               <MapPin size={15} className="text-moss shrink-0" />
@@ -224,7 +226,7 @@ export default function CompanyWorkspaces() {
           </button>
 
           {cityDropdownOpen && (
-            <div className="absolute top-full left-0 right-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
+            <div className="absolute top-full start-0 end-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
               <div className="max-h-52 overflow-y-auto space-y-0.5" style={{ scrollbarWidth: 'thin' }}>
                 {CITIES.map((city) => {
                   const isSelected = filterCity === city;
@@ -236,7 +238,7 @@ export default function CompanyWorkspaces() {
                         setFilterCity(city);
                         setCityDropdownOpen(false);
                       }}
-                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors duration-150 text-left cursor-pointer ${
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors duration-150 text-start cursor-pointer ${
                         isSelected
                           ? 'bg-soot text-plaster font-semibold'
                           : 'text-soot hover:bg-plaster-dark/60'
@@ -257,7 +259,7 @@ export default function CompanyWorkspaces() {
           <button
             type="button"
             onClick={() => setTypeDropdownOpen(!typeDropdownOpen)}
-            className="w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/50 border border-soot/12 transition-all duration-200 text-left cursor-pointer focus:outline-none"
+            className="w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/50 border border-soot/12 transition-all duration-200 text-start cursor-pointer focus:outline-none"
           >
             <div className="flex items-center gap-2 min-w-0">
               <Building2 size={15} className="text-moss shrink-0" />
@@ -272,7 +274,7 @@ export default function CompanyWorkspaces() {
           </button>
 
           {typeDropdownOpen && (
-            <div className="absolute top-full left-0 right-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
+            <div className="absolute top-full start-0 end-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
               <div className="max-h-52 overflow-y-auto space-y-0.5" style={{ scrollbarWidth: 'thin' }}>
                 {SPACE_TYPES.map((typeObj) => {
                   const isSelected = filterType === typeObj.value;
@@ -284,7 +286,7 @@ export default function CompanyWorkspaces() {
                         setFilterType(typeObj.value);
                         setTypeDropdownOpen(false);
                       }}
-                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors duration-150 text-left cursor-pointer ${
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors duration-150 text-start cursor-pointer ${
                         isSelected
                           ? 'bg-soot text-plaster font-semibold'
                           : 'text-soot hover:bg-plaster-dark/60'
@@ -308,7 +310,7 @@ export default function CompanyWorkspaces() {
           <div className="col-span-2">City & District</div>
           <div className="col-span-2">Capacity & Status</div>
           <div className="col-span-2">Daily Rate</div>
-          <div className="col-span-1 text-right">Actions</div>
+          <div className="col-span-1 text-end">Actions</div>
         </div>
 
         {companySpaces.length === 0 ? (
@@ -428,8 +430,8 @@ export default function CompanyWorkspaces() {
 
                   {/* Daily Price */}
                   <div className="col-span-2 mt-3 md:mt-0 text-sm font-semibold text-soot">
-                    SAR {(space.pricing?.daily || 0).toLocaleString()}
-                    <span className="text-xs text-moss font-normal ml-1">/ day</span>
+                    {t('common.sar')} {(space.pricing?.daily || 0).toLocaleString()}
+                    <span className="text-xs text-moss font-normal ms-1">/ day</span>
                   </div>
 
                   {/* Actions */}

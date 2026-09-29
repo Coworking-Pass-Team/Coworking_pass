@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/i18n';
 import { useState, useRef, useEffect } from 'react';
 import {
   ArrowLeft,
@@ -19,6 +20,7 @@ import {
   Wallet
 } from 'lucide-react';
 import { useApp } from '@/app/store';
+import { useSpaceText } from '@/i18n/space-text';
 import { createPointsTransactionApi, getLoyaltyPointsApi } from '@/services/authApi';
 import {
   BookingPlan,
@@ -52,10 +54,12 @@ import {
   timeStringToMinutes
 } from '@/types/types';
 
-const STEPS = ['Type & Plan', 'Team', 'Schedule', 'Review'];
+const STEP_KEYS = ['tb.stepType', 'tb.stepTeam', 'tb.stepSchedule', 'tb.stepReview'] as const;
+const STEPS = STEP_KEYS;
 const DURATION_OPTIONS = [1, 2, 3, 4, 6, 8];
 
 export default function TeamBooking() {
+  const { t, localizeTime } = useI18n();
   const { nav, goBack, spaces, bookings, currentUser, addBooking, navigate, showToast, addToCart, updateCurrentUser, withdrawFromWallet, companyWalletBalance, fetchCompanyWallet, withdrawFromCompanyWallet, checkSeatAvailability } = useApp();
   const spaceId = nav.params?.spaceId;
   const space = spaces.find((s: Space) => s.id === spaceId);
@@ -157,7 +161,7 @@ export default function TeamBooking() {
 
   const handleEndDateChange = (newEnd: string) => {
     if (newEnd < startDate) {
-      showToast('End date cannot be earlier than start date.', 'error');
+      showToast(t('bf.errEndEarlier'), 'error');
       setDailyEndDate(startDate);
       return;
     }
@@ -242,9 +246,9 @@ export default function TeamBooking() {
   const totalPriceToPay = Math.max(0, finalPayablePrice - walletDeduction);
 
   const planLabel = isHourly
-    ? `for ${durationHours} hours`
+    ? t('bf.forHoursMany', { count: durationHours })
     : plan === 'monthly'
-    ? `for ${durationMonths} month${durationMonths > 1 ? 's' : ''}`
+    ? t(durationMonths > 1 ? 'bf.forMonthsMany' : 'bf.forMonths', { count: durationMonths })
     : plan === 'daily'
     ? '/day'
     : '/year';
@@ -276,32 +280,32 @@ export default function TeamBooking() {
   const validateStep = () => {
     if (step === 2) {
       if (!startDate) {
-        showToast('Please select a booking date.', 'error');
+        showToast(t('tb.bookingDateReq'), 'error');
         return false;
       }
       if (plan === 'daily') {
         if (!dailyEndDate) {
-          showToast('Please select an end date.', 'error');
+          showToast(t('tb.endDateReq'), 'error');
           return false;
         }
         if (dailyEndDate < startDate) {
-          showToast('End date must be the same day or later than start date.', 'error');
+          showToast(t('tb.endSameOrLater'), 'error');
           return false;
         }
       }
       if (isHourlySpace || isHourly) {
         if (!startTime || !endTime) {
-          showToast('Please select both a start time and an end time.', 'error');
+          showToast(t('bf.errTimes'), 'error');
           return false;
         }
         const hoursCheck = isTimeWithinOpenHours(startDate, startTime, endTime, space.openHours);
         if (!hoursCheck.valid) {
-          showToast(hoursCheck.reason || 'Requested time is outside space operating hours.', 'error');
+          showToast(hoursCheck.reason || t('bf.errOutsideHours'), 'error');
           return false;
         }
         const overlapCheck = checkSpaceOverlap(bookings, space.id, startDate, startTime, endTime, space.totalCapacity);
         if (!overlapCheck.available) {
-          showToast(`This space does not have enough capacity for ${seats} seats at ${startTime}.`, 'error');
+          showToast(t('tb.notEnoughCapacity', { seats, time: localizeTime(startTime) }), 'error');
           return false;
         }
       }
@@ -345,7 +349,7 @@ export default function TeamBooking() {
         seats,
       });
       if (!availability.ok) {
-        showToast(availability.message || 'This time is no longer available.', 'error');
+        showToast(availability.message || t('bf.errNoLongerAvailable'), 'error');
         submittingRef.current = false;
         setLoading(false);
         return;
@@ -428,7 +432,7 @@ export default function TeamBooking() {
       setStep(4);
       setLoading(false);
       showToast(
-        `Team workspace reserved! Earned ${earnedPoints} points${pointsUsed > 0 ? ` and redeemed ${pointsUsed} points` : ''}.`,
+        pointsUsed > 0 ? t('tb.reservedToastRedeemed', { earned: earnedPoints, redeemed: pointsUsed }) : t('tb.reservedToastPlain', { earned: earnedPoints }),
         'success'
       );
     }, 1000);
@@ -443,13 +447,13 @@ export default function TeamBooking() {
             <Check size={28} className="text-moss" />
           </div>
           <h1 className="text-2xl sm:text-3xl text-soot mb-2 font-normal" style={{ fontFamily: 'DM Serif Display, serif' }}>
-            Team booking confirmed!
+            {t('tb.confirmedTitle')}
           </h1>
           <p className="text-moss text-xs sm:text-sm mb-8 font-normal">
             Your workspace for {seats} team member{seats > 1 ? 's' : ''} is reserved.
           </p>
 
-          <div className="bg-white rounded-3xl border border-soot/8 p-6 text-left mb-6 shadow-sm">
+          <div className="bg-white rounded-3xl border border-soot/8 p-6 text-start mb-6 shadow-sm">
             <div className="flex items-start gap-3 mb-4 pb-4 border-b border-soot/8">
               <img src={space.images[0]} alt={space.name} className="w-14 h-14 rounded-2xl object-cover" />
               <div>
@@ -462,26 +466,26 @@ export default function TeamBooking() {
             </div>
             <div className="space-y-2.5 text-sm">
               <div className="flex justify-between">
-                <span className="text-moss text-xs">Type</span>
+                <span className="text-moss text-xs">{t('tb.type')}</span>
                 <span className="text-soot font-medium text-xs">{bookingType.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-moss text-xs">Plan</span>
+                <span className="text-moss text-xs">{t('tb.plan')}</span>
                 <span className="text-soot font-medium text-xs">
                   {isHourly
-                    ? `Hourly Reservation (${durationHours} ${durationHours === 1 ? 'hour' : 'hours'})`
+                    ? t(durationHours === 1 ? 'tb.hourlyReservationHeader' : 'tb.hourlyReservationHeaderMany', { count: durationHours })
                     : plan === 'daily'
-                    ? `Daily Pass (${durationDays} ${durationDays === 1 ? 'Day' : 'Days'})`
+                    ? t(durationDays === 1 ? 'bf.dailyPassTitle' : 'bf.dailyPassTitleMany', { count: durationDays })
                     : `${plan} pass`}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-moss text-xs">{isHourly ? 'Booking Date' : plan === 'daily' ? 'Date Range' : 'Start Date'}</span>
+                <span className="text-moss text-xs">{isHourly ? t('qr.bookingDate') : plan === 'daily' ? 'Date Range' : t('spaceDetails.startDate')}</span>
                 <span className="text-soot font-medium text-xs">{plan === 'daily' ? formatDateRange(startDate, endDate) : startDate}</span>
               </div>
               {plan === 'daily' && (
                 <div className="flex justify-between">
-                  <span className="text-moss text-xs">Duration</span>
+                  <span className="text-moss text-xs">{t('qr.duration')}</span>
                   <span className="text-soot font-medium text-xs">{durationDays} {durationDays === 1 ? 'day' : 'days'}</span>
                 </div>
               )}
@@ -492,20 +496,20 @@ export default function TeamBooking() {
                 </div>
               )}
               <div className="flex justify-between">
-                <span className="text-moss text-xs">Reserved Seats</span>
+                <span className="text-moss text-xs">{t('bf.reservedSeats')}</span>
                 <span className="text-soot font-medium text-xs">{seats} seats</span>
               </div>
 
               {/* تفاصيل نقاط الولاء في شاشة التأكيد */}
               {!hasActiveSubscription && pointsDiscount > 0 && (
                 <div className="flex justify-between">
-                  <span className="text-moss text-xs">Points Redeemed</span>
+                  <span className="text-moss text-xs">{t('tb.pointsRedeemed')}</span>
                   <span className="text-emerald-700 font-semibold text-xs">-{maxRedeemablePoints} pts (SAR {pointsDiscount})</span>
                 </div>
               )}
               {!hasActiveSubscription && earnedPoints > 0 && (
                 <div className="flex justify-between">
-                  <span className="text-moss text-xs">Points Earned</span>
+                  <span className="text-moss text-xs">{t('tb.pointsEarned')}</span>
                   <span className="inline-flex items-center gap-1 text-emerald-700 font-bold text-xs">
                     <Sparkles size={12} className="text-amber-500" />
                     +{earnedPoints} pts
@@ -517,14 +521,14 @@ export default function TeamBooking() {
                 <span className="text-soot">{hasActiveSubscription ? 'Corporate Plan Status' : 'Total Paid (incl. VAT)'}</span>
                 {hasActiveSubscription ? (
                   <span className="text-moss font-bold text-xs sm:text-sm bg-eucalyptus/25 px-3 py-1 rounded-full border border-eucalyptus/30">
-                    Covered by Corporate Subscription Pass
+                    {t('tb.coveredCorporate')}
                   </span>
                 ) : finalPayablePrice === 0 ? (
                   <span className="text-moss font-bold text-xs sm:text-sm bg-eucalyptus/25 px-3 py-1 rounded-full border border-eucalyptus/30">
-                    Included in your Plan · SAR 0 Paid
+                    {t('tb.includedPaid0')}
                   </span>
                 ) : (
-                  <span className="text-soot font-bold text-lg">SAR {finalPayablePrice.toLocaleString()}</span>
+                  <span className="text-soot font-bold text-lg">{t('common.sar')} {finalPayablePrice.toLocaleString()}</span>
                 )}
               </div>
             </div>
@@ -535,13 +539,13 @@ export default function TeamBooking() {
               onClick={() => navigate('team-bookings')}
               className="flex-1 py-3 rounded-full bg-[#DDE6DF] text-soot hover:bg-[#D0DDD3] font-medium text-sm transition-all shadow-xs border border-soot/8 cursor-pointer"
             >
-              Team Bookings
+              {t('footer.teamBookings')}
             </button>
             <button
               onClick={() => navigate('browse')}
               className="flex-1 py-3 rounded-full border border-soot/15 text-soot font-medium text-sm hover:bg-soot/5 transition-all bg-white cursor-pointer"
             >
-              Browse Spaces
+              {t('nav.browseSpaces')}
             </button>
           </div>
         </div>
@@ -556,27 +560,27 @@ export default function TeamBooking() {
           type="button"
           onClick={back}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-soot/12 bg-white hover:bg-plaster-dark/40 text-soot text-xs sm:text-sm font-semibold transition-all cursor-pointer shadow-2xs group active:scale-98"
-          title={step === 0 ? 'Back to Workspace Details' : `Back to Step ${step}`}
+          title={step === 0 ? t('tb.backToWorkspaceDetails') : t('bf.backToStep', { step })}
         >
-          <ArrowLeft size={15} className="group-hover:-translate-x-0.5 transition-transform" />
-          <span>{step === 0 ? 'Back to Workspace' : 'Previous Step'}</span>
+          <ArrowLeft size={15} className="group-hover:-translate-x-0.5 rtl:group-hover:translate-x-0.5 transition-transform" />
+          <span>{step === 0 ? t('bf.backToWorkspace') : t('bf.previousStep')}</span>
         </button>
 
         <span className="text-xs font-semibold text-moss">
-          Step {step + 1} of {STEPS.length}
+          {t('tb.stepOf', { step: step + 1, total: STEPS.length })}
         </span>
       </div>
 
       {/* Step Indicator */}
       <div className="flex items-center gap-1.5 mb-8">
-        {STEPS.map((s, i) => (
-          <div key={s} className="flex items-center gap-1.5 flex-1">
+        {STEPS.map((sk, i) => (
+          <div key={sk} className="flex items-center gap-1.5 flex-1">
             <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0 ${
               i < step ? 'bg-eucalyptus text-soot' : i === step ? 'bg-soot text-plaster' : 'bg-soot/8 text-moss/50'
             }`}>
               {i < step ? <Check size={13} /> : i + 1}
             </div>
-            <span className={`text-xs hidden sm:block ${i === step ? 'font-medium text-soot' : 'text-moss'}`}>{s}</span>
+            <span className={`text-xs hidden sm:block ${i === step ? 'font-medium text-soot' : 'text-moss'}`}>{t(sk)}</span>
             {i < STEPS.length - 1 && <div className={`h-px flex-1 ${i < step ? 'bg-eucalyptus' : 'bg-soot/10'}`} />}
           </div>
         ))}
@@ -602,14 +606,14 @@ export default function TeamBooking() {
         </div>
 
         {/* Dynamic Price Box */}
-        <div className="text-right shrink-0 bg-plaster-dark/40 px-3.5 py-2 rounded-2xl border border-soot/10">
+        <div className="text-end shrink-0 bg-plaster-dark/40 px-3.5 py-2 rounded-2xl border border-soot/10">
           {hasActiveSubscription ? (
             <>
               <span className="text-[9px] font-bold uppercase tracking-wider text-moss block">
-                Corporate Subscription
+                {t('tb.corporateSubscription')}
               </span>
               <div className="font-bold text-emerald-800 text-xs sm:text-sm mt-0.5">
-                Active Corporate Pass
+                {t('tb.activeCorporatePass')}
               </div>
               <div className="text-[10px] text-moss">
                 Included in your Plan ({seats} seats)
@@ -621,10 +625,10 @@ export default function TeamBooking() {
                 Total ({seats} seats)
               </span>
               <div className="font-bold text-soot text-base">
-                {planInfo.isCovered ? 'SAR 0' : `SAR ${finalPayablePrice.toLocaleString()}`}
+                {planInfo.isCovered ? `${t('common.sar')} 0` : `${t('common.sar')} ${finalPayablePrice.toLocaleString()}`}
               </div>
               <div className="text-[10px] text-moss">
-                {planInfo.isCovered ? 'Included in Pass · SAR 0 to Pay' : `SAR ${pricePerSeat.toLocaleString()}/seat`}
+                {planInfo.isCovered ? t('tb.includedInPlanSar0') : t('tb.perSeat', { currency: t('common.sar'), amount: pricePerSeat.toLocaleString() })}
               </div>
             </>
           )}
@@ -636,30 +640,30 @@ export default function TeamBooking() {
         <div className="space-y-6">
           <div className="bg-white rounded-3xl border border-soot/8 p-6 shadow-sm space-y-5">
             <h2 className="text-xl font-normal text-soot" style={{ fontFamily: 'DM Serif Display, serif' }}>
-              {isHourlySpace ? 'Configure Hourly Reservation' : isOffice ? 'Select Office Pass Plan' : 'Select Workspace Type & Plan'}
+              {isHourlySpace ? t('tb.configHourly') : isOffice ? t('tb.selectOfficePlan') : t('tb.selectTypePlan')}
             </h2>
 
             {!isHourlySpace && !isOffice && (
               <div className="space-y-2.5">
                 {[
-                  { type: 'hot-desk' as BookingType, label: 'Hot Desks', desc: 'Flexible open seating for your team' },
-                  { type: 'meeting-room' as BookingType, label: 'Meeting Room', desc: 'Private room for client presentations and collaborative sessions' },
-                  { type: 'private-office' as BookingType, label: 'Private Office', desc: 'Dedicated lockable office space for team focus' },
-                ].map(t => (
+                  { type: 'hot-desk' as BookingType, label: t('tb.hotDesks'), desc: t('tb.hotDesksDesc') },
+                  { type: 'meeting-room' as BookingType, label: t('tb.meetingRoom'), desc: t('tb.meetingRoomDesc') },
+                  { type: 'private-office' as BookingType, label: t('tb.privateOffice'), desc: t('tb.privateOfficeDesc') },
+                ].map(opt => (
                   <button
-                    key={t.type}
-                    onClick={() => setBookingType(t.type)}
-                    className={`w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all text-left cursor-pointer ${
-                      bookingType === t.type
+                    key={opt.type}
+                    onClick={() => setBookingType(opt.type)}
+                    className={`w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all text-start cursor-pointer ${
+                      bookingType === opt.type
                         ? 'border-eucalyptus bg-[#E5ECE9]/60 shadow-xs'
                         : 'border-soot/8 bg-white hover:border-soot/20'
                     }`}
                   >
                     <div>
-                      <div className="font-medium text-soot text-sm">{t.label}</div>
-                      <div className="text-xs text-moss mt-0.5">{t.desc}</div>
+                      <div className="font-medium text-soot text-sm">{opt.label}</div>
+                      <div className="text-xs text-moss mt-0.5">{opt.desc}</div>
                     </div>
-                    {bookingType === t.type && <Check size={16} className="text-moss shrink-0" />}
+                    {bookingType === opt.type && <Check size={16} className="text-moss shrink-0" />}
                   </button>
                 ))}
               </div>
@@ -667,7 +671,7 @@ export default function TeamBooking() {
 
             {/* Plan selector */}
             <div className="pt-2">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-moss mb-3">Choose Plan</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-moss mb-3">{t('tb.choosePlan')}</h3>
               <div className={`grid gap-2 ${allowedPlans.length === 3 ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-4'}`}>
                 {allowedPlans.map(p => {
                   const pInfo = getEffectiveSpacePrice(currentUser, space, p, bookingType, durationHours, durationMonths);
@@ -684,7 +688,7 @@ export default function TeamBooking() {
                     >
                       <div className="text-xs capitalize font-semibold">{p}</div>
                       <div className="text-[10px] text-moss mt-0.5">
-                        {hasActiveSubscription || pInfo.isCovered ? 'Included in Plan' : `SAR ${pInfo.effectivePrice}/seat`}
+                        {hasActiveSubscription || pInfo.isCovered ? t('tb.includedInPlanShort') : t('tb.perSeat', { currency: t('common.sar'), amount: pInfo.effectivePrice })}
                       </div>
                     </button>
                   );
@@ -698,10 +702,10 @@ export default function TeamBooking() {
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold uppercase tracking-wider text-moss flex items-center gap-1.5">
                     <Calendar size={12} />
-                    <span>Select Number of Months</span>
+                    <span>{t('spaceDetails.selectMonths')}</span>
                   </span>
                   <span className="text-xs font-bold text-soot">
-                    {durationMonths} Month{durationMonths > 1 ? 's' : ''} ({hasActiveSubscription || planInfo.isCovered ? 'Included in Corporate Plan' : `SAR ${getMonthlyPriceForDuration(space, durationMonths).toLocaleString()}/seat`})
+                    {t(durationMonths > 1 ? 'spaceDetails.monthsCountMany' : 'spaceDetails.monthsCount', { count: durationMonths })} ({hasActiveSubscription || planInfo.isCovered ? t('tb.includedInCorporate') : t('tb.perSeat', { currency: t('common.sar'), amount: getMonthlyPriceForDuration(space, durationMonths).toLocaleString() })})
                   </span>
                 </div>
                 <div className="grid grid-cols-5 gap-2">
@@ -718,7 +722,7 @@ export default function TeamBooking() {
                     >
                       <div>{m} Mo{m > 1 ? 's' : ''}</div>
                       <div className="text-[10px] font-bold text-soot mt-0.5">
-                        {hasActiveSubscription ? 'Included' : `SAR ${getMonthlyPriceForDuration(space, m).toLocaleString()}`}
+                        {hasActiveSubscription ? t('booking.included') : `${t('common.sar')} ${getMonthlyPriceForDuration(space, m).toLocaleString()}`}
                       </div>
                     </button>
                   ))}
@@ -731,9 +735,9 @@ export default function TeamBooking() {
               <div className="p-4 rounded-2xl bg-eucalyptus/20 border border-eucalyptus/30 text-xs flex items-start gap-2.5">
                 <Clock size={16} className="text-moss shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-semibold text-soot block">Hourly Reservation Policy for Theaters & Halls</span>
+                  <span className="font-semibold text-soot block">{t('tb.hourlyPolicy')}</span>
                   <span className="text-moss text-[11px] leading-relaxed">
-                    Reservations for this venue are booked and priced on an hourly basis within the venue operating hours ({space.openHours || 'Operating hours apply'}). You can select your required duration in hours and specific time slot in the Schedule step.
+                    {t('tb.hourlyNotice', { hours: localizeTime(space.openHours) || t('bf.operatingHoursApply') })}
                   </span>
                 </div>
               </div>
@@ -748,9 +752,9 @@ export default function TeamBooking() {
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div>
               <h2 className="text-xl font-normal text-soot" style={{ fontFamily: 'DM Serif Display, serif' }}>
-                Assign Team Members
+                {t('tb.assignMembers')}
               </h2>
-              <p className="text-moss text-xs mt-0.5">Select members to assign or use Select All</p>
+              <p className="text-moss text-xs mt-0.5">{t('tb.selectMembersHint')}</p>
             </div>
             <div className="flex items-center gap-3">
               <span className="text-xs font-medium text-moss">
@@ -778,7 +782,7 @@ export default function TeamBooking() {
               <button
                 type="button"
                 onClick={toggleSelectAll}
-                className={`w-full flex items-center gap-3 p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
+                className={`w-full flex items-center gap-3 p-3.5 rounded-2xl border text-start transition-all cursor-pointer ${
                   allEmployeesSelected
                     ? 'border-eucalyptus bg-[#E5ECE9]/60 shadow-xs'
                     : 'border-soot/12 bg-plaster-dark/25 hover:border-soot/25'
@@ -800,11 +804,11 @@ export default function TeamBooking() {
                   ) : null}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold text-soot">Select All Team Members</div>
+                  <div className="text-sm font-semibold text-soot">{t('tb.selectAll')}</div>
                   <div className="text-xs text-moss">
                     {allEmployeesSelected
-                      ? `All ${employees.length} members selected (${seats} seat${seats > 1 ? 's' : ''})`
-                      : `Assign all ${employees.length} team members at once`}
+                      ? t(seats > 1 ? 'tb.allSelectedMany' : 'tb.allSelected', { count: employees.length, seats })
+                      : t('tb.assignAll', { count: employees.length })}
                   </div>
                 </div>
               </button>
@@ -816,7 +820,7 @@ export default function TeamBooking() {
                     <button
                       key={emp.id}
                       onClick={() => toggleEmployee(emp.id)}
-                      className={`w-full flex items-center gap-3 p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
+                      className={`w-full flex items-center gap-3 p-3.5 rounded-2xl border text-start transition-all cursor-pointer ${
                         isSelected
                           ? 'border-eucalyptus bg-[#E5ECE9]/60 shadow-xs'
                           : 'border-soot/8 bg-white hover:border-soot/20'
@@ -845,9 +849,9 @@ export default function TeamBooking() {
         <div className="bg-white rounded-3xl border border-soot/8 p-6 shadow-sm space-y-5">
           <div>
             <h2 className="text-xl font-normal text-soot" style={{ fontFamily: 'DM Serif Display, serif' }}>
-              Schedule & Team Capacity
+              {t('tb.scheduleCapacity')}
             </h2>
-            <p className="text-moss text-xs">Set booking dates and total seats for your team</p>
+            <p className="text-moss text-xs">{t('tb.setDatesSeats')}</p>
           </div>
 
           <div className="space-y-4">
@@ -858,7 +862,7 @@ export default function TeamBooking() {
                   <div>
                     <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1.5 flex items-center gap-1.5">
                       <Calendar size={13} />
-                      <span>Start Date</span>
+                      <span>{t('spaceDetails.startDate')}</span>
                     </label>
                     <input
                       type="date"
@@ -871,7 +875,7 @@ export default function TeamBooking() {
                   <div>
                     <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1.5 flex items-center gap-1.5">
                       <Calendar size={13} />
-                      <span>End Date</span>
+                      <span>{t('spaceDetails.endDate')}</span>
                     </label>
                     <input
                       type="date"
@@ -885,25 +889,25 @@ export default function TeamBooking() {
 
                 <div className="bg-white rounded-2xl p-4 border border-soot/8 flex items-center justify-between text-xs">
                   <div>
-                    <span className="text-moss block text-[10px] uppercase font-semibold">Selected Date Range</span>
+                    <span className="text-moss block text-[10px] uppercase font-semibold">{t('bf.selectedRange')}</span>
                     <span className="font-semibold text-soot text-sm">{formatDateRange(startDate, effectiveDailyEndDate)}</span>
                   </div>
-                  <div className="text-right">
-                    <span className="text-moss block text-[10px] uppercase font-semibold">Total Duration</span>
+                  <div className="text-end">
+                    <span className="text-moss block text-[10px] uppercase font-semibold">{t('bf.totalDuration')}</span>
                     <span className="font-semibold text-soot text-sm">{durationDays} {durationDays === 1 ? 'Day' : 'Days'}</span>
                   </div>
                 </div>
 
                 <div className="text-[11px] text-moss flex items-center gap-1.5">
                   <Info size={13} className="shrink-0 text-moss/80" />
-                  <span>Daily passes apply continuously across all selected calendar days.</span>
+                  <span>{t('tb.dailyContinuous')}</span>
                 </div>
               </div>
             ) : (
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1.5 flex items-center gap-1.5">
                   <Calendar size={13} />
-                  <span>{isHourlySpace ? 'Reservation Date' : 'Start Date'}</span>
+                  <span>{isHourlySpace ? t('spaceDetails.reservationDate') : t('spaceDetails.startDate')}</span>
                 </label>
                 <input
                   type="date"
@@ -925,10 +929,10 @@ export default function TeamBooking() {
                   <div>
                     <h4 className="text-xs font-semibold uppercase tracking-wider text-moss flex items-center gap-1.5">
                       <Clock size={13} />
-                      <span>Select Hourly Duration & Session</span>
+                      <span>{t('tb.hourlyDurationSession')}</span>
                     </h4>
                     <p className="text-xs text-moss mt-0.5">
-                      Session within workspace operating hours: {space.openHours || 'Standard Operating Hours'}
+                      {t('tb.sessionWithinHours', { hours: localizeTime(space.openHours) || t('spaceDetails.standardHours') })}
                     </p>
                   </div>
                   <div className="text-xs font-bold text-emerald-900 bg-emerald-100/80 px-3 py-1 rounded-full border border-emerald-300 shadow-2xs whitespace-nowrap">
@@ -939,7 +943,7 @@ export default function TeamBooking() {
                 {!isHourlySpace && (
                 <div className="space-y-1.5">
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-moss block">
-                    Duration (Hours)
+                    {t('bf.durationHours')}
                   </span>
                   <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                     {[1, 2, 3, 4, 6, 8].map((h) => {
@@ -958,7 +962,7 @@ export default function TeamBooking() {
                         >
                           <div className="font-bold text-xs">{h} {h === 1 ? 'Hour' : 'Hours'}</div>
                           <div className={`text-[10px] mt-0.5 ${isSelected ? 'text-plaster/80 font-medium' : 'text-moss'}`}>
-                            {hasActiveSubscription && hPrice.isCovered ? 'Corporate Plan' : `SAR ${hPrice.effectivePrice.toLocaleString()}`}
+                            {hasActiveSubscription && hPrice.isCovered ? t('tb.corporatePlan') : `${t('common.sar')} ${hPrice.effectivePrice.toLocaleString()}`}
                           </div>
                         </button>
                       );
@@ -971,11 +975,11 @@ export default function TeamBooking() {
                 {isHourlySpace ? (
                   <div className="space-y-1.5">
                     <span className="text-[10px] font-semibold uppercase tracking-wider text-moss block">
-                      Available 2-Hour Sessions
+                      {t('spaceDetails.sessions2h')}
                     </span>
                     {fixedSlots.length === 0 ? (
                       <div className="text-xs text-rose-800 bg-rose-50 border border-rose-200 rounded-xl p-3">
-                        No sessions are available within this venue's operating hours.
+                        {t('spaceDetails.noSessions')}
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -1005,7 +1009,7 @@ export default function TeamBooking() {
                   <div>
                     <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1.5 flex items-center gap-1.5">
                       <Clock size={13} />
-                      <span>Session Start Time</span>
+                      <span>{t('spaceDetails.sessionStart')}</span>
                     </label>
                     <select
                       value={startTime}
@@ -1023,13 +1027,13 @@ export default function TeamBooking() {
                   <div>
                     <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1.5 flex items-center gap-1.5">
                       <Clock size={13} />
-                      <span>Session End Time</span>
+                      <span>{t('spaceDetails.sessionEnd')}</span>
                     </label>
                     <input
                       type="text"
                       readOnly
                       disabled
-                      value={`${endTime} (${durationHours} ${durationHours === 1 ? 'Hour' : 'Hours'})`}
+                      value={`${localizeTime(endTime)} (${t(durationHours === 1 ? 'bf.durationHourOne' : 'bf.durationHourMany', { count: durationHours })})`}
                       className="w-full px-3.5 py-2.5 rounded-xl bg-soot/5 border border-soot/10 text-moss text-sm font-medium cursor-not-allowed shadow-2xs"
                     />
                   </div>
@@ -1041,20 +1045,20 @@ export default function TeamBooking() {
                 <div className="bg-white rounded-2xl p-4 border border-soot/8 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                   <div>
                     <span className="text-moss block text-[10px] uppercase font-semibold">
-                      Scheduled Reservation Window
+                      {t('spaceDetails.reservationWindow')}
                     </span>
                     <span className="font-semibold text-soot text-sm">
                       {startDate} · {startTime} – {endTime} ({durationHours} {durationHours === 1 ? 'hour' : 'hours'})
                     </span>
                   </div>
-                  <div className="text-left sm:text-right">
-                    <span className="text-moss block text-[10px] uppercase font-semibold">Workspace Operating Hours</span>
+                  <div className="text-start sm:text-end">
+                    <span className="text-moss block text-[10px] uppercase font-semibold">{t('tb.operatingHours')}</span>
                     <span className="font-semibold text-soot text-sm">{space.openHours || 'Standard Operating Hours'}</span>
                   </div>
                 </div>
                 <div className="text-[11px] text-moss flex items-center gap-1.5">
                   <Info size={13} className="shrink-0 text-moss/80" />
-                  <span>Access is granted strictly during your selected hours for each day of the reservation period.</span>
+                  <span>{t('tb.accessHours')}</span>
                 </div>
               </div>
             )}
@@ -1065,10 +1069,10 @@ export default function TeamBooking() {
                 <div>
                   <h4 className="text-xs font-semibold uppercase tracking-wider text-moss flex items-center gap-1.5">
                     <Users size={13} />
-                    <span>Number of Team Seats</span>
+                    <span>{t('tb.numTeamSeats')}</span>
                   </h4>
                   <p className="text-xs text-moss mt-0.5">
-                    Specify total desks / seats needed for your team members
+                    {t('tb.specifySeats')}
                   </p>
                 </div>
                 <span className="text-xs font-bold text-soot bg-white px-3 py-1 rounded-full border border-soot/10 shadow-2xs">
@@ -1087,7 +1091,7 @@ export default function TeamBooking() {
                 </button>
                 <div className="flex-1 text-center">
                   <span className="text-2xl font-serif-display font-normal text-soot">{seats}</span>
-                  <span className="text-xs text-moss ml-1">{seats === 1 ? 'seat' : 'seats'}</span>
+                  <span className="text-xs text-moss ms-1">{seats === 1 ? 'seat' : 'seats'}</span>
                 </div>
                 <button
                   type="button"
@@ -1121,34 +1125,34 @@ export default function TeamBooking() {
             {hasActiveSubscription ? (
               <div className="p-4 rounded-2xl bg-[#E5ECE9]/60 border border-eucalyptus/40 flex items-center justify-between">
                 <div>
-                  <span className="text-xs font-semibold text-soot block">Corporate Subscription Plan</span>
+                  <span className="text-xs font-semibold text-soot block">{t('tb.corporateSubPlan')}</span>
                   <span className="text-[11px] text-moss">
                     All {seats} {seats === 1 ? 'seat' : 'seats'} fully covered under active corporate membership
                   </span>
                 </div>
-                <div className="text-right">
+                <div className="text-end">
                   <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-eucalyptus/40 text-soot font-semibold text-xs border border-eucalyptus/50">
                     <Check size={12} className="text-moss shrink-0" />
-                    <span>Covered by Pass</span>
+                    <span>{t('myBookings.coveredByPass')}</span>
                   </span>
                 </div>
               </div>
             ) : (
               <div className="p-4 rounded-2xl bg-plaster-dark/40 border border-soot/10 flex items-center justify-between">
                 <div>
-                  <span className="text-xs font-semibold text-soot block">Calculated Total</span>
+                  <span className="text-xs font-semibold text-soot block">{t('tb.calculatedTotal')}</span>
                   <span className="text-[11px] text-moss">
                     {plan === 'daily'
-                      ? `${seats} seats × SAR ${((space.pricing?.daily ?? 150) * durationDays).toLocaleString()} (SAR ${space.pricing?.daily ?? 150}/day × ${durationDays} ${durationDays === 1 ? 'day' : 'days'})`
-                      : `${seats} seats × SAR ${planInfo.originalPrice.toLocaleString()} ${planLabel}`}
+                      ? t('tb.seatsTimes', { seats, currency: t('common.sar'), amount: ((space.pricing?.daily ?? 150) * durationDays).toLocaleString(), rate: space.pricing?.daily ?? 150, days: durationDays, unit: durationDays === 1 ? t('bf.dayUnit') : t('bf.daysUnit') })
+                      : t('tb.seatsTimesPlan', { seats, currency: t('common.sar'), amount: planInfo.originalPrice.toLocaleString(), label: planLabel })}
                   </span>
                 </div>
-                <div className="text-right">
+                <div className="text-end">
                   <span className="text-lg font-bold text-soot">
-                    {planInfo.isCovered ? 'SAR 0' : `SAR ${finalPayablePrice.toLocaleString()}`}
+                    {planInfo.isCovered ? `${t('common.sar')} 0` : `${t('common.sar')} ${finalPayablePrice.toLocaleString()}`}
                   </span>
                   {planInfo.isCovered && (
-                    <span className="text-[10px] text-emerald-800 font-semibold block">Included in Pass</span>
+                    <span className="text-[10px] text-emerald-800 font-semibold block">{t('spaceDetails.includedInPass')}</span>
                   )}
                 </div>
               </div>
@@ -1162,12 +1166,12 @@ export default function TeamBooking() {
         <div className="bg-white rounded-3xl border border-soot/8 p-6 shadow-sm space-y-6">
           <div>
             <h2 className="text-xl font-normal text-soot" style={{ fontFamily: 'DM Serif Display, serif' }}>
-              {hasActiveSubscription ? 'Review Team Reservation' : 'Review Team Reservation & Payment'}
+              {hasActiveSubscription ? t('tb.reviewTeam') : t('tb.reviewTeamPay')}
             </h2>
             <p className="text-moss text-xs">
               {hasActiveSubscription
-                ? 'Confirm your reservation details and team workspace allocation'
-                : 'Confirm your reservation details and total price breakdown'}
+                ? t('tb.confirmAllocation')
+                : t('tb.confirmBreakdown')}
             </p>
           </div>
 
@@ -1176,30 +1180,30 @@ export default function TeamBooking() {
             <div className="p-5 rounded-2xl bg-[#F9F8F5] border border-soot/8 divide-y divide-soot/6 text-sm">
               <div className="pb-2.5 space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-moss">Workspace</span>
+                  <span className="text-moss">{t('bf.workspace')}</span>
                   <span className="text-soot font-medium">{space.name}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-moss">Type</span>
+                  <span className="text-moss">{t('tb.type')}</span>
                   <span className="text-soot font-medium capitalize">{bookingType.replace('-', ' ')}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-moss">Plan</span>
+                  <span className="text-moss">{t('tb.plan')}</span>
                   <span className="text-soot font-medium">
                     {isHourly
                       ? `Hourly Reservation (${durationHours} ${durationHours === 1 ? 'hour' : 'hours'})`
                       : plan === 'daily'
-                      ? `Daily Pass (${durationDays} ${durationDays === 1 ? 'Day' : 'Days'})`
+                      ? t(durationDays === 1 ? 'bf.dailyPassTitle' : 'bf.dailyPassTitleMany', { count: durationDays })
                       : `${plan} pass`}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-moss">{isHourly ? 'Booking Date' : plan === 'daily' ? 'Date Range' : 'Start Date'}</span>
+                  <span className="text-moss">{isHourly ? t('qr.bookingDate') : plan === 'daily' ? 'Date Range' : t('spaceDetails.startDate')}</span>
                   <span className="text-soot font-medium">{plan === 'daily' ? formatDateRange(startDate, endDate) : startDate}</span>
                 </div>
                 {plan === 'daily' && (
                   <div className="flex justify-between">
-                    <span className="text-moss">Duration</span>
+                    <span className="text-moss">{t('qr.duration')}</span>
                     <span className="text-soot font-medium">{durationDays} {durationDays === 1 ? 'day' : 'days'}</span>
                   </div>
                 )}
@@ -1211,8 +1215,8 @@ export default function TeamBooking() {
                 )}
                 <div className="flex justify-between items-center py-1">
                   <div>
-                    <span className="text-moss block">Reserved Seats</span>
-                    <span className="text-[10px] text-moss/70">Adjust quantity</span>
+                    <span className="text-moss block">{t('bf.reservedSeats')}</span>
+                    <span className="text-[10px] text-moss/70">{t('tb.adjustQuantity')}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
@@ -1220,7 +1224,7 @@ export default function TeamBooking() {
                       onClick={() => setSeats(s => Math.max(selectedEmployees.length || 1, s - 1))}
                       disabled={seats <= (selectedEmployees.length || 1)}
                       className="w-7 h-7 rounded-lg border border-soot/15 bg-white text-soot font-bold flex items-center justify-center hover:bg-plaster-dark/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer text-sm shadow-2xs"
-                      title="Decrease seats"
+                      title={t('tb.decrease')}
                     >
                       –
                     </button>
@@ -1230,7 +1234,7 @@ export default function TeamBooking() {
                       onClick={() => setSeats(s => Math.min(space.availableCapacity || 50, s + 1))}
                       disabled={seats >= (space.availableCapacity || 50)}
                       className="w-7 h-7 rounded-lg border border-soot/15 bg-white text-soot font-bold flex items-center justify-center hover:bg-plaster-dark/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer text-sm shadow-2xs"
-                      title="Increase seats"
+                      title={t('tb.increase')}
                     >
                       +
                     </button>
@@ -1238,7 +1242,7 @@ export default function TeamBooking() {
                 </div>
                 {selectedEmployees.length > 0 && (
                   <div className="flex justify-between">
-                    <span className="text-moss">Assigned Members</span>
+                    <span className="text-moss">{t('tb.assignedMembers')}</span>
                     <span className="text-soot font-medium">{selectedEmployees.length} members</span>
                   </div>
                 )}
@@ -1251,10 +1255,10 @@ export default function TeamBooking() {
                 <div>
                   <h4 className="text-xs font-semibold text-soot flex items-center gap-1.5">
                     <Users size={14} className="text-moss" />
-                    <span>Adjust Reserved Seats</span>
+                    <span>{t('tb.adjustSeats')}</span>
                   </h4>
                   <p className="text-[11px] text-moss">
-                    Modifying seats dynamically recalculates your order total and VAT below
+                    {t('tb.recalc')}
                   </p>
                 </div>
                 <span className="text-xs font-bold text-soot bg-white px-2.5 py-0.5 rounded-full border border-soot/10 shadow-2xs">
@@ -1286,32 +1290,32 @@ export default function TeamBooking() {
                   <div className="flex items-center gap-2">
                     <ShieldCheck size={18} className="text-emerald-700" />
                     <span className="text-xs font-semibold uppercase tracking-wider text-soot">
-                      Corporate Subscription Plan Coverage
+                      {t('tb.planCoverage')}
                     </span>
                   </div>
                   <span className="text-xs font-bold text-emerald-800 bg-white px-2.5 py-0.5 rounded-full border border-emerald-300 shadow-2xs">
-                    Active Pass
+                    {t('bf.activePass')}
                   </span>
                 </div>
 
                 <div className="space-y-2 text-xs">
                   <div className="flex justify-between items-center">
-                    <span className="text-moss">Covered by</span>
+                    <span className="text-moss">{t('bf.coveredBy')}</span>
                     <span className="font-semibold text-soot">{currentUser?.orgName || currentUser?.businessName || currentUser?.membershipTier || 'Corporate Pass'}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-moss">Allocated Team Seats</span>
+                    <span className="text-moss">{t('tb.allocatedSeats')}</span>
                     <span className="font-semibold text-soot">{seats} {seats > 1 ? 'Seats' : 'Seat'} (Included)</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-moss">Payment Required</span>
-                    <span className="font-semibold text-emerald-800">None · Covered by Corporate Plan</span>
+                    <span className="text-moss">{t('bf.paymentRequired')}</span>
+                    <span className="font-semibold text-emerald-800">{t('tb.noneCorporate')}</span>
                   </div>
                 </div>
 
                 <div className="pt-2 border-t border-soot/8 flex items-center gap-2 text-[11px] text-moss">
                   <Info size={13} className="shrink-0 text-emerald-700" />
-                  <span>All team seats are fully covered under your active corporate subscription pass. No billing will occur.</span>
+                  <span>{t('tb.allCovered')}</span>
                 </div>
               </div>
             ) : (
@@ -1324,7 +1328,7 @@ export default function TeamBooking() {
                         <Sparkles size={16} className="text-amber-600" />
                       </div>
                       <div>
-                        <div className="text-sm font-semibold text-soot">Loyalty Points Rewards</div>
+                        <div className="text-sm font-semibold text-soot">{t('tb.loyaltyRewards')}</div>
                         <div className="text-xs text-moss mt-0.5">
                           You have <strong className="text-soot">{availablePoints}</strong> points. (100 pts = SAR 25 discount)
                         </div>
@@ -1347,7 +1351,7 @@ export default function TeamBooking() {
                   </div>
 
                   <div className="pt-2 border-t border-soot/8 flex items-center justify-between text-xs">
-                    <span className="text-moss">Points to be earned from this booking:</span>
+                    <span className="text-moss">{t('tb.pointsToEarn')}</span>
                     <span className="font-bold text-emerald-800 flex items-center gap-1">
                       <Sparkles size={11} className="text-amber-500" />
                       +{earnedPoints} points {multiplier > 1 ? `(${multiplier}× promotion)` : ''}
@@ -1363,9 +1367,9 @@ export default function TeamBooking() {
                         <Wallet size={16} className="text-emerald-700 shrink-0" />
                         <div>
                           <div className="text-xs font-semibold text-soot">
-                            {isUsingCompanyWallet ? 'Corporate Shared Wallet' : 'Digital Wallet Balance'}
+                            {isUsingCompanyWallet ? t('tb.sharedWallet') : t('bf.walletBalance')}
                           </div>
-                          <div className="text-[11px] text-moss">Available Balance: SAR {userWalletBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+                          <div className="text-[11px] text-moss">Available Balance: {t('common.sar')} {userWalletBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
                         </div>
                       </div>
                       {userWalletBalance > 0 && finalPayablePrice > 0 && (
@@ -1376,14 +1380,14 @@ export default function TeamBooking() {
                             onChange={(e) => setUseWalletBalance(e.target.checked)}
                             className="rounded border-soot/20 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
                           />
-                          <span>Use {isUsingCompanyWallet ? 'Shared Wallet' : 'Wallet'} (SAR {walletDeduction.toLocaleString()})</span>
+                          <span>{isUsingCompanyWallet ? t('tb.useShared', { currency: t('common.sar'), amount: walletDeduction.toLocaleString() }) : t('tb.useWalletTeam', { currency: t('common.sar'), amount: walletDeduction.toLocaleString() })}</span>
                         </label>
                       )}
                     </div>
                     {useWalletBalance && walletDeduction > 0 && (
                       <div className="text-[11px] font-medium text-emerald-950 bg-emerald-500/15 px-3 py-1.5 rounded-xl border border-emerald-500/30 flex items-center justify-between">
-                        <span>{isUsingCompanyWallet ? 'Corporate Shared Wallet Applied' : 'Wallet Balance Applied'}</span>
-                        <span className="font-bold text-emerald-700">- SAR {walletDeduction.toLocaleString()}</span>
+                        <span>{isUsingCompanyWallet ? t('tb.sharedApplied') : t('bf.walletApplied')}</span>
+                        <span className="font-bold text-emerald-700">- {t('common.sar')} {walletDeduction.toLocaleString()}</span>
                       </div>
                     )}
                   </div>
@@ -1394,26 +1398,26 @@ export default function TeamBooking() {
                   <div className="flex items-center gap-2 pb-2 border-b border-soot/8">
                     <Receipt size={16} className="text-moss" />
                     <span className="text-xs font-semibold uppercase tracking-wider text-soot">
-                      Price Breakdown & Payment Receipt
+                      {t('bf.priceBreakdown')}
                     </span>
                   </div>
 
                   <div className="flex justify-between text-xs sm:text-sm">
                     <span className="text-moss">
-                      Rate per Seat ({isHourly ? `${startTime} – ${endTime} (${durationHours}h)` : plan === 'monthly' ? `${durationMonths} Mo Monthly` : plan === 'daily' ? `${durationDays} ${durationDays === 1 ? 'day' : 'days'} (SAR ${space.pricing?.daily ?? 150}/day)` : `${plan} pass`})
+                      {t('bf.ratePerSeat', { detail: isHourly ? `${localizeTime(startTime)} – ${localizeTime(endTime)} (${t('bf.unitHour', { count: durationHours })})` : plan === 'monthly' ? t('myBookings.monthlyMo', { count: durationMonths }) : plan === 'daily' ? t('tb.ratePerSeatDetail', { days: durationDays, unit: durationDays === 1 ? t('bf.dayUnit') : t('bf.daysUnit'), currency: t('common.sar'), rate: space.pricing?.daily ?? 150 }) : t(('booking.planPass.' + plan) as never) })}
                     </span>
                     <span className="text-soot font-medium">
-                      {planInfo.isCovered ? 'Included in your Plan' : `SAR ${planInfo.originalPrice.toLocaleString()}`}
+                      {planInfo.isCovered ? t('bf.includedInPlan') : `${t('common.sar')} ${planInfo.originalPrice.toLocaleString()}`}
                     </span>
                   </div>
                   <div className="flex justify-between text-xs sm:text-sm">
-                    <span className="text-moss">Seats</span>
+                    <span className="text-moss">{t('qr.seats')}</span>
                     <span className="text-soot font-medium">× {seats}</span>
                   </div>
                   <div className="flex justify-between text-xs sm:text-sm">
-                    <span className="text-moss">Subtotal</span>
+                    <span className="text-moss">{t('bf.subtotal')}</span>
                     <span className="text-soot font-medium">
-                      {planInfo.isCovered ? 'Included in your Plan' : `SAR ${(planInfo.originalPrice * seats).toLocaleString()}`}
+                      {planInfo.isCovered ? t('bf.includedInPlan') : `${t('common.sar')} ${(planInfo.originalPrice * seats).toLocaleString()}`}
                     </span>
                   </div>
                   {pointsDiscount > 0 && (
@@ -1424,32 +1428,32 @@ export default function TeamBooking() {
                   )}
                   {walletDeduction > 0 && (
                     <div className="flex justify-between text-xs sm:text-sm">
-                      <span className="text-moss">Wallet Balance Applied</span>
+                      <span className="text-moss">{t('bf.walletApplied')}</span>
                       <span className="text-emerald-700 font-semibold">-SAR {walletDeduction.toLocaleString()}</span>
                     </div>
                   )}
                   <div className="flex justify-between text-xs sm:text-sm">
                     <span className="text-moss">VAT (15% included)</span>
                     <span className="text-soot font-medium">
-                      {planInfo.isCovered ? 'SAR 0' : `SAR ${((finalPayablePrice) * 0.15).toFixed(0)}`}
+                      {planInfo.isCovered ? `${t('common.sar')} 0` : `${t('common.sar')} ${((finalPayablePrice) * 0.15).toFixed(0)}`}
                     </span>
                   </div>
 
                   <div className="pt-3 border-t border-soot/10 flex justify-between items-center bg-plaster-dark/30 -mx-5 -mb-5 p-5 rounded-b-2xl">
                     <div>
-                      <span className="text-sm font-bold text-soot block">Total Payable Amount</span>
-                      <span className="text-xs text-moss">Corporate billing</span>
+                      <span className="text-sm font-bold text-soot block">{t('bf.totalPayable')}</span>
+                      <span className="text-xs text-moss">{t('tb.corporateBilling')}</span>
                     </div>
-                    <div className="text-right">
+                    <div className="text-end">
                       {totalPriceToPay === 0 ? (
                         <div>
-                          <span className="text-2xl font-bold text-soot">SAR 0 to Pay</span>
-                          <div className="text-xs text-moss font-semibold bg-eucalyptus/25 border border-eucalyptus/30 px-2.5 py-0.5 rounded-full inline-block ml-2">
-                            {walletDeduction >= finalPayablePrice && finalPayablePrice > 0 ? 'Paid with Wallet' : 'Included in your Plan'}
+                          <span className="text-2xl font-bold text-soot">{t('bf.zeroToPay')}</span>
+                          <div className="text-xs text-moss font-semibold bg-eucalyptus/25 border border-eucalyptus/30 px-2.5 py-0.5 rounded-full inline-block ms-2">
+                            {walletDeduction >= finalPayablePrice && finalPayablePrice > 0 ? t('tb.paidWithWallet') : 'Included in your Plan'}
                           </div>
                         </div>
                       ) : (
-                        <span className="text-2xl font-bold text-soot">SAR {totalPriceToPay.toLocaleString()}</span>
+                        <span className="text-2xl font-bold text-soot">{t('common.sar')} {totalPriceToPay.toLocaleString()}</span>
                       )}
                     </div>
                   </div>
@@ -1473,7 +1477,7 @@ export default function TeamBooking() {
             onClick={next}
             className="flex-1 py-3 px-6 rounded-full bg-[#DDE6DF] text-soot font-medium text-sm hover:bg-[#D0DDD3] transition-all flex items-center justify-center gap-2 shadow-xs border border-soot/8 cursor-pointer"
           >
-            <span>Continue</span>
+            <span>{t('tb.continue')}</span>
             <ChevronRight size={16} />
           </button>
         ) : (
@@ -1507,7 +1511,7 @@ export default function TeamBooking() {
               className="py-3 px-5 rounded-full border border-soot/15 text-soot font-medium text-sm hover:bg-soot/5 transition-all bg-white flex items-center justify-center gap-2 cursor-pointer shadow-2xs"
             >
               <ShoppingBag size={15} />
-              <span>{hasActiveSubscription ? 'Add to Cart (Covered by Pass)' : finalPayablePrice === 0 ? 'Add to Cart (Included · SAR 0)' : 'Add to Cart'}</span>
+              <span>{hasActiveSubscription ? t('spaceDetails.addToCartCovered') : finalPayablePrice === 0 ? t('tb.addToCartIncluded') : t('bf.addToCart')}</span>
             </button>
 
             <button
@@ -1516,7 +1520,7 @@ export default function TeamBooking() {
               className="flex-1 py-3 px-6 rounded-full bg-[#DDE6DF] text-soot font-medium text-sm hover:bg-[#D0DDD3] transition-all flex items-center justify-center gap-2 shadow-xs border border-soot/8 cursor-pointer disabled:opacity-50"
             >
               {loading ? (
-                <span>Confirming...</span>
+                <span>{t('tb.confirming')}</span>
               ) : hasActiveSubscription ? (
                 <>
                   <Check size={15} className="text-moss" />

@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/i18n';
 import React, { useState, useEffect } from 'react';
 import { 
   Sparkles, 
@@ -31,6 +32,7 @@ import {
 import Modal from '@/components/ui/Modal';
 
 export default function SubscriptionsAdmin() {
+  const { t } = useI18n();
   const { showToast, users } = useApp();
   const [subscriptions, setSubscriptions] = useState<SubscriptionItemApi[]>([]);
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
@@ -257,7 +259,7 @@ export default function SubscriptionsAdmin() {
         </div>
 
         <div className="relative w-full sm:w-64">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-moss">
+          <div className="absolute inset-y-0 start-0 ps-3 flex items-center pointer-events-none text-moss">
             <Search size={14} />
           </div>
           <input
@@ -265,7 +267,7 @@ export default function SubscriptionsAdmin() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by ID, User, or Plan..."
-            className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl bg-white border border-soot/12 text-soot placeholder:text-moss/60 focus:outline-none focus:ring-2 focus:ring-eucalyptus"
+            className="w-full ps-9 pe-3 py-1.5 text-xs rounded-xl bg-white border border-soot/12 text-soot placeholder:text-moss/60 focus:outline-none focus:ring-2 focus:ring-eucalyptus"
           />
         </div>
       </div>
@@ -338,7 +340,7 @@ export default function SubscriptionsAdmin() {
                       <span>{sub.user?.name || 'User ID: ' + sub.userId.slice(0, 8)}</span>
                     </div>
                     {sub.user?.email && (
-                      <div className="text-[11px] text-moss/80 truncate pl-4">
+                      <div className="text-[11px] text-moss/80 truncate ps-4">
                         {sub.user.email}
                       </div>
                     )}
@@ -356,7 +358,7 @@ export default function SubscriptionsAdmin() {
                     {sub.plan?.price !== undefined && (
                       <div className="flex items-center justify-between">
                         <span>Price:</span>
-                        <span className="font-semibold text-emerald-800">SAR {sub.plan.price}</span>
+                        <span className="font-semibold text-emerald-800">{t('common.sar')} {sub.plan.price}</span>
                       </div>
                     )}
                   </div>
@@ -440,7 +442,7 @@ export default function SubscriptionsAdmin() {
                 >
                   {plans.map(p => (
                     <option key={p.id} value={p.id}>
-                      {p.planName} ({p.type}) — SAR {p.price} [ID: {p.id.slice(0, 8)}]
+                      {p.planName} ({p.type}) — {t('common.sar')} {p.price} [ID: {p.id.slice(0, 8)}]
                     </option>
                   ))}
                 </select>
