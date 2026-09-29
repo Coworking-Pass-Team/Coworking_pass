@@ -43,6 +43,7 @@ import {
   CITY_COORDINATES,
   isHourlyAllowed
 } from '@/types/types';
+import AccountSuspendedModal from '@/components/AccountSuspendedModal';
 import { INITIAL_SPACES, INITIAL_USERS, INITIAL_BOOKINGS, INITIAL_NOTIFICATIONS, INITIAL_SUPPORT_TICKETS } from '@/data/data';
 import {
   registerUserApi,
@@ -569,6 +570,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [nav, setNav] = useState<NavState>({ screen: 'landing', params: {} });
   const [history, setHistory] = useState<NavState[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isSuspended, setIsSuspended] = useState(false);
   const [pendingUser, setPendingUser] = useState<Partial<User> | null>(null);
   const [pendingResetUser, setPendingResetUser] = useState<User | null>(null);
   const [otpSession, setOtpSession] = useState<OtpSession | null>(null);
@@ -5985,6 +5987,44 @@ export function AppProvider({ children }: { children: ReactNode }) {
     showToast('Amenity deleted from catalog', 'info');
   };
 
+  // Global API interceptor: any response carrying code ACCOUNT_SUSPENDED immediately raises the blocking modal
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const originalFetch = window.fetch;
+    window.fetch = async (...args: Parameters<typeof fetch>) => {
+      const response = await originalFetch(...args);
+      if (response.status === 403) {
+        try {
+          const body = await response.clone().json();
+          if (body?.code === 'ACCOUNT_SUSPENDED') setIsSuspended(true);
+        } catch (_) {
+          // Non-JSON body: not a suspension response
+        }
+      }
+      return response;
+    };
+    return () => {
+      window.fetch = originalFetch;
+    };
+  }, []);
+
+  const handleSuspendedSignOut = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('cp_token');
+      localStorage.removeItem('cp_currentUser');
+      localStorage.removeItem('token');
+      localStorage.removeItem('jwt');
+    }
+    setCurrentUser(null);
+    setPendingUser(null);
+    setIsSuspended(false);
+    navigate('login');
+    // Standalone routes (e.g. /spaces) are not rendered by the SPA router, so go to the login route explicitly
+    if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+      window.location.assign('/Auth');
+    }
+  };
+
   return (
     <AppContext.Provider value={{
       nav, navigate, goBack,
@@ -6019,6 +6059,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       otpSession, startOtpVerification, requestSignupOtp, requestForgotPasswordOtp, resetPassword, pendingResetUser, verifyOtp, resendOtp, cancelOtp,
     }}>
       {children}
+      {isSuspended && <AccountSuspendedModal onSignOut={handleSuspendedSignOut} />}
     </AppContext.Provider>
   );
 }

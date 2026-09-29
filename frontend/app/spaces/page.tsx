@@ -4,6 +4,7 @@ import { Search, SlidersHorizontal, X, MapPin, ChevronDown, Check, ArrowUpDown, 
 import { useApp } from '@/app/store';
 import SpaceCard from '@/components/spaces/spaceCard';
 import Badge from '@/components/ui/Badge';
+import App from '@/app/app';
 import { getSpaceCategory, SpaceCategory, calculateHaversineDistance, getSpaceCoordinates, SAUDI_CITIES } from '@/types/types';
 
 const CITIES = ['All Cities', ...SAUDI_CITIES];
@@ -58,7 +59,20 @@ const SORT_OPTIONS = [
   'Availability',
 ];
 
+/**
+ * Route entry for /spaces. Rendered by Next outside the SPA router, so any navigation to another
+ * screen (space details, login, ...) must be handed to the SPA router or it would have no visible effect.
+ */
 export default function Browse() {
+  const { nav } = useApp();
+  const screen = nav?.screen;
+  if (screen && screen !== 'landing' && screen !== 'browse') {
+    return <App />;
+  }
+  return <BrowseView />;
+}
+
+function BrowseView() {
   const { spaces, navigate, currentUser, nav, userLocation, locationStatus, locationErrorMessage, requestUserLocation } = useApp();
   const initialCity = nav?.params?.city || (typeof window !== 'undefined' ? (window as any).__browseCity || '' : '');
   const initialCategory = (nav?.params?.category as ('all' | SpaceCategory)) || 'all';
