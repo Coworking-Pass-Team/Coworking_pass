@@ -116,7 +116,9 @@ export default function TeamBooking() {
     }
   };
 
-  const [seats, setSeats] = useState(2);
+  // Initialize seats from nav params (pre-selected in space detail page) or default to 2
+  const initialSeats = Number(nav?.params?.seats) > 0 ? Number(nav.params.seats) : 2;
+  const [seats, setSeats] = useState(initialSeats);
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const [confirmedBooking, setConfirmedBooking] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -962,6 +964,64 @@ export default function TeamBooking() {
               </div>
             )}
 
+            {/* Seat Quantity Selector in Schedule Step */}
+            <div className="space-y-3 p-5 rounded-2xl bg-[#F9F8F5] border border-soot/8">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-moss flex items-center gap-1.5">
+                    <Users size={13} />
+                    <span>Number of Team Seats</span>
+                  </h4>
+                  <p className="text-xs text-moss mt-0.5">
+                    Specify total desks / seats needed for your team members
+                  </p>
+                </div>
+                <span className="text-xs font-bold text-soot bg-white px-3 py-1 rounded-full border border-soot/10 shadow-2xs">
+                  {seats} {seats === 1 ? 'Seat' : 'Seats'}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setSeats(s => Math.max(selectedEmployees.length || 1, s - 1))}
+                  disabled={seats <= (selectedEmployees.length || 1)}
+                  className="w-10 h-10 rounded-xl border border-soot/15 bg-white text-soot font-bold text-lg flex items-center justify-center hover:bg-plaster-dark/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer shadow-2xs"
+                >
+                  –
+                </button>
+                <div className="flex-1 text-center">
+                  <span className="text-2xl font-serif-display font-normal text-soot">{seats}</span>
+                  <span className="text-xs text-moss ml-1">{seats === 1 ? 'seat' : 'seats'}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSeats(s => Math.min(space.availableCapacity || 50, s + 1))}
+                  disabled={seats >= (space.availableCapacity || 50)}
+                  className="w-10 h-10 rounded-xl border border-soot/15 bg-white text-soot font-bold text-lg flex items-center justify-center hover:bg-plaster-dark/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer shadow-2xs"
+                >
+                  +
+                </button>
+              </div>
+
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {[1, 2, 3, 5, 10, 15, 20].filter(n => n >= (selectedEmployees.length || 1) && n <= (space.availableCapacity || 50)).map(n => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setSeats(n)}
+                    className={`px-3 py-1 rounded-full text-[11px] font-semibold border transition-all cursor-pointer ${
+                      seats === n
+                        ? 'bg-soot text-plaster border-soot'
+                        : 'bg-white text-moss border-soot/15 hover:border-soot/40 hover:text-soot'
+                    }`}
+                  >
+                    {n} {n === 1 ? 'Seat' : 'Seats'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Pricing Box in Schedule Step */}
             {hasActiveSubscription ? (
               <div className="p-4 rounded-2xl bg-[#E5ECE9]/60 border border-eucalyptus/40 flex items-center justify-between">
@@ -1054,9 +1114,32 @@ export default function TeamBooking() {
                     <span className="text-soot font-medium">{startTime} – {endTime} ({durationHours} {durationHours === 1 ? 'hour' : 'hours'}{isHourly ? '' : '/day'})</span>
                   </div>
                 )}
-                <div className="flex justify-between">
-                  <span className="text-moss">Reserved Seats</span>
-                  <span className="text-soot font-medium">{seats} seats</span>
+                <div className="flex justify-between items-center py-1">
+                  <div>
+                    <span className="text-moss block">Reserved Seats</span>
+                    <span className="text-[10px] text-moss/70">Adjust quantity</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSeats(s => Math.max(selectedEmployees.length || 1, s - 1))}
+                      disabled={seats <= (selectedEmployees.length || 1)}
+                      className="w-7 h-7 rounded-lg border border-soot/15 bg-white text-soot font-bold flex items-center justify-center hover:bg-plaster-dark/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer text-sm shadow-2xs"
+                      title="Decrease seats"
+                    >
+                      –
+                    </button>
+                    <span className="text-soot font-bold min-w-[2rem] text-center text-sm">{seats}</span>
+                    <button
+                      type="button"
+                      onClick={() => setSeats(s => Math.min(space.availableCapacity || 50, s + 1))}
+                      disabled={seats >= (space.availableCapacity || 50)}
+                      className="w-7 h-7 rounded-lg border border-soot/15 bg-white text-soot font-bold flex items-center justify-center hover:bg-plaster-dark/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer text-sm shadow-2xs"
+                      title="Increase seats"
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
                 {selectedEmployees.length > 0 && (
                   <div className="flex justify-between">
@@ -1064,6 +1147,40 @@ export default function TeamBooking() {
                     <span className="text-soot font-medium">{selectedEmployees.length} members</span>
                   </div>
                 )}
+              </div>
+            </div>
+
+            {/* Interactive Seat Counter / Stepper in Checkout Summary */}
+            <div className="p-4 rounded-2xl bg-[#F9F8F5] border border-soot/8 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-semibold text-soot flex items-center gap-1.5">
+                    <Users size={14} className="text-moss" />
+                    <span>Adjust Reserved Seats</span>
+                  </h4>
+                  <p className="text-[11px] text-moss">
+                    Modifying seats dynamically recalculates your order total and VAT below
+                  </p>
+                </div>
+                <span className="text-xs font-bold text-soot bg-white px-2.5 py-0.5 rounded-full border border-soot/10 shadow-2xs">
+                  {seats} {seats === 1 ? 'Seat' : 'Seats'}
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-1.5 pt-0.5">
+                {[1, 2, 3, 5, 10, 15, 20].filter(n => n >= (selectedEmployees.length || 1) && n <= (space.availableCapacity || 50)).map(n => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setSeats(n)}
+                    className={`px-2.5 py-1 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                      seats === n
+                        ? 'bg-soot text-plaster border-soot shadow-2xs'
+                        : 'bg-white text-moss border-soot/12 hover:border-soot/40 hover:text-soot'
+                    }`}
+                  >
+                    {n} {n === 1 ? 'Seat' : 'Seats'}
+                  </button>
+                ))}
               </div>
             </div>
 

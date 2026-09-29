@@ -77,6 +77,8 @@ export default function SpaceDetails() {
   const [startTime, setStartTime] = useState<string>(initialStartTime);
   const [endTime, setEndTime] = useState<string>(() => isHourlySpace ? calculateEndTime(initialStartTime, 1) : '05:00 PM');
   const [durationMonths, setDurationMonths] = useState(1);
+  // Number of seats for organization booking (min 1, max availableCapacity)
+  const [selectedSeats, setSelectedSeats] = useState(1);
   const [waitlistModal, setWaitlistModal] = useState(false);
   const [waitlistDone, setWaitlistDone] = useState(false);
   const [preferredDate, setPreferredDate] = useState('');
@@ -225,8 +227,9 @@ export default function SpaceDetails() {
       endTime: hasTimeWindow ? endTime : undefined,
       durationHours: hasTimeWindow ? durationHours : undefined,
       durationMonths,
+      seats: selectedSeats,
     };
-    if (currentUser.role === 'organization') {
+    if (currentUser.role === 'organization' || (currentUser.role as any) === 'HR_ADMIN') {
       navigate('team-booking', params);
     } else {
       navigate('booking-flow', params);
@@ -253,7 +256,23 @@ export default function SpaceDetails() {
     ? { label: `Only ${crowding.availableCapacity} left!`, color: 'text-amber-900 bg-amber-100/90 border-amber-200/90 backdrop-blur-md font-semibold' }
     : { label: `${crowding.availableCapacity} seats available`, color: 'text-emerald-900 bg-emerald-100/90 border-emerald-200/90 backdrop-blur-md font-semibold' };
 
+  const isOrganization = currentUser?.role === 'organization' || (currentUser?.role as any) === 'HR_ADMIN';
+  // For org users, effective seats affect total price; for individuals, always 1 seat
+  const effectiveSeats = isOrganization ? selectedSeats : 1;
+
   const currentPlanInfo = getEffectiveSpacePrice(
+    currentUser,
+    space,
+    selectedPlan,
+    undefined,
+    durationHours,
+    durationMonths,
+    effectiveSeats,
+    selectedPlan === 'daily' ? dailyDurationDays : 1
+  );
+
+  // Per-seat price for display
+  const perSeatInfo = getEffectiveSpacePrice(
     currentUser,
     space,
     selectedPlan,
@@ -791,6 +810,90 @@ export default function SpaceDetails() {
                 )}
               </div>
 
+              {/* Seat Quantity Selector - visible only for organization accounts */}
+              {isOrganization && !isHourlySpace && (
+                <div className="mb-4 p-4 rounded-2xl bg-plaster-dark/40 border border-soot/10 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label className="text-[11px] font-semibold uppercase tracking-wider text-moss flex items-center gap-1.5">
+                        <Users size={13} />
+                        <span>Number of Seats</span>
+                      </label>
+                      <p className="text-[10px] text-moss mt-0.5">
+                        Select how many desks / seats for your team
+                      </p>
+                    </div>
+                    <span className="text-xs font-bold text-soot bg-white px-3 py-1 rounded-full border border-soot/10 shadow-2xs">
+                      {selectedSeats} {selectedSeats === 1 ? 'Seat' : 'Seats'}
+                    </span>
+                  </div>
+
+                  {/* Stepper Controls */}
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedSeats(s => Math.max(1, s - 1))}
+                      disabled={selectedSeats <= 1}
+                      className="w-9 h-9 rounded-xl border border-soot/15 bg-white text-soot font-bold text-lg flex items-center justify-center hover:bg-plaster-dark/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
+                    >
+                      –
+                    </button>
+                    <div className="flex-1 text-center">
+                      <span className="text-2xl font-serif-display font-normal text-soot">{selectedSeats}</span>
+                      <span className="text-xs text-moss ml-1">{selectedSeats === 1 ? 'seat' : 'seats'}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedSeats(s => Math.min(crowding.availableCapacity || 50, s + 1))}
+                      disabled={selectedSeats >= (crowding.availableCapacity || 50)}
+                      className="w-9 h-9 rounded-xl border border-soot/15 bg-white text-soot font-bold text-lg flex items-center justify-center hover:bg-plaster-dark/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
+                    >
+                      +
+                    </button>
+                  </div>
+
+                  {/* Quick-select pills */}
+                  <div className="flex flex-wrap gap-1.5">
+                    {[1, 2, 3, 5, 10].filter(n => n <= (crowding.availableCapacity || 50)).map(n => (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => setSelectedSeats(n)}
+                        className={`px-3 py-1 rounded-full text-[11px] font-semibold border transition-all cursor-pointer ${
+                          selectedSeats === n
+                            ? 'bg-soot text-plaster border-soot'
+                            : 'bg-white text-moss border-soot/15 hover:border-soot/40 hover:text-soot'
+                        }`}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Price breakdown per seat and total */}
+                  <div className="bg-white rounded-xl p-3 border border-soot/8 text-xs space-y-1">
+                    <div className="flex justify-between text-moss">
+                      <span>Price per seat</span>
+                      <span className="font-semibold text-soot">
+                        {perSeatInfo.isCovered ? 'Covered by Plan' : `SAR ${perSeatInfo.effectivePrice.toLocaleString()}`}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-moss">
+                      <span>Seats selected</span>
+                      <span className="font-semibold text-soot">× {selectedSeats}</span>
+                    </div>
+                    <div className="flex justify-between pt-1.5 border-t border-soot/8">
+                      <span className="font-semibold text-soot">Total</span>
+                      <span className="font-bold text-soot">
+                        {currentPlanInfo.isCovered
+                          ? <span className="text-emerald-700">Included in Pass</span>
+                          : `SAR ${currentPlanInfo.effectivePrice.toLocaleString()}`}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="mb-6 p-4 rounded-2xl bg-[#FAF7F2] border border-soot/10 space-y-2">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-moss font-normal">Capacity</span>
@@ -864,7 +967,13 @@ export default function SpaceDetails() {
                     onClick={handleBook}
                     className="w-full py-3.5 px-4 rounded-xl font-semibold text-sm bg-soot text-plaster hover:bg-moss active:scale-[0.99] transition-all duration-200 shadow-md flex items-center justify-center gap-2 cursor-pointer focus-visible:ring-2 focus-visible:ring-eucalyptus"
                   >
-                    <span>{currentUser ? (currentPlanInfo.effectivePrice === 0 ? 'Reserve Workspace (Covered by Pass)' : `Proceed to Reservation (SAR ${currentPlanInfo.effectivePrice.toLocaleString()})`) : 'Sign in to Reserve'}</span>
+                    <span>{currentUser
+                      ? (currentPlanInfo.effectivePrice === 0
+                        ? 'Reserve Workspace (Covered by Pass)'
+                        : isOrganization && selectedSeats > 1
+                          ? `Proceed to Reservation (SAR ${currentPlanInfo.effectivePrice.toLocaleString()} · ${selectedSeats} Seats)`
+                          : `Proceed to Reservation (SAR ${currentPlanInfo.effectivePrice.toLocaleString()})`)
+                      : 'Sign in to Reserve'}</span>
                     <ArrowRight size={16} />
                   </button>
 
