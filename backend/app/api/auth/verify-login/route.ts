@@ -34,45 +34,30 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "User ID and verification code are required." }, { status: 400 });
     }
 
-    const isDevOtpAllowed = process.env.ENABLE_DEV_OTP !== "false";
-    const isMasterCode = isDevOtpAllowed && code === "123456";
+const otpRecord = await prisma.otpCode.findFirst({
+  where: {
+    userId,
+    purpose: "LOGIN",
+    isUsed: false,
+    expiresAt: { gt: new Date() },
+  },
+  orderBy: { createdAt: "desc" },
+});
 
-    if (!isMasterCode) {
-      const otpRecord = await prisma.otpCode.findFirst({
-        where: {
-          userId,
-          purpose: "LOGIN",
-          isUsed: false,
-          expiresAt: { gt: new Date() },
-        },
-        orderBy: { createdAt: "desc" },
-      });
+if (!otpRecord) {
+  return NextResponse.json({ error: "Invalid or expired verification code." }, { status: 400 });
+}
 
-      if (!otpRecord) {
-        return NextResponse.json({ error: "Invalid or expired verification code." }, { status: 400 });
-      }
+const isValid = await bcrypt.compare(code, otpRecord.codeHash);
+if (!isValid) {
+  return NextResponse.json({ error: "Invalid verification code." }, { status: 400 });
+}
 
-      const isValid = await bcrypt.compare(code, otpRecord.codeHash);
-      if (!isValid) {
-        return NextResponse.json({ error: "Invalid verification code." }, { status: 400 });
-      }
-
+    if (otpRecord) {
       await prisma.otpCode.update({
         where: { id: otpRecord.id },
         data: { isUsed: true },
       });
-    } else {
-      // Mark any pending OTP code as used
-      const existingOtp = await prisma.otpCode.findFirst({
-        where: { userId, purpose: "LOGIN", isUsed: false },
-        orderBy: { createdAt: "desc" },
-      });
-      if (existingOtp) {
-        await prisma.otpCode.update({
-          where: { id: existingOtp.id },
-          data: { isUsed: true },
-        });
-      }
     }
 
     const user = await prisma.user.findUnique({
