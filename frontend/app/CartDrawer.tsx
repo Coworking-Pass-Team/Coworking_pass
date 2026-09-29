@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   ShoppingBag,
   X,
@@ -41,6 +41,8 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   const [step, setStep] = useState<'cart' | 'review'>('cart');
   const [useLoyaltyPoints, setUseLoyaltyPoints] = useState(false);
   const [useWalletBalance, setUseWalletBalance] = useState(false);
+  // Synchronous re-entry guard so a double click cannot run checkout (and the wallet debit) twice
+  const checkoutInFlightRef = useRef(false);
   const hasActiveSubscription = Boolean(currentUser?.hasActivePass);
 
   useEffect(() => {
@@ -88,6 +90,8 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   };
 
   const handleFinalCheckout = async () => {
+    if (checkoutInFlightRef.current) return;
+    checkoutInFlightRef.current = true;
     if (!currentUser) {
       onClose();
       navigate('login');
@@ -97,11 +101,15 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
     // Charge the wallet first; abort checkout if the debit fails
     if (useWalletBalance && walletDeduction > 0 && withdrawFromWallet) {
       const payment = await withdrawFromWallet(walletDeduction, 'Cart Checkout Payment');
-      if (!payment.success) return;
+      if (!payment.success) {
+        checkoutInFlightRef.current = false;
+        return;
+      }
     }
 
     const pointsToRedeem = useLoyaltyPoints ? maxRedeemablePoints : 0;
     const createdBookings = checkoutCart(pointsToRedeem);
+    checkoutInFlightRef.current = false;
     onClose();
     setStep('cart');
     setUseLoyaltyPoints(false);

@@ -49,6 +49,7 @@ export default function UsersAdmin() {
     blockUser,
     unblockUser,
     changeUserRole,
+    updateUserProfile,
     showToast,
     deleteUser,
     deletePartner,
@@ -228,18 +229,20 @@ export default function UsersAdmin() {
     }
 
     if (editingUser) {
-      if (editingUser.role !== role) {
-        changeUserRole(editingUser.id, role);
-      }
-      editingUser.name = name;
-      editingUser.email = email;
-      editingUser.phone = phone;
-      if (role === 'organization') {
-        editingUser.orgName = orgName;
-        editingUser.orgSize = parseInt(orgSize) || 10;
-        editingUser.industry = industry;
-      }
-      showToast('User profile updated successfully!', 'success');
+      // Persist to the API; the modal stays open if the update is rejected
+      updateUserProfile(editingUser.id, {
+        name: name.trim(),
+        email: email.trim(),
+        phone,
+        role,
+        ...(role === 'organization' ? { orgName, orgSize: parseInt(orgSize) || 10, industry } : {}),
+      }).then((res) => {
+        if (res.success) {
+          showToast('User profile updated successfully!', 'success');
+          setAddEditModal(false);
+        }
+      });
+      return;
     } else {
       const newUser: User = {
         id: `user-${Date.now()}`,
@@ -279,10 +282,9 @@ export default function UsersAdmin() {
     setSelectedUser(null);
   };
 
-  const handleRoleChange = (userId: string, newRole: UserRole) => {
-    changeUserRole(userId, newRole);
+  const handleRoleChange = async (userId: string, newRole: UserRole) => {
     setActiveRowRoleDropdown(null);
-    showToast('User role updated');
+    await changeUserRole(userId, newRole);
   };
 
   const activeCount = nonAdmins.filter((u) => !u.isBlocked).length;

@@ -160,7 +160,7 @@ const faqs = [
 type PaymentMethodType = 'MADA' | 'APPLE_PAY' | 'CREDIT_CARD' | 'CORPORATE_INVOICE' | 'WALLET';
 
 export default function Pricing() {
-  const { currentUser, showToast, navigate, updateCurrentUser, addNotification, withdrawFromWallet, getPassRefundEligibility, cancelSubscriptionPass } = useApp();
+  const { currentUser, showToast, navigate, updateCurrentUser, addNotification, withdrawFromWallet, getPassRefundEligibility, cancelSubscriptionPass, addSupportTicket } = useApp();
   
   const isOrg = currentUser?.role === 'organization' || currentUser?.role === 'HR_ADMIN' || (currentUser?.role as any) === 'B2B';
   const isInd = Boolean(currentUser && !isOrg);
@@ -181,6 +181,31 @@ export default function Pricing() {
   const [checkoutPlan, setCheckoutPlan] = useState<PlanItem | null>(null);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethodType>('MADA');
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+
+  // Custom Enterprise quote request modal state (the enterprise plan is priced by quote, not checkout)
+  const [showEnterpriseModal, setShowEnterpriseModal] = useState(false);
+  const [enterpriseForm, setEnterpriseForm] = useState({ company: '', contact: '', email: '', desks: '50', notes: '' });
+
+  const submitEnterpriseInquiry = () => {
+    if (!enterpriseForm.company.trim() || !enterpriseForm.email.trim()) {
+      showToast('Please enter your company name and a contact email.', 'error');
+      return;
+    }
+    addSupportTicket({
+      userId: currentUser?.id,
+      userName: enterpriseForm.contact.trim() || currentUser?.name || 'Enterprise Lead',
+      userEmail: enterpriseForm.email.trim(),
+      category: 'general',
+      subject: `Enterprise quote request - ${enterpriseForm.company.trim()}`,
+      message: `Company: ${enterpriseForm.company.trim()}
+Contact: ${enterpriseForm.contact.trim() || currentUser?.name || '-'}
+Email: ${enterpriseForm.email.trim()}
+Desks required: ${enterpriseForm.desks}
+Notes: ${enterpriseForm.notes.trim() || '-'}`,
+    });
+    setShowEnterpriseModal(false);
+    showToast('Thanks! Our enterprise advisory team will contact you with a tailored quote.', 'success');
+  };
 
   // Manage Subscription modal state
   const [showManageModal, setShowManageModal] = useState(false);
@@ -218,7 +243,13 @@ export default function Pricing() {
 
   const handlePlanCardClick = (plan: PlanItem) => {
     if (!plan.price) {
-      navigate('contact');
+      // Custom-priced plan: collect a quote request instead of opening checkout
+      if (currentUser) {
+        setEnterpriseForm(f => ({ ...f, contact: currentUser.name || '', email: currentUser.email || '' }));
+        setShowEnterpriseModal(true);
+      } else {
+        navigate('contact');
+      }
       return;
     }
 
@@ -902,6 +933,64 @@ export default function Pricing() {
             <div className="flex items-center gap-2 text-[11px] text-moss bg-soot/5 p-3 rounded-xl border border-soot/8">
               <ShieldCheck size={16} className="text-emerald-700 shrink-0" />
               <span>Payments are encrypted with 256-bit SSL and comply with Saudi Central Bank (SAMA) standards.</span>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Custom Enterprise quote request */}
+      {showEnterpriseModal && (
+        <Modal
+          open={showEnterpriseModal}
+          onClose={() => setShowEnterpriseModal(false)}
+          title="Request an Enterprise Quote"
+          subtitle="Tell us about your team and our advisory team will prepare a tailored proposal"
+          size="md"
+          footer={
+            <>
+              <button
+                type="button"
+                onClick={() => setShowEnterpriseModal(false)}
+                className="px-4 py-2.5 rounded-xl border border-soot/12 text-xs font-semibold text-soot hover:bg-plaster-dark/40 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={submitEnterpriseInquiry}
+                className="px-4 py-2.5 rounded-xl bg-soot text-plaster text-xs font-semibold hover:bg-moss cursor-pointer"
+              >
+                Send Request
+              </button>
+            </>
+          }
+        >
+          <div className="space-y-3">
+            {([
+              ['Company name *', 'company', 'text'],
+              ['Contact name', 'contact', 'text'],
+              ['Contact email *', 'email', 'email'],
+              ['Desks required', 'desks', 'number'],
+            ] as const).map(([label, key, type]) => (
+              <div key={key}>
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-moss mb-1">{label}</label>
+                <input
+                  type={type}
+                  min={type === 'number' ? 50 : undefined}
+                  value={enterpriseForm[key]}
+                  onChange={(e) => setEnterpriseForm(f => ({ ...f, [key]: e.target.value }))}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-eucalyptus"
+                />
+              </div>
+            ))}
+            <div>
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-moss mb-1">Requirements</label>
+              <textarea
+                rows={3}
+                value={enterpriseForm.notes}
+                onChange={(e) => setEnterpriseForm(f => ({ ...f, notes: e.target.value }))}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-eucalyptus"
+              />
             </div>
           </div>
         </Modal>

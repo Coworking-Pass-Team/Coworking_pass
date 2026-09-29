@@ -41,7 +41,8 @@ import {
   calculateSpaceCrowding,
   PassRefundEligibility,
   CITY_COORDINATES,
-  isHourlyAllowed
+  isHourlyAllowed,
+  hhmmTo12h,
 } from '@/types/types';
 import AccountSuspendedModal from '@/components/AccountSuspendedModal';
 import { INITIAL_SPACES, INITIAL_USERS, INITIAL_BOOKINGS, INITIAL_NOTIFICATIONS, INITIAL_SUPPORT_TICKETS } from '@/data/data';
@@ -64,6 +65,7 @@ import {
   getCompanyApi,
   depositCompanyWalletApi,
   withdrawCompanyWalletApi,
+  mapRoleToBackend,
   updateCompanyApi,
   createTicketApi,
   createTicketReplyApi,
@@ -500,7 +502,8 @@ interface AppContextType {
   blockUser: (id: string) => Promise<{ success: boolean; error?: string }>;
   unblockUser: (id: string) => Promise<{ success: boolean; error?: string }>;
   deleteUser: (userId: string) => Promise<{ success: boolean; error?: string }>;
-  changeUserRole: (id: string, role: UserRole) => void;
+  changeUserRole: (id: string, role: UserRole) => Promise<{ success: boolean; error?: string }>;
+  updateUserProfile: (id: string, updates: { name?: string; email?: string; role?: UserRole; phone?: string; orgName?: string; orgSize?: number; industry?: string }) => Promise<{ success: boolean; error?: string }>;
 
   waitlist: Record<string, boolean>;
   autobooking: Record<string, boolean>;
@@ -535,7 +538,8 @@ interface AppContextType {
   companyData: any | null;
   fetchCompanyWallet: (companyId?: string) => Promise<{ balance: number; company?: any } | null>;
   depositToCompanyWallet: (amount: number, companyId?: string) => Promise<{ success: boolean; message: string; balance?: number }>;
-  withdrawFromCompanyWallet: (amount: number, companyId?: string, description?: string) => Promise<{ success: boolean; message: string; balance?: number }>;
+  checkSeatAvailability: (params: { spaceId: string; plan: string; date: string; startTime?: string; endTime?: string; days?: number; months?: number; seats?: number }) => Promise<{ ok: boolean; message?: string }>;
+  withdrawFromCompanyWallet: (amount: number, companyId?: string, description?: string, idempotencyKey?: string) => Promise<{ success: boolean; message: string; balance?: number }>;
 
   loyaltyRules: LoyaltyRule[];
   fetchLoyaltyRules: () => Promise<LoyaltyRule[]>;
@@ -1236,6 +1240,46 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
   };
 
+  // Server-side atomic refund: credits the right wallet (company shared wallet for corporate accounts) and syncs local state
+  const requestRefund = async (payload: { bookingId?: string; subscriptionId?: string }): Promise<{
+    success: boolean;
+    error?: string;
+    refundAmount?: number;
+    walletTarget?: 'COMPANY' | 'PERSONAL';
+    walletBalance?: number;
+  }> => {
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const storedToken = getStoredToken();
+      if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+      const response = await fetch(`${getApiBaseUrl()}/refund`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        return { success: false, error: data.error || 'Refund failed' };
+      }
+      if (typeof data.walletBalance === 'number') {
+        if (data.walletTarget === 'COMPANY') {
+          setCompanyWalletBalance(data.walletBalance);
+          setCompanyData((prev: any) => prev ? { ...prev, balance: data.walletBalance } : prev);
+        } else {
+          setCurrentUser((prev) => (prev ? { ...prev, walletBalance: data.walletBalance } : prev));
+        }
+      }
+      return {
+        success: true,
+        refundAmount: data.refundAmount,
+        walletTarget: data.walletTarget,
+        walletBalance: data.walletBalance,
+      };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Network error' };
+    }
+  };
+
   const cancelSubscriptionPass = async (targetUser?: User): Promise<{
     success: boolean;
     refunded: boolean;
@@ -1251,12 +1295,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     // 1. Run strict refund eligibility check
     const eligibility = getPassRefundEligibility(u);
 
-    // 2. Update backend subscription status to CANCELLED
+    // 2. Resolve the backend subscription, then either refund atomically on the server or just cancel it
+    let subIdToCancel: string | null = null;
     try {
       const storedToken = getStoredToken();
       const storedUserId = typeof window !== 'undefined' ? (localStorage.getItem('cp_userId') || u.id) : u.id;
 
-      let subIdToCancel: string | null = null;
       const subInState = subscriptionsApi.find(s => (s.userId === u.id || s.userId === storedUserId) && s.status === 'ACTIVE');
       if (subInState) {
         subIdToCancel = subInState.id;
@@ -1265,19 +1309,42 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const match = activeSubs.find(s => (s.userId === u.id || s.userId === storedUserId) && s.status === 'ACTIVE');
         if (match) subIdToCancel = match.id;
       }
-
-      if (subIdToCancel) {
-        await updateSubscription(subIdToCancel, { status: 'CANCELLED' });
-      }
     } catch (dbErr) {
-      console.warn('[DB Subscription Cancellation Notice]', dbErr);
+      console.warn('[DB Subscription Lookup Notice]', dbErr);
+    }
+
+    let serverRefund: Awaited<ReturnType<typeof requestRefund>> | null = null;
+    if (eligibility.isEligible && eligibility.refundAmount > 0 && subIdToCancel) {
+      serverRefund = await requestRefund({ subscriptionId: subIdToCancel });
+      if (!serverRefund.success) {
+        showToast(serverRefund.error || 'Refund failed. Your subscription was not cancelled.', 'error');
+        return { success: false, refunded: false, refundAmount: 0, message: serverRefund.error || 'Refund failed' };
+      }
+    } else if (subIdToCancel) {
+      try {
+        await updateSubscription(subIdToCancel, { status: 'CANCELLED' });
+      } catch (dbErr) {
+        console.warn('[DB Subscription Cancellation Notice]', dbErr);
+      }
     }
 
     // 3. Process refund to wallet if strictly eligible
     const currentWallet = u.walletBalance || 0;
     let newWalletBalance = currentWallet;
 
-    if (eligibility.isEligible && eligibility.refundAmount > 0) {
+    if (serverRefund?.success) {
+      // Already credited atomically by the server (company wallet for corporate accounts)
+      if (serverRefund.walletTarget !== 'COMPANY' && typeof serverRefund.walletBalance === 'number') {
+        newWalletBalance = serverRefund.walletBalance;
+      }
+      addNotification({
+        userId: u.id,
+        title: 'Subscription Cancelled & Refunded',
+        message: `Your ${u.membershipTier || 'Pass'} has been cancelled. SAR ${(serverRefund.refundAmount ?? eligibility.refundAmount).toLocaleString()} was refunded to your ${serverRefund.walletTarget === 'COMPANY' ? 'corporate shared wallet' : 'wallet'}.`,
+        type: 'payment',
+      });
+      showToast(`Subscription cancelled. SAR ${(serverRefund.refundAmount ?? eligibility.refundAmount).toLocaleString()} refunded to your ${serverRefund.walletTarget === 'COMPANY' ? 'corporate shared wallet' : 'wallet'}!`, 'success');
+    } else if (eligibility.isEligible && eligibility.refundAmount > 0) {
       newWalletBalance = currentWallet + eligibility.refundAmount;
 
       // Sync refund to backend wallet endpoint
@@ -1934,10 +2001,38 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Pre-flight check (capacity + operating hours) run before the customer is charged
+  const checkSeatAvailability = async (params: {
+    spaceId: string; plan: string; date: string; startTime?: string; endTime?: string; days?: number; months?: number; seats?: number;
+  }): Promise<{ ok: boolean; message?: string }> => {
+    try {
+      const query = new URLSearchParams({
+        plan: params.plan,
+        date: params.date,
+        seats: String(params.seats || 1),
+      });
+      if (params.startTime) query.set('startTime', params.startTime);
+      if (params.endTime) query.set('endTime', params.endTime);
+      if (params.days) query.set('days', String(params.days));
+      if (params.months) query.set('months', String(params.months));
+      const response = await fetch(`${getApiBaseUrl()}/workspaces/${params.spaceId}/availability?${query.toString()}`);
+      if (!response.ok) return { ok: true };
+      const data = await response.json();
+      if (data.available === false) {
+        return { ok: false, message: data.reason || 'This time is no longer available.' };
+      }
+      return { ok: true };
+    } catch (_) {
+      // Network problem: the server still validates when the booking is created
+      return { ok: true };
+    }
+  };
+
   const withdrawFromCompanyWallet = async (
     amount: number,
     companyId?: string,
-    description?: string
+    description?: string,
+    idempotencyKey?: string
   ): Promise<{ success: boolean; message: string; balance?: number }> => {
     if (amount <= 0) return { success: false, message: 'Invalid withdrawal amount' };
     let targetCompId = companyId || currentUser?.companyId || companyData?.id;
@@ -1947,7 +2042,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (compRes.success && Array.isArray(compRes.data) && compRes.data.length > 0) {
           const userCompany = compRes.data.find((c: any) =>
             c.hrAdminId === currentUser?.id || c.id === currentUser?.companyId
-          ) || compRes.data[0];
+          );
           targetCompId = userCompany?.id;
         }
       } catch (_) {}
@@ -1957,7 +2052,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const res = await withdrawCompanyWalletApi(targetCompId, amount);
+      const res = await withdrawCompanyWalletApi(targetCompId, amount, { description, referenceId: idempotencyKey });
       if (!res.success) {
         const msg = res.error || 'Insufficient corporate wallet balance or withdrawal failed';
         showToast(msg, 'error');
@@ -2058,7 +2153,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
               map.set(u.email.toLowerCase(), {
                 ...existing,
                 ...u,
-                role: existing?.role || u.role,
+                // The database is the source of truth for role and block state
+                role: u.role,
                 isBlocked: Boolean(u.isBlocked),
               });
             }
@@ -2551,7 +2647,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
             images: finalImages,
             amenities: finalAmenities,
             totalCapacity: w.totalCapacity !== undefined && w.totalCapacity !== null ? Number(w.totalCapacity) : 0,
-            availableCapacity: w.totalCapacity !== undefined && w.totalCapacity !== null ? Number(w.totalCapacity) : 0,
+            availableCapacity: (w as any).availableCapacity !== undefined && (w as any).availableCapacity !== null
+              ? Number((w as any).availableCapacity)
+              : (w.totalCapacity !== undefined && w.totalCapacity !== null ? Number(w.totalCapacity) : 0),
 
             pricing: {
               hourly: (w as any).hourlyRate ?? existing?.pricing?.hourly ?? (isHourlyAllowed(preservedType) ? (w.dailyRate ? Math.round(w.dailyRate / 4) : 150) : 45),
@@ -2563,9 +2661,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
             bookingPackages: existing?.bookingPackages || [],
             rating: existing?.rating || 4.8,
             reviewCount: existing?.reviewCount || 12,
-            isVisible: existing?.isVisible !== undefined ? existing.isVisible : true,
+            isVisible: (w as any).isVisible !== undefined && (w as any).isVisible !== null ? Boolean((w as any).isVisible) : (existing?.isVisible !== undefined ? existing.isVisible : true),
             isFeatured: existing?.isFeatured !== undefined ? existing.isFeatured : false,
-            openHours: existing?.openHours || '08:00 AM - 10:00 PM',
+            openHours: (w as any).is24Hours
+              ? '24/7'
+              : (hhmmTo12h((w as any).openingTime) && hhmmTo12h((w as any).closingTime)
+                ? `${hhmmTo12h((w as any).openingTime)} - ${hhmmTo12h((w as any).closingTime)}`
+                : (existing?.openHours || '08:00 AM - 10:00 PM')),
+            openingTime: (w as any).openingTime,
+            closingTime: (w as any).closingTime,
+            is24Hours: Boolean((w as any).is24Hours),
             phone: existing?.phone || '+966 50 000 0000',
             email: isBelongingToCurrentUser ? (currentUser?.email || w.partner?.contactEmail || 'contact@coworkingpass.sa') : (w.partner?.contactEmail || existing?.email || 'contact@coworkingpass.sa'),
             ownerId: isBelongingToCurrentUser ? (currentUser?.id || w.partnerId) : w.partnerId,
@@ -2619,6 +2724,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     totalCapacity: number;
     amenities?: string[];
     images?: string[];
+    openingTime?: string;
+    closingTime?: string;
+    is24Hours?: boolean;
   }): Promise<{ success: boolean; workspace?: WorkspaceApi; error?: string }> => {
     try {
       const headers: Record<string, string> = {
@@ -2665,6 +2773,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       totalCapacity: number;
       amenities: string[];
       images: string[];
+      openingTime: string;
+      closingTime: string;
+      is24Hours: boolean;
+      isVisible: boolean;
     }>
   ): Promise<{ success: boolean; workspace?: WorkspaceApi; error?: string }> => {
     try {
@@ -3950,6 +4062,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
             totalCapacity: space.totalCapacity || 30,
             amenities: space.amenities || [],
             images: space.images || [],
+            openingTime: space.openingTime,
+            closingTime: space.closingTime,
+            is24Hours: space.is24Hours,
           });
 
           if (createRes.success && createRes.workspace) {
@@ -4092,6 +4207,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (updates.pricing?.yearly !== undefined) payload.yearlyRate = updates.pricing.yearly;
         if (updates.amenities !== undefined) payload.amenities = updates.amenities;
         if (updates.images !== undefined) payload.images = updates.images;
+        if (updates.openingTime !== undefined) payload.openingTime = updates.openingTime;
+        if (updates.closingTime !== undefined) payload.closingTime = updates.closingTime;
+        if (updates.is24Hours !== undefined) payload.is24Hours = updates.is24Hours;
 
         if (targetDbId && (Object.keys(payload).length > 0 || updates.type)) {
           if (Object.keys(payload).length > 0) {
@@ -4526,11 +4644,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
               durationDetails: computedDetails,
               durationDays: computedDays,
               durationMonths: computedMonths,
+              seats: booking.seats || 1,
               bookingDate,
               status: 'CONFIRMED',
             }),
           });
 
+          if (!directRes.ok && (directRes.status === 409 || directRes.status === 400)) {
+            const rejection = await directRes.json().catch(() => ({} as any));
+            setBookings(prev => prev.filter(b => b.id !== newBooking.id));
+            showToast(rejection.error || 'This booking could not be confirmed. Please choose another time.', 'error');
+            fetchWorkspaces();
+          }
           if (directRes.ok) {
             const dbBooking = await directRes.json();
             setDirectBookingsApi(prev => [dbBooking, ...prev]);
@@ -4545,6 +4670,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               } : b));
             }
 
+            fetchWorkspaces();
             await fetch(`${getApiBaseUrl()}/payments`, {
               method: 'POST',
               headers,
@@ -4640,9 +4766,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
                   endTime: booking.endTime,
                   hoursUsed: hourlyDuration,
                   durationDetails: hourlyDetails,
+                  seats: booking.seats || 1,
                   status: 'ACTIVE',
                 }),
               });
+              if (!hbRes.ok && (hbRes.status === 409 || hbRes.status === 400)) {
+                const rejection = await hbRes.json().catch(() => ({} as any));
+                setBookings(prev => prev.filter(b => b.id !== newBooking.id));
+                showToast(rejection.error || 'This booking could not be confirmed. Please choose another time.', 'error');
+                fetchWorkspaces();
+              }
               if (hbRes.ok) {
                 const hbData = await hbRes.json();
                 setHourlyBookingsApi(prev => [hbData, ...prev]);
@@ -4657,6 +4790,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                   } : b));
                 }
 
+                fetchWorkspaces();
                 await fetch(`${getApiBaseUrl()}/payments`, {
                   method: 'POST',
                   headers,
@@ -4694,6 +4828,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       )
     );
 
+    const price = getBookingPrice(booking, spaces);
+    const userRole = currentUser?.id === booking.userId ? currentUser?.role : 'individual';
+    const { eligible, requiredHours } = isCancellationRefundEligible(booking.startDate, booking.startTime, userRole);
+    const shouldRefundToWallet = Boolean(currentUser && currentUser.id === booking.userId && eligible && refundMethod === 'wallet' && price > 0);
+
+    // Persist the cancellation, then let the server credit the refund atomically (company wallet for corporate accounts)
     (async () => {
       try {
         const storedToken = getStoredToken();
@@ -4702,14 +4842,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (!directRes.success) {
           await updateHourlyBooking(id, { status: 'CANCELLED' });
         }
+        if (shouldRefundToWallet) {
+          const refund = await requestRefund({ bookingId: id });
+          if (!refund.success) {
+            showToast(refund.error || 'Refund could not be credited to your wallet. Please contact support.', 'error');
+          } else if (refund.walletTarget !== 'COMPANY') {
+            const refundTx: WalletTransaction = {
+              id: `tx-${Date.now()}`,
+              walletId: currentUser?.id || '',
+              userId: currentUser?.id || '',
+              amount: refund.refundAmount ?? price,
+              type: 'REFUND',
+              description: `Refund for cancelled booking (${booking.spaceName})`,
+              balanceAfter: refund.walletBalance ?? 0,
+              createdAt: new Date().toISOString(),
+            };
+            setWalletTransactions((prev) => [refundTx, ...prev]);
+          }
+        }
       } catch (err) {
         console.warn('Booking cancellation DB sync notice:', err);
       }
     })();
-
-    const price = getBookingPrice(booking, spaces);
-    const userRole = currentUser?.id === booking.userId ? currentUser?.role : 'individual';
-    const { eligible, requiredHours } = isCancellationRefundEligible(booking.startDate, booking.startTime, userRole);
 
     if (currentUser && currentUser.id === booking.userId) {
       let updatedUser = { ...currentUser };
@@ -4717,47 +4871,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       if (eligible) {
         if (refundMethod === 'wallet') {
-          const currentWallet = currentUser.walletBalance || 0;
-          updatedUser = { ...currentUser, walletBalance: currentWallet + price };
-          msg = `Booking cancelled. SAR ${price.toLocaleString()} refunded to your wallet balance.`;
-
-          if (price > 0) {
-            (async () => {
-              try {
-                const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-                const storedToken = getStoredToken();
-                if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
-                const response = await fetch(`${getApiBaseUrl()}/wallet`, {
-                  method: 'POST',
-                  headers,
-                  body: JSON.stringify({
-                    userId: currentUser.id,
-                    amount: price,
-                    type: 'REFUND',
-                    description: `Refund for cancelled booking (${booking.spaceName})`,
-                    referenceId: booking.id,
-                  }),
-                });
-                if (response.ok) {
-                  const data = await response.json();
-                  setCurrentUser((prev) => (prev ? { ...prev, walletBalance: data.balance } : null));
-                  const refundTx: WalletTransaction = data.transaction || {
-                    id: `tx-${Date.now()}`,
-                    walletId: currentUser.id,
-                    userId: currentUser.id,
-                    amount: price,
-                    type: 'REFUND',
-                    description: `Refund for cancelled booking (${booking.spaceName})`,
-                    balanceAfter: data.balance ?? (currentWallet + price),
-                    createdAt: new Date().toISOString(),
-                  };
-                  setWalletTransactions((prev) => [refundTx, ...prev.filter(t => t.id !== refundTx.id)]);
-                }
-              } catch (err) {
-                console.warn('Wallet refund DB sync notice:', err);
-              }
-            })();
-          }
+          // The wallet balance is updated from the server response once the refund is credited
+          msg = `Booking cancelled. SAR ${price.toLocaleString()} refund is being credited to your ${currentUser.role === 'organization' ? 'corporate shared wallet' : 'wallet'}.`;
         } else {
           msg = `Booking cancelled. Refund of SAR ${price.toLocaleString()} initiated to original card (5-14 business days).`;
         }
@@ -5210,9 +5325,75 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const changeUserRole = (id: string, role: UserRole) => {
-    setUsers(prev => prev.map(u => u.id === id ? { ...u, role } : u));
+  // Applies a change to the cached users list and localStorage after the API confirmed it
+  const applyUserUpdate = (id: string, patch: Partial<User>) => {
+    setUsers(prev => {
+      const next = prev.map(u => (u.id === id || (u as any).dbId === id) ? { ...u, ...patch } : u);
+      if (typeof window !== 'undefined') {
+        try { localStorage.setItem('cp_users', JSON.stringify(next)); } catch (_) { }
+      }
+      return next;
+    });
+    setCurrentUser(prev => (prev && (prev.id === id) ? { ...prev, ...patch } : prev));
+  };
+
+  const putUser = async (id: string, body: Record<string, unknown>): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const storedToken = getStoredToken();
+      if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+      const target = users.find(u => u.id === id || (u as any).dbId === id);
+      const dbId = (target as any)?.dbId || target?.id || id;
+      const response = await fetch(`${getApiBaseUrl()}/users/${dbId}`, { method: 'PUT', headers, body: JSON.stringify(body) });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) return { success: false, error: data.error || 'Failed to update user' };
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Network error' };
+    }
+  };
+
+  const changeUserRole = async (id: string, role: UserRole): Promise<{ success: boolean; error?: string }> => {
+    const res = await putUser(id, { role: mapRoleToBackend(role) });
+    if (!res.success) {
+      showToast(res.error || 'Failed to update user role.', 'error');
+      return res;
+    }
+    applyUserUpdate(id, { role });
     showToast('User permissions updated.');
+    return res;
+  };
+
+  const updateUserProfile = async (
+    id: string,
+    updates: { name?: string; email?: string; role?: UserRole; phone?: string; orgName?: string; orgSize?: number; industry?: string }
+  ): Promise<{ success: boolean; error?: string }> => {
+    const target = users.find(u => u.id === id || (u as any).dbId === id);
+    const body: Record<string, unknown> = {};
+    if (updates.name !== undefined && updates.name !== target?.name) body.name = updates.name;
+    if (updates.email !== undefined && updates.email.toLowerCase() !== (target?.email || '').toLowerCase()) body.email = updates.email;
+    if (updates.role !== undefined && updates.role !== target?.role) body.role = mapRoleToBackend(updates.role);
+
+    if (Object.keys(body).length > 0) {
+      const res = await putUser(id, body);
+      if (!res.success) {
+        showToast(res.error || 'Failed to update user.', 'error');
+        return res;
+      }
+    }
+
+    // Organization details live on the company record
+    if (updates.orgName !== undefined && target?.companyId && updates.orgName !== target.orgName) {
+      const companyRes = await updateCompanyApi(target.companyId, { companyName: updates.orgName });
+      if (!companyRes.success) {
+        showToast(companyRes.error || 'Failed to update organization name.', 'error');
+        return { success: false, error: companyRes.error };
+      }
+    }
+
+    const { role, ...rest } = updates;
+    applyUserUpdate(id, { ...rest, ...(role !== undefined ? { role } : {}) });
+    return { success: true };
   };
 
   const joinWaitlist = async (spaceId: string, options?: { preferredDate?: string; alertPreferences?: { sms: boolean; email: boolean; whatsapp: boolean } }) => {
@@ -5868,18 +6049,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('cp_support_tickets', JSON.stringify(updated));
     }
 
-    // Sync to PostgreSQL DB Ticket table
+    // Persist to the Ticket table and adopt the database id so replies and status changes reference a real ticket
     (async () => {
       try {
-        const compRes = await getCompaniesApi();
-        const companies = compRes.success && Array.isArray(compRes.data) ? compRes.data : [];
-        const compId = currentUser?.companyId || companies[0]?.id;
-        if (compId) {
-          await createTicketApi({
-            companyId: compId,
-            userId: currentUser?.id || newTicket.userId || 'user-1',
-            subject: newTicket.subject || newTicket.message || 'Support Inquiry',
+        const res = await createTicketApi({
+          companyId: currentUser?.companyId || undefined,
+          subject: newTicket.subject || newTicket.message || 'Support Inquiry',
+          message: newTicket.message,
+          category: newTicket.category,
+          priority: newTicket.priority,
+        });
+        if (res.success && res.data?.id) {
+          const dbId = res.data.id as string;
+          setSupportTickets(prev => {
+            const next = prev.map(t => t.id === newTicket.id ? { ...t, id: dbId } : t);
+            if (typeof window !== 'undefined') localStorage.setItem('cp_support_tickets', JSON.stringify(next));
+            return next;
           });
+        } else {
+          console.warn('DB Ticket sync notice:', res.error);
         }
       } catch (err) {
         console.warn('DB Ticket sync notice:', err);
@@ -5926,14 +6114,40 @@ export function AppProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('cp_support_tickets', JSON.stringify(updated));
     }
 
-    // Sync reply to PostgreSQL DB TicketReply table
+    // Persist the reply in the TicketReply table (creating the DB ticket first if it only exists locally)
     (async () => {
       try {
-        await createTicketReplyApi({
-          ticketId: id,
-          userId: currentUser?.id || 'admin-1',
+        let dbTicketId = id;
+        const looksLocal = !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+        if (looksLocal && ticket) {
+          const created = await createTicketApi({
+            companyId: undefined,
+            subject: ticket.subject || ticket.message || 'Support Inquiry',
+            message: ticket.message,
+            category: ticket.category,
+            priority: ticket.priority,
+          });
+          if (!created.success || !created.data?.id) {
+            showToast('Reply saved locally, but the ticket could not be synced to the server.', 'error');
+            return;
+          }
+          dbTicketId = created.data.id as string;
+        }
+
+        const replyRes = await createTicketReplyApi({
+          ticketId: dbTicketId,
+          userId: currentUser?.id || '',
           message: reply,
         });
+        if (!replyRes.success) {
+          showToast(replyRes.error || 'Reply could not be saved to the server.', 'error');
+          return;
+        }
+        const dbStatus = newStatus === 'in-progress' ? 'IN_PROGRESS' : newStatus === 'closed' || newStatus === 'resolved' ? 'CLOSED' : 'OPEN';
+        await updateTicketStatusApi(dbTicketId, dbStatus);
+        if (dbTicketId !== id) {
+          setSupportTickets(prev => prev.map(t => t.id === id ? { ...t, id: dbTicketId } : t));
+        }
       } catch (err) {
         console.warn('DB TicketReply sync notice:', err);
       }
@@ -6046,13 +6260,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       notifications: userNotifications,
       unreadNotificationsCount: userNotifications.filter(n => !n.read).length,
       markNotificationRead, toggleNotificationRead, markAllNotificationsRead, deleteNotification, clearAllNotifications, addNotification, generateFakeNotification,
-      users, fetchUsers, blockUser, unblockUser, deleteUser, changeUserRole,
+      users, fetchUsers, blockUser, unblockUser, deleteUser, changeUserRole, updateUserProfile,
       waitlist, autobooking, autobookingCard, joinWaitlist, leaveWaitlist, enableAutoBooking, disableAutoBooking,
       addPaymentCard,
       cart, isCartOpen, setIsCartOpen, openCart, closeCart, addToCart, removeFromCart, updateCartItemSeats, updateCartItem, clearCart, checkoutCart,
       applyLoyaltyDiscount,
       walletTransactions, fetchWallet, depositToWallet, withdrawFromWallet,
-      companyWalletBalance, companyData, fetchCompanyWallet, depositToCompanyWallet, withdrawFromCompanyWallet,
+      companyWalletBalance, companyData, fetchCompanyWallet, depositToCompanyWallet, withdrawFromCompanyWallet, checkSeatAvailability,
       loyaltyRules, fetchLoyaltyRules, createLoyaltyProposal, updateLoyaltyRuleStatus, deleteLoyaltyRule,
       qrScans, fetchQrCheckIns, recordQrScan, getSpaceCrowding,
       toast, showToast, updateCurrentUser, completeSignup,
