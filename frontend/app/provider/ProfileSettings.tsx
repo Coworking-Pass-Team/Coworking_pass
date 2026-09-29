@@ -140,7 +140,7 @@ export default function ProviderProfileSettings() {
     if (!editCrNumber.trim()) {
       newErrors.crNumber = 'Commercial Registration (CR) Number is required';
     } else if (!isValidSaudiCrNumber(editCrNumber)) {
-      newErrors.crNumber = 'CR Number must be 10 digits starting with a valid region code (e.g. 1010xxxxxx)';
+      newErrors.crNumber = 'CR Number must be 10 digits starting with 1010 (e.g. 1010xxxxxx)';
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
