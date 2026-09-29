@@ -66,6 +66,26 @@ export function getSpaceCategory(spaceOrType?: Space | SpaceType | string): Spac
 }
 
 /**
+ * Derives the category of a raw workspace row returned by the API (which has no `type`/`category`),
+ * from its first section type and, for desk sections, from the workspace name.
+ */
+export function getWorkspaceCategory(w: { name?: string; sections?: { type?: string }[]; category?: SpaceCategory; type?: string }): SpaceCategory {
+  if (w.category) return w.category;
+  if (w.type) return getSpaceCategory(w.type);
+
+  const name = (w.name || '').toLowerCase();
+  const isNameTheater = name.includes('theater') || name.includes('theatre') || name.includes('auditorium') || name.includes('مسرح');
+  const isNameHall = ['hall', 'majlis', 'conference', 'training', 'meeting', 'room', 'قاعة'].some((k) => name.includes(k));
+
+  const sectionType = Array.isArray(w.sections) && w.sections.length > 0 ? w.sections[0].type : undefined;
+  if (sectionType === 'THEATER') return 'theater';
+  if (sectionType === 'MEETING_ROOM') return 'hall';
+  if (isNameTheater) return 'theater';
+  if (isNameHall) return 'hall';
+  return 'office';
+}
+
+/**
  * Checks if hourly bookings are permitted (only for Halls and Theaters).
  */
 export function isHourlyAllowed(spaceOrType?: Space | SpaceType | string): boolean {
@@ -248,6 +268,9 @@ export interface Space {
   isVisible: boolean;
   isFeatured: boolean;
   openHours: string;
+  openingTime?: string;
+  closingTime?: string;
+  is24Hours?: boolean;
   phone: string;
   email: string;
   ownerId?: string;
@@ -457,9 +480,13 @@ export function calculateSpaceCrowding(
   space: Space,
   scannedCount: number = 0
 ): SpaceCrowdingInfo {
-  // استخدام التحقق الصريح لضمان قبول السعة 0 الحقيقية وعدم استبدالها برقم افتراضي
+  // Explicit checks so a real capacity of 0 is respected rather than replaced by a default
   const total = space.totalCapacity !== undefined && space.totalCapacity !== null ? Number(space.totalCapacity) : 0;
-  const occupied = Math.min(total, Math.max(0, scannedCount));
+  // Occupancy is the larger of booked seats (server availability) and physical QR check-ins
+  const bookedSeats = space.availableCapacity !== undefined && space.availableCapacity !== null
+    ? Math.max(0, total - Number(space.availableCapacity))
+    : 0;
+  const occupied = Math.min(total, Math.max(0, scannedCount, bookedSeats));
   const available = Math.max(0, total - occupied);
   const occupancyPercentage = total > 0 ? Math.round((occupied / total) * 100) : (total === 0 ? 100 : 0);
 
@@ -932,6 +959,19 @@ export interface OperatingHoursRange {
 /**
  * Extracts numeric open & close minutes from midnight and display strings from openHours.
  */
+export function formatMinutesTo12h(mins: number): string {
+  const h24 = Math.floor(mins / 60) % 24;
+  const period = h24 >= 12 ? 'PM' : 'AM';
+  const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+  return `${String(h12).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')} ${period}`;
+}
+
+/** Converts a stored "HH:mm" (24h) time to the 12h display format used across the UI. */
+export function hhmmTo12h(value?: string | null): string | null {
+  const m = /^(\d{1,2}):(\d{2})$/.exec((value || '').trim());
+  return m ? formatMinutesTo12h(parseInt(m[1], 10) * 60 + parseInt(m[2], 10)) : null;
+}
+
 export function getOperatingHoursRange(openHoursStr?: string, dateStr?: string): OperatingHoursRange {
   let openMin = 420;  // 7:00 AM default
   let closeMin = 1380; // 11:00 PM default
@@ -947,7 +987,7 @@ export function getOperatingHoursRange(openHoursStr?: string, dateStr?: string):
   }
 
   const lower = openHoursStr.toLowerCase();
-  if (lower.includes('24/7') || lower.includes('24 hours')) {
+  if (lower.includes('24/7') || lower.includes('24 hours') || lower.includes('24h')) {
     return {
       openMinutes: 0,
       closeMinutes: 1440,
@@ -955,6 +995,27 @@ export function getOperatingHoursRange(openHoursStr?: string, dateStr?: string):
       closeDisplay: '11:59 PM',
       is24_7: true,
     };
+  }
+
+  // Explicit range such as "08:00 AM - 10:00 PM" or "9am–11pm"
+  const rangeMatch = /(\d{1,2})(?::(\d{2}))?\s*(am|pm)\s*(?:-|–|—|to)\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm)/i.exec(openHoursStr);
+  if (rangeMatch) {
+    const toMinutes = (h: string, m: string | undefined, period: string) => {
+      let hours = parseInt(h, 10) % 12;
+      if (period.toLowerCase() === 'pm') hours += 12;
+      return hours * 60 + (m ? parseInt(m, 10) : 0);
+    };
+    const parsedOpen = toMinutes(rangeMatch[1], rangeMatch[2], rangeMatch[3]);
+    const parsedClose = toMinutes(rangeMatch[4], rangeMatch[5], rangeMatch[6]);
+    if (parsedClose > parsedOpen) {
+      return {
+        openMinutes: parsedOpen,
+        closeMinutes: parsedClose,
+        openDisplay: formatMinutesTo12h(parsedOpen),
+        closeDisplay: formatMinutesTo12h(parsedClose),
+        is24_7: false,
+      };
+    }
   }
 
   if (dateStr) {
@@ -1003,15 +1064,32 @@ export function getOperatingHoursRange(openHoursStr?: string, dateStr?: string):
  */
 export function getFilteredStartTimes(openHoursStr?: string, dateStr?: string, durationHours: number = 1): string[] {
   const range = getOperatingHoursRange(openHoursStr, dateStr);
-  if (range.is24_7) return START_TIMES;
-
   const neededMinutes = Math.max(1, durationHours) * 60;
-  const filtered = START_TIMES.filter((t) => {
-    const min = timeStringToMinutes(t);
-    return min >= range.openMinutes && min + neededMinutes <= range.closeMinutes;
-  });
+  const starts: string[] = [];
+  const latestStart = range.is24_7 ? 24 * 60 - neededMinutes : range.closeMinutes - neededMinutes;
+  for (let m = range.openMinutes; m <= latestStart; m += 60) {
+    starts.push(formatMinutesTo12h(m));
+  }
+  return starts;
+}
 
-  return filtered.length > 0 ? filtered : START_TIMES;
+/** Hall and theater sessions are fixed 2-hour slots with a 1-hour turnaround, ending no later than 10:00 PM. */
+export const FIXED_SESSION_HOURS = 2;
+export const FIXED_SESSION_LATEST_END_MINUTES = 22 * 60;
+
+export interface FixedSessionSlot {
+  start: string;
+  end: string;
+}
+
+export function getFixedSessionSlots(openHoursStr?: string, dateStr?: string): FixedSessionSlot[] {
+  const range = getOperatingHoursRange(openHoursStr, dateStr);
+  const latestEnd = Math.min(range.closeMinutes, FIXED_SESSION_LATEST_END_MINUTES);
+  const slots: FixedSessionSlot[] = [];
+  for (let m = range.openMinutes; m + FIXED_SESSION_HOURS * 60 <= latestEnd; m += (FIXED_SESSION_HOURS + 1) * 60) {
+    slots.push({ start: formatMinutesTo12h(m), end: formatMinutesTo12h(m + FIXED_SESSION_HOURS * 60) });
+  }
+  return slots;
 }
 
 /**

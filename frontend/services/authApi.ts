@@ -1275,13 +1275,13 @@ export async function depositCompanyWalletApi(companyId: string, amount: number)
   }
 }
 
-export async function withdrawCompanyWalletApi(companyId: string, amount: number) {
+export async function withdrawCompanyWalletApi(companyId: string, amount: number, options?: { description?: string; referenceId?: string }) {
   const url = `${getAuthBaseUrl()}/api/companies/${companyId}/withdraw`;
   try {
     const response = await fetch(url, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify({ amount }),
+      body: JSON.stringify({ amount, description: options?.description, referenceId: options?.referenceId }),
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) return { success: false, error: data.error || 'Failed to withdraw from company wallet' };
@@ -1307,7 +1307,7 @@ export async function updateCompanyApi(id: string, data: any) {
   }
 }
 
-export async function createTicketApi(payload: { companyId: string; userId: string; subject: string }) {
+export async function createTicketApi(payload: { companyId?: string | null; userId?: string; subject: string; message?: string; category?: string; priority?: string }) {
   const url = `${getAuthBaseUrl()}/api/tickets`;
   try {
     const response = await fetch(url, {
@@ -1370,3 +1370,18 @@ export async function updateTicketStatusApi(id: string, status: string) {
 }
 
 
+
+export type ReportPeriod = 'today' | 'week' | 'month' | 'year';
+
+/** Live platform analytics for super admins (aggregated from the database). */
+export async function getAdminReportApi(period: ReportPeriod) {
+  const url = `${getAuthBaseUrl()}/api/admin/reports?period=${period}`;
+  try {
+    const response = await fetch(url, { method: 'GET', headers: getAuthHeaders() });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) return { success: false as const, error: (data as any).error || 'Failed to load report' };
+    return { success: true as const, data };
+  } catch (err: any) {
+    return { success: false as const, error: err.message || 'Network error' };
+  }
+}

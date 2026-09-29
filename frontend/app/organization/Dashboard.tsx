@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   CalendarDays,
   MapPin,
@@ -40,10 +40,16 @@ import {
 const FALLBACK_SPACE_IMAGE = 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80';
 
 export default function OrgDashboard() {
-  const { currentUser, spaces, bookings, favorites, navigate, companyWalletBalance, companyData } = useApp();
+  const { currentUser, spaces, bookings, favorites, navigate, companyWalletBalance, companyData, subscriptionsApi, fetchSubscriptions } = useApp();
   const [selectedCategory, setSelectedCategory] = useState<'all' | SpaceCategory>('all');
   const [selectedBookingForQr, setSelectedBookingForQr] = useState<Booking | null>(null);
   const [isSharedWalletOpen, setIsSharedWalletOpen] = useState(false);
+
+  // Load the latest subscriptions so the pass card reflects the database
+  useEffect(() => {
+    if (currentUser && fetchSubscriptions) fetchSubscriptions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser?.id]);
 
   if (!currentUser) return null;
 
@@ -68,6 +74,28 @@ export default function OrgDashboard() {
     : visibleSpaces.filter(s => getSpaceCategory(s) === selectedCategory);
 
   const getEmpName = (id: string) => employees.find((e: Employee) => e.id === id)?.name || id;
+
+  // --- Pass details & quota usage ---
+  const activeSubscription = (subscriptionsApi || [])
+    .filter((sub) => sub.userId === currentUser.id && sub.status === 'ACTIVE')
+    .sort((a, b) => new Date(b.endDate).getTime() - new Date(a.endDate).getTime())[0];
+  const hasPass = Boolean(activeSubscription || currentUser.hasActivePass);
+  const passPlanName = activeSubscription?.plan?.planName || currentUser.membershipTier || (hasPass ? 'Enterprise Pass' : 'No active pass');
+  const tierKey = passPlanName.toLowerCase();
+  const isBusinessPlan = tierKey.includes('business');
+  const isUnlimitedHours = isBusinessPlan || tierKey.includes('enterprise');
+  const totalHours = currentUser.totalPlanHours || (tierKey.includes('team') ? 10 : 0);
+  const remainingHours = Math.max(0, typeof currentUser.remainingHours === 'number' ? currentUser.remainingHours : totalHours);
+  const usedHours = Math.max(0, totalHours - remainingHours);
+  const tierSeatAllocation = tierKey.includes('team') ? 20 : isBusinessPlan ? 50 : 0;
+  const totalSeats = companyData?.totalPassesAllocated || tierSeatAllocation || currentUser.orgSize || 0;
+  const usedSeats = Math.min(employees.length, totalSeats || employees.length);
+  const passRenewalDate = activeSubscription?.endDate
+    ? new Date(activeSubscription.endDate)
+    : (currentUser.planCycleStart || currentUser.passPurchaseDate)
+      ? new Date(new Date(currentUser.planCycleStart || currentUser.passPurchaseDate as string).getTime() + 30 * 24 * 60 * 60 * 1000)
+      : null;
+  const daysToRenewal = passRenewalDate ? Math.ceil((passRenewalDate.getTime() - Date.now()) / (24 * 60 * 60 * 1000)) : null;
 
   const orgTierName = currentUser.membershipTier || (currentUser.hasActivePass ? 'Enterprise Pass' : 'Corporate Plan');
 
@@ -118,6 +146,86 @@ export default function OrgDashboard() {
             <ArrowUpRight size={13} />
           </button>
         </div>
+      </div>
+
+      {/* Pass Details & Quota Usage */}
+      <div className="bg-white rounded-3xl border border-soot/10 p-5 sm:p-6 shadow-xs">
+        <div className="flex items-start justify-between flex-wrap gap-3 mb-5">
+          <div>
+            <span className="text-xs font-semibold tracking-wider uppercase text-moss block mb-1">Pass Details & Quota Usage</span>
+            <h2 className="text-xl sm:text-2xl text-soot font-serif-display font-normal">{passPlanName}</h2>
+          </div>
+          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${
+            hasPass ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-amber-50 text-amber-800 border-amber-200'
+          }`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${hasPass ? 'bg-emerald-600' : 'bg-amber-500'}`} />
+            {hasPass ? 'Active' : 'Inactive'}
+          </span>
+        </div>
+
+        {hasPass ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {/* Meeting room / theater hours */}
+            <div>
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-moss mb-1.5">Meeting Room & Theater Hours</div>
+              {isUnlimitedHours ? (
+                <div className="text-lg font-semibold text-soot">Unlimited</div>
+              ) : (
+                <>
+                  <div className="text-lg font-semibold text-soot">
+                    {remainingHours} <span className="text-moss text-sm font-medium">of {totalHours} hrs remaining</span>
+                  </div>
+                  <div className="h-2 bg-soot/8 rounded-full mt-2">
+                    <div
+                      className="h-full bg-eucalyptus rounded-full"
+                      style={{ width: `${totalHours > 0 ? Math.min(100, (usedHours / totalHours) * 100) : 0}%` }}
+                    />
+                  </div>
+                  <div className="text-[11px] text-moss mt-1">{usedHours} hrs used this cycle</div>
+                </>
+              )}
+            </div>
+
+            {/* Renewal */}
+            <div>
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-moss mb-1.5">Renewal / Expiry</div>
+              <div className="text-lg font-semibold text-soot">
+                {passRenewalDate ? passRenewalDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+              </div>
+              {daysToRenewal !== null && (
+                <div className={`text-[11px] mt-1 ${daysToRenewal <= 7 ? 'text-amber-700 font-semibold' : 'text-moss'}`}>
+                  {daysToRenewal > 0 ? `${daysToRenewal} day${daysToRenewal === 1 ? '' : 's'} remaining` : 'Renewal due'}
+                </div>
+              )}
+            </div>
+
+            {/* Seats */}
+            <div>
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-moss mb-1.5">Team Seat Allocation</div>
+              <div className="text-lg font-semibold text-soot">
+                {usedSeats} <span className="text-moss text-sm font-medium">of {totalSeats || '—'} seats used</span>
+              </div>
+              <div className="h-2 bg-soot/8 rounded-full mt-2">
+                <div
+                  className="h-full bg-soot rounded-full"
+                  style={{ width: `${totalSeats > 0 ? Math.min(100, (usedSeats / totalSeats) * 100) : 0}%` }}
+                />
+              </div>
+              <div className="text-[11px] text-moss mt-1">{totalSeats > 0 ? `${Math.max(0, totalSeats - usedSeats)} seats available` : 'No seat allocation set'}</div>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <p className="text-sm text-moss">Your organization has no active corporate pass. Choose a plan to unlock team seats and meeting-room hours.</p>
+            <button
+              type="button"
+              onClick={() => navigate('pricing')}
+              className="px-4 py-2.5 rounded-xl bg-soot text-plaster text-xs font-semibold hover:bg-moss cursor-pointer"
+            >
+              View Plans
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Stats Cards */}

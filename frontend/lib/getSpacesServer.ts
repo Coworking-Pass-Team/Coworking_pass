@@ -1,5 +1,5 @@
 import { INITIAL_SPACES } from '@/data/data';
-import { Space, getSpaceCategory } from '@/types/types';
+import { Space, getSpaceCategory, getWorkspaceCategory } from '@/types/types';
 
 export interface SpacesServerData {
   spaces: Space[];
@@ -35,9 +35,11 @@ export async function getSpacesServer(): Promise<SpacesServerData> {
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) {
         // Merge API spaces with INITIAL_SPACES if any static ones are missing
-        const seen = new Set(data.map((w: any) => (w.name || '').trim().toLowerCase()));
+        // API rows carry no category, so derive it from their sections (otherwise everything counts as an office)
+        const categorized = data.map((w: any) => ({ ...w, category: getWorkspaceCategory(w) }));
+        const seen = new Set(categorized.map((w: any) => (w.name || '').trim().toLowerCase()));
         const missingStatic = INITIAL_SPACES.filter(s => !seen.has(s.name.trim().toLowerCase()));
-        spaces = [...data, ...missingStatic];
+        spaces = [...categorized, ...missingStatic];
       }
     }
   } catch (_err) {

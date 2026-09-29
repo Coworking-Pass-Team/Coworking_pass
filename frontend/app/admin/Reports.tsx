@@ -1,8 +1,8 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { TrendingUp, CalendarDays, Users, Building2, BarChart3 } from 'lucide-react';
 import { useApp } from '@/app/store';
-import { getBookingPrice } from '@/types/types';
+import { getAdminReportApi, ReportPeriod } from '@/services/authApi';
 
 const PERIODS = ['Today', 'This week', 'This month', 'This year'];
 
@@ -55,59 +55,70 @@ function BarChart({
   );
 }
 
+const PERIOD_KEYS: Record<string, ReportPeriod> = {
+  'Today': 'today',
+  'This week': 'week',
+  'This month': 'month',
+  'This year': 'year',
+};
+
+interface ReportData {
+  revenue: number;
+  grossRevenue: number;
+  refunds: number;
+  totalBookings: number;
+  activeBookings: number;
+  cancelledBookings: number;
+  totalUsers: number;
+  organizations: number;
+  partners: number;
+  individuals: number;
+  availableSpaces: number;
+  fullyBookedSpaces: number;
+  revenueByCity: { label: string; value: number }[];
+  bookingsByPlan: { label: string; value: number }[];
+  usersByType: { label: string; value: number }[];
+  occupancy: { id: string; name: string; occupancyPercent: number }[];
+  topSpaces: { id: string; name: string; city: string; revenue: number; bookingCount: number; occupancyPercent: number }[];
+}
+
 export default function Reports() {
-  const { bookings, users, spaces } = useApp();
+  const { spaces } = useApp();
   const [period, setPeriod] = useState('This month');
+  const [report, setReport] = useState<ReportData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const nonAdminUsers = users.filter(u => u.role !== 'admin');
-  const activeBookings = bookings.filter(b => b.status === 'active');
-  const cancelledBookings = bookings.filter(b => b.status === 'cancelled');
-  const totalRevenue = bookings.filter(b => b.status !== 'cancelled').reduce((sum, b) => sum + getBookingPrice(b, spaces), 0);
+  // All figures come from live database aggregations on the server
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError('');
+    getAdminReportApi(PERIOD_KEYS[period] || 'month').then((res) => {
+      if (cancelled) return;
+      if (res.success) setReport(res.data as ReportData);
+      else setError(res.error);
+      setLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [period]);
 
-  // Mock period-based data
-  const periodMultiplier = period === 'Today' ? 0.03 : period === 'This week' ? 0.2 : period === 'This month' ? 1 : 12;
+  const stats = report ? [
+    { label: 'Net revenue', value: `SAR ${Math.round(report.revenue).toLocaleString()}`, icon: TrendingUp, color: 'text-moss' },
+    { label: 'Total bookings', value: report.totalBookings, icon: CalendarDays, color: 'text-eucalyptus' },
+    { label: 'Active bookings', value: report.activeBookings, icon: CalendarDays, color: 'text-soot' },
+    { label: 'Cancelled / refunded', value: report.cancelledBookings, icon: CalendarDays, color: 'text-red-400' },
+    { label: 'Total users', value: report.totalUsers, icon: Users, color: 'text-mist' },
+    { label: 'Organizations', value: report.organizations, icon: Building2, color: 'text-moss' },
+    { label: 'Available spaces', value: report.availableSpaces, icon: Building2, color: 'text-eucalyptus' },
+    { label: 'Fully booked', value: report.fullyBookedSpaces, icon: Building2, color: 'text-red-400' },
+  ] : [];
 
-  const stats = [
-    { label: 'Total revenue', value: `SAR ${Math.round(totalRevenue * periodMultiplier).toLocaleString()}`, icon: TrendingUp, change: '+12%', color: 'text-moss' },
-    { label: 'Total bookings', value: Math.round(bookings.length * periodMultiplier), icon: CalendarDays, change: '+8%', color: 'text-eucalyptus' },
-    { label: 'Active bookings', value: Math.round(activeBookings.length * periodMultiplier), icon: CalendarDays, change: '+5%', color: 'text-soot' },
-    { label: 'Cancelled', value: Math.round(cancelledBookings.length * periodMultiplier), icon: CalendarDays, change: '-2%', color: 'text-red-400' },
-    { label: 'New users', value: Math.round(nonAdminUsers.length * periodMultiplier), icon: Users, change: '+15%', color: 'text-mist' },
-    { label: 'Organizations', value: Math.round(nonAdminUsers.filter(u => u.role === 'organization').length * periodMultiplier), icon: Building2, change: '+3%', color: 'text-moss' },
-    { label: 'Available spaces', value: spaces.filter(s => s.isVisible && s.availableCapacity > 0).length, icon: Building2, change: 'stable', color: 'text-eucalyptus' },
-    { label: 'Fully booked', value: spaces.filter(s => s.availableCapacity === 0).length, icon: Building2, change: '+1', color: 'text-red-400' },
-  ];
-
-  const revenueData = [
-    { label: 'Riyadh', value: Math.round(totalRevenue * 0.42 * periodMultiplier) },
-    { label: 'Jeddah', value: Math.round(totalRevenue * 0.28 * periodMultiplier) },
-    { label: 'Dammam', value: Math.round(totalRevenue * 0.15 * periodMultiplier) },
-    { label: 'Khobar', value: Math.round(totalRevenue * 0.08 * periodMultiplier) },
-    { label: 'Madinah', value: Math.round(totalRevenue * 0.07 * periodMultiplier) },
-  ];
-
-  const bookingsByPlan = [
-    { label: 'Daily', value: Math.round(bookings.filter(b => b.plan === 'daily').length * periodMultiplier) },
-    { label: 'Monthly', value: Math.round(bookings.filter(b => b.plan === 'monthly').length * periodMultiplier) },
-    { label: 'Yearly', value: Math.round(bookings.filter(b => b.plan === 'yearly').length * periodMultiplier) },
-  ];
-
-  const occupancyData = spaces.slice(0, 5).map(s => ({
-    label: s.name.split(' ')[0],
-    value: Math.round(((s.totalCapacity - s.availableCapacity) / s.totalCapacity) * 100),
-  }));
-
-  const userGrowth = period === 'Today'
-    ? [{ label: '9am', value: 1 }, { label: '12pm', value: 2 }, { label: '3pm', value: 1 }, { label: '6pm', value: 0 }]
-    : period === 'This week'
-    ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => ({ label: d, value: Math.floor(Math.random() * 3) + 1 }))
-    : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'].map((m, i) => ({ label: m, value: Math.floor(i * 1.5 + 2) }));
-
-  const topSpaces = spaces.map(s => ({
-    ...s,
-    bookingCount: bookings.filter(b => b.spaceId === s.id && b.status !== 'cancelled').length,
-    revenue: bookings.filter(b => b.spaceId === s.id && b.status !== 'cancelled').reduce((sum, b) => sum + getBookingPrice(b, spaces), 0),
-  })).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
+  const revenueData = report?.revenueByCity ?? [];
+  const bookingsByPlan = report?.bookingsByPlan ?? [];
+  const occupancyData = (report?.occupancy ?? []).map(o => ({ label: o.name.split(' ')[0], value: o.occupancyPercent }));
+  const userGrowth = report?.usersByType ?? [];
+  const topSpaces = (report?.topSpaces ?? []).map(t => ({ ...t, images: spaces.find(sp => sp.id === t.id)?.images ?? [] }));
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
@@ -126,15 +137,15 @@ export default function Reports() {
         </div>
       </div>
 
+      {loading && <div className="text-sm text-moss mb-6">Loading live report...</div>}
+      {error && <div className="text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-xl p-3 mb-6">{error}</div>}
+
       {/* Stats grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {stats.map(s => (
           <div key={s.label} className="bg-white rounded-2xl p-5 border border-soot/8 shadow-2xs">
             <div className="flex items-center justify-between mb-3">
               <div className={s.color}><s.icon size={20} /></div>
-              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${s.change.startsWith('-') ? 'bg-red-50 text-red-500' : 'bg-eucalyptus/15 text-moss'}`}>
-                {s.change}
-              </span>
             </div>
             <div className="text-2xl font-bold text-soot">{s.value}</div>
             <div className="text-sm font-medium text-moss mt-1">{s.label}</div>
@@ -147,7 +158,7 @@ export default function Reports() {
         <div className="bg-white rounded-2xl border border-soot/8 p-6 shadow-2xs">
           <div className="flex items-center gap-2 mb-1">
             <BarChart3 size={18} className="text-moss" />
-            <h2 className="font-bold text-soot text-base">Revenue by city</h2>
+            <h2 className="font-bold text-soot text-base">Net revenue by city (SAR)</h2>
           </div>
           <p className="text-sm text-moss mb-2">{period}</p>
           <BarChart data={revenueData} color="#98AA9D" />
@@ -177,9 +188,9 @@ export default function Reports() {
         <div className="bg-white rounded-2xl border border-soot/8 p-6 shadow-2xs">
           <div className="flex items-center gap-2 mb-1">
             <Users size={18} className="text-moss" />
-            <h2 className="font-bold text-soot text-base">New user signups</h2>
+            <h2 className="font-bold text-soot text-base">Users by account type</h2>
           </div>
-          <p className="text-sm text-moss mb-2">{period}</p>
+          <p className="text-sm text-moss mb-2">Current totals</p>
           <BarChart data={userGrowth} color="#2D3536" />
         </div>
       </div>
@@ -193,7 +204,7 @@ export default function Reports() {
               <div className="w-8 h-8 rounded-full bg-soot/8 flex items-center justify-center text-sm font-bold text-moss shrink-0">
                 {i + 1}
               </div>
-              <img src={space.images[0]} alt={space.name} className="w-12 h-12 rounded-xl object-cover shrink-0" />
+              <img src={space.images[0] || 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=200&q=60'} alt={space.name} className="w-12 h-12 rounded-xl object-cover shrink-0" />
               <div className="flex-1 min-w-0">
                 <div className="font-semibold text-soot text-base truncate">{space.name}</div>
                 <div className="text-sm text-moss">{space.city}</div>
@@ -205,12 +216,12 @@ export default function Reports() {
               <div className="w-28 shrink-0 hidden sm:block">
                 <div className="flex justify-between text-xs text-moss mb-1">
                   <span>Occupancy</span>
-                  <span className="font-semibold">{Math.round(((space.totalCapacity - space.availableCapacity) / space.totalCapacity) * 100)}%</span>
+                  <span className="font-semibold">{space.occupancyPercent}%</span>
                 </div>
                 <div className="h-2 bg-soot/8 rounded-full">
                   <div
                     className="h-full bg-eucalyptus rounded-full"
-                    style={{ width: `${((space.totalCapacity - space.availableCapacity) / space.totalCapacity) * 100}%` }}
+                    style={{ width: `${space.occupancyPercent}%` }}
                   />
                 </div>
               </div>

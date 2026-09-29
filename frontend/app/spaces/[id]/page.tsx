@@ -33,6 +33,8 @@ import {
   calculateDurationHours,
   getAvailableEndTimes,
   getFilteredStartTimes,
+  getFixedSessionSlots,
+  FIXED_SESSION_HOURS,
   calculateEndTime,
   calculateEndDate,
   calculateDailyDurationDays,
@@ -87,8 +89,8 @@ function SpaceDetailsView() {
   const [bookingDate, setBookingDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
   const [bookingEndDate, setBookingEndDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
   const isHourlySpace = Boolean(space && isHourlyAllowed(space));
-  const [selectedHours, setSelectedHours] = useState<number>(1);
-  const defaultAvailableStarts = isHourlySpace && space ? getFilteredStartTimes(space.openHours, bookingDate, selectedHours) : START_TIMES;
+  const [selectedHours, setSelectedHours] = useState<number>(() => (space && isHourlyAllowed(space) ? FIXED_SESSION_HOURS : 1));
+  const defaultAvailableStarts = isHourlySpace && space ? getFixedSessionSlots(space.openHours, bookingDate).map(sl => sl.start) : START_TIMES;
   const initialStartTime = defaultAvailableStarts[0] || '09:00 AM';
   const [startTime, setStartTime] = useState<string>(initialStartTime);
   const [endTime, setEndTime] = useState<string>(() => isHourlySpace ? calculateEndTime(initialStartTime, 1) : '05:00 PM');
@@ -120,7 +122,8 @@ function SpaceDetailsView() {
     setBookingEndDate(newEnd);
   };
 
-  const availableStartTimes = isHourlySpace && space ? getFilteredStartTimes(space.openHours, bookingDate, selectedHours) : START_TIMES;
+  const fixedSlots = isHourlySpace && space ? getFixedSessionSlots(space.openHours, bookingDate) : [];
+  const availableStartTimes = isHourlySpace && space ? fixedSlots.map(sl => sl.start) : (space && selectedPlan === 'hourly' ? getFilteredStartTimes(space.openHours, bookingDate, selectedHours) : START_TIMES);
   const durationHours = isHourlySpace || selectedPlan === 'hourly' ? selectedHours : calculateDurationHours(startTime, endTime);
 
   const handleStartTimeChange = (newStart: string) => {
@@ -153,6 +156,7 @@ function SpaceDetailsView() {
     if (space) {
       const allowed = getAllowedPlansForSpace(space);
       setSelectedPlan(allowed[0] || 'daily');
+      if (isHourlyAllowed(space)) setSelectedHours(FIXED_SESSION_HOURS);
     }
   }, [spaceId, space]);
 
@@ -746,7 +750,8 @@ function SpaceDetailsView() {
                       </span>
                     </div>
 
-                    {/* Hourly Duration Selector Buttons */}
+                    {/* Flexible durations are only offered outside halls and theaters (those use fixed 2-hour sessions) */}
+                    {!isHourlySpace && (
                     <div className="space-y-1.5">
                       <span className="text-[10px] font-semibold uppercase tracking-wider text-moss block">
                         Duration (Hours)
@@ -778,6 +783,8 @@ function SpaceDetailsView() {
                       </div>
                     </div>
 
+                    )}
+
                     <div>
                       <label className="block text-[11px] font-semibold text-moss mb-1 flex items-center gap-1">
                         <Calendar size={11} />
@@ -795,6 +802,39 @@ function SpaceDetailsView() {
                       />
                     </div>
 
+                    {isHourlySpace ? (
+                      <div className="space-y-1.5">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-moss block">
+                          Available 2-Hour Sessions
+                        </span>
+                        {fixedSlots.length === 0 ? (
+                          <div className="text-xs text-rose-800 bg-rose-50 border border-rose-200 rounded-xl p-3">
+                            No sessions are available within this venue's operating hours.
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                            {fixedSlots.map((slot) => {
+                              const isSelected = startTime === slot.start;
+                              return (
+                                <button
+                                  key={slot.start}
+                                  type="button"
+                                  onClick={() => handleStartTimeChange(slot.start)}
+                                  className={`py-2.5 px-3 rounded-xl text-center border transition-all cursor-pointer text-xs font-semibold ${
+                                    isSelected
+                                      ? 'bg-soot text-plaster border-soot shadow-2xs'
+                                      : 'bg-white border-soot/10 text-moss hover:text-soot hover:border-soot/30'
+                                  }`}
+                                >
+                                  {slot.start} – {slot.end}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-[11px] font-semibold text-moss mb-1">
@@ -826,6 +866,9 @@ function SpaceDetailsView() {
                         />
                       </div>
                     </div>
+
+                      </>
+                    )}
 
                     <div className="bg-white p-3 rounded-xl border border-soot/8 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                       <div>

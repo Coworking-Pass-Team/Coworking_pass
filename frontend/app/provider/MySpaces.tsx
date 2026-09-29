@@ -21,7 +21,7 @@ import {
   X,
 } from 'lucide-react';
 import { useApp } from '@/app/store';
-import { Space, SpaceType, SpaceCategory, ALL_SPACE_TYPES, isHourlyOnlySpace, isOfficeSpace, isHourlyAllowed, getSpaceCategory, SAUDI_CITIES, SAUDI_CITIES_DATA, AmenityRequest } from '@/types/types';
+import { Space, SpaceType, SpaceCategory, ALL_SPACE_TYPES, isHourlyOnlySpace, isOfficeSpace, isHourlyAllowed, getSpaceCategory, SAUDI_CITIES, SAUDI_CITIES_DATA, AmenityRequest, hhmmTo12h } from '@/types/types';
 import Modal from '@/components/ui/Modal';
 
 const FALLBACK_SPACE_IMAGE = 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80';
@@ -211,7 +211,10 @@ export default function ProviderMySpaces() {
       reviewCount: 0,
       isVisible: true,
       isFeatured: false,
-      openHours: 'Sun–Thu: 8am–9pm',
+      openHours: '08:00 AM - 10:00 PM',
+      openingTime: '08:00',
+      closingTime: '22:00',
+      is24Hours: false,
       phone: '',
       email: currentUser.email || '',
       images: [FALLBACK_SPACE_IMAGE],
@@ -239,6 +242,7 @@ export default function ProviderMySpaces() {
     if (!form.name || !form.name.trim()) errs.name = 'Workspace name is required.';
     if (!form.city || !form.city.trim()) errs.city = 'City selection is required.';
     if (!form.address || !form.address.trim()) errs.address = 'Address / Location is required.';
+    if (!form.is24Hours && (form.openingTime || '08:00') >= (form.closingTime || '22:00')) errs.openingTime = 'Closing time must be after opening time.';
 
     if (Object.keys(errs).length > 0) {
       setFormErrors(errs);
@@ -246,11 +250,16 @@ export default function ProviderMySpaces() {
     }
     setFormErrors({});
 
+    const hoursForm = {
+      ...form,
+      openHours: form.is24Hours ? '24/7' : `${hhmmTo12h(form.openingTime || '08:00')} - ${hhmmTo12h(form.closingTime || '22:00')}`,
+    } as Space;
+
     if (editingSpace) {
-      updateSpace(editingSpace.id, form as Space);
+      updateSpace(editingSpace.id, hoursForm);
     } else {
       addSpace({
-        ...form,
+        ...hoursForm,
         email: form.email || currentUser.email || '',
         ownerId: currentUser.id,
       } as Omit<Space, 'id'>);
@@ -1028,6 +1037,45 @@ export default function ProviderMySpaces() {
                   className="w-full px-3.5 py-2.5 rounded-xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-eucalyptus"
                 />
               </div>
+            </div>
+
+            {/* Operating hours */}
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center justify-between border-b border-soot/10 pb-1.5">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-moss">Operating Hours</span>
+                <label className="flex items-center gap-2 text-xs font-semibold text-soot cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(form.is24Hours)}
+                    onChange={(e) => setForm((p) => ({ ...p, is24Hours: e.target.checked }))}
+                    className="accent-soot"
+                  />
+                  Open 24 hours
+                </label>
+              </div>
+              {!form.is24Hours && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">Opening Time</label>
+                    <input
+                      type="time"
+                      value={form.openingTime || '08:00'}
+                      onChange={(e) => setForm((p) => ({ ...p, openingTime: e.target.value }))}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-eucalyptus"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">Closing Time</label>
+                    <input
+                      type="time"
+                      value={form.closingTime || '22:00'}
+                      onChange={(e) => setForm((p) => ({ ...p, closingTime: e.target.value }))}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-eucalyptus"
+                    />
+                  </div>
+                </div>
+              )}
+              {formErrors.openingTime && <p className="text-xs text-rose-600 font-medium">* {formErrors.openingTime}</p>}
             </div>
 
             {/* Pricing Section */}

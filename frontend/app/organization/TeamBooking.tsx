@@ -45,6 +45,8 @@ import {
   calculateDurationHours,
   getAvailableEndTimes,
   getFilteredStartTimes,
+  getFixedSessionSlots,
+  FIXED_SESSION_HOURS,
   getFilteredEndTimes,
   formatHourlyTimeRange,
   timeStringToMinutes
@@ -54,7 +56,7 @@ const STEPS = ['Type & Plan', 'Team', 'Schedule', 'Review'];
 const DURATION_OPTIONS = [1, 2, 3, 4, 6, 8];
 
 export default function TeamBooking() {
-  const { nav, goBack, spaces, bookings, currentUser, addBooking, navigate, showToast, addToCart, updateCurrentUser, withdrawFromWallet, companyWalletBalance, fetchCompanyWallet, withdrawFromCompanyWallet } = useApp();
+  const { nav, goBack, spaces, bookings, currentUser, addBooking, navigate, showToast, addToCart, updateCurrentUser, withdrawFromWallet, companyWalletBalance, fetchCompanyWallet, withdrawFromCompanyWallet, checkSeatAvailability } = useApp();
   const spaceId = nav.params?.spaceId;
   const space = spaces.find((s: Space) => s.id === spaceId);
 
@@ -66,12 +68,12 @@ export default function TeamBooking() {
     ? (nav.params.plan as BookingPlan)
     : (allowedPlans[0] || 'daily');
   const initialMonths = (nav?.params?.durationMonths as number) || 1;
-  const initialHours = Number(nav?.params?.durationHours) || 1;
+  const initialHours = isHourlySpace ? FIXED_SESSION_HOURS : (Number(nav?.params?.durationHours) || 1);
   const initialStartDate = (nav?.params?.startDate as string) || new Date().toISOString().split('T')[0];
   const initialEndDate = (nav?.params?.endDate as string) || initialStartDate;
 
   const [selectedHours, setSelectedHours] = useState<number>(initialHours);
-  const defaultAvailableStarts = isHourlySpace ? getFilteredStartTimes(space?.openHours, initialStartDate, initialHours) : START_TIMES;
+  const defaultAvailableStarts = isHourlySpace ? getFixedSessionSlots(space?.openHours, initialStartDate).map(sl => sl.start) : START_TIMES;
   const initialStartTime = (nav?.params?.startTime as string) || (defaultAvailableStarts.includes('09:00 AM') ? '09:00 AM' : (defaultAvailableStarts[0] || '09:00 AM'));
   const initialEndTime = (nav?.params?.endTime as string) || calculateEndTime(initialStartTime, initialHours);
 
@@ -86,10 +88,30 @@ export default function TeamBooking() {
   const [useWalletBalance, setUseWalletBalance] = useState(false);
 
   const isHourly = isHourlySpace || plan === 'hourly';
-  const availableStartTimes = isHourlySpace ? getFilteredStartTimes(space?.openHours, startDate, selectedHours) : START_TIMES;
+  const fixedSlots = isHourlySpace ? getFixedSessionSlots(space?.openHours, startDate) : [];
+  const availableStartTimes = isHourlySpace ? fixedSlots.map(sl => sl.start) : (isHourly ? getFilteredStartTimes(space?.openHours, startDate, selectedHours) : START_TIMES);
   const availableEndTimes = isHourlySpace ? [calculateEndTime(startTime, selectedHours)] : getAvailableEndTimes(startTime);
 
   const durationHours = isHourly ? selectedHours : calculateDurationHours(startTime, endTime);
+
+  // Keep the session valid for the venue: fixed 2-hour sessions for halls/theaters, start time always inside operating hours
+  useEffect(() => {
+    if (!space || !isHourly) return;
+    if (isHourlySpace && selectedHours !== FIXED_SESSION_HOURS) {
+      setSelectedHours(FIXED_SESSION_HOURS);
+      return;
+    }
+    if (!availableStartTimes.includes(startTime)) {
+      const first = availableStartTimes[0];
+      if (first) {
+        setStartTime(first);
+        setEndTime(calculateEndTime(first, selectedHours));
+      }
+      return;
+    }
+    const expectedEnd = calculateEndTime(startTime, selectedHours);
+    if (expectedEnd !== endTime) setEndTime(expectedEnd);
+  }, [space?.id, space?.openHours, isHourly, isHourlySpace, startDate, selectedHours, startTime, endTime]);
 
   const handleStartTimeChange = (newStart: string) => {
     setStartTime(newStart);
@@ -122,6 +144,9 @@ export default function TeamBooking() {
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const [confirmedBooking, setConfirmedBooking] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  // Synchronous re-entry guard and idempotency key: state updates are async, so fast double clicks could otherwise charge twice
+  const submittingRef = useRef(false);
+  const checkoutKeyRef = useRef<string>(typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `co-${Date.now()}-${Math.random().toString(36).slice(2)}`);
 
   const handleStartDateChange = (newStart: string) => {
     setStartDate(newStart);
@@ -304,16 +329,37 @@ export default function TeamBooking() {
   };
 
   const confirmBooking = () => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setLoading(true);
     setTimeout(async () => {
+      // Make sure the venue can still take this booking before anything is charged
+      const availability = await checkSeatAvailability({
+        spaceId: space.id,
+        plan: isHourly ? 'hourly' : plan,
+        date: startDate,
+        startTime: isHourly ? startTime : undefined,
+        endTime: isHourly ? endTime : undefined,
+        days: plan === 'daily' ? durationDays : undefined,
+        months: plan === 'monthly' ? durationMonths : undefined,
+        seats,
+      });
+      if (!availability.ok) {
+        showToast(availability.message || 'This time is no longer available.', 'error');
+        submittingRef.current = false;
+        setLoading(false);
+        return;
+      }
+
       // Charge the wallet first; only create the booking if the debit succeeded
       if (useWalletBalance && walletDeduction > 0) {
         const payment = isUsingCompanyWallet && withdrawFromCompanyWallet
-          ? await withdrawFromCompanyWallet(walletDeduction, currentUser.companyId, `Team booking payment for ${space.name}`)
+          ? await withdrawFromCompanyWallet(walletDeduction, currentUser.companyId, `Team booking payment for ${space.name}`, checkoutKeyRef.current)
           : (!isUsingCompanyWallet && withdrawFromWallet
             ? await withdrawFromWallet(walletDeduction, `Team booking payment for ${space.name}`)
             : { success: true, message: '' });
         if (!payment.success) {
+          submittingRef.current = false;
           setLoading(false);
           return;
         }
@@ -890,7 +936,7 @@ export default function TeamBooking() {
                   </div>
                 </div>
 
-                {/* Duration Pills */}
+                {!isHourlySpace && (
                 <div className="space-y-1.5">
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-moss block">
                     Duration (Hours)
@@ -920,6 +966,41 @@ export default function TeamBooking() {
                   </div>
                 </div>
 
+                )}
+
+                {isHourlySpace ? (
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-moss block">
+                      Available 2-Hour Sessions
+                    </span>
+                    {fixedSlots.length === 0 ? (
+                      <div className="text-xs text-rose-800 bg-rose-50 border border-rose-200 rounded-xl p-3">
+                        No sessions are available within this venue's operating hours.
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {fixedSlots.map((slot) => {
+                          const isSelected = startTime === slot.start;
+                          return (
+                            <button
+                              key={slot.start}
+                              type="button"
+                              onClick={() => handleStartTimeChange(slot.start)}
+                              className={`py-2.5 px-3 rounded-xl text-center border transition-all cursor-pointer text-xs font-semibold ${
+                                isSelected
+                                  ? 'bg-soot text-plaster border-soot shadow-2xs'
+                                  : 'bg-white border-soot/10 text-moss hover:text-soot hover:border-soot/30'
+                              }`}
+                            >
+                              {slot.start} – {slot.end}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1.5 flex items-center gap-1.5">
@@ -953,6 +1034,9 @@ export default function TeamBooking() {
                     />
                   </div>
                 </div>
+
+                  </>
+                )}
 
                 <div className="bg-white rounded-2xl p-4 border border-soot/8 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                   <div>
