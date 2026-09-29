@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import {
   Search,
   Plus,
@@ -21,7 +21,7 @@ import {
   X,
 } from 'lucide-react';
 import { useApp } from '@/app/store';
-import { Space, SpaceType, SpaceCategory, ALL_SPACE_TYPES, isHourlyOnlySpace, isOfficeSpace, isHourlyAllowed, getSpaceCategory, SAUDI_CITIES, SAUDI_CITIES_DATA } from '@/types/types';
+import { Space, SpaceType, SpaceCategory, ALL_SPACE_TYPES, isHourlyOnlySpace, isOfficeSpace, isHourlyAllowed, getSpaceCategory, SAUDI_CITIES, SAUDI_CITIES_DATA, AmenityRequest } from '@/types/types';
 import Modal from '@/components/ui/Modal';
 
 const FALLBACK_SPACE_IMAGE = 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80';
@@ -51,7 +51,7 @@ const CITIES = SAUDI_CITIES;
 const TYPES = ALL_SPACE_TYPES;
 
 export default function ProviderMySpaces() {
-  const { nav, currentUser, spaces, partners, addSpace, updateSpace, toggleSpaceVisibility, deleteSpace, amenityRequests, requestCustomAmenity, getApprovedAmenities } = useApp();
+  const { nav, currentUser, spaces, partners, addSpace, updateSpace, toggleSpaceVisibility, deleteSpace, amenityRequests, requestCustomAmenity, getApprovedAmenities, fetchAmenities } = useApp();
   const [query, setQuery] = useState('');
   const [filterCity, setFilterCity] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<'all' | SpaceCategory>('all');
@@ -106,13 +106,47 @@ export default function ProviderMySpaces() {
     (currentUser.email && s.email && s.email.toLowerCase() === currentUser.email.toLowerCase())
   );
 
-  const myAmenityRequests = (amenityRequests || []).filter((req) =>
-    req.providerId === currentUser.id ||
-    (userPartner && req.providerId === userPartner.id) ||
-    (req.providerName && currentUser.name && req.providerName.toLowerCase() === currentUser.name.toLowerCase()) ||
-    (req.providerName && currentUser.businessName && req.providerName.toLowerCase() === currentUser.businessName.toLowerCase()) ||
-    (userPartner && req.providerName && userPartner.brandName && req.providerName.toLowerCase() === userPartner.brandName.toLowerCase())
-  );
+  const myAmenityRequests = useMemo(() => {
+    const filtered = (amenityRequests || []).filter((req) =>
+      req.providerId === currentUser.id ||
+      (userPartner && req.providerId === userPartner.id) ||
+      (req.providerName && currentUser.name && req.providerName.toLowerCase() === currentUser.name.toLowerCase()) ||
+      (req.providerName && currentUser.businessName && req.providerName.toLowerCase() === currentUser.businessName.toLowerCase()) ||
+      (userPartner && req.providerName && userPartner.brandName && req.providerName.toLowerCase() === userPartner.brandName.toLowerCase())
+    );
+
+    // Group and deduplicate by normalized amenity name (case-insensitive)
+    // Always prioritize the most authoritative decision: APPROVED > REJECTED > PENDING_APPROVAL
+    const map = new Map<string, AmenityRequest>();
+    for (const req of filtered) {
+      if (!req || !req.amenityName) continue;
+      const key = req.amenityName.trim().toLowerCase();
+      const existing = map.get(key);
+      if (!existing) {
+        map.set(key, req);
+      } else {
+        if (req.status === 'APPROVED') {
+          map.set(key, req);
+        } else if (req.status === 'REJECTED' && existing.status === 'PENDING_APPROVAL') {
+          map.set(key, req);
+        }
+      }
+    }
+    return Array.from(map.values());
+  }, [amenityRequests, currentUser, userPartner]);
+
+  // Synchronize custom amenity requests live when editing modal is open or when there are pending requests
+  useEffect(() => {
+    if (!editModal) return;
+    const hasPending = myAmenityRequests.some((r) => r.status === 'PENDING_APPROVAL');
+    if (!hasPending) return;
+
+    const interval = setInterval(() => {
+      fetchAmenities().catch(() => {});
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, [editModal, myAmenityRequests, fetchAmenities]);
 
   useEffect(() => {
     const targetSpaceId = nav?.params?.spaceId || nav?.params?.id;
@@ -1220,24 +1254,43 @@ export default function ProviderMySpaces() {
                     My Amenity Requests & Status
                   </span>
                   <div className="flex flex-wrap gap-2">
-                    {myAmenityRequests.map((req) => (
-                      <div
-                        key={req.id}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border ${
-                          req.status === 'APPROVED'
-                            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-800'
-                            : req.status === 'REJECTED'
-                            ? 'bg-rose-500/10 border-rose-500/30 text-rose-800'
-                            : 'bg-amber-500/10 border-amber-500/30 text-amber-800'
-                        }`}
-                        title={req.status === 'REJECTED' ? `Reason: ${req.rejectionReason || 'Declined by Admin'}` : ''}
-                      >
-                        <span className="font-semibold">{req.amenityName}</span>
-                        <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded-md bg-white/60">
-                          {req.status === 'APPROVED' ? 'Approved' : req.status === 'REJECTED' ? 'Rejected' : 'Pending Admin'}
-                        </span>
-                      </div>
-                    ))}
+                    {myAmenityRequests.map((req) => {
+                      const isApproved = req.status === 'APPROVED';
+                      const isRejected = req.status === 'REJECTED';
+                      const isSelected = form.amenities?.includes(req.amenityName);
+                      return (
+                        <div
+                          key={req.id || req.amenityName}
+                          onClick={() => {
+                            if (isApproved) {
+                              toggleAmenity(req.amenityName);
+                            }
+                          }}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all ${
+                            isApproved
+                              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-800 cursor-pointer hover:bg-emerald-500/20 shadow-2xs'
+                              : isRejected
+                              ? 'bg-rose-500/10 border-rose-500/30 text-rose-800'
+                              : 'bg-amber-500/10 border-amber-500/30 text-amber-800'
+                          }`}
+                          title={
+                            isRejected
+                              ? `Reason: ${req.rejectionReason || 'Declined by Admin'}`
+                              : isApproved
+                              ? 'Approved by Admin! Click to add or remove from this space.'
+                              : 'Pending review by Admin'
+                          }
+                        >
+                          <span className="font-semibold">{req.amenityName}</span>
+                          <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded-md bg-white/60">
+                            {isApproved ? 'Approved' : isRejected ? 'Rejected' : 'Pending Admin'}
+                          </span>
+                          {isApproved && isSelected && (
+                            <Check size={12} className="text-emerald-700" />
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
