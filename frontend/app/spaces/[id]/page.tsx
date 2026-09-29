@@ -39,8 +39,23 @@ import {
   formatDateRange
 } from '@/types/types';
 import Modal from '@/components/ui/Modal';
+import App from '@/app/app';
 
+/**
+ * Route entry for /spaces/[id]. This page is rendered by Next directly (outside the SPA router in app.tsx),
+ * so once the user navigates to another screen (booking flow, login, ...) the SPA router must take over,
+ * otherwise navigate() would only change state that nothing renders.
+ */
 export default function SpaceDetails() {
+  const { nav } = useApp();
+  const screen = nav?.screen;
+  if (screen && screen !== 'landing' && screen !== 'space-details') {
+    return <App />;
+  }
+  return <SpaceDetailsView />;
+}
+
+function SpaceDetailsView() {
   const {
     nav,
     navigate,
@@ -54,7 +69,8 @@ export default function SpaceDetails() {
     leaveWaitlist,
     enableAutoBooking,
     addToCart,
-    getSpaceCrowding
+    getSpaceCrowding,
+    showToast
   } = useApp();
 
   const passActive = isUserPassHolder(currentUser);
@@ -140,6 +156,22 @@ export default function SpaceDetails() {
     }
   }, [spaceId, space]);
 
+  // Keep the session window valid for hourly bookings: the initial state is computed before the space
+  // data has loaded, and changing date or duration can invalidate the selected start time.
+  useEffect(() => {
+    if (!space || !(isHourlySpace || selectedPlan === 'hourly')) return;
+    if (!availableStartTimes.includes(startTime)) {
+      const first = availableStartTimes[0];
+      if (first) {
+        setStartTime(first);
+        setEndTime(calculateEndTime(first, selectedHours));
+      }
+      return;
+    }
+    const expectedEnd = calculateEndTime(startTime, selectedHours);
+    if (expectedEnd !== endTime) setEndTime(expectedEnd);
+  }, [space, isHourlySpace, selectedPlan, bookingDate, selectedHours, startTime, endTime]);
+
 
   if (!space) {
     return (
@@ -223,6 +255,10 @@ export default function SpaceDetails() {
   const handleBook = () => {
     if (!currentUser) { navigate('login'); return; }
     const hasTimeWindow = isHourlySpace || selectedPlan === 'hourly';
+    if (hasTimeWindow && (!bookingDate || !startTime || !endTime || !availableStartTimes.includes(startTime))) {
+      showToast?.('Please select a valid reservation date and session time within the venue operating hours.', 'error');
+      return;
+    }
     const params = {
       spaceId: space.id,
       plan: selectedPlan,
