@@ -24,7 +24,7 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import { useApp } from '@/app/store';
-import { Space, SpaceBookingPackage, SpaceCategory, ALL_SPACE_TYPES, isHourlyOnlySpace, isOfficeSpace, isHourlyAllowed, getSpaceCategory, AmenityRequest } from '@/types/types';
+import { Space, SpaceBookingPackage, SpaceCategory, ALL_SPACE_TYPES, isHourlyOnlySpace, isOfficeSpace, isHourlyAllowed, getSpaceCategory, AmenityRequest, SAUDI_CITIES, SAUDI_CITIES_DATA } from '@/types/types';
 
 const AMENITY_OPTIONS = [
   'WiFi',
@@ -43,7 +43,7 @@ const AMENITY_OPTIONS = [
   'Interactive Smartboard',
 ];
 
-const CITIES = ['Riyadh', 'Jeddah', 'Dammam', 'Khobar', 'Madinah', 'Makkah'];
+const CITIES = SAUDI_CITIES;
 const TYPES = ALL_SPACE_TYPES;
 
 const emptyForm = (): Partial<Space> => ({
@@ -106,6 +106,7 @@ export default function SpacesAdmin() {
   // Modal Dropdowns
   const [modalCityOpen, setModalCityOpen] = useState(false);
   const [modalTypeOpen, setModalTypeOpen] = useState(false);
+  const [modalCitySearch, setModalCitySearch] = useState('');
   const modalCityRef = useRef<HTMLDivElement>(null);
   const modalTypeRef = useRef<HTMLDivElement>(null);
 
@@ -158,6 +159,7 @@ export default function SpacesAdmin() {
       }
       if (modalCityRef.current && !modalCityRef.current.contains(event.target as Node)) {
         setModalCityOpen(false);
+        setModalCitySearch('');
       }
       if (modalTypeRef.current && !modalTypeRef.current.contains(event.target as Node)) {
         setModalTypeOpen(false);
@@ -978,12 +980,24 @@ export default function SpacesAdmin() {
                     </label>
                     <button
                       type="button"
-                      onClick={() => setModalCityOpen(!modalCityOpen)}
+                      onClick={() => {
+                        setModalCityOpen(!modalCityOpen);
+                        setModalCitySearch('');
+                      }}
                       className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border bg-white text-soot text-sm font-medium text-left transition-all duration-200 cursor-pointer focus:outline-none shadow-2xs ${
                         formErrors.city ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-soot/12'
                       }`}
                     >
-                      <span className="truncate">{form.city || 'Select City'}</span>
+                      <span className="truncate">
+                        {form.city ? (
+                          (() => {
+                            const matched = SAUDI_CITIES_DATA.find((c) => c.name.toLowerCase() === form.city?.toLowerCase());
+                            return matched ? `${matched.name} (${matched.nameAr})` : form.city;
+                          })()
+                        ) : (
+                          'Select City'
+                        )}
+                      </span>
                       <ChevronDown
                         size={15}
                         className={`text-moss shrink-0 transition-transform duration-200 ${
@@ -994,18 +1008,41 @@ export default function SpacesAdmin() {
                     {formErrors.city && <p className="text-xs text-rose-600 font-medium mt-1">* {formErrors.city}</p>}
 
                     {modalCityOpen && (
-                      <div className="absolute top-full left-0 right-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100 max-h-52 overflow-y-auto">
-                        <div className="space-y-0.5">
-                          {CITIES.map((c) => {
-                            const isSelected = form.city === c;
+                      <div className="absolute top-full left-0 right-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100 flex flex-col max-h-64">
+                        <div className="p-1 border-b border-soot/10 mb-1 sticky top-0 bg-plaster-surface z-10">
+                          <div className="relative">
+                            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-moss/60 pointer-events-none" />
+                            <input
+                              type="text"
+                              placeholder="Search city / ابحث عن مدينة..."
+                              value={modalCitySearch}
+                              onChange={(e) => setModalCitySearch(e.target.value)}
+                              className="w-full pl-8 pr-2.5 py-1.5 text-xs rounded-lg border border-soot/15 bg-white text-soot focus:outline-none focus:border-eucalyptus"
+                              onClick={(e) => e.stopPropagation()}
+                              autoFocus
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-0.5 overflow-y-auto max-h-52 pr-0.5">
+                          {SAUDI_CITIES_DATA.filter((c) => {
+                            if (!modalCitySearch.trim()) return true;
+                            const q = modalCitySearch.toLowerCase().trim();
+                            return (
+                              c.name.toLowerCase().includes(q) ||
+                              c.nameAr.includes(q) ||
+                              c.region.toLowerCase().includes(q)
+                            );
+                          }).map((c) => {
+                            const isSelected = form.city === c.name;
                             return (
                               <button
-                                key={c}
+                                key={c.name}
                                 type="button"
                                 onClick={() => {
-                                  setForm((p) => ({ ...p, city: c }));
+                                  setForm((p) => ({ ...p, city: c.name }));
                                   if (formErrors.city) setFormErrors((errs) => ({ ...errs, city: '' }));
                                   setModalCityOpen(false);
+                                  setModalCitySearch('');
                                 }}
                                 className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-sm font-medium transition-colors text-left cursor-pointer ${
                                   isSelected
@@ -1013,11 +1050,29 @@ export default function SpacesAdmin() {
                                     : 'text-soot hover:bg-plaster-dark/60'
                                 }`}
                               >
-                                <span>{c}</span>
+                                <span className="flex items-center gap-2">
+                                  <span>{c.name}</span>
+                                  <span className={`text-xs ${isSelected ? 'text-eucalyptus' : 'text-moss/70'}`}>
+                                    ({c.nameAr})
+                                  </span>
+                                </span>
                                 {isSelected && <Check size={14} className="text-eucalyptus" />}
                               </button>
                             );
                           })}
+                          {SAUDI_CITIES_DATA.filter((c) => {
+                            if (!modalCitySearch.trim()) return true;
+                            const q = modalCitySearch.toLowerCase().trim();
+                            return (
+                              c.name.toLowerCase().includes(q) ||
+                              c.nameAr.includes(q) ||
+                              c.region.toLowerCase().includes(q)
+                            );
+                          }).length === 0 && (
+                            <div className="py-3 text-center text-xs text-moss">
+                              No cities match your search
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}

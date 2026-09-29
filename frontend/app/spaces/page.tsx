@@ -4,9 +4,9 @@ import { Search, SlidersHorizontal, X, MapPin, ChevronDown, Check, ArrowUpDown, 
 import { useApp } from '@/app/store';
 import SpaceCard from '@/components/spaces/spaceCard';
 import Badge from '@/components/ui/Badge';
-import { getSpaceCategory, SpaceCategory, calculateHaversineDistance, getSpaceCoordinates } from '@/types/types';
+import { getSpaceCategory, SpaceCategory, calculateHaversineDistance, getSpaceCoordinates, SAUDI_CITIES } from '@/types/types';
 
-const CITIES = ['All Cities', 'Riyadh', 'Jeddah', 'Dammam', 'Khobar', 'Madinah', 'Makkah'];
+const CITIES = ['All Cities', ...SAUDI_CITIES];
 const CATEGORY_TABS: { id: 'all' | SpaceCategory; label: string; icon: any }[] = [
   { id: 'all', label: 'All Spaces', icon: LayoutGrid },
   { id: 'office', label: 'Offices', icon: Building2 },

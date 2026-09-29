@@ -19,10 +19,10 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { useApp } from '@/app/store';
-import { Space } from '@/types/types';
+import { Space, SAUDI_CITIES } from '@/types/types';
 import Modal from '@/components/ui/Modal';
 
-const CITIES = ['All Cities', 'Riyadh', 'Jeddah', 'Dammam', 'Khobar', 'Madinah', 'Makkah'];
+const CITIES = ['All Cities', ...SAUDI_CITIES];
 const SPACE_TYPES = [
   { value: 'all', label: 'All Types' },
   { value: 'private-office', label: 'Private Office' },
