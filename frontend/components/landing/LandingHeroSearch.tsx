@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation';
 import { MapPin, ChevronDown, Check, ArrowRight } from 'lucide-react';
 import { useApp } from '@/app/store';
 import Button from '@/components/ui/Button';
+import { SAUDI_CITIES } from '@/types/types';
 
-const CITIES = ['All Cities', 'Riyadh', 'Jeddah', 'Dammam', 'Khobar', 'Madinah', 'Makkah'];
+const CITIES = ['All Cities', ...SAUDI_CITIES];
 
 export default function LandingHeroSearch() {
   const router = useRouter();
@@ -66,7 +67,7 @@ export default function LandingHeroSearch() {
 
         {dropdownOpen && (
           <div className="absolute top-full left-0 right-0 mt-1.5 p-1 bg-[#FAF8F3] border border-soot/15 rounded-2xl shadow-2xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
-            <div className="max-h-40 overflow-y-auto space-y-0.5">
+            <div className="max-h-56 overflow-y-auto space-y-0.5">
               {CITIES.map(city => {
                 const isSelected = (city === 'All Cities' && !searchCity) || searchCity === city;
                 return (

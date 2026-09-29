@@ -19,9 +19,7 @@ import {
   HelpCircle,
 } from 'lucide-react';
 import { useApp } from '@/app/store';
-import { Space, SpaceType } from '@/types/types';
-
-const SAUDI_CITIES = ['Riyadh', 'Jeddah', 'Dammam', 'Khobar', 'Madinah', 'Makkah'];
+import { Space, SpaceType, SAUDI_CITIES, SAUDI_CITIES_DATA } from '@/types/types';
 
 const WORKSPACE_TYPES: { type: SpaceType; label: string; desc: string }[] = [
   { type: 'private-office', label: 'Private Office Suite', desc: 'Enclosed private offices for focused executive teams.' },
@@ -314,9 +312,9 @@ export default function CompanyAddWorkspace() {
                 onChange={(e) => setCity(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-xl bg-plaster border border-soot/15 text-soot text-sm shadow-xs focus-visible:ring-2 focus-visible:ring-eucalyptus cursor-pointer"
               >
-                {SAUDI_CITIES.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
+                {SAUDI_CITIES_DATA.map((c) => (
+                  <option key={c.name} value={c.name}>
+                    {c.name} ({c.nameAr})
                   </option>
                 ))}
               </select>

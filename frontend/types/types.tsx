@@ -298,13 +298,119 @@ export function formatDistance(distanceInKm: number | null | undefined): string 
   return `${distanceInKm.toFixed(1)} km`;
 }
 
+export interface SaudiCityData {
+  name: string;
+  nameAr: string;
+  region: string;
+  lat: number;
+  lng: number;
+}
+
+/**
+ * Comprehensive list of cities and urban centers across all 13 administrative provinces of Saudi Arabia.
+ * English names serve as standard canonical values for database storage and backend filtering.
+ */
+export const SAUDI_CITIES_DATA: SaudiCityData[] = [
+  // Primary Business & Metropolitan Hubs
+  { name: 'Riyadh', nameAr: 'الرياض', region: 'Riyadh', lat: 24.7136, lng: 46.6753 },
+  { name: 'Jeddah', nameAr: 'جدة', region: 'Makkah', lat: 21.5433, lng: 39.1728 },
+  { name: 'Makkah', nameAr: 'مكة المكرمة', region: 'Makkah', lat: 21.3891, lng: 39.8579 },
+  { name: 'Madinah', nameAr: 'المدينة المنورة', region: 'Madinah', lat: 24.4672, lng: 39.6111 },
+  { name: 'Dammam', nameAr: 'الدمام', region: 'Eastern', lat: 26.4207, lng: 50.0888 },
+  { name: 'Khobar', nameAr: 'الخبر', region: 'Eastern', lat: 26.2810, lng: 50.2080 },
+  { name: 'Dhahran', nameAr: 'الظهران', region: 'Eastern', lat: 26.2361, lng: 50.0393 },
+  { name: 'Al-Ahsa', nameAr: 'الأحساء', region: 'Eastern', lat: 25.3833, lng: 49.5864 },
+  // All Major Cities and Governorates Across Saudi Arabia
+  { name: 'Abha', nameAr: 'أبها', region: 'Asir', lat: 18.2164, lng: 42.5053 },
+  { name: 'Abu Arish', nameAr: 'أبو عريش', region: 'Jazan', lat: 16.9694, lng: 42.8317 },
+  { name: 'Ad-Dawadmi', nameAr: 'الدوادمي', region: 'Riyadh', lat: 24.5075, lng: 44.3922 },
+  { name: 'Afif', nameAr: 'عفيف', region: 'Riyadh', lat: 23.9065, lng: 42.9172 },
+  { name: 'Al Badayea', nameAr: 'البدائع', region: 'Al-Qassim', lat: 26.0167, lng: 43.7667 },
+  { name: 'Al Bukayriyah', nameAr: 'البكيرية', region: 'Al-Qassim', lat: 26.1378, lng: 43.6606 },
+  { name: 'Al Lith', nameAr: 'الليث', region: 'Makkah', lat: 20.1472, lng: 40.2747 },
+  { name: 'Al Makhwah', nameAr: 'المخواة', region: 'Al-Baha', lat: 19.7833, lng: 41.4333 },
+  { name: 'Al Mandaq', nameAr: 'المندق', region: 'Al-Baha', lat: 20.1583, lng: 41.2861 },
+  { name: 'Al Mithnab', nameAr: 'المذنب', region: 'Al-Qassim', lat: 25.8667, lng: 44.2167 },
+  { name: 'Al Namas', nameAr: 'النماص', region: 'Asir', lat: 19.1167, lng: 42.1333 },
+  { name: 'Al Qunfudhah', nameAr: 'القنفذة', region: 'Makkah', lat: 19.1264, lng: 41.0789 },
+  { name: 'Al-Baha', nameAr: 'الباحة', region: 'Al-Baha', lat: 20.0129, lng: 41.4676 },
+  { name: 'Al-Kharj', nameAr: 'الخرج', region: 'Riyadh', lat: 24.1554, lng: 47.3119 },
+  { name: 'Al-Majma\'ah', nameAr: 'المجمعة', region: 'Riyadh', lat: 25.9083, lng: 45.3431 },
+  { name: 'Al-Muzahmiyya', nameAr: 'المزاحمية', region: 'Riyadh', lat: 24.4758, lng: 46.2208 },
+  { name: 'Al-Qurayyat', nameAr: 'القريات', region: 'Al-Jouf', lat: 31.3318, lng: 37.3428 },
+  { name: 'Al-Rass', nameAr: 'الرس', region: 'Al-Qassim', lat: 25.8694, lng: 43.4973 },
+  { name: 'Al-Ula', nameAr: 'العلا', region: 'Madinah', lat: 26.6083, lng: 37.9250 },
+  { name: 'Al-Wajh', nameAr: 'الوجه', region: 'Tabuk', lat: 26.2455, lng: 36.4525 },
+  { name: 'Al-Zulfi', nameAr: 'الزلفي', region: 'Riyadh', lat: 26.2989, lng: 44.8014 },
+  { name: 'Arar', nameAr: 'عرعر', region: 'Northern Borders', lat: 30.9753, lng: 41.0381 },
+  { name: 'Baish', nameAr: 'بيش', region: 'Jazan', lat: 17.3731, lng: 42.5208 },
+  { name: 'Baljurashi', nameAr: 'بلجرشي', region: 'Al-Baha', lat: 19.8601, lng: 41.6166 },
+  { name: 'Baqa', nameAr: 'بقعاء', region: 'Hail', lat: 27.9167, lng: 42.4167 },
+  { name: 'Bisha', nameAr: 'بيشة', region: 'Asir', lat: 20.0005, lng: 42.6050 },
+  { name: 'Buqayq', nameAr: 'بقيق', region: 'Eastern', lat: 25.9377, lng: 49.7719 },
+  { name: 'Buraidah', nameAr: 'بريدة', region: 'Al-Qassim', lat: 26.3592, lng: 43.9818 },
+  { name: 'Diriyah', nameAr: 'الدرعية', region: 'Riyadh', lat: 24.7337, lng: 46.5750 },
+  { name: 'Duba', nameAr: 'ضباء', region: 'Tabuk', lat: 27.3514, lng: 35.6901 },
+  { name: 'Dumat Al-Jandal', nameAr: 'دومة الجندل', region: 'Al-Jouf', lat: 29.8167, lng: 39.8667 },
+  { name: 'Farasan', nameAr: 'فرسان', region: 'Jazan', lat: 16.7022, lng: 42.1183 },
+  { name: 'Hafar Al-Batin', nameAr: 'حفر الباطن', region: 'Eastern', lat: 28.4328, lng: 45.9708 },
+  { name: 'Hail', nameAr: 'حائل', region: 'Hail', lat: 27.5219, lng: 41.6961 },
+  { name: 'Haql', nameAr: 'حقل', region: 'Tabuk', lat: 29.2833, lng: 34.9333 },
+  { name: 'Hotat Bani Tamim', nameAr: 'حوطة بني تميم', region: 'Riyadh', lat: 23.5167, lng: 46.8333 },
+  { name: 'Jazan', nameAr: 'جازان', region: 'Jazan', lat: 16.8894, lng: 42.5706 },
+  { name: 'Jubail', nameAr: 'الجبيل', region: 'Eastern', lat: 27.0112, lng: 49.6583 },
+  { name: 'Khafji', nameAr: 'الخفجي', region: 'Eastern', lat: 28.4239, lng: 48.4906 },
+  { name: 'Khamis Mushait', nameAr: 'خميس مشيط', region: 'Asir', lat: 18.3000, lng: 42.7333 },
+  { name: 'Mohayil Asir', nameAr: 'محايل عسير', region: 'Asir', lat: 18.5447, lng: 42.0531 },
+  { name: 'Najran', nameAr: 'نجران', region: 'Najran', lat: 17.5656, lng: 44.2289 },
+  { name: 'Nariyah', nameAr: 'النعيرية', region: 'Eastern', lat: 27.5083, lng: 48.4917 },
+  { name: 'Neom', nameAr: 'نيوم', region: 'Tabuk', lat: 28.0000, lng: 35.3000 },
+  { name: 'Qatif', nameAr: 'القطيف', region: 'Eastern', lat: 26.5562, lng: 50.0094 },
+  { name: 'Rabigh', nameAr: 'رابغ', region: 'Makkah', lat: 22.7986, lng: 39.0349 },
+  { name: 'Rafha', nameAr: 'رفحاء', region: 'Northern Borders', lat: 29.6333, lng: 43.5167 },
+  { name: 'Ras Tanura', nameAr: 'رأس تنورة', region: 'Eastern', lat: 26.7730, lng: 50.0967 },
+  { name: 'Sabya', nameAr: 'صبيا', region: 'Jazan', lat: 17.1495, lng: 42.6254 },
+  { name: 'Sakaka', nameAr: 'سكاكا', region: 'Al-Jouf', lat: 29.9697, lng: 40.2064 },
+  { name: 'Samtah', nameAr: 'صامطة', region: 'Jazan', lat: 16.5983, lng: 42.9406 },
+  { name: 'Shaqra', nameAr: 'شقراء', region: 'Riyadh', lat: 25.2475, lng: 45.2536 },
+  { name: 'Sharurah', nameAr: 'شرورة', region: 'Najran', lat: 17.4856, lng: 47.1147 },
+  { name: 'Tabuk', nameAr: 'تبوك', region: 'Tabuk', lat: 28.3835, lng: 36.5662 },
+  { name: 'Taif', nameAr: 'الطائف', region: 'Makkah', lat: 21.2854, lng: 40.4222 },
+  { name: 'Tanomah', nameAr: 'تنومة', region: 'Asir', lat: 18.9333, lng: 42.1667 },
+  { name: 'Tayma', nameAr: 'تيماء', region: 'Tabuk', lat: 27.6333, lng: 38.5500 },
+  { name: 'Turaif', nameAr: 'طريف', region: 'Northern Borders', lat: 31.6725, lng: 38.6637 },
+  { name: 'Unaizah', nameAr: 'عنيزة', region: 'Al-Qassim', lat: 26.0843, lng: 43.9936 },
+  { name: 'Wadi Ad-Dawasir', nameAr: 'وادي الدواسر', region: 'Riyadh', lat: 20.4500, lng: 44.8333 },
+  { name: 'Yanbu', nameAr: 'ينبع', region: 'Madinah', lat: 24.0891, lng: 38.0637 },
+];
+
+export const SAUDI_CITIES: string[] = SAUDI_CITIES_DATA.map((c) => c.name);
+
+/**
+ * Returns formatted display name for a city (e.g., "Riyadh (الرياض)").
+ */
+export function getCityDisplayName(city?: string): string {
+  if (!city) return '';
+  const match = SAUDI_CITIES_DATA.find((c) => c.name.toLowerCase() === city.trim().toLowerCase());
+  return match ? `${match.name} (${match.nameAr})` : city;
+}
+
 export const CITY_COORDINATES: Record<string, { lat: number; lng: number }> = {
-  Riyadh: { lat: 24.7136, lng: 46.6753 },
-  Jeddah: { lat: 21.5433, lng: 39.1728 },
-  Dammam: { lat: 26.4207, lng: 50.0888 },
-  Khobar: { lat: 26.2810, lng: 50.2080 },
-  Madinah: { lat: 24.4672, lng: 39.6111 },
-  Makkah: { lat: 21.3891, lng: 39.8579 },
+  ...SAUDI_CITIES_DATA.reduce((acc, c) => {
+    acc[c.name] = { lat: c.lat, lng: c.lng };
+    acc[c.nameAr] = { lat: c.lat, lng: c.lng };
+    return acc;
+  }, {} as Record<string, { lat: number; lng: number }>),
+  // Common transliteration aliases
+  'Al Khobar': { lat: 26.2810, lng: 50.2080 },
+  'Mecca': { lat: 21.3891, lng: 39.8579 },
+  'Medina': { lat: 24.4672, lng: 39.6111 },
+  'Al Ahsa': { lat: 25.3833, lng: 49.5864 },
+  'Al Ula': { lat: 26.6083, lng: 37.9250 },
+  'Al Kharj': { lat: 24.1554, lng: 47.3119 },
+  'Al Baha': { lat: 20.0129, lng: 41.4676 },
+  'Al Rass': { lat: 25.8694, lng: 43.4973 },
+  'Hofuf': { lat: 25.3647, lng: 49.5883 },
 };
 
 /**

@@ -39,7 +39,8 @@ import {
   CrowdingLevel,
   SpaceCrowdingInfo,
   calculateSpaceCrowding,
-  PassRefundEligibility
+  PassRefundEligibility,
+  CITY_COORDINATES
 } from '@/types/types';
 import { INITIAL_SPACES, INITIAL_USERS, INITIAL_BOOKINGS, INITIAL_NOTIFICATIONS, INITIAL_SUPPORT_TICKETS } from '@/data/data';
 import {
@@ -3627,15 +3628,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const addSpace = (space: Omit<Space, 'id'>) => {
-    const defaultCoordsByCity: Record<string, { lat: number; lng: number }> = {
-      Riyadh: { lat: 24.7136, lng: 46.6753 },
-      Jeddah: { lat: 21.5433, lng: 39.1728 },
-      Dammam: { lat: 26.4207, lng: 50.0888 },
-      Khobar: { lat: 26.2810, lng: 50.2080 },
-      Madinah: { lat: 24.4672, lng: 39.6111 },
-      Makkah: { lat: 21.3891, lng: 39.8579 },
-    };
-    const cityCoords = defaultCoordsByCity[space.city] || { lat: 24.7136, lng: 46.6753 };
+    const cityCoords = CITY_COORDINATES[space.city] || { lat: 24.7136, lng: 46.6753 };
     const lat = space.latitude ?? space.coordinates?.lat ?? cityCoords.lat;
     const lng = space.longitude ?? space.coordinates?.lng ?? cityCoords.lng;
 

@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { ArrowRight, MapPin, Star, Users, Zap, Headphones, Shield, ChevronDown, Quote, Check, Building2, Presentation, Clapperboard } from 'lucide-react';
 import { useApp } from '@/app/store';
-import { getEffectiveSpacePrice, getSpaceCategory } from '@/types/types';
+import { getEffectiveSpacePrice, getSpaceCategory, SAUDI_CITIES } from '@/types/types';
 import GuestNav from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import Button from '@/components/ui/Button';
@@ -11,7 +11,7 @@ import Badge from '@/components/ui/Badge';
 
 const FALLBACK_SPACE_IMAGE = 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80';
 
-const cities = ['All Cities', 'Riyadh', 'Jeddah', 'Dammam', 'Khobar', 'Madinah', 'Makkah'];
+const cities = ['All Cities', ...SAUDI_CITIES];
 
 export default function Landing() {
   const { navigate, spaces, currentUser } = useApp();
@@ -97,7 +97,7 @@ export default function Landing() {
 
               {dropdownOpen && (
                 <div className="absolute top-full left-0 right-0 mt-1.5 p-1 bg-[#FAF8F3] border border-soot/15 rounded-2xl shadow-2xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
-                  <div className="max-h-40 overflow-y-auto space-y-0.5">
+                  <div className="max-h-56 overflow-y-auto space-y-0.5">
                     {cities.map(city => {
                       const isSelected = (city === 'All Cities' && !searchCity) || searchCity === city;
                       return (
