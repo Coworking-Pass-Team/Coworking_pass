@@ -71,10 +71,11 @@ export default function SpaceDetails() {
   const [bookingDate, setBookingDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
   const [bookingEndDate, setBookingEndDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
   const isHourlySpace = Boolean(space && isHourlyAllowed(space));
-  const defaultAvailableStarts = isHourlySpace && space ? getFilteredStartTimes(space.openHours, bookingDate, 2) : START_TIMES;
+  const [selectedHours, setSelectedHours] = useState<number>(1);
+  const defaultAvailableStarts = isHourlySpace && space ? getFilteredStartTimes(space.openHours, bookingDate, selectedHours) : START_TIMES;
   const initialStartTime = defaultAvailableStarts[0] || '09:00 AM';
   const [startTime, setStartTime] = useState<string>(initialStartTime);
-  const [endTime, setEndTime] = useState<string>(() => isHourlySpace ? calculateEndTime(initialStartTime, 2) : '05:00 PM');
+  const [endTime, setEndTime] = useState<string>(() => isHourlySpace ? calculateEndTime(initialStartTime, 1) : '05:00 PM');
   const [durationMonths, setDurationMonths] = useState(1);
   const [waitlistModal, setWaitlistModal] = useState(false);
   const [waitlistDone, setWaitlistDone] = useState(false);
@@ -101,17 +102,22 @@ export default function SpaceDetails() {
     setBookingEndDate(newEnd);
   };
 
-  const availableStartTimes = isHourlySpace && space ? getFilteredStartTimes(space.openHours, bookingDate, 2) : START_TIMES;
-  const durationHours = isHourlySpace ? 2 : calculateDurationHours(startTime, endTime);
+  const availableStartTimes = isHourlySpace && space ? getFilteredStartTimes(space.openHours, bookingDate, selectedHours) : START_TIMES;
+  const durationHours = isHourlySpace || selectedPlan === 'hourly' ? selectedHours : calculateDurationHours(startTime, endTime);
 
   const handleStartTimeChange = (newStart: string) => {
     setStartTime(newStart);
-    if (isHourlySpace) {
-      setEndTime(calculateEndTime(newStart, 2));
+    if (isHourlySpace || selectedPlan === 'hourly') {
+      setEndTime(calculateEndTime(newStart, selectedHours));
     } else {
       const validEnds = getAvailableEndTimes(newStart);
       setEndTime(validEnds[0] || calculateEndTime(newStart, 1));
     }
+  };
+
+  const handleHoursChange = (hours: number) => {
+    setSelectedHours(hours);
+    setEndTime(calculateEndTime(startTime, hours));
   };
 
   const handleBack = () => {
@@ -481,11 +487,11 @@ export default function SpaceDetails() {
                       Select Booking Plan
                     </label>
                     <span className="text-[10px] font-semibold text-soot bg-[#E5ECE9] px-2.5 py-0.5 rounded-full whitespace-nowrap">
-                      {isHourlyAllowed(space) ? 'Hourly • Daily • Monthly • Yearly' : 'Daily • Monthly • Yearly'}
+                      {isHourlyAllowed(space) ? 'Hourly Duration Booking' : 'Daily • Monthly • Yearly'}
                     </span>
                   </div>
 
-                  <div className={`grid gap-2 ${allowedPlans.length === 3 ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-4'}`}>
+                  <div className={`grid gap-2 ${allowedPlans.length === 1 ? 'grid-cols-1' : allowedPlans.length === 3 ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-4'}`}>
                     {allowedPlans.map((plan: BookingPlan) => {
                       const isSelected = selectedPlan === plan;
                       const planP = getEffectiveSpacePrice(
@@ -640,16 +646,48 @@ export default function SpaceDetails() {
                   </div>
                 )}
 
-                {isHourlyAllowed(space) && (
+                {(isHourlyAllowed(space) || selectedPlan === 'hourly') && (
                   <div className="p-4 rounded-2xl bg-plaster-dark/40 border border-soot/10 space-y-3.5">
                     <div className="flex items-center justify-between gap-2">
                       <label className="text-[11px] font-semibold uppercase tracking-wider text-moss flex items-center gap-1.5 whitespace-nowrap">
                         <Clock size={12} className="shrink-0" />
-                        <span>Select 2-Hour Daily Session</span>
+                        <span>Select Hourly Booking Duration</span>
                       </label>
                       <span className="text-xs font-bold text-emerald-900 bg-emerald-100/80 px-2.5 py-1 rounded-full border border-emerald-300 shadow-2xs whitespace-nowrap shrink-0">
-                        2 Hours Session (Fixed)
+                        {durationHours} {durationHours === 1 ? 'Hour' : 'Hours'} Duration
                       </span>
+                    </div>
+
+                    {/* Hourly Duration Selector Buttons */}
+                    <div className="space-y-1.5">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-moss block">
+                        Duration (Hours)
+                      </span>
+                      <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+                        {[1, 2, 3, 4, 6, 8].map((h) => {
+                          const isSelected = selectedHours === h;
+                          const hourlyP = getEffectiveSpacePrice(currentUser, space, 'hourly', undefined, h);
+                          return (
+                            <button
+                              key={h}
+                              type="button"
+                              onClick={() => handleHoursChange(h)}
+                              className={`py-2 px-1.5 rounded-xl text-center border transition-all cursor-pointer ${
+                                isSelected
+                                  ? 'bg-soot text-plaster border-soot shadow-2xs font-semibold'
+                                  : 'bg-white border-soot/10 text-moss hover:text-soot hover:border-soot/30'
+                              }`}
+                            >
+                              <div className="font-bold text-xs">{h} {h === 1 ? 'Hour' : 'Hours'}</div>
+                              <div className={`text-[10px] mt-0.5 ${isSelected ? 'text-plaster/80 font-medium' : 'text-moss'}`}>
+                                {hasActiveSubscription && hourlyP.isCovered
+                                  ? 'Pass Quota'
+                                  : `SAR ${hourlyP.effectivePrice.toLocaleString()}`}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
 
                     <div>
@@ -681,7 +719,7 @@ export default function SpaceDetails() {
                         >
                           {availableStartTimes.map((t) => (
                             <option key={t} value={t}>
-                              {t} – {calculateEndTime(t, 2)} (2 Hours)
+                              {t}
                             </option>
                           ))}
                         </select>
@@ -695,7 +733,7 @@ export default function SpaceDetails() {
                           type="text"
                           readOnly
                           disabled
-                          value={`${endTime} (2 Hours Fixed)`}
+                          value={`${endTime} (${durationHours} ${durationHours === 1 ? 'Hour' : 'Hours'})`}
                           className="w-full px-3 py-2.5 rounded-xl bg-soot/5 border border-soot/10 text-moss text-xs font-medium cursor-not-allowed shadow-2xs"
                         />
                       </div>
@@ -704,10 +742,10 @@ export default function SpaceDetails() {
                     <div className="bg-white p-3 rounded-xl border border-soot/8 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                       <div>
                         <span className="text-moss block text-[10px] uppercase font-semibold">
-                          Daily Session Window
+                          Scheduled Reservation Window
                         </span>
                         <span className="font-semibold text-soot">
-                          {bookingDate} · {startTime} – {endTime}
+                          {bookingDate} · {startTime} – {endTime} ({durationHours} {durationHours === 1 ? 'hour' : 'hours'})
                         </span>
                       </div>
                       <div className="text-left sm:text-right">

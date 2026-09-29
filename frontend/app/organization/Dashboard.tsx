@@ -32,6 +32,7 @@ import {
   Employee,
   getBookingPrice,
   getSpaceCategory,
+  isHourlyAllowed,
   SpaceCategory,
   calculateDailyDurationDays
 } from '@/types/types';
@@ -309,7 +310,14 @@ export default function OrgDashboard() {
                   </div>
                   <div className="text-right shrink-0">
                     {(() => {
-                      const planInfo = getEffectiveSpacePrice(currentUser, space, 'daily');
+                      const isHourly = isHourlyAllowed(space);
+                      const targetPlan = isHourly ? 'hourly' : 'daily';
+                      const planInfo = getEffectiveSpacePrice(currentUser, space, targetPlan);
+                      const unitLabel = isHourly ? '/hour' : '/day';
+                      const displayPrice = isHourly
+                        ? (space.pricing?.hourly ?? (space.pricing?.daily ? Math.round(space.pricing.daily / 4) : 150))
+                        : (space.pricing?.daily ?? 0);
+
                       if (planInfo.isCovered) {
                         return (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-800 font-bold text-[10px] border border-emerald-500/30 uppercase tracking-wider shadow-2xs">
@@ -321,13 +329,13 @@ export default function OrgDashboard() {
                       if (planInfo.hasDiscount) {
                         return (
                           <div>
-                            <div className="text-sm font-semibold text-soot">SAR {planInfo.effectivePrice}/day</div>
+                            <div className="text-sm font-semibold text-soot">SAR {planInfo.effectivePrice.toLocaleString()} {unitLabel}</div>
                             <div className="text-[10px] text-amber-800 font-bold">{planInfo.discountPercentage}% Pass Discount</div>
                           </div>
                         );
                       }
-                      {/* حماية إضافية لكائن التسعير */}
-                      return <div className="text-sm font-semibold text-soot">SAR {space.pricing?.daily ?? 0}/day</div>;
+                      {/* Safe fallback for space pricing object */}
+                      return <div className="text-sm font-semibold text-soot">SAR {displayPrice.toLocaleString()} {unitLabel}</div>;
                     })()}
                   </div>
                 </div>
@@ -438,7 +446,7 @@ export default function OrgDashboard() {
                       {planInfo.isCovered ? (
                         <span className="text-emerald-800 font-semibold">Included in Plan</span>
                       ) : (
-                        <span>SAR {planInfo.originalPrice.toLocaleString()} {isHourly ? '/h' : '/seat'}</span>
+                        <span>SAR {planInfo.originalPrice.toLocaleString()} {isHourly ? '/hour' : '/seat'}</span>
                       )}
                     </div>
                   </div>

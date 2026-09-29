@@ -24,6 +24,7 @@ import {
   getEffectiveSpacePrice,
   getBookingPrice,
   getSpaceCategory,
+  isHourlyAllowed,
   calculateDailyDurationDays
 } from '@/types/types';
 
@@ -375,7 +376,14 @@ export default function IndividualDashboard() {
                   </div>
                   <div className="text-right shrink-0">
                     {(() => {
-                      const planInfo = getEffectiveSpacePrice(currentUser, space, userPassPlan);
+                      const isHourly = isHourlyAllowed(space);
+                      const targetPlan = isHourly ? 'hourly' : userPassPlan;
+                      const planInfo = getEffectiveSpacePrice(currentUser, space, targetPlan);
+                      const unitLabel = isHourly ? '/hour' : '/day';
+                      const displayPrice = isHourly
+                        ? (space.pricing?.hourly ?? (space.pricing?.daily ? Math.round(space.pricing.daily / 4) : 150))
+                        : (space.pricing?.daily ?? 0);
+
                       if (planInfo.isCovered) {
                         return (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-800 font-bold text-[10px] border border-emerald-500/30 uppercase tracking-wider shadow-2xs">
@@ -387,12 +395,12 @@ export default function IndividualDashboard() {
                       if (planInfo.hasDiscount) {
                         return (
                           <div>
-                            <div className="text-sm font-semibold text-soot">SAR {planInfo.effectivePrice}/day</div>
+                            <div className="text-sm font-semibold text-soot">SAR {planInfo.effectivePrice.toLocaleString()} {unitLabel}</div>
                             <div className="text-[10px] text-amber-800 font-bold">{planInfo.discountPercentage}% Pass Discount</div>
                           </div>
                         );
                       }
-                      return <div className="text-sm font-semibold text-soot">SAR {space.pricing.daily}/day</div>;
+                      return <div className="text-sm font-semibold text-soot">SAR {displayPrice.toLocaleString()} {unitLabel}</div>;
                     })()}
                   </div>
                 </div>
@@ -502,7 +510,7 @@ export default function IndividualDashboard() {
                       {planInfo.isCovered ? (
                         <span className="text-emerald-800 font-semibold">Included in Pass</span>
                       ) : (
-                        <span>SAR {planInfo.originalPrice.toLocaleString()} {isHourly ? '/h' : '/day'}</span>
+                        <span>SAR {planInfo.originalPrice.toLocaleString()} {isHourly ? '/hour' : '/day'}</span>
                       )}
                     </div>
                   </div>

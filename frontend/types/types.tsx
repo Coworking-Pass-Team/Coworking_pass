@@ -89,14 +89,14 @@ export function isOfficeSpace(spaceType?: string): boolean {
 
 /**
  * Returns allowed booking plans based on space type:
- * - Halls: ['daily'] (hourly, monthly, and yearly removed per policy)
- * - Theaters: ['daily'] (hourly, monthly, and yearly removed per policy)
+ * - Halls: ['hourly'] (priced and booked by the hour)
+ * - Theaters: ['hourly'] (priced and booked by the hour)
  * - Offices: ['daily', 'monthly', 'yearly'] (NO hourly)
  */
 export function getAllowedPlansForSpace(spaceOrType?: Space | string): BookingPlan[] {
   const cat = getSpaceCategory(spaceOrType);
   if (cat === 'hall' || cat === 'theater') {
-    return ['daily'];
+    return ['hourly'];
   }
   return ['daily', 'monthly', 'yearly'];
 }
@@ -733,7 +733,7 @@ export function getHourlyPriceForDuration(space: Space, durationHours: number = 
   }
 
   // 2. Base hourly rate fallback
-  const baseHourly = space.pricing.hourly || 150;
+  const baseHourly = space.pricing.hourly || (space.pricing.daily ? Math.round(space.pricing.daily / 4) : 150);
   return baseHourly * hours;
 }
 

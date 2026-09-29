@@ -115,14 +115,12 @@ export default function BookingFlow() {
   const initialStartDate = (nav?.params?.startDate as string) || new Date().toISOString().split('T')[0];
   const initialEndDate = (nav?.params?.endDate as string) || initialStartDate;
   const initialMonths = (nav?.params?.durationMonths as number) || 1;
+  const initialHours = Number(nav?.params?.durationHours) || 1;
 
-  const defaultAvailableStarts = isHourlySpace ? getFilteredStartTimes(space?.openHours, initialStartDate, 2) : START_TIMES;
+  const [selectedHours, setSelectedHours] = useState<number>(initialHours);
+  const defaultAvailableStarts = isHourlySpace ? getFilteredStartTimes(space?.openHours, initialStartDate, initialHours) : START_TIMES;
   const initialStartTime = (nav?.params?.startTime as string) || (defaultAvailableStarts[0] || '09:00 AM');
-  const initialEndTime = isHourlySpace
-    ? calculateEndTime(initialStartTime, 2)
-    : ((nav?.params?.endTime as string) || (nav?.params?.durationHours
-    ? calculateEndTime(initialStartTime, Math.min(4, nav.params.durationHours as number))
-    : calculateEndTime(initialStartTime, 1)));
+  const initialEndTime = (nav?.params?.endTime as string) || calculateEndTime(initialStartTime, initialHours);
 
   const [step, setStep] = useState(0); 
   const [plan, setPlan] = useState<BookingPlan>(defaultInitialPlan);
@@ -135,15 +133,16 @@ export default function BookingFlow() {
   const [startTime, setStartTime] = useState<string>(initialStartTime);
   const [endTime, setEndTime] = useState<string>(initialEndTime);
 
-  const availableStartTimes = isHourlySpace ? getFilteredStartTimes(space?.openHours, startDate, 2) : START_TIMES;
-  const availableEndTimes = isHourlySpace ? [calculateEndTime(startTime, 2)] : getAvailableEndTimes(startTime);
+  const isHourly = isHourlySpace || plan === 'hourly';
+  const availableStartTimes = isHourlySpace ? getFilteredStartTimes(space?.openHours, startDate, selectedHours) : START_TIMES;
+  const availableEndTimes = isHourlySpace ? [calculateEndTime(startTime, selectedHours)] : getAvailableEndTimes(startTime);
 
-  const durationHours = isHourlySpace ? 2 : calculateDurationHours(startTime, endTime);
+  const durationHours = isHourly ? selectedHours : calculateDurationHours(startTime, endTime);
 
   const handleStartTimeChange = (newStart: string) => {
     setStartTime(newStart);
-    if (isHourlySpace) {
-      setEndTime(calculateEndTime(newStart, 2));
+    if (isHourly) {
+      setEndTime(calculateEndTime(newStart, selectedHours));
     } else {
       const validEnds = getAvailableEndTimes(newStart);
       const startMin = timeStringToMinutes(newStart);
@@ -152,6 +151,11 @@ export default function BookingFlow() {
         setEndTime(validEnds[0] || calculateEndTime(newStart, 1));
       }
     }
+  };
+
+  const handleHoursChange = (hours: number) => {
+    setSelectedHours(hours);
+    setEndTime(calculateEndTime(startTime, hours));
   };
 
   const handleEndTimeChange = (newEnd: string) => {
@@ -241,7 +245,6 @@ export default function BookingFlow() {
 
   if (!space || !currentUser) return null;
 
-  const isHourly = isHourlySpace && plan === 'hourly';
   const hasActiveSubscription = Boolean(currentUser?.hasActivePass);
 
   const effectiveDailyEndDate = dailyEndDate && dailyEndDate >= startDate ? dailyEndDate : startDate;
@@ -375,7 +378,7 @@ export default function BookingFlow() {
         ? (durationDays || calculateDailyDurationDays(startDate, effectiveDailyEndDate))
         : undefined;
 
-      const durationDetailsText = (isHourlySpace || isHourly || plan === 'hourly')
+      const durationDetailsText = isHourly
         ? `${durationHours} ${durationHours === 1 ? 'Hour' : 'Hours'}`
         : plan === 'daily'
         ? `${computedDurationDays} ${computedDurationDays === 1 ? 'Day' : 'Days'}`
@@ -490,9 +493,6 @@ export default function BookingFlow() {
                   <Row label="Selected Date Range" value={formatDateRange(startDate, endDate)} />
                   <Row label="Reservation Duration" value={`${durationDays} ${durationDays === 1 ? 'Day' : 'Days'}`} />
                 </>
-              )}
-              {isHourlySpace && (
-                <Row label="Daily Allowed Hours" value={`${startTime} – ${endTime} (${durationHours} ${durationHours === 1 ? 'hour' : 'hours'}/day)`} />
               )}
               <Row label="Reserved Seats" value={`${seats} seat${seats > 1 ? 's' : ''}`} />
               <div className="pt-3 border-t border-soot/8 flex justify-between items-center font-semibold text-base">
@@ -646,14 +646,14 @@ export default function BookingFlow() {
           <div>
             <h2 className="text-2xl text-soot font-normal mb-1 font-serif-display">
               {isHourlySpace
-                ? 'Select Daily Pass Plan'
+                ? 'Select Hourly Booking Plan'
                 : isOffice
                 ? 'Choose Office Pass Plan'
                 : 'Choose Your Pass & Duration'}
             </h2>
             <p className="text-moss text-sm">
               {isHourlySpace
-                ? 'Theaters and Halls are reserved on a Daily basis with a 2-hour session within operating hours.'
+                ? 'Theaters and Halls are priced and reserved on an hourly duration basis.'
                 : 'Offices support Daily, Monthly (multi-month), and Yearly reservations.'}
             </p>
           </div>
@@ -1006,16 +1006,44 @@ export default function BookingFlow() {
                   <div>
                     <h4 className="text-xs font-semibold uppercase tracking-wider text-moss flex items-center gap-1.5">
                       <Clock size={13} />
-                      <span>{isHourlySpace ? 'Select 2-Hour Daily Session' : 'Specify Reservation Date & Time'}</span>
+                      <span>Select Hourly Duration & Time</span>
                     </h4>
                     <p className="text-xs text-moss mt-0.5">
-                      {isHourlySpace
-                        ? `Session within venue operating hours: ${space.openHours || 'Standard Operating Hours'}`
-                        : 'Select your booking date, start time, and end time'}
+                      {`Operating hours: ${space.openHours || 'Standard Operating Hours'}`}
                     </p>
                   </div>
                   <div className="text-xs font-bold text-emerald-900 bg-emerald-100/80 px-3 py-1 rounded-full border border-emerald-300 shadow-2xs whitespace-nowrap">
-                    {isHourlySpace ? '2 Hours Session (Fixed)' : `${durationHours} ${durationHours === 1 ? 'Hour' : 'Hours'}`}
+                    {durationHours} {durationHours === 1 ? 'Hour' : 'Hours'} Duration
+                  </div>
+                </div>
+
+                {/* Duration Pills */}
+                <div className="space-y-1.5">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-moss block">
+                    Duration (Hours)
+                  </span>
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                    {[1, 2, 3, 4, 6, 8].map(h => {
+                      const isSelected = selectedHours === h;
+                      const hPrice = getEffectiveSpacePrice(currentUser, space, 'hourly', deskType, h, 1, seats);
+                      return (
+                        <button
+                          key={h}
+                          type="button"
+                          onClick={() => handleHoursChange(h)}
+                          className={`py-2 px-1.5 rounded-xl text-center border transition-all cursor-pointer ${
+                            isSelected
+                              ? 'bg-soot text-plaster border-soot shadow-2xs font-semibold'
+                              : 'bg-white border-soot/10 text-moss hover:text-soot hover:border-soot/30'
+                          }`}
+                        >
+                          <div className="font-bold text-xs">{h} {h === 1 ? 'Hour' : 'Hours'}</div>
+                          <div className={`text-[10px] mt-0.5 ${isSelected ? 'text-plaster/80 font-medium' : 'text-moss'}`}>
+                            {hasActiveSubscription && hPrice.isCovered ? 'Pass Quota' : `SAR ${hPrice.effectivePrice.toLocaleString()}`}
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -1032,7 +1060,7 @@ export default function BookingFlow() {
                     >
                       {availableStartTimes.map((t) => (
                         <option key={t} value={t}>
-                          {isHourlySpace ? `${t} – ${calculateEndTime(t, 2)} (2 Hours)` : t}
+                          {t}
                         </option>
                       ))}
                     </select>
@@ -1043,36 +1071,22 @@ export default function BookingFlow() {
                       <Clock size={13} />
                       <span>{isHourlySpace ? 'Session End Time' : 'End Time'}</span>
                     </label>
-                    {isHourlySpace ? (
-                      <input
-                        type="text"
-                        disabled
-                        value={`${endTime} (2 Hours Fixed)`}
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-soot/5 border border-soot/12 text-soot text-sm font-semibold cursor-not-allowed shadow-2xs"
-                      />
-                    ) : (
-                      <select
-                        value={endTime}
-                        onChange={(e) => handleEndTimeChange(e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-soot/12 text-soot text-sm font-medium focus:outline-none focus:border-eucalyptus cursor-pointer shadow-2xs"
-                      >
-                        {availableEndTimes.map((t) => (
-                          <option key={t} value={t}>
-                            {t}
-                          </option>
-                        ))}
-                      </select>
-                    )}
+                    <input
+                      type="text"
+                      disabled
+                      value={`${endTime} (${durationHours} ${durationHours === 1 ? 'Hour' : 'Hours'})`}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-soot/5 border border-soot/12 text-soot text-sm font-semibold cursor-not-allowed shadow-2xs"
+                    />
                   </div>
                 </div>
 
                 <div className="bg-white p-3 rounded-xl border border-soot/8 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                   <div>
                     <span className="text-moss block text-[10px] uppercase font-semibold">
-                      {isHourlySpace ? 'Selected 2-Hour Daily Window' : 'Scheduled Date & Time'}
+                      Scheduled Reservation Window
                     </span>
                     <span className="font-semibold text-soot">
-                      {startDate} · {startTime} – {endTime} {isHourlySpace ? '(2 Hours)' : ''}
+                      {startDate} · {startTime} – {endTime} ({durationHours} {durationHours === 1 ? 'hour' : 'hours'})
                     </span>
                   </div>
                   <div className="text-left sm:text-right">

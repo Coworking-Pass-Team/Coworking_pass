@@ -40,7 +40,8 @@ import {
   SpaceCrowdingInfo,
   calculateSpaceCrowding,
   PassRefundEligibility,
-  CITY_COORDINATES
+  CITY_COORDINATES,
+  isHourlyAllowed
 } from '@/types/types';
 import { INITIAL_SPACES, INITIAL_USERS, INITIAL_BOOKINGS, INITIAL_NOTIFICATIONS, INITIAL_SUPPORT_TICKETS } from '@/data/data';
 import {
@@ -2504,7 +2505,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             availableCapacity: w.totalCapacity !== undefined && w.totalCapacity !== null ? Number(w.totalCapacity) : 0,
 
             pricing: {
-              hourly: (w as any).hourlyRate ?? existing?.pricing?.hourly ?? 45,
+              hourly: (w as any).hourlyRate ?? existing?.pricing?.hourly ?? (isHourlyAllowed(preservedType) ? (w.dailyRate ? Math.round(w.dailyRate / 4) : 150) : 45),
               daily: w.dailyRate !== undefined && w.dailyRate !== null ? w.dailyRate : (existing?.pricing?.daily ?? 100),
               monthly: w.monthlyRate !== undefined && w.monthlyRate !== null ? w.monthlyRate : (existing?.pricing?.monthly ?? 2000),
               yearly: w.yearlyRate !== undefined && w.yearlyRate !== null ? w.yearlyRate : (existing?.pricing?.yearly ?? 20000),

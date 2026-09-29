@@ -14,7 +14,10 @@ export default function SpaceCard({ space, distance, onSelect }: SpaceCardProps)
   const { favorites, toggleFavorite, currentUser, getSpaceCrowding } = useApp();
   const isFav = favorites.includes(space.id) || (space.name ? favorites.includes(space.name) : false);
   const userTier = (currentUser?.membershipTier || '').toLowerCase();
-  const userPlan: BookingPlan = userTier.includes('yearly') || userTier.includes('enterprise') || userTier.includes('all-access')
+  const isHourlySpace = isHourlyAllowed(space);
+  const userPlan: BookingPlan = isHourlySpace
+    ? 'hourly'
+    : userTier.includes('yearly') || userTier.includes('enterprise') || userTier.includes('all-access')
     ? 'yearly'
     : userTier.includes('monthly') || userTier.includes('pro')
     ? 'monthly'
@@ -117,15 +120,16 @@ export default function SpaceCard({ space, distance, onSelect }: SpaceCardProps)
                 <div>
                   <div className="text-soot font-bold text-xs sm:text-sm">SAR {planInfo.effectivePrice}</div>
                   <div className="text-moss text-[10px] font-medium font-mono">{planInfo.discountPercentage}% Off</div>
+                  <div className="text-moss text-[10px]">{isHourlySpace ? '/ hour' : '/ day'}</div>
                 </div>
               ) : (
                 <>
-                  {/* حماية استخراج السعر */}
+                  {/* Safe price extraction */}
                   <div className="text-soot font-bold text-xs sm:text-sm">
-                    SAR {isHourlyAllowed(space) ? (space.pricing?.hourly ?? 150) : (space.pricing?.daily ?? 0)}
+                    SAR {isHourlySpace ? (space.pricing?.hourly ?? (space.pricing?.daily ? Math.round(space.pricing.daily / 4) : 150)) : (space.pricing?.daily ?? 0)}
                   </div>
                   <div className="text-moss text-[10px] sm:text-[11px] font-normal block -mt-0.5">
-                    {isHourlyAllowed(space) ? '/ hour' : '/ day'}
+                    {isHourlySpace ? '/ hour' : '/ day'}
                   </div>
                 </>
               )}
