@@ -96,9 +96,9 @@ if (existingUser && !existingUser.emailVerified) {
           { status: 400 }
         );
       }
-      if (cleanCr && !/^(1010|1011|2050|2051|2052|2053|2055|2251|2252|3350|3351|3400|3450|3452|3550|4030|4031|4032|4650|4700|5850|5851|5900|5950|[1-5]\d{3})\d{6}$/.test(cleanCr)) {
+      if (cleanCr && !/^1010\d{6}$/.test(cleanCr)) {
         return NextResponse.json(
-          { error: "CR Number must be 10 digits starting with a valid region code (e.g., 1010xxxxxx)." },
+          { error: "CR Number must be 10 digits starting with 1010 (e.g., 1010xxxxxx)." },
           { status: 400 }
         );
       }
