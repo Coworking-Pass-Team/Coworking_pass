@@ -54,7 +54,7 @@ const STEPS = ['Type & Plan', 'Team', 'Schedule', 'Review'];
 const DURATION_OPTIONS = [1, 2, 3, 4, 6, 8];
 
 export default function TeamBooking() {
-  const { nav, goBack, spaces, bookings, currentUser, addBooking, navigate, showToast, addToCart, updateCurrentUser, withdrawFromWallet, companyWalletBalance, fetchCompanyWallet } = useApp();
+  const { nav, goBack, spaces, bookings, currentUser, addBooking, navigate, showToast, addToCart, updateCurrentUser, withdrawFromWallet, companyWalletBalance, fetchCompanyWallet, withdrawFromCompanyWallet } = useApp();
   const spaceId = nav.params?.spaceId;
   const space = spaces.find((s: Space) => s.id === spaceId);
 
@@ -341,14 +341,14 @@ export default function TeamBooking() {
       });
 
       if (useWalletBalance && walletDeduction > 0) {
-        if (!isUsingCompanyWallet && withdrawFromWallet) {
+        if (isUsingCompanyWallet && withdrawFromCompanyWallet) {
+          withdrawFromCompanyWallet(walletDeduction, currentUser.companyId, `Team booking payment for ${space.name}`);
+        } else if (!isUsingCompanyWallet && withdrawFromWallet) {
           withdrawFromWallet(walletDeduction, `Team booking payment for ${space.name}`);
-        } else if (fetchCompanyWallet) {
-          setTimeout(() => fetchCompanyWallet(currentUser.companyId), 1200);
         }
       }
 
-      // تحديث نقاط الولاء للمؤسسة / المستخدم
+      // Update loyalty points for organization / user
       const pointsUsed = useLoyaltyPoints ? maxRedeemablePoints : 0;
       const updatedPoints = Math.max(0, availablePoints - pointsUsed + earnedPoints);
       updateCurrentUser({ loyaltyPoints: updatedPoints });

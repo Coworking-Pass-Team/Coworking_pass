@@ -1275,6 +1275,22 @@ export async function depositCompanyWalletApi(companyId: string, amount: number)
   }
 }
 
+export async function withdrawCompanyWalletApi(companyId: string, amount: number) {
+  const url = `${getAuthBaseUrl()}/api/companies/${companyId}/withdraw`;
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ amount }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) return { success: false, error: data.error || 'Failed to withdraw from company wallet' };
+    return { success: true, data };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
 export async function updateCompanyApi(id: string, data: any) {
   const url = `${getAuthBaseUrl()}/api/companies/${id}`;
   try {
