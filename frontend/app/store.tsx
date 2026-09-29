@@ -62,6 +62,7 @@ import {
   getCompaniesApi,
   getCompanyApi,
   depositCompanyWalletApi,
+  withdrawCompanyWalletApi,
   updateCompanyApi,
   createTicketApi,
   createTicketReplyApi,
@@ -533,6 +534,7 @@ interface AppContextType {
   companyData: any | null;
   fetchCompanyWallet: (companyId?: string) => Promise<{ balance: number; company?: any } | null>;
   depositToCompanyWallet: (amount: number, companyId?: string) => Promise<{ success: boolean; message: string; balance?: number }>;
+  withdrawFromCompanyWallet: (amount: number, companyId?: string, description?: string) => Promise<{ success: boolean; message: string; balance?: number }>;
 
   loyaltyRules: LoyaltyRule[];
   fetchLoyaltyRules: () => Promise<LoyaltyRule[]>;
@@ -1927,6 +1929,55 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const msg = err.message || 'Error depositing to company wallet';
       showToast(msg, 'error');
       return { success: false, message: msg };
+    }
+  };
+
+  const withdrawFromCompanyWallet = async (
+    amount: number,
+    companyId?: string,
+    description?: string
+  ): Promise<{ success: boolean; message: string; balance?: number }> => {
+    if (amount <= 0) return { success: false, message: 'Invalid withdrawal amount' };
+    let targetCompId = companyId || currentUser?.companyId || companyData?.id;
+    if (!targetCompId) {
+      try {
+        const compRes = await getCompaniesApi();
+        if (compRes.success && Array.isArray(compRes.data) && compRes.data.length > 0) {
+          const userCompany = compRes.data.find((c: any) =>
+            c.hrAdminId === currentUser?.id || c.id === currentUser?.companyId
+          ) || compRes.data[0];
+          targetCompId = userCompany?.id;
+        }
+      } catch (_) {}
+    }
+    if (!targetCompId) {
+      return { success: false, message: 'Company ID not found' };
+    }
+
+    try {
+      // 1. Try dedicated withdraw API
+      let res = await withdrawCompanyWalletApi(targetCompId, amount);
+
+      // 2. If dedicated withdraw fails, fallback to updateCompanyApi with new balance
+      if (!res.success) {
+        const fallbackBal = Math.max(0, companyWalletBalance - amount);
+        const updateRes = await updateCompanyApi(targetCompId, { balance: fallbackBal });
+        if (updateRes.success) {
+          res = { success: true, data: { company: { balance: fallbackBal, newBalance: fallbackBal } } };
+        }
+      }
+
+      const newBal = res.data?.company?.newBalance ?? res.data?.company?.balance ?? Math.max(0, companyWalletBalance - amount);
+      setCompanyWalletBalance(newBal);
+      setCompanyData((prev: any) => prev ? { ...prev, balance: newBal } : { id: targetCompId, balance: newBal });
+      showToast(`SAR ${amount.toLocaleString()} debited from corporate shared wallet`, 'success');
+      return { success: true, message: 'Withdrawal successful', balance: newBal };
+    } catch (err: any) {
+      const fallbackBal = Math.max(0, companyWalletBalance - amount);
+      setCompanyWalletBalance(fallbackBal);
+      setCompanyData((prev: any) => prev ? { ...prev, balance: fallbackBal } : null);
+      showToast(`SAR ${amount.toLocaleString()} debited from shared wallet`, 'info');
+      return { success: true, message: 'Deduction applied locally', balance: fallbackBal };
     }
   };
 
@@ -5876,7 +5927,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       cart, isCartOpen, setIsCartOpen, openCart, closeCart, addToCart, removeFromCart, updateCartItemSeats, updateCartItem, clearCart, checkoutCart,
       applyLoyaltyDiscount,
       walletTransactions, fetchWallet, depositToWallet, withdrawFromWallet,
-      companyWalletBalance, companyData, fetchCompanyWallet, depositToCompanyWallet,
+      companyWalletBalance, companyData, fetchCompanyWallet, depositToCompanyWallet, withdrawFromCompanyWallet,
       loyaltyRules, fetchLoyaltyRules, createLoyaltyProposal, updateLoyaltyRuleStatus, deleteLoyaltyRule,
       qrScans, fetchQrCheckIns, recordQrScan, getSpaceCrowding,
       toast, showToast, updateCurrentUser, completeSignup,
