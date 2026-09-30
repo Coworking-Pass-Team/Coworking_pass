@@ -32,7 +32,7 @@ import {
 import Modal from '@/components/ui/Modal';
 
 export default function SubscriptionsAdmin() {
-  const { t } = useI18n();
+  const { t, translateMessage } = useI18n();
   const { showToast, users } = useApp();
   const [subscriptions, setSubscriptions] = useState<SubscriptionItemApi[]>([]);
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
@@ -207,7 +207,7 @@ export default function SubscriptionsAdmin() {
             <span>Passes &amp; Subscriptions Database</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-normal text-soot font-serif-display">
-            Subscriptions Management
+            {t('admin.sub.subscriptionsManagement')}
           </h2>
           <p className="text-xs sm:text-sm text-moss mt-1">
             Full CRUD operations for B2C &amp; B2B subscriptions (GET, POST, PUT, DELETE /api/subscriptions).
@@ -219,7 +219,7 @@ export default function SubscriptionsAdmin() {
             type="button"
             onClick={fetchSubscriptions}
             className="p-2.5 rounded-xl border border-soot/12 text-moss hover:text-soot hover:bg-soot/5 transition-colors cursor-pointer"
-            title="Refresh subscriptions list (GET)"
+            title={t('admin.sub.refreshSubscriptionsListGet')}
           >
             <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
           </button>
@@ -234,7 +234,7 @@ export default function SubscriptionsAdmin() {
             className="btn-primary py-2.5 px-4 text-xs sm:text-sm flex items-center gap-2 shadow-xs cursor-pointer"
           >
             <Plus size={16} />
-            <span>Create Subscription</span>
+            <span>{t('admin.sub.createSubscription')}</span>
           </button>
         </div>
       </div>
@@ -266,7 +266,7 @@ export default function SubscriptionsAdmin() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by ID, User, or Plan..."
+            placeholder={t('admin.sub.searchByIdUserOr')}
             className="w-full ps-9 pe-3 py-1.5 text-xs rounded-xl bg-white border border-soot/12 text-soot placeholder:text-moss/60 focus:outline-none focus:ring-2 focus:ring-eucalyptus"
           />
         </div>
@@ -276,12 +276,12 @@ export default function SubscriptionsAdmin() {
       {loading && subscriptions.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-3xl border border-soot/8">
           <RefreshCw size={24} className="animate-spin text-moss mx-auto mb-2" />
-          <p className="text-xs text-moss font-medium">Loading subscriptions from DB...</p>
+          <p className="text-xs text-moss font-medium">{t('admin.sub.loadingSubscriptionsFromDb')}</p>
         </div>
       ) : filteredSubscriptions.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-3xl border border-soot/8">
           <Calendar size={28} className="text-moss/50 mx-auto mb-2" />
-          <h3 className="text-base font-semibold text-soot">No subscriptions found</h3>
+          <h3 className="text-base font-semibold text-soot">{t('admin.sub.noSubscriptionsFound')}</h3>
           <p className="text-xs text-moss mt-1">Try adjusting your filter or click &quot;Create Subscription&quot; to issue a pass.</p>
         </div>
       ) : (
@@ -307,7 +307,7 @@ export default function SubscriptionsAdmin() {
                         : 'bg-emerald-100 text-emerald-900 border border-emerald-200'
                     }`}>
                       {isCancelled ? <XCircle size={12} /> : <CheckCircle2 size={12} />}
-                      <span>{sub.status || 'ACTIVE'}</span>
+                      <span>{translateMessage(sub.status || 'ACTIVE')}</span>
                     </span>
 
                     <div className="flex items-center gap-1.5">
@@ -315,7 +315,7 @@ export default function SubscriptionsAdmin() {
                         type="button"
                         onClick={() => handleOpenEdit(sub)}
                         className="p-1.5 rounded-lg text-moss hover:text-soot hover:bg-soot/5 transition-colors cursor-pointer"
-                        title="Update Subscription Status (PUT)"
+                        title={t('admin.sub.updateSubscriptionStatusPut')}
                       >
                         <Edit3 size={14} />
                       </button>
@@ -323,7 +323,7 @@ export default function SubscriptionsAdmin() {
                         type="button"
                         onClick={() => handleDeleteSubscription(sub)}
                         className="p-1.5 rounded-lg text-moss hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                        title="Delete Subscription (DELETE)"
+                        title={t('admin.sub.deleteSubscriptionDelete')}
                       >
                         <Trash2 size={14} />
                       </button>
@@ -337,7 +337,7 @@ export default function SubscriptionsAdmin() {
                   <div className="mt-2 text-xs text-moss space-y-1">
                     <div className="flex items-center gap-1.5 text-soot font-medium">
                       <UserCheck size={13} className="text-emerald-700 shrink-0" />
-                      <span>{sub.user?.name || 'User ID: ' + sub.userId.slice(0, 8)}</span>
+                      <span>{sub.user?.name || translateMessage('User ID: ') + sub.userId.slice(0, 8)}</span>
                     </div>
                     {sub.user?.email && (
                       <div className="text-[11px] text-moss/80 truncate ps-4">
@@ -348,16 +348,16 @@ export default function SubscriptionsAdmin() {
 
                   <div className="mt-4 pt-3 border-t border-soot/8 space-y-1.5 text-xs text-moss">
                     <div className="flex items-center justify-between">
-                      <span>Start Date:</span>
+                      <span>{t('admin.sub.startDate')}</span>
                       <span className="font-semibold text-soot">{startStr}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span>End Date:</span>
+                      <span>{t('admin.sub.endDate')}</span>
                       <span className="font-semibold text-soot">{endStr}</span>
                     </div>
                     {sub.plan?.price !== undefined && (
                       <div className="flex items-center justify-between">
-                        <span>Price:</span>
+                        <span>{t('admin.sub.price')}</span>
                         <span className="font-semibold text-emerald-800">{t('common.sar')} {sub.plan.price}</span>
                       </div>
                     )}
@@ -365,8 +365,8 @@ export default function SubscriptionsAdmin() {
                 </div>
 
                 <div className="mt-5 pt-3 border-t border-soot/6 flex items-center justify-between text-[10px] text-moss/70 font-mono">
-                  <span>Sub ID: {sub.id.slice(0, 10)}...</span>
-                  <span className="bg-soot/5 px-2 py-0.5 rounded-md text-soot font-medium">Prisma DB</span>
+                  <span>{t('admin.sub.subId')} {sub.id.slice(0, 10)}...</span>
+                  <span className="bg-soot/5 px-2 py-0.5 rounded-md text-soot font-medium">{t('admin.sub.prismaDb')}</span>
                 </div>
               </div>
             );
@@ -378,14 +378,14 @@ export default function SubscriptionsAdmin() {
       <Modal
         open={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        title="Create New Subscription"
+        title={t('admin.sub.createNewSubscription')}
         subtitle="POST http://localhost:3000/api/subscriptions"
       >
         <form onSubmit={handleCreateSubscription} className="space-y-4 pt-2">
           {formError && (
             <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs font-medium flex items-center gap-2">
               <AlertCircle size={15} className="shrink-0" />
-              <span>{formError}</span>
+              <span>{translateMessage(formError)}</span>
             </div>
           )}
 
@@ -393,17 +393,17 @@ export default function SubscriptionsAdmin() {
             <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs font-medium space-y-1">
               <div className="flex items-center gap-2 font-bold">
                 <CheckCircle2 size={16} className="text-emerald-700" />
-                <span>Subscription Activated Successfully!</span>
+                <span>{t('admin.sub.subscriptionActivatedSuccessfully')}</span>
               </div>
               <p className="font-mono text-[11px] bg-white p-2 rounded-lg border border-emerald-200 select-all">
-                Subscription ID: {createdSubId}
+                {t('admin.sub.subscriptionId')} {createdSubId}
               </p>
             </div>
           )}
 
           <div>
             <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">
-              Select User (userId) <span className="text-rose-600">*</span>
+              {t('admin.sub.selectUserUserid')} <span className="text-rose-600">*</span>
             </label>
             <div className="space-y-2">
               <select
@@ -411,7 +411,7 @@ export default function SubscriptionsAdmin() {
                 onChange={(e) => setUserId(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-soot/15 text-soot text-sm bg-white focus:outline-none focus:ring-2 focus:ring-eucalyptus shadow-2xs"
               >
-                <option value="">-- Select Registered User --</option>
+                <option value="">{t('admin.sub.selectRegisteredUser')}</option>
                 {users.map(u => (
                   <option key={u.id} value={u.id}>
                     {u.name} ({u.email}) — [{u.role}]
@@ -423,7 +423,7 @@ export default function SubscriptionsAdmin() {
                 type="text"
                 value={userId}
                 onChange={(e) => setUserId(e.target.value)}
-                placeholder="Or paste exact userId from register (e.g. cly123...)"
+                placeholder={t('admin.sub.orPasteExactUseridFrom')}
                 className="w-full px-3.5 py-2 rounded-xl border border-soot/12 text-soot text-xs font-mono bg-soot/3 focus:outline-none focus:ring-2 focus:ring-eucalyptus"
               />
             </div>
@@ -431,7 +431,7 @@ export default function SubscriptionsAdmin() {
 
           <div>
             <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">
-              Select Plan (planId) <span className="text-rose-600">*</span>
+              {t('admin.sub.selectPlanPlanid')} <span className="text-rose-600">*</span>
             </label>
             <div className="space-y-2">
               {plans.length > 0 ? (
@@ -442,7 +442,7 @@ export default function SubscriptionsAdmin() {
                 >
                   {plans.map(p => (
                     <option key={p.id} value={p.id}>
-                      {p.planName} ({p.type}) — {t('common.sar')} {p.price} [ID: {p.id.slice(0, 8)}]
+                      {p.planName} ({translateMessage(p.type)}) — {t('common.sar')} {p.price} [ID: {p.id.slice(0, 8)}]
                     </option>
                   ))}
                 </select>
@@ -452,7 +452,7 @@ export default function SubscriptionsAdmin() {
                 type="text"
                 value={planId}
                 onChange={(e) => setPlanId(e.target.value)}
-                placeholder="Or paste exact planId (e.g. plan-1)"
+                placeholder={t('admin.sub.orPasteExactPlanidE')}
                 className="w-full px-3.5 py-2 rounded-xl border border-soot/12 text-soot text-xs font-mono bg-soot/3 focus:outline-none focus:ring-2 focus:ring-eucalyptus"
               />
             </div>
@@ -461,7 +461,7 @@ export default function SubscriptionsAdmin() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">
-                Start Date <span className="text-rose-600">*</span>
+                {t('admin.sub.startDate2')} <span className="text-rose-600">*</span>
               </label>
               <input
                 type="date"
@@ -473,7 +473,7 @@ export default function SubscriptionsAdmin() {
 
             <div>
               <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">
-                End Date <span className="text-rose-600">*</span>
+                {t('admin.sub.endDate2')} <span className="text-rose-600">*</span>
               </label>
               <input
                 type="date"
@@ -486,16 +486,16 @@ export default function SubscriptionsAdmin() {
 
           <div>
             <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">
-              Initial Status
+              {t('admin.sub.initialStatus')}
             </label>
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value as any)}
               className="w-full px-3.5 py-2.5 rounded-xl border border-soot/15 text-soot text-sm bg-white focus:outline-none focus:ring-2 focus:ring-eucalyptus shadow-2xs"
             >
-              <option value="ACTIVE">ACTIVE — Active Pass</option>
-              <option value="CANCELLED">CANCELLED — Cancelled</option>
-              <option value="EXPIRED">EXPIRED — Expired Pass</option>
+              <option value="ACTIVE">{t('admin.sub.activeActivePass')}</option>
+              <option value="CANCELLED">{t('admin.sub.cancelledCancelled')}</option>
+              <option value="EXPIRED">{t('admin.sub.expiredExpiredPass')}</option>
             </select>
           </div>
 
@@ -505,7 +505,7 @@ export default function SubscriptionsAdmin() {
               onClick={() => setIsCreateModalOpen(false)}
               className="px-4 py-2.5 rounded-xl text-xs font-semibold text-moss hover:text-soot hover:bg-soot/5 transition-colors cursor-pointer"
             >
-              Close
+              {t('admin.sub.close')}
             </button>
             <button
               type="submit"
@@ -513,11 +513,11 @@ export default function SubscriptionsAdmin() {
               className="btn-primary py-2.5 px-5 text-xs sm:text-sm flex items-center gap-2 shadow-xs cursor-pointer disabled:opacity-50"
             >
               {submitting ? (
-                <span>Creating Subscription...</span>
+                <span>{t('admin.sub.creatingSubscription')}</span>
               ) : (
                 <>
                   <Plus size={15} />
-                  <span>Create Subscription</span>
+                  <span>{t('admin.sub.createSubscription')}</span>
                 </>
               )}
             </button>
@@ -529,36 +529,36 @@ export default function SubscriptionsAdmin() {
       <Modal
         open={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
-        title="Update Subscription Status"
+        title={t('admin.sub.updateSubscriptionStatus')}
         subtitle={`PUT http://localhost:3000/api/subscriptions/${editingSubId || ''}`}
       >
         <form onSubmit={handleUpdateSubscription} className="space-y-4 pt-2">
           {editFormError && (
             <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs font-medium flex items-center gap-2">
               <AlertCircle size={15} className="shrink-0" />
-              <span>{editFormError}</span>
+              <span>{translateMessage(editFormError)}</span>
             </div>
           )}
 
           <div>
             <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">
-              Subscription Status <span className="text-rose-600">*</span>
+              {t('admin.sub.subscriptionStatus')} <span className="text-rose-600">*</span>
             </label>
             <select
               value={editStatus}
               onChange={(e) => setEditStatus(e.target.value as any)}
               className="w-full px-3.5 py-2.5 rounded-xl border border-soot/15 text-soot text-sm bg-white focus:outline-none focus:ring-2 focus:ring-eucalyptus shadow-2xs"
             >
-              <option value="CANCELLED">CANCELLED — Cancel Subscription</option>
-              <option value="ACTIVE">ACTIVE — Reactivate Subscription</option>
-              <option value="EXPIRED">EXPIRED — Mark Expired</option>
+              <option value="CANCELLED">{t('admin.sub.cancelledCancelSubscription')}</option>
+              <option value="ACTIVE">{t('admin.sub.activeReactivateSubscription')}</option>
+              <option value="EXPIRED">{t('admin.sub.expiredMarkExpired')}</option>
             </select>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">
-                Start Date
+                {t('admin.sub.startDate2')}
               </label>
               <input
                 type="date"
@@ -570,7 +570,7 @@ export default function SubscriptionsAdmin() {
 
             <div>
               <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">
-                End Date
+                {t('admin.sub.endDate2')}
               </label>
               <input
                 type="date"
@@ -587,7 +587,7 @@ export default function SubscriptionsAdmin() {
               onClick={() => setIsEditModalOpen(false)}
               className="px-4 py-2.5 rounded-xl text-xs font-semibold text-moss hover:text-soot hover:bg-soot/5 transition-colors cursor-pointer"
             >
-              Cancel
+              {t('admin.sub.cancel')}
             </button>
             <button
               type="submit"
@@ -595,11 +595,11 @@ export default function SubscriptionsAdmin() {
               className="btn-primary py-2.5 px-5 text-xs sm:text-sm flex items-center gap-2 shadow-xs cursor-pointer disabled:opacity-50"
             >
               {editSubmitting ? (
-                <span>Saving Changes...</span>
+                <span>{t('admin.sub.savingChanges')}</span>
               ) : (
                 <>
                   <CheckCircle2 size={15} />
-                  <span>Update Subscription</span>
+                  <span>{t('admin.sub.updateSubscription')}</span>
                 </>
               )}
             </button>

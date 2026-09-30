@@ -442,7 +442,7 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
               {isOrg ? (
                 <>
                   <Building2 size={15} className="text-emerald-700 shrink-0" />
-                  <span>Organization &amp; Enterprise Pass Plans</span>
+                  <span>{t('pricing.orgPlansBadge')}</span>
                 </>
               ) : (
                 <>

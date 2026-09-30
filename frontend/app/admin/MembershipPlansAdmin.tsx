@@ -28,7 +28,7 @@ import {
 import Modal from '@/components/ui/Modal';
 
 export default function MembershipPlansAdmin() {
-  const { t } = useI18n();
+  const { t, translateMessage } = useI18n();
   const { showToast } = useApp();
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -184,13 +184,13 @@ export default function MembershipPlansAdmin() {
         <div>
           <div className="flex items-center gap-2 text-moss text-xs font-semibold uppercase tracking-wider mb-1">
             <CreditCard size={14} className="text-emerald-700" />
-            <span>Product Catalog</span>
+            <span>{t('admin.mp.productCatalog')}</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-normal text-soot font-serif-display">
-            Membership Plans
+            {t('admin.mp.membershipPlans')}
           </h2>
           <p className="text-xs sm:text-sm text-moss mt-1">
-            Configure B2C Individual passes and B2B Corporate subscription packages across Saudi Arabia.
+            {t('admin.mp.configureB2cIndividualPassesAnd')}
           </p>
         </div>
 
@@ -199,7 +199,7 @@ export default function MembershipPlansAdmin() {
             type="button"
             onClick={fetchPlans}
             className="p-2.5 rounded-xl border border-soot/12 text-moss hover:text-soot hover:bg-soot/5 transition-colors cursor-pointer"
-            title="Refresh plans list"
+            title={t('admin.mp.refreshPlansList')}
           >
             <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
           </button>
@@ -210,7 +210,7 @@ export default function MembershipPlansAdmin() {
             className="btn-primary py-2.5 px-4 text-xs sm:text-sm flex items-center gap-2 shadow-xs cursor-pointer"
           >
             <Plus size={16} />
-            <span>Create Plan</span>
+            <span>{t('admin.mp.createPlan')}</span>
           </button>
         </div>
       </div>
@@ -242,7 +242,7 @@ export default function MembershipPlansAdmin() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search plans..."
+            placeholder={t('admin.mp.searchPlans')}
             className="w-full ps-9 pe-3 py-1.5 text-xs rounded-xl bg-white border border-soot/12 text-soot placeholder:text-moss/60 focus:outline-none focus:ring-2 focus:ring-eucalyptus"
           />
         </div>
@@ -252,12 +252,12 @@ export default function MembershipPlansAdmin() {
       {loading && plans.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-3xl border border-soot/8">
           <RefreshCw size={24} className="animate-spin text-moss mx-auto mb-2" />
-          <p className="text-xs text-moss font-medium">Loading membership plans...</p>
+          <p className="text-xs text-moss font-medium">{t('admin.mp.loadingMembershipPlans')}</p>
         </div>
       ) : filteredPlans.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-3xl border border-soot/8">
           <Tag size={28} className="text-moss/50 mx-auto mb-2" />
-          <h3 className="text-base font-semibold text-soot">No membership plans found</h3>
+          <h3 className="text-base font-semibold text-soot">{t('admin.mp.noMembershipPlansFound')}</h3>
           <p className="text-xs text-moss mt-1">Try adjusting your search query or click &quot;Create Plan&quot; above.</p>
         </div>
       ) : (
@@ -277,7 +277,7 @@ export default function MembershipPlansAdmin() {
                         : 'bg-eucalyptus/20 text-soot border border-eucalyptus/30'
                     }`}>
                       {isB2B ? <Building2 size={12} /> : <Users size={12} />}
-                      <span>{plan.type} {isB2B ? 'Corporate' : 'Individual'}</span>
+                      <span>{translateMessage(plan.type)} {translateMessage(isB2B ? 'Corporate' : 'Individual')}</span>
                     </span>
 
                     <div className="flex items-center gap-1.5">
@@ -285,7 +285,7 @@ export default function MembershipPlansAdmin() {
                         type="button"
                         onClick={() => handleOpenEdit(plan)}
                         className="p-1.5 rounded-lg text-moss hover:text-soot hover:bg-soot/5 transition-colors cursor-pointer"
-                        title="Edit Plan (PUT)"
+                        title={t('admin.mp.editPlanPut')}
                       >
                         <Edit3 size={14} />
                       </button>
@@ -293,7 +293,7 @@ export default function MembershipPlansAdmin() {
                         type="button"
                         onClick={() => handleDeletePlan(plan)}
                         className="p-1.5 rounded-lg text-moss hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                        title="Delete Plan"
+                        title={t('admin.mp.deletePlan')}
                       >
                         <Trash2 size={14} />
                       </button>
@@ -309,18 +309,18 @@ export default function MembershipPlansAdmin() {
                       <span className="text-3xl font-serif-display font-normal text-soot tracking-tight">
                         {t('common.sar')} {plan.price.toLocaleString()}
                       </span>
-                      <span className="text-xs text-moss">/ plan</span>
+                      <span className="text-xs text-moss">{t('admin.mp.plan')}</span>
                     </div>
                   </div>
 
                   <div className="space-y-2 text-xs text-moss">
                     <div className="flex items-center justify-between">
-                      <span>Total Visits Allowed:</span>
+                      <span>{t('admin.mp.totalVisitsAllowed')}</span>
                       <span className="font-semibold text-soot">{plan.totalVisitsAllowed} visits</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span>Network Access:</span>
-                      <span className="font-semibold text-emerald-800">All Partner Spaces</span>
+                      <span>{t('admin.mp.networkAccess')}</span>
+                      <span className="font-semibold text-emerald-800">{t('admin.mp.allPartnerSpaces')}</span>
                     </div>
                   </div>
                 </div>
@@ -328,7 +328,7 @@ export default function MembershipPlansAdmin() {
                 <div className="mt-6 pt-3 border-t border-soot/6 flex items-center justify-between text-[11px] text-moss">
                   <span className="flex items-center gap-1 text-emerald-700 font-medium">
                     <CheckCircle2 size={13} />
-                    Active in API
+                    {t('admin.mp.activeInApi')}
                   </span>
                   <span className="font-mono text-[10px] text-moss/70">ID: {plan.id.slice(0, 8)}</span>
                 </div>
@@ -342,26 +342,26 @@ export default function MembershipPlansAdmin() {
       <Modal
         open={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        title="Create New Membership Plan"
+        title={t('admin.mp.createNewMembershipPlan')}
         subtitle="POST http://localhost:3001/api/membership-plans"
       >
         <form onSubmit={handleCreatePlan} className="space-y-4 pt-2">
           {formError && (
             <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs font-medium flex items-center gap-2">
               <AlertCircle size={15} className="shrink-0" />
-              <span>{formError}</span>
+              <span>{translateMessage(formError)}</span>
             </div>
           )}
 
           <div>
             <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">
-              Plan Name <span className="text-rose-600">*</span>
+              {t('admin.mp.planName')} <span className="text-rose-600">*</span>
             </label>
             <input
               type="text"
               value={planName}
               onChange={(e) => setPlanName(e.target.value)}
-              placeholder="e.g. Executive Quarterly Pass"
+              placeholder={t('admin.mp.eGExecutiveQuarterlyPass')}
               className="w-full px-3.5 py-2.5 rounded-xl border border-soot/15 text-soot text-sm focus:outline-none focus:ring-2 focus:ring-eucalyptus shadow-2xs"
             />
           </div>
@@ -369,28 +369,28 @@ export default function MembershipPlansAdmin() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">
-                Audience Type <span className="text-rose-600">*</span>
+                {t('admin.mp.audienceType')} <span className="text-rose-600">*</span>
               </label>
               <select
                 value={planType}
                 onChange={(e) => setPlanType(e.target.value as 'B2C' | 'B2B')}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-soot/15 text-soot text-sm bg-white focus:outline-none focus:ring-2 focus:ring-eucalyptus shadow-2xs"
               >
-                <option value="B2C">B2C — Individual Member</option>
-                <option value="B2B">B2B — Corporate / Team</option>
+                <option value="B2C">{t('admin.mp.b2cIndividualMember')}</option>
+                <option value="B2B">{t('admin.mp.b2bCorporateTeam')}</option>
               </select>
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">
-                Total Allowed Visits <span className="text-rose-600">*</span>
+                {t('admin.mp.totalAllowedVisits')} <span className="text-rose-600">*</span>
               </label>
               <input
                 type="number"
                 min="1"
                 value={totalVisitsAllowed}
                 onChange={(e) => setTotalVisitsAllowed(e.target.value ? Number(e.target.value) : '')}
-                placeholder="e.g. 30"
+                placeholder={t('admin.mp.eG30')}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-soot/15 text-soot text-sm focus:outline-none focus:ring-2 focus:ring-eucalyptus shadow-2xs"
               />
             </div>
@@ -398,7 +398,7 @@ export default function MembershipPlansAdmin() {
 
           <div>
             <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">
-              Price (SAR) <span className="text-rose-600">*</span>
+              {t('admin.mp.priceSar')} <span className="text-rose-600">*</span>
             </label>
             <div className="relative">
               <span className="absolute inset-y-0 start-0 ps-3.5 flex items-center text-xs text-moss font-semibold pointer-events-none">
@@ -422,7 +422,7 @@ export default function MembershipPlansAdmin() {
               onClick={() => setIsCreateModalOpen(false)}
               className="px-4 py-2.5 rounded-xl text-xs font-semibold text-moss hover:text-soot hover:bg-soot/5 transition-colors cursor-pointer"
             >
-              Cancel
+              {t('admin.mp.cancel')}
             </button>
             <button
               type="submit"
@@ -430,11 +430,11 @@ export default function MembershipPlansAdmin() {
               className="btn-primary py-2.5 px-5 text-xs sm:text-sm flex items-center gap-2 shadow-xs cursor-pointer disabled:opacity-50"
             >
               {submitting ? (
-                <span>Creating Plan...</span>
+                <span>{t('admin.mp.creatingPlan')}</span>
               ) : (
                 <>
                   <Plus size={15} />
-                  <span>Create Plan</span>
+                  <span>{t('admin.mp.createPlan')}</span>
                 </>
               )}
             </button>
@@ -446,26 +446,26 @@ export default function MembershipPlansAdmin() {
       <Modal
         open={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
-        title="Update Membership Plan"
+        title={t('admin.mp.updateMembershipPlan')}
         subtitle={`PUT http://localhost:3001/api/membership-plans/${editingPlanId || ''}`}
       >
         <form onSubmit={handleUpdatePlan} className="space-y-4 pt-2">
           {editFormError && (
             <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs font-medium flex items-center gap-2">
               <AlertCircle size={15} className="shrink-0" />
-              <span>{editFormError}</span>
+              <span>{translateMessage(editFormError)}</span>
             </div>
           )}
 
           <div>
             <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">
-              Plan Name <span className="text-rose-600">*</span>
+              {t('admin.mp.planName')} <span className="text-rose-600">*</span>
             </label>
             <input
               type="text"
               value={editPlanName}
               onChange={(e) => setEditPlanName(e.target.value)}
-              placeholder="e.g. Executive Quarterly Pass"
+              placeholder={t('admin.mp.eGExecutiveQuarterlyPass')}
               className="w-full px-3.5 py-2.5 rounded-xl border border-soot/15 text-soot text-sm focus:outline-none focus:ring-2 focus:ring-eucalyptus shadow-2xs"
             />
           </div>
@@ -473,28 +473,28 @@ export default function MembershipPlansAdmin() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">
-                Audience Type <span className="text-rose-600">*</span>
+                {t('admin.mp.audienceType')} <span className="text-rose-600">*</span>
               </label>
               <select
                 value={editPlanType}
                 onChange={(e) => setEditPlanType(e.target.value as 'B2C' | 'B2B')}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-soot/15 text-soot text-sm bg-white focus:outline-none focus:ring-2 focus:ring-eucalyptus shadow-2xs"
               >
-                <option value="B2C">B2C — Individual Member</option>
-                <option value="B2B">B2B — Corporate / Team</option>
+                <option value="B2C">{t('admin.mp.b2cIndividualMember')}</option>
+                <option value="B2B">{t('admin.mp.b2bCorporateTeam')}</option>
               </select>
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">
-                Total Allowed Visits <span className="text-rose-600">*</span>
+                {t('admin.mp.totalAllowedVisits')} <span className="text-rose-600">*</span>
               </label>
               <input
                 type="number"
                 min="1"
                 value={editTotalVisitsAllowed}
                 onChange={(e) => setEditTotalVisitsAllowed(e.target.value ? Number(e.target.value) : '')}
-                placeholder="e.g. 30"
+                placeholder={t('admin.mp.eG30')}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-soot/15 text-soot text-sm focus:outline-none focus:ring-2 focus:ring-eucalyptus shadow-2xs"
               />
             </div>
@@ -502,7 +502,7 @@ export default function MembershipPlansAdmin() {
 
           <div>
             <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">
-              Price (SAR) <span className="text-rose-600">*</span>
+              {t('admin.mp.priceSar')} <span className="text-rose-600">*</span>
             </label>
             <div className="relative">
               <span className="absolute inset-y-0 start-0 ps-3.5 flex items-center text-xs text-moss font-semibold pointer-events-none">
@@ -526,7 +526,7 @@ export default function MembershipPlansAdmin() {
               onClick={() => setIsEditModalOpen(false)}
               className="px-4 py-2.5 rounded-xl text-xs font-semibold text-moss hover:text-soot hover:bg-soot/5 transition-colors cursor-pointer"
             >
-              Cancel
+              {t('admin.mp.cancel')}
             </button>
             <button
               type="submit"
@@ -534,11 +534,11 @@ export default function MembershipPlansAdmin() {
               className="btn-primary py-2.5 px-5 text-xs sm:text-sm flex items-center gap-2 shadow-xs cursor-pointer disabled:opacity-50"
             >
               {editSubmitting ? (
-                <span>Saving Changes...</span>
+                <span>{t('admin.mp.savingChanges')}</span>
               ) : (
                 <>
                   <CheckCircle2 size={15} />
-                  <span>Save Plan Changes</span>
+                  <span>{t('admin.mp.savePlanChanges')}</span>
                 </>
               )}
             </button>

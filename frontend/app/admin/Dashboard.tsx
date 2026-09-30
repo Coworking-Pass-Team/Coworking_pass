@@ -229,7 +229,7 @@ export default function AdminDashboard() {
           {t('admin.dash.eyebrow')}
         </span>
         <h1 className="text-3xl sm:text-4xl text-soot font-normal font-serif-display">
-          Dashboard
+          {t('admin.dash.title')}
         </h1>
       </div>
 

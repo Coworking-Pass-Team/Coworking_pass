@@ -1,6 +1,7 @@
 'use client';
 
 import { useI18n } from '@/i18n';
+import { useSpaceText } from '@/i18n/space-text';
 import React, { useState, useEffect } from 'react';
 import {
   Sparkles,
@@ -22,7 +23,8 @@ import { useApp } from '@/app/store';
 import { getLoyaltyPointsApi, getPointsTransactionsApi } from '@/services/authApi';
 
 export default function LoyaltyPage() {
-  const { t } = useI18n();
+  const { t, translateMessage, formatDate } = useI18n();
+  const sx = useSpaceText();
   const { currentUser, spaces, bookings, navigate, updateCurrentUser } = useApp();
   const [dbTransactions, setDbTransactions] = useState<any[]>([]);
   const [loadingDb, setLoadingDb] = useState(false);
@@ -102,18 +104,18 @@ export default function LoyaltyPage() {
         <div>
           <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
             <span className="text-xs font-bold tracking-wider uppercase text-moss block">
-              Member Rewards Program
+              {t('loyalty.memberRewardsProgram')}
             </span>
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E2E8E4] border border-[#2D3536]/15 text-soot text-xs font-semibold shadow-2xs">
               <Sparkles size={13} className="text-moss" />
-              <span>{tier.name}</span>
+              <span>{translateMessage(tier.name)}</span>
             </span>
           </div>
           <h1 className="text-3xl sm:text-4xl text-soot font-normal font-serif-display">
-            Loyalty Rewards Hub
+            {t('loyalty.loyaltyRewardsHub')}
           </h1>
           <p className="text-moss text-xs sm:text-sm mt-1">
-            Earn points on every pass reservation and redeem them for instant checkout discounts.
+            {t('loyalty.earnPointsOnEveryPass')}
           </p>
         </div>
 
@@ -123,7 +125,7 @@ export default function LoyaltyPage() {
           className="btn-primary flex items-center gap-2 shadow-xs cursor-pointer"
         >
           <Building2 size={16} />
-          <span>Book Workspaces to Earn Points</span>
+          <span>{t('loyalty.bookWorkspacesToEarnPoints')}</span>
         </button>
       </div>
 
@@ -135,22 +137,22 @@ export default function LoyaltyPage() {
             <div className="flex items-center justify-between">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-eucalyptus/30 text-plaster text-xs font-semibold border border-eucalyptus/40 shadow-2xs">
                 <Sparkles size={13} className="text-eucalyptus" />
-                <span>Available Balance</span>
+                <span>{t('loyalty.availableBalance')}</span>
               </span>
               <ShieldCheck size={20} className="text-eucalyptus" />
             </div>
 
             <div>
               <div className="text-4xl sm:text-5xl font-normal font-serif-display text-plaster">
-                {points.toLocaleString()} <span className="text-lg font-sans text-plaster/70 font-normal">pts</span>
+                {points.toLocaleString()} <span className="text-lg font-sans text-plaster/70 font-normal">{t('loyalty.pts')}</span>
               </div>
               <div className="text-xs text-eucalyptus font-semibold mt-1">
-                = {t('common.sar')} {cashEquivalent.toFixed(2)} Instant Cashback Value
+                = {cashEquivalent.toFixed(2)} {t('common.sar')} {t('loyalty.cashback')}
               </div>
             </div>
 
             <p className="text-xs text-plaster/75 leading-relaxed pt-2 border-t border-plaster/10">
-              Use your points at checkout to deduct cash value off workspace desk reservations.
+              {t('loyalty.useYourPointsAtCheckout')}
             </p>
           </div>
 
@@ -160,7 +162,7 @@ export default function LoyaltyPage() {
               onClick={() => navigate('browse')}
               className="w-full py-3 rounded-2xl bg-plaster text-soot font-semibold text-xs sm:text-sm hover:bg-white transition-all shadow-md cursor-pointer flex items-center justify-center gap-2"
             >
-              <span>Redeem Points at Checkout</span>
+              <span>{t('loyalty.redeemPointsAtCheckout')}</span>
               <ArrowRight size={15} />
             </button>
           </div>
@@ -173,20 +175,20 @@ export default function LoyaltyPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div>
-                <span className="text-xs font-bold uppercase tracking-wider text-moss block mb-1">Current Membership Tier</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-moss block mb-1">{t('loyalty.currentMembershipTier')}</span>
                 <h3 className="text-2xl font-semibold text-soot font-serif-display">{tier.name}</h3>
               </div>
               <div className="text-end">
-                <span className="text-xs font-medium text-moss block">Next Tier Target</span>
-                <span className="text-xs font-bold text-soot">{tier.nextTier}</span>
+                <span className="text-xs font-medium text-moss block">{t('loyalty.nextTierTarget')}</span>
+                <span className="text-xs font-bold text-soot">{translateMessage(tier.nextTier)}</span>
               </div>
             </div>
 
             {/* Theme Progress Bar */}
             <div className="space-y-1.5">
               <div className="flex justify-between text-xs text-moss font-medium">
-                <span>Progress to next tier</span>
-                <span>{tier.progress}% ({tier.remaining > 0 ? `${tier.remaining} pts needed` : 'Highest tier'})</span>
+                <span>{t('loyalty.progressToNextTier')}</span>
+                <span>{tier.progress}% ({tier.remaining > 0 ? translateMessage(`${tier.remaining} pts needed`) : translateMessage('Highest tier')})</span>
               </div>
               <div className="w-full h-3 rounded-full bg-soot/10 overflow-hidden p-0.5 border border-soot/10">
                 <div
@@ -199,7 +201,7 @@ export default function LoyaltyPage() {
 
           {/* Current Tier Perks */}
           <div className="space-y-3 pt-4 border-t border-soot/10">
-            <span className="text-xs font-bold uppercase tracking-wider text-moss block">Active Tier Benefits</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-moss block">{t('loyalty.activeTierBenefits')}</span>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {tier.perks.map((perk, idx) => (
                 <div
@@ -207,7 +209,7 @@ export default function LoyaltyPage() {
                   className="p-3 rounded-2xl bg-plaster-dark/30 border border-soot/8 text-xs font-medium text-soot flex items-center gap-2.5"
                 >
                   <CheckCircle2 size={15} className="text-emerald-800 shrink-0" />
-                  <span>{perk}</span>
+                  <span>{translateMessage(perk)}</span>
                 </div>
               ))}
             </div>
@@ -218,8 +220,8 @@ export default function LoyaltyPage() {
       {/* How it Works Grid */}
       <div className="space-y-4">
         <div>
-          <h2 className="text-xl font-normal font-serif-display text-soot">How the Rewards Program Works</h2>
-          <p className="text-xs text-moss mt-0.5">Simple rules for earning and using your rewards</p>
+          <h2 className="text-xl font-normal font-serif-display text-soot">{t('loyalty.howTheRewardsProgramWorks')}</h2>
+          <p className="text-xs text-moss mt-0.5">{t('loyalty.simpleRulesForEarningAnd')}</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -229,7 +231,7 @@ export default function LoyaltyPage() {
             </div>
             <h3 className="text-base font-semibold text-soot font-serif-display">1. Earn Points Automatically</h3>
             <p className="text-xs text-moss leading-relaxed">
-              Earn <strong>10 points</strong> for every <strong>SAR 100</strong> spent on desk & workspace bookings across Saudi Arabia.
+              {t('loyalty.earnBody1')} <strong>{t('loyalty.earnPoints')}</strong> {t('loyalty.earnBody2')} <strong>{t('loyalty.earnSar')}</strong> {t('loyalty.earnBody3')}
             </p>
           </div>
 
@@ -239,7 +241,7 @@ export default function LoyaltyPage() {
             </div>
             <h3 className="text-base font-semibold text-soot font-serif-display">2. Multiply with Bonus Partners</h3>
             <p className="text-xs text-moss leading-relaxed">
-              Book featured partner locations marked with <strong>2× Points Bonus</strong> to double your earnings on every reservation.
+              {t('loyalty.bonusBody1')} <strong>{t('loyalty.bonusStrong')}</strong> {t('loyalty.bonusBody2')}
             </p>
           </div>
 
@@ -249,7 +251,7 @@ export default function LoyaltyPage() {
             </div>
             <h3 className="text-base font-semibold text-soot font-serif-display">3. Instant Checkout Cashback</h3>
             <p className="text-xs text-moss leading-relaxed">
-              Toggle your points balance during checkout to receive <strong>SAR 5 discount</strong> for every 100 points redeemed.
+              {t('loyalty.redeemBody1')} <strong>{t('loyalty.redeemStrong')}</strong> {t('loyalty.redeemBody2')}
             </p>
           </div>
         </div>
@@ -260,8 +262,8 @@ export default function LoyaltyPage() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-normal font-serif-display text-soot">Bonus Multiplier Partner Spaces</h2>
-              <p className="text-xs text-moss mt-0.5">Book these locations to earn double loyalty points</p>
+              <h2 className="text-xl font-normal font-serif-display text-soot">{t('loyalty.bonusMultiplierPartnerSpaces')}</h2>
+              <p className="text-xs text-moss mt-0.5">{t('loyalty.bookTheseLocationsToEarn')}</p>
             </div>
 
             <button
@@ -269,7 +271,7 @@ export default function LoyaltyPage() {
               onClick={() => navigate('browse')}
               className="text-xs font-semibold text-moss hover:text-soot flex items-center gap-1.5 cursor-pointer transition-colors"
             >
-              <span>Explore All Spaces</span>
+              <span>{t('loyalty.exploreAllSpaces')}</span>
               <ArrowRight size={14} />
             </button>
           </div>
@@ -285,19 +287,19 @@ export default function LoyaltyPage() {
                   <div className="relative h-44 overflow-hidden">
                     <img
                       src={space.images[0]}
-                      alt={space.name}
+                      alt={sx.name(space)}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                     <div className="absolute top-3.5 start-3.5 bg-soot text-plaster border border-soot/20 text-xs font-bold px-3 py-1 rounded-full shadow-2xs flex items-center gap-1">
                       <Sparkles size={13} className="text-eucalyptus" />
-                      <span>{space.loyaltyPointsMultiplier}× Bonus Points</span>
+                      <span>{space.loyaltyPointsMultiplier}× {t('loyalty.bonusPoints')}</span>
                     </div>
                   </div>
 
                   <div className="p-5 space-y-2">
                     <div className="flex items-center justify-between">
                       <h3 className="font-semibold text-soot text-base group-hover:text-emerald-900 transition-colors truncate">
-                        {space.name}
+                        {sx.name(space)}
                       </h3>
                       <div className="flex items-center gap-1 text-xs text-soot font-semibold shrink-0">
                         <Star size={13} className="fill-amber-400 text-amber-400" />
@@ -307,7 +309,7 @@ export default function LoyaltyPage() {
 
                     <div className="flex items-center gap-1.5 text-xs text-moss font-medium">
                       <MapPin size={13} />
-                      <span>{space.city}</span>
+                      <span>{sx.city(space)}</span>
                     </div>
                   </div>
                 </div>
@@ -315,7 +317,7 @@ export default function LoyaltyPage() {
                 <div className="p-5 pt-0 flex items-center justify-between border-t border-soot/6 mt-3">
                   <span className="text-xs font-semibold text-soot">{t('common.sar')} {space.pricing.daily}/day</span>
                   <span className="text-xs font-bold text-emerald-800 flex items-center gap-1 group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5 transition-transform">
-                    <span>Book & Earn Extra</span>
+                    <span>{t('loyalty.bookEarnExtra')}</span>
                     <ArrowUpRight size={14} />
                   </span>
                 </div>
@@ -328,38 +330,38 @@ export default function LoyaltyPage() {
       {/* Points History & Activity Log (Admin Table Style) */}
       <div className="space-y-4">
         <div>
-          <h2 className="text-xl font-normal font-serif-display text-soot">Points Earning & Activity History</h2>
-          <p className="text-xs text-moss mt-0.5">Recent rewards earned and redeemed from your reservations</p>
+          <h2 className="text-xl font-normal font-serif-display text-soot">{t('loyalty.pointsEarningActivityHistory')}</h2>
+          <p className="text-xs text-moss mt-0.5">{t('loyalty.recentRewardsEarnedAndRedeemed')}</p>
         </div>
 
         {dbTransactions.length > 0 ? (
           <div className="bg-plaster-surface rounded-3xl border border-soot/12 overflow-hidden shadow-xs">
             <div className="hidden md:grid grid-cols-12 gap-4 px-6 py-4 border-b border-soot/10 text-xs font-semibold uppercase tracking-wider text-moss bg-plaster-dark/40 items-center">
-              <div className="col-span-5">Activity Description</div>
-              <div className="col-span-3">Type</div>
-              <div className="col-span-2">Date</div>
-              <div className="col-span-2 text-end">Points</div>
+              <div className="col-span-5">{t('loyalty.activityDescription')}</div>
+              <div className="col-span-3">{t('loyalty.type')}</div>
+              <div className="col-span-2">{t('loyalty.date')}</div>
+              <div className="col-span-2 text-end">{t('loyalty.points')}</div>
             </div>
 
             <div className="divide-y divide-soot/8">
-              {dbTransactions.map(t => {
-                const isEarned = t.type === 'EARNED';
+              {dbTransactions.map(tx => {
+                const isEarned = tx.type === 'EARNED';
                 return (
-                  <div key={t.id} className="px-6 py-4 flex flex-col md:grid md:grid-cols-12 md:gap-4 md:items-center text-xs">
+                  <div key={tx.id} className="px-6 py-4 flex flex-col md:grid md:grid-cols-12 md:gap-4 md:items-center text-xs">
                     <div className="col-span-5 font-semibold text-soot flex items-center gap-2">
                       <CheckCircle2 size={15} className={isEarned ? 'text-emerald-800 shrink-0' : 'text-rose-800 shrink-0'} />
-                      <span>{t.description || (isEarned ? 'Earned Points' : 'Redeemed Points')}</span>
+                      <span>{tx.description || translateMessage(isEarned ? 'Earned Points' : 'Redeemed Points')}</span>
                     </div>
                     <div className="col-span-3 font-medium">
                       <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${isEarned ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
-                        {t.type}
+                        {translateMessage(tx.type)}
                       </span>
                     </div>
                     <div className="col-span-2 text-moss mt-1 md:mt-0 font-medium">
-                      {t.createdAt ? new Date(t.createdAt).toLocaleDateString() : 'Recent'}
+                      {tx.createdAt ? formatDate(tx.createdAt) : translateMessage('Recent')}
                     </div>
                     <div className={`col-span-2 text-end font-bold mt-1 md:mt-0 ${isEarned ? 'text-emerald-800' : 'text-rose-800'}`}>
-                      {isEarned ? `+${t.points}` : `-${t.points}`} pts
+                      {isEarned ? `+${tx.points}` : `-${tx.points}`} {t('loyalty.pts')}
                     </div>
                   </div>
                 );
@@ -369,18 +371,18 @@ export default function LoyaltyPage() {
         ) : myBookings.length === 0 ? (
           <div className="bg-plaster-surface rounded-3xl border border-soot/12 p-8 text-center shadow-xs">
             <Sparkles size={28} className="text-moss mx-auto mb-2" />
-            <h4 className="text-sm font-semibold text-soot mb-1 font-serif-display">No Points Activity Yet</h4>
+            <h4 className="text-sm font-semibold text-soot mb-1 font-serif-display">{t('loyalty.noPointsActivityYet')}</h4>
             <p className="text-xs text-moss max-w-sm mx-auto">
-              Your points history will appear here automatically when you earn or redeem points on workspace bookings.
+              {t('loyalty.yourPointsHistoryWillAppear')}
             </p>
           </div>
         ) : (
           <div className="bg-plaster-surface rounded-3xl border border-soot/12 overflow-hidden shadow-xs">
             <div className="hidden md:grid grid-cols-12 gap-4 px-6 py-4 border-b border-soot/10 text-xs font-semibold uppercase tracking-wider text-moss bg-plaster-dark/40 items-center">
-              <div className="col-span-5">Reservation Activity</div>
-              <div className="col-span-3">Booking Date</div>
-              <div className="col-span-2">Pass Amount</div>
-              <div className="col-span-2 text-end">Points Earned</div>
+              <div className="col-span-5">{t('loyalty.reservationActivity')}</div>
+              <div className="col-span-3">{t('loyalty.bookingDate')}</div>
+              <div className="col-span-2">{t('loyalty.passAmount')}</div>
+              <div className="col-span-2 text-end">{t('loyalty.pointsEarned')}</div>
             </div>
 
             <div className="divide-y divide-soot/8">
@@ -393,12 +395,12 @@ export default function LoyaltyPage() {
                   <div key={b.id} className="px-6 py-4 flex flex-col md:grid md:grid-cols-12 md:gap-4 md:items-center text-xs">
                     <div className="col-span-5 font-semibold text-soot flex items-center gap-2">
                       <CheckCircle2 size={15} className="text-emerald-800 shrink-0" />
-                      <span>{b.spaceName} ({b.plan} pass)</span>
+                      <span>{sx.bookingName(b)} ({t(('booking.planPass.' + b.plan) as never)})</span>
                     </div>
                     <div className="col-span-3 text-moss mt-1 md:mt-0 font-medium">{b.startDate}</div>
                     <div className="col-span-2 text-soot font-semibold mt-1 md:mt-0">{t('common.sar')} {(b.totalPrice || 0).toLocaleString()}</div>
                     <div className="col-span-2 text-end font-bold text-emerald-800 mt-1 md:mt-0">
-                      +{ptsEarned} pts
+                      +{ptsEarned} {t('loyalty.pts')}
                     </div>
                   </div>
                 );

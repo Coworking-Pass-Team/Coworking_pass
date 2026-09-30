@@ -238,7 +238,7 @@ export default function IndividualDashboard() {
         {/* Active bookings column */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-serif-display text-soot">Active Bookings</h2>
+            <h2 className="text-xl font-serif-display text-soot">{t('admin.dash.activeBookings')}</h2>
             <button
               onClick={() => navigate('my-bookings')}
               className="text-xs font-semibold text-moss hover:text-soot flex items-center gap-1 cursor-pointer transition-colors"

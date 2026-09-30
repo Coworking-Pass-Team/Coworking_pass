@@ -31,7 +31,7 @@ import Modal from '@/components/ui/Modal';
 import UserAvatar from '@/components/ui/UserAvatar';
 
 export default function ProviderProfileSettings() {
-  const { t } = useI18n();
+  const { t, translateMessage, formatDate } = useI18n();
   const { currentUser, navigate, nav, updateCurrentUser, spaces, partners, showToast } = useApp();
   if (!currentUser) return null;
 
@@ -176,10 +176,10 @@ export default function ProviderProfileSettings() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-3xl sm:text-4xl text-soot font-normal" style={{ fontFamily: 'DM Serif Display, serif' }}>
-            {activeTab === 'profile' ? 'Business Profile' : 'Provider Settings'}
+            {activeTab === 'profile' ? t('prov.ps.businessProfile') : 'Provider Settings'}
           </h1>
           <p className="text-moss text-xs sm:text-sm mt-1 font-normal">
-            Manage your workspace brand, contact information, and hosting preferences
+            {t('prov.ps.manageYourWorkspaceBrandContact')}
           </p>
         </div>
 
@@ -198,7 +198,7 @@ export default function ProviderProfileSettings() {
             }`}
           >
             <Warehouse size={15} />
-            <span>Business Profile</span>
+            <span>{t('prov.ps.businessProfile')}</span>
           </button>
           <button
             type="button"
@@ -213,7 +213,7 @@ export default function ProviderProfileSettings() {
             }`}
           >
             <Settings size={15} />
-            <span>Settings</span>
+            <span>{t('prov.ps.settings')}</span>
           </button>
         </div>
       </div>
@@ -259,7 +259,7 @@ export default function ProviderProfileSettings() {
 
                   {/* Account Role Badge */}
                   <span className="inline-flex items-center px-3.5 py-1 rounded-full text-xs font-medium bg-[#DDE6DF] text-soot border border-soot/6">
-                    Space Provider Account
+                    {t('prov.ps.spaceProviderAccount')}
                   </span>
 
                   {/* Managed Spaces Count Badge */}
@@ -272,7 +272,7 @@ export default function ProviderProfileSettings() {
                 <div className="text-xs sm:text-sm text-moss font-normal flex flex-wrap items-center gap-3">
                   <span>Manager: {currentUser.name}</span>
                   <span>•</span>
-                  <span>{currentUser.city || 'Riyadh, Saudi Arabia'}</span>
+                  <span>{currentUser.city || translateMessage('Riyadh, Saudi Arabia')}</span>
                   {currentUser.website && (
                     <>
                       <span>•</span>
@@ -297,9 +297,9 @@ export default function ProviderProfileSettings() {
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-soot/8 gap-4 flex-wrap">
               <div>
                 <h3 className="text-xl font-normal text-soot" style={{ fontFamily: 'DM Serif Display, serif' }}>
-                  Business Information
+                  {t('prov.ps.businessInformation')}
                 </h3>
-                <p className="text-moss text-xs mt-0.5 font-normal">Official space operator credentials and business profile</p>
+                <p className="text-moss text-xs mt-0.5 font-normal">{t('prov.ps.officialSpaceOperatorCredentialsAnd')}</p>
               </div>
               <button
                 type="button"
@@ -307,7 +307,7 @@ export default function ProviderProfileSettings() {
                 className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#DDE6DF] text-soot hover:bg-[#D0DDD3] text-xs sm:text-sm font-medium transition-all shadow-xs border border-soot/8 cursor-pointer active:scale-98"
               >
                 <Edit3 size={15} />
-                <span>Edit Profile</span>
+                <span>{t('prov.ps.editProfile')}</span>
               </button>
             </div>
 
@@ -317,10 +317,10 @@ export default function ProviderProfileSettings() {
               <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 transition-all hover:border-soot/12">
                 <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
                   <Building2 size={13} className="text-moss/80" />
-                  Business / Brand Name
+                  {t('prov.ps.businessBrandName')}
                 </div>
                 <div className="text-sm sm:text-base font-normal text-soot">
-                  {effectiveBusinessName || 'Not specified'}
+                  {effectiveBusinessName || translateMessage('Not specified')}
                 </div>
               </div>
 
@@ -328,7 +328,7 @@ export default function ProviderProfileSettings() {
               <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 transition-all hover:border-soot/12">
                 <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
                   <User size={13} className="text-moss/80" />
-                  Authorized Representative
+                  {t('prov.ps.authorizedRepresentative')}
                 </div>
                 <div className="text-sm sm:text-base font-normal text-soot">
                   {currentUser.name}
@@ -339,7 +339,7 @@ export default function ProviderProfileSettings() {
               <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 transition-all hover:border-soot/12">
                 <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
                   <Mail size={13} className="text-moss/80" />
-                  Registered Email Address
+                  {t('prov.ps.registeredEmailAddress')}
                 </div>
                 <div className="text-sm sm:text-base font-normal text-soot truncate" title={currentUser.email}>
                   {currentUser.email}
@@ -350,10 +350,10 @@ export default function ProviderProfileSettings() {
               <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 transition-all hover:border-soot/12">
                 <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
                   <Phone size={13} className="text-moss/80" />
-                  Contact Phone Number
+                  {t('prov.ps.contactPhoneNumber')}
                 </div>
                 <div className="text-sm sm:text-base font-normal text-soot">
-                  {currentUser.phone || 'Not specified'}
+                  {currentUser.phone || translateMessage('Not specified')}
                 </div>
               </div>
 
@@ -364,7 +364,7 @@ export default function ProviderProfileSettings() {
                   Commercial Registration (CR)
                 </div>
                 <div className="text-sm sm:text-base font-normal text-soot">
-                  {effectiveCrNumber || 'Not specified'}
+                  {effectiveCrNumber || translateMessage('Not specified')}
                 </div>
               </div>
 
@@ -372,10 +372,10 @@ export default function ProviderProfileSettings() {
               <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 transition-all hover:border-soot/12">
                 <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
                   <MapPin size={13} className="text-moss/80" />
-                  Operating City
+                  {t('prov.ps.operatingCity')}
                 </div>
                 <div className="text-sm sm:text-base font-normal text-soot">
-                  {effectiveCity || 'Not specified'}
+                  {effectiveCity || translateMessage('Not specified')}
                 </div>
               </div>
 
@@ -383,10 +383,10 @@ export default function ProviderProfileSettings() {
               <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 sm:col-span-2 transition-all hover:border-soot/12">
                 <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
                   <Globe size={13} className="text-moss/80" />
-                  Official Website URL
+                  {t('prov.ps.officialWebsiteUrl')}
                 </div>
                 <div className="text-sm sm:text-base font-normal text-soot truncate">
-                  {effectiveWebsite || 'Not specified'}
+                  {effectiveWebsite || translateMessage('Not specified')}
                 </div>
               </div>
 
@@ -394,7 +394,7 @@ export default function ProviderProfileSettings() {
               <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 sm:col-span-2 transition-all hover:border-soot/12">
                 <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
                   <FileText size={13} className="text-moss/80" />
-                  Business Description & Operations
+                  {t('prov.ps.businessDescriptionOperations')}
                 </div>
                 <div className="text-sm font-normal text-soot leading-relaxed">
                   {effectiveBusinessDescription || 'No description provided yet.'}
@@ -405,7 +405,7 @@ export default function ProviderProfileSettings() {
               <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 sm:col-span-2 transition-all hover:border-soot/12">
                 <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
                   <Calendar size={13} className="text-moss/80" />
-                  Partner Network Member Since
+                  {t('prov.ps.partnerNetworkMemberSince')}
                 </div>
                 <div className="text-sm font-normal text-soot">
                   {currentUser.joinDate || 'May 2023'}
@@ -421,14 +421,14 @@ export default function ProviderProfileSettings() {
                 <h3 className="text-xl font-normal text-soot" style={{ fontFamily: 'DM Serif Display, serif' }}>
                   Managed Spaces ({providerSpaces.length})
                 </h3>
-                <p className="text-moss text-xs mt-0.5 font-normal">Active coworking spaces listed under your provider account</p>
+                <p className="text-moss text-xs mt-0.5 font-normal">{t('prov.ps.activeCoworkingSpacesListedUnder')}</p>
               </div>
               <button
                 type="button"
                 onClick={() => navigate('provider-spaces')}
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#DDE6DF] text-soot hover:bg-[#D0DDD3] text-xs sm:text-sm font-medium transition-all shadow-xs border border-soot/8 cursor-pointer active:scale-98"
               >
-                <span>Manage Spaces</span>
+                <span>{t('prov.ps.manageSpaces')}</span>
                 <ArrowRight size={14} />
               </button>
             </div>
@@ -456,7 +456,7 @@ export default function ProviderProfileSettings() {
                         <span>{space.city} · <span className="capitalize">{space.type.replace('-', ' ')}</span></span>
                       </div>
                       <div className="text-xs font-medium text-soot mt-1">
-                        {t('common.sar')} {space.pricing.daily} <span className="text-[10px] text-moss font-normal">/day</span>
+                        {t('common.sar')} {space.pricing.daily} <span className="text-[10px] text-moss font-normal">{t('prov.ps.day')}</span>
                       </div>
                     </div>
                   </div>
@@ -471,9 +471,9 @@ export default function ProviderProfileSettings() {
           {/* Notification Preferences */}
           <div className="bg-white rounded-3xl border border-soot/8 p-6 sm:p-8 shadow-sm">
             <h3 className="text-xl font-normal text-soot mb-1" style={{ fontFamily: 'DM Serif Display, serif' }}>
-              Hosting Notification Preferences
+              {t('prov.ps.hostingNotificationPreferences')}
             </h3>
-            <p className="text-moss text-xs mb-6 font-normal">Configure alerts for space bookings, customer arrivals, and payouts</p>
+            <p className="text-moss text-xs mb-6 font-normal">{t('prov.ps.configureAlertsForSpaceBookings')}</p>
 
             <div className="space-y-4 divide-y divide-soot/6">
               {[
@@ -513,15 +513,15 @@ export default function ProviderProfileSettings() {
           {/* Hosting Policies & Payouts */}
           <div className="bg-white rounded-3xl border border-soot/8 p-6 sm:p-8 shadow-sm">
             <h3 className="text-xl font-normal text-soot mb-1" style={{ fontFamily: 'DM Serif Display, serif' }}>
-              Payout & Hosting Policies
+              {t('prov.ps.payoutHostingPolicies')}
             </h3>
-            <p className="text-moss text-xs mb-6 font-normal">Manage financial settlements and space availability automations</p>
+            <p className="text-moss text-xs mb-6 font-normal">{t('prov.ps.manageFinancialSettlementsAndSpace')}</p>
 
             <div className="space-y-4">
               <div className="flex items-center justify-between py-2">
                 <div>
-                  <div className="text-sm font-medium text-soot">Automated Monthly Direct Deposit</div>
-                  <div className="text-xs text-moss font-normal">Automatically transfer accumulated booking earnings to your Saudi IBAN on the 1st of each month</div>
+                  <div className="text-sm font-medium text-soot">{t('prov.ps.automatedMonthlyDirectDeposit')}</div>
+                  <div className="text-xs text-moss font-normal">{t('prov.ps.automaticallyTransferAccumulatedBookingEarnings')}</div>
                 </div>
                 <button
                   type="button"
@@ -540,8 +540,8 @@ export default function ProviderProfileSettings() {
 
               <div className="flex items-center justify-between py-2 border-t border-soot/6 pt-4">
                 <div>
-                  <div className="text-sm font-medium text-soot">Instant Desk Confirmation</div>
-                  <div className="text-xs text-moss font-normal">Automatically approve hot desk reservations without manual host approval</div>
+                  <div className="text-sm font-medium text-soot">{t('prov.ps.instantDeskConfirmation')}</div>
+                  <div className="text-xs text-moss font-normal">{t('prov.ps.automaticallyApproveHotDeskReservations')}</div>
                 </div>
                 <button
                   type="button"
@@ -563,10 +563,10 @@ export default function ProviderProfileSettings() {
           {/* Danger Zone */}
           <div className="bg-white rounded-3xl border border-red-200 p-6 sm:p-8 shadow-sm">
             <h3 className="text-xl font-normal text-red-600 mb-1" style={{ fontFamily: 'DM Serif Display, serif' }}>
-              Danger Zone
+              {t('prov.ps.dangerZone')}
             </h3>
             <p className="text-moss text-xs mb-6 font-normal">
-              Deleting your space provider account will unlist all your coworking spaces and cancel upcoming reservations.
+              {t('prov.ps.deletingYourSpaceProviderAccount')}
             </p>
             <button
               type="button"
@@ -574,7 +574,7 @@ export default function ProviderProfileSettings() {
               className="btn-danger"
             >
               <AlertCircle size={15} />
-              <span>Delete Provider Account</span>
+              <span>{t('prov.ps.deleteProviderAccount')}</span>
             </button>
           </div>
         </div>
@@ -584,7 +584,7 @@ export default function ProviderProfileSettings() {
       <Modal
         open={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
-        title="Edit Business Profile"
+        title={t('prov.ps.editBusinessProfile')}
         size="lg"
       >
         <form onSubmit={handleSaveProfile} className="space-y-6">
@@ -601,9 +601,9 @@ export default function ProviderProfileSettings() {
 
             <div className="flex-1 min-w-0 text-center sm:text-start space-y-2.5">
               <div>
-                <div className="text-sm font-medium text-soot">Brand Logo / Profile Picture</div>
+                <div className="text-sm font-medium text-soot">{t('prov.ps.brandLogoProfilePicture')}</div>
                 <p className="text-xs text-moss font-normal mt-0.5">
-                  Upload your venue brand logo or use the clean default avatar.
+                  {t('prov.ps.uploadYourVenueBrandLogo')}
                 </p>
               </div>
 
@@ -623,7 +623,7 @@ export default function ProviderProfileSettings() {
                   className="h-10 px-5 rounded-full bg-[#DDE6DF] text-soot hover:bg-[#D0DDD3] text-xs sm:text-sm font-medium transition-all shadow-xs border border-soot/8 cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap shrink-0"
                 >
                   <Upload size={14} className="shrink-0" />
-                  <span>Upload Photo</span>
+                  <span>{t('prov.ps.uploadPhoto')}</span>
                 </button>
 
                 {editAvatar && (
@@ -633,7 +633,7 @@ export default function ProviderProfileSettings() {
                     className="h-10 px-5 rounded-full bg-white border border-red-200 text-red-600 hover:bg-red-50 text-xs sm:text-sm font-medium transition-all cursor-pointer shadow-xs inline-flex items-center justify-center gap-2 whitespace-nowrap shrink-0"
                   >
                     <Trash2 size={14} className="shrink-0" />
-                    <span>Reset to Default</span>
+                    <span>{t('prov.ps.resetToDefault')}</span>
                   </button>
                 )}
               </div>
@@ -645,44 +645,44 @@ export default function ProviderProfileSettings() {
             {/* Business / Brand Name */}
             <div>
               <label className="block text-xs font-medium uppercase tracking-wider text-moss mb-1.5 flex items-center justify-between">
-                <span>Business / Brand Name <span className="text-red-500">*</span></span>
-                <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">Editable</span>
+                <span>{t('prov.ps.businessBrandName')} <span className="text-red-500">*</span></span>
+                <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">{t('prov.ps.editable')}</span>
               </label>
               <input
                 type="text"
                 value={editBusinessName}
                 onChange={e => setEditBusinessName(e.target.value)}
-                placeholder="e.g. The Hub Riyadh Holdings"
+                placeholder={t('prov.ps.eGTheHubRiyadh')}
                 className={`w-full px-4 py-3 rounded-2xl border text-sm text-soot outline-none transition-all font-normal ${
                   errors.businessName ? 'border-red-400 bg-red-50/20 focus:ring-2 focus:ring-red-200' : 'border-soot/12 bg-white focus:border-eucalyptus focus:ring-2 focus:ring-eucalyptus/20'
                 }`}
               />
-              {errors.businessName && <p className="text-red-500 text-xs mt-1 font-normal">{errors.businessName}</p>}
+              {errors.businessName && <p className="text-red-500 text-xs mt-1 font-normal">{translateMessage(errors.businessName)}</p>}
             </div>
 
             {/* Manager Name & Phone */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-medium uppercase tracking-wider text-moss mb-1.5 flex items-center justify-between">
-                  <span>Manager / Contact Name <span className="text-red-500">*</span></span>
-                  <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">Editable</span>
+                  <span>{t('prov.ps.managerContactName')} <span className="text-red-500">*</span></span>
+                  <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">{t('prov.ps.editable')}</span>
                 </label>
                 <input
                   type="text"
                   value={editName}
                   onChange={e => setEditName(e.target.value)}
-                  placeholder="e.g. Nawaf Al-Qahtani"
+                  placeholder={t('prov.ps.eGNawafAlQahtani')}
                   className={`w-full px-4 py-3 rounded-2xl border text-sm text-soot outline-none transition-all font-normal ${
                     errors.name ? 'border-red-400 bg-red-50/20' : 'border-soot/12 bg-white focus:border-eucalyptus'
                   }`}
                 />
-                {errors.name && <p className="text-red-500 text-xs mt-1 font-normal">{errors.name}</p>}
+                {errors.name && <p className="text-red-500 text-xs mt-1 font-normal">{translateMessage(errors.name)}</p>}
               </div>
 
               <div>
                 <label className="block text-xs font-medium uppercase tracking-wider text-moss mb-1.5 flex items-center justify-between">
-                  <span>Phone Number</span>
-                  <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">Editable</span>
+                  <span>{t('prov.ps.phoneNumber')}</span>
+                  <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">{t('prov.ps.editable')}</span>
                 </label>
                 <input
                   type="tel"
@@ -699,10 +699,10 @@ export default function ProviderProfileSettings() {
               <label className="block text-xs font-medium uppercase tracking-wider text-moss mb-1.5 flex items-center justify-between">
                 <span className="flex items-center gap-1.5">
                   <Mail size={12} />
-                  <span>Registered Contact Email</span>
+                  <span>{t('prov.ps.registeredContactEmail')}</span>
                 </span>
                 <span className="text-[10px] text-moss/80 bg-soot/5 px-2 py-0.5 rounded-full flex items-center gap-1">
-                  <Lock size={10} /> Read-only
+                  <Lock size={10} /> {t('prov.ps.readOnly')}
                 </span>
               </label>
               <input
@@ -717,8 +717,8 @@ export default function ProviderProfileSettings() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-medium uppercase tracking-wider text-moss mb-1.5 flex items-center justify-between">
-                  <span>CR / Registration Number *</span>
-                  <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">Editable</span>
+                  <span>{t('prov.ps.crRegistrationNumber')}</span>
+                  <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">{t('prov.ps.editable')}</span>
                 </label>
                 <input
                   type="text"
@@ -731,13 +731,13 @@ export default function ProviderProfileSettings() {
                   placeholder="1010456789"
                   className={`w-full px-4 py-3 rounded-2xl border ${errors.crNumber ? 'border-red-500' : 'border-soot/12'} bg-white text-sm text-soot outline-none focus:border-eucalyptus font-normal`}
                 />
-                {errors.crNumber && <p className="text-red-500 text-xs mt-1 font-medium">{errors.crNumber}</p>}
+                {errors.crNumber && <p className="text-red-500 text-xs mt-1 font-medium">{translateMessage(errors.crNumber)}</p>}
               </div>
 
               <div>
                 <label className="block text-xs font-medium uppercase tracking-wider text-moss mb-1.5 flex items-center justify-between">
-                  <span>Operating City</span>
-                  <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">Editable</span>
+                  <span>{t('prov.ps.operatingCity')}</span>
+                  <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">{t('prov.ps.editable')}</span>
                 </label>
                 <input
                   type="text"
@@ -752,8 +752,8 @@ export default function ProviderProfileSettings() {
             {/* Website URL */}
             <div>
               <label className="block text-xs font-medium uppercase tracking-wider text-moss mb-1.5 flex items-center justify-between">
-                <span>Official Website</span>
-                <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">Editable</span>
+                <span>{t('prov.ps.officialWebsite')}</span>
+                <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">{t('prov.ps.editable')}</span>
               </label>
               <input
                 type="url"
@@ -767,14 +767,14 @@ export default function ProviderProfileSettings() {
             {/* Business Description */}
             <div>
               <label className="block text-xs font-medium uppercase tracking-wider text-moss mb-1.5 flex items-center justify-between">
-                <span>Business & Space Overview</span>
-                <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">Editable</span>
+                <span>{t('prov.ps.businessSpaceOverview')}</span>
+                <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">{t('prov.ps.editable')}</span>
               </label>
               <textarea
                 value={editBusinessDescription}
                 onChange={e => setEditBusinessDescription(e.target.value)}
                 rows={3}
-                placeholder="Tell guests about your venue amenities, atmosphere, and booking services..."
+                placeholder={t('prov.ps.tellGuestsAboutYourVenue')}
                 className="w-full px-4 py-3 rounded-2xl border border-soot/12 bg-white text-sm text-soot outline-none focus:border-eucalyptus font-normal resize-none"
               />
             </div>
@@ -787,7 +787,7 @@ export default function ProviderProfileSettings() {
               onClick={() => setIsEditModalOpen(false)}
               className="flex-1 h-12 py-3 px-6 rounded-full border border-soot/15 hover:bg-soot/5 text-soot text-sm font-medium transition-colors cursor-pointer inline-flex items-center justify-center whitespace-nowrap"
             >
-              Cancel
+              {t('prov.ps.cancel')}
             </button>
             <button
               type="submit"
@@ -795,11 +795,11 @@ export default function ProviderProfileSettings() {
               className="flex-1 h-12 py-3 px-6 rounded-full bg-[#DDE6DF] text-soot hover:bg-[#D0DDD3] disabled:opacity-60 text-sm font-medium transition-all shadow-xs border border-soot/8 inline-flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap"
             >
               {isSaving ? (
-                <span>Saving...</span>
+                <span>{t('prov.ps.saving')}</span>
               ) : (
                 <>
                   <Check size={16} className="shrink-0" />
-                  <span>Save Changes</span>
+                  <span>{t('prov.ps.saveChanges')}</span>
                 </>
               )}
             </button>

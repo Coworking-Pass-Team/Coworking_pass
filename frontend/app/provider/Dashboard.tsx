@@ -3,12 +3,16 @@
 import { useI18n } from '@/i18n';
 import { Warehouse, CalendarDays, TrendingUp, Percent, ArrowRight, MapPin, Building2, Sparkles } from 'lucide-react';
 import { useApp } from '@/app/store';
+import { useSpaceText } from '@/i18n/space-text';
+import { useLabels } from '@/i18n/labels';
 import { getBookingPrice, getSpaceCategory, isHourlyAllowed } from '@/types/types';
 
 const FALLBACK_SPACE_IMAGE = 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80';
 
 export default function ProviderDashboard() {
   const { t } = useI18n();
+  const st = useSpaceText();
+  const lb = useLabels();
   const { currentUser, spaces, partners, bookings, navigate } = useApp();
   if (!currentUser) return null;
 
@@ -48,13 +52,13 @@ export default function ProviderDashboard() {
       <div className="flex items-start justify-between mb-2 flex-wrap gap-4">
         <div>
           <span className="text-xs font-semibold tracking-wider uppercase text-moss block mb-1">
-            Space Provider Dashboard
+            {t('prov.dash.title')}
           </span>
           <h1 className="text-3xl sm:text-4xl text-soot font-normal font-serif-display">
             {currentUser.businessName || currentUser.name}
           </h1>
           <p className="text-moss text-sm mt-1">
-            {mySpaces.length} workspace{mySpaces.length === 1 ? '' : 's'} listed on platform
+            {t(mySpaces.length === 1 ? 'prov.dash.listedOne' : 'prov.dash.listedMany', { count: mySpaces.length })}
           </p>
         </div>
       </div>
@@ -63,25 +67,25 @@ export default function ProviderDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         {[
           {
-            label: 'Total Spaces',
+            label: t('prov.dash.totalSpaces'),
             value: mySpaces.length,
             icon: Building2,
             iconBg: 'bg-soot text-plaster border-soot/20',
           },
           {
-            label: 'Active Bookings',
+            label: t('prov.dash.activeBookings'),
             value: activeBookings.length,
             icon: CalendarDays,
             iconBg: 'bg-emerald-500/15 text-emerald-800 border-emerald-500/30',
           },
           {
-            label: 'Total Revenue',
+            label: t('prov.dash.totalRevenue'),
             value: `${t('common.sar')} ${totalRevenue.toLocaleString()}`,
             icon: TrendingUp,
             iconBg: 'bg-blue-500/15 text-blue-800 border-blue-500/30',
           },
           {
-            label: 'Occupancy Rate',
+            label: t('prov.dash.occupancy'),
             value: `${occupancy}%`,
             icon: Percent,
             iconBg: 'bg-teal-500/15 text-teal-800 border-teal-500/30',
@@ -108,13 +112,13 @@ export default function ProviderDashboard() {
         {/* My spaces */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-serif-display text-soot">My Workspaces</h2>
+            <h2 className="text-xl font-serif-display text-soot">{t('prov.dash.myWorkspaces')}</h2>
             <button
               type="button"
               onClick={() => navigate('provider-spaces')}
               className="text-xs font-semibold text-moss hover:text-soot flex items-center gap-1 cursor-pointer transition-colors"
             >
-              <span>Manage all</span>
+              <span>{t('prov.dash.manageAll')}</span>
               <ArrowRight size={13} />
             </button>
           </div>
@@ -122,7 +126,7 @@ export default function ProviderDashboard() {
           {mySpaces.length === 0 ? (
             <div className="bg-plaster-surface rounded-3xl border border-soot/10 p-8 text-center shadow-2xs">
               <Warehouse size={32} className="text-moss mx-auto mb-3" />
-              <div className="text-sm text-moss font-medium">You haven&apos;t listed a workspace yet</div>
+              <div className="text-sm text-moss font-medium">{t('prov.dash.noneListed')}</div>
             </div>
           ) : (
             <div className="bg-plaster-surface rounded-3xl border border-soot/10 overflow-hidden shadow-2xs divide-y divide-soot/8">
@@ -146,7 +150,7 @@ export default function ProviderDashboard() {
                       </span>
                       {!space.isVisible && (
                         <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-red-500/10 text-red-700 shrink-0">
-                          Hidden
+                          {t('prov.dash.hidden')}
                         </span>
                       )}
                     </div>
@@ -180,13 +184,13 @@ export default function ProviderDashboard() {
         {/* Recent bookings */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-serif-display text-soot">Recent Bookings</h2>
+            <h2 className="text-xl font-serif-display text-soot">{t('admin.dash.recentBookings')}</h2>
             <button
               type="button"
               onClick={() => navigate('provider-bookings')}
               className="text-xs font-semibold text-moss hover:text-soot flex items-center gap-1 cursor-pointer transition-colors"
             >
-              <span>View all</span>
+              <span>{t('landing.viewAll')}</span>
               <ArrowRight size={13} />
             </button>
           </div>
@@ -194,7 +198,7 @@ export default function ProviderDashboard() {
           {recentBookings.length === 0 ? (
             <div className="bg-plaster-surface rounded-3xl border border-soot/10 p-8 text-center shadow-2xs">
               <CalendarDays size={32} className="text-moss mx-auto mb-3" />
-              <div className="text-sm text-moss font-medium">No bookings yet for your spaces</div>
+              <div className="text-sm text-moss font-medium">{t('prov.dash.noBookings')}</div>
             </div>
           ) : (
             <div className="bg-plaster-surface rounded-3xl border border-soot/10 overflow-hidden shadow-2xs divide-y divide-soot/8">
@@ -206,12 +210,12 @@ export default function ProviderDashboard() {
                 >
                   <img
                     src={b.spaceImage || FALLBACK_SPACE_IMAGE}
-                    alt={b.spaceName}
+                    alt={st.bookingName(b)}
                     className="w-11 h-11 rounded-xl object-cover border border-soot/10 shrink-0 shadow-2xs group-hover:scale-105 transition-transform"
                   />
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-semibold text-soot truncate group-hover:text-emerald-900 transition-colors">
-                      {b.spaceName}
+                      {st.bookingName(b)}
                     </div>
                     <div className="text-xs text-moss mt-0.5 truncate">
                       {b.seats} seat{b.seats > 1 ? 's' : ''} · <span className="capitalize">{b.plan === 'hourly' ? `Hourly (${b.durationHours || 1} ${b.durationHours === 1 ? 'hr' : 'hrs'})` : b.plan}</span>
@@ -227,7 +231,7 @@ export default function ProviderDashboard() {
                           : 'bg-red-500/15 text-red-700 border border-red-500/30'
                       }`}
                     >
-                      {b.status}
+                      {lb.status(b.status)}
                     </span>
                     <span className="text-xs font-semibold text-soot block mt-1">{t('common.sar')} {getBookingPrice(b, spaces).toLocaleString()}</span>
                   </div>
@@ -244,13 +248,13 @@ export default function ProviderDashboard() {
           <div className="space-y-1.5 max-w-xl">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-800/10 text-emerald-900 text-xs font-semibold">
               <Sparkles size={13} className="text-emerald-700" />
-              <span>Partner Loyalty Program</span>
+              <span>{t('prov.dash.loyaltyProgram')}</span>
             </div>
             <h3 className="text-xl sm:text-2xl font-serif-display text-soot font-normal">
-              Propose Custom Loyalty & Discount Rules
+              {t('prov.dash.proposeRules')}
             </h3>
             <p className="text-moss text-xs sm:text-sm">
-              Reward members with custom bonus point multipliers and redemption discounts on your coworking spaces to maximize occupancy.
+              {t('prov.dash.proposeBody')}
             </p>
           </div>
 
@@ -260,7 +264,7 @@ export default function ProviderDashboard() {
               onClick={() => navigate('provider-loyalty-proposals')}
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-soot text-plaster hover:bg-soot/90 text-sm font-semibold shadow-xs transition-all cursor-pointer group"
             >
-              <span>Manage Proposals</span>
+              <span>{t('prov.dash.manageProposals')}</span>
               <ArrowRight size={14} className="group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5 transition-transform" />
             </button>
           </div>

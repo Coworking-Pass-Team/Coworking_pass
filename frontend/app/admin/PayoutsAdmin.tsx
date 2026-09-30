@@ -16,7 +16,7 @@ import { useApp } from '@/app/store';
 import { getPayoutsApi, PayoutItemApi } from '@/services/authApi';
 
 export default function PayoutsAdmin() {
-  const { t } = useI18n();
+  const { t, translateMessage } = useI18n();
   const { partners, payoutsApi, fetchPayouts } = useApp();
   const [payouts, setPayouts] = useState<PayoutItemApi[]>([]);
   const [loading, setLoading] = useState(true);
@@ -70,18 +70,18 @@ export default function PayoutsAdmin() {
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white p-5 rounded-2xl border border-soot/8 shadow-2xs">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-moss">Automated Payouts</span>
+            <span className="text-xs font-medium text-moss">{t('admin.payo.automatedPayouts')}</span>
             <div className="w-8 h-8 rounded-xl bg-soot/5 flex items-center justify-center text-soot">
               <DollarSign size={16} />
             </div>
           </div>
           <div className="text-2xl font-bold font-serif-display text-soot">{totalCount}</div>
-          <span className="text-[11px] text-moss mt-1 block">Calculated by Platform Engine</span>
+          <span className="text-[11px] text-moss mt-1 block">{t('admin.payo.calculatedByPlatformEngine')}</span>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-soot/8 shadow-2xs">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-moss">Pending Settlement</span>
+            <span className="text-xs font-medium text-moss">{t('admin.payo.pendingSettlement')}</span>
             <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-700">
               <Clock size={16} />
             </div>
@@ -90,32 +90,32 @@ export default function PayoutsAdmin() {
             {t('common.sar')} {totalAmountDue.toLocaleString()}
           </div>
           <span className="text-[11px] text-amber-700 font-medium mt-1 block">
-            {pendingCount} Pending Transfers
+            {translateMessage(`${pendingCount} Pending Transfers`)}
           </span>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-soot/8 shadow-2xs">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-moss">Settled Statements</span>
+            <span className="text-xs font-medium text-moss">{t('admin.payo.settledStatements')}</span>
             <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-700">
               <CheckCircle2 size={16} />
             </div>
           </div>
           <div className="text-2xl font-bold font-serif-display text-emerald-950">{paidCount}</div>
           <span className="text-[11px] text-emerald-700 font-medium mt-1 block">
-            Transferred to Partners
+            {t('admin.payo.transferredToPartners')}
           </span>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-soot/8 shadow-2xs">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-moss">Registered Partners</span>
+            <span className="text-xs font-medium text-moss">{t('admin.payo.registeredPartners')}</span>
             <div className="w-8 h-8 rounded-xl bg-sky-500/10 flex items-center justify-center text-sky-700">
               <Building2 size={16} />
             </div>
           </div>
           <div className="text-2xl font-bold font-serif-display text-soot">{partners.length}</div>
-          <span className="text-[11px] text-moss mt-1 block">Active Network Providers</span>
+          <span className="text-[11px] text-moss mt-1 block">{t('admin.payo.activeNetworkProviders')}</span>
         </div>
       </div>
 
@@ -126,13 +126,13 @@ export default function PayoutsAdmin() {
           <div>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-soot/5 text-moss text-xs font-semibold mb-2">
               <Sparkles size={13} className="text-eucalyptus shrink-0" />
-              <span>Automated PostgreSQL Partner Audit Log</span>
+              <span>{t('admin.payo.automatedPostgresqlPartnerAuditLog')}</span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-serif-display font-normal text-soot tracking-tight">
-              Partner Payouts & Revenue Share Audit
+              {t('admin.payo.partnerPayoutsRevenueShareAudit')}
             </h2>
             <p className="text-moss text-xs sm:text-sm mt-1">
-              Partner settlements are calculated automatically by the system based on visit scans and revenue share percentages.
+              {t('admin.payo.partnerSettlementsAreCalculatedAutomatically')}
             </p>
           </div>
 
@@ -144,7 +144,7 @@ export default function PayoutsAdmin() {
               className="flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-soot/15 bg-white text-soot hover:bg-plaster-dark/40 text-xs sm:text-sm font-semibold transition-all cursor-pointer disabled:opacity-50"
             >
               <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-              <span>Sync Settlements</span>
+              <span>{t('admin.payo.syncSettlements')}</span>
             </button>
           </div>
         </div>
@@ -156,7 +156,7 @@ export default function PayoutsAdmin() {
             <Search size={16} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-moss pointer-events-none" />
             <input
               type="text"
-              placeholder="Search by Payout ID, Partner Name, Partner ID, or Billing Month..."
+              placeholder={t('admin.payo.searchByPayoutIdPartner')}
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               className="w-full ps-10 pe-4 py-2.5 rounded-2xl border border-soot/15 bg-plaster-surface text-soot text-xs sm:text-sm placeholder:text-moss/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-2xs"
@@ -176,7 +176,7 @@ export default function PayoutsAdmin() {
                     : 'text-moss hover:text-soot'
                 }`}
               >
-                {st === 'ALL' ? 'All Status' : st}
+                {st === 'ALL' ? t('admin.bk.allStatus') : translateMessage(st)}
               </button>
             ))}
           </div>
@@ -186,14 +186,14 @@ export default function PayoutsAdmin() {
         {loading ? (
           <div className="py-16 text-center text-moss">
             <RefreshCw size={24} className="animate-spin mx-auto mb-3 text-soot" />
-            <p className="text-xs sm:text-sm font-medium">Fetching partner payout audit logs from database...</p>
+            <p className="text-xs sm:text-sm font-medium">{t('admin.payo.fetchingPartnerPayoutAuditLogs')}</p>
           </div>
         ) : filteredPayouts.length === 0 ? (
           <div className="py-16 text-center border border-dashed border-soot/15 rounded-3xl my-4">
             <DollarSign size={32} className="mx-auto mb-3 text-moss/50" />
-            <p className="text-soot font-semibold text-sm">No payout records found</p>
+            <p className="text-soot font-semibold text-sm">{t('admin.payo.noPayoutRecordsFound')}</p>
             <p className="text-moss text-xs mt-1 max-w-sm mx-auto">
-              Partner payouts are generated automatically by the platform engine at monthly settlement periods.
+              {t('admin.payo.partnerPayoutsAreGeneratedAutomatically')}
             </p>
           </div>
         ) : (
@@ -201,12 +201,12 @@ export default function PayoutsAdmin() {
             <table className="w-full text-start text-xs sm:text-sm">
               <thead className="bg-plaster-dark/60 border-b border-soot/10 text-moss uppercase tracking-wider font-semibold">
                 <tr>
-                  <th className="py-3.5 px-4">Payout ID</th>
-                  <th className="py-3.5 px-4">Partner Brand</th>
-                  <th className="py-3.5 px-4">Billing Month</th>
-                  <th className="py-3.5 px-4">Total Visits</th>
-                  <th className="py-3.5 px-4">Amount Due</th>
-                  <th className="py-3.5 px-4">Status</th>
+                  <th className="py-3.5 px-4">{t('admin.payo.payoutId')}</th>
+                  <th className="py-3.5 px-4">{t('admin.payo.partnerBrand')}</th>
+                  <th className="py-3.5 px-4">{t('admin.payo.billingMonth')}</th>
+                  <th className="py-3.5 px-4">{t('admin.payo.totalVisits')}</th>
+                  <th className="py-3.5 px-4">{t('admin.payo.amountDue')}</th>
+                  <th className="py-3.5 px-4">{t('admin.payo.status')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-soot/8 text-soot font-medium">
@@ -218,7 +218,7 @@ export default function PayoutsAdmin() {
                         {p.id}
                       </td>
                       <td className="py-3.5 px-4">
-                        <div className="font-semibold text-soot">{p.partner?.brandName || 'Partner'}</div>
+                        <div className="font-semibold text-soot">{p.partner?.brandName || translateMessage('Partner')}</div>
                         <div className="text-[11px] text-moss font-mono truncate max-w-[170px]">
                           {p.partnerId}
                         </div>
@@ -230,7 +230,7 @@ export default function PayoutsAdmin() {
                         </span>
                       </td>
                       <td className="py-3.5 px-4 font-semibold text-soot">
-                        {p.totalVisitsReceived} visits
+                        {translateMessage(`${p.totalVisitsReceived} visits`)}
                       </td>
                       <td className="py-3.5 px-4 font-bold text-soot">
                         {t('common.sar')} {p.amountDue}
@@ -244,7 +244,7 @@ export default function PayoutsAdmin() {
                           }`}
                         >
                           {isPaid ? <CheckCircle2 size={12} /> : <Clock size={12} />}
-                          <span>{p.status}</span>
+                          <span>{translateMessage(p.status)}</span>
                         </span>
                       </td>
                     </tr>

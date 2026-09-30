@@ -3,7 +3,8 @@ import { cookies } from 'next/headers';
 import { Tajawal } from 'next/font/google';
 import '@/app/globals.css';
 import { AppProvider } from '@/app/store';
-import { I18nProvider, LANG_COOKIE, DEFAULT_LANG, type Lang } from '@/i18n';
+import { I18nProvider } from '@/i18n';
+import { LANG_COOKIE_NAME, resolveLang } from '@/i18n/server';
 
 // Arabic UI font (the Latin display/sans fonts have no Arabic glyphs)
 const arabicFont = Tajawal({
@@ -27,8 +28,8 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   // The language preference is mirrored in a cookie so the server renders the right lang/dir (no flash)
-  const stored = (await cookies()).get(LANG_COOKIE)?.value;
-  const lang: Lang = stored === 'en' || stored === 'ar' ? stored : DEFAULT_LANG;
+  const stored = (await cookies()).get(LANG_COOKIE_NAME)?.value;
+  const lang = resolveLang(stored);
 
   return (
     <html lang={lang} dir={lang === 'ar' ? 'rtl' : 'ltr'} className={`h-full ${arabicFont.variable}`} suppressHydrationWarning>

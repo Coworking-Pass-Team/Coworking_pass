@@ -10,6 +10,8 @@ import LandingViewAllButton from '@/components/landing/LandingViewAllButton';
 import LandingClientWrapper from '@/components/landing/LandingClientWrapper';
 import { getSpacesServer } from '@/lib/getSpacesServer';
 import { T } from '@/i18n';
+import { LANG_COOKIE_NAME, resolveLang, translateServer } from '@/i18n/server';
+import { cookies } from 'next/headers';
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://coworkingpass.sa'),
@@ -55,6 +57,8 @@ export const metadata: Metadata = {
 
 export default async function Page() {
   const { featuredSpaces, categoryCounts } = await getSpacesServer();
+  const storedLang = (await cookies()).get(LANG_COOKIE_NAME)?.value;
+  const lang = resolveLang(storedLang);
 
   // Structured Data (JSON-LD) for Search Engines
   const jsonLd = {
@@ -111,7 +115,7 @@ export default async function Page() {
             <div className="absolute inset-0">
               <img
                 src="/landing-hero.jpg"
-                alt="Modern coworking space in Saudi Arabia"
+                alt={translateServer(lang, 'landing.alt.hero')}
                 className="w-full h-full object-cover object-center saturate-110"
                 fetchPriority="high"
               />
@@ -231,7 +235,7 @@ export default async function Page() {
                     <div className="relative h-48 rounded-2xl overflow-hidden mb-6 bg-soot/5 border border-soot/8">
                       <img
                         src="https://images.unsplash.com/photo-1497366216548-37526070297c?w=600&auto=format&fit=crop&q=80"
-                        alt="Browse and discover coworking spaces"
+                        alt={translateServer(lang, 'landing.alt.browse')}
                         loading="lazy"
                         decoding="async"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
@@ -266,7 +270,7 @@ export default async function Page() {
                     <div className="relative h-48 rounded-2xl overflow-hidden mb-6 bg-soot/5 border border-soot/8">
                       <img
                         src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=600&auto=format&fit=crop&q=80"
-                        alt="Choose your flexible workspace plan"
+                        alt={translateServer(lang, 'landing.alt.plan')}
                         loading="lazy"
                         decoding="async"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
@@ -301,7 +305,7 @@ export default async function Page() {
                     <div className="relative h-48 rounded-2xl overflow-hidden mb-6 bg-soot/5 border border-soot/8">
                       <img
                         src="https://images.unsplash.com/photo-1497215728101-856f4ea42174?w=600&auto=format&fit=crop&q=80"
-                        alt="Instant digital workspace access pass"
+                        alt={translateServer(lang, 'landing.alt.access')}
                         loading="lazy"
                         decoding="async"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
@@ -341,7 +345,7 @@ export default async function Page() {
                 <span><T k="landing.whyBadge" /></span>
               </div>
               <h2 className="text-4xl sm:text-5xl text-soot font-normal font-serif-display tracking-tight leading-[1.15] mb-4">
-                Built for the modern <span className="text-moss italic font-serif">professional.</span>
+                <T k="landing.whyTitle1" /> <span className="text-moss italic font-serif"><T k="landing.whyTitle2" /></span>
               </h2>
               <p className="text-moss text-sm sm:text-base leading-relaxed">
                 <T k="landing.whyBody" />
@@ -395,7 +399,7 @@ export default async function Page() {
               <div className="relative rounded-3xl overflow-hidden border border-soot/12 shadow-sm min-h-[360px] h-full flex flex-col justify-end">
                 <img
                   src="https://images.unsplash.com/photo-1556761175-b413da4baf72?w=1000&auto=format&fit=crop&q=80"
-                  alt="Coworking professionals collaborating in Riyadh"
+                  alt={translateServer(lang, 'landing.alt.team')}
                   loading="lazy"
                   decoding="async"
                   className="absolute inset-0 w-full h-full object-cover"
@@ -408,8 +412,8 @@ export default async function Page() {
                       99%
                     </div>
                     <div>
-                      <div className="text-xs font-bold text-soot">Member Satisfaction</div>
-                      <div className="text-[10px] text-moss">Over 2,400+ reviews Kingdom-wide</div>
+                      <div className="text-xs font-bold text-soot"><T k="landing.satisfaction" /></div>
+                      <div className="text-[10px] text-moss"><T k="landing.reviews" /></div>
                     </div>
                   </div>
                   <span className="text-[10px] font-bold text-eucalyptus uppercase bg-soot/90 px-2.5 py-1 rounded-lg">
@@ -428,8 +432,8 @@ export default async function Page() {
                 <T k="landing.quote" />
               </p>
               <div className="pt-2">
-                <div className="text-sm font-semibold text-soot">Sarah Al-Qahtani</div>
-                <div className="text-xs text-moss">Head of People &amp; Culture, TechFlow Saudi</div>
+                <div className="text-sm font-semibold text-soot"><T k="landing.testimonialName" /></div>
+                <div className="text-xs text-moss"><T k="landing.testimonialRole" /></div>
               </div>
             </div>
           </section>

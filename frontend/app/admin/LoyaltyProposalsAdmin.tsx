@@ -262,7 +262,7 @@ export default function LoyaltyProposalsAdmin() {
             >
               <option value="ALL">{t('loyaltyAdmin.allTypes')}</option>
               <option value="EARNING">{translateMessage('Earning Rules (Points Accumulation)')}</option>
-              <option value="REDEMPTION">Redemption Rules (Discounts)</option>
+              <option value="REDEMPTION">{translateMessage('Redemption Rules (Discounts)')}</option>
             </select>
           </div>
         </div>
@@ -317,7 +317,7 @@ export default function LoyaltyProposalsAdmin() {
                       }`}
                     >
                       {isEarning ? <Coins size={12} /> : <Gift size={12} />}
-                      {isEarning ? 'Earning Rule' : 'Redemption Rule'}
+                      {translateMessage(isEarning ? 'Earning Rule' : 'Redemption Rule')}
                     </span>
 
                     <span
@@ -332,7 +332,7 @@ export default function LoyaltyProposalsAdmin() {
                       {isPending && <Clock size={12} className="text-amber-700 animate-spin" />}
                       {isApproved && <CheckCircle2 size={12} />}
                       {isRejected && <XCircle size={12} />}
-                      <span>{isPending ? 'Pending Review' : isApproved ? 'Approved & Active' : 'Rejected'}</span>
+                      <span>{translateMessage(isPending ? 'Pending Review' : isApproved ? 'Approved & Active' : 'Rejected')}</span>
                     </span>
                   </div>
 
@@ -342,7 +342,7 @@ export default function LoyaltyProposalsAdmin() {
                       {rule.ruleName}
                     </h3>
                     <p className="text-moss text-xs mt-1 line-clamp-2 leading-relaxed">
-                      {rule.description || 'No business rationale provided.'}
+                      {rule.description || translateMessage('No business rationale provided.')}
                     </p>
                   </div>
 
@@ -470,7 +470,7 @@ export default function LoyaltyProposalsAdmin() {
                 {selectedDetailRule.status === 'PENDING_APPROVAL'
                   ? 'Pending Review'
                   : selectedDetailRule.status === 'APPROVED'
-                  ? 'Approved & Active'
+                  ? translateMessage('Approved & Active')
                   : 'Rejected'}
               </span>
             </div>

@@ -20,7 +20,7 @@ import { useApp } from '@/app/store';
 import { getPaymentsApi, PaymentItemApi } from '@/services/authApi';
 
 export default function PaymentsAdmin() {
-  const { t } = useI18n();
+  const { t, translateMessage, lang, formatDate } = useI18n();
   const { fetchPayments, paymentsApi } = useApp();
   const [payments, setPayments] = useState<PaymentItemApi[]>([]);
   const [loading, setLoading] = useState(true);
@@ -87,18 +87,18 @@ export default function PaymentsAdmin() {
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white p-5 rounded-2xl border border-soot/8 shadow-2xs">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-moss">Automated Payments</span>
+            <span className="text-xs font-medium text-moss">{t('admin.pay.automatedPayments')}</span>
             <div className="w-8 h-8 rounded-xl bg-soot/5 flex items-center justify-center text-soot">
               <CreditCard size={16} />
             </div>
           </div>
           <div className="text-2xl font-bold font-serif-display text-soot">{totalCount}</div>
-          <span className="text-[11px] text-moss mt-1 block">Auto-synced with PostgreSQL</span>
+          <span className="text-[11px] text-moss mt-1 block">{t('admin.pay.autoSyncedWithPostgresql')}</span>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-soot/8 shadow-2xs">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-moss">Total Sales Volume</span>
+            <span className="text-xs font-medium text-moss">{t('admin.pay.totalSalesVolume')}</span>
             <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-700">
               <DollarSign size={16} />
             </div>
@@ -107,32 +107,32 @@ export default function PaymentsAdmin() {
             {t('common.sar')} {totalVolume.toLocaleString()}
           </div>
           <span className="text-[11px] text-emerald-700 font-medium mt-1 block">
-            {successCount} Successful Checkout Records
+            {translateMessage(`${successCount} Successful Checkout Records`)}
           </span>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-soot/8 shadow-2xs">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-moss">Failed Transactions</span>
+            <span className="text-xs font-medium text-moss">{t('admin.pay.failedTransactions')}</span>
             <div className="w-8 h-8 rounded-xl bg-rose-500/10 flex items-center justify-center text-rose-700">
               <XCircle size={16} />
             </div>
           </div>
           <div className="text-2xl font-bold font-serif-display text-rose-950">{failedCount}</div>
           <span className="text-[11px] text-rose-700 font-medium mt-1 block">
-            Auto-flagged Gateway Failures
+            {t('admin.pay.autoFlaggedGatewayFailures')}
           </span>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-soot/8 shadow-2xs">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-moss">Gateway Protection</span>
+            <span className="text-xs font-medium text-moss">{t('admin.pay.gatewayProtection')}</span>
             <div className="w-8 h-8 rounded-xl bg-sky-500/10 flex items-center justify-center text-sky-700">
               <ShieldCheck size={16} />
             </div>
           </div>
-          <div className="text-sm font-semibold text-soot">MADA, VISA, Apple Pay</div>
-          <span className="text-[11px] text-moss mt-1 block">SAMA Standard Compliant</span>
+          <div className="text-sm font-semibold text-soot">{t('admin.pay.madaVisaApplePay')}</div>
+          <span className="text-[11px] text-moss mt-1 block">{t('admin.pay.samaStandardCompliant')}</span>
         </div>
       </div>
 
@@ -143,13 +143,13 @@ export default function PaymentsAdmin() {
           <div>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-soot/5 text-moss text-xs font-semibold mb-2">
               <Sparkles size={13} className="text-eucalyptus shrink-0" />
-              <span>Automated PostgreSQL Audit Log</span>
+              <span>{t('admin.pay.automatedPostgresqlAuditLog')}</span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-serif-display font-normal text-soot tracking-tight">
-              Payments & Financial Audit Log
+              {t('admin.pay.paymentsFinancialAuditLog')}
             </h2>
             <p className="text-moss text-xs sm:text-sm mt-1">
-              Payments are recorded automatically in PostgreSQL whenever users purchase subscriptions or book workspaces.
+              {t('admin.pay.paymentsAreRecordedAutomaticallyIn')}
             </p>
           </div>
 
@@ -161,7 +161,7 @@ export default function PaymentsAdmin() {
               className="flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-soot/15 bg-white text-soot hover:bg-plaster-dark/40 text-xs sm:text-sm font-semibold transition-all cursor-pointer disabled:opacity-50"
             >
               <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-              <span>Sync Records</span>
+              <span>{t('admin.pay.syncRecords')}</span>
             </button>
           </div>
         </div>
@@ -173,7 +173,7 @@ export default function PaymentsAdmin() {
             <Search size={16} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-moss pointer-events-none" />
             <input
               type="text"
-              placeholder="Search by Payment ID, User Email, Name, or Reference ID..."
+              placeholder={t('admin.pay.searchByPaymentIdUser')}
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               className="w-full ps-10 pe-4 py-2.5 rounded-2xl border border-soot/15 bg-plaster-surface text-soot text-xs sm:text-sm placeholder:text-moss/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-2xs"
@@ -193,7 +193,7 @@ export default function PaymentsAdmin() {
                     : 'text-moss hover:text-soot'
                 }`}
               >
-                {st === 'ALL' ? 'All Status' : st}
+                {st === 'ALL' ? t('admin.bk.allStatus') : translateMessage(st)}
               </button>
             ))}
           </div>
@@ -211,7 +211,7 @@ export default function PaymentsAdmin() {
                     : 'text-moss hover:text-soot'
                 }`}
               >
-                {pf === 'ALL' ? 'All Purpose' : pf.replace('_', ' ')}
+                {pf === 'ALL' ? translateMessage('All Purpose') : translateMessage(pf)}
               </button>
             ))}
           </div>
@@ -221,14 +221,14 @@ export default function PaymentsAdmin() {
         {loading ? (
           <div className="py-16 text-center text-moss">
             <RefreshCw size={24} className="animate-spin mx-auto mb-3 text-soot" />
-            <p className="text-xs sm:text-sm font-medium">Fetching payment audit logs from database...</p>
+            <p className="text-xs sm:text-sm font-medium">{t('admin.pay.fetchingPaymentAuditLogsFrom')}</p>
           </div>
         ) : filteredPayments.length === 0 ? (
           <div className="py-16 text-center border border-dashed border-soot/15 rounded-3xl my-4">
             <CreditCard size={32} className="mx-auto mb-3 text-moss/50" />
-            <p className="text-soot font-semibold text-sm">No payment records found</p>
+            <p className="text-soot font-semibold text-sm">{t('admin.pay.noPaymentRecordsFound')}</p>
             <p className="text-moss text-xs mt-1 max-w-sm mx-auto">
-              Payments are recorded automatically when users buy subscriptions or book spaces.
+              {t('admin.pay.paymentsAreRecordedAutomaticallyWhen')}
             </p>
           </div>
         ) : (
@@ -236,22 +236,22 @@ export default function PaymentsAdmin() {
             <table className="w-full text-start text-xs sm:text-sm">
               <thead className="bg-plaster-dark/60 border-b border-soot/10 text-moss uppercase tracking-wider font-semibold">
                 <tr>
-                  <th className="py-3.5 px-4">Payment ID</th>
-                  <th className="py-3.5 px-4">User</th>
-                  <th className="py-3.5 px-4">Workspace</th>
-                  <th className="py-3.5 px-4">Amount</th>
-                  <th className="py-3.5 px-4">Method</th>
-                  <th className="py-3.5 px-4">Payment For</th>
-                  <th className="py-3.5 px-4">Reference ID</th>
-                  <th className="py-3.5 px-4">Date & Time</th>
-                  <th className="py-3.5 px-4">Status</th>
+                  <th className="py-3.5 px-4">{t('admin.pay.paymentId')}</th>
+                  <th className="py-3.5 px-4">{t('admin.pay.user')}</th>
+                  <th className="py-3.5 px-4">{t('admin.pay.workspace')}</th>
+                  <th className="py-3.5 px-4">{t('admin.pay.amount')}</th>
+                  <th className="py-3.5 px-4">{t('admin.pay.method')}</th>
+                  <th className="py-3.5 px-4">{t('admin.pay.paymentFor')}</th>
+                  <th className="py-3.5 px-4">{t('admin.pay.referenceId')}</th>
+                  <th className="py-3.5 px-4">{t('admin.pay.dateTime')}</th>
+                  <th className="py-3.5 px-4">{t('admin.pay.status')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-soot/8 text-soot font-medium">
                 {filteredPayments.map(p => {
                   const isSuccess = p.status === 'SUCCESS';
-                  const dateStr = p.createdAt ? new Date(p.createdAt).toISOString().split('T')[0] : 'N/A';
-                  const timeStr = p.createdAt ? new Date(p.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : '';
+                  const dateStr = p.createdAt ? formatDate(p.createdAt) : translateMessage('N/A');
+                  const timeStr = p.createdAt ? new Date(p.createdAt).toLocaleTimeString(lang === 'ar' ? 'ar-SA' : 'en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : '';
 
                   return (
                     <tr key={p.id} className="hover:bg-plaster-dark/20 transition-colors">
@@ -259,7 +259,7 @@ export default function PaymentsAdmin() {
                         {p.id}
                       </td>
                       <td className="py-3.5 px-4">
-                        <div className="font-semibold text-soot">{p.user?.name || 'User'}</div>
+                        <div className="font-semibold text-soot">{p.user?.name || t('admin.pay.user')}</div>
                         <div className="text-[11px] text-moss font-mono truncate max-w-[170px]">
                           {p.user?.email || p.userId}
                         </div>
@@ -268,7 +268,7 @@ export default function PaymentsAdmin() {
                         <div className="flex items-center gap-1.5 font-semibold text-soot">
                           <Building2 size={13} className="text-emerald-700 shrink-0" />
                           <span className="truncate max-w-[170px]">
-                            {p.workspace?.name || (p.paymentFor === 'SUBSCRIPTION' ? 'Subscription (Pass)' : 'Coworking Space')}
+                            {p.workspace?.name || translateMessage(p.paymentFor === 'SUBSCRIPTION' ? 'Subscription (Pass)' : 'Coworking Space')}
                           </span>
                         </div>
                         {p.workspace?.city && (
@@ -285,17 +285,17 @@ export default function PaymentsAdmin() {
                       <td className="py-3.5 px-4">
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-soot/5 border border-soot/10 text-soot font-semibold text-xs">
                           <CreditCard size={12} className="text-moss" />
-                          {p.method}
+                          {translateMessage(p.method)}
                         </span>
                       </td>
                       <td className="py-3.5 px-4">
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-plaster-dark/60 text-soot text-xs font-semibold">
                           <Tag size={11} className="text-moss" />
-                          {p.paymentFor.replace('_', ' ')}
+                          {translateMessage(p.paymentFor)}
                         </span>
                       </td>
                       <td className="py-3.5 px-4 font-mono text-xs text-moss">
-                        {p.referenceId || 'N/A'}
+                        {p.referenceId || translateMessage('N/A')}
                       </td>
                       <td className="py-3.5 px-4 text-xs">
                         <div className="font-semibold text-soot flex items-center gap-1">
@@ -317,7 +317,7 @@ export default function PaymentsAdmin() {
                           }`}
                         >
                           {isSuccess ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
-                          <span>{p.status}</span>
+                          <span>{translateMessage(p.status)}</span>
                         </span>
                       </td>
                     </tr>

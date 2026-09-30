@@ -98,7 +98,7 @@ const emptyForm = (): Partial<Space> => ({
 });
 
 export default function SpacesAdmin() {
-  const { t } = useI18n();
+  const { t, translateMessage } = useI18n();
   const st = useSpaceText();
   const { spaces, addSpace, updateSpace, toggleSpaceVisibility, deleteSpace, navigate, amenityRequests, approveAmenityRequest, rejectAmenityRequest, deleteAmenityRequest, getApprovedAmenities } = useApp();
   const [query, setQuery] = useState('');
@@ -479,7 +479,7 @@ export default function SpacesAdmin() {
               </div>
               <div>
                 <div className="text-3xl font-normal text-soot tracking-tight font-serif-display">{stat.count}</div>
-                <div className="text-xs font-medium text-moss mt-0.5">{stat.label}</div>
+                <div className="text-xs font-medium text-moss mt-0.5">{translateMessage(stat.label)}</div>
               </div>
             </div>
             <span className={`text-xs px-2.5 py-1 rounded-full font-bold shadow-2xs ${stat.badge}`}>
@@ -517,7 +517,7 @@ export default function SpacesAdmin() {
               }`}
             >
               <tab.icon size={15} />
-              <span>{tab.label}</span>
+              <span>{translateMessage(tab.label)}</span>
               <span
                 className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
                   isSelected ? 'bg-plaster/20 text-plaster' : 'bg-plaster-dark/60 text-soot'
@@ -527,7 +527,7 @@ export default function SpacesAdmin() {
               </span>
               {tab.pendingCount ? (
                 <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-500 text-white animate-pulse">
-                  {tab.pendingCount} Pending
+                  {t('admin.spaces.pendingCount', { count: tab.pendingCount })}
                 </span>
               ) : null}
             </button>
@@ -560,7 +560,7 @@ export default function SpacesAdmin() {
             <div className="flex items-center gap-2.5 min-w-0">
               <MapPin size={16} className="text-moss shrink-0" />
               <span className="text-sm font-medium text-soot truncate">
-                {filterCity || 'All Cities'}
+                {filterCity ? st.cityName(filterCity) : t('admin.spaces.allCities')}
               </span>
             </div>
             <ChevronDown
@@ -590,7 +590,7 @@ export default function SpacesAdmin() {
                           : 'text-soot hover:bg-plaster-dark/60'
                       }`}
                     >
-                      <span>{city}</span>
+                      <span>{city === 'All Cities' ? t('admin.spaces.allCities') : st.cityName(city)}</span>
                       {isSelected && <Check size={14} className="text-eucalyptus" />}
                     </button>
                   );
@@ -623,11 +623,11 @@ export default function SpacesAdmin() {
                   const active = amenityStatusFilter === status;
                   const label =
                     status === 'ALL'
-                      ? 'All Requests'
+                      ? translateMessage('All Requests')
                       : status === 'PENDING_APPROVAL'
-                      ? 'Pending'
+                      ? translateMessage('Pending')
                       : status === 'APPROVED'
-                      ? 'Approved'
+                      ? translateMessage('Approved')
                       : 'Rejected';
                   return (
                     <button
@@ -676,7 +676,7 @@ export default function SpacesAdmin() {
                             : 'bg-amber-500/10 text-amber-800 border-amber-500/30 animate-pulse'
                         }`}
                       >
-                        {req.status === 'APPROVED' ? 'Approved' : req.status === 'REJECTED' ? 'Rejected' : 'Pending Review'}
+                        {translateMessage(req.status === 'APPROVED' ? 'Approved' : req.status === 'REJECTED' ? 'Rejected' : 'Pending Review')}
                       </span>
                     </div>
 
@@ -800,7 +800,7 @@ export default function SpacesAdmin() {
                           {st.name(space)}
                         </span>
                         <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-soot/8 text-soot border border-soot/10 shrink-0 capitalize">
-                          {cat}
+                          {t(('categories.' + cat) as never)}
                         </span>
                         {!space.isVisible && (
                           <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-red-500/10 text-red-700 shrink-0">
@@ -814,7 +814,7 @@ export default function SpacesAdmin() {
                           {space.rating}
                         </span>
                         <span>·</span>
-                        <span className="capitalize">{space.type.replace('-', ' ')}</span>
+                        <span className="capitalize">{st.typeLabel(space.type)}</span>
                       </div>
 
                       {/* Amenities Chips in Table */}
@@ -827,7 +827,7 @@ export default function SpacesAdmin() {
                                 className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-lg bg-soot/5 border border-soot/10 text-soot"
                               >
                                 <Check size={10} className="text-emerald-600 shrink-0" />
-                                <span className="truncate max-w-[90px]">{typeof a === 'string' ? a : (a as any)?.name}</span>
+                                <span className="truncate max-w-[90px]">{st.amenity(typeof a === 'string' ? a : (a as any)?.name)}</span>
                               </span>
                             ))}
                             {space.amenities.length > 3 && (
@@ -875,7 +875,7 @@ export default function SpacesAdmin() {
                   <div className="col-span-2 mt-3 md:mt-0 text-sm font-semibold text-soot">
                     {t('common.sar')} {isHourlyOnlySpace(space.type) ? (space.pricing?.hourly || 150).toLocaleString() : space.pricing?.daily?.toLocaleString()}
                     <span className="text-xs text-moss font-normal ms-1">
-                      {isHourlyOnlySpace(space.type) ? '/ hour' : '/ day'}
+                      {t(isHourlyOnlySpace(space.type) ? 'admin.spaces.perHour' : 'admin.spaces.perDay')}
                     </span>
                   </div>
 
@@ -1225,7 +1225,7 @@ export default function SpacesAdmin() {
                       className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border border-soot/12 bg-white text-soot text-sm font-medium text-start transition-all duration-200 cursor-pointer focus:outline-none shadow-2xs"
                     >
                       <span className="capitalize truncate">
-                        {TYPES.find((t) => t.value === (form.type || 'mixed'))?.label || 'Mixed Space'}
+                        {st.typeLabel(form.type || 'mixed')}
                       </span>
                       <ChevronDown
                         size={15}
@@ -1254,7 +1254,7 @@ export default function SpacesAdmin() {
                                     : 'text-soot hover:bg-plaster-dark/60'
                                 }`}
                               >
-                                <span>{t.label}</span>
+                                <span>{st.typeLabel(t.value)}</span>
                                 {isSelected && <Check size={14} className="text-eucalyptus" />}
                               </button>
                             );
@@ -1378,13 +1378,13 @@ export default function SpacesAdmin() {
                 <div className="flex items-center justify-between border-b border-soot/10 pb-1.5">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-moss">
                     {isHourlyAllowed(form.type)
-                      ? `${getSpaceCategory(form.type).toUpperCase()} Rates (Hourly, Daily, Monthly, Yearly)`
-                      : 'Office Periodic Rates (Daily, Monthly, Yearly)'}
+                      ? t('admin.spaces.ratesHall')
+                      : t('admin.spaces.ratesOffice')}
                   </span>
                   <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#E5ECE9] text-soot">
                     {isHourlyAllowed(form.type)
-                      ? 'Hourly • Daily • Monthly • Yearly'
-                      : 'Daily • Monthly • Yearly (No Hourly)'}
+                      ? t('admin.spaces.ratesHallBadge')
+                      : t('admin.spaces.ratesOfficeBadge')}
                   </span>
                 </div>
 

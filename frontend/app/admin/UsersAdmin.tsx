@@ -1,6 +1,7 @@
 'use client';
 
 import { useI18n } from '@/i18n';
+import { useLabels } from '@/i18n/labels';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import {
   Search,
@@ -43,7 +44,8 @@ const ROW_ROLES: { value: UserRole; label: string }[] = [
 ];
 
 export default function UsersAdmin() {
-  const { t } = useI18n();
+  const { t, translateMessage } = useI18n();
+  const lb = useLabels();
   const {
     nav,
     users,
@@ -444,7 +446,7 @@ export default function UsersAdmin() {
             onClick: () => { setFilterStatus(filterStatus === 'blocked' ? '' : 'blocked'); setFilterRole(''); },
           },
           {
-            label: 'Organizations (B2B)',
+            label: translateMessage('Organizations (B2B)'),
             count: orgCount,
             badge: 'bg-eucalyptus/25 text-soot border border-eucalyptus/35',
             icon: Building2,
@@ -654,7 +656,7 @@ export default function UsersAdmin() {
                     onClick={() => setActiveRowRoleDropdown(isDropdownActive ? null : u.id)}
                     className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-plaster-dark/40 hover:bg-plaster-dark/70 border border-soot/12 text-xs font-semibold text-soot transition-all cursor-pointer"
                   >
-                    <span className="capitalize">{u.role}</span>
+                    <span className="capitalize">{lb.role(u.role)}</span>
                     <ChevronDown size={13} className={`text-moss transition-transform ${isDropdownActive ? 'rotate-180' : ''}`} />
                   </button>
 

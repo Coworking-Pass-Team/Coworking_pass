@@ -18,6 +18,43 @@ export interface StandardSpaceSeed {
   amenities: string[];
 }
 
+
+const CITY_AR: Record<string, string> = {
+  Riyadh: 'الرياض',
+  Jeddah: 'جدة',
+  Dammam: 'الدمام',
+  'Al Khobar': 'الخبر',
+  Mecca: 'مكة المكرمة',
+  Madinah: 'المدينة المنورة',
+};
+
+/** Standard bilingual descriptions per category and type; authored text, not machine-translated at runtime. */
+export function standardDescriptions(s: Pick<StandardSpaceSeed, 'category' | 'type' | 'city'>): { description: string; descriptionAr: string } {
+  const cityAr = CITY_AR[s.city] ?? s.city;
+  if (s.category === 'theater') {
+    return {
+      description: `A fully equipped theater in ${s.city} with tiered seating, professional stage lighting and cinema-grade audio-visual systems, ideal for conferences, screenings and live performances. Bookable by the hour.`,
+      descriptionAr: `مسرح مجهز بالكامل في ${cityAr} بمقاعد متدرجة وإضاءة مسرحية احترافية وأنظمة سمعية وبصرية بجودة سينمائية، مثالي للمؤتمرات والعروض السينمائية والفعاليات الحية. متاح للحجز بالساعة.`,
+    };
+  }
+  if (s.category === 'hall') {
+    return {
+      description: `A flexible hall in ${s.city} for meetings, training sessions, workshops and corporate events, with modern presentation equipment, high-speed Wi-Fi and hospitality support. Bookable by the hour.`,
+      descriptionAr: `قاعة مرنة في ${cityAr} للاجتماعات والدورات التدريبية وورش العمل والفعاليات المؤسسية، مجهزة بمعدات عرض حديثة وواي فاي عالي السرعة وخدمات ضيافة. متاحة للحجز بالساعة.`,
+    };
+  }
+  if (s.type === 'hot-desk') {
+    return {
+      description: `A vibrant hot-desk coworking space in ${s.city} with ergonomic seating, fast Wi-Fi, coffee and meeting facilities. Book by the day, month or year.`,
+      descriptionAr: `مساحة عمل مشترك نابضة بالحياة في ${cityAr} بمكاتب مشتركة ومقاعد مريحة وواي فاي سريع وقهوة ومرافق اجتماعات. متاحة للحجز باليوم أو الشهر أو السنة.`,
+    };
+  }
+  return {
+    description: `A professional coworking space in ${s.city} offering desks, meeting rooms and private work areas in a productive, well-connected environment. Book by the day, month or year.`,
+    descriptionAr: `مساحة عمل مشترك احترافية في ${cityAr} توفر مكاتب وقاعات اجتماعات ومناطق عمل خاصة في بيئة منتجة ومتصلة جيداً. متاحة للحجز باليوم أو الشهر أو السنة.`,
+  };
+}
+
 export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
   {
     name: 'The Hub Riyadh',
@@ -553,6 +590,7 @@ export async function seedStandardWorkspaces() {
           partnerId: partner.id,
           name: s.name,
           nameAr: s.nameAr ?? null,
+          ...standardDescriptions(s),
           city: s.city,
           locationMapUrl: `https://maps.google.com/?q=${s.latitude},${s.longitude}`,
           dailyRate: s.dailyRate,
@@ -569,8 +607,13 @@ export async function seedStandardWorkspaces() {
     }
 
     // Backfill the Arabic name on existing rows without overriding provider edits
-    if (s.nameAr && !(ws as any).nameAr) {
-      await prisma.workspace.update({ where: { id: ws.id }, data: { nameAr: s.nameAr } });
+    const backfill: Record<string, string> = {};
+    if (s.nameAr && !(ws as any).nameAr) backfill.nameAr = s.nameAr;
+    const desc = standardDescriptions(s);
+    if (!(ws as any).description) backfill.description = desc.description;
+    if (!(ws as any).descriptionAr) backfill.descriptionAr = desc.descriptionAr;
+    if (Object.keys(backfill).length > 0) {
+      await prisma.workspace.update({ where: { id: ws.id }, data: backfill });
     }
 
     // 3. Ensure Sections exist based on space category

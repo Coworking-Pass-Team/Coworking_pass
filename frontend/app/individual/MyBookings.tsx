@@ -130,7 +130,7 @@ export default function MyBookings() {
             }`}
           >
             <CalendarDays size={15} />
-            <span>Pass &amp; Direct Bookings</span>
+            <span>{t('myBookings.passDirect')}</span>
           </button>
 
           <button

@@ -1,4 +1,5 @@
 'use client';
+import { useI18n } from '@/i18n';
 import React, { useState } from 'react';
 import {
   MessageCircle,
@@ -20,6 +21,7 @@ import { useApp } from '@/app/store';
 type InquiryType = 'general' | 'complaint' | 'refund';
 
 export default function Contact() {
+  const { t, translateMessage } = useI18n();
   const { addSupportTicket, currentUser } = useApp();
   const [submitted, setSubmitted] = useState(false);
   const [inquiryType, setInquiryType] = useState<InquiryType>('general');
@@ -88,9 +90,9 @@ export default function Contact() {
   };
 
   const inquiryLabels: Record<InquiryType, { label: string; badgeColor: string }> = {
-    general: { label: 'General Inquiry', badgeColor: 'bg-emerald-100 text-emerald-900 border-emerald-300' },
+    general: { label: t('contact.generalInquiry'), badgeColor: 'bg-emerald-100 text-emerald-900 border-emerald-300' },
     complaint: { label: 'Complaint', badgeColor: 'bg-rose-100 text-rose-900 border-rose-300' },
-    refund: { label: 'Refund Request', badgeColor: 'bg-amber-100 text-amber-900 border-amber-300' }
+    refund: { label: t('contact.refundRequest'), badgeColor: 'bg-amber-100 text-amber-900 border-amber-300' }
   };
 
   return (
@@ -98,10 +100,10 @@ export default function Contact() {
       {/* Header Section */}
       <div className="mb-12 text-center max-w-2xl mx-auto">
         <h1 className="text-4xl sm:text-5xl text-soot font-normal mb-3 font-serif-display">
-          Contact Support Desk
+          {t('contact.contactSupportDesk')}
         </h1>
         <p className="text-moss text-base sm:text-lg">
-          Submit complaints, request booking refunds, or ask general questions. Our dedicated support team is here to assist you.
+          {t('contact.submitComplaintsRequestBookingRefunds')}
         </p>
       </div>
 
@@ -121,10 +123,10 @@ export default function Contact() {
             </div>
             <div>
               <h2 className="text-base font-semibold text-soot mb-1 font-serif-display leading-snug">
-                Customer Support
+                {t('contact.customerSupport')}
               </h2>
               <p className="text-xs sm:text-sm text-moss leading-relaxed">
-                Assistance with workspace bookings, complaints, and refund requests.
+                {t('contact.assistanceWithWorkspaceBookingsComplaints')}
               </p>
             </div>
           </div>
@@ -143,10 +145,10 @@ export default function Contact() {
             </div>
             <div>
               <h2 className="text-base font-semibold text-soot mb-0.5 font-serif-display leading-snug">
-                Email Support
+                {t('contact.emailSupport')}
               </h2>
               <p className="text-sm font-semibold text-soot">info@coworkingpass.sa</p>
-              <p className="text-xs text-moss mt-0.5">Response within 24 hours</p>
+              <p className="text-xs text-moss mt-0.5">{t('contact.responseWithin24Hours')}</p>
             </div>
           </a>
 
@@ -164,10 +166,10 @@ export default function Contact() {
             </div>
             <div>
               <h2 className="text-base font-semibold text-soot mb-0.5 font-serif-display leading-snug">
-                Phone Support
+                {t('contact.phoneSupport')}
               </h2>
               <p className="text-sm font-semibold text-soot dir-ltr" dir="ltr">+966 50 000 0000</p>
-              <p className="text-xs text-moss mt-0.5">Sun – Thu: 9:00 AM – 6:00 PM AST</p>
+              <p className="text-xs text-moss mt-0.5">{t('contact.sunThu900Am')}</p>
             </div>
           </a>
         </div>
@@ -188,16 +190,16 @@ export default function Contact() {
               >
                 <CheckCircle2 size={36} style={{ color: 'var(--soot, #2D3536)' }} />
               </div>
-              <h2 className="text-2xl text-soot font-normal font-serif-display">Ticket Submitted</h2>
+              <h2 className="text-2xl text-soot font-normal font-serif-display">{t('contact.ticketSubmitted')}</h2>
               <p className="text-moss text-sm max-w-md mx-auto leading-relaxed">
-                Thank you for reaching out, <strong className="text-soot">{name}</strong>. Your support ticket regarding <span className={`px-2 py-0.5 rounded-md border text-xs font-semibold ${inquiryLabels[inquiryType].badgeColor}`}>{inquiryLabels[inquiryType].label}</span> has been logged. We will contact you at <strong className="text-soot">{email}</strong> shortly.
+                {t('contact.thanks')} <strong className="text-soot">{name}</strong>. {t('contact.ticketRegarding')} <span className={`px-2 py-0.5 rounded-md border text-xs font-semibold ${inquiryLabels[inquiryType].badgeColor}`}>{translateMessage(inquiryLabels[inquiryType].label)}</span> {t('contact.logged')} <strong className="text-soot">{email}</strong> {t('contact.shortly')}
               </p>
               {attachedImage && (
                 <div className="p-3 bg-plaster-dark/30 rounded-2xl border border-soot/10 max-w-xs mx-auto text-start flex items-center gap-3">
-                  <img src={attachedImage} alt="Attachment" className="w-12 h-12 object-cover rounded-xl border border-soot/10" />
+                  <img src={attachedImage} alt={t('contact.attachment')} className="w-12 h-12 object-cover rounded-xl border border-soot/10" />
                   <div className="text-xs truncate">
                     <span className="font-semibold text-soot block truncate">{fileName}</span>
-                    <span className="text-moss text-[11px]">Attached Screenshot</span>
+                    <span className="text-moss text-[11px]">{t('contact.attachedScreenshot')}</span>
                   </div>
                 </div>
               )}
@@ -212,17 +214,17 @@ export default function Contact() {
                 }}
                 className="mt-4 px-6 py-2.5 rounded-xl border border-soot/20 text-soot text-sm font-semibold hover:bg-soot hover:text-white transition-colors cursor-pointer"
               >
-                Submit Another Request
+                {t('contact.submitAnotherRequest')}
               </button>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-5">
-              <h2 className="text-xl font-normal text-soot font-serif-display">Submit a Support Request</h2>
+              <h2 className="text-xl font-normal text-soot font-serif-display">{t('contact.submitASupportRequest')}</h2>
 
               {/* Inquiry Type Category Selection */}
               <div>
                 <label className="block text-xs font-semibold text-soot mb-2 uppercase tracking-wider">
-                  Inquiry Topic <span className="text-rose-600">*</span>
+                  {t('contact.inquiryTopic')} <span className="text-rose-600">*</span>
                 </label>
                 <div className="grid grid-cols-3 gap-2.5">
                   <button
@@ -236,7 +238,7 @@ export default function Contact() {
                   >
                     <div className="flex items-center gap-2 mb-1">
                       <HelpCircle size={16} className={inquiryType === 'general' ? 'text-emerald-700' : 'text-moss'} />
-                      <span className="font-semibold text-xs sm:text-sm">General Inquiry</span>
+                      <span className="font-semibold text-xs sm:text-sm">{t('contact.generalInquiry')}</span>
                     </div>
                     <span className="text-[11px] text-moss leading-tight hidden sm:block">
                       Questions &amp; workspace info
@@ -254,10 +256,10 @@ export default function Contact() {
                   >
                     <div className="flex items-center gap-2 mb-1">
                       <AlertCircle size={16} className={inquiryType === 'complaint' ? 'text-rose-700' : 'text-moss'} />
-                      <span className="font-semibold text-xs sm:text-sm">File a Complaint</span>
+                      <span className="font-semibold text-xs sm:text-sm">{t('contact.fileAComplaint')}</span>
                     </div>
                     <span className="text-[11px] text-moss leading-tight hidden sm:block">
-                      Report space or service issue
+                      {t('contact.reportSpaceOrServiceIssue')}
                     </span>
                   </button>
 
@@ -272,10 +274,10 @@ export default function Contact() {
                   >
                     <div className="flex items-center gap-2 mb-1">
                       <RotateCcw size={16} className={inquiryType === 'refund' ? 'text-amber-700' : 'text-moss'} />
-                      <span className="font-semibold text-xs sm:text-sm">Refund Request</span>
+                      <span className="font-semibold text-xs sm:text-sm">{t('contact.refundRequest')}</span>
                     </div>
                     <span className="text-[11px] text-moss leading-tight hidden sm:block">
-                      Request pass cancellation refund
+                      {t('contact.requestPassCancellationRefund')}
                     </span>
                   </button>
                 </div>
@@ -285,7 +287,7 @@ export default function Contact() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-soot mb-1.5 uppercase tracking-wider">
-                    Full Name <span className="text-rose-600">*</span>
+                    {t('contact.fullName')} <span className="text-rose-600">*</span>
                   </label>
                   <input
                     type="text"
@@ -294,17 +296,17 @@ export default function Contact() {
                       setName(e.target.value);
                       if (fieldErrors.name) setFieldErrors(errs => ({ ...errs, name: '' }));
                     }}
-                    placeholder="Mohammed Al-Faisal"
+                    placeholder={t('contact.mohammedAlFaisal')}
                     className={`w-full px-4 py-3 rounded-xl border text-soot text-sm placeholder:text-moss/60 focus:outline-none transition-all shadow-xs ${
                       fieldErrors.name ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/20' : 'border-soot/15 focus:ring-2 focus:ring-eucalyptus/40 bg-plaster-dark/30'
                     }`}
                   />
-                  {fieldErrors.name && <p className="text-xs text-rose-600 font-medium mt-1">* {fieldErrors.name}</p>}
+                  {fieldErrors.name && <p className="text-xs text-rose-600 font-medium mt-1">* {translateMessage(fieldErrors.name)}</p>}
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-soot mb-1.5 uppercase tracking-wider">
-                    Email Address <span className="text-rose-600">*</span>
+                    {t('contact.emailAddress')} <span className="text-rose-600">*</span>
                   </label>
                   <input
                     type="email"
@@ -313,19 +315,19 @@ export default function Contact() {
                       setEmail(e.target.value);
                       if (fieldErrors.email) setFieldErrors(errs => ({ ...errs, email: '' }));
                     }}
-                    placeholder="name@company.com"
+                    placeholder={t('contact.nameCompanyCom')}
                     className={`w-full px-4 py-3 rounded-xl border text-soot text-sm placeholder:text-moss/60 focus:outline-none transition-all shadow-xs ${
                       fieldErrors.email ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/20' : 'border-soot/15 focus:ring-2 focus:ring-eucalyptus/40 bg-plaster-dark/30'
                     }`}
                   />
-                  {fieldErrors.email && <p className="text-xs text-rose-600 font-medium mt-1">* {fieldErrors.email}</p>}
+                  {fieldErrors.email && <p className="text-xs text-rose-600 font-medium mt-1">* {translateMessage(fieldErrors.email)}</p>}
                 </div>
               </div>
 
               {/* Subject */}
               <div>
                 <label className="block text-xs font-semibold text-soot mb-1.5 uppercase tracking-wider">
-                  Subject <span className="text-rose-600">*</span>
+                  {t('contact.subject')} <span className="text-rose-600">*</span>
                 </label>
                 <input
                   type="text"
@@ -345,13 +347,13 @@ export default function Contact() {
                     fieldErrors.subject ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/20' : 'border-soot/15 focus:ring-2 focus:ring-eucalyptus/40 bg-plaster-dark/30'
                   }`}
                 />
-                {fieldErrors.subject && <p className="text-xs text-rose-600 font-medium mt-1">* {fieldErrors.subject}</p>}
+                {fieldErrors.subject && <p className="text-xs text-rose-600 font-medium mt-1">* {translateMessage(fieldErrors.subject)}</p>}
               </div>
 
               {/* Message */}
               <div>
                 <label className="block text-xs font-semibold text-soot mb-1.5 uppercase tracking-wider">
-                  Message Details <span className="text-rose-600">*</span>
+                  {t('contact.messageDetails')} <span className="text-rose-600">*</span>
                 </label>
                 <textarea
                   rows={4}
@@ -371,14 +373,14 @@ export default function Contact() {
                     fieldErrors.message ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/20' : 'border-soot/15 focus:ring-2 focus:ring-eucalyptus/40 bg-plaster-dark/30'
                   }`}
                 />
-                {fieldErrors.message && <p className="text-xs text-rose-600 font-medium mt-1">* {fieldErrors.message}</p>}
+                {fieldErrors.message && <p className="text-xs text-rose-600 font-medium mt-1">* {translateMessage(fieldErrors.message)}</p>}
               </div>
 
               {/* Image Upload Widget */}
               <div>
                 <label className="block text-xs font-semibold text-soot mb-1.5 uppercase tracking-wider flex items-center justify-between">
-                  <span>Attach Screenshot or Document (Optional)</span>
-                  <span className="text-moss font-normal text-[11px] lowercase">Max 5MB (PNG, JPG)</span>
+                  <span>{t('contact.attachScreenshotOrDocumentOptional')}</span>
+                  <span className="text-moss font-normal text-[11px] lowercase">{t('contact.max5mbPngJpg')}</span>
                 </label>
 
                 {attachedImage ? (
@@ -386,7 +388,7 @@ export default function Contact() {
                     <div className="flex items-center gap-3 min-w-0">
                       <img
                         src={attachedImage}
-                        alt="Uploaded preview"
+                        alt={t('contact.uploadedPreview')}
                         className="w-14 h-14 object-cover rounded-xl border border-soot/10 shrink-0 shadow-2xs"
                       />
                       <div className="min-w-0">
@@ -401,7 +403,7 @@ export default function Contact() {
                       type="button"
                       onClick={removeImage}
                       className="p-2 rounded-xl text-rose-600 hover:bg-rose-100/60 transition-colors cursor-pointer shrink-0"
-                      title="Remove image"
+                      title={t('contact.removeImage')}
                     >
                       <X size={16} />
                     </button>
@@ -419,13 +421,13 @@ export default function Contact() {
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-soot">
-                        Click to upload an image <span className="text-moss font-normal">or drag &amp; drop</span>
+                        {t('contact.clickToUploadAnImage')} <span className="text-moss font-normal">{t('contact.orDrag')}</span>
                       </p>
-                      <p className="text-[11px] text-moss mt-0.5">Supports proof photos, receipt screenshots, or supporting documents</p>
+                      <p className="text-[11px] text-moss mt-0.5">{t('contact.supportsProofPhotosReceiptScreenshots')}</p>
                     </div>
                   </label>
                 )}
-                {fieldErrors.image && <p className="text-xs text-rose-600 font-medium mt-1">* {fieldErrors.image}</p>}
+                {fieldErrors.image && <p className="text-xs text-rose-600 font-medium mt-1">* {translateMessage(fieldErrors.image)}</p>}
               </div>
 
               {/* Form Submit Action */}
@@ -434,7 +436,7 @@ export default function Contact() {
                   type="submit"
                   className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-moss hover:bg-soot text-white font-semibold text-sm active:scale-[0.99] transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer"
                 >
-                  <span className="text-white">Submit Support Ticket</span>
+                  <span className="text-white">{t('contact.submitSupportTicket')}</span>
                   <Send size={15} className="text-white" />
                 </button>
               </div>

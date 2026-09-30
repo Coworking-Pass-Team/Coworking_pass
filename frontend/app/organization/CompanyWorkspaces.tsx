@@ -1,6 +1,8 @@
 'use client';
 
 import { useI18n } from '@/i18n';
+import { useLabels } from '@/i18n/labels';
+import { useSpaceText } from '@/i18n/space-text';
 import { useState, useRef, useEffect } from 'react';
 import {
   Search,
@@ -34,7 +36,9 @@ const SPACE_TYPES = [
 ];
 
 export default function CompanyWorkspaces() {
-  const { t } = useI18n();
+  const { t, translateMessage, localizeTime, formatDate } = useI18n();
+  const sx = useSpaceText();
+  const lb = useLabels();
   const { currentUser, spaces, navigate, toggleSpaceVisibility, deleteSpace, getSpaceCrowding } = useApp();
   const [query, setQuery] = useState('');
   const [filterCity, setFilterCity] = useState('All Cities');
@@ -107,16 +111,16 @@ export default function CompanyWorkspaces() {
               className="hover:text-soot transition-colors flex items-center gap-1 cursor-pointer"
             >
               <ArrowLeft size={13} />
-              <span>Dashboard</span>
+              <span>{t('org.cw.dashboard')}</span>
             </button>
             <span>/</span>
-            <span className="text-soot">Company Workspaces</span>
+            <span className="text-soot">{t('org.cw.companyWorkspaces')}</span>
           </div>
           <h1 className="text-3xl sm:text-4xl text-soot font-normal font-serif-display tracking-tight">
-            Company Workspaces
+            {t('org.cw.companyWorkspaces')}
           </h1>
           <p className="text-moss text-xs sm:text-sm mt-1">
-            View your organization&apos;s corporate branches, dedicated suites, and bookable team locations.
+            {t('org.cw.subtitle')}
           </p>
         </div>
 
@@ -128,7 +132,7 @@ export default function CompanyWorkspaces() {
             className="btn-secondary px-4 py-2.5 text-xs sm:text-sm flex items-center gap-2 cursor-pointer"
           >
             <CalendarDays size={16} />
-            <span>Team Bookings</span>
+            <span>{t('org.cw.teamBookings')}</span>
           </button>
           <button
             type="button"
@@ -136,7 +140,7 @@ export default function CompanyWorkspaces() {
             className="btn-primary px-4 py-2.5 text-xs sm:text-sm flex items-center gap-2 shadow-sm cursor-pointer"
           >
             <Building2 size={16} />
-            <span>Browse Spaces</span>
+            <span>{t('org.cw.browseSpaces')}</span>
           </button>
         </div>
       </div>
@@ -145,9 +149,9 @@ export default function CompanyWorkspaces() {
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         {[
           {
-            label: 'Total Workspaces',
+            label: t('org.cw.totalWorkspaces'),
             count: companySpaces.length,
-            desc: 'Company locations',
+            desc: t('org.cw.companyLocations'),
             badge: 'bg-soot/10 text-soot border border-soot/15',
             icon: Building2,
             iconBg: 'bg-soot text-plaster border-soot/20',
@@ -187,8 +191,8 @@ export default function CompanyWorkspaces() {
               </div>
               <div>
                 <div className="text-3xl font-normal text-soot tracking-tight font-serif-display">{stat.count}</div>
-                <div className="text-xs font-semibold text-soot mt-0.5">{stat.label}</div>
-                <div className="text-[11px] text-moss">{stat.desc}</div>
+                <div className="text-xs font-semibold text-soot mt-0.5">{translateMessage(stat.label)}</div>
+                <div className="text-[11px] text-moss">{translateMessage(stat.desc)}</div>
               </div>
             </div>
           </div>
@@ -203,7 +207,7 @@ export default function CompanyWorkspaces() {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by space name, city, or district..."
+            placeholder={t('org.cw.searchBySpaceNameCity')}
             className="w-full ps-10 pe-4 py-2.5 rounded-xl border border-soot/12 bg-plaster-dark/30 text-soot text-sm placeholder:text-moss/70 outline-none focus:border-eucalyptus focus:bg-plaster-surface transition-all"
           />
         </div>
@@ -217,7 +221,7 @@ export default function CompanyWorkspaces() {
           >
             <div className="flex items-center gap-2 min-w-0">
               <MapPin size={15} className="text-moss shrink-0" />
-              <span className="text-xs sm:text-sm font-medium text-soot truncate">{filterCity}</span>
+              <span className="text-xs sm:text-sm font-medium text-soot truncate">{filterCity === 'All Cities' ? t('org.cw.allCities') : sx.cityName(filterCity)}</span>
             </div>
             <ChevronDown
               size={14}
@@ -244,7 +248,7 @@ export default function CompanyWorkspaces() {
                           : 'text-soot hover:bg-plaster-dark/60'
                       }`}
                     >
-                      <span>{city}</span>
+                      <span>{city === 'All Cities' ? t('org.cw.allCities') : sx.cityName(city)}</span>
                       {isSelected && <Check size={13} className="text-eucalyptus" />}
                     </button>
                   );
@@ -264,7 +268,7 @@ export default function CompanyWorkspaces() {
             <div className="flex items-center gap-2 min-w-0">
               <Building2 size={15} className="text-moss shrink-0" />
               <span className="text-xs sm:text-sm font-medium text-soot truncate">
-                {SPACE_TYPES.find((t) => t.value === filterType)?.label || 'All Types'}
+                {filterType === 'all' ? t('org.cw.allTypes') : sx.typeLabel(filterType)}
               </span>
             </div>
             <ChevronDown
@@ -292,7 +296,7 @@ export default function CompanyWorkspaces() {
                           : 'text-soot hover:bg-plaster-dark/60'
                       }`}
                     >
-                      <span>{typeObj.label}</span>
+                      <span>{typeObj.value === 'all' ? t('org.cw.allTypes') : sx.typeLabel(typeObj.value)}</span>
                       {isSelected && <Check size={13} className="text-eucalyptus" />}
                     </button>
                   );
@@ -306,11 +310,11 @@ export default function CompanyWorkspaces() {
       {/* Main Table / Grid Content */}
       <div className="bg-plaster-surface rounded-3xl border border-soot/10 overflow-hidden shadow-2xs relative z-10">
         <div className="hidden md:grid grid-cols-12 gap-6 px-6 py-4 border-b border-soot/10 text-xs font-semibold uppercase tracking-wider text-moss bg-plaster-dark/40 items-center">
-          <div className="col-span-5">Space Name & Type</div>
-          <div className="col-span-2">City & District</div>
-          <div className="col-span-2">Capacity & Status</div>
-          <div className="col-span-2">Daily Rate</div>
-          <div className="col-span-1 text-end">Actions</div>
+          <div className="col-span-5">{t('org.cw.spaceNameType')}</div>
+          <div className="col-span-2">{t('org.cw.cityDistrict')}</div>
+          <div className="col-span-2">{t('org.cw.capacityStatus')}</div>
+          <div className="col-span-2">{t('org.cw.dailyRate')}</div>
+          <div className="col-span-1 text-end">{t('org.cw.actions')}</div>
         </div>
 
         {companySpaces.length === 0 ? (
@@ -320,10 +324,10 @@ export default function CompanyWorkspaces() {
               <Building2 size={30} className="text-eucalyptus-dark" />
             </div>
             <h2 className="text-xl font-serif-display font-medium text-soot mb-1.5">
-              No Company Workspaces Registered Yet
+              {t('org.cw.noCompanyWorkspacesRegisteredYet')}
             </h2>
             <p className="text-xs sm:text-sm text-moss leading-relaxed mb-6">
-              Your organization currently has no dedicated workspaces assigned. Browse partner coworking spaces across Saudi Arabia to book passes and rooms for your team.
+              {t('org.cw.yourOrganizationCurrentlyHasNo')}
             </p>
             <button
               type="button"
@@ -331,14 +335,14 @@ export default function CompanyWorkspaces() {
               className="btn-primary inline-flex items-center gap-2 px-5 py-2.5 text-sm shadow-sm cursor-pointer"
             >
               <Building2 size={16} />
-              <span>Browse Spaces</span>
+              <span>{t('org.cw.browseSpaces')}</span>
             </button>
           </div>
         ) : filtered.length === 0 ? (
           /* Empty State when search/filter produces no matches */
           <div className="py-16 text-center text-moss">
             <Warehouse size={32} className="mx-auto mb-3 opacity-50" />
-            <p className="text-sm font-medium">No workspaces match your filter criteria.</p>
+            <p className="text-sm font-medium">{t('org.cw.noWorkspacesMatchYourFilter')}</p>
             <button
               type="button"
               onClick={() => {
@@ -348,7 +352,7 @@ export default function CompanyWorkspaces() {
               }}
               className="mt-3 text-xs text-soot font-semibold underline hover:text-eucalyptus transition-colors cursor-pointer"
             >
-              Clear all filters
+              {t('org.cw.clearAllFilters')}
             </button>
           </div>
         ) : (
@@ -377,17 +381,17 @@ export default function CompanyWorkspaces() {
                   <div className="col-span-5 flex items-center gap-3.5 min-w-0">
                     <img
                       src={space.images?.[0] || 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&auto=format&fit=crop&q=80'}
-                      alt={space.name}
+                      alt={sx.name(space)}
                       className="w-12 h-12 rounded-xl object-cover border border-soot/10 shadow-2xs group-hover:scale-105 transition-transform shrink-0"
                     />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold text-soot group-hover:text-emerald-900 transition-colors truncate">
-                          {space.name}
+                          {sx.name(space)}
                         </span>
                         {!space.isVisible && (
                           <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-red-500/10 text-red-700 shrink-0">
-                            Hidden
+                            {t('org.cw.hidden')}
                           </span>
                         )}
                       </div>
@@ -405,14 +409,14 @@ export default function CompanyWorkspaces() {
                   {/* City & District */}
                   <div className="col-span-2 mt-2 md:mt-0 text-xs sm:text-sm text-soot font-medium flex items-center gap-1.5">
                     <MapPin size={14} className="text-moss shrink-0" />
-                    <span className="truncate">{space.city}{space.district ? ` · ${space.district}` : ''}</span>
+                    <span className="truncate">{sx.city(space)}{space.district ? ` · ${space.district}` : ''}</span>
                   </div>
 
                   {/* Capacity & Crowding Indicator */}
                   <div className="col-span-2 mt-3 md:mt-0 flex flex-col justify-center space-y-1">
                     <div className="flex items-center justify-between text-xs max-w-[130px]">
-                      <span className="text-moss">{crowding.availableCapacity}/{crowding.totalCapacity} seats</span>
-                      <span className={`font-semibold ${crowding.textColor}`}>{crowding.level}</span>
+                      <span className="text-moss">{crowding.availableCapacity}/{crowding.totalCapacity} {t('spaceDetails.seatPlural')}</span>
+                      <span className={`font-semibold ${crowding.textColor}`}>{t(('crowding.' + crowding.level) as never)}</span>
                     </div>
                     <div className="w-full max-w-[130px] h-1.5 bg-[#E5EBE7] rounded-full overflow-hidden">
                       <div
@@ -431,7 +435,7 @@ export default function CompanyWorkspaces() {
                   {/* Daily Price */}
                   <div className="col-span-2 mt-3 md:mt-0 text-sm font-semibold text-soot">
                     {t('common.sar')} {(space.pricing?.daily || 0).toLocaleString()}
-                    <span className="text-xs text-moss font-normal ms-1">/ day</span>
+                    <span className="text-xs text-moss font-normal ms-1">{t('org.cw.day')}</span>
                   </div>
 
                   {/* Actions */}
@@ -440,7 +444,7 @@ export default function CompanyWorkspaces() {
                       type="button"
                       onClick={(e) => handleToggleVisibility(e, space.id)}
                       className="p-2 rounded-xl text-moss hover:text-soot hover:bg-plaster-surface border border-transparent hover:border-soot/10 transition-all cursor-pointer"
-                      title={space.isVisible ? 'Hide from team catalog' : 'Make visible to team'}
+                      title={translateMessage(space.isVisible ? 'Hide from team catalog' : 'Make visible to team')}
                     >
                       {space.isVisible ? <EyeOff size={15} /> : <Eye size={15} className="text-emerald-700" />}
                     </button>
@@ -451,7 +455,7 @@ export default function CompanyWorkspaces() {
                         setDeleteModal(space);
                       }}
                       className="p-2 rounded-xl text-moss hover:text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-all cursor-pointer"
-                      title="Remove Workspace"
+                      title={t('org.cw.removeWorkspace')}
                     >
                       <Trash2 size={15} />
                     </button>
@@ -468,25 +472,25 @@ export default function CompanyWorkspaces() {
         <Modal
           open={!!deleteModal}
           onClose={() => setDeleteModal(null)}
-          title="Remove Workspace Listing"
+          title={t('org.cw.removeWorkspaceListing')}
           size="sm"
           footer={
             <>
               <button type="button" onClick={() => setDeleteModal(null)} className="btn-secondary">
-                Cancel
+                {t('org.cw.cancel')}
               </button>
               <button type="button" onClick={handleDeleteConfirm} className="btn-danger">
-                Remove Workspace
+                {t('org.cw.removeWorkspace')}
               </button>
             </>
           }
         >
           <div className="text-sm text-soot space-y-2 py-2">
             <p>
-              Are you sure you want to remove <span className="font-semibold">{deleteModal.name}</span> from your company workspace catalog?
+              Are you sure you want to remove <span className="font-semibold">{sx.name(deleteModal)}</span> {t('org.cw.fromYourCompanyWorkspaceCatalog')}
             </p>
             <p className="text-xs text-moss">
-              This will remove the workspace from active corporate listings. Existing historical bookings will be retained.
+              {t('org.cw.thisWillRemoveTheWorkspace')}
             </p>
           </div>
         </Modal>

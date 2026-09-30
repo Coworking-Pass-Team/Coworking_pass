@@ -28,7 +28,7 @@ export function WalletButton({ onClick, className = '' }: { onClick?: () => void
     >
       <Wallet size={14} className="text-moss shrink-0" />
       <span className="font-bold text-soot flex items-center gap-0.5">
-        <span className="text-[10px] text-moss/80 font-medium">SAR</span>
+        <span className="text-[10px] text-moss/80 font-medium">{t('common.sar')}</span>
         <span>{balance.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
       </span>
     </button>
