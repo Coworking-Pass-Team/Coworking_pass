@@ -71,7 +71,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "You are not allowed to reply to this ticket." }, { status: 403 });
     }
 
-    if (ticketExists.status === "CLOSED") {
+    // Administrators may keep answering a resolved ticket; customers cannot reopen it by replying
+    if (ticketExists.status === "CLOSED" && user.role !== "SUPER_ADMIN") {
       return NextResponse.json(
         { error: "Cannot reply to a closed support ticket." },
         { status: 400 }
@@ -93,6 +94,21 @@ export async function POST(request: Request) {
         where: { id: ticketId },
         data: { status: "IN_PROGRESS" },
       });
+    }
+
+    // Tell the customer when support answers their ticket (best effort)
+    if (user.role === "SUPER_ADMIN" && ticketExists.userId !== user.userId) {
+      await prisma.notification
+        .create({
+          data: {
+            userId: ticketExists.userId,
+            type: "SUPPORT_TICKET",
+            title: "Support replied to your ticket",
+            message: message.slice(0, 200),
+            channel: "IN_APP",
+          },
+        })
+        .catch(() => undefined);
     }
 
     return NextResponse.json(

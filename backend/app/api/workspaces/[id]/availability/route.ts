@@ -65,6 +65,23 @@ export async function GET(
       to = directBookingEnd({ bookingDate: from, durationType, durationDetails: details });
     }
 
+    // A specific hall / theater is available when nobody else holds it for the window and it seats the group
+    const sectionId = searchParams.get("sectionId");
+    if (plan === "hourly" && sectionId) {
+      const section = await prisma.workspaceSection.findFirst({ where: { id: sectionId, workspaceId: id }, select: { capacity: true, name: true } });
+      if (!section) return NextResponse.json({ available: false, reason: "The selected hall was not found." });
+      if (seats > section.capacity) {
+        return NextResponse.json({ available: false, remaining: section.capacity, reason: `${section.name} seats at most ${section.capacity}.` });
+      }
+      const clash = await prisma.hourlyBooking.findFirst({
+        where: { sectionId, status: "ACTIVE", startDate: { lt: to }, endDate: { gt: from } },
+        select: { id: true },
+      });
+      return clash
+        ? NextResponse.json({ available: false, remaining: 0, reason: `${section.name} is already booked for the selected time.` })
+        : NextResponse.json({ available: true, remaining: section.capacity });
+    }
+
     const occupied = (await getOccupiedSeats([id], from, to)).get(id) || 0;
     const total = workspace.totalCapacity;
     const remaining = Math.max(0, total - occupied);

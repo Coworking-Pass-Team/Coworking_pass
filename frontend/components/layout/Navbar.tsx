@@ -243,7 +243,6 @@ export default function Navbar() {
     if (role === 'organization') {
       return [
         { label: t('nav.dashboard'), screen: 'org-dashboard' as const },
-        { label: t('nav.workspaces'), screen: 'company-workspaces' as const },
         { label: t('nav.browse'), screen: 'browse' as const },
         { label: t('nav.passes'), screen: 'pricing' as const },
         { label: t('nav.bookings'), screen: 'team-bookings' as const },

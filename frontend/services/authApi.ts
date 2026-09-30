@@ -1307,7 +1307,7 @@ export async function updateCompanyApi(id: string, data: any) {
   }
 }
 
-export async function createTicketApi(payload: { companyId?: string | null; userId?: string; subject: string; message?: string; category?: string; priority?: string }) {
+export async function createTicketApi(payload: { companyId?: string | null; userId?: string; onBehalfOfEmail?: string; subject: string; message?: string; category?: string; priority?: string }) {
   const url = `${getAuthBaseUrl()}/api/tickets`;
   try {
     const response = await fetch(url, {

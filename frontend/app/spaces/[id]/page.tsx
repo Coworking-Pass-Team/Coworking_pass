@@ -36,12 +36,14 @@ import {
   getAvailableEndTimes,
   getFilteredStartTimes,
   getFixedSessionSlots,
+  getSpaceCategory,
   FIXED_SESSION_HOURS,
   calculateEndTime,
   calculateEndDate,
   calculateDailyDurationDays,
   formatDateRange
 } from '@/types/types';
+import UnitPicker, { useUnitAvailability, isUnitSlotBooked } from '@/components/spaces/UnitPicker';
 import Modal from '@/components/ui/Modal';
 import App from '@/app/app';
 
@@ -127,7 +129,20 @@ function SpaceDetailsView() {
   };
 
   const fixedSlots = isHourlySpace && space ? getFixedSessionSlots(space.openHours, bookingDate) : [];
-  const availableStartTimes = isHourlySpace && space ? fixedSlots.map(sl => sl.start) : (space && selectedPlan === 'hourly' ? getFilteredStartTimes(space.openHours, bookingDate, selectedHours) : START_TIMES);
+
+  // Individual halls / theaters: the selected unit decides which sessions are free and how many seats fit
+  const { units: unitList } = useUnitAvailability(space, bookingDate, isHourlySpace);
+  const [unitId, setUnitId] = useState('');
+  const selectedUnit = unitList.find((u) => u.id === unitId) || unitList[0];
+  const unitKind: 'hall' | 'theater' = space && getSpaceCategory(space) === 'theater' ? 'theater' : 'hall';
+  const seatCap = isHourlySpace && selectedUnit ? selectedUnit.capacity : null;
+  useEffect(() => {
+    if (unitList.length > 0 && !unitList.some((u) => u.id === unitId)) setUnitId(unitList[0].id);
+  }, [unitList, unitId]);
+  useEffect(() => {
+    if (seatCap !== null && selectedSeats > seatCap) setSelectedSeats(Math.max(1, seatCap));
+  }, [seatCap, selectedSeats]);
+  const availableStartTimes = isHourlySpace && space ? fixedSlots.filter(sl => !isUnitSlotBooked(selectedUnit, sl.start, sl.end)).map(sl => sl.start) : (space && selectedPlan === 'hourly' ? getFilteredStartTimes(space.openHours, bookingDate, selectedHours) : START_TIMES);
   const durationHours = isHourlySpace || selectedPlan === 'hourly' ? selectedHours : calculateDurationHours(startTime, endTime);
 
   const handleStartTimeChange = (newStart: string) => {
@@ -278,6 +293,8 @@ function SpaceDetailsView() {
       durationHours: hasTimeWindow ? durationHours : undefined,
       durationMonths,
       seats: selectedSeats,
+      unitId: isHourlySpace ? selectedUnit?.id : undefined,
+      unitName: isHourlySpace ? selectedUnit?.name : undefined,
     };
     if (currentUser.role === 'organization' || (currentUser.role as any) === 'HR_ADMIN') {
       navigate('team-booking', params);
@@ -806,6 +823,10 @@ function SpaceDetailsView() {
                       />
                     </div>
 
+                    {isHourlySpace && (
+                      <UnitPicker units={unitList} selectedId={selectedUnit?.id || ''} onSelect={setUnitId} kind={unitKind} />
+                    )}
+
                     {isHourlySpace ? (
                       <div className="space-y-1.5">
                         <span className="text-[10px] font-semibold uppercase tracking-wider text-moss block">
@@ -819,18 +840,22 @@ function SpaceDetailsView() {
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                             {fixedSlots.map((slot) => {
                               const isSelected = startTime === slot.start;
+                              const taken = isUnitSlotBooked(selectedUnit, slot.start, slot.end);
                               return (
                                 <button
                                   key={slot.start}
                                   type="button"
+                                  disabled={taken}
                                   onClick={() => handleStartTimeChange(slot.start)}
-                                  className={`py-2.5 px-3 rounded-xl text-center border transition-all cursor-pointer text-xs font-semibold ${
-                                    isSelected
-                                      ? 'bg-soot text-plaster border-soot shadow-2xs'
-                                      : 'bg-white border-soot/10 text-moss hover:text-soot hover:border-soot/30'
+                                  className={`py-2.5 px-3 rounded-xl text-center border transition-all text-xs font-semibold ${
+                                    taken
+                                      ? 'bg-plaster-dark/40 border-soot/8 text-moss/50 line-through cursor-not-allowed'
+                                      : isSelected
+                                      ? 'bg-soot text-plaster border-soot shadow-2xs cursor-pointer'
+                                      : 'bg-white border-soot/10 text-moss hover:text-soot hover:border-soot/30 cursor-pointer'
                                   }`}
                                 >
-                                  {localizeTime(slot.start)} – {localizeTime(slot.end)}
+                                  {localizeTime(slot.start)} – {localizeTime(slot.end)}{taken ? ` · ${t('units.slotTaken')}` : ''}
                                 </button>
                               );
                             })}
@@ -900,7 +925,7 @@ function SpaceDetailsView() {
               </div>
 
               {/* Seat Quantity Selector - visible only for organization accounts */}
-              {isOrganization && !isHourlySpace && (
+              {isOrganization && (!isHourlySpace || unitList.length > 0) && (
                 <div className="mb-4 p-4 rounded-2xl bg-plaster-dark/40 border border-soot/10 space-y-3">
                   <div className="flex items-center justify-between">
                     <div>
@@ -933,8 +958,8 @@ function SpaceDetailsView() {
                     </div>
                     <button
                       type="button"
-                      onClick={() => setSelectedSeats(s => Math.min(crowding.availableCapacity || 50, s + 1))}
-                      disabled={selectedSeats >= (crowding.availableCapacity || 50)}
+                      onClick={() => setSelectedSeats(s => Math.min(seatCap ?? (crowding.availableCapacity || 50), s + 1))}
+                      disabled={selectedSeats >= (seatCap ?? (crowding.availableCapacity || 50))}
                       className="w-9 h-9 rounded-xl border border-soot/15 bg-white text-soot font-bold text-lg flex items-center justify-center hover:bg-plaster-dark/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
                     >
                       +
@@ -943,7 +968,7 @@ function SpaceDetailsView() {
 
                   {/* Quick-select pills */}
                   <div className="flex flex-wrap gap-1.5">
-                    {[1, 2, 3, 5, 10].filter(n => n <= (crowding.availableCapacity || 50)).map(n => (
+                    {[1, 2, 3, 5, 10, 20, 50].filter(n => n <= (seatCap ?? (crowding.availableCapacity || 50))).map(n => (
                       <button
                         key={n}
                         type="button"

@@ -33,6 +33,13 @@ const DEFAULT_PLANS = [
     totalVisitsAllowed: 500,
     price: 18000,
   },
+  // Priced by quote: organizations request it through the enterprise inquiry form
+  {
+    planName: 'Custom Enterprise',
+    type: 'B2B' as const,
+    totalVisitsAllowed: 0,
+    price: 0,
+  },
 ];
 
 export async function GET(request: Request) {
@@ -49,6 +56,20 @@ export async function GET(request: Request) {
         }
       }
       plans = await prisma.membershipPlan.findMany();
+    } else {
+      // Existing databases pick up the enterprise plan added after the first seed (other deleted defaults stay deleted)
+      const known = new Set(plans.map((pl) => pl.planName));
+      const missing = DEFAULT_PLANS.filter((d) => d.planName === 'Custom Enterprise' && !known.has(d.planName));
+      if (missing.length > 0) {
+        for (const m of missing) {
+          try {
+            await prisma.membershipPlan.create({ data: m });
+          } catch {
+            // ignore duplicate race condition
+          }
+        }
+        plans = await prisma.membershipPlan.findMany();
+      }
     }
 
     return NextResponse.json(plans);

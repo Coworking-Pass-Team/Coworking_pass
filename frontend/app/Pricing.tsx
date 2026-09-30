@@ -197,7 +197,8 @@ export default function Pricing() {
       userId: currentUser?.id,
       userName: enterpriseForm.contact.trim() || currentUser?.name || 'Enterprise Lead',
       userEmail: enterpriseForm.email.trim(),
-      category: 'general',
+      category: 'enterprise',
+      priority: 'high',
       subject: `Enterprise quote request - ${enterpriseForm.company.trim()}`,
       message: `Company: ${enterpriseForm.company.trim()}
 Contact: ${enterpriseForm.contact.trim() || currentUser?.name || '-'}

@@ -243,6 +243,18 @@ export interface SpacePricing {
   yearly: number;
 }
 
+/** One individual hall or theater inside a workspace, with its own seating capacity (stored as a WorkspaceSection). */
+export interface SpaceUnit {
+  id: string;
+  name: string;
+  capacity: number;
+}
+
+/** A unit together with the sessions already booked for it on a given date ("HH:mm" 24h ranges). */
+export interface SpaceUnitAvailability extends SpaceUnit {
+  booked: { startTime: string; endTime: string }[];
+}
+
 export interface Space {
   id: string;
   name: string;
@@ -251,6 +263,8 @@ export interface Space {
   descriptionAr?: string;
   addressAr?: string;
   cityAr?: string;
+  /** Individual halls / theaters with their own capacities (halls and theaters only) */
+  units?: SpaceUnit[];
   category?: SpaceCategory;
   city: string;
   region?: string;
@@ -1510,6 +1524,9 @@ export interface Booking {
   spaceAddress: string;
   spaceImage: string;
   category?: SpaceCategory;
+  /** Selected hall / theater (WorkspaceSection id) for hourly reservations */
+  unitId?: string;
+  unitName?: string;
   type: BookingType;
   plan: BookingPlan;
 
@@ -1565,6 +1582,8 @@ export interface CartItem {
   spaceImage: string;
   type: BookingType | SpaceType;
   plan: BookingPlan;
+  unitId?: string;
+  unitName?: string;
   startTime?: string;
   endTime?: string;
   durationHours?: number;
@@ -1649,8 +1668,6 @@ export type Screen =
   | 'team-bookings'
   | 'org-profile'
   | 'org-settings'
-  | 'company-workspaces'
-  | 'company-add-workspace'
   | 'company-bookings'
   | 'company-team'
   | 'company-workspace-details'
@@ -1683,7 +1700,15 @@ export type Screen =
   | 'legal'
   | 'account-suspended';
 
-export type TicketCategory = 'general' | 'complaint' | 'refund';
+export type TicketCategory = 'general' | 'complaint' | 'refund' | 'enterprise';
+
+export interface TicketReplyEntry {
+  id: string;
+  userId: string;
+  authorName: string;
+  message: string;
+  createdAt: string;
+}
 export type TicketStatus = 'open' | 'in-progress' | 'resolved' | 'closed';
 export type TicketPriority = 'low' | 'medium' | 'high' | 'urgent';
 
@@ -1704,6 +1729,8 @@ export interface SupportTicket {
   updatedAt?: string;
   adminNotes?: string;
   adminReply?: string;
+  /** Full reply thread persisted in the TicketReply table */
+  replies?: TicketReplyEntry[];
   bookingId?: string;
 }
 
