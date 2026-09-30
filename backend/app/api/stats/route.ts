@@ -49,6 +49,10 @@ export async function GET(request: NextRequest) {
     //  1. التحقق من التوكن
     const user = await getTokenFromRequest(request);
     if (!user) return unauthorizedResponse(request);
+    // Platform-wide financial metrics are for super admins only
+    if (user.role !== 'SUPER_ADMIN') {
+      return NextResponse.json({ error: 'Only administrators can view platform statistics.' }, { status: 403 });
+    }
 
     // 2. إجمالي الإيرادات (من المدفوعات الناجحة)
     const totalRevenue = await prisma.payment.aggregate({

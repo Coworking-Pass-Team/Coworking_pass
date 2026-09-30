@@ -1,12 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
+import { getPartnerIdsForUser, forbiddenResponse } from "@/lib/ownership";
 
 export async function GET(request: Request) {
   try {
     const user = await getTokenFromRequest(request);
 if (!user) return unauthorizedResponse(request);
+    // Super admins see every payout; a partner sees only their own; nobody else has payouts
+    let where = {};
+    if (user.role !== 'SUPER_ADMIN') {
+      if (user.role !== 'PARTNER_ADMIN') return forbiddenResponse();
+      where = { partnerId: { in: await getPartnerIdsForUser(user.userId) } };
+    }
     const payouts = await prisma.payout.findMany({
+      where,
       include: {
         partner: true
       },
@@ -55,7 +63,15 @@ export async function POST(request: NextRequest) {
     const user = await getTokenFromRequest(request);
 if (!user) return unauthorizedResponse(request);
     const body = await request.json()
-    const { partnerId, billingMonth, totalVisitsReceived, amountDue, status = 'PENDING' } = body
+    const { partnerId, billingMonth, totalVisitsReceived, amountDue } = body
+    let status = body.status ?? 'PENDING'
+
+    // Only super admins settle payouts freely; a partner may only file a pending record for themselves
+    if (user.role !== 'SUPER_ADMIN') {
+      if (user.role !== 'PARTNER_ADMIN') return forbiddenResponse();
+      if (!(await getPartnerIdsForUser(user.userId)).includes(partnerId)) return forbiddenResponse('You can only create payouts for your own partner account.');
+      status = 'PENDING';
+    }
 
     if (!partnerId || !billingMonth || !totalVisitsReceived || !amountDue) {
       return NextResponse.json(

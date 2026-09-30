@@ -386,7 +386,7 @@ export default function TeamBooking() {
         const payment = isUsingCompanyWallet && withdrawFromCompanyWallet
           ? await withdrawFromCompanyWallet(walletDeduction, currentUser.companyId, `Team booking payment for ${space.name}`, checkoutKeyRef.current)
           : (!isUsingCompanyWallet && withdrawFromWallet
-            ? await withdrawFromWallet(walletDeduction, `Team booking payment for ${space.name}`)
+            ? await withdrawFromWallet(walletDeduction, `Team booking payment for ${space.name}`, checkoutKeyRef.current)
             : { success: true, message: '' });
         if (!payment.success) {
           submittingRef.current = false;
@@ -429,7 +429,9 @@ export default function TeamBooking() {
         paidWithPass: isPassBooking,
         coveredHours: planInfo.coveredHours,
         payableHours: planInfo.payableHours,
-      });
+      }, useWalletBalance && walletDeduction > 0
+        ? { amount: walletDeduction, key: checkoutKeyRef.current, target: isUsingCompanyWallet ? 'company' : 'personal' }
+        : undefined);
 
       // Update loyalty points for organization / user
       const pointsUsed = useLoyaltyPoints ? maxRedeemablePoints : 0;

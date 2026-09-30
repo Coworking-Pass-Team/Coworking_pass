@@ -1259,13 +1259,13 @@ export async function getCompanyApi(id: string) {
   }
 }
 
-export async function depositCompanyWalletApi(companyId: string, amount: number) {
+export async function depositCompanyWalletApi(companyId: string, amount: number, options?: { description?: string; referenceId?: string }) {
   const url = `${getAuthBaseUrl()}/api/companies/${companyId}/deposit`;
   try {
     const response = await fetch(url, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify({ amount }),
+      body: JSON.stringify({ amount, ...(options?.description ? { description: options.description } : {}), ...(options?.referenceId ? { referenceId: options.referenceId } : {}) }),
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) return { success: false, error: data.error || 'Failed to deposit to company wallet' };

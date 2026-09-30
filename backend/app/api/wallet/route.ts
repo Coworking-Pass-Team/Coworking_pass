@@ -98,57 +98,61 @@ export async function POST(request: NextRequest) {
     const typeUpper = (type || '').toString().toUpperCase();
     const isCredit = typeUpper === 'DEPOSIT' || typeUpper === 'REFUND';
 
-    // جلب أو إنشاء محفظة
-    let wallet = await prisma.wallet.findUnique({
-      where: { userId }
-    })
+    const safeReference: string | null = typeof referenceId === 'string' && referenceId ? referenceId.slice(0, 200) : null;
 
-    if (!wallet) {
-      wallet = await prisma.wallet.create({
-        data: { userId, balance: 0 }
-      })
+    // One transaction per request; a repeated referenceId for the same wallet and type is applied only once,
+    // so a double click or a retried request can never debit (or refund) twice.
+    const outcome = await prisma.$transaction(async (tx) => {
+      if (safeReference) {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${'wallet:' + userId + ':' + typeUpper + ':' + safeReference}))`;
+        const existing = await tx.walletTransaction.findFirst({
+          where: { userId, type: typeUpper, referenceId: safeReference },
+        });
+        if (existing) return { duplicate: true as const, balance: existing.balanceAfter, transaction: existing };
+      }
+
+      let wallet = await tx.wallet.findUnique({ where: { userId } });
+      if (!wallet) wallet = await tx.wallet.create({ data: { userId, balance: 0 } });
+
+      // Atomic update: debits are conditional on sufficient balance so concurrent requests cannot overdraw
+      if (!isCredit) {
+        const debited = await tx.wallet.updateMany({
+          where: { userId, balance: { gte: amount } },
+          data: { balance: { decrement: amount } },
+        });
+        if (debited.count === 0) return { insufficient: true as const };
+      } else {
+        await tx.wallet.update({ where: { userId }, data: { balance: { increment: amount } } });
+      }
+
+      const updatedWallet = await tx.wallet.findUniqueOrThrow({ where: { userId } });
+      const transaction = await tx.walletTransaction.create({
+        data: {
+          walletId: wallet.id,
+          userId,
+          amount,
+          type: typeUpper,
+          description: description || (typeUpper === 'DEPOSIT' ? 'Deposit' : typeUpper === 'REFUND' ? 'Refund' : 'Withdrawal'),
+          referenceId: safeReference,
+          balanceAfter: updatedWallet.balance,
+        },
+      });
+      return { duplicate: false as const, balance: updatedWallet.balance, transaction };
+    });
+
+    if ('insufficient' in outcome) {
+      return NextResponse.json({ error: 'Insufficient balance.' }, { status: 400 });
     }
 
-    // Atomic update: debits are conditional on sufficient balance so concurrent requests cannot overdraw
-    if (!isCredit) {
-      const debited = await prisma.wallet.updateMany({
-        where: { userId, balance: { gte: amount } },
-        data: { balance: { decrement: amount } }
-      })
-      if (debited.count === 0) {
-        return NextResponse.json(
-          { error: 'Insufficient balance.' },
-          { status: 400 }
-        )
-      }
-    } else {
-      await prisma.wallet.update({
-        where: { userId },
-        data: { balance: { increment: amount } }
-      })
-    }
-
-    const updatedWallet = await prisma.wallet.findUniqueOrThrow({ where: { userId } })
-    const newBalance = updatedWallet.balance
-
-    // تسجيل المعاملة
-    const transaction = await prisma.walletTransaction.create({
-      data: {
-        walletId: wallet.id,
-        userId,
-        amount,
-        type: typeUpper,
-        description: description || (typeUpper === 'DEPOSIT' ? 'Deposit' : typeUpper === 'REFUND' ? 'Refund' : 'Withdrawal'),
-        referenceId: referenceId || null,
-        balanceAfter: newBalance
-      }
-    })
+    const updatedWallet = { balance: outcome.balance };
+    const transaction = outcome.transaction;
 
     return NextResponse.json({
       message: isCredit ? 'Amount credited successfully' : 'Amount debited successfully',
       balance: updatedWallet.balance,
-      transaction
-    }, { status: 201 })
+      transaction,
+      duplicate: outcome.duplicate,
+    }, { status: outcome.duplicate ? 200 : 201 })
 
   } catch (error) {
     console.error('❌ Error processing wallet:', error)

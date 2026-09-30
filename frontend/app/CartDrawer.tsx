@@ -100,9 +100,12 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
       return;
     }
 
+    // One idempotency key per checkout attempt: a repeated request with the same key never debits twice
+    const chargeKey = `cart-${currentUser.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
     // Charge the wallet first; abort checkout if the debit fails
     if (useWalletBalance && walletDeduction > 0 && withdrawFromWallet) {
-      const payment = await withdrawFromWallet(walletDeduction, 'Cart Checkout Payment');
+      const payment = await withdrawFromWallet(walletDeduction, 'Cart Checkout Payment', chargeKey);
       if (!payment.success) {
         checkoutInFlightRef.current = false;
         return;
@@ -110,7 +113,11 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
     }
 
     const pointsToRedeem = useLoyaltyPoints ? maxRedeemablePoints : 0;
-    const createdBookings = checkoutCart(pointsToRedeem);
+    // Bookings that the server later rejects get their share of the wallet debit back automatically
+    const createdBookings = checkoutCart(
+      pointsToRedeem,
+      useWalletBalance && walletDeduction > 0 ? { amount: walletDeduction, key: chargeKey } : undefined
+    );
     checkoutInFlightRef.current = false;
     onClose();
     setStep('cart');

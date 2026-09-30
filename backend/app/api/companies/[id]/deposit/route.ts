@@ -85,7 +85,15 @@ export async function POST(
 
     await ensureDatabaseSchema().catch(() => undefined)
 
+    // Optional client-generated key: a repeated request (e.g. a retried refund) credits the wallet only once
+    const referenceId: string | null = typeof body.referenceId === 'string' && body.referenceId ? body.referenceId.slice(0, 200) : null;
+
     const updatedCompany = await prisma.$transaction(async (tx) => {
+      if (referenceId) {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${'dp:' + id + ':' + referenceId}))`;
+        const existing = await tx.companyWalletTransaction.findFirst({ where: { companyId: id, type: 'DEPOSIT', referenceId } });
+        if (existing) return { ...company, balance: existing.balanceAfter };
+      }
       const updated = await tx.company.update({
         where: { id },
         data: { balance: { increment: amount } }
@@ -97,7 +105,7 @@ export async function POST(
           amount,
           type: 'DEPOSIT',
           description: typeof body.description === 'string' && body.description ? body.description : 'Wallet top-up',
-          referenceId: null,
+          referenceId,
           balanceAfter: updated.balance,
         }
       })

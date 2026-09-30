@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getTokenFromRequest, unauthorizedResponse, suspendedResponse } from '@/lib/auth/verify-token';
 import { seedStandardWorkspaces } from '@/lib/seed-data';
+import { getOwnedWorkspaceIds } from '@/lib/ownership';
 import { directBookingEnd, getOccupiedSeats, getOccupiedSeatsForSection } from '@/lib/capacity';
 import { hiddenWorkspaceError } from '@/lib/workspace-visibility';
 import { getKsaNow, parseDateAndTimeToKsaDate } from '@/lib/time-utils';
@@ -20,10 +21,14 @@ export async function GET(request: Request) {
     const status = searchParams.get('status');
 
     const whereClause: any = {};
-    const canViewOthers = user.role === 'SUPER_ADMIN' || user.role === 'PARTNER_ADMIN';
-    if (userId && (canViewOthers || userId === user.userId)) {
-      whereClause.userId = userId;
-    } else if (!canViewOthers) {
+    if (user.role === 'SUPER_ADMIN') {
+      if (userId) whereClause.userId = userId;
+    } else if (user.role === 'PARTNER_ADMIN') {
+      // A partner sees bookings made at their own workspaces, plus any they made themselves as a customer
+      const owned = await getOwnedWorkspaceIds(user.userId);
+      whereClause.AND = [{ OR: [{ workspaceId: { in: owned } }, { userId: user.userId }] }];
+      if (userId) whereClause.AND.push({ userId });
+    } else {
       whereClause.userId = user.userId;
     }
 

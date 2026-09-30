@@ -54,9 +54,16 @@ const CITIES = SAUDI_CITIES;
 const TYPES = ALL_SPACE_TYPES;
 
 export default function ProviderMySpaces() {
+  const { currentUser } = useApp();
+  if (!currentUser) return null;
+  return <ProviderMySpacesContent />;
+}
+
+/** All hooks live here, so the session check above can return early without changing the hook order. */
+function ProviderMySpacesContent() {
   const { t } = useI18n();
   const st = useSpaceText();
-  const { nav, currentUser, spaces, partners, addSpace, updateSpace, toggleSpaceVisibility, deleteSpace, amenityRequests, requestCustomAmenity, getApprovedAmenities, fetchAmenities } = useApp();
+  const { nav, currentUser: sessionUser, spaces, partners, addSpace, updateSpace, toggleSpaceVisibility, deleteSpace, amenityRequests, requestCustomAmenity, getApprovedAmenities, fetchAmenities } = useApp();
   const [query, setQuery] = useState('');
   const [filterCity, setFilterCity] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<'all' | SpaceCategory>('all');
@@ -100,7 +107,8 @@ export default function ProviderMySpaces() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  if (!currentUser) return null;
+  // Rendered only while a user is signed in (checked by the wrapper above)
+  const currentUser = sessionUser!;
 
   const userPartner = partners.find(p => p.contactEmail?.toLowerCase() === currentUser.email?.toLowerCase());
   const mySpaces = spaces.filter((s) =>

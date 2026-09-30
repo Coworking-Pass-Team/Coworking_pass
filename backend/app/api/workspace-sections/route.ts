@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
+import { canManageWorkspace, forbiddenResponse } from "@/lib/ownership";
 
 const VALID_TYPES = ["DESK", "MEETING_ROOM", "THEATER"];
 
@@ -86,6 +87,9 @@ if (!user) return unauthorizedResponse(request);
     const workspaceExists = await prisma.workspace.findUnique({ where: { id: workspaceId } });
     if (!workspaceExists) {
       return NextResponse.json({ error: "Workspace (workspaceId) not found." }, { status: 404 });
+    }
+    if (!(await canManageWorkspace(user, workspaceId))) {
+      return forbiddenResponse("Only the owning partner or an administrator can add rooms to this workspace.");
     }
 
     const section = await prisma.workspaceSection.create({
