@@ -1886,7 +1886,9 @@
     "proofAlt": "Proof Attachment",
     "proofPreviewAlt": "Proof Preview Full",
     "replyPlaceholder": "Type your official resolution or response to send to the member...",
-    "notesPlaceholder": "Add internal notes for venue managers or admin staff..."
+    "notesPlaceholder": "Add internal notes for venue managers or admin staff...",
+    "conversation": "Conversation",
+    "you": "Support"
   },
   "loyaltyAdmin": {
     "eyebrow": "Super Admin Management",
@@ -2579,5 +2581,27 @@
       "saveChanges": "Save Changes",
       "saving": "Saving..."
     }
+  },
+  "units": {
+    "hall": "Meeting Hall",
+    "theater": "Theater",
+    "hallsTitle": "Meeting halls & seating capacity",
+    "theatersTitle": "Theaters & seating capacity",
+    "help": "Set how many there are and the exact seating capacity of each.",
+    "countHalls": "Number of halls",
+    "countTheaters": "Number of theaters",
+    "name": "Name",
+    "seats": "Seats",
+    "remove": "Remove",
+    "addHall": "Add hall",
+    "addTheater": "Add theater",
+    "totalSeats": "Total: {count} seats",
+    "selectHall": "Select Hall",
+    "selectTheater": "Select Theater",
+    "maxSeats": "Max {count} seats",
+    "fullDay": "Fully booked on this date",
+    "slotTaken": "Booked",
+    "seatCap": "This hall seats up to {count}",
+    "errCapacity": "Every hall or theater needs at least 1 seat."
   }
 }

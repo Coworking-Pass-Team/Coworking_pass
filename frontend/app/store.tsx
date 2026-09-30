@@ -23,6 +23,9 @@ import {
   checkAndRenewPlanHours,
   OtpSession,
   SupportTicket,
+  SpaceUnit,
+  SpaceUnitAvailability,
+  TicketCategory,
   TicketStatus,
   Partner,
   WorkspaceApi,
@@ -539,7 +542,9 @@ interface AppContextType {
   companyData: any | null;
   fetchCompanyWallet: (companyId?: string) => Promise<{ balance: number; company?: any } | null>;
   depositToCompanyWallet: (amount: number, companyId?: string) => Promise<{ success: boolean; message: string; balance?: number }>;
-  checkSeatAvailability: (params: { spaceId: string; plan: string; date: string; startTime?: string; endTime?: string; days?: number; months?: number; seats?: number }) => Promise<{ ok: boolean; message?: string }>;
+  checkSeatAvailability: (params: { spaceId: string; plan: string; date: string; startTime?: string; endTime?: string; days?: number; months?: number; seats?: number; unitId?: string }) => Promise<{ ok: boolean; message?: string }>;
+  fetchUnitAvailability: (spaceId: string, date: string) => Promise<SpaceUnitAvailability[] | null>;
+  saveSpaceUnits: (spaceId: string, type: 'MEETING_ROOM' | 'THEATER', units: SpaceUnit[]) => Promise<{ success: boolean; error?: string; units?: SpaceUnit[] }>;
   withdrawFromCompanyWallet: (amount: number, companyId?: string, description?: string, idempotencyKey?: string) => Promise<{ success: boolean; message: string; balance?: number }>;
 
   loyaltyRules: LoyaltyRule[];
@@ -2004,8 +2009,43 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   // Pre-flight check (capacity + operating hours) run before the customer is charged
+  /** Halls / theaters of a workspace with the sessions already booked for each on the given date. */
+  const fetchUnitAvailability = async (spaceId: string, date: string): Promise<SpaceUnitAvailability[] | null> => {
+    try {
+      const response = await fetch(`${getApiBaseUrl()}/workspaces/${spaceId}/units?date=${encodeURIComponent(date)}`);
+      if (!response.ok) return null;
+      const data = await response.json();
+      return Array.isArray(data.units)
+        ? data.units.map((u: any) => ({ id: u.id, name: u.name, capacity: Number(u.capacity) || 0, booked: Array.isArray(u.booked) ? u.booked : [] }))
+        : null;
+    } catch (_) {
+      return null;
+    }
+  };
+
+  /** Persists the hall / theater inventory of a workspace (one WorkspaceSection per unit). */
+  const saveSpaceUnits = async (
+    spaceId: string,
+    type: 'MEETING_ROOM' | 'THEATER',
+    units: SpaceUnit[]
+  ): Promise<{ success: boolean; error?: string; units?: SpaceUnit[] }> => {
+    try {
+      const token = getStoredToken();
+      const response = await fetch(`${getApiBaseUrl()}/workspaces/${spaceId}/units`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ type, units }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) return { success: false, error: data.error || 'Failed to save halls.' };
+      return { success: true, units: data.units };
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Network error' };
+    }
+  };
+
   const checkSeatAvailability = async (params: {
-    spaceId: string; plan: string; date: string; startTime?: string; endTime?: string; days?: number; months?: number; seats?: number;
+    spaceId: string; plan: string; date: string; startTime?: string; endTime?: string; days?: number; months?: number; seats?: number; unitId?: string;
   }): Promise<{ ok: boolean; message?: string }> => {
     try {
       const query = new URLSearchParams({
@@ -2017,6 +2057,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (params.endTime) query.set('endTime', params.endTime);
       if (params.days) query.set('days', String(params.days));
       if (params.months) query.set('months', String(params.months));
+      if (params.unitId) query.set('sectionId', params.unitId);
       const response = await fetch(`${getApiBaseUrl()}/workspaces/${params.spaceId}/availability?${query.toString()}`);
       if (!response.ok) return { ok: true };
       const data = await response.json();
@@ -2092,21 +2133,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
           const replies = Array.isArray(dbT.replies) ? dbT.replies : [];
           const lastReplyMessage = replies.length > 0 ? replies[replies.length - 1].message : undefined;
+          const category: TicketCategory = ['complaint', 'refund', 'enterprise'].includes(dbT.category) ? dbT.category : 'general';
+          const priority: SupportTicket['priority'] = ['low', 'medium', 'high'].includes(dbT.priority) ? dbT.priority : 'medium';
 
           return {
             id: dbT.id,
             ticketNumber: `TK-${dbT.id.slice(-4).toUpperCase()}`,
-            userName: dbT.user?.name || dbT.company?.name || 'User',
-            userEmail: dbT.user?.email || dbT.company?.email || 'user@coworkingpass.sa',
+            userName: dbT.user?.name || dbT.company?.companyName || 'User',
+            userEmail: dbT.user?.email || 'user@coworkingpass.sa',
             userId: dbT.userId,
-            category: 'general',
+            category,
             subject: dbT.subject || 'Support Ticket',
-            message: dbT.subject || '',
+            message: dbT.message || dbT.subject || '',
             status: validStatus,
-            priority: 'medium',
+            priority,
             createdAt: dbT.createdAt ? new Date(dbT.createdAt).toLocaleString() : new Date().toLocaleString(),
             updatedAt: dbT.updatedAt ? new Date(dbT.updatedAt).toLocaleString() : undefined,
             adminReply: lastReplyMessage,
+            replies: replies.map((r: any) => ({
+              id: r.id,
+              userId: r.userId,
+              authorName: r.userId === dbT.userId ? (dbT.user?.name || 'User') : 'Support',
+              message: r.message,
+              createdAt: r.createdAt ? new Date(r.createdAt).toLocaleString() : '',
+            })),
           };
         });
         setSupportTickets(mapped);
@@ -2680,6 +2730,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
             phone: existing?.phone || '+966 50 000 0000',
             email: isBelongingToCurrentUser ? (currentUser?.email || w.partner?.contactEmail || 'contact@coworkingpass.sa') : (w.partner?.contactEmail || existing?.email || 'contact@coworkingpass.sa'),
             ownerId: isBelongingToCurrentUser ? (currentUser?.id || w.partnerId) : w.partnerId,
+            units: (() => {
+              const unitSections = Array.isArray(w.sections)
+                ? w.sections.filter((sec: any) => sec.type === 'MEETING_ROOM' || sec.type === 'THEATER')
+                : [];
+              return unitSections.length > 0
+                ? unitSections.map((sec: any) => ({ id: sec.id as string, name: sec.name as string, capacity: Number(sec.capacity) || 0 }))
+                : undefined;
+            })(),
           };
         });
 
@@ -4135,7 +4193,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
             const headers: Record<string, string> = { 'Content-Type': 'application/json' };
             if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
             try {
-              await fetch(`${getApiBaseUrl()}/workspace-sections`, {
+              if (space.units && space.units.length > 0) {
+                const savedUnits = await saveSpaceUnits(createdWs.id, dbSecType === 'THEATER' ? 'THEATER' : 'MEETING_ROOM', space.units);
+                if (!savedUnits.success) showToast(savedUnits.error || 'Failed to save halls.', 'error');
+              } else await fetch(`${getApiBaseUrl()}/workspace-sections`, {
                 method: 'POST',
                 headers,
                 body: JSON.stringify({
@@ -4242,12 +4303,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (updates.addressAr !== undefined) payload.addressAr = updates.addressAr;
         if (updates.cityAr !== undefined) payload.cityAr = updates.cityAr;
 
-        if (targetDbId && (Object.keys(payload).length > 0 || updates.type)) {
+        if (targetDbId && (Object.keys(payload).length > 0 || updates.type || updates.units)) {
           if (Object.keys(payload).length > 0) {
             await updateWorkspace(targetDbId, payload);
           }
 
-          if (updates.type) {
+          if (updates.units && updates.units.length > 0) {
+            const unitType = mapFrontendTypeToDbSectionType(updates.type || (updatedSpaceObj as any).type || 'meeting-room');
+            const saved = await saveSpaceUnits(targetDbId, unitType === 'THEATER' ? 'THEATER' : 'MEETING_ROOM', updates.units);
+            if (!saved.success) showToast(saved.error || 'Failed to save halls.', 'error');
+          } else if (updates.type) {
             const dbSecType = mapFrontendTypeToDbSectionType(updates.type);
             const headers: Record<string, string> = { 'Content-Type': 'application/json' };
             headers['Authorization'] = `Bearer ${storedToken}`;
@@ -4621,6 +4686,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (matchedW && Array.isArray((matchedW as any).sections) && (matchedW as any).sections.length > 0) {
           sectionId = (matchedW as any).sections[0].id;
         }
+
+        // A hall / theater picked by the customer always wins over the workspace's first section
+        if (booking.unitId) sectionId = booking.unitId;
 
         if (!sectionId && validWorkspaceId) {
           try {
@@ -5697,6 +5765,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         spaceImage: item.spaceImage,
         type: item.type as BookingType,
         plan: item.plan,
+        unitId: item.unitId,
+        unitName: item.unitName,
         startTime: item.startTime,
         endTime: item.endTime,
         durationHours: item.durationHours,
@@ -6106,6 +6176,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           });
         } else {
           console.warn('DB Ticket sync notice:', res.error);
+          showToast('Your request was saved on this device but could not reach the server. Please try again.', 'error');
         }
       } catch (err) {
         console.warn('DB Ticket sync notice:', err);
@@ -6152,21 +6223,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('cp_support_tickets', JSON.stringify(updated));
     }
 
-    // Persist the reply in the TicketReply table (creating the DB ticket first if it only exists locally)
+    // Persist the reply in the TicketReply table. A ticket that only exists in this browser is first filed on the
+    // customer's behalf (matched by email), so the reply always lands on a real database ticket.
     (async () => {
       try {
         let dbTicketId = id;
         const looksLocal = !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
         if (looksLocal && ticket) {
           const created = await createTicketApi({
-            companyId: undefined,
             subject: ticket.subject || ticket.message || 'Support Inquiry',
             message: ticket.message,
             category: ticket.category,
             priority: ticket.priority,
+            onBehalfOfEmail: ticket.userEmail,
           });
           if (!created.success || !created.data?.id) {
-            showToast('Reply saved locally, but the ticket could not be synced to the server.', 'error');
+            showToast(created.error || 'Reply saved locally, but the ticket could not be synced to the server.', 'error');
             return;
           }
           dbTicketId = created.data.id as string;
@@ -6183,11 +6255,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
         const dbStatus = newStatus === 'in-progress' ? 'IN_PROGRESS' : newStatus === 'closed' || newStatus === 'resolved' ? 'CLOSED' : 'OPEN';
         await updateTicketStatusApi(dbTicketId, dbStatus);
-        if (dbTicketId !== id) {
-          setSupportTickets(prev => prev.map(t => t.id === id ? { ...t, id: dbTicketId } : t));
-        }
+        // Reload so the thread shows exactly what the TicketReply table holds
+        await fetchTickets();
       } catch (err) {
         console.warn('DB TicketReply sync notice:', err);
+        showToast('Reply could not be saved to the server.', 'error');
       }
     })();
 
@@ -6304,7 +6376,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       cart, isCartOpen, setIsCartOpen, openCart, closeCart, addToCart, removeFromCart, updateCartItemSeats, updateCartItem, clearCart, checkoutCart,
       applyLoyaltyDiscount,
       walletTransactions, fetchWallet, depositToWallet, withdrawFromWallet,
-      companyWalletBalance, companyData, fetchCompanyWallet, depositToCompanyWallet, withdrawFromCompanyWallet, checkSeatAvailability,
+      companyWalletBalance, companyData, fetchCompanyWallet, depositToCompanyWallet, withdrawFromCompanyWallet, checkSeatAvailability, fetchUnitAvailability, saveSpaceUnits,
       loyaltyRules, fetchLoyaltyRules, createLoyaltyProposal, updateLoyaltyRuleStatus, deleteLoyaltyRule,
       qrScans, fetchQrCheckIns, recordQrScan, getSpaceCrowding,
       toast, showToast, updateCurrentUser, completeSignup,

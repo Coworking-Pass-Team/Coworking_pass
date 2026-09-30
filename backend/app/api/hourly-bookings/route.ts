@@ -5,7 +5,7 @@ import { seedStandardWorkspaces } from '@/lib/seed-data';
 import { getKsaNow, parseDateAndTimeToKsaDate } from '@/lib/time-utils';
 import { getOccupiedSeats } from '@/lib/capacity';
 import { hiddenWorkspaceError } from '@/lib/workspace-visibility';
-import { validateHourlyWindow } from '@/lib/operating-hours';
+import { validateHourlyWindow, isFixedSlotSection } from '@/lib/operating-hours';
 
 
 export async function GET(request: Request) {
@@ -342,7 +342,25 @@ const requestedType = (validSectionTypes.includes(sectionType) && sectionType !=
 
     // Capacity check for the requested time window
     const requestedSeats = Math.max(1, Math.floor(Number(body.seats) || 1));
-    if (ws.totalCapacity > 0) {
+    if (isFixedSlotSection(sec.type)) {
+      // Halls and theaters are booked one session at a time: the selected unit must be free and seat the group
+      if (requestedSeats > sec.capacity) {
+        return NextResponse.json(
+          { error: `${sec.name} seats at most ${sec.capacity}. Please choose a larger hall or reduce the number of seats.` },
+          { status: 400 }
+        );
+      }
+      const clash = await prisma.hourlyBooking.findFirst({
+        where: { sectionId: sec.id, status: 'ACTIVE', startDate: { lt: endObj }, endDate: { gt: startObj } },
+        select: { id: true },
+      });
+      if (clash) {
+        return NextResponse.json(
+          { error: `${sec.name} is already booked for the selected time. Please choose another session or hall.` },
+          { status: 409 }
+        );
+      }
+    } else if (ws.totalCapacity > 0) {
       const occupied = (await getOccupiedSeats([ws.id], startObj, endObj)).get(ws.id) || 0;
       if (occupied + requestedSeats > ws.totalCapacity) {
         return NextResponse.json(

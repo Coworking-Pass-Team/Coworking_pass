@@ -74,7 +74,6 @@ export default function Footer() {
               {role === 'organization' && (
                 <>
                   <li><button onClick={() => navigate('org-dashboard')} className="text-plaster/75 hover:text-eucalyptus transition-colors text-start">{t('footer.companyDashboard')}</button></li>
-                  <li><button onClick={() => navigate('company-workspaces')} className="text-plaster/75 hover:text-eucalyptus transition-colors text-start">{t('footer.companyWorkspaces')}</button></li>
                   <li><button onClick={() => navigate('browse')} className="text-plaster/75 hover:text-eucalyptus transition-colors text-start">{t('nav.browseSpaces')}</button></li>
                   <li><button onClick={() => navigate('team-bookings')} className="text-plaster/75 hover:text-eucalyptus transition-colors text-start">{t('footer.teamBookings')}</button></li>
                   <li><button onClick={() => navigate('waitlist')} className="text-plaster/75 hover:text-eucalyptus transition-colors text-start">{t('footer.workspaceWaitlist')}</button></li>

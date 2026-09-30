@@ -24,6 +24,7 @@ import {
   XCircle,
   MessageSquare,
 } from 'lucide-react';
+import UnitsEditor from '@/components/spaces/UnitsEditor';
 import { useApp } from '@/app/store';
 import { useSpaceText } from '@/i18n/space-text';
 import { Space, SpaceBookingPackage, SpaceCategory, ALL_SPACE_TYPES, isHourlyOnlySpace, isOfficeSpace, isHourlyAllowed, getSpaceCategory, AmenityRequest, SAUDI_CITIES, SAUDI_CITIES_DATA, hhmmTo12h } from '@/types/types';
@@ -234,6 +235,18 @@ export default function SpacesAdmin() {
     }));
   };
 
+
+  /** Halls and theaters are managed as individual units, each with its own seating capacity. */
+  const unitKind: 'hall' | 'theater' = getSpaceCategory(form.type) === 'theater' ? 'theater' : 'hall';
+  const currentUnits = form.units && form.units.length > 0
+    ? form.units
+    : [{ id: 'new-0', name: unitKind === 'theater' ? 'Theater 1' : 'Meeting Hall 1', capacity: form.totalCapacity || 20 }];
+  const setUnits = (units: NonNullable<Space['units']>) =>
+    setForm((p) => {
+      const total = units.reduce((sum, u) => sum + (Number(u.capacity) || 0), 0);
+      return { ...p, units, totalCapacity: total, availableCapacity: total };
+    });
+
   const handleSave = () => {
     const errs: Record<string, string> = {};
     if (!form.name || !form.name.trim()) errs.name = t('mySpaces.errName');
@@ -247,8 +260,15 @@ export default function SpacesAdmin() {
     }
     setFormErrors({});
 
+    if (isHourlyOnlySpace(form.type) && currentUnits.some((u) => !(Number(u.capacity) >= 1))) {
+      setFormErrors({ ...errs, units: t('units.errCapacity') });
+      return;
+    }
+
     const hoursForm = {
       ...form,
+      units: isHourlyOnlySpace(form.type) ? currentUnits : undefined,
+      totalCapacity: isHourlyOnlySpace(form.type) ? currentUnits.reduce((sum, u) => sum + (Number(u.capacity) || 0), 0) : form.totalCapacity,
       openHours: form.is24Hours ? '24/7' : `${hhmmTo12h(form.openingTime || '08:00')} - ${hhmmTo12h(form.closingTime || '22:00')}`,
     } as Space;
 
@@ -1264,7 +1284,8 @@ export default function SpacesAdmin() {
                     )}
                   </div>
 
-                  <div>
+                  {!isHourlyOnlySpace(form.type) && (
+<div>
                     <label className="block text-xs font-semibold text-soot mb-1.5">Total Capacity (Desks)</label>
                     <input
                       type="number"
@@ -1279,10 +1300,15 @@ export default function SpacesAdmin() {
                       className="w-full px-3.5 py-2.5 rounded-xl border border-soot/15 bg-white text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs"
                     />
                   </div>
-                </div>
+
+)}                </div>
               </div>
 
-              {/* Booking System / Hourly Packages (الزيادة من كودهم بتصميم متناسق) */}
+              {isHourlyOnlySpace(form.type) && (
+              <UnitsEditor units={currentUnits} kind={unitKind} onChange={setUnits} />
+            )}
+
+            {/* Booking System / Hourly Packages (الزيادة من كودهم بتصميم متناسق) */}
               <div className="rounded-2xl border border-soot/12 bg-plaster-dark/40 p-4 space-y-3">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-moss block">
                   {t('admin.spaces.bookingMode')}

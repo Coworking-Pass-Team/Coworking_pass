@@ -31,8 +31,6 @@ import OrgProfile from './organization/OrgProfile';
 import TeamBooking from './organization/TeamBooking';
 import TeamBookings from './organization/TeamBookings';
 import CompanyTeam from './organization/CompanyTeam';
-import CompanyWorkspaces from './organization/CompanyWorkspaces';
-import CompanyAddWorkspace from './organization/CompanyAddWorkspace';
 
 // Provider screens
 import ProviderDashboard from './provider/Dashboard';
@@ -170,8 +168,6 @@ function Router() {
     return (
       <AppLayout>
         {screen === 'org-dashboard' && <OrgDashboard />}
-        {screen === 'company-workspaces' && <CompanyWorkspaces />}
-        {screen === 'company-add-workspace' && <CompanyWorkspaces />}
         {screen === 'company-bookings' && <TeamBookings />}
         {screen === 'company-team' && <CompanyTeam />}
         {screen === 'team-booking' && <TeamBooking />}

@@ -6,6 +6,7 @@ import {
   HelpCircle,
   AlertCircle,
   RotateCcw,
+  Building2,
   Search,
   Filter,
   CheckCircle2,
@@ -90,7 +91,7 @@ export default function SupportAdmin() {
 
   const handleOpenTicket = (ticket: SupportTicket) => {
     setSelectedTicket(ticket);
-    setAdminReplyText(ticket.adminReply || '');
+    setAdminReplyText('');
     setAdminNotesText(ticket.adminNotes || '');
   };
 
@@ -110,7 +111,8 @@ export default function SupportAdmin() {
   const categoryBadges: Record<TicketCategory, { label: string; icon: React.ComponentType<{ size?: number; className?: string }> }> = {
     complaint: { label: 'Complaint', icon: AlertCircle },
     refund: { label: 'Refund Request', icon: RotateCcw },
-    general: { label: 'General Inquiry', icon: HelpCircle }
+    general: { label: 'General Inquiry', icon: HelpCircle },
+    enterprise: { label: 'Enterprise Inquiry', icon: Building2 }
   };
 
   // Single-line Status Badges with Subtle Dot Indicators
@@ -402,6 +404,18 @@ export default function SupportAdmin() {
               <HelpCircle size={14} />
               <span>General Inquiries ({supportTickets.filter(t => t.category === 'general').length})</span>
             </button>
+            <button
+              type="button"
+              onClick={() => setCategoryFilter('enterprise')}
+              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+                categoryFilter === 'enterprise'
+                  ? 'bg-soot text-plaster shadow-2xs'
+                  : 'text-moss hover:text-soot'
+              }`}
+            >
+              <Building2 size={14} />
+              <span>{translateMessage(`Enterprise Inquiries (${supportTickets.filter(t => t.category === 'enterprise').length})`)}</span>
+            </button>
           </div>
         </div>
       </div>
@@ -592,6 +606,21 @@ export default function SupportAdmin() {
                 {selectedTicket.message}
               </div>
             </div>
+
+            {/* Reply thread saved in the TicketReply table */}
+            {selectedTicket.replies && selectedTicket.replies.length > 0 && (
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-soot uppercase tracking-wider block">{t('support.conversation')}</label>
+                <div className="space-y-2 max-h-52 overflow-y-auto">
+                  {selectedTicket.replies.map((r) => (
+                    <div key={r.id} className={`p-3 rounded-2xl border text-xs sm:text-sm whitespace-pre-wrap ${r.userId === selectedTicket.userId ? 'bg-plaster-surface border-soot/12' : 'bg-eucalyptus/15 border-eucalyptus/30'}`}>
+                      <div className="text-[11px] font-semibold text-moss mb-1">{r.userId === selectedTicket.userId ? r.authorName : t('support.you')} · {r.createdAt}</div>
+                      {r.message}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Proof Attachment Image */}
             {selectedTicket.attachedImage && (

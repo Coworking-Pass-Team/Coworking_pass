@@ -580,9 +580,8 @@ export default function OrgDashboard() {
       </div>
 
       {/* Admin-Matching Action Cards */}
-      <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: t('footer.companyWorkspaces'), desc: t('dash.org.qa1'), action: () => navigate('company-workspaces'), icon: Building2 },
           { label: t('nav.browseSpaces'), desc: t('dash.org.qa2'), action: () => navigate('browse'), icon: Building2 },
           { label: t('footer.teamBookings'), desc: t('dash.org.qa3'), action: () => navigate('team-bookings'), icon: CalendarDays },
           { label: t('dash.org.manageTeam'), desc: t('dash.org.qa4'), action: () => navigate('company-team'), icon: Users },

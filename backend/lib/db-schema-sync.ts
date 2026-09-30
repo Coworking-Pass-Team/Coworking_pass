@@ -101,6 +101,11 @@ export async function ensureDatabaseSchema(force = false): Promise<{ success: bo
       ).then(() => executedStatements.push(`Ticket.${column}`)).catch((err) => console.warn("[Schema Sync] Ticket column warning:", err));
     }
 
+    // Notification type used to alert administrators about new support tickets
+    await prisma.$executeRawUnsafe(
+      `ALTER TYPE "NotificationType" ADD VALUE IF NOT EXISTS 'SUPPORT_TICKET';`
+    ).then(() => executedStatements.push('NotificationType.SUPPORT_TICKET')).catch((err) => console.warn("[Schema Sync] NotificationType warning:", err));
+
     // Bilingual (English / Arabic) workspace content, authored by providers and admins
     for (const column of ['nameAr', 'description', 'descriptionAr', 'address', 'addressAr', 'cityAr']) {
       await prisma.$executeRawUnsafe(

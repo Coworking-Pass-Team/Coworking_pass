@@ -110,6 +110,7 @@ enum NotificationType {
   PAYOUT_PROCESSED
   PARTNER_APPROVED
   AMENITY_REQUEST_STATUS
+  SUPPORT_TICKET
 }
 
 enum NotificationChannel {

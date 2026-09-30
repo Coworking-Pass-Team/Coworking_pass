@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   Wallet
 } from 'lucide-react';
+import UnitPicker, { useUnitAvailability, isUnitSlotBooked } from '@/components/spaces/UnitPicker';
 import { useApp } from '@/app/store';
 import { useSpaceText } from '@/i18n/space-text';
 import { createPointsTransactionApi, getLoyaltyPointsApi } from '@/services/authApi';
@@ -93,7 +94,22 @@ export default function TeamBooking() {
 
   const isHourly = isHourlySpace || plan === 'hourly';
   const fixedSlots = isHourlySpace ? getFixedSessionSlots(space?.openHours, startDate) : [];
-  const availableStartTimes = isHourlySpace ? fixedSlots.map(sl => sl.start) : (isHourly ? getFilteredStartTimes(space?.openHours, startDate, selectedHours) : START_TIMES);
+
+  // Individual halls / theaters: sessions and the team-seat limit follow the selected unit
+  const { units: unitList } = useUnitAvailability(space, startDate, isHourlySpace);
+  const [unitId, setUnitId] = useState<string>((nav?.params?.unitId as string) || '');
+  const selectedUnit = unitList.find((u) => u.id === unitId) || unitList[0];
+  const unitKind: 'hall' | 'theater' = space && getSpaceCategory(space) === 'theater' ? 'theater' : 'hall';
+  const seatCap = isHourlySpace && selectedUnit ? selectedUnit.capacity : null;
+  useEffect(() => {
+    if (unitList.length > 0 && !unitList.some((u) => u.id === unitId)) setUnitId(unitList[0].id);
+  }, [unitList, unitId]);
+  useEffect(() => {
+    if (seatCap !== null && seats > seatCap) setSeats(Math.max(1, seatCap));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seatCap]);
+
+  const availableStartTimes = isHourlySpace ? fixedSlots.filter(sl => !isUnitSlotBooked(selectedUnit, sl.start, sl.end)).map(sl => sl.start) : (isHourly ? getFilteredStartTimes(space?.openHours, startDate, selectedHours) : START_TIMES);
   const availableEndTimes = isHourlySpace ? [calculateEndTime(startTime, selectedHours)] : getAvailableEndTimes(startTime);
 
   const durationHours = isHourly ? selectedHours : calculateDurationHours(startTime, endTime);
@@ -303,7 +319,9 @@ export default function TeamBooking() {
           showToast(hoursCheck.reason || t('bf.errOutsideHours'), 'error');
           return false;
         }
-        const overlapCheck = checkSpaceOverlap(bookings, space.id, startDate, startTime, endTime, space.totalCapacity);
+        const overlapCheck = selectedUnit
+          ? { available: !isUnitSlotBooked(selectedUnit, startTime, endTime) && seats <= selectedUnit.capacity }
+          : checkSpaceOverlap(bookings, space.id, startDate, startTime, endTime, space.totalCapacity);
         if (!overlapCheck.available) {
           showToast(t('tb.notEnoughCapacity', { seats, time: localizeTime(startTime) }), 'error');
           return false;
@@ -347,6 +365,7 @@ export default function TeamBooking() {
         days: plan === 'daily' ? durationDays : undefined,
         months: plan === 'monthly' ? durationMonths : undefined,
         seats,
+        unitId: isHourlySpace ? selectedUnit?.id : undefined,
       });
       if (!availability.ok) {
         showToast(availability.message || t('bf.errNoLongerAvailable'), 'error');
@@ -387,6 +406,8 @@ export default function TeamBooking() {
         category: getSpaceCategory(space),
         type: bookingType,
         plan,
+        unitId: isHourlySpace ? selectedUnit?.id : undefined,
+        unitName: isHourlySpace ? selectedUnit?.name : undefined,
         startTime: (isHourlySpace || isHourly) ? startTime : undefined,
         endTime: (isHourlySpace || isHourly) ? endTime : undefined,
         durationHours: (isHourlySpace || isHourly) ? durationHours : undefined,
@@ -972,6 +993,10 @@ export default function TeamBooking() {
 
                 )}
 
+                {isHourlySpace && (
+                  <UnitPicker units={unitList} selectedId={selectedUnit?.id || ''} onSelect={setUnitId} kind={unitKind} />
+                )}
+
                 {isHourlySpace ? (
                   <div className="space-y-1.5">
                     <span className="text-[10px] font-semibold uppercase tracking-wider text-moss block">
@@ -985,18 +1010,22 @@ export default function TeamBooking() {
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {fixedSlots.map((slot) => {
                           const isSelected = startTime === slot.start;
+                          const taken = isUnitSlotBooked(selectedUnit, slot.start, slot.end);
                           return (
                             <button
                               key={slot.start}
                               type="button"
+                              disabled={taken}
                               onClick={() => handleStartTimeChange(slot.start)}
-                              className={`py-2.5 px-3 rounded-xl text-center border transition-all cursor-pointer text-xs font-semibold ${
-                                isSelected
-                                  ? 'bg-soot text-plaster border-soot shadow-2xs'
-                                  : 'bg-white border-soot/10 text-moss hover:text-soot hover:border-soot/30'
+                              className={`py-2.5 px-3 rounded-xl text-center border transition-all text-xs font-semibold ${
+                                taken
+                                  ? 'bg-plaster-dark/40 border-soot/8 text-moss/50 line-through cursor-not-allowed'
+                                  : isSelected
+                                  ? 'bg-soot text-plaster border-soot shadow-2xs cursor-pointer'
+                                  : 'bg-white border-soot/10 text-moss hover:text-soot hover:border-soot/30 cursor-pointer'
                               }`}
                             >
-                              {slot.start} – {slot.end}
+                              {slot.start} – {slot.end}{taken ? ` · ${t('units.slotTaken')}` : ''}
                             </button>
                           );
                         })}
@@ -1095,8 +1124,8 @@ export default function TeamBooking() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setSeats(s => Math.min(space.availableCapacity || 50, s + 1))}
-                  disabled={seats >= (space.availableCapacity || 50)}
+                  onClick={() => setSeats(s => Math.min((seatCap ?? (space.availableCapacity || 50)), s + 1))}
+                  disabled={seats >= ((seatCap ?? (space.availableCapacity || 50)))}
                   className="w-10 h-10 rounded-xl border border-soot/15 bg-white text-soot font-bold text-lg flex items-center justify-center hover:bg-plaster-dark/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer shadow-2xs"
                 >
                   +
@@ -1104,7 +1133,7 @@ export default function TeamBooking() {
               </div>
 
               <div className="flex flex-wrap gap-1.5 pt-1">
-                {[1, 2, 3, 5, 10, 15, 20].filter(n => n >= (selectedEmployees.length || 1) && n <= (space.availableCapacity || 50)).map(n => (
+                {[1, 2, 3, 5, 10, 15, 20].filter(n => n >= (selectedEmployees.length || 1) && n <= ((seatCap ?? (space.availableCapacity || 50)))).map(n => (
                   <button
                     key={n}
                     type="button"
@@ -1231,8 +1260,8 @@ export default function TeamBooking() {
                     <span className="text-soot font-bold min-w-[2rem] text-center text-sm">{seats}</span>
                     <button
                       type="button"
-                      onClick={() => setSeats(s => Math.min(space.availableCapacity || 50, s + 1))}
-                      disabled={seats >= (space.availableCapacity || 50)}
+                      onClick={() => setSeats(s => Math.min((seatCap ?? (space.availableCapacity || 50)), s + 1))}
+                      disabled={seats >= ((seatCap ?? (space.availableCapacity || 50)))}
                       className="w-7 h-7 rounded-lg border border-soot/15 bg-white text-soot font-bold flex items-center justify-center hover:bg-plaster-dark/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer text-sm shadow-2xs"
                       title={t('tb.increase')}
                     >
@@ -1266,7 +1295,7 @@ export default function TeamBooking() {
                 </span>
               </div>
               <div className="flex flex-wrap gap-1.5 pt-0.5">
-                {[1, 2, 3, 5, 10, 15, 20].filter(n => n >= (selectedEmployees.length || 1) && n <= (space.availableCapacity || 50)).map(n => (
+                {[1, 2, 3, 5, 10, 15, 20].filter(n => n >= (selectedEmployees.length || 1) && n <= ((seatCap ?? (space.availableCapacity || 50)))).map(n => (
                   <button
                     key={n}
                     type="button"
@@ -1494,6 +1523,8 @@ export default function TeamBooking() {
                   spaceImage: space.images?.[0] || 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80',
                   type: bookingType,
                   plan: plan,
+                  unitId: isHourlySpace ? selectedUnit?.id : undefined,
+                  unitName: isHourlySpace ? selectedUnit?.name : undefined,
                   durationHours: isHourly ? durationHours : undefined,
                   durationDays: plan === 'daily' ? durationDays : undefined,
                   durationMonths: plan === 'monthly' ? durationMonths : undefined,

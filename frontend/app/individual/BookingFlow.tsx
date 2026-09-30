@@ -25,6 +25,7 @@ import QRCode from 'qrcode';
 import { useApp } from '@/app/store';
 import { useSpaceText } from '@/i18n/space-text';
 import BookingQrModal from '@/components/BookingQrModal';
+import UnitPicker, { useUnitAvailability, isUnitSlotBooked } from '@/components/spaces/UnitPicker';
 import { createDirectBookingApi, createHourlyBookingApi, createPaymentApi, createPointsTransactionApi, getLoyaltyPointsApi } from '@/services/authApi';
 import {
   BookingPlan,
@@ -141,7 +142,18 @@ export default function BookingFlow() {
 
   const isHourly = isHourlySpace || plan === 'hourly';
   const fixedSlots = isHourlySpace ? getFixedSessionSlots(space?.openHours, startDate) : [];
-  const availableStartTimes = isHourlySpace ? fixedSlots.map(sl => sl.start) : (isHourly ? getFilteredStartTimes(space?.openHours, startDate, selectedHours) : START_TIMES);
+
+  // Individual halls / theaters: sessions and seat limits follow the selected unit
+  const { units: unitList } = useUnitAvailability(space, startDate, isHourlySpace);
+  const [unitId, setUnitId] = useState<string>((nav?.params?.unitId as string) || '');
+  const selectedUnit = unitList.find((u) => u.id === unitId) || unitList[0];
+  const unitKind: 'hall' | 'theater' = space && getSpaceCategory(space) === 'theater' ? 'theater' : 'hall';
+  const seatCap = isHourlySpace && selectedUnit ? selectedUnit.capacity : null;
+  useEffect(() => {
+    if (unitList.length > 0 && !unitList.some((u) => u.id === unitId)) setUnitId(unitList[0].id);
+  }, [unitList, unitId]);
+
+  const availableStartTimes = isHourlySpace ? fixedSlots.filter(sl => !isUnitSlotBooked(selectedUnit, sl.start, sl.end)).map(sl => sl.start) : (isHourly ? getFilteredStartTimes(space?.openHours, startDate, selectedHours) : START_TIMES);
   const availableEndTimes = isHourlySpace ? [calculateEndTime(startTime, selectedHours)] : getAvailableEndTimes(startTime);
 
   const durationHours = isHourly ? selectedHours : calculateDurationHours(startTime, endTime);
@@ -190,6 +202,9 @@ export default function BookingFlow() {
     }
   };
   const [seats, setSeats] = useState(1);
+  useEffect(() => {
+    if (seatCap !== null && seats > seatCap) setSeats(Math.max(1, seatCap));
+  }, [seatCap, seats]);
   const [notes, setNotes] = useState('');
   const [confirmedBooking, setConfirmedBooking] = useState<any>(null);
   const [showQrModal, setShowQrModal] = useState(false);
@@ -356,7 +371,9 @@ export default function BookingFlow() {
         }
 
         // Validate space overlap & capacity
-        const overlapCheck = checkSpaceOverlap(bookings, space.id, startDate, startTime, endTime, space.totalCapacity);
+        const overlapCheck = selectedUnit
+          ? { available: !isUnitSlotBooked(selectedUnit, startTime, endTime) }
+          : checkSpaceOverlap(bookings, space.id, startDate, startTime, endTime, space.totalCapacity);
         if (!overlapCheck.available) {
           showToast(t('bf.errFullyReserved', { time: localizeTime(startTime) }), 'error');
           return false;
@@ -401,6 +418,7 @@ export default function BookingFlow() {
         days: plan === 'daily' ? durationDays : undefined,
         months: plan === 'monthly' ? durationMonths : undefined,
         seats,
+        unitId: isHourlySpace ? selectedUnit?.id : undefined,
       });
       if (!availability.ok) {
         showToast(availability.message || t('bf.errNoLongerAvailable'), 'error');
@@ -475,6 +493,8 @@ export default function BookingFlow() {
         category: getSpaceCategory(space),
         type: deskType,
         plan,
+        unitId: isHourlySpace ? selectedUnit?.id : undefined,
+        unitName: isHourlySpace ? selectedUnit?.name : undefined,
         startTime: (isHourlySpace || isHourly) ? startTime : undefined,
         endTime: (isHourlySpace || isHourly) ? endTime : undefined,
         durationHours: (isHourlySpace || isHourly) ? durationHours : undefined,
@@ -1112,6 +1132,10 @@ export default function BookingFlow() {
 
                 )}
 
+                {isHourlySpace && (
+                  <UnitPicker units={unitList} selectedId={selectedUnit?.id || ''} onSelect={setUnitId} kind={unitKind} />
+                )}
+
                 {isHourlySpace ? (
                   <div className="space-y-1.5">
                     <span className="text-[10px] font-semibold uppercase tracking-wider text-moss block">
@@ -1125,18 +1149,22 @@ export default function BookingFlow() {
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {fixedSlots.map((slot) => {
                           const isSelected = startTime === slot.start;
+                          const taken = isUnitSlotBooked(selectedUnit, slot.start, slot.end);
                           return (
                             <button
                               key={slot.start}
                               type="button"
+                              disabled={taken}
                               onClick={() => handleStartTimeChange(slot.start)}
-                              className={`py-2.5 px-3 rounded-xl text-center border transition-all cursor-pointer text-xs font-semibold ${
-                                isSelected
-                                  ? 'bg-soot text-plaster border-soot shadow-2xs'
-                                  : 'bg-white border-soot/10 text-moss hover:text-soot hover:border-soot/30'
+                              className={`py-2.5 px-3 rounded-xl text-center border transition-all text-xs font-semibold ${
+                                taken
+                                  ? 'bg-plaster-dark/40 border-soot/8 text-moss/50 line-through cursor-not-allowed'
+                                  : isSelected
+                                  ? 'bg-soot text-plaster border-soot shadow-2xs cursor-pointer'
+                                  : 'bg-white border-soot/10 text-moss hover:text-soot hover:border-soot/30 cursor-pointer'
                               }`}
                             >
-                              {slot.start} – {slot.end}
+                              {slot.start} – {slot.end}{taken ? ` · ${t('units.slotTaken')}` : ''}
                             </button>
                           );
                         })}
@@ -1260,13 +1288,13 @@ export default function BookingFlow() {
                 <span className="font-semibold text-soot text-lg w-10 text-center">{seats}</span>
                 <button
                   type="button"
-                  onClick={() => setSeats(Math.min(space.availableCapacity || 10, seats + 1))}
+                  onClick={() => setSeats(Math.min(seatCap ?? (space.availableCapacity || 10), seats + 1))}
                   className="w-11 h-11 rounded-2xl border border-soot/10 bg-plaster/50 hover:bg-plaster flex items-center justify-center text-soot font-bold text-lg cursor-pointer"
                 >
                   +
                 </button>
                 <span className="text-xs text-moss font-normal">
-                  {space.availableCapacity ?? 0} seats currently open
+                  {seatCap !== null ? t('units.seatCap', { count: seatCap }) : `${space.availableCapacity ?? 0} seats currently open`}
                 </span>
               </div>
             </div>
@@ -1584,6 +1612,8 @@ export default function BookingFlow() {
                   spaceImage: space.images?.[0] || FALLBACK_SPACE_IMAGE,
                   type: deskType,
                   plan: plan,
+                  unitId: isHourlySpace ? selectedUnit?.id : undefined,
+                  unitName: isHourlySpace ? selectedUnit?.name : undefined,
                   durationHours: isHourly ? durationHours : undefined,
                   durationMonths: plan === 'monthly' ? durationMonths : undefined,
                   durationDays: plan === 'daily' ? durationDays : undefined,

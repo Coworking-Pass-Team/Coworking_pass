@@ -307,6 +307,7 @@ registerMessages({
   "Today": "اليوم",
   "This week": "هذا الأسبوع",
   "This year": "هذه السنة",
+  "Enterprise Inquiry": "استفسار مؤسسي",
 }, [
   [/^Members receive \+(.+) points for every SAR (.+) spent$/, "يحصل الأعضاء على +$1 نقطة مقابل كل $2 ر.س يتم إنفاقها"],
   [/^Members can redeem (.+) points to receive an instant SAR (.+) discount$/, "يمكن للأعضاء استبدال $1 نقطة للحصول على خصم فوري بقيمة $2 ر.س"],
@@ -338,4 +339,9 @@ registerMessages({
   [/^My Workspace Activity \((\d+)\)$/, "نشاط مساحاتي ($1)"],
   [/^(.+) card ending in (\d+) added successfully!$/, "تمت إضافة بطاقة $1 المنتهية بـ $2 بنجاح!"],
   [/^(\d+) Pending$/, "$1 قيد الانتظار"],
+  [/^Enterprise Inquiries \((\d+)\)$/, "الاستفسارات المؤسسية ($1)"],
+  [/^Complaints \((\d+)\)$/, "الشكاوى ($1)"],
+  [/^Refund Requests \((\d+)\)$/, "طلبات الاسترداد ($1)"],
+  [/^General Inquiries \((\d+)\)$/, "الاستفسارات العامة ($1)"],
+  [/^All Topics \((\d+)\)$/, "جميع المواضيع ($1)"],
 ]);

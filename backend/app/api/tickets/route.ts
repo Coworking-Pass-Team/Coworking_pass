@@ -53,26 +53,27 @@ export async function POST(request: Request) {
   try {
     const user = await getTokenFromRequest(request);
     if (!user) return unauthorizedResponse(request);
-    const { companyId, subject, message, category, priority } = await request.json();
+    const { subject, message, category, priority, onBehalfOfEmail } = await request.json();
 
     if (!subject || typeof subject !== "string") {
       return NextResponse.json({ error: "Required field: subject" }, { status: 400 });
     }
 
-    // The ticket always belongs to the caller; a company is optional (individuals and partners have none)
-    let resolvedCompanyId: string | null = null;
-    if (companyId) {
-      const company = await prisma.company.findUnique({ where: { id: companyId } });
-      if (!company) {
-        return NextResponse.json({ error: "Company (companyId) not found." }, { status: 404 });
-      }
-      if (user.role !== "SUPER_ADMIN" && company.hrAdminId !== user.userId) {
-        const member = await prisma.user.findFirst({ where: { id: user.userId, companyId } });
-        if (!member) {
-          return NextResponse.json({ error: "You do not belong to this company." }, { status: 403 });
-        }
-      }
-      resolvedCompanyId = company.id;
+    // The ticket belongs to the caller. An administrator may file it for a customer identified by email
+    // (used when a customer's inquiry only exists in the admin's browser).
+    let ownerId = user.userId;
+    if (user.role === "SUPER_ADMIN" && typeof onBehalfOfEmail === "string" && onBehalfOfEmail.trim()) {
+      const owner = await prisma.user.findFirst({ where: { email: { equals: onBehalfOfEmail.trim(), mode: "insensitive" } }, select: { id: true } });
+      if (owner) ownerId = owner.id;
+    }
+
+    // The company always comes from the owner's own record; a client-supplied id is never trusted
+    // (a stale id previously made the whole request fail and the inquiry never reached the database).
+    const ownerRow = await prisma.user.findUnique({ where: { id: ownerId }, select: { companyId: true } });
+    let resolvedCompanyId: string | null = ownerRow?.companyId ?? null;
+    if (!resolvedCompanyId) {
+      const owned = await prisma.company.findFirst({ where: { hrAdminId: ownerId }, select: { id: true } });
+      resolvedCompanyId = owned?.id ?? null;
     }
 
     await ensureDatabaseSchema().catch(() => undefined);
@@ -80,7 +81,7 @@ export async function POST(request: Request) {
     const ticket = await prisma.ticket.create({
       data: {
         companyId: resolvedCompanyId,
-        userId: user.userId,
+        userId: ownerId,
         subject: subject.slice(0, 300),
         message: typeof message === "string" ? message : null,
         category: typeof category === "string" ? category : null,
@@ -88,6 +89,24 @@ export async function POST(request: Request) {
         status: "OPEN",
       },
     });
+
+    // Let every administrator know a new inquiry arrived (best effort; never blocks ticket creation)
+    try {
+      const admins = await prisma.user.findMany({ where: { role: "SUPER_ADMIN" }, select: { id: true } });
+      if (admins.length > 0) {
+        await prisma.notification.createMany({
+          data: admins.map((a) => ({
+            userId: a.id,
+            type: "SUPPORT_TICKET" as const,
+            title: category === "enterprise" ? "New Custom Enterprise inquiry" : "New support ticket",
+            message: ticket.subject,
+            channel: "IN_APP" as const,
+          })),
+        });
+      }
+    } catch (notifyError) {
+      console.warn("Ticket admin notification failed:", notifyError);
+    }
 
     return NextResponse.json(
       { message: "Support ticket created successfully.", ticket },
