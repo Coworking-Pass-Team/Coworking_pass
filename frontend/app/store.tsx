@@ -4739,7 +4739,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
 
         const bookingPlanStr = (booking.plan || (booking as any).type || '') as string;
-        const isHourly = bookingPlanStr === 'hourly' || (targetSpace && targetSpace.bookingMode === 'hourly');
+        // The booking's own plan decides: a hub can mix hourly halls with daily offices, so the hub's default mode must not apply
+        const isHourly = bookingPlanStr === 'hourly';
         const durationType = bookingPlanStr === 'monthly' ? 'MONTHLY' : bookingPlanStr === 'yearly' ? 'YEARLY' : 'DAILY';
         const bookingDate = booking.startDate || new Date().toISOString().split('T')[0];
 
@@ -4809,7 +4810,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           }
         }
 
-        if (booking.plan === 'hourly' || (targetSpace && targetSpace.bookingMode === 'hourly')) {
+        if (booking.plan === 'hourly') {
           let pkgId: string | null = null;
           try {
             const pkgRes = await fetch(`${getApiBaseUrl()}/hourly-packages`, { headers });
