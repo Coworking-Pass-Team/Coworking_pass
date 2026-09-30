@@ -31,9 +31,17 @@ import Modal from '@/components/ui/Modal';
 import UserAvatar from '@/components/ui/UserAvatar';
 
 export default function ProviderProfileSettings() {
-  const { t, translateMessage, formatDate } = useI18n();
-  const { currentUser, navigate, nav, updateCurrentUser, spaces, partners, showToast } = useApp();
+  const { currentUser } = useApp();
   if (!currentUser) return null;
+  return <ProviderProfileSettingsContent />;
+}
+
+/** All hooks live here, so the session check above can return early without changing the hook order. */
+function ProviderProfileSettingsContent() {
+  const { t, translateMessage, formatDate } = useI18n();
+  const { currentUser: sessionUser, navigate, nav, updateCurrentUser, spaces, partners, showToast } = useApp();
+  // Rendered only while a user is signed in (checked by the wrapper above)
+  const currentUser = sessionUser!;
 
   const [activeTab, setActiveTab] = useState<'profile' | 'settings'>(
     nav.screen === 'provider-settings' ? 'settings' : 'profile'

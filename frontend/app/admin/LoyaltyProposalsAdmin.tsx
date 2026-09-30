@@ -591,7 +591,7 @@ export default function LoyaltyProposalsAdmin() {
               <div className="space-y-1">
                 <h4 className="text-sm font-bold text-emerald-950">{t('loyaltyAdmin.approveActivate')}</h4>
                 <p className="text-xs text-emerald-800 leading-relaxed">
-                  Are you sure you want to approve <span className="font-bold text-emerald-950">"{approveConfirmRule.ruleName}"</span>?
+                  Are you sure you want to approve <span className="font-bold text-emerald-950">&quot;{approveConfirmRule.ruleName}&quot;</span>?
                 </p>
               </div>
             </div>
@@ -655,7 +655,7 @@ export default function LoyaltyProposalsAdmin() {
               <div className="space-y-1">
                 <h4 className="text-sm font-bold text-rose-950">{t('loyaltyAdmin.provideReason')}</h4>
                 <p className="text-xs text-rose-800 leading-relaxed">
-                  Rejecting <span className="font-bold text-rose-950">"{rejectRule.ruleName}"</span> {t('loyaltyAdmin.requiresReason')}
+                  Rejecting <span className="font-bold text-rose-950">&quot;{rejectRule.ruleName}&quot;</span> {t('loyaltyAdmin.requiresReason')}
                 </p>
               </div>
             </div>

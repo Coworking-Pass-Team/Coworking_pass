@@ -89,6 +89,14 @@ export function getApiBaseUrl(): string {
 export const API_BASE_URL = getApiBaseUrl();
 
 /** Converts an API WorkspaceSection into the room shape used by the UI. */
+/** Money already taken from a wallet for a booking; it is returned automatically if the booking cannot be saved. */
+export interface WalletCharge {
+  amount: number;
+  /** Idempotency key of the debit; the refund reference is derived from it */
+  key: string;
+  target: 'personal' | 'company';
+}
+
 export function mapSectionToUnit(sec: any): SpaceUnit {
   const rate = (v: unknown) => (v === null || v === undefined ? null : Number(v));
   return {
@@ -493,7 +501,7 @@ interface AppContextType {
   deleteSpace: (id: string) => void;
 
   bookings: Booking[];
-  addBooking: (booking: Omit<Booking, 'id' | 'createdAt'>) => Booking | undefined;
+  addBooking: (booking: Omit<Booking, 'id' | 'createdAt'>, charge?: WalletCharge) => Booking | undefined;
   cancelBooking: (id: string, refundMethod?: 'wallet' | 'card') => void;
   updateBookingStatus: (id: string, status: Booking['status']) => void;
   deleteBooking: (bookingId: string) => void;
@@ -545,14 +553,15 @@ interface AppContextType {
   updateCartItemSeats: (cartItemId: string, seats: number) => void;
   updateCartItem: (cartItemId: string, updates: Partial<CartItem>) => void;
   clearCart: () => void;
-  checkoutCart: (pointsToUse?: number) => Booking[];
+  checkoutCart: (pointsToUse?: number, walletCharge?: { amount: number; key: string }) => Booking[];
 
   applyLoyaltyDiscount: (pointsToUse: number) => { discount: number; safePoints: number };
 
   walletTransactions: WalletTransaction[];
   fetchWallet: (userId?: string) => Promise<{ balance: number; transactions: WalletTransaction[] } | null>;
   depositToWallet: (amount: number, description?: string) => Promise<{ success: boolean; message: string; balance?: number }>;
-  withdrawFromWallet: (amount: number, description?: string) => Promise<{ success: boolean; message: string; balance?: number }>;
+  withdrawFromWallet: (amount: number, description?: string, referenceId?: string) => Promise<{ success: boolean; message: string; balance?: number }>;
+  refundToWallet: (amount: number, description: string, referenceId: string) => Promise<{ success: boolean; message: string; balance?: number }>;
 
   companyWalletBalance: number;
   companyData: any | null;
@@ -1916,7 +1925,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const withdrawFromWallet = async (amount: number, description?: string): Promise<{ success: boolean; message: string; balance?: number }> => {
+  const withdrawFromWallet = async (amount: number, description?: string, referenceId?: string): Promise<{ success: boolean; message: string; balance?: number }> => {
     if (!currentUser) return { success: false, message: 'User is not logged in' };
     if (amount <= 0) return { success: false, message: 'Invalid amount' };
 
@@ -1933,6 +1942,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           amount,
           type: 'WITHDRAW',
           description: description || 'Wallet Withdrawal',
+          ...(referenceId ? { referenceId } : {}),
         }),
       });
 
@@ -1959,6 +1969,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const msg = err.message || 'An error occurred while withdrawing';
       showToast(msg, 'error');
       return { success: false, message: msg };
+    }
+  };
+
+  /** Credits the personal wallet back (idempotent per referenceId), e.g. when a paid booking could not be confirmed. */
+  const refundToWallet = async (amount: number, description: string, referenceId: string): Promise<{ success: boolean; message: string; balance?: number }> => {
+    if (!currentUser) return { success: false, message: 'User is not logged in' };
+    if (amount <= 0) return { success: false, message: 'Invalid amount' };
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const storedToken = getStoredToken();
+      if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
+      const response = await fetch(`${getApiBaseUrl()}/wallet`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ userId: currentUser.id, amount, type: 'REFUND', description, referenceId }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) return { success: false, message: data.error || 'Refund failed' };
+      setCurrentUser((prev) => (prev ? { ...prev, walletBalance: data.balance } : null));
+      if (data.transaction) setWalletTransactions((prev) => (data.duplicate ? prev : [data.transaction, ...prev]));
+      return { success: true, message: 'Refunded', balance: data.balance };
+    } catch (err: any) {
+      return { success: false, message: err?.message || 'Network error' };
     }
   };
 
@@ -4484,7 +4517,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     })();
   };
 
-  const addBooking = (booking: Omit<Booking, 'id' | 'createdAt'>) => {
+  const addBooking = (booking: Omit<Booking, 'id' | 'createdAt'>, charge?: WalletCharge) => {
     // Blocked users cannot make bookings
     if (currentUser?.isBlocked) {
       showToast('Your account has been suspended. Please contact support.', 'error');
@@ -4641,6 +4674,37 @@ export function AppProvider({ children }: { children: ReactNode }) {
         : s
     ));
 
+    // A wallet-paid booking that the server rejects must not keep the money: drop the local booking and credit the wallet back
+    let persisted = false;
+    let compensated = false;
+    const compensate = async (reason: string) => {
+      if (compensated || persisted) return;
+      compensated = true;
+      setBookings(prev => prev.filter(b => b.id !== newBooking.id));
+      let refunded = false;
+      const paid = charge && charge.amount > 0 ? charge : null;
+      if (paid) {
+        const referenceId = `${paid.key}:${newBooking.id}:refund`;
+        if (paid.target === 'company') {
+          const companyId = currentUser?.companyId || companyData?.id;
+          if (companyId) {
+            const res = await depositCompanyWalletApi(companyId, paid.amount, { description: `Refund: ${booking.spaceName} booking could not be confirmed`, referenceId });
+            refunded = res.success;
+            if (refunded) fetchCompanyWallet(companyId);
+          }
+        } else {
+          refunded = (await refundToWallet(paid.amount, `Refund: ${booking.spaceName} booking could not be confirmed`, referenceId)).success;
+        }
+      }
+      const suffix = paid
+        ? refunded
+          ? `SAR ${Math.round(paid.amount * 100) / 100} was returned to your wallet.`
+          : 'The wallet refund did not complete; please contact support.'
+        : '';
+      showToast(`${translateMessage(reason)}${suffix ? ' ' + translateMessage(suffix) : ''}`, 'error');
+      fetchWorkspaces();
+    };
+
     (async () => {
       try {
         const storedToken = getStoredToken();
@@ -4774,13 +4838,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
             }),
           });
 
-          if (!directRes.ok && (directRes.status === 409 || directRes.status === 400)) {
+          if (!directRes.ok && (directRes.status === 409 || directRes.status === 400 || charge?.amount)) {
             const rejection = await directRes.json().catch(() => ({} as any));
-            setBookings(prev => prev.filter(b => b.id !== newBooking.id));
-            showToast(rejection.error || 'This booking could not be confirmed. Please choose another time.', 'error');
-            fetchWorkspaces();
+            await compensate(rejection.error || 'This booking could not be confirmed. Please choose another time.');
           }
           if (directRes.ok) {
+            persisted = true;
             const dbBooking = await directRes.json();
             setDirectBookingsApi(prev => [dbBooking, ...prev]);
 
@@ -4894,13 +4957,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
                   status: 'ACTIVE',
                 }),
               });
-              if (!hbRes.ok && (hbRes.status === 409 || hbRes.status === 400)) {
+              if (!hbRes.ok && (hbRes.status === 409 || hbRes.status === 400 || charge?.amount)) {
                 const rejection = await hbRes.json().catch(() => ({} as any));
-                setBookings(prev => prev.filter(b => b.id !== newBooking.id));
-                showToast(rejection.error || 'This booking could not be confirmed. Please choose another time.', 'error');
-                fetchWorkspaces();
+                await compensate(rejection.error || 'This booking could not be confirmed. Please choose another time.');
               }
               if (hbRes.ok) {
+                persisted = true;
                 const hbData = await hbRes.json();
                 setHourlyBookingsApi(prev => [hbData, ...prev]);
 
@@ -4928,11 +4990,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
                   }),
                 }).catch(() => { });
               }
-            } catch (_) { }
+            } catch (_) {
+              if (charge?.amount) await compensate('This booking could not be saved. Please try again.');
+            }
+          } else if (charge?.amount) {
+            await compensate('This booking could not be saved. Please try again.');
           }
         }
       } catch (err) {
         console.warn('Booking DB persistence notice:', err);
+        if (charge?.amount) await compensate('This booking could not be saved. Please try again.');
       }
     })();
 
@@ -5750,7 +5817,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return { discount, safePoints };
   };
 
-  const checkoutCart = (pointsToUse: number = 0): Booking[] => {
+  const checkoutCart = (pointsToUse: number = 0, walletCharge?: { amount: number; key: string }): Booking[] => {
     if (!currentUser || cart.length === 0) return [];
 
     const rawTotal = cart.reduce((sum, item) => sum + item.itemTotal, 0);
@@ -5766,9 +5833,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const discountRatio = rawTotal > 0 ? pointsDiscount / rawTotal : 0;
 
     const newBookings: Booking[] = [];
+    const payableTotal = Math.max(0, rawTotal - pointsDiscount);
     cart.forEach((item) => {
       const itemDiscount = item.itemTotal * discountRatio;
       const finalItemPrice = Math.max(0, item.itemTotal - itemDiscount);
+      // Each booking carries its proportional share of the wallet debit so it can be refunded on its own
+      const walletShare = walletCharge && payableTotal > 0 ? Math.round(((walletCharge.amount * finalItemPrice) / payableTotal) * 100) / 100 : 0;
 
       const b = addBooking({
         userId: currentUser.id,
@@ -5793,7 +5863,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         totalPrice: finalItemPrice,
         status: 'active',
         notes: item.notes,
-      });
+      }, walletCharge && walletShare > 0 ? { amount: walletShare, key: walletCharge.key, target: 'personal' } : undefined);
       // addBooking returns undefined if user is blocked - abort checkout
       if (!b) return;
       newBookings.push(b);
@@ -6389,7 +6459,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addPaymentCard,
       cart, isCartOpen, setIsCartOpen, openCart, closeCart, addToCart, removeFromCart, updateCartItemSeats, updateCartItem, clearCart, checkoutCart,
       applyLoyaltyDiscount,
-      walletTransactions, fetchWallet, depositToWallet, withdrawFromWallet,
+      walletTransactions, fetchWallet, depositToWallet, withdrawFromWallet, refundToWallet,
       companyWalletBalance, companyData, fetchCompanyWallet, depositToCompanyWallet, withdrawFromCompanyWallet, checkSeatAvailability, fetchUnitAvailability, saveSpaceUnits,
       loyaltyRules, fetchLoyaltyRules, createLoyaltyProposal, updateLoyaltyRuleStatus, deleteLoyaltyRule,
       qrScans, fetchQrCheckIns, recordQrScan, getSpaceCrowding,

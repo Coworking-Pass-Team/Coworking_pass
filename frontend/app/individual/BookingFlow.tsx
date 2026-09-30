@@ -213,6 +213,8 @@ export default function BookingFlow() {
     }
   };
   const [seats, setSeats] = useState(1);
+  // Idempotency key of this checkout: retries and double clicks reuse it, so the wallet is debited at most once
+  const checkoutKeyRef = useRef<string>(typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `bf-${Date.now()}-${Math.random().toString(36).slice(2)}`);
   useEffect(() => {
     if (seatCap !== null && seats > seatCap) setSeats(Math.max(1, seatCap));
   }, [seatCap, seats]);
@@ -440,7 +442,7 @@ export default function BookingFlow() {
 
       // Charge the wallet first; only create the booking if the debit succeeded
       if (useWalletBalance && walletDeduction > 0 && withdrawFromWallet) {
-        const payment = await withdrawFromWallet(walletDeduction, `Booking payment for ${space.name}`);
+        const payment = await withdrawFromWallet(walletDeduction, `Booking payment for ${space.name}`, checkoutKeyRef.current);
         if (!payment.success) {
           submittingRef.current = false;
           setLoading(false);
@@ -522,7 +524,7 @@ export default function BookingFlow() {
         paidWithPass: isPassBooking,
         coveredHours: planInfo.coveredHours,
         payableHours: planInfo.payableHours,
-      });
+      }, useWalletBalance && walletDeduction > 0 ? { amount: walletDeduction, key: checkoutKeyRef.current, target: 'personal' } : undefined);
 
       setConfirmedBooking(booking);
       setStep(3);

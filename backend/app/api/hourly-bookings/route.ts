@@ -5,6 +5,7 @@ import { seedStandardWorkspaces } from '@/lib/seed-data';
 import { getKsaNow, parseDateAndTimeToKsaDate } from '@/lib/time-utils';
 import { getOccupiedSeats } from '@/lib/capacity';
 import { hiddenWorkspaceError } from '@/lib/workspace-visibility';
+import { getOwnedWorkspaceIds } from '@/lib/ownership';
 import { validateHourlyWindow, isFixedSlotSection } from '@/lib/operating-hours';
 
 
@@ -13,7 +14,24 @@ export async function GET(request: Request) {
     const user = await getTokenFromRequest(request);
     if (!user) return unauthorizedResponse(request);
 
+    // Scope the listing: super admins see everything, partners their own workspaces (plus their own bookings),
+    // HR admins their team's bookings, everyone else only their own
+    let where: any = { userId: user.userId };
+    if (user.role === 'SUPER_ADMIN') {
+      where = {};
+    } else if (user.role === 'PARTNER_ADMIN') {
+      const owned = await getOwnedWorkspaceIds(user.userId);
+      where = { OR: [{ workspaceId: { in: owned } }, { section: { workspaceId: { in: owned } } }, { userId: user.userId }] };
+    } else if (user.role === 'HR_ADMIN') {
+      const me = await prisma.user.findUnique({ where: { id: user.userId }, select: { companyId: true, hrAdminOf: { select: { id: true } } } });
+      const companyId = me?.hrAdminOf?.id ?? me?.companyId;
+      where = companyId
+        ? { OR: [{ userId: user.userId }, { user: { companyId } }] }
+        : { userId: user.userId };
+    }
+
     const bookings = await prisma.hourlyBooking.findMany({
+      where,
       orderBy: { createdAt: 'desc' },
       include: {
         user: { select: { id: true, name: true, email: true } },
