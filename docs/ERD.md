@@ -348,66 +348,65 @@ erDiagram
 ```
 
 
-> 💡 **ملاحظة للفريق:** لرؤية المخطط بشكل مرئي وتفاعلي أوضح، قم بنسخ الكود الخاص بالمخطط (Mermaid) أعلاه، والصقه في موقع [Mermaid Live Editor](https://mermaid.live).
+> 💡 **Tip:** to view the diagram visually and interactively, copy the Mermaid code above and paste it into [Mermaid Live Editor](https://mermaid.live).
 
 ---
 
-## 📌 تفصيل أقسام قاعدة البيانات (ERD Breakdown)
+## 📌 Database Breakdown (ERD Breakdown)
 
-لكي تكون هيكلة قاعدة البيانات واضحة ومقروءة لك، قمنا بتقسيمها إلى **9 أقسام رئيسية**:
+The database is organized into **9 main sections**:
 
-### 1. الكيانات الأساسية (Core Entities)
-- **`USERS`**: يخزن بيانات جميع المستخدمين (زوار، أفراد، إداريين، شركاء) وصلاحياتهم، وتأكيد البريد الإلكتروني، وحالة الإيقاف والحظر الإداري `is_banned`.
-- **`COMPANIES`**: للشركات المنضمة (B2B) وتحديد عدد العضويات المخصصة لموظفيها، بالإضافة إلى رصيد المحفظة المشتركة للمؤسسة `balance` الذي لا يتغير إلا عبر تحديثات ذرية مشروطة (Atomic Conditional Updates) وتُسجَّل كل حركة فيه في `COMPANY_WALLET_TRANSACTIONS`.
-- **`PARTNERS`**: شركاء مساحات العمل وبياناتهم الضريبية والسجل التجاري السعودي (CR / `tax_number`)، وحالة اعتماد الشريك من قِبل الـ Super Admin (`APPROVED`, `PENDING_APPROVAL`, `REJECTED`).
+### 1. Core Entities
+- **`USERS`**: all users (guests, individuals, administrators, partners), their roles, email verification, and the administrative suspension status `is_banned`.
+- **`COMPANIES`**: joined B2B companies and the number of memberships allocated to their employees, plus the organization's shared wallet balance `balance`. The balance changes only through atomic conditional updates, and every movement is recorded in `COMPANY_WALLET_TRANSACTIONS`.
+- **`PARTNERS`**: workspace partners, their tax data and Saudi commercial registration (CR / `tax_number`), and the partner approval status set by the Super Admin (`APPROVED`, `PENDING_APPROVAL`, `REJECTED`).
 
-### 2. المساحات والمرافق (Workspace & Sections)
-- **`WORKSPACES` (المقر / Hub):** المعلومات العامة للمبنى: الاسم والوصف والعنوان والمدينة بنسختين **عربية وإنجليزية** (`name`/`name_ar`، `description`/`description_ar`، `address`/`address_ar`، `city`/`city_ar`)، الإحداثيات، الصور، **ساعات التشغيل** (`opening_time`، `closing_time`، `is_24_hours`)، وحالة الظهور `is_visible`. تُحرَّر النسخة العربية يدوياً من الشريك أو الإدارة ولا تُترجم آلياً؛ وعند غيابها تُعرض النسخة الإنجليزية كبديل.
-- **`WORKSPACE_SECTIONS` (الغرف والأقسام / Rooms):** كل قسم يتبع مقراً واحداً وله نوعه (`type`: DESK / MEETING_ROOM / THEATER) ونوعه الأدق (`sub_type` مثل مكتب خاص أو قاعة تدريب) وسعته `capacity` وأسعاره (`hourly_rate`، `daily_rate`، `monthly_rate`، `yearly_rate`). الأسعار الفارغة تعود إلى أسعار المقر. تُرتبط كل الحجوزات بالقسم المختار عبر `section_id`.
-- **`HOURLY_PACKAGES`**: باقات الساعات المخصصة لقاعات الاجتماعات والمسارح (مثل: باقة 8 ساعات/شهر).
+### 2. Workspaces and Rooms (Workspace & Sections)
+- **`WORKSPACES` (the hub):** the general building information: name, description, address and city in **Arabic and English** (`name` / `name_ar`, `description` / `description_ar`, `address` / `address_ar`, `city` / `city_ar`), coordinates, photos, **operating hours** (`opening_time`, `closing_time`, `is_24_hours`) and the visibility flag `is_visible`. The Arabic version is entered by hand by the partner or administration and is never machine-translated; when it is missing, the English version is shown as a fallback.
+- **`WORKSPACE_SECTIONS` (rooms):** each section belongs to one hub and has its `type` (DESK / MEETING_ROOM / THEATER), a finer `sub_type` (for example private office or training hall), its `capacity`, and its rates (`hourly_rate`, `daily_rate`, `monthly_rate`, `yearly_rate`). Empty rates fall back to the hub's rates. All bookings link to the selected section through `section_id`.
+- **`HOURLY_PACKAGES`**: hour packages for meeting rooms and theaters (for example an 8-hours-per-month package).
 
-### 3. إدارة الميزات (Amenities Management)
-- **`AMENITIES_CATALOG`**: القاموس الشامل للميزات (الافتراضية من المنصة + التي يقترحها الشركاء وتنتظر الموافقة).
-- **`WORKSPACE_AMENITIES`**: جدول وسيط (Junction) يربط بين كل مساحة عمل والميزات المتوفرة فيها.
+### 3. Amenities Management
+- **`AMENITIES_CATALOG`**: the comprehensive amenity dictionary (platform defaults plus partner-suggested ones awaiting approval).
+- **`WORKSPACE_AMENITIES`**: a junction table linking each workspace to its available amenities.
 
-### 4. الحجوزات والعضويات (Plans & Bookings)
-- **`MEMBERSHIP_PLANS` & `SUBSCRIPTIONS`**: لتخزين العضويات الشاملة (Universal Pass) ومدة اشتراك المستخدم فيها.
-- **`DIRECT_BOOKINGS`**: الحجوزات المباشرة الثابتة للمكاتب (باليوم، الشهر، السنة) ويشمل طابور الانتظار وحالات الإلغاء والاسترجاع (`REFUNDED`).
-- **`HOURLY_BOOKINGS`**: حجوزات القاعات والمسارح بجلسات ثابتة مدتها ساعتان، مرتبطة بالقاعة المحددة `section_id` وبعدد المقاعد `seats` الذي لا يتجاوز سعتها.
+### 4. Plans and Bookings
+- **`MEMBERSHIP_PLANS` & `SUBSCRIPTIONS`**: Universal Pass memberships and the duration of a user's subscription to them.
+- **`DIRECT_BOOKINGS`**: fixed direct bookings of desks (day, month, year), including the waitlist and cancellation and refund states (`REFUNDED`).
+- **`HOURLY_BOOKINGS`**: hall and theater bookings in fixed two-hour sessions, tied to the chosen hall through `section_id` and to the number of seats `seats`, which cannot exceed its capacity.
 
-### 5. الدفع والمالية (Financial)
-- **`PAYMENTS`**: جميع عمليات الدفع والاسترداد المالي (`REFUND`) عبر البطاقات البنكية، أبل باي، أو المحفظة.
-- **`PAYOUTS`**: التسويات المالية التي تصرفها المنصة شهرياً لكل شريك بناءً على الزيارات المحققة.
+### 5. Financial
+- **`PAYMENTS`**: all payment and financial refund (`REFUND`) operations through bank cards, Apple Pay, or the wallet.
+- **`PAYOUTS`**: the financial settlements the platform pays each partner monthly based on the visits achieved.
 
-### 6. التحقق والأمان (Verification & Security)
-- **`QR_CHECK_INS`**: السجل اللحظي لمسح رموز الـ QR عند أبواب مساحات العمل للتحقق من الدخول.
-- **`OTP_CODES`**: تخزين أكواد التحقق المؤقتة لتسجيل الحسابات، تسجيل الدخول، واستعادة كلمة المرور لضمان تشفيرها ومدة صلاحيتها.
+### 6. Verification and Security
+- **`QR_CHECK_INS`**: the live log of QR scans at the workspace doors to verify entry.
+- **`OTP_CODES`**: stores temporary verification codes for account registration, sign-in and password recovery, to ensure they are hashed and time-limited.
 
-### 7. الإشعارات ونقاط الولاء (Notifications & Loyalty)
-- **`NOTIFICATIONS`**: جميع الإشعارات الصادرة (بريد أو تطبيق) لكل مستخدم وتتبع حالة قراءتها ومناسباتها المختلفة.
-- **`LOYALTY_RULES`**: اقتراحات الشركاء لقواعد النقاط والتي يراجعها الـ Super Admin للموافقة والتفعيل.
-- **`LOYALTY_POINTS` & `POINTS_TRANSACTIONS`**: رصيد كل مستخدم من النقاط وسجل الاكتساب والاستبدال.
+### 7. Notifications and Loyalty
+- **`NOTIFICATIONS`**: all outgoing notifications (email or in-app) for each user, with read tracking and the different occasions.
+- **`LOYALTY_RULES`**: partner proposals for point rules, which the Super Admin reviews for approval and activation.
+- **`LOYALTY_POINTS` & `POINTS_TRANSACTIONS`**: each user's points balance and the log of earning and redemption.
 
-### 8. المحافظ الرقمية (Digital Wallets & Ledger)
-- **`WALLETS`**: المحفظة الرقمية الخاصة بكل مستخدم، تتيح شحن الرصيد المسبق والدفع الفوري، واستقبال مبالغ الاسترداد بشكل لحظي دون انتظار مواعيد البنوك.
-- **`WALLET_TRANSACTIONS`**: سجل حركات الإيداع والسحب والاسترداد (`DEPOSIT`, `WITHDRAW`, `REFUND`) مع تتبع الرصيد بعد كل معاملة `balance_after`. يعمل `reference_id` كمفتاح عدم التكرار (Idempotency Key).
-- **`COMPANY_WALLET_TRANSACTIONS`**: دفتر حركات المحفظة المؤسسية المشتركة بنفس البنية (`DEPOSIT`, `WITHDRAW`, `REFUND`) مع `balance_after`؛ يُحذف تلقائياً مع الشركة (`ON DELETE CASCADE`).
+### 8. Digital Wallets and Ledger
+- **`WALLETS`**: each user's digital wallet, which allows prepaid top-ups, instant payment, and receiving refund amounts instantly without waiting for bank schedules.
+- **`WALLET_TRANSACTIONS`**: the log of deposit, withdrawal and refund movements (`DEPOSIT`, `WITHDRAW`, `REFUND`) that tracks the balance after each transaction `balance_after`. `reference_id` works as an idempotency key.
+- **`COMPANY_WALLET_TRANSACTIONS`**: the ledger of the corporate shared wallet with the same structure (`DEPOSIT`, `WITHDRAW`, `REFUND`) and `balance_after`; deleted automatically with the company (`ON DELETE CASCADE`).
 
-### 9. التذاكر والدعم الفني (Support Tickets)
-- **`TICKETS`**: تذاكر الدعم الفني المرفوعة من المستخدمين والشركات (بما فيها استفسارات الباقات المخصصة بفئة `enterprise`) مع النص `message` والفئة `category` والأولوية `priority` وتتبع الحالة (`OPEN`, `IN_PROGRESS`, `CLOSED`). الشركة اختيارية وتُحدَّد من سجل الطالب في الخادم.
-- **`TICKET_REPLIES`**: سجل الردود والمراسلات المتبادلة بين إدارة المنصة والمستخدم لحل المشكلات والنزاعات.
-
+### 9. Tickets and Support
+- **`TICKETS`**: support tickets raised by users and companies (with an `enterprise` category available for tailored-offer requests), with the text `message`, the `category`, the `priority`, and status tracking (`OPEN`, `IN_PROGRESS`, `CLOSED`). The company is optional and is resolved on the server from the requester's record.
+- **`TICKET_REPLIES`**: the log of replies and messages exchanged between the platform administration and the user to resolve problems and disputes.
 
 ---
 
-## 🔐 قواعد سلامة البيانات (Data Integrity Rules)
+## 🔐 Data Integrity Rules
 
-| القاعدة | التطبيق |
+| Rule | Enforcement |
 | :--- | :--- |
-| **الحجز مرتبط بالقسم** | كل `DIRECT_BOOKINGS` و`HOURLY_BOOKINGS` يحمل `section_id` للغرفة المحجوزة؛ والقسم لا يُحذف إن كان عليه حجوزات أو تسجيلات دخول. |
-| **السعة لكل غرفة** | الحجز المباشر يُقارن بمجموع مقاعد الغرفة نفسها عند تعدد الغرف في المقر، وبسعة المقر عند وجود غرفة واحدة. |
-| **جلسات القاعات والمسارح** | جلسة ثابتة مدتها ساعتان بين `opening_time` و`closing_time` وتنتهي بحد أقصى 10:00 م؛ والغرفة تُحجز لجلسة واحدة في كل مرة (لا تداخل زمني على نفس `section_id`)، ولا تُقفل بقية اليوم. |
-| **الأرصدة** | تُخصم بتحديث ذري مشروط داخل معاملة قاعدة بيانات (`balance >= amount`)؛ ولا يمكن للرصيد أن يصبح سالباً. |
-| **عدم التكرار** | مفتاح `reference_id` لنفس المحفظة ونفس النوع يُطبَّق مرة واحدة فقط، لمنع الخصم أو الاسترداد المزدوج. |
-| **الحذف المتسلسل** | حذف مستخدم أو شريك يزيل بياناتهما التابعة بالترتيب الصحيح عبر `cascade-delete` دون كسر المفاتيح الأجنبية. |
-| **إخفاء المساحات** | المقر ذو `is_visible = false` لا يظهر ولا يُحجز لغير المشرف ومالك المقر، ويُفرض ذلك في الخادم. |
+| **A booking is tied to a room** | Every `DIRECT_BOOKINGS` and `HOURLY_BOOKINGS` row carries the `section_id` of the booked room; a section cannot be deleted while it has bookings or check-ins. |
+| **Capacity per room** | A direct booking is compared with the seats of the room itself when a hub has several rooms, and with the hub's capacity when it has a single room. |
+| **Hall and theater sessions** | A fixed two-hour session between `opening_time` and `closing_time` that ends by 10:00 PM at the latest; a room is booked for one session at a time (no time overlap on the same `section_id`), and the rest of the day is not locked. |
+| **Balances** | Deducted with an atomic conditional update inside a database transaction (`balance >= amount`); a balance can never become negative. |
+| **Idempotency** | A `reference_id` key for the same wallet and the same type is applied only once, to prevent double deduction or double refund. |
+| **Cascading deletion** | Deleting a user or partner removes their dependent data in the correct order through `cascade-delete` without breaking foreign keys. |
+| **Hidden spaces** | A hub with `is_visible = false` is neither shown nor bookable for anyone except the administrator and the hub's owner, enforced on the server. |

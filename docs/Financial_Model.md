@@ -1,59 +1,62 @@
-# النموذج المالي (Financial Model) - Coworking Pass
+# Financial Model — Coworking Pass
 
-يحدد هذا المستند الهيكل المالي للمنصة، طرق تحقيق الإيرادات، اقتصاديات المحافظ الرقمية، وكيفية حساب تسويات الشركاء ونقاط الولاء.
+This document defines the platform's financial structure: how revenue is generated, digital wallet economics, and how partner settlements and loyalty points are calculated.
 
-## 1. مصادر الإيرادات (Revenue Streams)
-تعتمد المنصة على مصادر رئيسية للإيرادات:
-* **عمولة الحجوزات المباشرة:** استقطاع نسبة مئوية (مثلاً 15%) من كل عملية حجز مباشر (يومي/شهري/سنوي) للمكاتب والمسارح.
-* **اشتراكات العضوية الشاملة (Universal Pass):** بيع العضويات المرنة (شهرية وسنوية) للأفراد والشركات (B2C & B2B) وتحصيل المبالغ مقدماً.
-* **مبيعات باقات الساعات:** بيع باقات مرنة لحجز قاعات الاجتماعات والمسارح (مثل باقة 8 ساعات شهرياً).
-* **عوائد السيولة النقدية المسبقة (Float from Wallets):** المبالغ المشحونة مسبقاً في المحافظ الرقمية الفردية ورصيد الشركات (`Company.balance`) توفر تدفقاً نقدياً تشغيلياً قوياً (Operating Cash Float) للمنصة قبل استهلاك الخدمات الفعلية.
-
----
-
-## 2. آلية تعويض الشركاء (Partner Payouts)
-لضمان عدالة النظام وتشجيع الشركاء على الانضمام، يتم تعويضهم كالتالي:
-* **حجوزات المكاتب والقاعات المباشرة:** يتم تحويل قيمة الحجز كاملة للشريك بعد خصم "عمولة المنصة". (مثال: حجز بـ 100 ريال - 15 ريال عمولة = 85 ريال مستحقة للشريك).
-* **حاملي العضوية الشاملة (Universal Pass):** العميل لا يدفع للشريك مباشرة. بدلاً من ذلك، المنصة هي من تدفع للشريك **"مبلغاً ثابتاً عن كل زيارة" (Pass Visit Value)**. 
-  * *مثال:* إذا كانت القيمة المتفق عليها 30 ريال، وزار العميل المساحة 5 مرات هذا الشهر عبر مسح الـ QR المؤكد، يتم دفع 150 ريال للشريك.
-* **دورة الصرف:** يتم تشغيل تسوية مالية شهرية في اليوم الأول من كل شهر ميلادي لجميع مسحات الـ QR المؤكدة، وتُصرف لحسابات الشركاء البنكية التجارية بعد التحقق من مطابقة السجل التجاري.
+## 1. Revenue Streams
+The platform relies on these main sources of revenue:
+* **Direct booking commission:** a percentage (for example 15%) is deducted from every direct booking (daily, monthly or yearly) of desks, rooms and theaters.
+* **Universal Pass subscriptions:** selling flexible memberships (monthly and yearly) to individuals and companies (B2C and B2B) and collecting the amounts in advance.
+* **Hour package sales:** selling flexible packages for booking meeting rooms and theaters (for example an 8-hours-per-month package).
+* **Float from wallets:** amounts prepaid into individual digital wallets and company balances (`Company.balance`) give the platform a strong operating cash float before the services are actually consumed.
 
 ---
 
-## 3. اقتصاديات المحافظ الرقمية ومحرك الاسترجاع (Digital Wallet & Refund Economics)
-يوفر نظام المحفظة الرقمية المدمج (`Wallet` و `WalletTransaction`) وفورات تشغيلية واقتصادية مباشرة للمنصة:
+## 2. Partner Payouts
+To keep the system fair and encourage partners to join, they are compensated as follows:
+* **Direct desk, room and hall bookings:** the full booking value is transferred to the partner after the platform commission is deducted. (Example: a 100 SAR booking − 15 SAR commission = 85 SAR due to the partner.)
+* **Universal Pass holders:** the customer does not pay the partner directly. Instead, the platform pays the partner a **fixed amount per visit (Pass Visit Value)**.
+  * *Example:* if the agreed value is 30 SAR and the customer visits the space 5 times this month with confirmed QR scans, 150 SAR is paid to the partner.
+* **Payout cycle:** a monthly financial settlement runs on the first day of each Gregorian month for all confirmed QR scans, and is paid to the partners' commercial bank accounts after their commercial registration is verified as matching.
 
-| المعيار | الاسترجاع للبطاقة البنكية (Gateway Refund) | الاسترجاع الفوري للمحفظة (Instant Wallet Refund) |
+---
+
+## 3. Digital Wallet and Refund Economics
+The built-in digital wallet system (`Wallet` and `WalletTransaction`) delivers direct operational and economic savings to the platform:
+
+| Criterion | Refund to the bank card (Gateway Refund) | Instant wallet refund (Instant Wallet Refund) |
 | :--- | :--- | :--- |
-| **زمن التنفيذ للعميل** | 5 إلى 14 يوم عمل | **لحظي فوري (0 ثانية)** |
-| **رسوم بوابة الدفع** | غير مستردة وتتحملها المنصة (1.5% - 2.5% + ثابت) | **0% رسوم استرجاع إضافية** |
-| **حفظ السيولة داخل المنصة** | خروج الأموال خارج النظام البنكي للمنصة | **بقاء الأموال 100% داخل المنصة** لإعادة الحجز |
-| **رضا العميل وولاؤه** | متوسط (بسبب انتظار البنك) | **مرتفع جداً** (سرعة ومرونة وإعادة استخدام) |
+| **Time to the customer** | 5 to 14 business days | **Instant (0 seconds)** |
+| **Payment gateway fees** | Not refunded and borne by the platform (1.5% – 2.5% + fixed) | **0% additional refund fees** |
+| **Keeping liquidity inside the platform** | Money leaves the platform's banking system | **100% of the money stays inside the platform** for rebooking |
+| **Customer satisfaction and loyalty** | Medium (because of the bank wait) | **Very high** (speed, flexibility and reuse) |
 
-* **شمولية محرك الاسترجاع للباقات والاشتراكات:**
-  - يغطي نظام الاسترجاع كلاً من الحجوزات المباشرة، باقات الساعات لقاعات الاجتماعات (إعادة الساعات غير المستهلكة أو استرداد قيمتها)، وباقات العضوية الشاملة (Universal Pass) قبل سريانها.
-  - خيار الاسترجاع الفوري للمحفظة يحمي المنصة من نزيف رسوم الاسترداد البنكية (Gateway Chargebacks) ويضمن بقاء القوة الشرائية للباقات داخل المنظومة.
-* **المحفظة المؤسسية للشركات (B2B Shared Balance):**
-  - تتيح للشركات إيداع مبالغ مجمعة تغطي استهلاك الموظفين.
-  - تقلل من عدد العمليات البنكية الدقيقة، مما يوفر رسوم بوابات الدفع (Payment Gateway Interchange Fees) ويجعل تكلفة المعالجة ثابتة ومحسوبة مقدماً.
-
----
-
-## 4. اقتصاد نقاط الولاء (Loyalty Points Economics)
-تم تصميم برنامج الولاء ليكون مستداماً ولا يؤثر سلباً على الأرباح الصافية للمنصة:
-* **معدل الاكتساب الأساسي:** يكتسب العميل [10 نقاط] مقابل كل 100 ريال مدفوعة.
-* **القيمة النقدية للنقطة:** كل 100 نقطة تساوي خصم [25 ريال].
-* **المسؤولية المالية:** المنصة تتحمل تكلفة نقاط الولاء الأساسية للتشجيع على الاستخدام. في حال اقترح الشريك إعطاء عملاء مساحته "نقاط مضاعفة" (كعرض ترويجي)، فإن الشريك يتحمل التكلفة الإضافية من مستحقاته.
+* **Scope of the refund engine for packages and subscriptions**
+  - The refund system covers direct bookings, hour packages for meeting rooms (returning unused hours or refunding their value), and Universal Pass packages before they take effect.
+  - The instant wallet refund option protects the platform from bleeding bank refund fees (gateway chargebacks) and keeps the purchasing power of the packages inside the ecosystem.
+* **Wallet integrity**
+  - Wallet deductions are atomic and conditional on sufficient balance, and each payment carries an idempotency key, so a duplicate click or retry cannot double-charge a customer or double-refund them.
+  - If a wallet-paid booking is rejected by the server, its share of the amount is returned to the same wallet automatically.
+* **The corporate wallet (B2B shared balance)**
+  - Lets companies deposit pooled amounts that cover their employees' consumption, recorded in a dedicated ledger (`CompanyWalletTransaction`).
+  - Reduces the number of small bank transactions, which saves payment gateway interchange fees and makes the processing cost fixed and calculated in advance.
 
 ---
 
-## 5. توقعات الإيرادات الافتراضية (Financial Projections)
-لغرض التخطيط (MVP)، تم افتراض الأرقام التالية للربع الأول بعد الإطلاق:
+## 4. Loyalty Points Economics
+The loyalty program is designed to be sustainable and not to harm the platform's net profit:
+* **Base earning rate:** the customer earns [10 points] for every 100 SAR paid.
+* **Cash value of a point:** every 100 points equal a [25 SAR] discount.
+* **Financial responsibility:** the platform bears the cost of base loyalty points to encourage usage. If a partner proposes to give their space's customers "multiplied points" (as a promotional offer), the partner bears the additional cost from their dues.
 
-| البند | العدد المتوقع | متوسط القيمة | الإيراد الإجمالي المتوقع |
+---
+
+## 5. Assumed Financial Projections
+For planning purposes (MVP), the following figures are assumed for the first quarter after launch:
+
+| Item | Expected count | Average value | Expected total revenue |
 | :--- | :--- | :--- | :--- |
-| الحجوزات المباشرة | 1000 حجز | 150 ريال | 150,000 ريال |
-| العضويات الشاملة المباعة | 500 عضوية | 900 ريال | 450,000 ريال |
-| باقات ساعات القاعات | 200 باقة | 400 ريال | 80,000 ريال |
-| الودائع بالمحافظ الرقمية والشركات | 100 وديعة | 1,000 ريال | 100,000 ريال (رصيد سيولة عائم) |
-| **إجمالي الإيرادات والسيولة المتدفقة** | | | **780,000 ريال** |
+| Direct bookings | 1,000 bookings | 150 SAR | 150,000 SAR |
+| Universal Passes sold | 500 memberships | 900 SAR | 450,000 SAR |
+| Hall hour packages | 200 packages | 400 SAR | 80,000 SAR |
+| Digital wallet and company deposits | 100 deposits | 1,000 SAR | 100,000 SAR (floating liquidity balance) |
+| **Total revenue and liquidity inflow** | | | **780,000 SAR** |

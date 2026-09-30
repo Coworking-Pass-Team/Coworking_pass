@@ -1,175 +1,174 @@
-# وثيقة متطلبات المنتج (PRD) - Coworking Pass 🚀
+# Product Requirements Document (PRD) — Coworking Pass
 
-## 1. رؤية المنتج والخلفية
-يشهد سوق العمل في المملكة العربية السعودية تحولاً هائلاً نحو نماذج العمل الهجين والمرن. ومع ذلك، يعاني سوق مساحات العمل المشتركة الحالي من مشكلة "تقييد العميل" (Vendor Lock-in)، حيث يُضطر الأفراد والشركات لشراء اشتراكات منفصلة لكل علامة تجارية على حدة.
-تهدف منصة **Coworking Pass** لتكون المنصة التجميعية (Aggregator) الأولى والشبكة الموحدة لحجز مساحات العمل في السعودية. المنصة تتيح للمستخدمين إما حجز مساحة معينة مباشرة، أو استخدام "العضوية الشاملة" للتنقل بحرية بين مساحات عمل متعددة (مثل ريجس، زمكان) في مدن مختلفة باشتراك واحد فقط.
+## 1. Product Vision and Background
+Saudi Arabia's labor market is moving quickly toward hybrid and flexible work. Today's coworking market, however, suffers from vendor lock-in: individuals and companies must buy a separate subscription for every brand.
 
-## 2. النطاق الجغرافي وطرق الدفع
-* **السوق المستهدف:** المملكة العربية السعودية (الإطلاق المبدئي يستهدف الرياض، جدة، والدمام).
-* **بوابات الدفع والمحافظ الرقمية:** تدعم المنصة عمليات الدفع الإلكتروني عبر بطاقات مدى (Mada)، فيزا (Visa)، ماستركارد (MasterCard)، و Apple Pay، بالإضافة إلى **المحفظة الرقمية الداخلية (Digital Wallet)** التي تتيح الشحن المسبق والاسترداد المالي اللحظي، مع محاكاة دفع تجريبية (Mock Gateway) في بيئة الاختبار.
+**Coworking Pass** is designed to be the first aggregator and unified network for booking workspaces in Saudi Arabia. Users can either book a specific space directly, or use a **Universal Pass** to move freely between many partner spaces (for example Regus or Zamakan) in different cities with a single subscription.
 
-## 3. المشكلة والحل
-* **المشكلة:**
-  - المستخدمون مقيدون بالتواجد في موقع مساحة عمل واحد فقط.
-  - الشركات تواجه تكاليف عالية لاستئجار مكاتب دائمة أو التفاوض مع عدة مزودين.
-  - أصحاب مساحات العمل يعانون من انخفاض نسبة الإشغال في أوقات غير الذروة.
-* **الحل:**
-  - منصة واحدة تقدم نموذجاً مزدوجاً: حجوزات مباشرة مبنية على المدة، وعضويات شاملة موحدة. يشمل الحل نظام فواتير مؤتمت ومحفظة مشتركة للشركات (B2B)، ونظام طابور انتظار ذكي (Waitlist)، ومحرك استرجاع مؤتمت، ونظام تحقق واعتماد للسجلات التجارية لشركاء المساحات، وتسويات مالية تلقائية.
+## 2. Geographic Scope and Payment Methods
+* **Target market:** the Kingdom of Saudi Arabia. The initial launch targets Riyadh, Jeddah and Dammam.
+* **Payment gateways and wallets:** online payment via Mada, Visa, MasterCard and Apple Pay, plus an internal **Digital Wallet** that supports prepaid top-ups and instant refunds. A mock payment gateway is used in the test environment.
 
-## 4. نموذج العمل المزدوج (هام جداً)
-بناءً على التوجيهات الإدارية، تدعم المنصة نموذجين تشغيليين منفصلين:
-1. **النموذج أ: الحجز المباشر (مبني على المدة):**
-   يستطيع المستخدمون تصفح وحجز مساحة عمل محددة لفترة ثابتة.
-   * **المدد المسموحة للمكاتب المشتركة:** يومي، شهري، وسنوي **فقط**.
-   * **قيد صارم:** يُمنع حجز المكاتب المفتوحة بالساعات (Hourly) لتجنب الفوضى التشغيلية لشركاء المساحات.
-2. **النموذج ب: العضوية الشاملة (Universal Pass):**
-   يمكن للمستخدمين أو الشركات شراء "عضوية شاملة" (يومي، شهري، أو سنوي). هذه العضوية تمنح العميل صلاحية الدخول لأي مساحة عمل شريكة في الشبكة. **لضمان الاستخدام العادل ومنع حجز مقاعد وهمية في عدة مساحات بالوقت ذاته، يجب على حامل العضوية الشاملة حجز مقعد في مساحة واحدة محددة فقط في كل مرة لكي يتمكن من استخدام عضويته فيها. يمكنه لاحقاً الإلغاء والانتقال لمساحة أخرى مجاناً.**
+## 3. Problem and Solution
+* **Problems**
+  - Users are tied to a single workspace location.
+  - Companies face high costs when leasing permanent offices or negotiating with several providers.
+  - Workspace owners suffer from low occupancy outside peak hours.
+* **Solution**
+  - One platform with a dual model: direct duration-based bookings and unified Universal Pass memberships. It includes automated billing, a shared corporate wallet for B2B customers, a smart waitlist, an automated refund engine, commercial-registration verification for space partners, and automatic financial settlements.
 
-## 5. شخصيات المستخدمين (User Personas)
-1. **الزائر (Guest):** يتصفح الموقع لاستكشاف المساحات، رؤية المرافق، والأسعار دون الحاجة لإنشاء حساب.
-2. **المستخدم الفرد (B2C Member):** (مستقل/موظف عن بعد) يحجز مساحات معينة مباشرة، أو يشتري العضوية الشاملة، ويدير محفظته الرقمية ونقاط ولائه، ويرفع تذاكر دعم فني عند الحاجة.
-3. **مدير الموارد البشرية (B2B HR Admin):** يمثل شركة. يمتلك لوحة تحكم لإدارة رصيد الشركة المشترك (`Company.balance`) وتوزيع العضويات على الموظفين ومتابعة استهلاكهم.
-4. **الشريك / صاحب المساحة (Workspace Partner):** مالك أو مدير مساحة العمل. يتطلب تسجيله إدخال السجل التجاري السعودي (CR / `taxNumber`)، ويدخل حسابه في وضع المعلق (`PENDING_APPROVAL`) حتى اعتماده من الإدارة. يستخدم بوابة مخصصة لإدارة فروعه وأقسامه، تتبع الزوار القادمين، مسح أكواد الـ QR، واقتراح الميزات وقواعد النقاط.
-5. **مدير النظام العالي (Super Admin):** مالك المنصة. يدير اعتمادات الشركاء الجدد والتحقق من سجلاتهم التجارية، يحل التذاكر والنزاعات، يدير حظر وفك حظر المستخدمين (`isBanned`)، وينفذ التسويات المالية الشهرية المؤتمتة.
+## 4. Dual Business Model
+By management direction, the platform supports two separate operating models:
+1. **Model A — Direct booking (duration-based).** Users browse and book a specific workspace for a fixed period.
+   * **Allowed durations for shared desks:** daily, monthly and yearly **only**.
+   * **Strict rule:** open desks cannot be booked by the hour, to avoid operational chaos for space partners.
+2. **Model B — Universal Pass.** Users or companies buy a daily, monthly or yearly membership that grants access to any partner workspace in the network. **To guarantee fair use and prevent phantom seat bookings in several spaces at once, a pass holder may hold a seat in only one specific space at a time. They can later cancel and move to another space for free.**
 
-## 6. مؤشرات الأداء الرئيسية (KPIs)
-* استقطاب 50 علامة تجارية شريكة في 10 مدن خلال الربع الأول مع اكتمال توثيق سجلاتهم التجارية.
-* تحقيق 10,000 حركة تسجيل دخول ناجحة عبر مسح الـ QR Code في أول 6 أشهر.
-* تحويل 40% من مستخدمي (طابور الانتظار) إلى حجوزات مدفوعة ومؤكدة.
-* توقيع عقود B2B مع 20 شركة كبرى وتفعيل المحافظ المشتركة لهم.
-* تحقيق نسبة استرداد نقاط ولاء لا تقل عن 25% من إجمالي النقاط المكتسبة خلال أول سنة.
-* خفض زمن الاسترداد المالي الفوري إلى 0 دقيقة لحسابات المحافظ الرقمية.
+## 5. User Personas
+1. **Guest:** browses the site to explore spaces, amenities and prices without creating an account.
+2. **Individual member (B2C):** a freelancer or remote employee who books spaces directly or buys the Universal Pass, manages a digital wallet and loyalty points, and opens support tickets when needed.
+3. **HR administrator (B2B):** represents a company. Has a dashboard to manage the shared company balance (`Company.balance`), distribute memberships to employees and monitor consumption.
+4. **Workspace partner:** the owner or manager of a workspace. Registration requires a Saudi commercial registration number (CR / `taxNumber`), and the account stays `PENDING_APPROVAL` until the administration approves it. Uses a dedicated portal to manage venues and rooms, track visitors, scan QR codes, and propose amenities and loyalty rules.
+5. **Super Admin:** the platform owner. Approves new partners and verifies their commercial registrations, resolves tickets and disputes, suspends and reinstates users (`isBanned`), and runs the automated monthly financial settlements.
 
-## 7. أقسام المساحات القابلة للحجز (Workspace Sections)
-### 7.0 هيكلية المقر والغرف (Hub → Rooms / Sections)
-لا تُعامل المنصة المقر الواحد ككيان واحد؛ فالمبنى الفعلي قد يضم مكاتب وقاعات اجتماعات ومسارح بسعات وأسعار مختلفة، ولذلك تُنمذج المساحة كتسلسل هرمي من مستويين:
+## 6. Key Performance Indicators (KPIs)
+* Onboard 50 partner brands in 10 cities in the first quarter, each with a verified commercial registration.
+* Reach 10,000 successful QR check-ins in the first 6 months.
+* Convert 40% of waitlist users into paid, confirmed bookings.
+* Sign B2B contracts with 20 large companies and activate their shared wallets.
+* Reach a loyalty redemption rate of at least 25% of earned points within the first year.
+* Bring the time to refund into a digital wallet to 0 minutes.
 
-| المستوى | المحتوى |
+## 7. Bookable Workspace Structure
+
+### 7.0 Hub → Rooms / Sections Hierarchy
+A venue is not treated as a single entity. A physical building may contain desks, meeting rooms and theaters with different capacities and prices, so a workspace is modeled as a two-level hierarchy:
+
+| Level | Content |
 | :--- | :--- |
-| **المقر (Hub / Workspace)** | البيانات العامة للمبنى: الاسم، المدينة، العنوان، الصور، المرافق العامة، ساعات التشغيل، حالة الظهور. |
-| **الغرف / الأقسام (Rooms / Sections)** | تتبع المقر ولكل منها: الاسم (مثل قاعة اجتماعات أ، مسرح كبار الشخصيات، مكاتب مخصصة)، النوع (قاعة اجتماعات، قاعة تدريب، قاعة فعاليات، مسرح، مكتب مخصص، مكتب خاص، مكتب مشترك)، السعة بالمقاعد، والأسعار (بالساعة/يومي/شهري/سنوي). |
+| **Hub (Workspace)** | General building details: name, city, address, photos, general amenities, operating hours, visibility. |
+| **Rooms / Sections** | Belong to the hub. Each has a name (for example Meeting Hall A, VIP Theater, Dedicated Desks), a type (meeting room, training hall, event hall, theater, dedicated desk, private office, hot desk), a seating capacity, and its own rates (hourly, daily, monthly, yearly). |
 
-* **نموذج الشريك:** يضيف الشريك (أو المشرف) غرفاً عبر زر **"+ إضافة غرفة / قسم"** في قسم "المرافق والأقسام" داخل نموذج إضافة/تعديل المساحة. الأسعار الفارغة في الغرفة تعود إلى أسعار المقر، والمقر بلا غرف يُحجز كمساحة واحدة كما في السابق.
-* **تجربة العميل:** في صفحة التفاصيل ومسار الحجز يختار العميل الغرفة؛ فتتغير الباقات المتاحة والسعر والسعة وشبكة الجلسات بحسب الغرفة المختارة (قاعة بالساعة، أو مكتب بالخطة اليومية/الشهرية/السنوية).
-* **الربط بالحجز:** كل حجز (مباشر أو بالساعة) يُربط مباشرة بالغرفة المختارة `sectionId`، وتُحسب السعة والتوفر على مستوى الغرفة.
-* **السلة المختلطة:** يمكن إتمام دفعة واحدة تجمع قاعة بالساعة ومسرحاً ومكتباً يومياً؛ ويُحفظ كل عنصر وفق خطته لا وفق نمط المقر الافتراضي.
+* **Partner workflow:** the partner (or an admin) adds rooms with the **"+ Add Room / Section"** button in the "Facilities & Sections" block of the add/edit workspace form. Empty rates in a room fall back to the hub's rates. A hub without rooms is booked as a single space, as before.
+* **Customer experience:** on the details page and in the booking flow the customer selects a room. The available plans, price, capacity and session grid all update to the selected room (an hourly hall, or a desk with daily, monthly or yearly plans).
+* **Booking link:** every booking (direct or hourly) links directly to the selected room through `sectionId`, and capacity and availability are calculated per room.
+* **Mixed cart:** one checkout can combine an hourly hall, a theater and a daily office. Each item is saved according to its own plan, not the hub's default mode.
 
-كل غرفة تنتمي إلى **فئتين** موحدتين برمجياً وتشغيلياً، لكل منهما نموذج حجز وآلية عمل موحدة:
+Each room belongs to one of **two** categories that are unified in software and operations, each with its own booking model:
 
-### أ. المكاتب المشتركة (Shared Desks / Hot Desks)
-مقاعد عمل مفتوحة في المساحة المشتركة، متاحة للأفراد والفرق.
-* **نظام الحجز:** يومي، شهري، أو سنوي **فقط** (لا حجز بالساعات).
-* **يدعم:** الحجز المباشر، العضوية الشاملة (Universal Pass)، وطابور الانتظار.
+### A. Shared Desks / Hot Desks
+Open work seats in the shared area, available to individuals and teams.
+* **Booking model:** daily, monthly or yearly **only** (no hourly booking).
+* **Supports:** direct booking, the Universal Pass, and the waitlist.
 
-### ب. قاعات الاجتماعات والمسارح (Meeting Rooms & Theaters / Auditoriums) [فئة موحدة]
-غرف وقاعات مجهزة بشاشات عرض، معدات اجتماعات، منصات تقديم، وأنظمة صوت ومرئيات متقدمة لإقامة الاجتماعات، العروض التقديمية، الفعاليات، وورش العمل.
-* **نظام الحجز:** باقات ساعات مرنة موحدة (ساعات/يوم أو ساعات/شهر).
-* **آلية العمل والتكامل مع العضوية الشاملة:**
-  - **مشمولة برصيد ساعات موحد للعضوية الشاملة (Meeting Room & Theater Credits):** تشترك قاعات الاجتماعات والمسارح في نفس الفئة ونفس رصيد الساعات المعتمد للباقات الشهرية والسنوية (تتضمن الباقة الشهرية 8 ساعات شهرياً، والسنوية 12 ساعة شهرياً، وباقات الشركات من 10 ساعات شهرياً وصولاً إلى باقات الحجز غير المحدود*)، حيث يستطيع حامل الباقة استهلاك ساعاته الممنوحة إما في قاعات الاجتماعات أو في المسارح لتقديم العروض وورش العمل بحرية تامة وتكافؤ كامل.
-  - **ضابط باقات الحجز غير المحدود وسياسة الاستخدام العادل (Fair Use Policy):** لمنع الاستغلال واحتكار الموارد (كأن تحجز شركة آلاف الحجوزات التعسفية)، يُعرض الحساب في الواجهة كـ **"حجز غير محدود*" (Unlimited*)** تماشياً مع العرض التسويقي، ولكنه مقيد تقنياً وقانونياً بشرط سياسة الاستخدام العادل: **بحد أقصى 5 حجوزات في الأسبوع (Max 5 bookings per week)** لكل مستخدم أو موظف نشط.
-  - **حجز مباشر ومستقل بالساعات أو الفعاليات:** يُتاح الحجز المستقل بالكامل بالساعات للأفراد والشركات والجهات المنظمة غير المشتركين بالعضوية الشاملة (كالزوار لحضور اجتماع أو منظمي الفعاليات لاستئجار مسرح)، أو لمشتركي العضويات عند استنفاد رصيد الساعات الممنوحة في باقتهم ورغبتهم في شراء ساعات إضافية.
-  - **توحيد حسبة النقاط ومكافآت الولاء:** تخضع قاعات الاجتماعات والمسارح لنفس معادلة احتساب نقاط الولاء ومعدل الاسترداد عند الدفع المباشر أو استهلاك الباقات بالساعة، لكونهما يمثلان نفس الفئة البرمجية والتشغيلية في المنصة.
-  - **الجلسات الثابتة وساعات التشغيل:** تُحجز القاعات والمسارح في **جلسات ثابتة مدتها ساعتان** (يفصل بين الجلسة والتي تليها ساعة تجهيز) داخل ساعات تشغيل المقر (`openingTime` إلى `closingTime`) وبحد أقصى انتهاء **10:00 مساءً**. يرفض النظام أي وقت خارج ساعات التشغيل أو أي مدة غير ساعتين.
-  - **التوفر لكل جلسة وغرفة:** تُقيَّم السعة والتوفر ومؤشر (متاح / مزدحم) **على مستوى الجلسة المختارة والغرفة المختارة**، فحجز الغرفة من 11:00 إلى 1:00 لا يعني أن اليوم كله ممتلئ؛ تبقى الجلسة 2:00–4:00 متاحة بسعتها الكاملة (مثلاً 15/15). الجلسات المحجوزة تظهر معطلة، وعدد المقاعد لا يتجاوز سعة الغرفة.
+### B. Meeting Rooms and Theaters / Auditoriums (one unified category)
+Rooms and halls equipped with display screens, meeting equipment, presentation stages and advanced audio-visual systems for meetings, presentations, events and workshops.
+* **Booking model:** unified flexible hour packages (hours per day or hours per month).
+* **How it works and how it integrates with the Universal Pass:**
+  - **Covered by a unified hours credit (Meeting Room & Theater Credits):** meeting rooms and theaters share the same category and the same hours credit that comes with monthly and yearly passes (the monthly pass includes 8 hours per month, the yearly pass 12 hours per month, and corporate passes from 10 hours per month up to unlimited-booking plans*). A pass holder can spend their hours in either meeting rooms or theaters, on equal terms.
+  - **Unlimited-booking plans and Fair Use Policy:** to prevent abuse and hoarding (for example a company making thousands of arbitrary bookings), the plan is displayed as **"Unlimited*"** in line with the marketing offer, but is technically and contractually limited by the fair-use rule of **at most 5 bookings per week** per active user or employee.
+  - **Direct, standalone hourly or event booking:** individuals, companies and event organizers who do not hold a Universal Pass can book by the hour (for example visitors attending a meeting, or organizers renting a theater), as can pass holders who have used up their hours and wish to buy more.
+  - **Unified loyalty points:** meeting rooms and theaters follow the same loyalty earning formula and redemption rate for direct payment or hourly package consumption, as they are the same software and operational category.
+  - **Fixed sessions and operating hours:** halls and theaters are booked in **fixed 2-hour sessions** (with a 1-hour turnaround between sessions) inside the venue's operating hours (`openingTime` to `closingTime`), and each session must end by **10:00 PM**. The system rejects any time outside operating hours or any duration other than two hours.
+  - **Availability per session and per room:** capacity, availability and the available/busy indicator are evaluated **for the selected session and the selected room**, not for the whole day. A room booked from 11:00 to 13:00 does not make the day full; the 14:00–16:00 session stays available at full capacity (for example 15/15). Booked sessions are shown disabled, and the number of seats cannot exceed the room's capacity.
 
-### التحقق وإدارة الحسابات (Authentication & Account Verification):
-* **التحقق من رقم الجوال ومفتاح الدولة (International Country Code Picker):**
-  - **قائمة دول منسدلة + مكتبة معيارية:** تم اعتماد الحل الأفضل والمتبع عالمياً بتوفير قائمة منسدلة لمفاتيح الدول (Country Code Picker) مع مكتبة معيارية لمعالجة والتحقق من أرقام الهواتف، بدلاً من الفحص برمز تعبيري سعودي ثابت (Fixed Saudi Regex).
-  - **الدولة الافتراضية:** تظهر المملكة العربية السعودية (`+966`) افتراضياً مع علم المملكة 🇸🇦 لتسهيل التجربة على الشريحة الكبرى من المستخدمين.
-  - **الدعم العالمي الشامل:** إمكانية تغيير الدولة لأي دولة في العالم (مثل الإمارات `+971`، مصر `+20`، بريطانيا `+44`، أمريكا `+1`، إلخ).
-  - **التحقق البرمجي المعياري:** فحص ديناميكي يطابق المعايير الدولية (مثل `libphonenumber-js` وفق صيغة E.164) للتحقق من صحة عدد الخانات وتركيبة الرقم حسب كل دولة.
-* **التحقق عبر البريد الإلكتروني (OTP):**
-  - **عند إنشاء الحساب:** يُرسل كود تحقق مؤقت (OTP) عبر البريد الإلكتروني (عبر مزود Resend) لتأكيد ملكية الحساب قبل التفعيل.
-  - **عند استعادة كلمة المرور وتسجيل الدخول:** حماية الجلسات وتأكيد هوية المستخدم عبر أكواد مشفرة ذات صلاحية محددة.
+### Authentication and Account Verification
+* **Phone verification and international country-code picker**
+  - **Drop-down list plus a standard library:** the best-practice solution is adopted — a country-code picker combined with a standard phone-number library — instead of a fixed Saudi regular expression.
+  - **Default country:** Saudi Arabia (`+966`) with the 🇸🇦 flag, to ease the experience for the largest user segment.
+  - **Global support:** the user can switch to any country (for example UAE `+971`, Egypt `+20`, UK `+44`, USA `+1`).
+  - **Standard validation:** dynamic checks against international rules (for example `libphonenumber-js`, E.164 format) for the number of digits and the structure of each country's numbers.
+* **Email verification (OTP)**
+  - **At sign-up:** a temporary one-time code is emailed (through Resend) to confirm ownership before the account is activated.
+  - **At password recovery and login:** sessions are protected and identity is confirmed with time-limited encrypted codes.
 
-## 8. نظام إدارة الميزات والخدمات (Amenities Management)
-نظام ذكي لإدارة الخدمات والمرافق المتوفرة في كل مساحة عمل:
-1. **ميزات افتراضية من المنصة:** قائمة أساسية معتمدة مسبقاً (إنترنت سريع، قهوة مجانية، طابعة، خدمة تنظيف، مواقف سيارات، إلخ).
-2. **تخصيص الشريك:** يقوم مدير المساحة (Partner Admin) باختيار الميزات المتوفرة في مساحته لتظهر للعملاء.
-3. **اقتراح ميزات جديدة (Custom Amenities):**
-   - يستطيع الشريك اقتراح ميزة جديدة عبر بوابته.
-   - يُحال الطلب إلى **مدير النظام العالي (Super Admin)** للمراجعة.
-   - **القرار:** القبول (فتُدرج في القاموس الرسمي لكافة الشركاء) أو الرفض.
+## 8. Amenities Management
+A smart system for managing the services and facilities available in each workspace:
+1. **Platform default amenities:** a pre-approved base list (fast internet, free coffee, printer, cleaning service, parking, and so on).
+2. **Partner customization:** the partner admin selects the amenities available in their space so that they appear to customers.
+3. **Proposing custom amenities**
+   - A partner can propose a new amenity through their portal.
+   - The request goes to the **Super Admin** for review.
+   - **Decision:** accept (the amenity joins the official dictionary for all partners) or reject.
 
-## 9. نظام نقاط الولاء (Loyalty Points Program)
-برنامج ولاء يحفز العملاء على الاستمرار باستخدام المنصة، يُدار مركزياً من الـ Super Admin:
-* **الاكتساب:** نقاط تلقائية مع كل عملية دفع ناجحة.
-* **الاستبدال:** استبدال النقاط بحجوزات مجانية أو خصومات نقدية.
-* **إدارة القواعد:** إمكانية اقتراح قواعد نقاط مخصصة من قِبل الشركاء ومراجعتها واعتمادها من قبل الـ Super Admin.
+## 9. Loyalty Points Program
+A loyalty program that encourages customers to keep using the platform, managed centrally by the Super Admin:
+* **Earning:** automatic points with every successful payment.
+* **Redemption:** exchange points for free bookings or cash discounts.
+* **Rule management:** partners can propose custom point rules, which the Super Admin reviews and approves.
 
-## 10. حسابات الشركات (B2B Corporate Accounts - Team Pass)
-* **المحفظة المشتركة (Shared Corporate Wallet):** رصيد مالي مركزي وموحد للشركة (`Company.balance`) يقوم مدير الموارد البشرية بشحنه.
-* **إدارة الموظفين:** إضافة الموظفين وتخصيص باقات الزيارات أو السماح لهم بالاستفادة من رصيد الشركة مباشرة.
-* **نطاق الباقات المؤسسية:** تقتصر باقات الشركات على الخطط القياسية (**Team Pass** و**Business Pass**) لتبسيط رحلة الشراء؛ وتم **حذف بطاقة "Custom Enterprise"** من صفحة الباقات. ولا تتضمن قائمة تنقل المؤسسة صفحة "مساحات الشركة" (Company Workspaces) التي أُزيلت لعدم حاجة حسابات B2B إليها.
-* **الاستهلاك المرن وضابط الاستخدام العادل:** يحجز الموظف المساحة الأقرب له ويُخصم الحجز تلقائياً من محفظة الشركة دون الحاجة لمعاملات فواتير فردية. وتخضع الباقات المؤسسية التي تظهر بمسمى "حجز غير محدود*" لشرط سياسة الاستخدام العادل الصارم: **بحد أقصى 5 حجوزات في الأسبوع لكل موظف** لحماية الطاقة الاستيعابية ومنع استنزاف الموارد الشريكة.
+## 10. Corporate Accounts (B2B — Team Pass)
+* **Shared corporate wallet:** a central, unified company balance (`Company.balance`) that the HR administrator tops up.
+* **Employee management:** add employees and assign visit packages, or let them draw on the company balance directly.
+* **Flexible consumption and fair use:** an employee books the space closest to them and the booking is deducted automatically from the company wallet with no per-person invoicing. Corporate plans that appear as "Unlimited*" are subject to the strict fair-use rule of **at most 5 bookings per week per employee**, to protect capacity and prevent exhausting partner resources.
+* **Corporate plan scope:** corporate plans are limited to the standard **Team Pass** and **Business Pass** to keep the purchase journey simple. The **"Custom Enterprise" card was removed** from the plans page. The organization navigation no longer includes a "Company Workspaces" page, which was removed because B2B accounts do not need it.
 
-## 11. تجربة المستخدم المتقدمة (Smart UX & Filtering)
-1. **الفلترة المتعددة والمقارنة (Smart Multi-Filtering):** فلاتر سريعة تجمع بين السعر والنوع والميزات المطلوبة معاً.
-2. **مؤشر الازدحام والتوفر (Capacity Bar):** مؤشر لوني ذكي (أخضر=متاح، أصفر=متوسط، أحمر=مزدحم) مبني على الحجوزات الفعلية اللحظية.
-3. **الترتيب حسب الأقرب (Proximity Geo-sorting):** حساب المسافة الجغرافية برمجياً عبر خوارزمية (Haversine) وعرض المسافة بالكيلومترات بجانب السعر.
+## 11. Advanced UX and Filtering
+1. **Smart multi-filtering:** quick filters that combine price, type and required amenities.
+2. **Capacity bar:** a smart color indicator (green = available, yellow = moderate, red = busy) based on real-time bookings.
+3. **Proximity geo-sorting:** the distance is computed in software with the Haversine formula and shown in kilometers next to the price.
 
-## 12. المحافظ الرقمية والمحفظة المشتركة (Digital Wallet & Corporate Balance)
-* **المحفظة الرقمية للأفراد (B2C Digital Wallet):**
-  - تمكين العميل من إيداع مبالغ نقدية مسبقاً في محفظته الرقمية.
-  - إتمام الدفع بنقرة واحدة من رصيد المحفظة دون إعادة إدخال بيانات البطاقات البنكية.
-  - استقبال مبالغ الحجوزات والباقات الملغاة بشكل فوري (Instant Refund) داخل رصيد المحفظة، مما يلغي فترات انتظار البنوك الطويلة.
-* **المحفظة المؤسسية الموحدة (B2B Corporate Wallet):**
-  - حساب رصيد مركزي لكل شركة لحجز المكاتب والقاعات لموظفيها.
-  - سجل حركات مالية تفصيلي لكل محفظة: `WALLET_TRANSACTIONS` للأفراد و`COMPANY_WALLET_TRANSACTIONS` للمحفظة المشتركة، يضمنان الشفافية وتتبع حركة كل هللة مع الرصيد بعد كل حركة.
-  - **سلامة الخصم:** الخصم ذري ومشروط بكفاية الرصيد فلا يمكن تجاوزه، ولكل عملية دفع مفتاح عدم تكرار (Idempotency Key) يمنع الخصم المزدوج عند النقر المتكرر أو إعادة المحاولة.
-  - **التراجع التلقائي في السلة:** إذا خُصم مبلغ من المحفظة ثم رفض الخادم أحد الحجوزات (مثلاً غرفة حُجزت للتو من عميل آخر)، تُعاد حصة ذلك الحجز من المبلغ تلقائياً إلى المحفظة نفسها (الشخصية أو المؤسسية) مع رسالة واضحة للعميل، دون تأثير على الحجوزات الناجحة الأخرى.
+## 12. Digital Wallets and Corporate Balance
+* **Individual digital wallet (B2C)**
+  - Lets the customer deposit money in advance.
+  - One-click payment from the wallet balance without re-entering card details.
+  - Receives refunds for cancelled bookings and passes instantly (Instant Refund), removing long bank waiting periods.
+* **Unified corporate wallet (B2B)**
+  - A central balance per company for booking desks and halls for its employees.
+  - A detailed financial ledger for each wallet — `WALLET_TRANSACTIONS` for individuals and `COMPANY_WALLET_TRANSACTIONS` for the shared wallet — provides transparency and tracks every halala, with the balance after each movement.
+  - **Deduction integrity:** deductions are atomic and conditional on sufficient balance, so the balance can never be exceeded. Each payment carries an idempotency key that prevents duplicate deductions on repeated clicks or retries.
+  - **Automatic cart rollback:** if money was deducted from a wallet and the server then rejects one of the bookings (for example a room that another customer has just booked), that booking's share of the amount is returned to the same wallet (personal or corporate) automatically, with a clear message to the customer, without affecting the other successful bookings.
 
-## 13. نظام تذاكر الدعم الفني (Customer Support Ticketing System)
-* نظام متكامل لمتابعة شكاوى واستفسارات الأفراد والشركات من داخل المنصة.
-* تتبع دورة حياة التذكرة عبر حالات معيارية:
-  - **مفتوحة (`OPEN`):** تذكرة جديدة بانتظار استجابة فريق الدعم.
-  - **قيد المعالجة (`IN_PROGRESS`):** جارٍ التنسيق مع الشريك أو الإدارة لحل المشكلة.
-  - **مغلقة (`CLOSED`):** تم حل المشكلة وتأكيد إغلاقها.
-* خيط مراسلات تفاعلي (`TicketReply`) يربط العميل والمسؤولين داخل سياق التذكرة، وتُعرض الردود المحفوظة في قاعدة البيانات كمحادثة داخل لوحة الإدارة، ويصل العميل إشعار عند رد الدعم.
-* **استفسارات المؤسسات:** طلبات عروض الأسعار الخاصة بالشركات الكبرى تُسجَّل كتذاكر بفئة `enterprise` وتصل إلى المشرفين كإشعار وتبويب مستقل.
+## 13. Customer Support Ticketing System
+* An integrated system for tracking complaints and inquiries from individuals and companies inside the platform.
+* The ticket lifecycle uses standard states:
+  - **Open (`OPEN`):** a new ticket awaiting a response from the support team.
+  - **In progress (`IN_PROGRESS`):** coordination with the partner or the administration is under way.
+  - **Closed (`CLOSED`):** the problem was solved and the closure confirmed.
+* An interactive message thread (`TicketReply`) connects the customer and the administrators inside the context of the ticket. Replies saved in the database are shown as a conversation in the admin panel, and the customer receives a notification when support replies.
+* **Enterprise inquiries:** the ticket system supports an `enterprise` category for tailored-offer requests from large companies. These reach the administrators as a notification and have their own tab. (The dedicated Custom Enterprise plan card was removed from the plans page, so such requests now come through normal support channels.)
 
-## 14. محرك الإلغاء والاسترجاع المؤتمت (Direct Bookings vs Packages)
-يدعم محرك الاسترجاع بالمنصة سياسات دقيقة تفصل بين الحجوزات المباشرة المرتبطة بمقاعد وتواريخ محددة، وبين باقات العضويات والساعات:
-> **ملاحظة تنفيذية:** تُعالج عمليات الاسترداد داخل معاملة قاعدة بيانات واحدة وبمفتاح عدم تكرار، فلا يمكن استرداد الحجز أو الباقة مرتين، ويُسجَّل قيد استرداد رسمي `REFUND` في `PAYMENTS` وحركة في دفتر المحفظة المعنية (الشخصية أو المؤسسية للحسابات المؤسسية).
+## 14. Automated Cancellation and Refund Engine (Direct Bookings vs Packages)
+The refund engine supports precise policies that separate direct bookings tied to specific seats and dates from membership and hour packages. Refunds are processed in a single database transaction with an idempotency key, so a booking or pass can never be refunded twice, and an official `REFUND` entry is recorded in `PAYMENTS` and in the ledger of the relevant wallet (personal, or the shared wallet for corporate accounts).
 
-* **1. الحجوزات المباشرة (Direct Bookings) وقاعات الاجتماعات:**
-  - ترتبط بمقاعد ومواعيد حجز محددة تؤثر على طابور الانتظار (Waitlist) وإتاحة الفرع:
-    - **حجوزات المكاتب المشتركة للأفراد (B2C):** إلغاء مجاني مع استرداد كامل قبل **6 ساعات** على الأقل من وقت بدء الحجز.
-    - **حجوزات المؤسسات (B2B) وحجوزات قاعات الاجتماعات والمسارح:** إلغاء مجاني قبل **24 ساعة** على الأقل لتمكين الشريك من إعادة طرح المقعد/القاعة للآخرين.
-* **2. باقات العضوية الشاملة (Universal Pass Subscriptions):**
-  - لا ترتبط بمقعد محدد بل تمنح رصيد وصول لشبكة الشركاء:
-    - **فترة السماح (3 أيام):** يحق للمستخدم أو الشركة استرداد كامل قيمة الباقة خلال **3 أيام (72 ساعة)** من تاريخ الشراء، بشرط **عدم استهلاك أي زيارة نهائياً (`visitsUsed == 0`)** وعدم وجود حجز مقعد نشط.
-    - **بعد استخدام أي زيارة (`visitsUsed > 0`) أو انقضاء الـ 3 أيام:** يسقط حق الاسترجاع التلقائي نهائياً، ولا يُنظر فيه إلا عبر تذاكر الدعم والـ Super Admin في حالات الأعطال المثبتة.
-* **3. باقات الساعات (Hourly Packages):**
-  - عند إلغاء جلسة قاعة اجتماعات أو مسرح ضمن مهلة الإلغاء (6 ساعات للأفراد، 24 ساعة للشركات)، تُعاد الساعات غير المستهلكة تلقائياً لرصيد باقة العميل.
-  - في حال طلب استرداد مالي لقيمة باقة الساعات المشتراة، يُتاح الاسترجاع الكامل خلال 3 أيام من الشراء طالما لم يتم استهلاك أي ساعة منها.
-* **4. خيارات صرف الاسترجاع المالي:**
-  - **استرجاع فوري للمحفظة (Instant Wallet):** إضافة رصيد الاسترداد فوراً بلحظتها إلى المحفظة الرقمية (0 دقيقة انتظار وبدون رسوم).
-  - **استرجاع للبطاقة البنكية:** معالجة الاسترجاع عبر بوابة الدفع للبطاقة الأصلية (تستغرق 5-14 يوم عمل).
+* **1. Direct bookings and meeting rooms**
+  - They are tied to specific seats and times and affect the waitlist and branch availability:
+    - **Individual (B2C) shared-desk bookings:** free cancellation with a full refund at least **6 hours** before the booking start time.
+    - **Corporate (B2B) bookings and meeting-room and theater bookings:** free cancellation at least **24 hours** in advance, so the partner can release the seat or hall to others.
+* **2. Universal Pass subscriptions**
+  - They are not tied to a specific seat but grant an access credit across the partner network:
+    - **Grace period (3 days):** the user or company can get a full refund of the pass within **3 days (72 hours)** of purchase, provided **no visit has been used (`visitsUsed == 0`)** and there is no active seat booking.
+    - **After any visit is used (`visitsUsed > 0`) or after 3 days:** the automatic refund right lapses; it is considered only through support tickets and the Super Admin for documented failures.
+* **3. Hourly packages**
+  - When a meeting-room or theater session is cancelled within the cancellation window (6 hours for individuals, 24 hours for companies), the unused hours are automatically returned to the customer's package credit.
+  - If a monetary refund of a purchased hour package is requested, a full refund is available within 3 days of purchase as long as no hour has been used.
+* **4. Refund payout options**
+  - **Instant wallet refund:** the refund amount is added to the digital wallet immediately (0 minutes, no fees).
+  - **Refund to the bank card:** processed through the payment gateway to the original card (5–14 business days).
 
-## 15. توثيق واجهات البرمجة المفتوحة (OpenAPI / Swagger Documentation)
-* توفير صفحة توثيق تفاعلية كاملة للمطورين والشركاء التقنيين عبر المسار `/api-doc`.
-* مبنية وفق مواصفات **OpenAPI 3.0** ومزودة بأدوات التجربة المباشرة (Swagger UI).
-* تغطي كافة مسارات المنصة: المصادقة، الحجوزات، المحفظة، التذاكر، مسح الـ QR، والميزات.
+## 15. Open API Documentation (OpenAPI / Swagger)
+* An interactive documentation page for developers and technical partners at `/api-doc`.
+* Built to the **OpenAPI 3.0** specification with live testing tools (Swagger UI).
+* Covers all platform routes: authentication, bookings, wallet, tickets, QR scanning and amenities.
 
-## 16. اللغتين العربية والإنجليزية والاتجاه (Internationalization & RTL)
-* **محرك لغتين:** الواجهة كاملة بلغتين — 🇸🇦 العربية (الافتراضية) و🇬🇧 English — مع مبدّل لغة في الشريط العلوي بجوار صورة المستخدم. يُحفظ اختيار المستخدم في المتصفح ويُطبَّق على الصفحة من أول تحميل دون وميض.
-* **اتجاه الصفحة:** عند العربية تُضبط الصفحة على `lang="ar" dir="rtl"`، وتنعكس التخطيطات والمسافات والأيقونات الاتجاهية تلقائياً، مع خط **Tajawal** للنصوص العربية.
-* **النصوص الثابتة:** تأتي من قواميس ترجمة مكتوبة يدوياً (`ar` / `en`) بنوع صارم (Type-safe) بحيث يفشل البناء عند نقص أي مفتاح في إحدى اللغتين.
-* **المحتوى الديناميكي (المساحات):** يُدخله الشريك أو المشرف باللغتين في نموذج المساحة (الاسم، الوصف، العنوان، المدينة) ويُخزَّن في قاعدة البيانات (`nameAr`، `descriptionAr`، `addressAr`، `cityAr`)، **ولا يُترجم آلياً**. عند غياب النسخة العربية يُعرض النص الإنجليزي كبديل مرن.
-* **رسائل النظام:** التنبيهات ورسائل الأخطاء الشائعة تُترجم مركزياً؛ وأي رسالة غير مسجلة تظهر بالإنجليزية.
-* **التاريخ والوقت:** يُعرضان بحسب اللغة الحالية.
+## 16. Internationalization and RTL
+* **Dual-language engine:** the whole interface is available in 🇸🇦 Arabic (the default) and 🇬🇧 English, with a language switcher in the top bar next to the user's avatar. The user's choice is stored in the browser and applied from the first paint without a flash.
+* **Page direction:** in Arabic the page is set to `lang="ar" dir="rtl"`, layouts, spacing and directional icons flip automatically, and **Tajawal** is used for Arabic text.
+* **Static text:** comes from hand-written translation dictionaries (`ar` / `en`) with a strict type, so the build fails if any key is missing in either language.
+* **Dynamic content (workspaces):** entered by the partner or admin in both languages in the workspace form (name, description, address, city) and stored in the database (`nameAr`, `descriptionAr`, `addressAr`, `cityAr`). It is **never machine-translated**. When the Arabic version is missing, the English text is shown as a graceful fallback.
+* **System messages:** common notifications and error messages are translated centrally; a message that is not registered appears in English.
+* **Dates and times:** displayed according to the current language.
 
-## 17. الأمان والحوكمة (Security & Governance)
-* **صلاحيات مبنية على الأدوار (RBAC) ونطاق الملكية:**
-  - **الدفعات (Payouts) والإحصاءات:** المشرف العام يرى ويُنشئ الجميع، والشريك يرى دفعاته فقط، وإحصاءات المنصة المالية للمشرف العام حصراً.
-  - **الغرف والأقسام:** الإنشاء والتعديل والحذف للشريك المالك أو المشرف فقط، وتُقبل حقول محددة عند التعديل.
-  - **قوائم الحجوزات:** المستخدم يرى حجوزاته، والشريك حجوزات مساحاته فقط، ومدير الموارد البشرية حجوزات فريقه، والمشرف الجميع.
-* **الإيقاف الدائم للحساب:** الإيقاف محفوظ في قاعدة البيانات ويبقى بعد إعادة تشغيل الخوادم. يحصل الحساب الموقوف على `HTTP 403` برمز `ACCOUNT_SUSPENDED`، فتظهر للمستخدم نافذة إيقاف **غير قابلة للإغلاق** تمنعه من المتابعة.
-* **الحذف المتسلسل:** حذف المستخدم أو الشريك أو المساحة يزيل البيانات التابعة بالترتيب الصحيح مع الحفاظ على سلامة المفاتيح الأجنبية.
-* **إخفاء المساحات:** المساحة المخفية لا تظهر ولا تُحجز لغير المشرف ومالكها، ويُفرض ذلك في الخادم لا في الواجهة فقط.
-* **مدة الجلسة:** رمز الدخول (JWT) صالح 24 ساعة، ويُبطل عند تسجيل الخروج.
+## 17. Security and Governance
+* **Role-based access control (RBAC) and ownership scope**
+  - **Payouts and statistics:** the Super Admin sees and creates everything, a partner sees only their own payouts, and platform-wide financial statistics are for the Super Admin only.
+  - **Rooms and sections:** create, edit and delete are limited to the owning partner or the Super Admin, and only specific fields are accepted on edit.
+  - **Booking lists:** a user sees their own bookings, a partner sees the bookings of their own spaces only, an HR administrator sees their team's bookings, and the Super Admin sees all.
+* **Permanent account suspension:** a suspension is stored in the database and survives server restarts. A suspended account receives `HTTP 403` with the code `ACCOUNT_SUSPENDED`, and the user sees a **non-dismissible** suspension modal that blocks further use.
+* **Cascading deletion:** deleting a user, partner or workspace removes dependent data in the correct order while preserving foreign-key integrity.
+* **Hidden spaces:** a hidden space is neither shown nor bookable for anyone except the Super Admin and its owner, enforced on the server and not only in the interface.
+* **Session lifetime:** the login token (JWT) is valid for 24 hours and is revoked on logout.
 
-## 18. تبسيط النطاق (Scope Simplifications)
-* حذف صفحة **"مساحات الشركة" (Company Workspaces)** ورابطها من تنقل حسابات B2B.
-* حذف بطاقة **"Custom Enterprise"** من صفحة الباقات المؤسسية؛ يبقى الاعتماد على Team Pass وBusiness Pass.
+## 18. Scope Simplifications
+* The **"Company Workspaces"** page and its link were removed from B2B navigation.
+* The **"Custom Enterprise"** card was removed from the corporate plans page; the offer relies on Team Pass and Business Pass.

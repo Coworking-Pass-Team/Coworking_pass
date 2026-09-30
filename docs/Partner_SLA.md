@@ -1,49 +1,50 @@
-# مسودة اتفاقية مستوى الخدمة للشركاء (Partner SLA) - Coworking Pass
+# Partner Service Level Agreement (SLA) Draft — Coworking Pass
 
-تُحدد هذه الوثيقة ضوابط الشراكة ومعايير الخدمة بين منصة "Coworking Pass" بصفتها المنصة التجميعية (الطرف الأول)، وبين مُلّاك ومدراء مساحات العمل المشتركة "الشركاء" (الطرف الثاني).
-
----
-
-## 1. شروط الانضمام والتحقق من السجل التجاري (Partner CR Verification)
-* **إلزامية السجل التجاري السعودي:** يُشترط لانضمام أي شريك تقديم رقم سجل تجاري ساري المفعول في المملكة العربية السعودية (`taxNumber` / CR Number).
-* **حالة الاعتماد المعلق (Pending Approval):** يُنشأ حساب الشريك في وضع المعلق (`PENDING_APPROVAL`)، ويكون الدخول للوحة التحكم ونشر المساحات محجوباً برمجياً حتى انتهاء مراجعة السجل من قِبل الإدارة العليا (Super Admin).
-* **الإشعار بالاعتماد:** يتم إشعار الشريك بقرار القبول أو الرفض آلياً عبر البريد الإلكتروني. وفي حال ثبوت عدم نظامية السجل أو انتهاء صلاحيته، يُلغى الطلب فوراً.
+This document sets out the partnership rules and service standards between the "Coworking Pass" platform as the aggregator (the First Party) and the owners and managers of shared workspaces, the "partners" (the Second Party).
 
 ---
 
-## 2. التزامات المنصة (الطرف الأول)
-* **التسويق والاستقطاب:** تلتزم المنصة بعرض مساحة الشريك وتسويقها للمستخدمين الأفراد والشركات (B2B/B2C) لرفع نسبة الإشغال.
-* **إدارة المدفوعات والمحافظ:** تقوم المنصة بتحصيل جميع المبالغ من العملاء نيابة عن الشريك عبر بوابات دفع آمنة والمحافظ الرقمية.
-* **الشفافية والتقارير:** توفر المنصة لوحة تحكم حية (Dashboard) للشريك تتيح له مراقبة الحجوزات، الزوار الفعليين، والإيرادات المستحقة بشفافية تامة.
+## 1. Joining Conditions and Commercial Registration Verification (Partner CR Verification)
+* **Mandatory Saudi commercial registration:** to join, every partner must provide a valid commercial registration number in the Kingdom of Saudi Arabia (`taxNumber` / CR Number).
+* **Pending approval status:** a partner account is created as pending (`PENDING_APPROVAL`), and access to the dashboard and publishing of spaces is blocked in software until the Super Admin finishes reviewing the registration.
+* **Approval notification:** the partner is told of the acceptance or rejection decision automatically by email. If the registration is found to be irregular or expired, the application is cancelled immediately.
 
 ---
 
-## 3. التزامات شريك مساحة العمل (الطرف الثاني)
-* **جودة البيئة والمرافق:** يلتزم الشريك بتوفير بيئة عمل احترافية، إنترنت عالي السرعة، ومرافق مطابقة تماماً لما تم اعتماده في صفحة المساحة على المنصة.
-* **مجانية الميزات المعلنة:** يُمنع على الشريك فرض أي رسوم إضافية في الموقع على العميل مقابل أي ميزة تم إدراجها في ملف المساحة كـ (ميزة مشمولة).
-* **إلزامية التحقق عبر مسح الـ QR:** يلتزم موظف الاستقبال لدى الشريك بمسح كود (QR) الخاص بكل عميل يأتي عبر المنصة فور وصوله. **لن يتم احتساب أي مستحقات مالية للشريك عن أي زيارة لم يتم مسح رمز الدخول الخاص بها برمجياً.**
-* **تحديث البيانات والسعة:** يلتزم الشريك بتحديث أوقات العمل وحالة توفر المقاعد لتجنب تعارض الحجوزات (Overbooking).
-* **الالتزام بسياسة الإلغاء والاسترجاع:** يلتزم الشريك بالاعتراف بسياسة الإلغاء والاسترجاع المعتمدة للمنصة (إلغاء المكاتب وباقات الساعات قبل 6 ساعات للأفراد، وإلغاء القاعات والمسارح والشركات قبل 24 ساعة)، وعدم مطالبة العميل بأي تعويض خارج المنصة.
-* **التعاون في تذاكر الدعم والشكاوى:** يلتزم الشريك بالتجاوب مع فريق الدعم الفني لحل تذاكر النزاعات والشكاوى المرفوعة من العملاء خلال مدة أقصاها **24 ساعة** من استلام التنبيه.
+## 2. Platform Obligations (First Party)
+* **Marketing and acquisition:** the platform commits to presenting and marketing the partner's space to individual and corporate users (B2B/B2C) to raise occupancy.
+* **Payment and wallet management:** the platform collects all amounts from customers on the partner's behalf through secure payment gateways and digital wallets.
+* **Transparency and reporting:** the platform provides the partner a live dashboard to monitor bookings, actual visitors and dues with full transparency.
+* **Financial safety:** wallet and refund operations run as atomic, idempotent transactions, so a booking is never charged or refunded twice.
 
 ---
 
-## 4. حوكمة الميزات وقواعد الولاء (Amenities & Loyalty Rules)
-* **اقتراح الميزات الجديدة:** يلتزم الشريك بعدم تقديم خدمات خارج القائمة الرسمية إلا بعد تقديم طلب ميزة مخصصة عبر البوابة واعتمادها من الإدارة العليا.
-* **حملات النقاط الترويجية:** في حال رغب الشريك في تقديم عروض ترويجية بمضاعفة نقاط الولاء لجذب الزوار، يتم تقديم الاقتراح لاعتماده من الـ Super Admin وتُخصم التكلفة التسويقية من مستحقات الشريك الدائنة.
+## 3. Workspace Partner Obligations (Second Party)
+* **Quality of environment and facilities:** the partner commits to providing a professional work environment, high-speed internet, and facilities that match exactly what was approved on the space's page on the platform.
+* **Free advertised features:** the partner may not charge the customer any extra fee on site for any feature listed in the space profile as an included amenity.
+* **Mandatory QR scan verification:** the partner's reception staff must scan the QR code of each customer who arrives through the platform on arrival. **No financial dues will be counted for the partner for any visit whose entry code was not scanned in software.**
+* **Keeping data and capacity current:** the partner commits to keeping working hours, rooms and their capacities, and seat availability up to date to avoid overbooking. Rooms and sections are managed in the partner portal, and each room's capacity and rates must reflect the physical reality.
+* **Compliance with the cancellation and refund policy:** the partner commits to recognizing the platform's approved cancellation and refund policy (cancelling desks and hour packages at least 6 hours in advance for individuals, and halls, theaters and companies at least 24 hours in advance), and not to claim any compensation from the customer outside the platform.
+* **Cooperation on support tickets and complaints:** the partner commits to responding to the support team to resolve dispute and complaint tickets raised by customers within a maximum of **24 hours** of receiving the alert.
 
 ---
 
-## 5. النموذج المالي والتسويات (Financial Settlements)
-* **الحجوزات المباشرة (مكاتب/مسارح/قاعات):** تقتطع المنصة عمولة بنسبة [تُحدد لاحقاً]% من إجمالي قيمة الحجز، ويُحول الباقي للشريك.
-* **زيارات العضوية الشاملة (Universal Pass):** يتم تعويض الشريك بمبلغ مقطوع وثابت (Pass Visit Value) متفق عليه مسبقاً، عن كل زيارة فعلية (مسحة QR ناجحة) يقوم بها حامل العضوية الشاملة لمساحة الشريك.
-* **دورة الدفع (Payouts):** تصدر المنصة كشف حساب نهائي في اليوم الأول من كل شهر ميلادي. يتم تحويل المستحقات المالية للحساب البنكي التجاري للشريك المطابق لبيانات السجل التجاري في موعد أقصاه اليوم الخامس (5) من الشهر.
+## 4. Amenity Governance and Loyalty Rules (Amenities & Loyalty Rules)
+* **Proposing new amenities:** the partner commits not to provide services outside the official list except after submitting a custom-amenity request through the portal and having it approved by the Super Admin.
+* **Promotional point campaigns:** if a partner wishes to offer promotions that multiply loyalty points to attract visitors, the proposal is submitted for approval by the Super Admin and the marketing cost is deducted from the partner's credit dues.
 
 ---
 
-## 6. تقييم الأداء وإلغاء الشراكة
-* **مراقبة الجودة:** تحتفظ المنصة بحق مراجعة تقييمات العملاء للمساحة وسجلات تذاكر الشكاوى. في حال انخفاض التقييم عن الحد المسموح به أو تكرار الشكاوى، يحق للمنصة توجيه إنذار رسمي للشريك.
-* **إنهاء الاتفاقية والحظر الإداري:** يحق للمنصة تعليق حساب الشريك مؤقتاً أو حظر الدخول (`isBanned`) وإنهاء الشراكة بالكامل وإخفاء المساحة من التطبيق في حال الإخلال الجسيم بالالتزامات (مثل رفض استقبال عملاء المنصة، عدم تشغيل ماسح الـ QR، أو تزوير بيانات الحضور).
+## 5. Financial Model and Settlements (Financial Settlements)
+* **Direct bookings (desks / theaters / halls):** the platform deducts a commission of [to be determined later]% of the total booking value and transfers the remainder to the partner.
+* **Universal Pass visits:** the partner is compensated with a fixed, lump-sum amount (Pass Visit Value) agreed in advance for each actual visit (a successful QR scan) that a Universal Pass holder makes to the partner's space.
+* **Payout cycle:** the platform issues a final statement on the first day of each Gregorian month. Financial dues are transferred to the partner's commercial bank account matching the commercial-registration details by the fifth (5th) day of the month at the latest.
 
 ---
-*ملاحظة إدارية: تُستخدم هذه المسودة كإطار عمل B2B ملزم بين إدارة المنصة وأصحاب المساحات، ويتم توقيعها إلكترونياً أو ورقياً قبل الاعتماد النهائي للحساب.*
+
+## 6. Performance Evaluation and Termination of the Partnership
+* **Quality monitoring:** the platform reserves the right to review customer ratings of the space and the complaint-ticket records. If the rating falls below the permitted limit or complaints recur, the platform may issue a formal warning to the partner.
+* **Termination and administrative ban:** the platform may temporarily suspend the partner's account or block access (`isBanned`), end the partnership entirely, and hide the space from the app in the event of a serious breach of obligations (such as refusing to receive the platform's customers, not operating the QR scanner, or falsifying attendance data). A hidden space is neither shown nor bookable for customers, enforced on the server.
+
+---
+*Administrative note: this draft is used as a binding B2B framework between the platform administration and space owners, and is signed electronically or on paper before the account is finally approved. It should be reviewed by qualified legal counsel before use.*
