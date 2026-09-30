@@ -1,96 +1,99 @@
-# السياسات القانونية والخصوصية - Coworking Pass
+# Legal and Privacy Policies — Coworking Pass
 
-تم إعداد هذه المسودات لتكون حجر الأساس القانوني لتشغيل المنصة في المملكة العربية السعودية، مع مراعاة نظام حماية البيانات الشخصية (PDPL)، نظام التجارة الإلكترونية، واللوائح المنظمة لمساحات العمل المشتركة.
-
----
-
-## أولاً: شروط وأحكام الاستخدام (Terms of Service)
-
-**1. قبول الشروط وسياسة ملفات تعريف الارتباط (Cookies)**
-- تسجيلك في منصة "Coworking Pass" وإنشاء حساب يتطلب الموافقة الصريحة (عبر النقر على مربع الاختيار Checkbox) على الشروط والأحكام، وسياسة الخصوصية، واستخدام ملفات تعريف الارتباط (Cookies) لتحسين تجربة المستخدم وحفظ تفضيلاته. استخدامك للخدمات يعني موافقتك التامة على هذه الشروط. إذا كنت لا توافق على أي منها، يُرجى التوقف عن استخدام المنصة.
-
-**2. وصف الخدمة**
-"Coworking Pass" هي منصة تجميعية (Aggregator) تتيح للمستخدمين حجز مكاتب، قاعات اجتماعات، ومسارح في مساحات عمل مشتركة تابعة لجهات خارجية (الشركاء). كما توفر المنصة "العضوية الشاملة" التي تتيح الوصول لأكثر من مساحة عمل باشتراك واحد، بالإضافة إلى محفظة رقمية للمدفوعات ونظام متكامل لتذاكر الدعم الفني.
-
-**3. العضوية الشاملة (Universal Pass) وسياسة الاستخدام العادل**
-- العضوية الشاملة تتيح للمستخدم حجز مقعد في مساحة عمل واحدة فقط في نفس الوقت.
-- يُمنع منعاً باتاً حجز مقاعد متعددة في مساحات مختلفة في آنٍ واحد. النظام سيقوم تلقائياً بإلغاء الحجوزات المتعارضة.
-- يحق للمستخدم الإلغاء والانتقال لمساحة أخرى دون رسوم إضافية، بشرط توفر مقاعد شاغرة في المساحة المستهدفة.
-- **ضابط باقات الحجز غير المحدود (Fair Use Policy):** لا يوجد حجز غير محدود بالمطلق دون ضوابط تشغيلية وتنظيمية؛ حيث تُعرض الباقات تحت مسمى "حجز غير محدود*" (Unlimited*) ولكنها تخضع لسياسة الاستخدام العادل بحد أقصى **5 حجوزات في الأسبوع (5 Bookings per week)** لكل مستخدم أو موظف نشط؛ وذلك لمنع حجز مقاعد وهمية أو احتكار الموارد وضمان إتاحة الفرصة العادلة لجميع المشتركين.
-
-**4. الحجوزات بالساعة لقاعات الاجتماعات والمسارح (Meeting Rooms & Theaters)**
-- تُعد قاعات الاجتماعات والمسارح فئة موحدة ومدمجة برمجياً وتشغيلياً تخضع لنظام "باقات الساعات المرنة الموحدة".
-- يتم خصم الساعات من رصيد باقة المستخدم بمجرد تأكيد الدخول (مسح رمز الـ QR) أو انقضاء وقت الحجز دون إلغاء (No-show)، ويستطيع المشترك استخدام رصيد ساعاته بالتساوي في حجز قاعة اجتماعات أو مسرح وفق حاجته.
-- تخضع قاعات الاجتماعات والمسارح لنفس معادلة احتساب نقاط الولاء ومعدل الاسترداد عند الدفع المباشر أو استهلاك رصيد الساعات.
-
-**5. سياسة المحافظ الرقمية ورصيد الشركات (Digital Wallet & Shared Balance)**
-- **طبيعة الرصيد:** الرصيد المودع في المحفظة الرقمية الفردية (`Wallet`) أو في محفظة الشركة الموحدة (`Company.balance`) هو رصيد مالي مسبق الدفع مخصص لحجز خدمات المنصة، ولا يسقط بالتقادم.
-- **الاسترداد الفوري للمحفظة:** في حال إلغاء الحجز المؤهل للاسترجاع، يُضاف كامل المبلغ المسترد فوراً إلى المحفظة الرقمية دون أي خصومات بنكية، ويكون متاحاً للاستخدام اللحظي في أي حجز لاحق.
-- **أموال الشركات:** الرصيد المؤسسي المشترك هو ملك حصري للمنشأة المتعاقدة، ويخضع تخصيصه واستهلاكه لصلاحيات مدير الموارد البشرية (HR Admin) المفوض من قِبل الشركة.
-
-**6. سياسة الإلغاء والاسترجاع المالي (Cancellation & Refund Policy)**
-- **حجوزات المكاتب المشتركة للأفراد:** لضمان حق استرداد المبلغ، يجب على المستخدم الفرد إلغاء الحجز قبل **6 ساعات** على الأقل من وقت بدء الحجز. في حال الإلغاء بعد هذا الوقت، يسقط حق الاسترداد.
-- **حجوزات المؤسسات وقاعات الاجتماعات والمسارح:** نظراً لطبيعة الحجوزات المؤسسية وحجوزات القاعات التي تتطلب تجهيزات مسبقة، يجب إلغاء الحجز قبل **24 ساعة** على الأقل لاسترداد المبلغ.
-- **إلغاء واسترداد باقات الساعات (Hourly Packages):**
-  - عند إلغاء جلسة قاعة اجتماعات أو مسرح ضمن المهلة المحددة (6 ساعات للأفراد، 24 ساعة للمؤسسات)، تُعاد الساعات غير المستهلكة تلقائياً إلى رصيد باقة المستخدم دون أي خصم.
-  - يحق للعميل طلب استرداد القيمة المالية لباقة الساعات المشتراة بالكامل طالما لم يتم استهلاك أي ساعات منها.
-- **إلغاء واسترداد باقات العضوية الشاملة (Universal Pass Subscriptions):**
-  - يحق للعميل (أفراد أو شركات) إلغاء باقة العضوية الشاملة واسترداد كامل قيمتها خلال **3 أيام (72 ساعة)** من تاريخ الشراء، بشرط **عدم استهلاك أي زيارة نهائياً (`visitsUsed == 0`)** وعدم وجود أي حجز مقعد نشط في تلك اللحظة.
-  - بمجرد قيام العميل بزيارة أي مساحة عمل واستخدام العضوية ولو لمرة واحدة (`visitsUsed > 0`)، أو بعد مرور 3 أيام من تاريخ الشراء، يسقط حقه في الاسترجاع التلقائي، ولا يُنظر في أي استرداد إلا كحالة استثنائية يقررها فريق الدعم الفني والـ Super Admin في حالات الأعطال الموثقة.
-- **خيارات صرف الاسترداد:**
-  1. **الاسترجاع الفوري للمحفظة (Instant Wallet Refund):** إيداع لحظي في رصيد محفظة العميل داخل التطبيق دون أي رسوم إضافية.
-  2. **الاسترجاع للبطاقة/البنك:** إعادة المبلغ للبطاقة المستخدمة (مدى، فيزا، أبل باي)، وتستغرق المعالجة البنكية من **5 إلى 14 يوم عمل**.
-- **الغياب وعدم الحضور (No-Show):** في حال عدم الحضور دون إلغاء الحجز ضمن المدة المسموحة، يُعتبر الحجز نافذاً ولا يحق للمستخدم المطالبة باسترداد المبلغ. بالنسبة لحاملي "العضوية الشاملة"، تكرار عدم الحضور (No-show) لـ 3 مرات يؤدي إلى تعليق الحساب مؤقتاً.
-- **البقاء بعد انتهاء الوقت (Overstaying):** يلتزم المستخدم بمغادرة المقعد أو قاعة الاجتماعات فور انتهاء الوقت المحجوز. البقاء بعد الوقت يترتب عليه احتساب رسوم إضافية بالساعة تُخصم تلقائياً من محفظة المستخدم أو بطاقته المسجلة.
-
-**7. اشتراطات السجل التجاري لشركاء المساحات (Space Partners CR Policy)**
-- يلتزم كل شريك يقدم خدمات مساحات العمل بإدخال رقم سجل تجاري سعودي نظامي وصالح (`taxNumber`).
-- يخضع حساب الشريك للتدقيق وتكون صلاحياته معلقة (`PENDING_APPROVAL`) حتى اعتماد الإدارة.
-- تقديم بيانات تجارية مضللة أو غير صحيحة يعرض الحساب للإلغاء الفوري والملاحقة القانونية النظامية.
-
-**8. الرقابة وحظر الحسابات (Account Moderation & Banning)**
-- تحتفظ المنصة بالحق الكامل في تعليق أو حظر أي حساب مستخدم (`isBanned = true`) فوراً في حال ارتكاب أي من المخالفات التالية:
-  - محاولة تزوير أو تكرار استخدام رموز الدخول (QR Fraud).
-  - الإخلال بقواعد الهدوء والآداب العامة أو التعدي على ممتلكات المساحات الشريكة.
-  - محاولات اختراق المنصة أو التلاعب بنقاط الولاء أو الرصيد المالي.
-
-**9. تذاكر الدعم والنزاعات (Support Ticketing & Disputes)**
-- القناة الرسمية الوحيدة لفض النزاعات والاعتراضات المالية أو الفنية هي نظام تذاكر الدعم الفني بالمنصة (`Ticket`).
-- تلتزم المنصة ببدء معالجة التذكرة والرد المبدئي خلال **ساعتين عمل**، مع السعي لحل النزاع وإغلاق التذكرة خلال **24 إلى 48 ساعة عمل**.
-
-**10. إخلاء المسؤولية (Liability Disclaimer)**
-- المنصة تعمل كوسيط تقني بين المستخدم ومساحة العمل. أي قصور في توفير الخدمات اللوجستية (مثل انقطاع الإنترنت، التكييف، النظافة، أو خدمات الضيافة) تقع مسؤوليته المباشرة على عاتق "مساحة العمل الشريكة".
-- المنصة وشركاؤها غير مسؤولين عن فقدان، تلف، أو سرقة الأغراض الشخصية للمستخدمين داخل المساحة.
+These drafts are prepared to be the legal foundation for operating the platform in the Kingdom of Saudi Arabia, taking into account the Personal Data Protection Law (PDPL), the E-Commerce Law, and the regulations governing shared workspaces.
 
 ---
 
-## ثانياً: سياسة الخصوصية (Privacy Policy)
+## Part One: Terms of Service
 
-تلتزم منصة "Coworking Pass" بحماية خصوصية بياناتك وفقاً لـ **نظام حماية البيانات الشخصية (PDPL)** في المملكة العربية السعودية.
+**1. Acceptance of the terms and cookie policy**
+- Registering on the "Coworking Pass" platform and creating an account requires explicit consent (by ticking a checkbox) to the terms and conditions, the privacy policy, and the use of cookies to improve the user experience and store preferences. Your use of the services means your full agreement to these terms. If you do not agree to any of them, please stop using the platform.
 
-**1. البيانات التي نجمعها**
-- **بيانات التسجيل:** الاسم، البريد الإلكتروني، رقم الجوال الدولي مع مفتاح الدولة المختار (عبر قائمة Country Code Picker الدولية)، وبيانات المنشأة والسجل التجاري (لحسابات الشركات والشركاء).
-- **بيانات الاستخدام:** سجل الحجوزات، أوقات تسجيل الدخول للمساحات (QR Scans)، معاملات المحافظ المالية، وتذاكر الدعم الفني.
-- **البيانات التقنية:** عنوان الـ IP، نوع الجهاز، وبيانات الموقع الجغرافي لحساب المسافات لأقرب مساحة عمل.
+**2. Description of the service**
+"Coworking Pass" is an aggregator platform that lets users book desks, meeting rooms and theaters in shared workspaces owned by third parties (the partners). The platform also provides the "Universal Pass", which gives access to more than one workspace with a single subscription, a digital wallet for payments, and an integrated support-ticket system. The interface is available in Arabic and English; workspace content is authored by the partners in both languages.
 
-**2. كيف نستخدم بياناتك؟**
-- لتأكيد حجوزاتك وإصدار رموز الدخول المؤقتة (QR Codes).
-- لمعالجة المدفوعات والشحن وإيداع مبالغ الاسترداد في المحفظة الرقمية.
-- للتحقق من السجلات التجارية للشركاء وضمان الامتثال النظامي.
-- لإرسال الإشعارات التشغيلية والتنبيهات الأمنية عبر البريد الإلكتروني (Resend) والمنصة.
+**3. Universal Pass and the Fair Use Policy**
+- The Universal Pass lets the user hold a seat in only one workspace at a time.
+- Booking multiple seats in different spaces at the same time is strictly prohibited. The system automatically cancels conflicting bookings.
+- The user may cancel and move to another space at no extra charge, provided seats are available in the target space.
+- **Unlimited-booking plans (Fair Use Policy):** there is no truly unlimited booking without operational and regulatory controls. Plans are displayed under the name "Unlimited*" but are subject to the fair-use policy of a maximum of **5 bookings per week** per active user or employee, to prevent phantom seat bookings or resource hoarding and to give all subscribers a fair opportunity.
 
-**3. مشاركة البيانات مع أطراف ثالثة**
-- **شركاء مساحات العمل:** نشاركهم فقط (اسم العميل، حالة الحجز، ونوع القسم) لتسهيل الدخول. لا يتم مشاركة بيانات بطاقتك البنكية إطلاقاً.
-- **بوابات الدفع المرخصة:** تتم معالجة المعاملات المالية عبر قنوات مشفرة ومصرحة من البنك المركزي السعودي (SAMA).
+**4. Hourly bookings for meeting rooms and theaters**
+- Meeting rooms and theaters are one unified category in software and operations, governed by the "unified flexible hour packages" system.
+- Rooms and theaters are booked in **fixed 2-hour sessions** within the venue's operating hours, ending by 10:00 PM. A venue may contain several rooms; each booking is tied to the specific room chosen, and a session that is already booked for a room cannot be booked again.
+- Hours are deducted from the user's package credit once entry is confirmed (a QR scan) or once the booking time passes without cancellation (No-show), and the subscriber can use their hours credit equally to book a meeting room or a theater as needed.
+- Meeting rooms and theaters follow the same loyalty points formula and redemption rate for direct payment or consumption of the hours credit.
 
-**4. أمن البيانات وتوطينها**
-تُعالج وتُخزن جميع البيانات في قواعد بيانات مؤمنة وفقاً لأعلى معايير الأمن السيبراني (NCA) وتماشياً مع لوائح السيادة الوطنية للبيانات بالمملكة العربية السعودية.
+**5. Digital wallet and shared balance policy**
+- **Nature of the balance:** the balance deposited in the individual digital wallet (`Wallet`) or in the company's unified wallet (`Company.balance`) is a prepaid financial balance dedicated to booking the platform's services, and it does not expire.
+- **Instant refund to the wallet:** when an eligible booking is cancelled, the full refunded amount is added immediately to the digital wallet with no bank deductions and is available for instant use in any later booking.
+- **Automatic return of a failed payment:** if an amount is deducted from a wallet for a booking that the platform then cannot confirm (for example because the room was booked by someone else at the same moment), the amount for that booking is returned automatically to the same wallet.
+- **Company funds:** the shared corporate balance is the exclusive property of the contracting establishment, and its allocation and consumption are subject to the permissions of the HR administrator authorized by the company.
 
-**5. حقوق المستخدم**
-يحق لك في أي وقت:
-- طلب الاطلاع على بياناتك الشخصية المخزنة.
-- تصحيح أو تحديث بياناتك.
-- طلب حذف حسابك وبياناتك بالكامل (Right to Erasure)، باستثناء القيود المالية والسجلات المحاسبية الملزمة نظاماً بالاحتفاظ بها.
+**6. Cancellation and refund policy**
+- **Individual shared-desk bookings:** to be entitled to a refund, the individual user must cancel at least **6 hours** before the booking start time. Cancelling after this time forfeits the right to a refund.
+- **Corporate bookings, meeting rooms and theaters:** given the nature of corporate and hall bookings that require advance preparation, a booking must be cancelled at least **24 hours** in advance to receive a refund.
+- **Cancelling and refunding hour packages**
+  - When a meeting-room or theater session is cancelled within the specified window (6 hours for individuals, 24 hours for organizations), unused hours are automatically returned to the user's package credit with no deduction.
+  - The customer may request a full refund of the monetary value of a purchased hour package as long as none of its hours have been used.
+- **Cancelling and refunding Universal Pass subscriptions**
+  - The customer (individual or company) may cancel the Universal Pass and receive a full refund within **3 days (72 hours)** of purchase, provided **no visit has been used at all (`visitsUsed == 0`)** and there is no active seat booking at that moment.
+  - Once the customer visits any workspace and uses the pass even once (`visitsUsed > 0`), or after 3 days from the purchase date, the right to an automatic refund lapses, and any refund is considered only as an exceptional case decided by the support team and the Super Admin for documented failures.
+- **Refund payout options**
+  1. **Instant wallet refund:** an instant deposit into the customer's in-app wallet with no additional fees.
+  2. **Refund to the card / bank:** returning the amount to the card used (Mada, Visa, Apple Pay); bank processing takes **5 to 14 business days**.
+- **Absence and no-show:** if the user does not attend and does not cancel within the permitted time, the booking is considered performed and the user may not claim a refund. For "Universal Pass" holders, repeated no-shows (3 times) lead to a temporary account suspension.
+- **Overstaying:** the user must leave the seat or meeting room as soon as the booked time ends. Staying beyond the time results in an additional hourly fee deducted automatically from the user's wallet or registered card.
+
+**7. Commercial registration requirements for space partners**
+- Every partner providing workspace services must enter a valid, legal Saudi commercial registration number (`taxNumber`).
+- The partner's account is audited and its permissions remain pending (`PENDING_APPROVAL`) until the administration approves it.
+- Providing misleading or incorrect commercial data exposes the account to immediate cancellation and legal prosecution as provided by law.
+
+**8. Account moderation and banning**
+- The platform fully reserves the right to suspend or ban any user account (`isBanned = true`) immediately if any of the following violations is committed:
+  - Attempting to forge or reuse entry codes (QR fraud).
+  - Violating rules of quiet and public decency or damaging the property of partner spaces.
+  - Attempting to hack the platform or manipulate loyalty points or the financial balance.
+- A suspension is stored permanently and is enforced on every request; a suspended user sees a suspension notice that cannot be dismissed, and can contact support through the official channel.
+
+**9. Support tickets and disputes**
+- The only official channel for resolving disputes and financial or technical objections is the platform's support-ticket system (`Ticket`).
+- The platform commits to starting to process the ticket and giving an initial reply within **two business hours**, and to seeking to resolve the dispute and close the ticket within **24 to 48 business hours**.
+
+**10. Liability disclaimer**
+- The platform acts as a technical intermediary between the user and the workspace. Any shortcoming in providing logistics (such as internet outages, air conditioning, cleanliness or hospitality services) is the direct responsibility of the "partner workspace".
+- The platform and its partners are not responsible for loss, damage or theft of users' personal belongings inside the space.
 
 ---
-*ملاحظة إدارية: تم إعداد هذه السياسات وفق أحكام الأنظمة السعودية المعمول بها، وتعتبر ملزمة لكافة مستخدمي وشركاء المنصة فور إنشائهم للحساب.*
+
+## Part Two: Privacy Policy
+
+The "Coworking Pass" platform is committed to protecting the privacy of your data in accordance with the **Personal Data Protection Law (PDPL)** of the Kingdom of Saudi Arabia.
+
+**1. Data we collect**
+- **Registration data:** name, email, international phone number with the selected country code (through the international Country Code Picker), and establishment and commercial-registration data (for company and partner accounts).
+- **Usage data:** booking history, times of check-in to spaces (QR scans), wallet transactions, and support tickets.
+- **Technical data:** IP address, device type, and location data used to calculate distances to the nearest workspace.
+
+**2. How do we use your data?**
+- To confirm your bookings and issue temporary entry codes (QR codes).
+- To process payments and top-ups and to deposit refund amounts into the digital wallet.
+- To verify partners' commercial registrations and ensure regulatory compliance.
+- To send operational notifications and security alerts by email (Resend) and through the platform.
+
+**3. Sharing data with third parties**
+- **Workspace partners:** we share with them only (the customer's name, the booking status and the section type) to facilitate entry. Your bank card data is never shared.
+- **Licensed payment gateways:** financial transactions are processed through encrypted channels authorized by the Saudi Central Bank (SAMA).
+
+**4. Data security and localization**
+All data is processed and stored in secured databases according to the highest cybersecurity standards (NCA) and in line with the national data-sovereignty regulations of the Kingdom of Saudi Arabia.
+
+**5. User rights**
+You have the right at any time to:
+- Request access to your stored personal data.
+- Correct or update your data.
+- Request the deletion of your account and all your data (Right to Erasure), except for financial records and accounting records that the law requires us to retain.
+
+---
+*Administrative note: these policies were prepared according to the applicable Saudi regulations and are binding on all platform users and partners as soon as they create an account. They are drafts and should be reviewed by qualified legal counsel before launch.*

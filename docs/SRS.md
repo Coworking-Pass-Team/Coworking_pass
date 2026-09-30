@@ -1,262 +1,264 @@
-# وثيقة متطلبات النظام (Software Requirements Specification - SRS)
-**مشروع: Coworking Pass**
+# Software Requirements Specification (SRS)
+**Project: Coworking Pass**
 
-## 1. مقدمة النظام (Introduction)
-منصة Coworking Pass هي منصة تجميعية (Aggregator) تهدف إلى تقديم حل مرن للمستقلين والشركات للوصول إلى مساحات عمل مشتركة متعددة باشتراك أو حجز مرن، مما يكسر الروتين ويوفر تكاليف الاشتراكات الثابتة.
-علاوة على ذلك، تقدم المنصة نموذج "الشبكة الموحدة" الضخم، الذي يتيح للأفراد والشركات شراء **العضوية الشاملة (Universal Pass)**. العضوية الشاملة هي اشتراك واحد (يتوفر بنظام يومي، شهري، أو سنوي) يمنح وصولاً سلساً لأي مساحة عمل شريكة في المملكة دون الحاجة لاشتراكات منفصلة لكل علامة تجارية. **لضمان الاستخدام العادل ومنع احتكار المقاعد، يجب على حامل العضوية الشاملة أن يحجز مقعداً في مساحة عمل واحدة (فقط) في كل مرة. يمكنه التبديل والانتقال إلى مساحة أخرى لاحقاً مجاناً، بشرط توفر مقعد شاغر هناك.**
+## 1. Introduction
+Coworking Pass is an aggregator platform that gives freelancers and companies a flexible way to reach many shared workspaces through a subscription or a flexible booking, breaking routine and reducing fixed subscription costs.
 
-## 2. أنواع المستخدمين والصلاحيات (User Roles & Permissions)
-تم تصميم النظام معمارياً لخدمة 5 أنواع من المستخدمين، لكل منهم صلاحيات وميزات محددة:
+The platform also offers a large "unified network" model that lets individuals and companies buy the **Universal Pass**. The Universal Pass is a single subscription (available daily, monthly or yearly) that gives seamless access to any partner workspace in the Kingdom without a separate subscription for each brand. **To guarantee fair use and prevent seat hoarding, a pass holder must hold a seat in one workspace (only) at a time. They can switch to another space later for free, provided a seat is available there.**
 
-### أ. الزائر (Guest)
-المستخدم غير المسجل الذي يتصفح المنصة لأول مرة.
-* **الصلاحيات:** قراءة واستعراض فقط.
-* **الميزات:**
-  * تصفح قائمة مساحات العمل المتاحة.
-  * الاطلاع على تفاصيل كل مساحة (الموقع، الصور، المرافق، التقييم).
-  * الاطلاع على أسعار الخطط (يومي، شهري، سنوي) وخيارات العضوية الشاملة.
-  * إنشاء حساب جديد (فرد، مؤسسة، أو شريك مساحة عمل).
+## 2. User Types and Permissions (User Roles & Permissions)
+The system is architected to serve 5 user types, each with specific permissions and features.
 
-### ب. المستخدم الفرد (Individual User)
-الموظف المستقل أو الطالب الذي يبحث عن مقعد عمل مرن.
-* **الصلاحيات:** إدارة حسابه الشخصي، حجوزاته، عضويته الشاملة، محفظته الرقمية، وتذاكر الدعم الفني.
-* **الميزات:**
-  * **الحجز المرن:** حجز مقعد بخيارات (يومي، شهري، سنوي).
-  * **المحفظة الرقمية (Digital Wallet):** شحن رصيد مسبق، الدفع السريع بنقرة واحدة، واستقبال مبالغ الاسترجاع بشكل فوري ولحظي.
-  * **طابور الانتظار (Waitlist) والحجز التلقائي:** إذا كانت المساحة ممتلئة، يرى "مؤقت التوفر" ويمكنه تفعيل ميزة "الحجز التلقائي" ليقوم النظام بحجز المقعد فور خروج الشخص الحالي.
-  * **العضوية الشاملة (Universal Pass):** شراء اشتراك شامل (يومي، شهري، سنوي) يتيح الدخول لشبكة الشركاء بالكامل مع التقيد بحجز مساحة واحدة في المرة الواحدة، وخضوع باقات الحجز غير المحدود* لسياسة الاستخدام العادل بحد أقصى **5 حجوزات في الأسبوع**.
-  * **التحقق عبر كود الـ QR:** إنشاء رمز QR ديناميكي مؤقت (TOTP) على جهازه ليتم مسحه عند الوصول للمساحة.
-  * **محرك الإلغاء والاسترجاع:** إلغاء الحجز أو الباقة ضمن النافذة النظامية واختيار الاسترجاع الفوري للمحفظة أو للبطاقة البنكية.
-  * **نظام التذاكر والدعم:** فتح تذاكر استفسار أو شكوى ومتابعة الردود مع إدارة المنصة.
-  * **نقاط الولاء:** اكتساب النقاط تلقائياً واستبدالها بحجوزات مجانية.
-  * **لوحة التحكم الشخصية:** متابعة سجل الحجوزات، الرصيد المالي، والنقاط.
+### A. Guest
+An unregistered user browsing the platform for the first time.
+* **Permissions:** read and browse only.
+* **Features**
+  * Browse the list of available workspaces.
+  * View each space's details (location, photos, amenities, rating).
+  * View plan prices (daily, monthly, yearly) and Universal Pass options.
+  * Create a new account (individual, organization, or workspace partner).
 
-### ج. مستخدم المؤسسة (Organization User - HR Admin)
-الشركات أو الفرق التي تبحث عن مكاتب مغلقة، غرف اجتماعات، أو مزايا عمل عن بعد لموظفيها.
-* **الصلاحيات:** إدارة حجوزات الشركة، المقاعد، المحفظة المشتركة للمؤسسة، وتذاكر الدعم المؤسسية.
-* **الميزات:**
-  * جميع ميزات (المستخدم الفرد).
-  * **المحفظة المؤسسية المشتركة (Corporate Shared Wallet):** شحن رصيد نقدي مركزي للشركة (`Company.balance`) يُمكّن موظفي الشركة من استخدامه في الحجوزات مباشرة.
-  * **العضويات الشاملة للشركات (B2B Bulk Passes):** شراء وتوزيع حصص العضويات على الموظفين المسجلين (تظهر الباقة بمسمى "حجز غير محدود*" ولكنها مقيدة تقنياً بشرط سياسة الاستخدام العادل: بحد أقصى **5 حجوزات في الأسبوع لكل موظف**).
-  * **إدارة وتتبع الموظفين:** لوحة تحكم لمراقبة استهلاك الموظفين ومعدل استخدامهم للفروع المختلفة.
-  * **تذاكر الدعم المؤسسية:** رفع ومتابعة تذاكر الدعم الفني الخاصة باشتراكات الشركة، بما فيها طلبات عروض الأسعار للشركات الكبرى (فئة `enterprise`).
-  * **نطاق الواجهة:** لا تتضمن قائمة المؤسسة صفحة "مساحات الشركة"، وتقتصر باقاتها على Team Pass وBusiness Pass.
+### B. Individual User
+A freelancer or student looking for a flexible work seat.
+* **Permissions:** manage their personal account, bookings, Universal Pass, digital wallet and support tickets.
+* **Features**
+  * **Flexible booking:** book a seat by day, month or year.
+  * **Digital wallet:** prepay a balance, pay quickly with one click, and receive refunds instantly.
+  * **Waitlist and auto-booking:** when a space is full, the user sees an availability timer and can enable "auto-booking" so the system books the seat as soon as the current occupant leaves.
+  * **Universal Pass:** buy a comprehensive subscription (daily, monthly, yearly) that gives access to the whole partner network while holding one space at a time. Unlimited-booking plans* are subject to the fair-use policy of a maximum of **5 bookings per week**.
+  * **QR verification:** generate a temporary dynamic QR code (TOTP) on their device to be scanned on arrival.
+  * **Cancellation and refund engine:** cancel a booking or pass within the regulated window and choose an instant wallet refund or a refund to the bank card.
+  * **Ticketing and support:** open inquiry or complaint tickets and follow replies with the platform administration.
+  * **Loyalty points:** earn points automatically and redeem them for free bookings.
+  * **Personal dashboard:** track booking history, financial balance and points.
 
-### د. الشريك / صاحب المساحة (Workspace Partner)
-المُلاك الفعليون أو مدراء مساحات العمل (مثل زمكان، ريجس) المنضمين لشبكة Coworking Pass.
-* **الصلاحيات:** إدارة فروعهم وأقسامهم، مسح أكواد التحقق، ومتابعة الأرباح والتسويات الشهرية.
-* **الاعتماد الإداري الصارم:**
-  * يتطلب تسجيل الشريك إدخال **السجل التجاري السعودي (CR / `taxNumber`)**.
-  * يدخل حساب الشريك فور إنشائه في حالة **معلق (`PENDING_APPROVAL`)**، ويُحجب دخوله إلى النظام بـ `HTTP 403 Forbidden` حتى قيام الإدارة العليا بالتحقق من صحة السجل وتفعيله.
-* **الميزات التشغيلية:**
-  * **التحقق وماسح الـ QR:** استخدام الكاميرا لمسح الرموز الديناميكية والتحقق من صحة وصلاحية الحجز.
-  * **إدارة المقر والغرف:** إضافة المقر ببياناته العامة (باللغتين العربية والإنجليزية)، ثم إضافة **غرف وأقسام متعددة** تحت المقر الواحد (قاعات اجتماعات، مسارح، مكاتب خاصة/مخصصة) لكل منها اسمها ونوعها وسعتها وأسعارها (بالساعة/يومي/شهري/سنوي)، وضبط ساعات التشغيل وإظهار المساحة أو إخفائها.
-  * **إدارة الميزات:** اختيار الميزات المتوفرة واقتراح ميزات جديدة للمراجعة من قِبل الـ Super Admin.
-  * **اقتراح قواعد نقاط الولاء:** تقديم اقتراحات لحملات ترويجية قائمة على مضاعفة النقاط.
-  * **التقارير المالية:** تتبع عدد الزيارات المؤكدة وصافي الإيرادات المتوقع تحويلها شهرياً.
+### C. Organization User (HR Admin)
+Companies or teams looking for closed offices, meeting rooms, or remote-work benefits for their employees.
+* **Permissions:** manage company bookings, seats, the organization's shared wallet, and corporate support tickets.
+* **Features**
+  * All individual-user features.
+  * **Corporate shared wallet:** top up a central company cash balance (`Company.balance`) that lets company employees use it for bookings directly.
+  * **B2B bulk Universal Passes:** buy and distribute pass quotas to registered employees (the plan appears as "Unlimited*" but is technically bound by the fair-use rule of a maximum of **5 bookings per week per employee**).
+  * **Employee management and tracking:** a dashboard to monitor employee consumption and their usage of the various branches.
+  * **Corporate support tickets:** raise and follow support tickets for the company's subscriptions.
+  * **Interface scope:** the organization menu has no "Company Workspaces" page, and its plans are limited to Team Pass and Business Pass.
 
-### هـ. مدير النظام (Super Admin)
-الإدارة العليا للمنصة (فريق Coworking Pass).
-* **الصلاحيات:** صلاحيات كاملة (Full Access & CRUD) على جميع بيانات النظام والتحكم الإداري والأمني.
-* **الميزات:**
-  * **اعتماد السجلات التجارية للشركاء (Partner Verification):** مراجعة بيانات السجل التجاري للشريك الجديد، وقبول الحساب (`APPROVED`) مع إرسال بريد ترحيبي عبر Resend، أو رفضه (`REJECTED`) مع إبداء الأسباب.
-  * **إدارة وحظر المستخدمين (User Moderation):** صلاحية حظر أي حساب مشبوه أو مسيء فوراً (`isBanned = true`) أو فك الحظر، مما يمنع الدخول وإجراء أي حجوزات.
-  * **إدارة تذاكر الدعم الفني:** الرد على تذاكر العملاء والشركات وتحديث حالاتها من `OPEN` إلى `IN_PROGRESS` و `CLOSED`.
-  * **إدارة ومراقبة المحافظ المالية والاسترجاع:** مراقبة الأرصدة المودعة، تنفيذ أوامر الاسترجاع المالي للباقات والحجوزات، وتسجيل القيود المالية.
-  * **التقارير والتسويات المالية المؤتمتة:** إدارة دورات الصرف الشهرية للشركاء وتحويل مستحقاتهم.
-  * **اعتماد الميزات وقواعد النقاط:** دراسة وقبول/رفض مقترحات الشركاء.
+### D. Workspace Partner
+The actual owners or managers of coworking spaces (for example Zamakan, Regus) who joined the Coworking Pass network.
+* **Permissions:** manage their venues and rooms, scan verification codes, and follow profits and monthly settlements.
+* **Strict administrative approval**
+  * Registration requires entering a **Saudi commercial registration (CR / `taxNumber`)**.
+  * A partner account is created as **pending (`PENDING_APPROVAL`)** and is blocked from the system with `HTTP 403 Forbidden` until the top administration verifies the registration and activates it.
+* **Operational features**
+  * **QR verification and scanner:** use the camera to scan dynamic codes and verify a booking's validity.
+  * **Venue and room management:** add the venue with its general details (in Arabic and English), then add **multiple rooms and sections** under one venue (meeting rooms, theaters, private or dedicated offices), each with its own name, type, capacity and rates (hourly, daily, monthly, yearly); set operating hours and show or hide the space.
+  * **Amenity management:** choose the available amenities and propose new ones for review by the Super Admin.
+  * **Loyalty rule proposals:** submit proposals for promotional campaigns based on point multipliers.
+  * **Financial reports:** track confirmed visits and the expected net revenue transferred monthly.
 
----
-
-## 3. قصص المستخدمين التفصيلية (User Stories)
-
-### قصص الزائر
-* **كـ زائر:** أريد أن أتصفح مساحات العمل المتاحة وأرى أسعارها وصورها ومرافقها، لكي أقرر إن كانت تناسبني.
-* **كـ زائر:** أريد تسجيل حساب جديد (كفرد أو شركة أو شريك مساحة) بسهولة وأمان.
-
-### قصص المستخدم الفرد
-* **كـ فرد:** أريد حجز مقعد لمدة (يوم، شهر، أو سنة)، لكي أعمل براحة بالمدة التي تناسبني.
-* **كـ فرد:** عندما أجد المساحة ممتلئة، أريد معرفة وقت التوفر وتفعيل "الحجز التلقائي" في طابور الانتظار.
-* **كـ فرد:** أريد شحن محفظتي الرقمية (Digital Wallet)، لكي أدفع حجوزاتي وباقاتي المستقبلية فوراً بضغطة زر واحدة.
-* **كـ فرد:** أريد إلغاء حجزي أو باقتي واسترداد المبلغ فوراً في محفظتي الرقمية ضمن المهلة النظامية المحددة، دون انتظار أيام العمل البنكية.
-* **كـ فرد:** أريد تبديل لغة المنصة بين العربية والإنجليزية بنقرة واحدة، مع انعكاس الاتجاه (RTL/LTR) بشكل سليم.
-* **كـ فرد:** أريد فتح تذكرة دعم فني من لوحة تحكمي عند مواجهة أي استفسار أو مشكلة، لكي أحصل على استجابة موثقة من إدارة المنصة.
-* **كـ فرد (عضوية شاملة):** أريد شراء باقة عضوية شاملة، واستخدامها لحجز مقعد في مساحة محددة كل يوم للتنقل بحرية بين شبكة الفروع.
-* **كـ فرد (الدخول بالـ QR):** أريد توليد رمز QR ديناميكي على جوالي، لكي أظهره للاستقبال ويتم التحقق من دخولي في ثوانٍ.
-
-### قصص المؤسسة (HR Admin)
-* **كـ مدير موارد بشرية:** أريد شحن المحفظة المؤسسية الموحدة (`Company.balance`)، لكي يتمكن موظفو الشركة من حجز المساحات دون مطالبتهم بدفعات فردية.
-* **كـ مدير موارد بشرية:** أريد شراء وتعيين العضويات الشاملة لموظفي شركتي، ومتابعة استهلاكهم وإحصائيات استخدامهم، والقدرة على إلغاء أي باقة واستردادها قبل تاريخ البدء.
-* **كـ مدير موارد بشرية:** أريد رفع تذاكر دعم فني مؤسسية لمتابعة احتياجات الفريق مباشرة مع مسؤولي المنصة.
-
-### قصص الشريك (Workspace Partner)
-* **كـ شريك لمساحة عمل:** أريد تسجيل فرعي برقم سجلي التجاري السعودي (CR)، واستلام تنبيه بريدي عند اعتماد حسابي من قِبل إدارة المنصة للبدء في طرح مقاعدي.
-* **كـ شريك لمساحة عمل:** أريد أن يقوم موظف الاستقبال بمسح رمز الـ QR الخاص بالعميل بجهازه المحمول، لكي تؤكد المنصة فوراً صلاحية الحجز وتُسجل الزيارة لحساب مستحقاتي.
-* **كـ شريك:** أريد إضافة عدة غرف وأقسام تحت مقر واحد، بسعة وسعر مستقلين لكل غرفة، دون أن أضطر لإنشاء مساحات مكررة.
-* **كـ شريك:** أريد إدخال اسم مساحتي ووصفها وعنوانها بالعربية والإنجليزية، لكي يراها العميل بلغته.
-* **كـ عميل:** أريد اختيار الغرفة المحددة (قاعة أو مسرح أو مكتب) ورؤية الجلسات المتاحة لها وسعتها وسعرها قبل الحجز.
-* **كـ شريك:** أريد اقتراح ميزات جديدة وقواعد ولاء إضافية، لكي أرفع من جاذبية وتنافسية مساحتي.
-
-### قصص مدير النظام (Super Admin)
-* **كـ مدير نظام:** أريد واجهة لمراجعة طلبات انضمام الشركاء وتدقيق أرقام سجلاتهم التجارية، وقبول أو رفض الحساب بضغطة زر مع إرسال إشعار تلقائي بالبريد للشريك.
-* **كـ مدير نظام:** أريد القدرة على حظر أي مستخدم مخالف للسياسات (`isBanned`) فوراً، لمنعه من الدخول وإجراء أي حجوزات جديدة.
-* **كـ مدير نظام:** أريد استعراض تذاكر الدعم الفني والرد عليها، وتحويل حالتها بين الفتح والإنجاز والإغلاق، لضمان جودة الخدمة.
-* **كـ مدير نظام:** أريد نظام تسويات مالية مؤتمت يحسب المبالغ المستحقة لكل شريك بناءً على مسحات الـ QR المؤكدة شهرياً.
+### E. Super Admin
+The platform's top administration (the Coworking Pass team).
+* **Permissions:** full access and CRUD on all system data, and administrative and security control.
+* **Features**
+  * **Partner verification:** review a new partner's commercial-registration data and accept the account (`APPROVED`) with a welcome email through Resend, or reject it (`REJECTED`) with reasons.
+  * **User moderation:** suspend any suspicious or abusive account immediately (`isBanned = true`) or lift the suspension, which blocks sign-in and any booking.
+  * **Support ticket management:** reply to customer and company tickets and move their status from `OPEN` to `IN_PROGRESS` and `CLOSED`.
+  * **Wallet and refund oversight:** monitor deposited balances, execute financial refunds for passes and bookings, and record ledger entries.
+  * **Automated reports and settlements:** manage the monthly payout cycles for partners and transfer their dues.
+  * **Amenity and point-rule approval:** review and accept or reject partner proposals.
 
 ---
 
-## 4. المتطلبات الوظيفية (Functional Requirements)
+## 3. Detailed User Stories
 
-> ملاحظة: كل متطلب يحمل معرّفاً فريداً بصيغة `[FR-XXX-##]` لتسهيل الربط بمهام التطوير وحالات الاختبار.
+### Guest stories
+* **As a guest,** I want to browse the available workspaces and see their prices, photos and amenities, so that I can decide whether they suit me.
+* **As a guest,** I want to register a new account (as an individual, company or workspace partner) easily and securely.
 
-### أ. إدارة المستخدمين والمصادقة (Authentication & Moderation)
-* **[FR-AUTH-01]** تسجيل الدخول وإنشاء حساب (أفراد، شركات، شركاء) مع التحقق عبر البريد الإلكتروني (OTP) واستخدام منصة Resend للرسائل البرمجية.
-* **[FR-AUTH-02]** استعادة كلمة المرور عبر الـ OTP مع إبطال الجلسات السابقة فور التغيير.
-* **[FR-AUTH-03]** إدارة الملف الشخصي والصلاحيات بنظام صارم للأدوار (RBAC).
-* **[FR-AUTH-04] دورة اعتماد السجل التجاري للشريك (Space Partner CR Verification):**
-  * *الوصف:* عند تسجيل حساب جديد بدور `PARTNER_ADMIN`، يفرض النظام إدخال السجل التجاري (`taxNumber`). يُنشأ الحساب بحالة `PENDING_APPROVAL`.
-  * *معيار القبول:* يُمنع الشريك المعلق من تسجيل الدخول بـ `HTTP 403 Forbidden` برسالة واضحة. يظهر الطلب في لوحة تحكم الـ Super Admin، وعند اعتماده تتغير الحالة إلى `APPROVED` ويتم إرسال بريد تفعيل تلقائي عبر **Resend** للشريك.
-* **[FR-AUTH-05] إدارة وحظر المستخدمين (User Moderation):**
-  * *الوصف:* يملك الـ Super Admin القدرة على تعديل حقل `isBanned` للمستخدمين.
-  * *معيار القبول:* فور تفعيل الحظر (`isBanned = true`)، تُرفض أي محاولة مصادقة أو حجز من المستخدم برد `HTTP 403 Forbidden` يفيد بتعليق الحساب لمخالفة السياسات.
-* **[FR-AUTH-06] نظام اختيار مفتاح الدولة والتحقق المعياري لأرقام الجوال (Country Code Picker & Phone Validation):**
-  * *الوصف:* توفير قائمة دول منسدلة (Country Code Picker) مع مكتبة معيارية لمعالجة أرقام الهواتف بدلاً من الفحص بـ Regex سعودي ثابت فقط.
-  * *معيار القبول:* تكون الدولة الافتراضية هي المملكة العربية السعودية (`+966`) مع ظهور علم المملكة 🇸🇦، مع إمكانية التبديل لأي دولة عالمياً (مثل `+971`, `+20`, `+44`, `+1`)، والتحقق التلقائي من طول وصحة الرقم عبر مكتبة معيارية دولية (وفق معيار E.164) قبل قبول التسجيل.
+### Individual user stories
+* **As an individual,** I want to book a seat for a day, a month or a year, so that I can work comfortably for the period that suits me.
+* **As an individual,** when I find a space full, I want to know when it becomes available and enable "auto-booking" in the waitlist.
+* **As an individual,** I want to top up my digital wallet so that I can pay for my future bookings and passes instantly with one click.
+* **As an individual,** I want to cancel my booking or pass and get the money back immediately in my digital wallet within the regulated window, without waiting for bank business days.
+* **As an individual,** I want to switch the platform language between Arabic and English with one click, with the direction (RTL/LTR) flipping correctly.
+* **As an individual,** I want to open a support ticket from my dashboard when I face any inquiry or problem, so that I get a documented response from the platform administration.
+* **As an individual (Universal Pass),** I want to buy a Universal Pass and use it to book a seat in a specific space each day so that I can move freely across the branch network.
+* **As an individual (QR entry),** I want to generate a dynamic QR code on my phone, to show to reception and have my entry verified in seconds.
+* **As a customer,** I want to choose the specific room (hall, theater or desk) and see its available sessions, capacity and price before booking.
 
-### ب. نظام الحجوزات والعضويات (Booking & Memberships)
-* **[FR-BOOK-01]** دعم الحجز المباشر للمكاتب (يومي، شهري، سنوي) مع منع الحجز بالساعات للمكاتب المفتوحة.
-* **[FR-BOOK-02]** دعم شراء باقات ساعات موحدة لقاعات الاجتماعات والمسارح (كفئة مدمجة وموحدة برمجياً وتشغيلياً) بساعات مرنة (ساعات/يوم أو ساعات/شهر) واحتساب الاستهلاك بدقة، مع إمكانية إلغاء الحجز وإعادة الساعات غير المستهلكة لرصيد الباقة، وتوحيد نقاط الولاء المكتسبة منها.
-* **[FR-BOOK-03]** دعم العضوية الشاملة (Universal Pass):
-  * قيد الاستخدام العادل (حجز مقعد في مساحة عمل واحدة فقط في الجلسة الواحدة مع إمكانية التبديل المجاني).
-  * **ضابط باقات الحجز غير المحدود:** تظهر الباقات في الواجهة للمستخدمين والشركات بمسمى "حجز غير محدود*" (Unlimited*)، وتخضع تقنياً لسياسة الاستخدام العادل بحد أقصى **5 حجوزات في الأسبوع (Max 5 bookings per week)** لكل مستخدم أو موظف نشط، لمنع الاستغلال واحتكار الموارد.
-  * شمولية رصيد ساعات شهري موحد لقاعات الاجتماعات والمسارح (مثل 8 ساعات شهرياً للباقة الشهرية، و20 ساعة للسنوية، وباقات الشركات من 10 ساعات إلى باقات الحجز غير المحدود* المقيدة بـ 5 حجوزات أسبوعياً) يُخصم استهلاكها تلقائياً عند مسح كود الـ QR.
-* **[FR-BOOK-04]** نظام طابور الانتظار (Waitlist) والحجز التلقائي مع منح مهلة 15 دقيقة لتأكيد الحجز عند شغور المقعد.
-* **[FR-BOOK-05] الجلسات الثابتة وساعات التشغيل للقاعات والمسارح:**
-  * *الوصف:* تُحجز القاعات والمسارح في جلسات ثابتة مدتها ساعتان، مفصولة بساعة تجهيز، داخل ساعات تشغيل المقر `openingTime`–`closingTime` (أو 24 ساعة إذا كان `is24Hours`) وبحد أقصى انتهاء 10:00 م.
-  * *معيار القبول:* يرفض الخادم (HTTP 400) أي حجز بالساعة خارج ساعات التشغيل أو بمدة غير ساعتين، ويرفض حجز المكاتب الفردية بالساعة. تعرض الواجهة الجلسات الصالحة فقط.
-* **[FR-BOOK-06] التوفر والسعة لكل جلسة وغرفة (Slot-Based Availability):**
-  * *الوصف:* تُحسب السعة والتوفر ومؤشرا (متاح/مزدحم) للجلسة والغرفة المختارتين، لا لليوم كاملاً.
-  * *معيار القبول:* حجز جلسة (مثلاً 11:00–13:00) لغرفة لا يمنع حجز جلسة شاغرة (14:00–16:00) لنفس الغرفة أو غيرها؛ تُعرض السعة الكاملة للغرفة (15/15) للجلسة الشاغرة. الجلسة المحجوزة تظهر معطلة، ويرفض الخادم (HTTP 409) أي حجز متداخل زمنياً على نفس الغرفة، كما يرفض (HTTP 400) عدداً من المقاعد أكبر من سعة الغرفة.
-* **[FR-HUB-01] هيكلية المقر والغرف (Hub → Rooms/Sections):**
-  * *الوصف:* يضم المقر الواحد غرفاً/أقساماً متعددة (`WorkspaceSection`)، لكل منها `name` و`type` (DESK / MEETING_ROOM / THEATER) و`subType` و`capacity` و`hourlyRate`/`dailyRate`/`monthlyRate`/`yearlyRate`.
-  * *معيار القبول:* يضيف الشريك أو المشرف الغرف عبر زر "+ إضافة غرفة / قسم" ويُحفظ الجرد في قاعدة البيانات؛ تصبح سعة المقر مجموع سعات الغرف. لا يمكن حذف غرفة عليها حجوزات. الأسعار الفارغة تعود إلى أسعار المقر.
-* **[FR-HUB-02] اختيار الغرفة في مسار الحجز:**
-  * *الوصف:* في صفحة التفاصيل وفي مساري الحجز الفردي والفريق يختار العميل الغرفة فتتحدث الخطط المتاحة والسعر والسعة وشبكة الجلسات بحسبها.
-  * *معيار القبول:* عدد مقاعد الفريق لا يتجاوز سعة الغرفة المختارة، ويحمل الحجز `sectionId` الغرفة عبر `POST /api/hourly-bookings` و`POST /api/direct-bookings`، وتُطبَّق السعة على مستوى الغرفة في المقر متعدد الغرف.
-* **[FR-HUB-03] السلة والدفع المدمج:** يمكن حجز قاعة ومسرح بالساعة ومكتب يومي في عملية دفع واحدة؛ يُحفظ كل عنصر بحسب خطته الخاصة (بالساعة أو مباشر)، ولا يُخضع الحجز اليومي لقيود ساعات التشغيل الخاصة بالجلسات.
+### Organization (HR Admin) stories
+* **As an HR manager,** I want to top up the unified corporate wallet (`Company.balance`) so that the company's employees can book spaces without individual payments.
+* **As an HR manager,** I want to buy and assign Universal Passes to my company's employees, follow their consumption and usage statistics, and be able to cancel and refund any pass before its start date.
+* **As an HR manager,** I want to raise corporate support tickets to follow the team's needs directly with the platform officials.
 
-### ج. دورة حياة الحجز (Booking Lifecycle)
-* **[FR-LIFE-01]** تسجيل الدخول (Check-in) عبر مسح الـ QR وتسجيل الدخول في `QR_CHECK_INS`.
-* **[FR-LIFE-02]** تسجيل الخروج التلقائي (Auto Check-out) بنهاية يوم العمل وتحديث الحجز إلى `COMPLETED` وإشعار طابور الانتظار.
+### Workspace partner stories
+* **As a workspace partner,** I want to register my branch with my Saudi commercial registration (CR) and receive an email alert when the platform administration approves my account, so that I can begin offering my seats.
+* **As a workspace partner,** I want reception staff to scan the customer's QR code on their mobile device, so that the platform immediately confirms the booking's validity and records the visit for my dues.
+* **As a partner,** I want to add several rooms and sections under one venue, with an independent capacity and price for each room, without having to create duplicate spaces.
+* **As a partner,** I want to enter my space's name, description and address in Arabic and English, so that customers see them in their own language.
+* **As a partner,** I want to propose new amenities and additional loyalty rules to raise my space's appeal and competitiveness.
 
-### د. العمليات المالية، المحافظ، والاسترجاع (Financial, Wallets & Refunds)
-* **[FR-PAY-01]** محاكاة بوابة الدفع (Mock Payment) ودعم بطاقات مدى، فيزا، ماستركارد، وأبل باي.
-* **[FR-PAY-02]** نظام تسويات مالية مؤتمت للشركاء (Payouts) في اليوم الأول من كل شهر بناءً على الزيارات المؤكدة.
-* **[FR-WALLET-01] المحافظ الرقمية ورصيد الشركات (Digital Wallets & Shared Balance):**
-  * *الوصف:* توفير محفظة رقمية مستقلة لكل مستخدم فرد (`Wallet`)، ورصيد مؤسسي موحد لكل شركة (`Company.balance`).
-  * *معيار القبول:* يستطيع المستخدم شحن محفظته واستخدام رصيدها في الحجوزات والباقات. تُسجل جميع العمليات في جدول `WALLET_TRANSACTIONS` (وللمؤسسات في `COMPANY_WALLET_TRANSACTIONS`) وتُحسب بدقة مع تحديث الرصيد اللحظي `balance_after`.
-* **[FR-WALLET-02] سلامة الخصم والمحفظة المؤسسية المشتركة:**
-  * *الوصف:* خصم ذري مشروط بكفاية الرصيد داخل معاملة قاعدة بيانات واحدة، ومفتاح عدم تكرار (`referenceId`) لكل عملية.
-  * *معيار القبول:* لا يمكن للرصيد أن يصبح سالباً حتى مع الطلبات المتزامنة؛ وإعادة إرسال الطلب بنفس المفتاح لا تخصم ولا تُودع مرتين. يمكن لمدير الموارد البشرية التصرف في محفظة شركته فقط.
-* **[FR-WALLET-03] التراجع التلقائي عن الدفع عند فشل الحجز:**
-  * *الوصف:* عند سداد حجز أو سلة بالمحفظة ثم رفض الخادم أحد الحجوزات (تعارض، سعة، أو خطأ)، تُعاد حصة ذلك الحجز من الخصم إلى المحفظة ذاتها (شخصية أو مؤسسية) بمفتاح استرداد مشتق يمنع التكرار.
-  * *معيار القبول:* يرى العميل رسالة واضحة بالمبلغ المُعاد؛ وتبقى الحجوزات الناجحة الأخرى في السلة مؤكدة.
-* **[FR-REFUND-01] محرك الإلغاء والاسترجاع المؤتمت (Direct Bookings vs Packages):**
-  * *الوصف:* نظام ذكي يفصل بدقة بين سياسات الحجوزات المباشرة المقيدة بمقاعد وأوقات، وبين باقات الاشتراكات المرنة:
-    * **الحجوزات المباشرة للمكاتب وقاعات الاجتماعات:** الإلغاء متاح قبل **6 ساعات** للأفراد B2C وقبل **24 ساعة** للمؤسسات B2B من موعد بدء الحجز، لتمكين ترقية طابور الانتظار (Waitlist).
-    * **باقات العضوية الشاملة (Universal Pass Subscriptions):** يحق للمستخدم أو الشركة استرداد كامل قيمة الباقة خلال **3 أيام (72 ساعة)** من تاريخ الشراء، بشرط **عدم استهلاك أي زيارة نهائياً (`visitsUsed == 0`)**، ويُبطل الاسترجاع التلقائي فور استخدام أي زيارة.
-    * **باقات الساعات (Hourly Packages):** إعادة الساعات غير المستهلكة لرصيد العميل عند إلغاء الجلسة قبل موعدها (6 ساعات للأفراد، 24 ساعة للشركات)، مع إمكانية استرداد قيمة الباقة المالية كاملة خلال 3 أيام من الشراء إذا لم يُستهلك منها شيء.
-  * *معيار القبول:* في حال كان الحجز أو الباقة مؤهلة، يُتاح خيار "الاسترجاع الفوري للمحفظة" فتُضاف القيمة بلحظتها دون أي تأخير، أو خيار "الاسترجاع للبطاقة البنكية" خلال 5 إلى 14 يوم عمل. يُحدث وضع الحجز إلى `REFUNDED` ويُسجل كقيد استرجاع رسمي.
-  * *الذرية:* يُنفَّذ الاسترداد (تحديث حالة الحجز أو الباقة، قيد `REFUND`، وقيد المحفظة) داخل معاملة واحدة، ولا يُقبل استرداد نفس الحجز أو الباقة مرتين. تُعاد قيمة حجوزات الحسابات المؤسسية إلى المحفظة المؤسسية المشتركة.
-  * *سياسة الـ 72 ساعة للباقات:* استرداد الباقة متاح خلال 72 ساعة من الشراء فقط وبشرط `visitsUsed == 0`، ويُرفض الطلب بعد ذلك مع رسالة توضح السبب.
+### Super Admin stories
+* **As a system administrator,** I want an interface to review partner applications and verify their commercial registration numbers, accept or reject the account with one click, and send an automatic email notification to the partner.
+* **As a system administrator,** I want to be able to suspend any user who violates the policies (`isBanned`) immediately, to block their sign-in and any new bookings.
+* **As a system administrator,** I want to view support tickets and reply to them, moving their status between open, in progress and closed, to ensure service quality.
+* **As a system administrator,** I want an automated financial-settlement system that calculates each partner's dues from the confirmed QR scans each month.
 
-### هـ. نظام التحقق (QR Code)
-* **[FR-QR-01]** توليد رمز QR ديناميكي متغير زمنياً (TOTP) يتجدد كل 30 ثانية لتفادي التزوير.
-* **[FR-QR-02]** واجهة فحص وتحقق سريعة لموظف الاستقبال تؤكد صلاحية الحجز في أقل من 500 مللي ثانية.
+---
 
-### و. إدارة الميزات، التذاكر، والإشعارات
-* **[FR-FEAT-01]** إدارة ميزات المساحات وإمكانية اقتراح ميزات مخصصة من الشركاء واعتمادها من الإدارة.
-* **[FR-SUPP-01] نظام تذاكر الدعم الفني (Support Ticketing System):**
-  * *الوصف:* تمكين المستخدمين والشركات من إنشاء تذاكر دعم (`Ticket`) ومتابعة الردود (`TicketReply`).
-  * *معيار القبول:* تتبع دورة حياة التذكرة بحالاتها الثلاث (`OPEN`, `IN_PROGRESS`, `CLOSED`). تُحفظ الردود في `TicketReply` وتُعرض كمحادثة داخل لوحة الإدارة، ويمكن للمشرف الرد حتى على التذكرة المغلقة. تحمل التذكرة `message` و`category` (general / complaint / refund / enterprise) و`priority`، وتُحدَّد الشركة من سجل الطالب في الخادم.
-  * *استفسارات المؤسسات:* طلب عرض السعر للشركات الكبرى يُسجَّل بفئة `enterprise` ويصل المشرفين كإشعار داخل الموقع (نوع `SUPPORT_TICKET`) ويظهر في تبويب مستقل.
-* **[FR-NOTIF-01]** إرسال إشعارات تلقائية عبر البريد (Resend) وداخل الموقع لمختلف الأحداث الحيوية.
+## 4. Functional Requirements
 
-**جدول الإشعارات**
+> Note: every requirement carries a unique identifier in the form `[FR-XXX-##]` to make it easy to link to development tasks and test cases.
 
-| الحدث | القناة | المُستقبِل |
+### A. User Management and Authentication (Authentication & Moderation)
+* **[FR-AUTH-01]** Sign-in and account creation (individuals, companies, partners) with email verification (OTP), using Resend for transactional messages.
+* **[FR-AUTH-02]** Password recovery through OTP, invalidating previous sessions as soon as the password changes.
+* **[FR-AUTH-03]** Profile and permission management with a strict role-based access control (RBAC) system.
+* **[FR-AUTH-04] Partner commercial-registration approval cycle (Space Partner CR Verification):**
+  * *Description:* when a new account is registered with the `PARTNER_ADMIN` role, the system requires the commercial registration (`taxNumber`). The account is created as `PENDING_APPROVAL`.
+  * *Acceptance criteria:* a pending partner is blocked from signing in with `HTTP 403 Forbidden` and a clear message. The request appears in the Super Admin dashboard, and once approved the status changes to `APPROVED` and an activation email is sent automatically through **Resend**.
+* **[FR-AUTH-05] User moderation and suspension:**
+  * *Description:* the Super Admin can change the users' `isBanned` field.
+  * *Acceptance criteria:* once a suspension is enabled (`isBanned = true`), any authentication or booking attempt by the user is rejected with `HTTP 403 Forbidden` stating the account is suspended for policy violations.
+* **[FR-AUTH-06] Country-code picker and standard phone validation:**
+  * *Description:* provide a country drop-down (Country Code Picker) with a standard library for handling phone numbers, instead of checking only with a fixed Saudi regular expression.
+  * *Acceptance criteria:* the default country is Saudi Arabia (`+966`) with the 🇸🇦 flag, with the ability to switch to any country worldwide (for example `+971`, `+20`, `+44`, `+1`), and the number's length and validity are checked automatically by a standard international library (E.164 format) before registration is accepted.
+
+### B. Booking and Membership System
+* **[FR-BOOK-01]** Direct booking of desks (daily, monthly, yearly), with hourly booking of open desks prevented.
+* **[FR-BOOK-02]** Unified hour packages for meeting rooms and theaters (one category in software and operations) with flexible hours (hours per day or hours per month), precise consumption accounting, the ability to cancel a booking and return unused hours to the package credit, and unified loyalty points earned from them.
+* **[FR-BOOK-03]** Universal Pass support:
+  * The fair-use constraint (a seat in one workspace only per session, with free switching).
+  * **Unlimited-booking plans:** plans appear to users and companies as "Unlimited*" and are technically subject to the fair-use policy of a maximum of **5 bookings per week** per active user or employee, to prevent abuse and hoarding of resources.
+  * A unified monthly hours credit for meeting rooms and theaters (for example 8 hours per month for the monthly plan, 20 hours for the yearly plan, and corporate plans from 10 hours up to unlimited-booking* plans limited to 5 bookings per week), deducted automatically when the QR code is scanned.
+* **[FR-BOOK-04]** A waitlist and auto-booking system, with a 15-minute window to confirm the booking when a seat becomes free.
+* **[FR-BOOK-05] Fixed sessions and operating hours for halls and theaters:**
+  * *Description:* halls and theaters are booked in fixed sessions of two hours, separated by a one-hour turnaround, inside the venue's operating hours `openingTime`–`closingTime` (or 24 hours when `is24Hours`), ending no later than 10:00 PM.
+  * *Acceptance criteria:* the server rejects (HTTP 400) any hourly booking outside operating hours or with a duration other than two hours, and rejects hourly booking of individual desks. The interface shows only valid sessions.
+* **[FR-BOOK-06] Per-session, per-room availability (slot-based availability):**
+  * *Description:* capacity, availability and the available/busy indicators are calculated for the selected session and room, not for the whole day.
+  * *Acceptance criteria:* booking a session (for example 11:00–13:00) of a room does not prevent booking a vacant session (14:00–16:00) of the same or another room, and the full room capacity (15/15) is shown for the vacant session. A booked session is displayed disabled. The server rejects any time-overlapping booking on the same room (HTTP 409) and rejects (HTTP 400) a number of seats larger than the room's capacity.
+* **[FR-HUB-01] Hub → Rooms/Sections hierarchy:**
+  * *Description:* one hub contains multiple rooms/sections (`WorkspaceSection`), each with `name`, `type` (DESK / MEETING_ROOM / THEATER), `subType`, `capacity`, and `hourlyRate` / `dailyRate` / `monthlyRate` / `yearlyRate`.
+  * *Acceptance criteria:* the partner or admin adds rooms with the "+ Add Room / Section" button and the inventory is saved in the database; the hub's capacity becomes the sum of the rooms' capacities. A room that has bookings cannot be deleted. Empty rates fall back to the hub's rates.
+* **[FR-HUB-02] Room selection in the booking flow:**
+  * *Description:* on the details page and in the individual and team booking flows the customer selects the room, and the available plans, price, capacity and session grid update accordingly.
+  * *Acceptance criteria:* the number of team seats does not exceed the selected room's capacity, and the booking carries the room's `sectionId` through `POST /api/hourly-bookings` and `POST /api/direct-bookings`, with capacity applied per room in a multi-room hub.
+* **[FR-HUB-03] Mixed cart and combined checkout:** a hall and a theater by the hour and a daily office can be booked in a single checkout. Each item is saved according to its own plan (hourly, or direct daily/monthly/yearly), and a daily booking is not subject to the operating-hours rules that apply to sessions.
+
+### C. Booking Lifecycle
+* **[FR-LIFE-01]** Check-in by scanning the QR code, with the entry recorded in `QR_CHECK_INS`.
+* **[FR-LIFE-02]** Automatic check-out at the end of the workday, updating the booking to `COMPLETED` and notifying the waitlist.
+
+### D. Financial Operations, Wallets and Refunds
+* **[FR-PAY-01]** Mock payment gateway simulation with support for Mada, Visa, MasterCard and Apple Pay cards.
+* **[FR-PAY-02]** Automated partner financial settlements (Payouts) on the first day of each month, based on confirmed visits.
+* **[FR-WALLET-01] Digital wallets and shared balance:**
+  * *Description:* provide an independent digital wallet for each individual user (`Wallet`) and a unified corporate balance for each company (`Company.balance`).
+  * *Acceptance criteria:* the user can top up their wallet and use its balance for bookings and packages. All operations are recorded in `WALLET_TRANSACTIONS` (and for companies in `COMPANY_WALLET_TRANSACTIONS`) and calculated accurately with the instant balance `balance_after` updated.
+* **[FR-WALLET-02] Deduction integrity and the corporate shared wallet:**
+  * *Description:* atomic deduction conditional on sufficient balance inside one database transaction, and an idempotency key (`referenceId`) for each operation.
+  * *Acceptance criteria:* the balance can never go negative even with concurrent requests, and resending a request with the same key neither deducts nor deposits twice. An HR administrator can operate only on their own company's wallet.
+* **[FR-WALLET-03] Automatic payment rollback when a booking fails:**
+  * *Description:* when a booking or cart is paid from a wallet and the server then rejects one of the bookings (conflict, capacity or error), that booking's share of the deduction is returned to the same wallet (personal or corporate) with a derived refund key that prevents repetition.
+  * *Acceptance criteria:* the customer sees a clear message with the returned amount, and the other successful bookings in the cart remain confirmed.
+* **[FR-REFUND-01] Automated cancellation and refund engine (Direct Bookings vs Packages):**
+  * *Description:* a smart system that separates precisely between the policies of direct bookings bound to seats and times and flexible subscription packages:
+    * **Direct bookings of desks and meeting rooms:** cancellation is available **6 hours** before for individuals (B2C) and **24 hours** before for organizations (B2B) from the booking start time, to enable waitlist promotion.
+    * **Universal Pass subscriptions:** the user or company is entitled to a full refund of the pass within **3 days (72 hours)** of purchase, provided **no visit has been used (`visitsUsed == 0`)**; the automatic refund is void as soon as any visit is used.
+    * **Hourly packages:** unused hours are returned to the customer's credit when the session is cancelled before its time (6 hours for individuals, 24 hours for companies), with the option to refund the package's monetary value in full within 3 days of purchase if nothing has been consumed.
+  * *Acceptance criteria:* when the booking or package is eligible, an "instant refund to wallet" option is offered and the amount is added immediately with no delay, or a "refund to bank card" option within 5 to 14 business days. The booking status is updated to `REFUNDED` and recorded as an official refund entry.
+  * *Atomicity:* the refund (updating the booking or pass status, the `REFUND` entry and the wallet entry) runs in one transaction, and refunding the same booking or pass twice is not accepted. The value of corporate accounts' bookings is returned to the shared corporate wallet.
+  * *72-hour pass policy:* a pass refund is available only within 72 hours of purchase and only with `visitsUsed == 0`; the request is rejected afterwards with a message explaining why.
+
+### E. Verification System (QR Code)
+* **[FR-QR-01]** Generate a time-varying dynamic QR code (TOTP) that renews every 30 seconds to prevent forgery.
+* **[FR-QR-02]** A quick check interface for reception staff that confirms a booking's validity in under 500 milliseconds.
+
+### F. Amenities, Tickets and Notifications
+* **[FR-FEAT-01]** Manage workspace amenities, with partners able to propose custom amenities that the administration approves.
+* **[FR-SUPP-01] Support ticketing system:**
+  * *Description:* enable users and companies to create support tickets (`Ticket`) and follow replies (`TicketReply`).
+  * *Acceptance criteria:* track the ticket lifecycle through its three states (`OPEN`, `IN_PROGRESS`, `CLOSED`). Replies are saved in `TicketReply` and shown as a conversation in the admin panel, and the admin can reply even to a closed ticket. A ticket carries `message`, `category` (general / complaint / refund / enterprise) and `priority`, and the company is resolved on the server from the requester's record.
+  * *Enterprise inquiries:* the `enterprise` category is supported for tailored-offer requests; such a ticket reaches the administrators as an in-app notification (type `SUPPORT_TICKET`) and appears in a separate tab.
+* **[FR-NOTIF-01]** Send automatic notifications by email (Resend) and in-app for the various key events.
+
+**Notification table**
+
+| Event | Channel | Recipient |
 | :--- | :--- | :--- |
-| تأكيد إنشاء الحساب وتفعيل البريد (OTP) | بريد إلكتروني | المستخدم / الشريك |
-| طلب انضمام شريك جديد (تحت المراجعة) | بريد إلكتروني | الشريك |
-| اعتماد وتفعيل حساب الشريك | بريد إلكتروني | الشريك |
-| رفض طلب اعتماد الشريك مع السبب | بريد إلكتروني | الشريك |
-| تأكيد الحجز (مكتب / مسرح / قاعة) | بريد + داخل الموقع | المستخدم |
-| تأكيد شراء العضوية الشاملة أو باقة الساعات | بريد + داخل الموقع | المستخدم |
-| ترقية من طابور الانتظار | بريد + داخل الموقع | المستخدم |
-| إلغاء واسترداد الحجز أو الباقة (Wallet/Card) | بريد + داخل الموقع | المستخدم |
-| إيداع رصيد بالمحفظة الرقمية | داخل الموقع | المستخدم |
-| نجاح / فشل الدفع | بريد + داخل الموقع | المستخدم |
-| رد جديد على تذكرة دعم فني | داخل الموقع + بريد | المستخدم / الشركة |
-| اكتساب / استبدال نقاط الولاء | داخل الموقع | المستخدم |
-| اقتراب انتهاء الاشتراك (قبل 7 أيام) | بريد + داخل الموقع | المستخدم |
-| تعيين عضوية من قِبل الشركة | بريد + داخل الموقع | الموظف |
-| إتمام التسوية المالية الشهرية | بريد | الشريك |
-| قبول / رفض ميزة أو قاعدة نقاط | داخل الموقع | الشريك |
+| Account creation and email verification (OTP) | Email | User / Partner |
+| New partner application (under review) | Email | Partner |
+| Partner account approved and activated | Email | Partner |
+| Partner application rejected with the reason | Email | Partner |
+| Booking confirmation (desk / theater / hall) | Email + in-app | User |
+| Universal Pass or hour package purchase confirmation | Email + in-app | User |
+| Promotion from the waitlist | Email + in-app | User |
+| Booking or package cancellation and refund (Wallet/Card) | Email + in-app | User |
+| Digital wallet deposit | In-app | User |
+| Payment success / failure | Email + in-app | User |
+| New reply on a support ticket | In-app + email | User / Company |
+| New support ticket (including the enterprise category) | In-app | Super Admin |
+| Loyalty points earned / redeemed | In-app | User |
+| Subscription about to expire (7 days before) | Email + in-app | User |
+| Pass assigned by the company | Email + in-app | Employee |
+| Monthly financial settlement completed | Email | Partner |
+| Amenity or point rule accepted / rejected | In-app | Partner |
 
-### ز. اللغات والاتجاه (Internationalization)
-* **[FR-I18N-01] محرك اللغتين والاتجاه:**
-  * *الوصف:* دعم العربية (افتراضية) والإنجليزية مع مبدّل لغة في الشريط العلوي (🇸🇦 العربية / 🇬🇧 English) بجوار صورة المستخدم.
-  * *معيار القبول:* يُحفظ الاختيار محلياً ويُطبَّق قبل رسم الصفحة؛ عند العربية `lang="ar" dir="rtl"` مع انعكاس التخطيط والمسافات والأيقونات الاتجاهية وخط Tajawal، دون أي تكسّر أو فيض أفقي في الشاشات الرئيسية (مُتحقَّق منها على سطح المكتب والجوال).
-* **[FR-I18N-02] قواميس ترجمة صارمة النوع:** كل النصوص الثابتة (التنقل، التذييل، الاستعراض والفلاتر، تفاصيل المساحة، المصادقة، لوحات الأفراد والمؤسسات والشركاء والإدارة، النوافذ، والتنبيهات) تأتي من قواميس `ar`/`en`؛ ويفشل البناء إذا اختلف شكل القاموسين.
-* **[FR-I18N-03] محتوى المساحات ثنائي اللغة:** يضم `Workspace` الحقول `nameAr` و`descriptionAr` و`addressAr` و`cityAr` بجانب النسخ الإنجليزية، ويُدخلها الشريك أو المشرف في نموذج المساحة. تُعرض النسخة العربية في الوضع العربي مع رجوع مرن للإنجليزية عند غيابها، ولا تُستخدم أي ترجمة آلية.
+### G. Internationalization
+* **[FR-I18N-01] Dual-language engine and direction:**
+  * *Description:* support Arabic (the default) and English with a language switcher in the top bar (🇸🇦 العربية / 🇬🇧 English) next to the user's avatar.
+  * *Acceptance criteria:* the choice is stored locally and applied before the page is painted. In Arabic, `lang="ar" dir="rtl"` is set, layouts, spacing and directional icons flip, and the Tajawal font is used, with no breakage or horizontal overflow on the main screens (verified on desktop and mobile).
+* **[FR-I18N-02] Strictly typed translation dictionaries:** all static text (navigation, footer, browse and filters, space details, authentication, individual, organization, partner and admin dashboards, dialogs and alerts) comes from `ar`/`en` dictionaries, and the build fails if the two dictionaries differ in shape.
+* **[FR-I18N-03] Bilingual workspace content:** `Workspace` has the fields `nameAr`, `descriptionAr`, `addressAr` and `cityAr` next to the English versions, entered by the partner or admin in the workspace form. The Arabic version is shown in Arabic mode with a graceful fallback to English when missing, and no machine translation is used.
 
-### ح. الأمان والحوكمة (Security & Governance)
-* **[FR-SEC-01] التحكم بالصلاحيات ونطاق الملكية:**
-  * `GET/POST /api/payouts`: المشرف العام للجميع؛ الشريك لدفعاته فقط (ويُنشئ سجلاً بحالة معلقة لنفسه فقط)؛ غيرهما HTTP 403.
-  * `POST/PUT/DELETE /api/workspace-sections`: الشريك المالك أو المشرف العام فقط، مع قائمة حقول مسموحة عند التعديل.
-  * `GET /api/stats`: المشرف العام فقط.
-  * `GET /api/hourly-bookings` و`GET /api/direct-bookings`: المستخدم لحجوزاته، الشريك لحجوزات مساحاته فقط (وحجوزاته الشخصية)، مدير الموارد البشرية لحجوزات فريقه (بالساعة)، المشرف للجميع.
-* **[FR-SEC-02] الإيقاف الدائم للحساب:** الحظر محفوظ في قاعدة البيانات (`isBanned`) ويُفحص عند كل طلب موثّق؛ يعيد الخادم `HTTP 403` برمز `ACCOUNT_SUSPENDED` فتعرض الواجهة نافذة إيقاف غير قابلة للإغلاق.
-* **[FR-SEC-03] الحذف المتسلسل:** حذف مستخدم أو شريك أو مساحة يزيل البيانات المرتبطة به بالترتيب الصحيح مع الحفاظ على سلامة المفاتيح الأجنبية (تُفصل المدفوعات عن المساحة ولا تُحذف).
-* **[FR-SEC-04] إخفاء المساحات:** المساحة ذات `isVisible = false` لا تُعاد بياناتها ولا تُقبل حجوزاتها إلا للمشرف وشريكها المالك.
-* **[FR-SEC-05] مدة الجلسة:** JWT صالح 24 ساعة ويُبطل عند تسجيل الخروج.
+### H. Security and Governance
+* **[FR-SEC-01] Access control and ownership scope**
+  * `GET/POST /api/payouts`: the Super Admin for all; a partner for their own payouts only (and creates only a pending record for themselves); anyone else gets HTTP 403.
+  * `POST/PUT/DELETE /api/workspace-sections`: the owning partner or the Super Admin only, with an allow-list of fields on edit.
+  * `GET /api/stats`: the Super Admin only.
+  * `GET /api/hourly-bookings` and `GET /api/direct-bookings`: a user sees their own bookings, a partner sees their own spaces' bookings only (and their own personal bookings), an HR administrator sees their team's (hourly) bookings, and the Super Admin sees all.
+* **[FR-SEC-02] Permanent account suspension:** a ban is stored in the database (`isBanned`) and checked on every authenticated request. The server returns `HTTP 403` with the code `ACCOUNT_SUSPENDED`, and the interface shows a non-dismissible suspension modal.
+* **[FR-SEC-03] Cascading deletion:** deleting a user, partner or workspace removes its related data in the correct order while preserving foreign-key integrity (payments are detached from the space and not deleted).
+* **[FR-SEC-04] Hidden spaces:** a space with `isVisible = false` has neither its data returned nor its bookings accepted except for the Super Admin and its owning partner.
+* **[FR-SEC-05] Session lifetime:** a JWT is valid for 24 hours and is revoked on logout.
 
-### ط. توثيق واجهات التطبيقات البرمجية (OpenAPI Documentation)
-* **[FR-API-01] التوثيق التفاعلي للـ API المفتوح:**
-  * *الوصف:* توفير واجهة Swagger UI تفاعلية على المسار `/api-doc`.
-  * *معيار القبول:* استعراض كافة الـ Endpoints والمخططات ومفاتيح التوثيق (Bearer JWT) مع إمكانية تجربة الـ Endpoints مباشرة من المتصفح.
-
----
-
-## 5. المتطلبات غير الوظيفية (Non-Functional Requirements)
-* **الأمان والتحكم (Security & Access Control):**
-  * تشفير كلمات المرور باستخدام `bcryptjs`.
-  * توثيق مسارات الـ API بـ `JWT` وتطبيق ضوابط التحقق من الأدوار (RBAC).
-  * فحص حالة الحظر `isBanned` وحالة الشريك `ApprovalStatus` عند كل عملية تسجيل دخول واستدعاء API.
-  * أمان الـ QR Code عبر أكواد زمنية ديناميكية مشفرة (TOTP).
-  * حماية أكواد الـ OTP وتشفيرها مع تحديد صلاحية 10 دقائق كحد أقصى.
-  * **سلامة العمليات المالية:** خصومات المحافظ ذرية ومشروطة بالرصيد داخل معاملات قاعدة بيانات، بمفاتيح عدم تكرار، مع تراجع تلقائي عن الدفع عند فشل الحجز.
-  * **التحقق في الخادم:** ساعات التشغيل والجلسات الثابتة والسعة والتداخل الزمني تُفرض في الخادم حتى لو تجاوزت الواجهة قيودها.
-* **الأداء وسرعة الاستجابة (Performance):**
-  * تحميل قائمة المساحات والبحث في أقل من ثانيتين.
-  * التحقق من مسح الـ QR في أقل من 500 مللي ثانية.
-  * إيداع مبالغ الاسترجاع الفوري في المحفظة الرقمية في زمن معالجة أقل من 1 ثانية.
-* **التوافر والاعتمادية (Availability & Reliability):**
-  * استضافة سحابية متكاملة للواجهات والخوادم على منصة **Render**، وقاعدة بيانات سحابية على **Neon**.
-  * جاهزية لا تقل عن 99.5% شهرياً.
-  * نسخ احتياطي دوري لقاعدة البيانات مع إمكانية الاسترجاع عند الطوارئ.
-* **إمكانية الوصول والتوطين (Localization & UX):**
-  * الواجهة تعمل بلغتين مع RTL كامل، بلا فيض أفقي في الشاشات الرئيسية على سطح المكتب والجوال.
-  * عرض العملة والتواريخ والأوقات بحسب اللغة.
-* **الامتثال والخصوصية (Compliance & Privacy):**
-  * الامتثال لنظام حماية البيانات الشخصية السعودي (PDPL).
-  * توثيق ومطابقة السجلات التجارية للشركاء السعوديين قبل تفعيل أي نشاط تجاري على المنصة.
+### I. Open API Documentation (OpenAPI Documentation)
+* **[FR-API-01] Interactive documentation of the open API:**
+  * *Description:* provide an interactive Swagger UI at `/api-doc`.
+  * *Acceptance criteria:* browse all endpoints, schemas and authorization keys (Bearer JWT), with the ability to try endpoints directly from the browser.
 
 ---
 
-## 6. رحلة المستخدم الأساسية (Main User Flow)
-1. **الهبوط والاستكشاف:** زيارة المنصة واستعراض المساحات والميزات عبر واجهات التطبيق.
-2. **الحجز:** اختيار القسم المطلوب (مكتب مشترك، قاعة اجتماعات بساعات مرنة، أو مسرح).
-3. **الدفع والمحفظة:** إتمام الدفع بالبطاقة البنكية أو برصيد المحفظة الرقمية المشحونة مسبقاً.
-4. **الوصول الميداني:** إبراز رمز الـ QR الديناميكي لموظف الاستقبال والتحقق خلال ثوانٍ.
-5. **المرونة والإلغاء:** إمكانية إلغاء الحجز أو الباقة المؤهلة واسترداد المبلغ فوراً في المحفظة أو رفع تذكرة دعم فني لمتابعة أي استفسار.
+## 5. Non-Functional Requirements
+* **Security and access control**
+  * Password hashing with `bcryptjs`.
+  * API routes authenticated with `JWT` and role checks (RBAC) applied.
+  * Check the `isBanned` status and the partner `ApprovalStatus` on every sign-in and API call.
+  * QR code security through encrypted dynamic time-based codes (TOTP).
+  * OTP protection and hashing, with a validity of at most 10 minutes.
+  * **Financial operation integrity:** wallet deductions are atomic and conditional on balance inside database transactions, with idempotency keys and automatic payment rollback when a booking fails.
+  * **Server-side validation:** operating hours, fixed sessions, capacity and time overlap are enforced on the server even if the interface bypasses its own restrictions.
+* **Performance and responsiveness**
+  * Load the workspace list and search in under two seconds.
+  * Verify a QR scan in under 500 milliseconds.
+  * Deposit instant refund amounts into the digital wallet in under 1 second of processing time.
+* **Availability and reliability**
+  * Fully cloud hosting of the interfaces and servers on **Render**, and a cloud database on **Neon**.
+  * Availability of at least 99.5% per month.
+  * Periodic database backups with the ability to restore in emergencies.
+* **Localization and UX**
+  * The interface works in two languages with full RTL, without horizontal overflow on the main screens on desktop and mobile.
+  * Currency, dates and times are displayed according to the language.
+* **Compliance and privacy**
+  * Compliance with the Saudi Personal Data Protection Law (PDPL).
+  * Documenting and matching the commercial registrations of Saudi partners before enabling any commercial activity on the platform.
+
+---
+
+## 6. Main User Flow
+1. **Landing and exploration:** visit the platform and browse spaces and amenities through the application interfaces.
+2. **Booking:** choose the required section and room (a shared desk, a meeting room with flexible hours, or a theater).
+3. **Payment and wallet:** complete payment by bank card or from the prepaid digital wallet.
+4. **Field access:** show the dynamic QR code to reception and be verified within seconds.
+5. **Flexibility and cancellation:** cancel an eligible booking or package and get the money back instantly in the wallet, or raise a support ticket to follow any inquiry.

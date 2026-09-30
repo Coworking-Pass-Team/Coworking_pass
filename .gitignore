@@ -1,3 +1,7 @@
 node_modules/
 .env
 __pycache__/
+
+# Local Arabic documentation (kept on disk only)
+docs/ar/
+~$*.docx
