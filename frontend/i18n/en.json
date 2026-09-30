@@ -2602,6 +2602,17 @@
     "fullDay": "Fully booked on this date",
     "slotTaken": "Booked",
     "seatCap": "This hall seats up to {count}",
-    "errCapacity": "Every hall or theater needs at least 1 seat."
+    "errCapacity": "Every hall or theater needs at least 1 seat.",
+    "title": "Facilities & Sections",
+    "helpRooms": "Add each room of this hub with its own kind, seating capacity and rates.",
+    "addRoom": "+ Add Room / Section",
+    "empty": "No rooms added. The hub is booked as a single space using the capacity and rates below.",
+    "kind": "Type",
+    "hourlyRate": "Hourly rate (SAR)",
+    "dailyRate": "Daily rate (SAR)",
+    "monthlyRate": "Monthly rate (SAR)",
+    "yearlyRate": "Yearly rate (SAR)",
+    "hubRate": "Hub default",
+    "selectRoom": "Select room / section"
   }
 }

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getTokenFromRequest, unauthorizedResponse, suspendedResponse } from '@/lib/auth/verify-token';
 import { seedStandardWorkspaces } from '@/lib/seed-data';
-import { directBookingEnd, getOccupiedSeats } from '@/lib/capacity';
+import { directBookingEnd, getOccupiedSeats, getOccupiedSeatsForSection } from '@/lib/capacity';
 import { hiddenWorkspaceError } from '@/lib/workspace-visibility';
 import { getKsaNow, parseDateAndTimeToKsaDate } from '@/lib/time-utils';
 
@@ -302,7 +302,17 @@ export async function POST(request: NextRequest) {
     const requestedSeats = Math.max(1, Math.floor(Number(body.seats) || 1));
     const bookingStart = parseDateAndTimeToKsaDate(bookingDate, null, 9);
     const workspaceForCapacity = await prisma.workspace.findUnique({ where: { id: targetWorkspaceId }, select: { totalCapacity: true } });
-    if (workspaceForCapacity && workspaceForCapacity.totalCapacity > 0) {
+    if (ws.sections.length > 1 && sec.capacity > 0) {
+      // A hub with several rooms: each room seats only its own capacity
+      const roomEnd = directBookingEnd({ bookingDate: bookingStart, durationType: finalDuration, durationDetails: finalDurationDetails });
+      const roomOccupied = await getOccupiedSeatsForSection(sec.id, bookingStart, roomEnd);
+      if (roomOccupied + requestedSeats > sec.capacity) {
+        return NextResponse.json(
+          { error: `${sec.name} has only ${Math.max(0, sec.capacity - roomOccupied)} seat(s) left for the selected period.` },
+          { status: 409 }
+        );
+      }
+    } else if (workspaceForCapacity && workspaceForCapacity.totalCapacity > 0) {
       const bookingEnd = directBookingEnd({ bookingDate: bookingStart, durationType: finalDuration, durationDetails: finalDurationDetails });
       const occupied = (await getOccupiedSeats([targetWorkspaceId], bookingStart, bookingEnd)).get(targetWorkspaceId) || 0;
       if (occupied + requestedSeats > workspaceForCapacity.totalCapacity) {

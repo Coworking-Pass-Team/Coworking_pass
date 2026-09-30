@@ -243,11 +243,21 @@ export interface SpacePricing {
   yearly: number;
 }
 
-/** One individual hall or theater inside a workspace, with its own seating capacity (stored as a WorkspaceSection). */
+/** Booking category of a room (WorkspaceSection.type). */
+export type UnitDbType = 'DESK' | 'MEETING_ROOM' | 'THEATER';
+
+/** One room / section of a workspace hub (a WorkspaceSection), with its own kind, capacity and rates. */
 export interface SpaceUnit {
   id: string;
   name: string;
   capacity: number;
+  type?: UnitDbType;
+  /** Finer room kind chosen by the provider, e.g. 'private-office' or 'training-hall' */
+  subType?: string;
+  hourlyRate?: number | null;
+  dailyRate?: number | null;
+  monthlyRate?: number | null;
+  yearlyRate?: number | null;
 }
 
 /** A unit together with the sessions already booked for it on a given date ("HH:mm" 24h ranges). */
@@ -1929,4 +1939,43 @@ export function isValidSaudiCrNumber(cr: string): boolean {
   if (!cr) return false;
   const clean = cr.trim();
   return /^1010\d{6}$/.test(clean);
+}
+
+
+/** Space type that describes a room, used to drive plans, sessions and pricing for the selected room. */
+export function unitSpaceType(unit: Pick<SpaceUnit, 'type' | 'subType'>): SpaceType {
+  if (unit.subType) return unit.subType as SpaceType;
+  if (unit.type === 'THEATER') return 'theater';
+  if (unit.type === 'MEETING_ROOM') return 'meeting-room';
+  return 'shared-desk';
+}
+
+/**
+ * The hub as seen when one of its rooms is selected: the room decides the booking category, capacity and rates,
+ * while name, address, photos and amenities stay those of the hub. A hub with a single unnamed-kind room keeps
+ * its own type so older listings behave exactly as before.
+ */
+export function applyUnitToSpace(space: Space, unit: SpaceUnit | undefined, unitCount: number): Space {
+  if (!unit) return space;
+  const overrideType = unit.subType || unitCount > 1;
+  const type = overrideType ? unitSpaceType(unit) : space.type;
+  const pricing = { ...space.pricing };
+  if (unit.hourlyRate != null) {
+    pricing.hourly = unit.hourlyRate;
+    pricing.hourlyTiers = undefined;
+  }
+  if (unit.dailyRate != null) pricing.daily = unit.dailyRate;
+  if (unit.monthlyRate != null) {
+    pricing.monthly = unit.monthlyRate;
+    pricing.monthlyTiers = undefined;
+  }
+  if (unit.yearlyRate != null) pricing.yearly = unit.yearlyRate;
+  return {
+    ...space,
+    type,
+    category: getSpaceCategory(type),
+    totalCapacity: unit.capacity,
+    availableCapacity: Math.min(space.availableCapacity ?? unit.capacity, unit.capacity),
+    pricing,
+  };
 }

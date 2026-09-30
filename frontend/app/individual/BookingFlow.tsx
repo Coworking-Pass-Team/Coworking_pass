@@ -1,7 +1,7 @@
 'use client';
 
 import { useI18n } from '@/i18n';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   ArrowLeft,
   Check,
@@ -46,6 +46,7 @@ import {
   getAllowedPlansForSpace,
   getSpaceTypeLabel,
   getSpaceCategory,
+  applyUnitToSpace,
   START_TIMES,
   END_TIMES,
   calculateDurationHours,
@@ -110,7 +111,18 @@ export default function BookingFlow() {
   
   const urlId = typeof window !== 'undefined' ? window.location.pathname.split('/').pop() : '';
   const spaceId = nav?.params?.spaceId || (urlId && urlId !== 'page' && urlId !== 'booking-flow' ? urlId : '') || 'space-1';
-  const space = (spaces && spaces.length > 0 ? spaces.find(s => s.id === spaceId) || spaces[0] : null) as any;
+  const baseSpace = (spaces && spaces.length > 0 ? spaces.find(s => s.id === spaceId) || spaces[0] : null) as any;
+
+  // Rooms / sections of the hub: the selected room decides plans, pricing, capacity and the session grid
+  const [startDate, setStartDate] = useState((nav?.params?.startDate as string) || new Date().toISOString().split('T')[0]);
+  const { units: unitList } = useUnitAvailability(baseSpace, startDate, Boolean(baseSpace?.units && baseSpace.units.length > 0), bookings?.length || 0);
+  const [unitId, setUnitId] = useState<string>((nav?.params?.unitId as string) || '');
+  const selectedUnit = unitList.find((u) => u.id === unitId) || unitList[0];
+  const space: any = useMemo(
+    () => (baseSpace ? applyUnitToSpace(baseSpace, selectedUnit, unitList.length) : baseSpace),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [baseSpace, selectedUnit?.id, selectedUnit?.capacity, selectedUnit?.type, selectedUnit?.subType, selectedUnit?.hourlyRate, selectedUnit?.dailyRate, selectedUnit?.monthlyRate, selectedUnit?.yearlyRate, unitList.length]
+  );
 
   const isHourlySpace = Boolean(space && isHourlyAllowed(space));
   const isOffice = Boolean(space && isOfficeSpace(space?.type));
@@ -135,23 +147,22 @@ export default function BookingFlow() {
   
   // Duration & Exact Time State
   const [durationMonths, setDurationMonths] = useState<number>(initialMonths);
-  const [startDate, setStartDate] = useState(initialStartDate);
   const [dailyEndDate, setDailyEndDate] = useState(initialEndDate);
   const [startTime, setStartTime] = useState<string>(initialStartTime);
   const [endTime, setEndTime] = useState<string>(initialEndTime);
 
   const isHourly = isHourlySpace || plan === 'hourly';
+
+  // Picking another room can change the booking category: keep the plan and booking type valid for it
+  useEffect(() => {
+    if (!space) return;
+    if (!allowedPlans.includes(plan)) setPlan(allowedPlans[0] || 'daily');
+    if (space.type) setDeskType(space.type as BookingType);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [space?.type]);
   const fixedSlots = isHourlySpace ? getFixedSessionSlots(space?.openHours, startDate) : [];
 
-  // Individual halls / theaters: sessions and seat limits follow the selected unit
-  const { units: unitList } = useUnitAvailability(space, startDate, isHourlySpace);
-  const [unitId, setUnitId] = useState<string>((nav?.params?.unitId as string) || '');
-  const selectedUnit = unitList.find((u) => u.id === unitId) || unitList[0];
-  const unitKind: 'hall' | 'theater' = space && getSpaceCategory(space) === 'theater' ? 'theater' : 'hall';
-  const seatCap = isHourlySpace && selectedUnit ? selectedUnit.capacity : null;
-  useEffect(() => {
-    if (unitList.length > 0 && !unitList.some((u) => u.id === unitId)) setUnitId(unitList[0].id);
-  }, [unitList, unitId]);
+  const seatCap = selectedUnit ? selectedUnit.capacity : null;
 
   const availableStartTimes = isHourlySpace ? fixedSlots.filter(sl => !isUnitSlotBooked(selectedUnit, sl.start, sl.end)).map(sl => sl.start) : (isHourly ? getFilteredStartTimes(space?.openHours, startDate, selectedHours) : START_TIMES);
   const availableEndTimes = isHourlySpace ? [calculateEndTime(startTime, selectedHours)] : getAvailableEndTimes(startTime);
@@ -418,7 +429,7 @@ export default function BookingFlow() {
         days: plan === 'daily' ? durationDays : undefined,
         months: plan === 'monthly' ? durationMonths : undefined,
         seats,
-        unitId: isHourlySpace ? selectedUnit?.id : undefined,
+        unitId: selectedUnit?.id,
       });
       if (!availability.ok) {
         showToast(availability.message || t('bf.errNoLongerAvailable'), 'error');
@@ -493,8 +504,8 @@ export default function BookingFlow() {
         category: getSpaceCategory(space),
         type: deskType,
         plan,
-        unitId: isHourlySpace ? selectedUnit?.id : undefined,
-        unitName: isHourlySpace ? selectedUnit?.name : undefined,
+        unitId: selectedUnit?.id,
+        unitName: selectedUnit?.name,
         startTime: (isHourlySpace || isHourly) ? startTime : undefined,
         endTime: (isHourlySpace || isHourly) ? endTime : undefined,
         durationHours: (isHourlySpace || isHourly) ? durationHours : undefined,
@@ -1132,8 +1143,8 @@ export default function BookingFlow() {
 
                 )}
 
-                {isHourlySpace && (
-                  <UnitPicker units={unitList} selectedId={selectedUnit?.id || ''} onSelect={setUnitId} kind={unitKind} />
+                {unitList.length > 0 && (
+                  <UnitPicker units={unitList} selectedId={selectedUnit?.id || ''} onSelect={setUnitId} />
                 )}
 
                 {isHourlySpace ? (
@@ -1612,8 +1623,8 @@ export default function BookingFlow() {
                   spaceImage: space.images?.[0] || FALLBACK_SPACE_IMAGE,
                   type: deskType,
                   plan: plan,
-                  unitId: isHourlySpace ? selectedUnit?.id : undefined,
-                  unitName: isHourlySpace ? selectedUnit?.name : undefined,
+                  unitId: selectedUnit?.id,
+                  unitName: selectedUnit?.name,
                   durationHours: isHourly ? durationHours : undefined,
                   durationMonths: plan === 'monthly' ? durationMonths : undefined,
                   durationDays: plan === 'daily' ? durationDays : undefined,

@@ -53,17 +53,16 @@ interface UnitPickerProps {
   units: SpaceUnitAvailability[];
   selectedId: string;
   onSelect: (id: string) => void;
-  kind: 'hall' | 'theater';
 }
 
 /** Radio-card selector for the specific hall or theater being booked, showing each one's maximum seats. */
-export default function UnitPicker({ units, selectedId, onSelect, kind }: UnitPickerProps) {
+export default function UnitPicker({ units, selectedId, onSelect }: UnitPickerProps) {
   const { t } = useI18n();
   if (units.length === 0) return null;
   return (
     <div className="space-y-1.5">
       <span className="text-[10px] font-semibold uppercase tracking-wider text-moss block">
-        {kind === 'theater' ? t('units.selectTheater') : t('units.selectHall')}
+        {t('units.selectRoom')}
       </span>
       <div className="grid grid-cols-1 gap-1.5">
         {units.map((unit) => {

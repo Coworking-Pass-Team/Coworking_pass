@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { directBookingEnd, getOccupiedSeats } from "@/lib/capacity";
+import { directBookingEnd, getOccupiedSeats, getOccupiedSeatsForSection } from "@/lib/capacity";
 import { getOperatingRange, isFixedSlotSection, FIXED_SLOT_MINUTES, LATEST_SESSION_END_MINUTES, hhmmToMinutes } from "@/lib/operating-hours";
 import { parseDateAndTimeToKsaDate } from "@/lib/time-utils";
 
@@ -80,6 +80,18 @@ export async function GET(
       return clash
         ? NextResponse.json({ available: false, remaining: 0, reason: `${section.name} is already booked for the selected time.` })
         : NextResponse.json({ available: true, remaining: section.capacity });
+    }
+
+    // A specific room of a multi-room hub seats only its own capacity for daily / monthly / yearly plans
+    if (plan !== "hourly" && sectionId) {
+      const room = await prisma.workspaceSection.findFirst({ where: { id: sectionId, workspaceId: id }, select: { capacity: true, name: true } });
+      if (room && room.capacity > 0) {
+        const held = await getOccupiedSeatsForSection(sectionId, from, to);
+        const left = Math.max(0, room.capacity - held);
+        return held + seats > room.capacity
+          ? NextResponse.json({ available: false, remaining: left, reason: `${room.name} has only ${left} seat(s) left for the selected period.` })
+          : NextResponse.json({ available: true, remaining: left });
+      }
     }
 
     const occupied = (await getOccupiedSeats([id], from, to)).get(id) || 0;

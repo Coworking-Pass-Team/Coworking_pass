@@ -45,6 +45,8 @@ export async function getOccupiedSeats(workspaceIds: string[], from: Date, to: D
       status: "ACTIVE",
       startDate: { lt: to },
       endDate: { gt: from },
+      // Halls and theaters are booked per session and per unit, so they never lock the whole workspace
+      section: { type: "DESK" },
     },
     select: { workspaceId: true, seats: true },
   });
@@ -59,4 +61,22 @@ export async function getOccupiedSeats(workspaceIds: string[], from: Date, to: D
 export async function getOccupiedSeatsToday(workspaceIds: string[]): Promise<Map<string, number>> {
   const dayStart = startOfDay(getKsaNow());
   return getOccupiedSeats(workspaceIds, dayStart, new Date(dayStart.getTime() + DAY_MS));
+}
+
+/** Seats held in one room / section during [from, to): its confirmed direct bookings plus active hourly sessions. */
+export async function getOccupiedSeatsForSection(sectionId: string, from: Date, to: Date): Promise<number> {
+  let total = 0;
+  const direct = await prisma.directBooking.findMany({
+    where: { sectionId, status: "CONFIRMED", bookingDate: { lt: to } },
+    select: { bookingDate: true, durationType: true, durationDetails: true, seats: true },
+  });
+  for (const b of direct) {
+    if (directBookingEnd(b) > startOfDay(from)) total += b.seats || 1;
+  }
+  const hourly = await prisma.hourlyBooking.findMany({
+    where: { sectionId, status: "ACTIVE", startDate: { lt: to }, endDate: { gt: from } },
+    select: { seats: true },
+  });
+  for (const b of hourly) total += b.seats || 1;
+  return total;
 }
