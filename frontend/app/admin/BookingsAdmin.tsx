@@ -200,7 +200,7 @@ export default function BookingsAdmin() {
                   : filterStatus === 'previous'
                   ? t('admin.bk.completed')
                   : t('admin.bk.cancelled')
-                : 'All Status'}
+                : t('admin.bk.allStatus')}
             </span>
             <ChevronDown
               size={15}
@@ -368,7 +368,7 @@ export default function BookingsAdmin() {
                 )}
                 <div className="flex items-center gap-1 text-[11px] text-moss mt-0.5">
                   <Users size={11} />
-                  <span>{b.seats} seat{b.seats > 1 ? 's' : ''}</span>
+                  <span>{t(b.seats > 1 ? 'booking.seatMany' : 'booking.seatOne', { count: b.seats })}</span>
                 </div>
               </div>
 

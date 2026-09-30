@@ -1,6 +1,8 @@
 'use client';
 
 import { useI18n } from '@/i18n';
+import { useLabels } from '@/i18n/labels';
+import { useSpaceText } from '@/i18n/space-text';
 import { useState, useRef, useEffect } from 'react';
 import {
   Search,
@@ -29,7 +31,9 @@ import Modal from '@/components/ui/Modal';
 import BookingQrModal from '@/components/BookingQrModal';
 
 export default function TeamBookings() {
-  const { t } = useI18n();
+  const { t, translateMessage, localizeTime, formatDate } = useI18n();
+  const sx = useSpaceText();
+  const lb = useLabels();
   const { bookings, spaces, currentUser, navigate, cancelBooking, showToast } = useApp();
   const [activeTab, setActiveTab] = useState<BookingStatus>('active');
   const [query, setQuery] = useState('');
@@ -102,13 +106,13 @@ export default function TeamBookings() {
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <span className="text-xs font-semibold tracking-wider uppercase text-moss block mb-1">
-            Enterprise Booking & Workspace Activity
+            {t('org.tb2b.enterpriseBookingWorkspaceActivity')}
           </span>
           <h1 className="text-3xl sm:text-4xl text-soot font-normal font-serif-display">
-            Team Bookings
+            {t('org.tb2b.teamBookings')}
           </h1>
           <p className="text-moss text-sm mt-1">
-            {orgBookings.length} total team reservations across corporate locations.
+            {t('org.tb2.subtitle', { count: orgBookings.length })}
           </p>
         </div>
 
@@ -118,7 +122,7 @@ export default function TeamBookings() {
           className="btn-primary"
         >
           <Plus size={16} />
-          <span>New booking</span>
+          <span>{t('org.tb2b.newBooking')}</span>
         </button>
       </div>
 
@@ -126,28 +130,28 @@ export default function TeamBookings() {
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         {[
           {
-            label: 'Active Bookings',
+            label: t('org.tb2b.activeBookings'),
             count: activeCount,
             badge: 'bg-emerald-500/15 text-emerald-800 border border-emerald-500/30',
             icon: CalendarDays,
             iconBg: 'bg-emerald-500/15 text-emerald-800 border-emerald-500/30',
           },
           {
-            label: 'Completed Visits',
+            label: t('org.tb2b.completedVisits'),
             count: previousCount,
             badge: 'bg-soot/10 text-soot border border-soot/15',
             icon: Clock,
             iconBg: 'bg-soot text-plaster border-soot/20',
           },
           {
-            label: 'Cancelled',
+            label: t('org.tb2b.cancelled'),
             count: cancelledCount,
             badge: 'bg-red-500/15 text-red-700 border border-red-500/30',
             icon: Ban,
             iconBg: 'bg-red-500/15 text-red-700 border-red-500/30',
           },
           {
-            label: 'Total Spend',
+            label: t('org.tb2b.totalSpend'),
             count: `${t('common.sar')} ${totalSpend.toLocaleString()}`,
             badge: 'bg-blue-500/15 text-blue-800 border border-blue-500/30',
             icon: DollarSign,
@@ -164,7 +168,7 @@ export default function TeamBookings() {
               </div>
               <div>
                 <div className="text-2xl sm:text-3xl font-normal text-soot tracking-tight font-serif-display">{stat.count}</div>
-                <div className="text-xs font-medium text-moss mt-0.5">{stat.label}</div>
+                <div className="text-xs font-medium text-moss mt-0.5">{translateMessage(stat.label)}</div>
               </div>
             </div>
           </div>
@@ -179,7 +183,7 @@ export default function TeamBookings() {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by workspace name or city..."
+            placeholder={t('org.tb2b.searchByWorkspaceNameOr')}
             className="w-full ps-10 pe-4 py-2.5 rounded-xl border border-soot/12 bg-plaster-dark/30 text-soot text-sm placeholder:text-moss/70 outline-none focus:border-eucalyptus focus:bg-plaster-surface transition-all"
           />
         </div>
@@ -187,9 +191,9 @@ export default function TeamBookings() {
         {/* Tab Buttons */}
         <div className="flex items-center gap-1 bg-plaster-dark/30 p-1 rounded-xl border border-soot/10 shrink-0 w-full sm:w-auto overflow-x-auto">
           {[
-            { id: 'active', label: 'Active', count: activeCount },
-            { id: 'previous', label: 'Previous', count: previousCount },
-            { id: 'cancelled', label: 'Cancelled', count: cancelledCount },
+            { id: 'active', label: t('org.tb2b.active'), count: activeCount },
+            { id: 'previous', label: t('org.tb2b.previous'), count: previousCount },
+            { id: 'cancelled', label: t('org.tb2b.cancelled'), count: cancelledCount },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -200,7 +204,7 @@ export default function TeamBookings() {
                   : 'text-moss hover:text-soot hover:bg-soot/5'
               }`}
             >
-              <span>{tab.label}</span>
+              <span>{translateMessage(tab.label)}</span>
               <span className={`px-1.5 py-0.2 text-[10px] rounded-full ${
                 activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-soot/10 text-soot'
               }`}>
@@ -214,18 +218,18 @@ export default function TeamBookings() {
       {/* Admin-Matching 12-Column Table Layout */}
       <div className="bg-plaster-surface rounded-3xl border border-soot/10 overflow-hidden shadow-2xs relative z-10">
         <div className="hidden lg:grid grid-cols-12 gap-6 px-6 py-4 border-b border-soot/10 text-xs font-semibold uppercase tracking-wider text-moss bg-plaster-dark/40 items-center">
-          <div className="col-span-4">Workspace & Location</div>
-          <div className="col-span-2">Assigned Team Member</div>
-          <div className="col-span-2">Booking Period</div>
-          <div className="col-span-2">Plan & Seats</div>
-          <div className="col-span-1">Amount</div>
-          <div className="col-span-1 text-end">Actions</div>
+          <div className="col-span-4">{t('org.tb2b.workspaceLocation')}</div>
+          <div className="col-span-2">{t('org.tb2b.assignedTeamMember')}</div>
+          <div className="col-span-2">{t('org.tb2b.bookingPeriod')}</div>
+          <div className="col-span-2">{t('org.tb2b.planSeats')}</div>
+          <div className="col-span-1">{t('org.tb2b.amount')}</div>
+          <div className="col-span-1 text-end">{t('org.tb2b.actions')}</div>
         </div>
 
         {filtered.length === 0 ? (
           <div className="py-16 text-center text-moss">
             <CalendarDays size={32} className="mx-auto mb-3 opacity-50" />
-            <p className="text-sm">No team reservations found in this section.</p>
+            <p className="text-sm">{t('org.tb2b.noTeamReservationsFoundIn')}</p>
           </div>
         ) : (
           <div className="divide-y divide-soot/8">
@@ -239,16 +243,16 @@ export default function TeamBookings() {
                 <div className="col-span-4 flex items-center gap-3.5 min-w-0">
                   <img
                     src={b.spaceImage}
-                    alt={b.spaceName}
+                    alt={sx.bookingName(b)}
                     className="w-11 h-11 rounded-xl object-cover border border-soot/10 shrink-0 shadow-2xs group-hover:scale-105 transition-transform"
                   />
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-semibold text-soot group-hover:text-emerald-900 transition-colors truncate">
-                      {b.spaceName}
+                      {sx.bookingName(b)}
                     </div>
                     <div className="flex items-center gap-1.5 text-xs text-moss mt-0.5 font-medium">
                       <MapPin size={12} className="text-moss shrink-0" />
-                      <span className="truncate">{b.spaceCity}</span>
+                      <span className="truncate">{sx.bookingCity(b)}</span>
                     </div>
                   </div>
                 </div>
@@ -272,26 +276,26 @@ export default function TeamBookings() {
                     <span>{b.startDate}</span>
                   </div>
                   {b.startDate !== b.endDate && (
-                    <div className="text-moss text-[11px] mt-0.5 ps-4">to {b.endDate}</div>
+                    <div className="text-moss text-[11px] mt-0.5 ps-4">{t('myBookings.periodTo', { date: b.endDate })}</div>
                   )}
                 </div>
 
                 {/* Plan & Seats */}
                 <div className="col-span-2 mt-2 lg:mt-0 text-xs font-semibold text-soot capitalize">
                   {b.plan === 'hourly'
-                    ? `Hourly (${b.durationHours || 1} ${b.durationHours === 1 ? 'hr' : 'hrs'})`
+                    ? t(b.durationHours === 1 ? 'booking.hourlyHrs' : 'booking.hourlyHrsMany', { count: b.durationHours || 1 })
                     : b.plan === 'daily'
-                    ? `Daily Pass (${b.durationDays || (b.startDate && b.endDate ? calculateDailyDurationDays(b.startDate, b.endDate) : 1)} ${(b.durationDays || 1) === 1 ? 'day' : 'days'})`
+                    ? t((b.durationDays || 1) === 1 ? 'myBookings.dailyPassDays' : 'myBookings.dailyPassDaysMany', { count: b.durationDays || (b.startDate && b.endDate ? calculateDailyDurationDays(b.startDate, b.endDate) : 1) })
                     : b.plan === 'monthly'
-                    ? `${b.durationMonths || 1}mo Monthly`
-                    : `${b.plan} pass`}
+                    ? t('myBookings.monthlyMo', { count: b.durationMonths || 1 })
+                    : t(('booking.planPass.' + b.plan) as never)}
                   {(b.startTime || b.endTime) && (
                     <span className="block text-[10px] font-medium text-emerald-800 normal-case">
-                      {b.startTime} – {b.endTime}
+                      {localizeTime(b.startTime)} – {localizeTime(b.endTime)}
                     </span>
                   )}
                   <span className="block text-[11px] font-normal text-moss">
-                    {b.seats} seat{b.seats > 1 ? 's' : ''}
+                    {t(b.seats > 1 ? 'booking.seatMany' : 'booking.seatOne', { count: b.seats })}
                   </span>
                 </div>
                 {/* Revenue Amount */}
@@ -299,7 +303,7 @@ export default function TeamBookings() {
                   {getBookingPrice(b, spaces) === 0 ? (
                     <span className="text-xs font-bold text-moss bg-eucalyptus/30 px-2.5 py-1 rounded-full border border-eucalyptus/40 inline-flex items-center gap-1">
                       <Check size={11} className="text-moss" />
-                      <span>Included in Plan</span>
+                      <span>{t('org.tb2b.includedInPlan')}</span>
                     </span>
                   ) : (
                     `${t('common.sar')} ${getBookingPrice(b, spaces).toLocaleString()}`
@@ -315,7 +319,7 @@ export default function TeamBookings() {
                       setSelectedBooking(b);
                     }}
                     className="p-2 rounded-xl text-moss hover:text-soot hover:bg-plaster-surface border border-transparent hover:border-soot/10 transition-all cursor-pointer"
-                    title="View Details"
+                    title={t('org.tb2b.viewDetails')}
                   >
                     <Eye size={15} />
                   </button>
@@ -331,8 +335,8 @@ export default function TeamBookings() {
                         className="p-2 rounded-xl text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-all cursor-pointer"
                         title={
                           eligible
-                            ? 'Cancel Reservation (Eligible for Full Refund)'
-                            : `Cancel Reservation (Non-refundable: within ${requiredHours}h of start)`
+                            ? t('org.tb2b.cancelReservationEligibleForFull')
+                            : t('myBookings.cancelNonRefundable', { hours: requiredHours })
                         }
                       >
                         <X size={15} />
@@ -367,22 +371,22 @@ export default function TeamBookings() {
           <Modal
             open={!!cancelModal}
             onClose={() => setCancelModal(null)}
-            title="Cancel Team Reservation"
+            title={t('org.tb2b.cancelTeamReservation')}
             size="sm"
             footer={
               <>
                 <button type="button" onClick={() => setCancelModal(null)} className="btn-secondary">
-                  Keep Booking
+                  {t('org.tb2b.keepBooking')}
                 </button>
                 <button type="button" onClick={handleCancelConfirm} className="btn-danger">
-                  Confirm Cancel
+                  {t('org.tb2b.confirmCancel')}
                 </button>
               </>
             }
           >
             <div className="text-sm text-soot space-y-3 py-2">
               <p>
-                Are you sure you want to cancel the team reservation for <span className="font-semibold">{cancelModal.spaceName}</span>?
+                {t('org.tb2.confirmQ')} <span className="font-semibold">{sx.bookingName(cancelModal)}</span>?
               </p>
 
               {/* Legal Refund Status Banner */}
@@ -390,20 +394,20 @@ export default function TeamBookings() {
                 <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs text-emerald-900 space-y-1">
                   <div className="font-semibold flex items-center gap-1.5 text-emerald-950">
                     <Check size={14} className="text-emerald-700" />
-                    <span>Eligible for Full Corporate Refund (SAR {bookingPrice.toLocaleString()})</span>
+                    <span>{t('org.tb2.eligibleFull', { amount: bookingPrice.toLocaleString() })}</span>
                   </div>
                   <p className="text-emerald-800 text-[11px]">
-                    Cancelled at least {requiredHours} hours in advance as per Corporate Legal Terms.
+                    {t('org.tb2.eligibleBody', { hours: requiredHours })}
                   </p>
                 </div>
               ) : (
                 <div className="bg-rose-50 border border-rose-200 rounded-xl p-3 text-xs text-rose-900 space-y-1">
                   <div className="font-semibold flex items-center gap-1.5 text-rose-950">
                     <AlertCircle size={14} className="text-rose-700" />
-                    <span>Non-Refundable Cancellation</span>
+                    <span>{t('org.tb2b.nonRefundableCancellation')}</span>
                   </div>
                   <p className="text-rose-800 text-[11px]">
-                    Per Corporate Legal Terms (Section 5), cancellations within {requiredHours} hours of start time are non-refundable. Reserved seats will still be released.
+                    {t('org.tb2.nonRefBody', { hours: requiredHours })}
                   </p>
                 </div>
               )}
@@ -411,7 +415,7 @@ export default function TeamBookings() {
               {/* Refund Destination Selection if Eligible */}
               {eligible && (
                 <div className="space-y-2 pt-1 border-t border-soot/8">
-                  <label className="text-xs font-semibold text-soot block">Choose Refund Destination:</label>
+                  <label className="text-xs font-semibold text-soot block">{t('org.tb2b.chooseRefundDestination')}</label>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <button
                       type="button"
@@ -424,9 +428,9 @@ export default function TeamBookings() {
                     >
                       <span className="font-semibold text-[11px] flex items-center gap-1.5">
                         <Zap size={13} className="text-amber-600 shrink-0" />
-                        <span>Instant Wallet</span>
+                        <span>{t('org.tb2b.instantWallet')}</span>
                       </span>
-                      <span className="text-[10px] text-moss mt-1">Available immediately</span>
+                      <span className="text-[10px] text-moss mt-1">{t('org.tb2b.availableImmediately')}</span>
                     </button>
 
                     <button
@@ -440,9 +444,9 @@ export default function TeamBookings() {
                     >
                       <span className="font-semibold text-[11px] flex items-center gap-1.5">
                         <CreditCard size={13} className="text-soot shrink-0" />
-                        <span>Original Card</span>
+                        <span>{t('org.tb2b.originalCard')}</span>
                       </span>
-                      <span className="text-[10px] text-moss mt-1">5-14 business days</span>
+                      <span className="text-[10px] text-moss mt-1">{t('org.tb2b.514BusinessDays')}</span>
                     </button>
                   </div>
                 </div>

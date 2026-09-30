@@ -23,7 +23,7 @@ import { LoyaltyRule, LoyaltyRuleType, ApprovalStatus } from '@/types/types';
 import Modal from '@/components/ui/Modal';
 
 export default function ProviderLoyaltyProposals() {
-  const { t } = useI18n();
+  const { t, translateMessage, formatDate } = useI18n();
   const { currentUser, spaces, partners, loyaltyRules, fetchLoyaltyRules, createLoyaltyProposal, deleteLoyaltyRule, showToast } = useApp();
 
   useEffect(() => {
@@ -154,18 +154,18 @@ export default function ProviderLoyaltyProposals() {
         <div>
           <div className="flex items-center gap-2 mb-1.5">
             <span className="text-xs font-semibold tracking-wider uppercase text-moss bg-soot/5 px-2.5 py-0.5 rounded-md">
-              Space Partner Rewards Program
+              {t('prov.loy.spacePartnerRewardsProgram')}
             </span>
             <span className="text-xs font-medium text-emerald-800 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-              Admin Moderated
+              {t('prov.loy.adminModerated')}
             </span>
           </div>
           <h1 className="text-3xl sm:text-4xl text-soot font-normal font-serif-display tracking-tight flex items-center gap-3">
-            <span>Loyalty Points Proposals</span>
+            <span>{t('prov.loy.loyaltyPointsProposals')}</span>
             <Sparkles className="text-emerald-700 w-7 h-7 shrink-0 hidden sm:inline" />
           </h1>
           <p className="text-moss text-sm mt-1 max-w-2xl">
-            Propose custom points-earning rules and redemption discount values for your workspaces. Submitted proposals are reviewed by platform administrators before activation.
+            {t('prov.loy.proposeCustomPointsEarningRules')}
           </p>
         </div>
 
@@ -175,7 +175,7 @@ export default function ProviderLoyaltyProposals() {
           className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-soot text-plaster hover:bg-soot/90 text-sm font-medium transition-colors cursor-pointer shrink-0"
         >
           <Plus size={16} />
-          <span>Propose New Rule</span>
+          <span>{t('prov.loy.proposeNewRule')}</span>
         </button>
       </div>
 
@@ -188,7 +188,7 @@ export default function ProviderLoyaltyProposals() {
             </div>
             <div>
               <div className="text-2xl font-semibold text-soot tracking-tight font-sans">{totalProposals}</div>
-              <div className="text-xs font-medium text-moss mt-0.5">Total Proposals</div>
+              <div className="text-xs font-medium text-moss mt-0.5">{t('prov.loy.totalProposals')}</div>
             </div>
           </div>
         </div>
@@ -202,7 +202,7 @@ export default function ProviderLoyaltyProposals() {
               <div className="text-2xl font-semibold text-emerald-800 tracking-tight font-sans">
                 {approvedProposals.length}
               </div>
-              <div className="text-xs font-medium text-moss mt-0.5">Approved & Active</div>
+              <div className="text-xs font-medium text-moss mt-0.5">{t('prov.loy.approvedActive')}</div>
             </div>
           </div>
         </div>
@@ -216,7 +216,7 @@ export default function ProviderLoyaltyProposals() {
               <div className="text-2xl font-semibold text-amber-800 tracking-tight font-sans">
                 {pendingProposals.length}
               </div>
-              <div className="text-xs font-medium text-moss mt-0.5">Under Admin Review</div>
+              <div className="text-xs font-medium text-moss mt-0.5">{t('prov.loy.underAdminReview')}</div>
             </div>
           </div>
         </div>
@@ -230,7 +230,7 @@ export default function ProviderLoyaltyProposals() {
               <div className="text-2xl font-semibold text-rose-800 tracking-tight font-sans">
                 {rejectedProposals.length}
               </div>
-              <div className="text-xs font-medium text-moss mt-0.5">Rejected Proposals</div>
+              <div className="text-xs font-medium text-moss mt-0.5">{t('prov.loy.rejectedProposals')}</div>
             </div>
           </div>
         </div>
@@ -244,7 +244,7 @@ export default function ProviderLoyaltyProposals() {
               [
                 { key: 'ALL', label: 'All Proposals', count: totalProposals },
                 { key: 'PENDING_APPROVAL', label: 'Pending Review', count: pendingProposals.length },
-                { key: 'APPROVED', label: 'Approved & Active', count: approvedProposals.length },
+                { key: 'APPROVED', label: t('prov.loy.approvedActive'), count: approvedProposals.length },
                 { key: 'REJECTED', label: 'Rejected', count: rejectedProposals.length },
               ] as const
             ).map((tab) => {
@@ -260,7 +260,7 @@ export default function ProviderLoyaltyProposals() {
                       : 'text-moss hover:text-soot hover:bg-white/50'
                   }`}
                 >
-                  <span>{tab.label}</span>
+                  <span>{translateMessage(tab.label)}</span>
                   <span
                     className={`text-[10px] px-1.5 py-0.2 rounded-full ${
                       active ? 'bg-soot text-white' : 'bg-soot/10 text-moss'
@@ -279,9 +279,9 @@ export default function ProviderLoyaltyProposals() {
               onChange={(e) => setTypeFilter(e.target.value as any)}
               className="px-3.5 py-2 rounded-xl bg-plaster-surface border border-soot/15 text-xs text-soot font-medium focus:outline-none focus:ring-2 focus:ring-soot/20 cursor-pointer"
             >
-              <option value="ALL">All Rule Types</option>
-              <option value="EARNING">Earning Rules (Points Accumulation)</option>
-              <option value="REDEMPTION">Redemption Rules (Discounts)</option>
+              <option value="ALL">{t('prov.loy.allRuleTypes')}</option>
+              <option value="EARNING">{t('prov.loy.earningRulesPointsAccumulation')}</option>
+              <option value="REDEMPTION">{t('prov.loy.redemptionRulesDiscounts')}</option>
             </select>
           </div>
         </div>
@@ -290,7 +290,7 @@ export default function ProviderLoyaltyProposals() {
           <Search size={16} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-moss" />
           <input
             type="text"
-            placeholder="Search proposals by rule name, description, or target workspace..."
+            placeholder={t('prov.loy.searchProposalsByRuleName')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full ps-10 pe-4 py-2.5 rounded-2xl bg-plaster-surface border border-soot/15 text-sm text-soot placeholder:text-moss/60 focus:outline-none focus:ring-2 focus:ring-soot/20"
@@ -305,17 +305,17 @@ export default function ProviderLoyaltyProposals() {
             <Sparkles size={26} className="text-moss" />
           </div>
           <div className="max-w-md mx-auto">
-            <h3 className="text-lg font-serif-display text-soot">No Loyalty Proposals Found</h3>
+            <h3 className="text-lg font-serif-display text-soot">{t('prov.loy.noLoyaltyProposalsFound')}</h3>
             <p className="text-moss text-xs sm:text-sm mt-1">
               {searchQuery || statusFilter !== 'ALL' || typeFilter !== 'ALL'
-                ? 'Try adjusting your search criteria or filter options.'
-                : 'You have not submitted any loyalty point proposals yet. Create your first custom rule to reward your space visitors!'}
+                ? translateMessage('Try adjusting your search criteria or filter options.')
+                : translateMessage('You have not submitted any loyalty point proposals yet. Create your first custom rule to reward your space visitors!')}
             </p>
           </div>
 
           <div className="pt-4 border-t border-soot/8 max-w-2xl mx-auto text-start">
             <span className="text-xs font-bold text-moss uppercase tracking-wider block mb-3 text-center">
-              Or start from a popular template:
+              {t('prov.loy.orStartFromAPopular')}
             </span>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {[
@@ -342,16 +342,16 @@ export default function ProviderLoyaltyProposals() {
                 },
               ].map((template) => (
                 <button
-                  key={template.name}
+                  key={translateMessage(template.name)}
                   type="button"
                   onClick={() => handleOpenModal(template)}
                   className="p-3.5 rounded-2xl bg-white border border-soot/10 hover:border-soot/30 hover:shadow-sm text-start transition-all group cursor-pointer"
                 >
                   <div className="flex items-center justify-between text-xs font-bold text-soot group-hover:text-emerald-800">
-                    <span>{template.name}</span>
+                    <span>{translateMessage(template.name)}</span>
                     <ArrowRight size={13} className="text-moss group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5 transition-transform" />
                   </div>
-                  <p className="text-[11px] text-moss mt-1 line-clamp-2">{template.desc}</p>
+                  <p className="text-[11px] text-moss mt-1 line-clamp-2">{translateMessage(template.desc)}</p>
                 </button>
               ))}
             </div>
@@ -381,7 +381,7 @@ export default function ProviderLoyaltyProposals() {
                       }`}
                     >
                       {isEarning ? <Coins size={12} /> : <Gift size={12} />}
-                      {isEarning ? 'Earning Rule' : 'Redemption Rule'}
+                      {isEarning ? t('prov.loy.earningRule') : 'Redemption Rule'}
                     </span>
 
                     <span
@@ -397,7 +397,7 @@ export default function ProviderLoyaltyProposals() {
                       {isApproved && <CheckCircle2 size={12} />}
                       {isRejected && <XCircle size={12} />}
                       <span>
-                        {isPending ? 'Pending Review' : isApproved ? 'Approved & Active' : 'Rejected'}
+                        {isPending ? 'Pending Review' : isApproved ? t('prov.loy.approvedActive') : 'Rejected'}
                       </span>
                     </span>
                   </div>
@@ -407,24 +407,24 @@ export default function ProviderLoyaltyProposals() {
                       {rule.ruleName}
                     </h3>
                     <p className="text-moss text-xs sm:text-sm line-clamp-2 mt-1.5 leading-relaxed">
-                      {rule.description || 'No additional rationale provided.'}
+                      {rule.description || translateMessage('No additional rationale provided.')}
                     </p>
                   </div>
 
                   <div className="p-3 rounded-2xl bg-white/70 border border-soot/8 space-y-1.5">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-moss font-medium">Points Exchange:</span>
+                      <span className="text-moss font-medium">{t('prov.loy.pointsExchange')}</span>
                       <span className="font-bold text-soot">
                         {isEarning
-                          ? `+${rule.pointsValue} pts / ${t('common.sar')} ${rule.monetaryValue}`
-                          : `${rule.pointsValue} pts = ${t('common.sar')} ${rule.monetaryValue} off`}
+                          ? `+${rule.pointsValue} ${t('loyaltyAdmin.pts')} / ${rule.monetaryValue} ${t('common.sar')}`
+                          : `${rule.pointsValue} ${t('loyaltyAdmin.pts')} = ${rule.monetaryValue} ${t('common.sar')}`}
                       </span>
                     </div>
 
                     {rule.bonusMultiplier && rule.bonusMultiplier > 1 && (
                       <div className="flex items-center justify-between text-xs pt-1 border-t border-soot/6">
-                        <span className="text-moss font-medium">Multiplier:</span>
-                        <span className="font-bold text-emerald-800">{rule.bonusMultiplier}× Boost</span>
+                        <span className="text-moss font-medium">{t('prov.loy.multiplier')}</span>
+                        <span className="font-bold text-emerald-800">{rule.bonusMultiplier}× {t('prov.loy.boost')}</span>
                       </div>
                     )}
                   </div>
@@ -434,7 +434,7 @@ export default function ProviderLoyaltyProposals() {
                   <div className="flex items-center gap-1.5">
                     <Building2 size={13} className="text-moss/70" />
                     <span className="truncate max-w-[140px]">
-                      {rule.workspaceName || 'All Listed Spaces'}
+                      {rule.workspaceName || translateMessage('All Listed Spaces')}
                     </span>
                   </div>
 
@@ -444,7 +444,7 @@ export default function ProviderLoyaltyProposals() {
                         type="button"
                         onClick={(e) => handleDelete(rule.id, e)}
                         className="p-1.5 rounded-lg text-rose-700 hover:bg-rose-500/10 transition-colors cursor-pointer"
-                        title="Withdraw & delete proposal"
+                        title={t('prov.loy.withdrawDeleteProposal')}
                       >
                         <Trash2 size={14} />
                       </button>
@@ -464,18 +464,18 @@ export default function ProviderLoyaltyProposals() {
       <Modal
         open={isModalOpen}
         onClose={() => !isSubmitting && setIsModalOpen(false)}
-        title="Propose Loyalty Points Rule"
+        title={t('prov.loy.proposeLoyaltyPointsRule')}
         size="2xl"
       >
         <form onSubmit={handleSubmit} className="space-y-5">
           <p className="text-xs text-moss">
-            Create a custom loyalty rule for your coworking space. Once submitted, the Super Admin will review the point economics and activate it on the platform.
+            {t('prov.loy.createACustomLoyaltyRule')}
           </p>
 
           {/* Rule Type Selector */}
           <div>
             <label className="block text-xs font-bold text-soot uppercase tracking-wider mb-2">
-              Rule Type *
+              {t('prov.loy.ruleType2')}
             </label>
             <div className="grid grid-cols-2 gap-3">
               <button
@@ -489,10 +489,10 @@ export default function ProviderLoyaltyProposals() {
               >
                 <div className="flex items-center gap-2 font-bold text-xs text-soot">
                   <Coins size={15} className="text-amber-600" />
-                  <span>Earning Rule</span>
+                  <span>{t('prov.loy.earningRule')}</span>
                 </div>
                 <p className="text-[11px] text-moss mt-1">
-                  Award loyalty points to users when they book your spaces.
+                  {t('prov.loy.awardLoyaltyPointsToUsers')}
                 </p>
               </button>
 
@@ -507,10 +507,10 @@ export default function ProviderLoyaltyProposals() {
               >
                 <div className="flex items-center gap-2 font-bold text-xs text-soot">
                   <Gift size={15} className="text-blue-600" />
-                  <span>Redemption Discount</span>
+                  <span>{t('prov.loy.redemptionDiscount')}</span>
                 </div>
                 <p className="text-[11px] text-moss mt-1">
-                  Allow users to exchange points for instant discounts on bookings.
+                  {t('prov.loy.allowUsersToExchangePoints')}
                 </p>
               </button>
             </div>
@@ -519,12 +519,12 @@ export default function ProviderLoyaltyProposals() {
           {/* Rule Name */}
           <div>
             <label className="block text-xs font-bold text-soot uppercase tracking-wider mb-1.5">
-              Proposal Rule Name *
+              {t('prov.loy.proposalRuleName')}
             </label>
             <input
               type="text"
               required
-              placeholder="e.g. Weekend Coworking Points Booster"
+              placeholder={t('prov.loy.eGWeekendCoworkingPoints')}
               value={ruleName}
               onChange={(e) => setRuleName(e.target.value)}
               className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-soot/15 text-sm text-soot placeholder:text-moss/60 focus:outline-none focus:ring-2 focus:ring-soot/20"
@@ -534,14 +534,14 @@ export default function ProviderLoyaltyProposals() {
           {/* Applicable Workspace */}
           <div>
             <label className="block text-xs font-bold text-soot uppercase tracking-wider mb-1.5">
-              Target Workspace
+              {t('prov.loy.targetWorkspace')}
             </label>
             <select
               value={workspaceId}
               onChange={(e) => setWorkspaceId(e.target.value)}
               className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-soot/15 text-sm text-soot focus:outline-none focus:ring-2 focus:ring-soot/20 cursor-pointer"
             >
-              <option value="ALL">All My Listed Workspaces</option>
+              <option value="ALL">{t('prov.loy.allMyListedWorkspaces')}</option>
               {mySpaces.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name} ({s.city})
@@ -554,7 +554,7 @@ export default function ProviderLoyaltyProposals() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-soot uppercase tracking-wider mb-1.5 truncate">
-                {ruleType === 'EARNING' ? 'Points Earned *' : 'Points Required to Redeem *'}
+                {translateMessage(ruleType === 'EARNING' ? 'Points Earned *' : 'Points Required to Redeem *')}
               </label>
               <input
                 type="number"
@@ -562,7 +562,7 @@ export default function ProviderLoyaltyProposals() {
                 required
                 value={pointsValue}
                 onChange={(e) => setPointsValue(e.target.value === '' ? '' : Number(e.target.value))}
-                placeholder="e.g. 50"
+                placeholder={t('prov.loy.eG50')}
                 className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-soot/15 text-sm text-soot focus:outline-none focus:ring-2 focus:ring-soot/20"
               />
             </div>
@@ -577,7 +577,7 @@ export default function ProviderLoyaltyProposals() {
                 required
                 value={monetaryValue}
                 onChange={(e) => setMonetaryValue(e.target.value === '' ? '' : Number(e.target.value))}
-                placeholder="e.g. 100"
+                placeholder={t('prov.loy.eG100')}
                 className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-soot/15 text-sm text-soot focus:outline-none focus:ring-2 focus:ring-soot/20"
               />
             </div>
@@ -586,13 +586,13 @@ export default function ProviderLoyaltyProposals() {
           {/* Description & Business Rationale */}
           <div>
             <label className="block text-xs font-bold text-soot uppercase tracking-wider mb-1.5">
-              Description & Business Rationale
+              {t('prov.loy.descriptionBusinessRationale')}
             </label>
             <textarea
               rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Explain how this rule boosts booking occupancy, target customer segment, and valid periods..."
+              placeholder={t('prov.loy.explainHowThisRuleBoosts')}
               className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-soot/15 text-sm text-soot placeholder:text-moss/60 focus:outline-none focus:ring-2 focus:ring-soot/20 resize-none"
             />
           </div>
@@ -601,17 +601,17 @@ export default function ProviderLoyaltyProposals() {
           <div className="p-4 rounded-2xl bg-[#F2EFE2] border border-soot/10 space-y-2">
             <div className="flex items-center gap-1.5 text-xs font-bold text-soot">
               <Info size={14} className="text-moss" />
-              <span>Live Proposal Summary Preview</span>
+              <span>{t('prov.loy.liveProposalSummaryPreview')}</span>
             </div>
             <div className="text-xs text-moss space-y-1">
               <div>
-                <span className="font-semibold text-soot">Type:</span> {ruleType === 'EARNING' ? 'Earning Points on Booking' : 'Points Redemption Discount'}
+                <span className="font-semibold text-soot">{t('prov.loy.type')}</span> {translateMessage(ruleType === 'EARNING' ? 'Earning Points on Booking' : 'Points Redemption Discount')}
               </div>
               <div>
-                <span className="font-semibold text-soot">Mechanism:</span>{' '}
+                <span className="font-semibold text-soot">{t('prov.loy.mechanism')}</span>{' '}
                 {ruleType === 'EARNING'
-                  ? `Members receive +${pointsValue || 0} points for every ${t('common.sar')} ${monetaryValue || 0} spent`
-                  : `Members can redeem ${pointsValue || 0} points to receive an instant ${t('common.sar')} ${monetaryValue || 0} discount`}
+                  ? translateMessage(`Members receive +${pointsValue || 0} points for every SAR ${monetaryValue || 0} spent`)
+                  : translateMessage(`Members can redeem ${pointsValue || 0} points to receive an instant SAR ${monetaryValue || 0} discount`)}
               </div>
             </div>
           </div>
@@ -624,14 +624,14 @@ export default function ProviderLoyaltyProposals() {
               onClick={() => setIsModalOpen(false)}
               className="px-4 py-2.5 rounded-xl text-sm font-medium text-moss hover:text-soot hover:bg-soot/5 transition-colors cursor-pointer"
             >
-              Cancel
+              {t('prov.loy.cancel')}
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
               className="px-6 py-2.5 rounded-xl bg-soot text-plaster hover:bg-soot/90 text-sm font-semibold shadow-xs transition-all cursor-pointer disabled:opacity-50"
             >
-              {isSubmitting ? 'Submitting Proposal...' : 'Submit to Admin'}
+              {translateMessage(isSubmitting ? 'Submitting Proposal...' : 'Submit to Admin')}
             </button>
           </div>
         </form>
@@ -642,14 +642,14 @@ export default function ProviderLoyaltyProposals() {
         <Modal
           open={Boolean(selectedRuleDetail)}
           onClose={() => setSelectedRuleDetail(null)}
-          title="Proposal Details & Status"
+          title={t('prov.loy.proposalDetailsStatus')}
           size="2xl"
         >
           <div className="space-y-5">
             <div className="flex items-center justify-between gap-3 pb-3 border-b border-soot/8">
               <div>
                 <span className="text-[10px] uppercase font-bold tracking-wider text-moss">
-                  Rule Name
+                  {t('prov.loy.ruleName')}
                 </span>
                 <h3 className="text-xl font-serif-display text-soot font-medium">
                   {selectedRuleDetail.ruleName}
@@ -667,45 +667,45 @@ export default function ProviderLoyaltyProposals() {
                 {selectedRuleDetail.status === 'PENDING_APPROVAL'
                   ? 'Pending Review'
                   : selectedRuleDetail.status === 'APPROVED'
-                  ? 'Approved & Active'
+                  ? t('prov.loy.approvedActive')
                   : 'Rejected'}
               </span>
             </div>
 
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div className="p-3 bg-white rounded-2xl border border-soot/10">
-                <span className="text-moss font-medium block">Rule Type</span>
+                <span className="text-moss font-medium block">{t('prov.loy.ruleType')}</span>
                 <span className="font-bold text-soot text-sm mt-0.5 block">
-                  {selectedRuleDetail.ruleType === 'EARNING' ? 'Points Earning' : 'Points Redemption'}
+                  {selectedRuleDetail.ruleType === 'EARNING' ? translateMessage('Points Earning') : translateMessage('Points Redemption')}
                 </span>
               </div>
               <div className="p-3 bg-white rounded-2xl border border-soot/10">
-                <span className="text-moss font-medium block">Exchange Rate</span>
+                <span className="text-moss font-medium block">{t('prov.loy.exchangeRate')}</span>
                 <span className="font-bold text-soot text-sm mt-0.5 block">
-                  {selectedRuleDetail.pointsValue} pts / {t('common.sar')} {selectedRuleDetail.monetaryValue}
+                  {selectedRuleDetail.pointsValue} {t('loyaltyAdmin.pts')} / {selectedRuleDetail.monetaryValue} {t('common.sar')}
                 </span>
               </div>
             </div>
 
             <div>
-              <span className="text-xs font-bold text-soot block mb-1">Description & Rationale:</span>
+              <span className="text-xs font-bold text-soot block mb-1">{t('prov.loy.descriptionRationale')}</span>
               <p className="text-xs sm:text-sm text-moss bg-white p-3.5 rounded-2xl border border-soot/10 leading-relaxed">
-                {selectedRuleDetail.description || 'No detailed description provided.'}
+                {selectedRuleDetail.description || translateMessage('No detailed description provided.')}
               </p>
             </div>
 
             {selectedRuleDetail.adminFeedback && (
               <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 space-y-1">
-                <span className="text-xs font-bold text-amber-900 block">Admin Review Note:</span>
+                <span className="text-xs font-bold text-amber-900 block">{t('prov.loy.adminReviewNote')}</span>
                 <p className="text-xs text-amber-800">{selectedRuleDetail.adminFeedback}</p>
               </div>
             )}
 
             <div className="text-[11px] text-moss space-y-1 pt-2 border-t border-soot/8">
-              <div>Submitted by: {selectedRuleDetail.proposerName || 'Space Provider'}</div>
-              <div>Submitted on: {new Date(selectedRuleDetail.createdAt).toLocaleDateString()}</div>
+              <div>{t('prov.loy.submittedBy')} {selectedRuleDetail.proposerName || translateMessage('Space Provider')}</div>
+              <div>{t('prov.loy.submittedOn')} {formatDate(selectedRuleDetail.createdAt)}</div>
               {selectedRuleDetail.approverName && (
-                <div>Reviewed by: {selectedRuleDetail.approverName}</div>
+                <div>{t('prov.loy.reviewedBy')} {selectedRuleDetail.approverName}</div>
               )}
             </div>
 
@@ -715,7 +715,7 @@ export default function ProviderLoyaltyProposals() {
                 onClick={() => setSelectedRuleDetail(null)}
                 className="px-5 py-2 rounded-xl bg-soot text-plaster text-xs font-medium cursor-pointer"
               >
-                Close
+                {t('prov.loy.close')}
               </button>
             </div>
           </div>

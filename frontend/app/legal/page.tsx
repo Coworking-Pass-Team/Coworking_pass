@@ -19,8 +19,10 @@ import {
   Wallet
 } from 'lucide-react';
 import { useApp } from '@/app/store';
+import { useI18n } from '@/i18n';
 
 export default function LegalPage() {
+  const { t } = useI18n();
   const { nav, navigate } = useApp();
   const initialTab = nav.screen === 'privacy-policy' ? 'privacy' : 'terms';
   const [activeTab, setActiveTab] = useState<'terms' | 'privacy'>(initialTab);
@@ -40,17 +42,17 @@ export default function LegalPage() {
         <div>
           <div className="flex items-center gap-2 mb-2">
             <span className="text-xs font-bold tracking-wider uppercase text-moss block">
-              Legal & Compliance Framework
+              {t('legal.eyebrow')}
             </span>
             <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 text-[10px] font-semibold border border-emerald-200 flex items-center gap-1">
-              <ShieldCheck size={12} /> Saudi Arabia PDPL Compliant
+              <ShieldCheck size={12} /> {t('legal.pdplBadge')}
             </span>
           </div>
           <h1 className="text-3xl sm:text-4xl text-soot font-normal font-serif-display">
-            Terms of Service & Privacy Policy
+            {t('legal.title')}
           </h1>
           <p className="text-moss text-xs sm:text-sm mt-1.5 max-w-2xl">
-            Review our official terms of service, cancellation & refund policies, loyalty program rules, and privacy data protections.
+            {t('legal.subtitle')}
           </p>
         </div>
 
@@ -66,7 +68,7 @@ export default function LegalPage() {
             }`}
           >
             <FileText size={15} />
-            <span>Terms of Service</span>
+            <span>{t('legal.tabTerms')}</span>
           </button>
           <button
             type="button"
@@ -78,7 +80,7 @@ export default function LegalPage() {
             }`}
           >
             <Lock size={15} />
-            <span>Privacy Policy</span>
+            <span>{t('legal.tabPrivacy')}</span>
           </button>
         </div>
       </div>
@@ -90,10 +92,10 @@ export default function LegalPage() {
           <div className="bg-white rounded-2xl p-6 border border-soot/10 shadow-2xs space-y-3">
             <h3 className="text-lg font-normal text-soot font-serif-display flex items-center gap-2">
               <Scale size={18} className="text-moss" />
-              <span>1. Agreement & Acceptance of Terms</span>
+              <span>{t('legal.t1Title')}</span>
             </h3>
             <p className="text-moss text-xs sm:text-sm">
-              By registering, accessing, or creating an account on the Coworking Pass platform, you explicitly agree to comply with and be bound by these Terms of Service, Privacy Policy, and Cookie Policy. If you do not agree to any part of these terms, please refrain from using the platform.
+              {t('legal.t1Body')}
             </p>
           </div>
 
@@ -101,12 +103,12 @@ export default function LegalPage() {
           <div className="bg-white rounded-2xl p-6 border border-soot/10 shadow-2xs space-y-3">
             <h3 className="text-lg font-normal text-soot font-serif-display flex items-center gap-2">
               <Building2 size={18} className="text-moss" />
-              <span>2. Universal Pass & Fair Usage Policy</span>
+              <span>{t('legal.t2Title')}</span>
             </h3>
             <ul className="list-disc list-inside space-y-1.5 text-moss text-xs sm:text-sm ps-2">
-              <li>Universal Pass memberships allow access to all partner workspaces across Saudi Arabia with a single subscription.</li>
-              <li>To prevent double-booking and ensure fair access, pass holders may reserve <strong>only one active workspace seat at a time</strong>.</li>
-              <li>System automatically blocks simultaneous overlap reservations. Members can cancel and switch to another location for free.</li>
+              <li>{t('legal.t2a')}</li>
+              <li>{t('legal.t2b1')} <strong>{t('legal.t2b2')}</strong>{t('legal.t2b3')}</li>
+              <li>{t('legal.t2c')}</li>
             </ul>
           </div>
 
@@ -115,10 +117,10 @@ export default function LegalPage() {
             <div className="flex items-center justify-between flex-wrap gap-2 border-b border-soot/8 pb-3">
               <h3 className="text-lg font-normal text-soot font-serif-display flex items-center gap-2">
                 <CreditCard size={18} className="text-moss" />
-                <span>3. Payment, Cancellation & Refund Policy (Section 5)</span>
+                <span>{t('legal.t3Title')}</span>
               </h3>
               <span className="text-[11px] font-semibold bg-emerald-50 text-emerald-900 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                Official Refund Terms
+                {t('legal.t3Badge')}
               </span>
             </div>
 
@@ -126,20 +128,20 @@ export default function LegalPage() {
               <div className="bg-plaster-dark/25 p-4 rounded-xl border border-soot/8 space-y-2">
                 <div className="flex items-center gap-2 font-semibold text-soot text-xs">
                   <Clock size={15} className="text-emerald-700" />
-                  <span>Individual Members (B2C)</span>
+                  <span>{t('legal.t3b2c')}</span>
                 </div>
                 <p className="text-moss text-xs">
-                  Free cancellation with 100% refund is guaranteed when cancelling at least <strong>6 hours before</strong> booking start time. Cancellations within 6 hours are non-refundable to maintain partner operations.
+                  {t('legal.t3b2cBody1')} <strong>{t('legal.t3b2cBody2')}</strong> {t('legal.t3b2cBody3')}
                 </p>
               </div>
 
               <div className="bg-plaster-dark/25 p-4 rounded-xl border border-soot/8 space-y-2">
                 <div className="flex items-center gap-2 font-semibold text-soot text-xs">
                   <Building2 size={15} className="text-emerald-700" />
-                  <span>Corporate & Organizations (B2B)</span>
+                  <span>{t('legal.t3b2b')}</span>
                 </div>
                 <p className="text-moss text-xs">
-                  Free cancellation with 100% refund for team desk and hall bookings is guaranteed when cancelling at least <strong>24 hours before</strong> start time.
+                  {t('legal.t3b2bBody1')} <strong>{t('legal.t3b2bBody2')}</strong> {t('legal.t3b2bBody3')}
                 </p>
               </div>
             </div>
@@ -147,16 +149,16 @@ export default function LegalPage() {
             <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl p-4 space-y-2 text-xs text-emerald-950">
               <h4 className="font-semibold flex items-center gap-1.5">
                 <RefreshCw size={14} className="text-emerald-700" />
-                <span>Refund Destination Options</span>
+                <span>{t('legal.t3dest')}</span>
               </h4>
               <ul className="space-y-1.5 text-emerald-900 text-[11px]">
                 <li className="flex items-center gap-1.5">
                   <Zap size={12} className="text-amber-600 shrink-0" />
-                  <span><strong>Instant Wallet Refund:</strong> Funds deposited immediately to your account wallet for instant rebooking.</span>
+                  <span><strong>{t('legal.t3wallet1')}</strong> {t('legal.t3wallet2')}</span>
                 </li>
                 <li className="flex items-center gap-1.5">
                   <CreditCard size={12} className="text-emerald-800 shrink-0" />
-                  <span><strong>Original Bank Card Refund:</strong> Processed to Mada / Visa / Mastercard within <strong>5 to 14 business days</strong>.</span>
+                  <span><strong>{t('legal.t3card1')}</strong> {t('legal.t3card2')} <strong>{t('legal.t3card3')}</strong>{t('legal.t3card4')}</span>
                 </li>
               </ul>
             </div>
@@ -166,17 +168,17 @@ export default function LegalPage() {
           <div className="bg-white rounded-2xl p-6 border border-soot/10 shadow-2xs space-y-3">
             <h3 className="text-lg font-normal text-soot font-serif-display flex items-center gap-2">
               <Award size={18} className="text-moss" />
-              <span>4. Loyalty Points Program Economics</span>
+              <span>{t('legal.t4Title')}</span>
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
               <div className="bg-amber-500/10 border border-amber-500/25 p-3 rounded-xl text-amber-950 space-y-1">
-                <span className="font-bold block">Earning Rate</span>
-                <p className="text-amber-900 text-[11px]">Earn 10 base points for every 100 SAR spent on pass reservations.</p>
+                <span className="font-bold block">{t('legal.t4earn')}</span>
+                <p className="text-amber-900 text-[11px]">{t('legal.t4earnBody')}</p>
               </div>
 
               <div className="bg-amber-500/10 border border-amber-500/25 p-3 rounded-xl text-amber-950 space-y-1">
-                <span className="font-bold block">Redemption Value</span>
-                <p className="text-amber-900 text-[11px]">Every 100 points equals a 25 SAR cash discount at checkout.</p>
+                <span className="font-bold block">{t('legal.t4redeem')}</span>
+                <p className="text-amber-900 text-[11px]">{t('legal.t4redeemBody')}</p>
               </div>
             </div>
           </div>
@@ -185,10 +187,10 @@ export default function LegalPage() {
           <div className="bg-white rounded-2xl p-6 border border-soot/10 shadow-2xs space-y-3">
             <h3 className="text-lg font-normal text-soot font-serif-display flex items-center gap-2">
               <Users size={18} className="text-moss" />
-              <span>5. Code of Conduct & Guest Policy</span>
+              <span>{t('legal.t5Title')}</span>
             </h3>
             <p className="text-moss text-xs sm:text-sm">
-              Hot desk reservations are strictly individual and non-transferable. Visitors to meeting rooms and private offices must adhere to max capacity limits and register at partner receptions upon arrival.
+              {t('legal.t5Body')}
             </p>
           </div>
         </div>
@@ -200,10 +202,10 @@ export default function LegalPage() {
           <div className="bg-white rounded-2xl p-6 border border-soot/10 shadow-2xs space-y-4">
             <h3 className="text-lg font-normal text-soot font-serif-display flex items-center gap-2">
               <Lock size={18} className="text-moss" />
-              <span>Saudi Arabia PDPL Data Protection Compliance</span>
+              <span>{t('legal.p0Title')}</span>
             </h3>
             <p className="text-moss text-xs sm:text-sm">
-              Coworking Pass is committed to safeguarding user personal data in strict compliance with the Saudi Personal Data Protection Law (PDPL) and National Data Governance policies.
+              {t('legal.p0Body')}
             </p>
           </div>
 
@@ -211,24 +213,24 @@ export default function LegalPage() {
             <div className="bg-white rounded-2xl p-6 border border-soot/10 shadow-2xs space-y-3">
               <h4 className="font-semibold text-soot text-sm flex items-center gap-2">
                 <FileText size={16} className="text-moss" />
-                <span>1. Data We Collect</span>
+                <span>{t('legal.p1Title')}</span>
               </h4>
               <ul className="list-disc list-inside space-y-1 text-moss text-xs">
-                <li>Account details: Full name, email address, phone number, company CR.</li>
-                <li>Usage history: Booking dates, QR check-in timestamps, location logs.</li>
-                <li>Technical metadata: IP address, device type, browser session tokens.</li>
+                <li>{t('legal.p1a')}</li>
+                <li>{t('legal.p1b')}</li>
+                <li>{t('legal.p1c')}</li>
               </ul>
             </div>
 
             <div className="bg-white rounded-2xl p-6 border border-soot/10 shadow-2xs space-y-3">
               <h4 className="font-semibold text-soot text-sm flex items-center gap-2">
                 <ShieldCheck size={16} className="text-moss" />
-                <span>2. How We Use Data</span>
+                <span>{t('legal.p2Title')}</span>
               </h4>
               <ul className="list-disc list-inside space-y-1 text-moss text-xs">
-                <li>Issuing encrypted QR access passes for partner receptions.</li>
-                <li>Processing payments and managing loyalty rewards points.</li>
-                <li>Sending critical booking updates and security OTP verifications.</li>
+                <li>{t('legal.p2a')}</li>
+                <li>{t('legal.p2b')}</li>
+                <li>{t('legal.p2c')}</li>
               </ul>
             </div>
           </div>
@@ -236,20 +238,20 @@ export default function LegalPage() {
           <div className="bg-white rounded-2xl p-6 border border-soot/10 shadow-2xs space-y-3">
             <h4 className="font-semibold text-soot text-sm flex items-center gap-2">
               <Building2 size={16} className="text-moss" />
-              <span>3. Data Localization & Encryption</span>
+              <span>{t('legal.p3Title')}</span>
             </h4>
             <p className="text-moss text-xs sm:text-sm">
-              All user data and database records are securely hosted and processed on local cloud infrastructure located <strong>within the Kingdom of Saudi Arabia</strong>, ensuring national data sovereignty and high cybersecurity standards.
+              {t('legal.p3Body1')} <strong>{t('legal.p3Body2')}</strong>{t('legal.p3Body3')}
             </p>
           </div>
 
           <div className="bg-white rounded-2xl p-6 border border-soot/10 shadow-2xs space-y-3">
             <h4 className="font-semibold text-soot text-sm flex items-center gap-2">
               <CheckCircle2 size={16} className="text-moss" />
-              <span>4. Your Rights Under PDPL</span>
+              <span>{t('legal.p4Title')}</span>
             </h4>
             <p className="text-moss text-xs sm:text-sm">
-              You have the right to request access to your personal data, request correction of inaccurate records, or request complete account deletion (Right to be Forgotten) at any time.
+              {t('legal.p4Body')}
             </p>
           </div>
         </div>
@@ -258,15 +260,15 @@ export default function LegalPage() {
       {/* Footer Contact Banner */}
       <div className="bg-plaster-dark/30 rounded-2xl p-6 border border-soot/10 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div>
-          <h4 className="font-semibold text-soot text-sm">Have Legal Questions or Need Support?</h4>
-          <p className="text-moss text-xs mt-0.5">Reach out to our legal and support team for inquiries.</p>
+          <h4 className="font-semibold text-soot text-sm">{t('legal.helpTitle')}</h4>
+          <p className="text-moss text-xs mt-0.5">{t('legal.helpBody')}</p>
         </div>
         <button
           type="button"
           onClick={() => navigate('contact')}
           className="btn-primary text-xs flex items-center gap-2 shadow-xs cursor-pointer shrink-0"
         >
-          <span>Contact Support Desk</span>
+          <span>{t('legal.contact')}</span>
           <ArrowRight size={14} />
         </button>
       </div>

@@ -1,5 +1,7 @@
 'use client';
 
+import { useI18n } from '@/i18n';
+import { useSpaceText } from '@/i18n/space-text';
 import React, { useState, useRef } from 'react';
 import {
   User,
@@ -31,6 +33,8 @@ import Modal from '@/components/ui/Modal';
 import { PaymentCard } from '@/types/types';
 
 export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile' | 'settings' }) {
+  const { t, translateMessage, formatDate, localizeTime } = useI18n();
+  const sx = useSpaceText();
   const { currentUser, updateCurrentUser, navigate, nav, showToast, addPaymentCard, bookings } = useApp();
 
   const [activeTab, setActiveTab] = useState<'profile' | 'settings'>(
@@ -209,10 +213,10 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-3xl sm:text-4xl text-soot font-normal" style={{ fontFamily: 'DM Serif Display, serif' }}>
-            {activeTab === 'profile' ? 'Member Profile' : 'Account Settings'}
+            {activeTab === 'profile' ? t('ind.ps.memberProfile') : 'Account Settings'}
           </h1>
           <p className="text-moss text-xs sm:text-sm mt-1 font-normal">
-            Manage your personal identity, contact details, and workspace pass preferences
+            {t('ind.ps.manageYourPersonalIdentityContact')}
           </p>
         </div>
 
@@ -231,7 +235,7 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
             }`}
           >
             <User size={15} />
-            <span>Member Profile</span>
+            <span>{t('ind.ps.memberProfile')}</span>
           </button>
           <button
             type="button"
@@ -246,7 +250,7 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
             }`}
           >
             <Settings size={15} />
-            <span>Settings</span>
+            <span>{t('ind.ps.settings')}</span>
           </button>
         </div>
       </div>
@@ -292,20 +296,20 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
 
                   {/* Account Role Badge */}
                   <span className="inline-flex items-center px-3.5 py-1 rounded-full text-xs font-medium bg-[#DDE6DF] text-soot border border-soot/6">
-                    Individual Member
+                    {t('ind.ps.individualMember')}
                   </span>
 
                   {/* Membership Tier Badge */}
                   <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-medium bg-white text-moss border border-soot/10">
                     <Check size={12} className="text-moss" />
-                    <span>{currentUser.membershipTier ? `${currentUser.membershipTier} Member` : 'All-Access Pass Holder'}</span>
+                    <span>{currentUser.membershipTier ? translateMessage(`${currentUser.membershipTier} Member`) : translateMessage('All-Access Pass Holder')}</span>
                   </span>
                 </div>
 
                 <div className="text-xs sm:text-sm text-moss font-normal flex flex-wrap items-center gap-3">
                   <span>@{usernameDisplay}</span>
                   <span>•</span>
-                  <span>{currentUser.city || 'Riyadh, Saudi Arabia'}</span>
+                  <span>{currentUser.city || translateMessage('Riyadh, Saudi Arabia')}</span>
                   {currentUser.university && (
                     <>
                       <span>•</span>
@@ -316,7 +320,7 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
                     </>
                   )}
                   <span>•</span>
-                  <span>{userBookings.length} Total Bookings</span>
+                  <span>{translateMessage(`${userBookings.length} Total Bookings`)}</span>
                 </div>
 
                 {currentUser.bio && (
@@ -333,9 +337,9 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-soot/8 gap-4 flex-wrap">
               <div>
                 <h3 className="text-xl font-normal text-soot" style={{ fontFamily: 'DM Serif Display, serif' }}>
-                  Personal Information
+                  {t('ind.ps.personalInformation')}
                 </h3>
-                <p className="text-moss text-xs mt-0.5 font-normal">Official personal profile details and contact methods</p>
+                <p className="text-moss text-xs mt-0.5 font-normal">{t('ind.ps.officialPersonalProfileDetailsAnd')}</p>
               </div>
               <button
                 type="button"
@@ -343,7 +347,7 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
                 className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#DDE6DF] text-soot hover:bg-[#D0DDD3] text-xs sm:text-sm font-medium transition-all shadow-xs border border-soot/8 cursor-pointer active:scale-98"
               >
                 <Edit3 size={15} />
-                <span>Edit Profile</span>
+                <span>{t('ind.ps.editProfile')}</span>
               </button>
             </div>
 
@@ -353,7 +357,7 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
               <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 transition-all hover:border-soot/12">
                 <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
                   <User size={13} className="text-moss/80" />
-                  Full Name
+                  {t('ind.ps.fullName')}
                 </div>
                 <div className="text-sm sm:text-base font-normal text-soot">
                   {currentUser.name}
@@ -364,7 +368,7 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
               <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 transition-all hover:border-soot/12">
                 <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
                   <AtSign size={13} className="text-moss/80" />
-                  Username
+                  {t('ind.ps.username')}
                 </div>
                 <div className="text-sm sm:text-base font-normal text-soot">
                   @{usernameDisplay}
@@ -375,7 +379,7 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
               <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 transition-all hover:border-soot/12">
                 <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
                   <Mail size={13} className="text-moss/80" />
-                  Registered Email Address
+                  {t('ind.ps.registeredEmailAddress')}
                 </div>
                 <div className="text-sm sm:text-base font-normal text-soot truncate" title={currentUser.email}>
                   {currentUser.email}
@@ -386,7 +390,7 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
               <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 transition-all hover:border-soot/12">
                 <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
                   <Phone size={13} className="text-moss/80" />
-                  Contact Phone Number
+                  {t('ind.ps.contactPhoneNumber')}
                 </div>
                 <div className="text-sm sm:text-base font-normal text-soot">
                   {currentUser.phone || '+966 55 123 4567'}
@@ -397,7 +401,7 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
               <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 transition-all hover:border-soot/12">
                 <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
                   <GraduationCap size={13} className="text-moss/80" />
-                  University / Education
+                  {t('ind.ps.universityEducation')}
                 </div>
                 <div className="text-sm sm:text-base font-normal text-soot">
                   {currentUser.university || 'King Saud University'}
@@ -408,10 +412,10 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
               <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 transition-all hover:border-soot/12">
                 <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
                   <MapPin size={13} className="text-moss/80" />
-                  Operating City / Location
+                  {t('ind.ps.operatingCityLocation')}
                 </div>
                 <div className="text-sm sm:text-base font-normal text-soot">
-                  {currentUser.city || 'Riyadh, Saudi Arabia'}
+                  {currentUser.city || translateMessage('Riyadh, Saudi Arabia')}
                 </div>
               </div>
 
@@ -419,7 +423,7 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
               <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 sm:col-span-2 transition-all hover:border-soot/12">
                 <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
                   <FileText size={13} className="text-moss/80" />
-                  Personal Bio & Workspace Focus
+                  {t('ind.ps.personalBioWorkspaceFocus')}
                 </div>
                 <div className="text-sm font-normal text-soot leading-relaxed">
                   {currentUser.bio ||
@@ -431,10 +435,10 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
               <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 sm:col-span-2 transition-all hover:border-soot/12">
                 <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
                   <Calendar size={13} className="text-moss/80" />
-                  Member Since
+                  {t('ind.ps.memberSince')}
                 </div>
                 <div className="text-sm font-normal text-soot">
-                  {currentUser.joinDate || 'March 2024'}
+                  {currentUser.joinDate || translateMessage('March 2024')}
                 </div>
               </div>
             </div>
@@ -445,23 +449,23 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-soot/8 gap-4 flex-wrap">
               <div>
                 <h3 className="text-xl font-normal text-soot" style={{ fontFamily: 'DM Serif Display, serif' }}>
-                  My Workspace Activity ({userBookings.length})
+                  {translateMessage(`My Workspace Activity (${userBookings.length})`)}
                 </h3>
-                <p className="text-moss text-xs mt-0.5 font-normal">Recent reservations and pass check-ins across partner spaces</p>
+                <p className="text-moss text-xs mt-0.5 font-normal">{t('ind.ps.recentReservationsAndPassCheck')}</p>
               </div>
               <button
                 type="button"
                 onClick={() => navigate('my-bookings')}
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#DDE6DF] text-soot hover:bg-[#D0DDD3] text-xs sm:text-sm font-medium transition-all shadow-xs border border-soot/8 cursor-pointer active:scale-98"
               >
-                <span>View All Bookings</span>
+                <span>{t('ind.ps.viewAllBookings')}</span>
                 <ArrowRight size={14} />
               </button>
             </div>
 
             {userBookings.length === 0 ? (
               <div className="text-center py-10 text-moss text-sm">
-                No active bookings found. Explore coworking spaces to make your first reservation.
+                {t('ind.ps.noActiveBookingsFoundExplore')}
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -473,14 +477,14 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
                   >
                     <img
                       src={b.spaceImage}
-                      alt={b.spaceName}
+                      alt={sx.bookingName(b)}
                       className="w-14 h-14 rounded-2xl object-cover shrink-0 border border-soot/8"
                     />
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-soot truncate">{b.spaceName}</div>
+                      <div className="text-sm font-medium text-soot truncate">{sx.bookingName(b)}</div>
                       <div className="text-xs text-moss flex items-center gap-1 mt-0.5">
                         <MapPin size={11} />
-                        <span>{b.spaceCity} · <span className="capitalize">{b.plan === 'hourly' ? `Hourly (${b.durationHours || 1} ${b.durationHours === 1 ? 'hr' : 'hrs'})` : b.plan}</span></span>
+                        <span>{sx.bookingCity(b)} · <span className="capitalize">{b.plan === 'hourly' ? t(b.durationHours === 1 ? 'booking.hourlyHrs' : 'booking.hourlyHrsMany', { count: b.durationHours || 1 }) : b.plan}</span></span>
                       </div>
                       <div className="text-xs font-medium text-soot mt-1">
                         {b.startDate} {b.plan === 'hourly' && (b.startTime || b.endTime) ? `· ${b.startTime || '09:00 AM'} – ${b.endTime || '05:00 PM'}` : ''}
@@ -498,9 +502,9 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
           {/* Notification Preferences */}
           <div className="bg-white rounded-3xl border border-soot/8 p-6 sm:p-8 shadow-sm">
             <h3 className="text-xl font-normal text-soot mb-1" style={{ fontFamily: 'DM Serif Display, serif' }}>
-              Notification Preferences
+              {t('ind.ps.notificationPreferences')}
             </h3>
-            <p className="text-moss text-xs mb-6 font-normal">Manage SMS and email alerts for your bookings and pass usage</p>
+            <p className="text-moss text-xs mb-6 font-normal">{t('ind.ps.manageSmsAndEmailAlerts')}</p>
 
             <div className="space-y-4 divide-y divide-soot/6">
               {[
@@ -511,8 +515,8 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
               ].map(item => (
                 <div key={item.key} className="flex items-center justify-between pt-4 first:pt-0">
                   <div className="pe-4">
-                    <div className="text-sm font-medium text-soot">{item.label}</div>
-                    <div className="text-xs text-moss mt-0.5 font-normal">{item.desc}</div>
+                    <div className="text-sm font-medium text-soot">{translateMessage(item.label)}</div>
+                    <div className="text-xs text-moss mt-0.5 font-normal">{translateMessage(item.desc)}</div>
                   </div>
                   <button
                     type="button"
@@ -540,14 +544,14 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
           {/* Security & Password */}
           <div className="bg-white rounded-3xl border border-soot/8 p-6 sm:p-8 shadow-sm">
             <h3 className="text-xl font-normal text-soot mb-1" style={{ fontFamily: 'DM Serif Display, serif' }}>
-              Security & Password
+              {t('ind.ps.securityPassword')}
             </h3>
-            <p className="text-moss text-xs mb-6 font-normal">Update your login credentials and secure your account</p>
+            <p className="text-moss text-xs mb-6 font-normal">{t('ind.ps.updateYourLoginCredentialsAnd')}</p>
 
             <form onSubmit={handlePasswordChangeSubmit} className="space-y-4 max-w-lg">
               <div>
                 <label className="block text-xs font-medium text-soot mb-1.5">
-                  Current Password <span className="text-red-500">*</span>
+                  {t('ind.ps.currentPassword')} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="password"
@@ -563,14 +567,14 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
                 />
                 {passwordErrors.current && (
                   <p className="text-rose-600 text-xs mt-1 font-medium flex items-center gap-1">
-                    <span>*</span> {passwordErrors.current}
+                    <span>*</span> {translateMessage(passwordErrors.current)}
                   </p>
                 )}
               </div>
 
               <div>
                 <label className="block text-xs font-medium text-soot mb-1.5">
-                  New Password <span className="text-red-500">*</span>
+                  {t('ind.ps.newPassword')} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="password"
@@ -586,14 +590,14 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
                 />
                 {passwordErrors.new && (
                   <p className="text-rose-600 text-xs mt-1 font-medium flex items-center gap-1">
-                    <span>*</span> {passwordErrors.new}
+                    <span>*</span> {translateMessage(passwordErrors.new)}
                   </p>
                 )}
               </div>
 
               <div>
                 <label className="block text-xs font-medium text-soot mb-1.5">
-                  Confirm New Password <span className="text-red-500">*</span>
+                  {t('ind.ps.confirmNewPassword')} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="password"
@@ -609,7 +613,7 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
                 />
                 {passwordErrors.confirm && (
                   <p className="text-rose-600 text-xs mt-1 font-medium flex items-center gap-1">
-                    <span>*</span> {passwordErrors.confirm}
+                    <span>*</span> {translateMessage(passwordErrors.confirm)}
                   </p>
                 )}
               </div>
@@ -620,7 +624,7 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
                   className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#DDE6DF] text-soot hover:bg-[#D0DDD3] text-xs sm:text-sm font-medium transition-all shadow-xs border border-soot/8 cursor-pointer active:scale-98"
                 >
                   <Lock size={14} />
-                  <span>Update Password</span>
+                  <span>{t('ind.ps.updatePassword')}</span>
                 </button>
               </div>
             </form>
@@ -631,9 +635,9 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
             <div className="flex items-center justify-between mb-4 pb-3 border-b border-soot/8 gap-4 flex-wrap">
               <div>
                 <h3 className="text-xl font-normal text-soot" style={{ fontFamily: 'DM Serif Display, serif' }}>
-                  Saved Payment Cards
+                  {t('ind.ps.savedPaymentCards')}
                 </h3>
-                <p className="text-moss text-xs mt-0.5 font-normal">Credit & Mada cards saved for instant pass checkout</p>
+                <p className="text-moss text-xs mt-0.5 font-normal">{t('ind.ps.creditMadaCardsSavedFor')}</p>
               </div>
               <button
                 type="button"
@@ -641,7 +645,7 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
                 className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-[#DDE6DF] text-soot hover:bg-[#D0DDD3] text-xs sm:text-sm font-medium transition-all shadow-xs border border-soot/8 cursor-pointer active:scale-98"
               >
                 <Plus size={14} />
-                <span>Add New Card</span>
+                <span>{t('ind.ps.addNewCard')}</span>
               </button>
             </div>
 
@@ -650,14 +654,14 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
                 <div key={card.id} className="p-4 rounded-2xl bg-[#F9F8F5] border border-soot/8 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-white border border-soot/10 flex items-center justify-center font-bold text-xs text-soot shadow-2xs">
-                      {card.brand}
+                      {translateMessage(card.brand)}
                     </div>
                     <div>
                       <div className="text-sm font-medium text-soot">•••• •••• •••• {card.last4}</div>
-                      <div className="text-xs text-moss">Expires {card.expiry}</div>
+                      <div className="text-xs text-moss">{t('ind.ps.expires')} {card.expiry}</div>
                     </div>
                   </div>
-                  <span className="text-xs text-moss font-medium">Default</span>
+                  <span className="text-xs text-moss font-medium">{t('ind.ps.default')}</span>
                 </div>
               ))}
             </div>
@@ -666,10 +670,10 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
           {/* Danger Zone */}
           <div className="bg-white rounded-3xl border border-red-200 p-6 sm:p-8 shadow-sm">
             <h3 className="text-xl font-normal text-red-600 mb-1" style={{ fontFamily: 'DM Serif Display, serif' }}>
-              Danger Zone
+              {t('ind.ps.dangerZone')}
             </h3>
             <p className="text-moss text-xs mb-6 font-normal">
-              Deleting your individual member account will permanently remove your reservation history and pass memberships.
+              {t('ind.ps.deletingYourIndividualMemberAccount')}
             </p>
             <button
               type="button"
@@ -677,7 +681,7 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
               className="btn-danger"
             >
               <AlertCircle size={15} />
-              <span>Delete Member Account</span>
+              <span>{t('ind.ps.deleteMemberAccount')}</span>
             </button>
           </div>
         </div>
@@ -687,7 +691,7 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
       <Modal
         open={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
-        title="Edit Member Profile"
+        title={t('ind.ps.editMemberProfile')}
         size="lg"
       >
         <form onSubmit={handleSaveProfile} className="space-y-6">
@@ -704,9 +708,9 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
 
             <div className="flex-1 min-w-0 text-center sm:text-start space-y-2.5">
               <div>
-                <div className="text-sm font-medium text-soot">Profile Photo</div>
+                <div className="text-sm font-medium text-soot">{t('ind.ps.profilePhoto')}</div>
                 <p className="text-xs text-moss font-normal mt-0.5">
-                  Upload a clear portrait or use the clean default avatar.
+                  {t('ind.ps.uploadAClearPortraitOr')}
                 </p>
               </div>
 
@@ -726,7 +730,7 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
                   className="h-10 px-5 rounded-full bg-[#DDE6DF] text-soot hover:bg-[#D0DDD3] text-xs sm:text-sm font-medium transition-all shadow-xs border border-soot/8 cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap shrink-0"
                 >
                   <Upload size={14} className="shrink-0" />
-                  <span>Upload Photo</span>
+                  <span>{t('ind.ps.uploadPhoto')}</span>
                 </button>
 
                 {editAvatar && (
@@ -736,7 +740,7 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
                     className="h-10 px-4 rounded-full border border-red-200 text-red-600 hover:bg-red-50 text-xs sm:text-sm font-medium transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0"
                   >
                     <Trash2 size={14} className="shrink-0" />
-                    <span>Remove</span>
+                    <span>{t('ind.ps.remove')}</span>
                   </button>
                 )}
               </div>
@@ -748,41 +752,41 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
             {/* Full Name */}
             <div>
               <label className="block text-xs font-medium text-soot mb-1.5">
-                Full Name <span className="text-red-500">*</span>
+                {t('ind.ps.fullName')} <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={editName}
                 onChange={e => setEditName(e.target.value)}
-                placeholder="e.g. Hadel Turki"
+                placeholder={t('ind.ps.eGHadelTurki')}
                 className={`w-full px-4 py-3 rounded-2xl border ${
                   errors.name ? 'border-red-400 bg-red-50/20' : 'border-soot/12 bg-white'
                 } text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs font-normal`}
               />
-              {errors.name && <p className="text-red-500 text-xs mt-1 font-normal">{errors.name}</p>}
+              {errors.name && <p className="text-red-500 text-xs mt-1 font-normal">{translateMessage(errors.name)}</p>}
             </div>
 
             {/* Username */}
             <div>
               <label className="block text-xs font-medium text-soot mb-1.5">
-                Username <span className="text-red-500">*</span>
+                {t('ind.ps.username')} <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={editUsername}
                 onChange={e => setEditUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
-                placeholder="e.g. hadel_t"
+                placeholder={t('ind.ps.eGHadelT')}
                 className={`w-full px-4 py-3 rounded-2xl border ${
                   errors.username ? 'border-red-400 bg-red-50/20' : 'border-soot/12 bg-white'
                 } text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs font-normal`}
               />
-              {errors.username && <p className="text-red-500 text-xs mt-1 font-normal">{errors.username}</p>}
+              {errors.username && <p className="text-red-500 text-xs mt-1 font-normal">{translateMessage(errors.username)}</p>}
             </div>
 
             {/* Registered Email (Disabled) */}
             <div>
               <label className="block text-xs font-medium text-soot mb-1.5">
-                Registered Email
+                {t('ind.ps.registeredEmail')}
               </label>
               <input
                 type="email"
@@ -795,7 +799,7 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
             {/* Phone Number */}
             <div>
               <label className="block text-xs font-medium text-soot mb-1.5">
-                Phone Number
+                {t('ind.ps.phoneNumber')}
               </label>
               <input
                 type="text"
@@ -809,13 +813,13 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
             {/* University / Education */}
             <div>
               <label className="block text-xs font-medium text-soot mb-1.5">
-                University / Education
+                {t('ind.ps.universityEducation')}
               </label>
               <input
                 type="text"
                 value={editUniversity}
                 onChange={e => setEditUniversity(e.target.value)}
-                placeholder="e.g. King Saud University"
+                placeholder={t('ind.ps.eGKingSaudUniversity')}
                 className="w-full px-4 py-3 rounded-2xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs font-normal"
               />
             </div>
@@ -823,7 +827,7 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
             {/* Operating City */}
             <div>
               <label className="block text-xs font-medium text-soot mb-1.5">
-                City / Location
+                {t('ind.ps.cityLocation')}
               </label>
               <input
                 type="text"
@@ -837,13 +841,13 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
             {/* Bio */}
             <div className="sm:col-span-2">
               <label className="block text-xs font-medium text-soot mb-1.5">
-                Personal Bio & Focus
+                {t('ind.ps.personalBioFocus')}
               </label>
               <textarea
                 value={editBio}
                 onChange={e => setEditBio(e.target.value)}
                 rows={3}
-                placeholder="Share a short bio regarding your work, studies, or workspace preferences..."
+                placeholder={t('ind.ps.shareAShortBioRegarding')}
                 className="w-full px-4 py-3 rounded-2xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs resize-none font-normal"
               />
             </div>
@@ -856,14 +860,14 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
               onClick={() => setIsEditModalOpen(false)}
               className="px-6 py-3 rounded-full border border-soot/15 text-soot text-xs sm:text-sm font-medium hover:bg-soot/5 transition-all bg-white cursor-pointer"
             >
-              Cancel
+              {t('ind.ps.cancel')}
             </button>
             <button
               type="submit"
               disabled={isSaving}
               className="px-7 py-3 rounded-full bg-[#DDE6DF] text-soot hover:bg-[#D0DDD3] text-xs sm:text-sm font-medium transition-all shadow-xs border border-soot/8 cursor-pointer disabled:opacity-50 active:scale-98"
             >
-              {isSaving ? 'Saving...' : 'Save Changes'}
+              {isSaving ? t('ind.ps.saving') : t('ind.ps.saveChanges')}
             </button>
           </div>
         </form>
@@ -873,12 +877,12 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
       <Modal
         open={isAddCardOpen}
         onClose={() => setIsAddCardOpen(false)}
-        title="Add Payment Card"
+        title={t('ind.ps.addPaymentCard')}
         size="md"
       >
         <form onSubmit={handleAddCardSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-soot mb-1.5">Card Brand</label>
+            <label className="block text-xs font-medium text-soot mb-1.5">{t('ind.ps.cardBrand')}</label>
             <div className="grid grid-cols-3 gap-2">
               {(['Visa', 'Mastercard', 'Mada'] as const).map(b => (
                 <button
@@ -891,28 +895,28 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
                       : 'bg-white border-soot/12 text-moss hover:text-soot'
                   }`}
                 >
-                  {b}
+                  {translateMessage(b)}
                 </button>
               ))}
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-soot mb-1.5">Cardholder Name</label>
+            <label className="block text-xs font-medium text-soot mb-1.5">{t('ind.ps.cardholderName')}</label>
             <input
               type="text"
               value={cardHolder}
               onChange={e => setCardHolder(e.target.value)}
-              placeholder="Name on card"
+              placeholder={t('ind.ps.nameOnCard')}
               className={`w-full px-4 py-2.5 rounded-2xl border ${
                 cardErrors.holder ? 'border-red-400 bg-red-50/20' : 'border-soot/12 bg-white'
               } text-soot text-sm outline-none focus:border-soot`}
             />
-            {cardErrors.holder && <p className="text-red-500 text-xs mt-1">{cardErrors.holder}</p>}
+            {cardErrors.holder && <p className="text-red-500 text-xs mt-1">{translateMessage(cardErrors.holder)}</p>}
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-soot mb-1.5">Card Number</label>
+            <label className="block text-xs font-medium text-soot mb-1.5">{t('ind.ps.cardNumber')}</label>
             <input
               type="text"
               value={cardNumber}
@@ -923,11 +927,11 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
                 cardErrors.number ? 'border-red-400 bg-red-50/20' : 'border-soot/12 bg-white'
               } text-soot text-sm outline-none focus:border-soot`}
             />
-            {cardErrors.number && <p className="text-red-500 text-xs mt-1">{cardErrors.number}</p>}
+            {cardErrors.number && <p className="text-red-500 text-xs mt-1">{translateMessage(cardErrors.number)}</p>}
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-soot mb-1.5">Expiry Date (MM/YY)</label>
+            <label className="block text-xs font-medium text-soot mb-1.5">{t('ind.ps.expiryDateMmYy')}</label>
             <input
               type="text"
               value={cardExpiry}
@@ -938,7 +942,7 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
                 cardErrors.expiry ? 'border-red-400 bg-red-50/20' : 'border-soot/12 bg-white'
               } text-soot text-sm outline-none focus:border-soot`}
             />
-            {cardErrors.expiry && <p className="text-red-500 text-xs mt-1">{cardErrors.expiry}</p>}
+            {cardErrors.expiry && <p className="text-red-500 text-xs mt-1">{translateMessage(cardErrors.expiry)}</p>}
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-soot/8">
@@ -947,13 +951,13 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
               onClick={() => setIsAddCardOpen(false)}
               className="px-5 py-2.5 rounded-full border border-soot/15 text-soot text-xs font-medium hover:bg-soot/5 bg-white cursor-pointer"
             >
-              Cancel
+              {t('ind.ps.cancel')}
             </button>
             <button
               type="submit"
               className="px-6 py-2.5 rounded-full bg-[#DDE6DF] text-soot hover:bg-[#D0DDD3] text-xs font-medium shadow-xs border border-soot/8 cursor-pointer"
             >
-              Save Card
+              {t('ind.ps.saveCard')}
             </button>
           </div>
         </form>

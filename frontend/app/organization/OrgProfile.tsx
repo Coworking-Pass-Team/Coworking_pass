@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/i18n';
 import React, { useState, useRef } from 'react';
 import {
   Building2,
@@ -32,6 +33,7 @@ import Modal from '@/components/ui/Modal';
 import UserAvatar from '@/components/ui/UserAvatar';
 
 export default function OrgProfile() {
+  const { t, translateMessage } = useI18n();
   const { currentUser, navigate, nav, updateCurrentUser, showToast, bookings } = useApp();
 
   const [activeTab, setActiveTab] = useState<'profile' | 'settings'>(
@@ -225,10 +227,10 @@ export default function OrgProfile() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-3xl sm:text-4xl text-soot font-normal" style={{ fontFamily: 'DM Serif Display, serif' }}>
-            {activeTab === 'profile' ? 'Organization Profile' : 'Organization Settings'}
+            {translateMessage(activeTab === 'profile' ? 'Organization Profile' : 'Organization Settings')}
           </h1>
           <p className="text-moss text-xs sm:text-sm mt-1 font-normal">
-            Manage your company identity, corporate pass credentials, and team workspace access
+            {t('org.op.manageYourCompanyIdentityCorporate')}
           </p>
         </div>
 
@@ -247,7 +249,7 @@ export default function OrgProfile() {
             }`}
           >
             <Building2 size={15} />
-            <span>Company Profile</span>
+            <span>{t('org.op.companyProfile')}</span>
           </button>
           <button
             type="button"
@@ -262,7 +264,7 @@ export default function OrgProfile() {
             }`}
           >
             <Settings size={15} />
-            <span>Settings</span>
+            <span>{t('org.op.settings')}</span>
           </button>
         </div>
       </div>
@@ -289,7 +291,7 @@ export default function OrgProfile() {
                 <div className="relative inline-block self-start">
                   <UserAvatar
                     src={currentUser.avatar}
-                    name={currentUser.orgName || 'Organization'}
+                    name={currentUser.orgName || translateMessage('Organization')}
                     size="2xl"
                     ring={true}
                   />
@@ -301,7 +303,7 @@ export default function OrgProfile() {
                     className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-soot/15 text-soot text-xs sm:text-sm font-medium hover:bg-plaster transition-all cursor-pointer bg-white shadow-2xs"
                   >
                     <Edit3 size={14} />
-                    <span>Edit Profile</span>
+                    <span>{t('org.op.editProfile')}</span>
                   </button>
                 </div>
               </div>
@@ -313,31 +315,31 @@ export default function OrgProfile() {
                     className="text-2xl sm:text-3xl font-normal text-soot tracking-tight"
                     style={{ fontFamily: 'DM Serif Display, serif' }}
                   >
-                    {currentUser.orgName || 'Organization'}
+                    {currentUser.orgName || translateMessage('Organization')}
                   </h2>
 
                   {/* Account Role Badge */}
                   <span className="inline-flex items-center px-3.5 py-1 rounded-full text-xs font-medium bg-[#DDE6DF] text-soot border border-soot/6">
-                    Organization Account
+                    {t('org.op.organizationAccount')}
                   </span>
 
                   {/* Pass Membership Badge */}
                   <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-medium bg-white text-moss border border-soot/10">
                     <Check size={12} className="text-moss" />
-                    <span>{currentUser.membershipTier || 'Enterprise Pass Holder'}</span>
+                    <span>{currentUser.membershipTier || translateMessage('Enterprise Pass Holder')}</span>
                   </span>
 
                   {/* Team Members Count Badge */}
                   <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-medium bg-white text-moss border border-soot/10">
                     <Users size={12} />
-                    <span>{employees.length} Team Members</span>
+                    <span>{translateMessage(`${employees.length} Team Members`)}</span>
                   </span>
                 </div>
 
                 <div className="text-xs sm:text-sm text-moss font-normal flex flex-wrap items-center gap-3">
-                  <span>{currentUser.industry || 'Technology & Digital Solutions'}</span>
+                  <span>{translateMessage(currentUser.industry || 'Technology & Digital Solutions')}</span>
                   <span>•</span>
-                  <span>{currentUser.city || 'Riyadh, Saudi Arabia'}</span>
+                  <span>{translateMessage(currentUser.city || 'Riyadh, Saudi Arabia')}</span>
                   {currentUser.website && (
                     <>
                       <span>•</span>
@@ -370,9 +372,9 @@ export default function OrgProfile() {
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-soot/8 gap-4 flex-wrap">
               <div>
                 <h3 className="text-xl font-normal text-soot" style={{ fontFamily: 'DM Serif Display, serif' }}>
-                  Organization Information
+                  {t('org.op.organizationInformation')}
                 </h3>
-                <p className="text-moss text-xs mt-0.5 font-normal">Official corporate entity credentials and business profile</p>
+                <p className="text-moss text-xs mt-0.5 font-normal">{t('org.op.officialCorporateEntityCredentialsAnd')}</p>
               </div>
               <button
                 type="button"
@@ -380,7 +382,7 @@ export default function OrgProfile() {
                 className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#DDE6DF] text-soot hover:bg-[#D0DDD3] text-xs sm:text-sm font-medium transition-all shadow-xs border border-soot/8 cursor-pointer active:scale-98"
               >
                 <Edit3 size={15} />
-                <span>Edit Profile</span>
+                <span>{t('org.op.editProfile')}</span>
               </button>
             </div>
 
@@ -390,10 +392,10 @@ export default function OrgProfile() {
               <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 transition-all hover:border-soot/12">
                 <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
                   <Building2 size={13} className="text-moss/80" />
-                  Organization / Company Name
+                  {t('org.op.organizationCompanyName')}
                 </div>
                 <div className="text-sm sm:text-base font-normal text-soot">
-                  {currentUser.orgName || 'Not Set'}
+                  {currentUser.orgName || translateMessage('Not Set')}
                 </div>
               </div>
 
@@ -401,12 +403,12 @@ export default function OrgProfile() {
               <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 transition-all hover:border-soot/12">
                 <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
                   <Shield size={13} className="text-moss/80" />
-                  Company Owner / Representative
+                  {t('org.op.companyOwnerRepresentative')}
                 </div>
                 <div className="text-sm sm:text-base font-normal text-soot flex items-center justify-between">
                   <span>{currentUser.name}</span>
                   <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-[#DDE6DF] text-soot">
-                    HR Admin
+                    {t('org.op.hrAdmin')}
                   </span>
                 </div>
               </div>
@@ -415,10 +417,10 @@ export default function OrgProfile() {
               <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 transition-all hover:border-soot/12">
                 <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
                   <Briefcase size={13} className="text-moss/80" />
-                  Industry & Sector
+                  {t('org.op.industrySector')}
                 </div>
                 <div className="text-sm sm:text-base font-normal text-soot">
-                  {currentUser.industry || 'Technology & Digital Solutions'}
+                  {translateMessage(currentUser.industry || 'Technology & Digital Solutions')}
                 </div>
               </div>
 
@@ -426,7 +428,7 @@ export default function OrgProfile() {
               <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 transition-all hover:border-soot/12">
                 <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
                   <Mail size={13} className="text-moss/80" />
-                  Corporate Billing Email
+                  {t('org.op.corporateBillingEmail')}
                 </div>
                 <div className="text-sm sm:text-base font-normal text-soot truncate" title={currentUser.email}>
                   {currentUser.email}
@@ -437,7 +439,7 @@ export default function OrgProfile() {
               <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 transition-all hover:border-soot/12">
                 <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
                   <Phone size={13} className="text-moss/80" />
-                  Contact Phone Number
+                  {t('org.op.contactPhoneNumber')}
                 </div>
                 <div className="text-sm sm:text-base font-normal text-soot">
                   {currentUser.phone || '+966 56 456 7890'}
@@ -448,7 +450,7 @@ export default function OrgProfile() {
               <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 transition-all hover:border-soot/12">
                 <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
                   <FileText size={13} className="text-moss/80" />
-                  Commercial Registration (CR)
+                  {t('org.op.commercialRegistrationCr')}
                 </div>
                 <div className="text-sm sm:text-base font-normal text-soot">
                   {currentUser.crNumber || '1010874921'}
@@ -459,10 +461,10 @@ export default function OrgProfile() {
               <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 transition-all hover:border-soot/12">
                 <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
                   <Users size={13} className="text-moss/80" />
-                  Total Company Size
+                  {t('org.op.totalCompanySize')}
                 </div>
                 <div className="text-sm sm:text-base font-normal text-soot">
-                  {currentUser.orgSize || employees.length || 15} Employees
+                  {translateMessage(`${currentUser.orgSize || employees.length || 15} Employees`)}
                 </div>
               </div>
 
@@ -470,10 +472,10 @@ export default function OrgProfile() {
               <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 transition-all hover:border-soot/12">
                 <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
                   <MapPin size={13} className="text-moss/80" />
-                  Headquarters City
+                  {t('org.op.headquartersCity')}
                 </div>
                 <div className="text-sm sm:text-base font-normal text-soot">
-                  {currentUser.city || 'Riyadh, Saudi Arabia'}
+                  {translateMessage(currentUser.city || 'Riyadh, Saudi Arabia')}
                 </div>
               </div>
 
@@ -481,7 +483,7 @@ export default function OrgProfile() {
               <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 transition-all hover:border-soot/12">
                 <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
                   <Globe size={13} className="text-moss/80" />
-                  Official Website URL
+                  {t('org.op.officialWebsiteUrl')}
                 </div>
                 <div className="text-sm sm:text-base font-normal text-soot truncate">
                   {currentUser.website || 'https://sauditech.sa'}
@@ -492,7 +494,7 @@ export default function OrgProfile() {
               <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 sm:col-span-2 transition-all hover:border-soot/12">
                 <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
                   <FileText size={13} className="text-moss/80" />
-                  Company Description & Overview
+                  {t('org.op.companyDescriptionOverview')}
                 </div>
                 <div className="text-sm font-normal text-soot leading-relaxed">
                   {currentUser.orgDescription ||
@@ -504,7 +506,7 @@ export default function OrgProfile() {
               <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 sm:col-span-2 transition-all hover:border-soot/12">
                 <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
                   <Calendar size={13} className="text-moss/80" />
-                  Corporate Account Member Since
+                  {t('org.op.corporateAccountMemberSince')}
                 </div>
                 <div className="text-sm font-normal text-soot">
                   {currentUser.joinDate || 'November 2023'}
@@ -518,9 +520,9 @@ export default function OrgProfile() {
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-soot/8 gap-4 flex-wrap">
               <div>
                 <h3 className="text-xl font-normal text-soot" style={{ fontFamily: 'DM Serif Display, serif' }}>
-                  Team Members Roster ({employees.length})
+                  {translateMessage(`Team Members Roster (${employees.length})`)}
                 </h3>
-                <p className="text-moss text-xs mt-0.5 font-normal">Colleagues and team members authorized to book workspaces</p>
+                <p className="text-moss text-xs mt-0.5 font-normal">{t('org.op.colleaguesAndTeamMembersAuthorized')}</p>
               </div>
               <button
                 type="button"
@@ -528,13 +530,13 @@ export default function OrgProfile() {
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#DDE6DF] text-soot hover:bg-[#D0DDD3] text-xs sm:text-sm font-medium transition-all shadow-xs border border-soot/8 cursor-pointer active:scale-98"
               >
                 <Plus size={15} />
-                <span>Add Team Member</span>
+                <span>{t('org.op.addTeamMember')}</span>
               </button>
             </div>
 
             {employees.length === 0 ? (
               <div className="text-center py-10 text-moss text-sm">
-                No team members added yet. Click &quot;Add Team Member&quot; to invite your team.
+                {t('org.op.noTeamMembersAddedYet')}
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -549,14 +551,14 @@ export default function OrgProfile() {
                       </div>
                       <div className="min-w-0">
                         <div className="text-sm font-medium text-soot truncate">{emp.name}</div>
-                        <div className="text-xs text-moss truncate">{emp.department} · {emp.email}</div>
+                        <div className="text-xs text-moss truncate">{translateMessage(emp.department)} · {emp.email}</div>
                       </div>
                     </div>
                     <button
                       type="button"
                       onClick={() => handleRemoveEmployee(emp.id)}
                       className="p-2 text-moss/60 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors cursor-pointer shrink-0 ms-2"
-                      title="Remove member"
+                      title={t('org.op.removeMember')}
                     >
                       <Trash2 size={14} />
                     </button>
@@ -572,9 +574,9 @@ export default function OrgProfile() {
           {/* Notification Preferences */}
           <div className="bg-white rounded-3xl border border-soot/8 p-6 sm:p-8 shadow-sm">
             <h3 className="text-xl font-normal text-soot mb-1" style={{ fontFamily: 'DM Serif Display, serif' }}>
-              Corporate Notification Preferences
+              {t('org.op.corporateNotificationPreferences')}
             </h3>
-            <p className="text-moss text-xs mb-6 font-normal">Configure alerts for team reservations, billing summaries, and workspace access</p>
+            <p className="text-moss text-xs mb-6 font-normal">{t('org.op.configureAlertsForTeamReservations')}</p>
 
             <div className="space-y-4 divide-y divide-soot/6">
               {[
@@ -585,8 +587,8 @@ export default function OrgProfile() {
               ].map(item => (
                 <div key={item.key} className="flex items-center justify-between pt-4 first:pt-0">
                   <div className="pe-4">
-                    <div className="text-sm font-medium text-soot">{item.label}</div>
-                    <div className="text-xs text-moss mt-0.5 font-normal">{item.desc}</div>
+                    <div className="text-sm font-medium text-soot">{translateMessage(item.label)}</div>
+                    <div className="text-xs text-moss mt-0.5 font-normal">{translateMessage(item.desc)}</div>
                   </div>
                   <button
                     type="button"
@@ -614,14 +616,14 @@ export default function OrgProfile() {
           {/* Security & Password */}
           <div className="bg-white rounded-3xl border border-soot/8 p-6 sm:p-8 shadow-sm">
             <h3 className="text-xl font-normal text-soot mb-1" style={{ fontFamily: 'DM Serif Display, serif' }}>
-              Corporate Security & Password
+              {t('org.op.corporateSecurityPassword')}
             </h3>
-            <p className="text-moss text-xs mb-6 font-normal">Update the administrative password for your organization account</p>
+            <p className="text-moss text-xs mb-6 font-normal">{t('org.op.updateTheAdministrativePasswordFor')}</p>
 
             <form onSubmit={handlePasswordChangeSubmit} className="space-y-4 max-w-lg">
               <div>
                 <label className="block text-xs font-medium text-soot mb-1.5">
-                  Current Administrator Password <span className="text-red-500">*</span>
+                  {t('org.op.currentAdministratorPassword')} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="password"
@@ -637,14 +639,14 @@ export default function OrgProfile() {
                 />
                 {passwordErrors.current && (
                   <p className="text-rose-600 text-xs mt-1 font-medium flex items-center gap-1">
-                    <span>*</span> {passwordErrors.current}
+                    <span>*</span> {translateMessage(passwordErrors.current)}
                   </p>
                 )}
               </div>
 
               <div>
                 <label className="block text-xs font-medium text-soot mb-1.5">
-                  New Administrator Password <span className="text-red-500">*</span>
+                  {t('org.op.newAdministratorPassword')} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="password"
@@ -660,14 +662,14 @@ export default function OrgProfile() {
                 />
                 {passwordErrors.new && (
                   <p className="text-rose-600 text-xs mt-1 font-medium flex items-center gap-1">
-                    <span>*</span> {passwordErrors.new}
+                    <span>*</span> {translateMessage(passwordErrors.new)}
                   </p>
                 )}
               </div>
 
               <div>
                 <label className="block text-xs font-medium text-soot mb-1.5">
-                  Confirm New Password <span className="text-red-500">*</span>
+                  {t('org.op.confirmNewPassword')} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="password"
@@ -683,7 +685,7 @@ export default function OrgProfile() {
                 />
                 {passwordErrors.confirm && (
                   <p className="text-rose-600 text-xs mt-1 font-medium flex items-center gap-1">
-                    <span>*</span> {passwordErrors.confirm}
+                    <span>*</span> {translateMessage(passwordErrors.confirm)}
                   </p>
                 )}
               </div>
@@ -694,7 +696,7 @@ export default function OrgProfile() {
                   className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#DDE6DF] text-soot hover:bg-[#D0DDD3] text-xs sm:text-sm font-medium transition-all shadow-xs border border-soot/8 cursor-pointer active:scale-98"
                 >
                   <Lock size={14} />
-                  <span>Update Password</span>
+                  <span>{t('org.op.updatePassword')}</span>
                 </button>
               </div>
             </form>
@@ -703,15 +705,15 @@ export default function OrgProfile() {
           {/* Corporate Workspace Access & Billing Policies */}
           <div className="bg-white rounded-3xl border border-soot/8 p-6 sm:p-8 shadow-sm">
             <h3 className="text-xl font-normal text-soot mb-1" style={{ fontFamily: 'DM Serif Display, serif' }}>
-              Corporate Workspace Policies
+              {t('org.op.corporateWorkspacePolicies')}
             </h3>
-            <p className="text-moss text-xs mb-6 font-normal">Manage permissions for team reservations and automated billing</p>
+            <p className="text-moss text-xs mb-6 font-normal">{t('org.op.managePermissionsForTeamReservations')}</p>
 
             <div className="space-y-4">
               <div className="flex items-center justify-between py-2">
                 <div>
-                  <div className="text-sm font-medium text-soot">Team Self-Booking Permission</div>
-                  <div className="text-xs text-moss font-normal">Allow rostered team members to book hot desks directly under the enterprise pass</div>
+                  <div className="text-sm font-medium text-soot">{t('org.op.teamSelfBookingPermission')}</div>
+                  <div className="text-xs text-moss font-normal">{t('org.op.allowRosteredTeamMembersTo')}</div>
                 </div>
                 <button
                   type="button"
@@ -730,8 +732,8 @@ export default function OrgProfile() {
 
               <div className="flex items-center justify-between py-2 border-t border-soot/6 pt-4">
                 <div>
-                  <div className="text-sm font-medium text-soot">Centralized Corporate Billing</div>
-                  <div className="text-xs text-moss font-normal">Automatically charge all team bookings to the primary organization invoice</div>
+                  <div className="text-sm font-medium text-soot">{t('org.op.centralizedCorporateBilling')}</div>
+                  <div className="text-xs text-moss font-normal">{t('org.op.automaticallyChargeAllTeamBookings')}</div>
                 </div>
                 <button
                   type="button"
@@ -753,10 +755,10 @@ export default function OrgProfile() {
           {/* Danger Zone */}
           <div className="bg-white rounded-3xl border border-red-200 p-6 sm:p-8 shadow-sm">
             <h3 className="text-xl font-normal text-red-600 mb-1" style={{ fontFamily: 'DM Serif Display, serif' }}>
-              Danger Zone
+              {t('org.op.dangerZone')}
             </h3>
             <p className="text-moss text-xs mb-6 font-normal">
-              Deleting your corporate organization account will immediately terminate all team passes and workspace bookings.
+              {t('org.op.deletingYourCorporateOrganizationAccount')}
             </p>
             <button
               type="button"
@@ -764,7 +766,7 @@ export default function OrgProfile() {
               className="btn-danger"
             >
               <AlertCircle size={15} />
-              <span>Delete Organization Account</span>
+              <span>{t('org.op.deleteOrganizationAccount')}</span>
             </button>
           </div>
         </div>
@@ -774,7 +776,7 @@ export default function OrgProfile() {
       <Modal
         open={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
-        title="Edit Organization Profile"
+        title={t('org.op.editOrganizationProfile')}
         size="lg"
       >
         <form onSubmit={handleSaveProfile} className="space-y-6">
@@ -791,9 +793,9 @@ export default function OrgProfile() {
 
             <div className="flex-1 min-w-0 text-center sm:text-start space-y-2.5">
               <div>
-                <div className="text-sm font-medium text-soot">Company Logo</div>
+                <div className="text-sm font-medium text-soot">{t('org.op.companyLogo')}</div>
                 <p className="text-xs text-moss font-normal mt-0.5">
-                  Upload your corporate brand logo or use the clean default avatar.
+                  {t('org.op.uploadYourCorporateBrandLogo')}
                 </p>
               </div>
 
@@ -813,7 +815,7 @@ export default function OrgProfile() {
                   className="h-10 px-5 rounded-full bg-[#DDE6DF] text-soot hover:bg-[#D0DDD3] text-xs sm:text-sm font-medium transition-all shadow-xs border border-soot/8 cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap shrink-0"
                 >
                   <Upload size={14} className="shrink-0" />
-                  <span>Upload Logo</span>
+                  <span>{t('org.op.uploadLogo')}</span>
                 </button>
 
                 {editAvatar && (
@@ -823,7 +825,7 @@ export default function OrgProfile() {
                     className="h-10 px-4 rounded-full border border-red-200 text-red-600 hover:bg-red-50 text-xs sm:text-sm font-medium transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0"
                   >
                     <Trash2 size={14} className="shrink-0" />
-                    <span>Remove</span>
+                    <span>{t('org.op.remove')}</span>
                   </button>
                 )}
               </div>
@@ -835,18 +837,18 @@ export default function OrgProfile() {
             {/* Organization Name */}
             <div>
               <label className="block text-xs font-medium text-soot mb-1.5">
-                Organization / Company Name <span className="text-red-500">*</span>
+                {t('org.op.organizationCompanyName')} <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={editOrgName}
                 onChange={e => setEditOrgName(e.target.value)}
-                placeholder="e.g. Saudi Tech Solutions"
+                placeholder={t('org.op.eGSaudiTechSolutions')}
                 className={`w-full px-4 py-3 rounded-2xl border ${
                   errors.orgName ? 'border-red-400 bg-red-50/20' : 'border-soot/12 bg-white'
                 } text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs font-normal`}
               />
-              {errors.orgName && <p className="text-red-500 text-xs mt-1 font-normal">{errors.orgName}</p>}
+              {errors.orgName && <p className="text-red-500 text-xs mt-1 font-normal">{translateMessage(errors.orgName)}</p>}
             </div>
 
             {/* Account Owner / Representative Name */}
@@ -858,24 +860,24 @@ export default function OrgProfile() {
                 type="text"
                 value={editOwnerName}
                 onChange={e => setEditOwnerName(e.target.value)}
-                placeholder="e.g. Mohammad Al-Zahrani"
+                placeholder={t('org.op.eGMohammadAlZahrani')}
                 className={`w-full px-4 py-3 rounded-2xl border ${
                   errors.ownerName ? 'border-red-400 bg-red-50/20' : 'border-soot/12 bg-white'
                 } text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs font-normal`}
               />
-              {errors.ownerName && <p className="text-red-500 text-xs mt-1 font-normal">{errors.ownerName}</p>}
+              {errors.ownerName && <p className="text-red-500 text-xs mt-1 font-normal">{translateMessage(errors.ownerName)}</p>}
             </div>
 
             {/* Industry */}
             <div>
               <label className="block text-xs font-medium text-soot mb-1.5">
-                Industry & Sector
+                {t('org.op.industrySector')}
               </label>
               <input
                 type="text"
                 value={editIndustry}
                 onChange={e => setEditIndustry(e.target.value)}
-                placeholder="e.g. Technology & Digital Solutions"
+                placeholder={t('org.op.eGTechnologyDigitalSolutions')}
                 className="w-full px-4 py-3 rounded-2xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs font-normal"
               />
             </div>
@@ -883,7 +885,7 @@ export default function OrgProfile() {
             {/* Registered Email (Disabled) */}
             <div>
               <label className="block text-xs font-medium text-soot mb-1.5">
-                Corporate Billing Email
+                {t('org.op.corporateBillingEmail')}
               </label>
               <input
                 type="email"
@@ -896,7 +898,7 @@ export default function OrgProfile() {
             {/* Phone Number */}
             <div>
               <label className="block text-xs font-medium text-soot mb-1.5">
-                Contact Phone Number
+                {t('org.op.contactPhoneNumber')}
               </label>
               <input
                 type="text"
@@ -910,7 +912,7 @@ export default function OrgProfile() {
             {/* CR Number */}
             <div>
               <label className="block text-xs font-medium text-soot mb-1.5">
-                Commercial Registration (CR)
+                {t('org.op.commercialRegistrationCr')}
               </label>
               <input
                 type="text"
@@ -923,13 +925,13 @@ export default function OrgProfile() {
                 placeholder="1010874921"
                 className={`w-full px-4 py-3 rounded-2xl border ${errors.crNumber ? 'border-red-500' : 'border-soot/12'} bg-white text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs font-normal`}
               />
-              {errors.crNumber && <p className="text-red-500 text-xs mt-1 font-medium">{errors.crNumber}</p>}
+              {errors.crNumber && <p className="text-red-500 text-xs mt-1 font-medium">{translateMessage(errors.crNumber)}</p>}
             </div>
 
             {/* Organization Size */}
             <div>
               <label className="block text-xs font-medium text-soot mb-1.5">
-                Team Size (Employees)
+                {t('org.op.teamSizeEmployees')}
               </label>
               <input
                 type="number"
@@ -944,7 +946,7 @@ export default function OrgProfile() {
             {/* HQ City */}
             <div>
               <label className="block text-xs font-medium text-soot mb-1.5">
-                Headquarters City
+                {t('org.op.headquartersCity')}
               </label>
               <input
                 type="text"
@@ -958,7 +960,7 @@ export default function OrgProfile() {
             {/* Official Website */}
             <div>
               <label className="block text-xs font-medium text-soot mb-1.5">
-                Official Website
+                {t('org.op.officialWebsite')}
               </label>
               <input
                 type="text"
@@ -972,13 +974,13 @@ export default function OrgProfile() {
             {/* Company Description */}
             <div className="sm:col-span-2">
               <label className="block text-xs font-medium text-soot mb-1.5">
-                Company Description & Overview
+                {t('org.op.companyDescriptionOverview')}
               </label>
               <textarea
                 value={editOrgDescription}
                 onChange={e => setEditOrgDescription(e.target.value)}
                 rows={3}
-                placeholder="Briefly describe your company's core operations and workspace requirements..."
+                placeholder={t('org.op.brieflyDescribeYourCompanyS')}
                 className="w-full px-4 py-3 rounded-2xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs resize-none font-normal"
               />
             </div>
@@ -991,14 +993,14 @@ export default function OrgProfile() {
               onClick={() => setIsEditModalOpen(false)}
               className="px-6 py-3 rounded-full border border-soot/15 text-soot text-xs sm:text-sm font-medium hover:bg-soot/5 transition-all bg-white cursor-pointer"
             >
-              Cancel
+              {t('org.op.cancel')}
             </button>
             <button
               type="submit"
               disabled={isSaving}
               className="px-7 py-3 rounded-full bg-[#DDE6DF] text-soot hover:bg-[#D0DDD3] text-xs sm:text-sm font-medium transition-all shadow-xs border border-soot/8 cursor-pointer disabled:opacity-50 active:scale-98"
             >
-              {isSaving ? 'Saving...' : 'Save Changes'}
+              {isSaving ? t('org.op.saving') : t('org.op.saveChanges')}
             </button>
           </div>
         </form>
@@ -1008,13 +1010,13 @@ export default function OrgProfile() {
       <Modal
         open={addEmpModal}
         onClose={() => setAddEmpModal(false)}
-        title="Add Team Member"
+        title={t('org.op.addTeamMember')}
         size="md"
       >
         <form onSubmit={handleAddEmployee} className="space-y-4">
           <div>
             <label className="block text-xs font-medium text-soot mb-1.5">
-              Full Name <span className="text-red-500">*</span>
+              {t('org.op.fullName')} <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -1023,21 +1025,21 @@ export default function OrgProfile() {
                 setNewEmp(p => ({ ...p, name: e.target.value }));
                 if (empErrors.name) setEmpErrors(p => ({ ...p, name: '' }));
               }}
-              placeholder="e.g. Sara Al-Ghamdi"
+              placeholder={t('org.op.eGSaraAlGhamdi')}
               className={`w-full px-4 py-2.5 rounded-2xl border ${
                 empErrors.name ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/20' : 'border-soot/12 bg-white'
               } text-soot text-sm outline-none focus:border-soot`}
             />
             {empErrors.name && (
               <p className="text-rose-600 text-xs mt-1 font-medium flex items-center gap-1">
-                <span>*</span> {empErrors.name}
+                <span>*</span> {translateMessage(empErrors.name)}
               </p>
             )}
           </div>
 
           <div>
             <label className="block text-xs font-medium text-soot mb-1.5">
-              Corporate Email <span className="text-red-500">*</span>
+              {t('org.op.corporateEmail')} <span className="text-red-500">*</span>
             </label>
             <input
               type="email"
@@ -1053,18 +1055,18 @@ export default function OrgProfile() {
             />
             {empErrors.email && (
               <p className="text-rose-600 text-xs mt-1 font-medium flex items-center gap-1">
-                <span>*</span> {empErrors.email}
+                <span>*</span> {translateMessage(empErrors.email)}
               </p>
             )}
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-soot mb-1.5">Department / Role</label>
+            <label className="block text-xs font-medium text-soot mb-1.5">{t('org.op.departmentRole')}</label>
             <input
               type="text"
               value={newEmp.department}
               onChange={e => setNewEmp(p => ({ ...p, department: e.target.value }))}
-              placeholder="e.g. Engineering, Design, Operations"
+              placeholder={t('org.op.eGEngineeringDesignOperations')}
               className="w-full px-4 py-2.5 rounded-2xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-soot"
             />
           </div>
@@ -1075,13 +1077,13 @@ export default function OrgProfile() {
               onClick={() => setAddEmpModal(false)}
               className="px-5 py-2.5 rounded-full border border-soot/15 text-soot text-xs font-medium hover:bg-soot/5 bg-white cursor-pointer"
             >
-              Cancel
+              {t('org.op.cancel')}
             </button>
             <button
               type="submit"
               className="px-6 py-2.5 rounded-full bg-[#DDE6DF] text-soot hover:bg-[#D0DDD3] text-xs font-medium shadow-xs border border-soot/8 cursor-pointer"
             >
-              Add Member
+              {t('org.op.addMember')}
             </button>
           </div>
         </form>

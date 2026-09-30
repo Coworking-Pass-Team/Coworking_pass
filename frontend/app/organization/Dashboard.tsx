@@ -121,7 +121,7 @@ export default function OrgDashboard() {
             {currentUser.orgName || t('dash.org.orgDashboardTitle')}
           </h1>
           <p className="text-moss text-sm mt-1">
-            Welcome, <span className="text-soot font-medium">{currentUser.name}</span> (HR Admin) · {currentUser.industry || 'Enterprise Solutions'} · {employees.length || currentUser.orgSize || 15} team members on pass
+            {t('dash.org.welcome')} <span className="text-soot font-medium">{currentUser.name}</span> {t('dash.org.hrAdmin')} · {currentUser.industry || t('dash.org.enterprise')} · {employees.length || currentUser.orgSize || 15} {t('dash.org.teamOnPass')}
           </p>
         </div>
 
@@ -405,14 +405,14 @@ export default function OrgDashboard() {
                     {/* حل المشكلة رقم 4 (الموضع الأول) */}
                     <img
                       src={space.images?.[0] || FALLBACK_SPACE_IMAGE}
-                      alt={space.name}
+                      alt={st.name(space)}
                       className="w-12 h-12 rounded-xl object-cover border border-soot/10 shrink-0 shadow-2xs group-hover:scale-105 transition-transform"
                     />
                     <div className="min-w-0">
-                      <h4 className="font-semibold text-soot text-sm truncate group-hover:text-emerald-900 transition-colors">{space.name}</h4>
+                      <h4 className="font-semibold text-soot text-sm truncate group-hover:text-emerald-900 transition-colors">{st.name(space)}</h4>
                       <div className="flex items-center gap-1.5 text-xs text-moss mt-0.5 font-medium">
                         <MapPin size={12} className="shrink-0" />
-                        <span>{space.city}</span>
+                        <span>{st.city(space)}</span>
                       </div>
                       <div className="flex items-center gap-1 text-xs text-moss mt-1 font-medium">
                         <Star size={12} className="fill-amber-400 text-amber-400" />
@@ -425,7 +425,7 @@ export default function OrgDashboard() {
                       const isHourly = isHourlyAllowed(space);
                       const targetPlan = isHourly ? 'hourly' : 'daily';
                       const planInfo = getEffectiveSpacePrice(currentUser, space, targetPlan);
-                      const unitLabel = isHourly ? '/hour' : '/day';
+                      const unitLabel = t(isHourly ? 'dash.org.perHour' : 'dash.org.perDay');
                       const displayPrice = isHourly
                         ? (space.pricing?.hourly ?? (space.pricing?.daily ? Math.round(space.pricing.daily / 4) : 150))
                         : (space.pricing?.daily ?? 0);
@@ -462,7 +462,7 @@ export default function OrgDashboard() {
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
           <div>
             <span className="text-xs font-semibold tracking-wider uppercase text-moss block mb-1">
-              Corporate Reservation & Discovery
+              {t('dash.org.corpDiscovery')}
             </span>
             <h2 className="text-2xl font-serif-display text-soot">{t('dash.org.bookForTeam')}</h2>
           </div>
@@ -525,7 +525,7 @@ export default function OrgDashboard() {
                   {/* حل المشكلة رقم 4 (الموضع الثاني) */}
                   <img
                     src={space.images?.[0] || FALLBACK_SPACE_IMAGE}
-                    alt={space.name}
+                    alt={st.name(space)}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-soot/70 via-transparent to-transparent" />
@@ -533,18 +533,18 @@ export default function OrgDashboard() {
                   {/* Category & Type Badges */}
                   <div className="absolute top-3 start-3 flex items-center gap-1.5 flex-wrap">
                     <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-white/95 text-soot backdrop-blur-md shadow-xs capitalize">
-                      {cat}
+                      {t(('categories.' + cat) as never)}
                     </span>
                     <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-soot/80 text-white backdrop-blur-md shadow-xs capitalize">
-                      {space.type.replace('-', ' ')}
+                      {st.typeLabel(space.type)}
                     </span>
                   </div>
 
                   <div className="absolute bottom-3 start-3 end-3 text-white">
-                    <h3 className="font-semibold text-base truncate font-serif-display">{space.name}</h3>
+                    <h3 className="font-semibold text-base truncate font-serif-display">{st.name(space)}</h3>
                     <div className="flex items-center gap-1 text-xs text-plaster/90 mt-0.5">
                       <MapPin size={11} className="text-eucalyptus shrink-0" />
-                      <span className="truncate">{space.city} • {space.address}</span>
+                      <span className="truncate">{st.city(space)} • {st.address(space)}</span>
                     </div>
                   </div>
                 </div>
@@ -552,13 +552,13 @@ export default function OrgDashboard() {
                 <div className="p-4 flex items-center justify-between gap-3 border-t border-soot/6">
                   <div>
                     <div className="text-xs text-moss">
-                      {isHourly ? 'Hourly Rate' : 'Daily Pass'}
+                      {t(isHourly ? 'dash.hourlyRate' : 'dash.dailyPass')}
                     </div>
                     <div className="font-bold text-soot text-sm">
                       {planInfo.isCovered ? (
                         <span className="text-emerald-800 font-semibold">{t('dash.org.includedInPlan')}</span>
                       ) : (
-                        <span>{t('common.sar')} {planInfo.originalPrice.toLocaleString()} {isHourly ? '/hour' : '/seat'}</span>
+                        <span>{t('common.sar')} {planInfo.originalPrice.toLocaleString()} {t(isHourly ? 'dash.org.perHour' : 'dash.org.perSeat')}</span>
                       )}
                     </div>
                   </div>

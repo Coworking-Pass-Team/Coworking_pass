@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/i18n';
 import { useState, useRef, useEffect } from 'react';
 import {
   Users,
@@ -40,6 +41,7 @@ const ROLE_BADGE: Record<CompanyRole, string> = {
 };
 
 export default function CompanyTeam() {
+  const { t, translateMessage } = useI18n();
   const { currentUser, updateCurrentUser, showToast } = useApp();
 
   const rawEmployees = currentUser?.employees || [];
@@ -140,12 +142,12 @@ export default function CompanyTeam() {
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <span className="text-xs font-semibold tracking-wider uppercase text-moss block mb-1">
-            Corporate Team & Access Management
+            {t('org.ct.corporateTeamAccessManagement')}
           </span>
           <h1 className="text-3xl sm:text-4xl text-soot font-normal font-serif-display">
-            Team Members
+            {t('org.ct.teamMembers')}
           </h1>
-          <p className="text-moss text-sm mt-1">Manage team roles, pass access, and enterprise employee seats.</p>
+          <p className="text-moss text-sm mt-1">{t('org.ct.manageTeamRolesPassAccess')}</p>
         </div>
 
         <button
@@ -154,7 +156,7 @@ export default function CompanyTeam() {
           className="btn-primary"
         >
           <Plus size={16} />
-          <span>Add member</span>
+          <span>{t('org.ct.addMember')}</span>
         </button>
       </div>
 
@@ -200,7 +202,7 @@ export default function CompanyTeam() {
               </div>
               <div>
                 <div className="text-3xl font-normal text-soot tracking-tight font-serif-display">{stat.count}</div>
-                <div className="text-xs font-medium text-moss mt-0.5">{stat.label}</div>
+                <div className="text-xs font-medium text-moss mt-0.5">{translateMessage(stat.label)}</div>
               </div>
             </div>
           </div>
@@ -215,7 +217,7 @@ export default function CompanyTeam() {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search team member by name, email, or department..."
+            placeholder={t('org.ct.searchTeamMemberByName')}
             className="w-full ps-10 pe-4 py-2.5 rounded-xl border border-soot/12 bg-plaster-dark/30 text-soot text-sm placeholder:text-moss/70 outline-none focus:border-eucalyptus focus:bg-plaster-surface transition-all"
           />
         </div>
@@ -228,7 +230,7 @@ export default function CompanyTeam() {
             className="w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/50 border border-soot/12 transition-all duration-200 text-start cursor-pointer focus:outline-none"
           >
             <span className="text-sm font-medium text-soot truncate">
-              {roleFilter === 'All' ? 'All Roles' : roleFilter}
+              {roleFilter === 'All' ? t('org.ct.allRoles') : translateMessage(roleFilter)}
             </span>
             <ChevronDown
               size={15}
@@ -257,7 +259,7 @@ export default function CompanyTeam() {
                           : 'text-soot hover:bg-plaster-dark/60'
                       }`}
                     >
-                      <span>{role === 'All' ? 'All Roles' : role}</span>
+                      <span>{translateMessage(role === 'All' ? 'All Roles' : role)}</span>
                       {isSelected && <Check size={14} className="text-eucalyptus" />}
                     </button>
                   );
@@ -271,17 +273,17 @@ export default function CompanyTeam() {
       {/* Admin-Matching 12-Column Table Layout */}
       <div className="bg-plaster-surface rounded-3xl border border-soot/10 overflow-hidden shadow-2xs relative z-10">
         <div className="hidden lg:grid grid-cols-12 gap-6 px-6 py-4 border-b border-soot/10 text-xs font-semibold uppercase tracking-wider text-moss bg-plaster-dark/40 items-center">
-          <div className="col-span-4">Team Member & Email</div>
-          <div className="col-span-3">Department</div>
-          <div className="col-span-3">Company Role</div>
-          <div className="col-span-1">Status</div>
-          <div className="col-span-1 text-end">Actions</div>
+          <div className="col-span-4">{t('org.ct.teamMemberEmail')}</div>
+          <div className="col-span-3">{t('org.ct.department')}</div>
+          <div className="col-span-3">{t('org.ct.companyRole')}</div>
+          <div className="col-span-1">{t('org.ct.status')}</div>
+          <div className="col-span-1 text-end">{t('org.ct.actions')}</div>
         </div>
 
         {filtered.length === 0 ? (
           <div className="py-16 text-center text-moss">
             <Users size={32} className="mx-auto mb-3 opacity-50" />
-            <p className="text-sm">No team members match your search criteria.</p>
+            <p className="text-sm">{t('org.ct.noTeamMembersMatchYour')}</p>
           </div>
         ) : (
           <div className="divide-y divide-soot/8">
@@ -303,13 +305,13 @@ export default function CompanyTeam() {
 
                 {/* Department */}
                 <div className="col-span-3 mt-2 lg:mt-0 text-sm font-medium text-soot truncate">
-                  {m.department || 'General Team'}
+                  {m.department ? translateMessage(m.department) : translateMessage('General Team')}
                 </div>
 
                 {/* Role Badge */}
                 <div className="col-span-3 mt-2 lg:mt-0">
                   <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider ${ROLE_BADGE[m.role]}`}>
-                    {m.role}
+                    {translateMessage(m.role)}
                   </span>
                 </div>
 
@@ -322,7 +324,7 @@ export default function CompanyTeam() {
                         : 'bg-amber-500/15 text-amber-800'
                     }`}
                   >
-                    {m.status}
+                    {translateMessage(m.status)}
                   </span>
                 </div>
 
@@ -332,7 +334,7 @@ export default function CompanyTeam() {
                     type="button"
                     onClick={() => setEditModal(m)}
                     className="p-2 rounded-xl text-moss hover:text-soot hover:bg-plaster-surface border border-transparent hover:border-soot/10 transition-all cursor-pointer"
-                    title="Edit Member"
+                    title={t('org.ct.editMember')}
                   >
                     <Pencil size={15} />
                   </button>
@@ -341,7 +343,7 @@ export default function CompanyTeam() {
                       type="button"
                       onClick={() => setDeleteModal(m)}
                       className="p-2 rounded-xl text-moss hover:text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-all cursor-pointer"
-                      title="Remove Member"
+                      title={t('org.ct.removeMember')}
                     >
                       <Trash2 size={15} />
                     </button>
@@ -357,57 +359,57 @@ export default function CompanyTeam() {
       <Modal
         open={addModal}
         onClose={() => setAddModal(false)}
-        title="Add Team Member"
+        title={t('org.ct.addTeamMember')}
         subtitle="Invite a new colleague to your corporate pass account."
         size="md"
         footer={
           <>
             <button type="button" onClick={() => setAddModal(false)} className="btn-secondary">
-              Cancel
+              {t('org.ct.cancel')}
             </button>
             <button type="button" onClick={handleAdd} className="btn-primary">
-              Send Invite
+              {t('org.ct.sendInvite')}
             </button>
           </>
         }
       >
         <div className="space-y-4 text-sm text-soot">
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">Full Name *</label>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">{t('org.ct.fullName')}</label>
             <input
               value={newMember.name}
               onChange={e => setNewMember(p => ({ ...p, name: e.target.value }))}
-              placeholder="e.g. Tariq Mansoor"
+              placeholder={t('org.ct.eGTariqMansoor')}
               className="w-full px-3.5 py-2.5 rounded-xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-eucalyptus"
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">Corporate Email *</label>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">{t('org.ct.corporateEmail')}</label>
             <input
               type="email"
               value={newMember.email}
               onChange={e => setNewMember(p => ({ ...p, email: e.target.value }))}
-              placeholder="name@company.com"
+              placeholder={t('org.ct.nameCompanyCom')}
               className="w-full px-3.5 py-2.5 rounded-xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-eucalyptus"
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">Department</label>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">{t('org.ct.department')}</label>
             <input
               value={newMember.department}
               onChange={e => setNewMember(p => ({ ...p, department: e.target.value }))}
-              placeholder="e.g. Engineering, Product, Sales"
+              placeholder={t('org.ct.eGEngineeringProductSales')}
               className="w-full px-3.5 py-2.5 rounded-xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-eucalyptus"
             />
           </div>
           <div className="relative" ref={addRoleRef}>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">Company Access Role</label>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">{t('org.ct.companyAccessRole')}</label>
             <button
               type="button"
               onClick={() => setAddRoleOpen(!addRoleOpen)}
               className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white border border-soot/12 text-soot text-sm font-medium text-start transition-all duration-200 cursor-pointer focus:outline-none"
             >
-              <span className="truncate">{newMember.role}</span>
+              <span className="truncate">{translateMessage(newMember.role)}</span>
               <ChevronDown
                 size={15}
                 className={`text-moss shrink-0 transition-transform duration-200 ${
@@ -435,7 +437,7 @@ export default function CompanyTeam() {
                             : 'text-soot hover:bg-plaster-dark/60'
                         }`}
                       >
-                        <span>{r}</span>
+                        <span>{translateMessage(r)}</span>
                         {isSelected && <Check size={14} className="text-eucalyptus" />}
                       </button>
                     );
@@ -452,22 +454,22 @@ export default function CompanyTeam() {
         <Modal
           open={!!editModal}
           onClose={() => setEditModal(null)}
-          title="Edit Team Member"
+          title={t('org.ct.editTeamMember')}
           size="md"
           footer={
             <>
               <button type="button" onClick={() => setEditModal(null)} className="btn-secondary">
-                Cancel
+                {t('org.ct.cancel')}
               </button>
               <button type="button" onClick={handleEditSave} className="btn-primary">
-                Save Changes
+                {t('org.ct.saveChanges')}
               </button>
             </>
           }
         >
           <div className="space-y-4 text-sm text-soot">
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">Full Name</label>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">{t('org.ct.fullName2')}</label>
               <input
                 value={editModal.name}
                 onChange={e => setEditModal(p => p ? { ...p, name: e.target.value } : null)}
@@ -475,7 +477,7 @@ export default function CompanyTeam() {
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">Department</label>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">{t('org.ct.department')}</label>
               <input
                 value={editModal.department}
                 onChange={e => setEditModal(p => p ? { ...p, department: e.target.value } : null)}
@@ -483,7 +485,7 @@ export default function CompanyTeam() {
               />
             </div>
             <div className="relative" ref={editRoleRef}>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">Company Role</label>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">{t('org.ct.companyRole')}</label>
               <button
                 type="button"
                 onClick={() => setEditRoleOpen(!editRoleOpen)}
@@ -517,7 +519,7 @@ export default function CompanyTeam() {
                               : 'text-soot hover:bg-plaster-dark/60'
                           }`}
                         >
-                          <span>{r}</span>
+                          <span>{translateMessage(r)}</span>
                           {isSelected && <Check size={14} className="text-eucalyptus" />}
                         </button>
                       );
@@ -535,24 +537,24 @@ export default function CompanyTeam() {
         <Modal
           open={!!deleteModal}
           onClose={() => setDeleteModal(null)}
-          title="Remove Team Member"
+          title={t('org.ct.removeTeamMember')}
           size="sm"
           footer={
             <>
               <button type="button" onClick={() => setDeleteModal(null)} className="btn-secondary">
-                Cancel
+                {t('org.ct.cancel')}
               </button>
               <button type="button" onClick={() => handleDelete(deleteModal)} className="btn-danger">
-                Remove Member
+                {t('org.ct.removeMember')}
               </button>
             </>
           }
         >
           <div className="text-sm text-soot space-y-2 py-2">
             <p>
-              Are you sure you want to remove <span className="font-semibold">{deleteModal.name}</span> from your team?
+              Are you sure you want to remove <span className="font-semibold">{deleteModal.name}</span> {t('org.ct.fromYourTeam')}
             </p>
-            <p className="text-xs text-moss">They will no longer have access to enterprise workspace passes.</p>
+            <p className="text-xs text-moss">{t('org.ct.theyWillNoLongerHave')}</p>
           </div>
         </Modal>
       )}

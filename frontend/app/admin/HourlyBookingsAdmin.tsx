@@ -36,7 +36,7 @@ import {
 import Modal from '@/components/ui/Modal';
 
 export default function HourlyBookingsAdmin() {
-  const { t } = useI18n();
+  const { t, translateMessage, lang } = useI18n();
   const { showToast, users, hourlyBookingsApi, fetchHourlyBookings, bookings: storeBookings, spaces } = useApp();
   const [bookings, setBookings] = useState<HourlyBookingItemApi[]>([]);
   const [sections, setSections] = useState<any[]>([]);
@@ -292,10 +292,10 @@ export default function HourlyBookingsAdmin() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <span className="text-[11px] font-bold tracking-wider text-moss uppercase block">
-                  Metrics Overview
+                  {t('admin.hb.metricsOverview')}
                 </span>
                 <h4 className="text-sm font-semibold text-soot mt-0.5">
-                  {st.label}
+                  {translateMessage(st.label)}
                 </h4>
               </div>
               <div className={`p-2.5 rounded-2xl border ${st.iconBg} shrink-0`}>
@@ -307,7 +307,7 @@ export default function HourlyBookingsAdmin() {
                 {st.count}
               </span>
               <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${st.badge}`}>
-                Prisma DB
+                {t('admin.hb.prismaDb')}
               </span>
             </div>
           </div>
@@ -319,13 +319,13 @@ export default function HourlyBookingsAdmin() {
         <div>
           <div className="flex items-center gap-2 text-moss text-xs font-semibold uppercase tracking-wider mb-2">
             <Sparkles size={14} className="text-emerald-700" />
-            <span>Hourly Bookings Management</span>
+            <span>{t('admin.hb.hourlyBookingsManagement')}</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-normal text-soot font-serif-display">
-            Hourly Bookings Table
+            {t('admin.hb.hourlyBookingsTable')}
           </h2>
           <p className="text-xs sm:text-sm text-moss mt-1 max-w-2xl leading-relaxed">
-            Monitor, create, and manage all hourly bookings for meeting rooms and theaters synced with PostgreSQL database.
+            {t('admin.hb.monitorCreateAndManageAll')}
           </p>
         </div>
 
@@ -334,10 +334,10 @@ export default function HourlyBookingsAdmin() {
             type="button"
             onClick={fetchBookings}
             className="p-3 rounded-2xl border border-soot/12 text-moss hover:text-soot hover:bg-soot/5 transition-all cursor-pointer flex items-center gap-2 text-xs font-medium"
-            title="Refresh database records"
+            title={t('admin.hb.refreshDatabaseRecords')}
           >
             <RefreshCw size={16} className={loading ? 'animate-spin text-emerald-700' : ''} />
-            <span className="hidden sm:inline">Refresh</span>
+            <span className="hidden sm:inline">{t('admin.hb.refresh')}</span>
           </button>
 
           <button
@@ -350,7 +350,7 @@ export default function HourlyBookingsAdmin() {
             className="bg-soot text-plaster hover:bg-soot/90 text-xs sm:text-sm font-semibold py-3 px-5 rounded-2xl flex items-center gap-2 shadow-xs transition-all cursor-pointer"
           >
             <Plus size={16} />
-            <span>Create Hourly Booking</span>
+            <span>{t('admin.hb.createHourlyBooking')}</span>
           </button>
         </div>
       </div>
@@ -377,7 +377,7 @@ export default function HourlyBookingsAdmin() {
                   : 'text-moss hover:text-soot hover:bg-soot/5'
               }`}
             >
-              {tab.label}
+              {translateMessage(tab.label)}
             </button>
           ))}
         </div>
@@ -391,7 +391,7 @@ export default function HourlyBookingsAdmin() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by ID, User, or Section..."
+            placeholder={t('admin.hb.searchByIdUserOr')}
             className="w-full ps-10 pe-4 py-2 text-xs rounded-xl bg-white border border-soot/12 text-soot placeholder:text-moss/60 focus:outline-none focus:ring-2 focus:ring-eucalyptus shadow-2xs"
           />
         </div>
@@ -401,13 +401,13 @@ export default function HourlyBookingsAdmin() {
       {loading && bookings.length === 0 ? (
         <div className="text-center py-20 bg-white rounded-3xl border border-soot/10 shadow-xs">
           <RefreshCw size={28} className="animate-spin text-emerald-700 mx-auto mb-3" />
-          <p className="text-sm text-soot font-medium">Loading hourly bookings from database...</p>
+          <p className="text-sm text-soot font-medium">{t('admin.hb.loadingHourlyBookingsFromDatabase')}</p>
         </div>
       ) : filteredBookings.length === 0 ? (
         <div className="text-center py-20 bg-white rounded-3xl border border-soot/10 shadow-xs">
           <Clock size={36} className="text-moss/40 mx-auto mb-3" />
-          <h3 className="text-lg font-semibold text-soot font-serif-display">No hourly bookings found</h3>
-          <p className="text-xs text-moss mt-1">Try adjusting your filter or create a new hourly booking.</p>
+          <h3 className="text-lg font-semibold text-soot font-serif-display">{t('admin.hb.noHourlyBookingsFound')}</h3>
+          <p className="text-xs text-moss mt-1">{t('admin.hb.tryAdjustingYourFilterOr')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -415,11 +415,11 @@ export default function HourlyBookingsAdmin() {
             const isCancelled = b.status === 'CANCELLED';
             const isExpired = b.status === 'EXPIRED';
             const formatBookingDateWithTime = (dateIso?: string) => {
-              if (!dateIso) return 'N/A';
+              if (!dateIso) return translateMessage('N/A');
               const d = new Date(dateIso);
               if (isNaN(d.getTime())) return dateIso;
               const datePart = d.toISOString().split('T')[0];
-              const timePart = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+              const timePart = d.toLocaleTimeString(lang === 'ar' ? 'ar-SA' : 'en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
               return `${datePart} · ${timePart}`;
             };
 
@@ -442,7 +442,7 @@ export default function HourlyBookingsAdmin() {
                         : 'bg-emerald-100 text-emerald-900 border border-emerald-200'
                     }`}>
                       {isCancelled ? <XCircle size={13} /> : <CheckCircle2 size={13} />}
-                      <span>{b.status || 'ACTIVE'}</span>
+                      <span>{translateMessage(b.status || 'ACTIVE')}</span>
                     </span>
 
                     <div className="flex items-center gap-1">
@@ -450,7 +450,7 @@ export default function HourlyBookingsAdmin() {
                         type="button"
                         onClick={() => handleOpenEdit(b)}
                         className="p-2 rounded-xl text-moss hover:text-soot hover:bg-soot/6 transition-colors cursor-pointer"
-                        title="Update status (PUT)"
+                        title={t('admin.hb.updateStatusPut')}
                       >
                         <Edit3 size={15} />
                       </button>
@@ -458,7 +458,7 @@ export default function HourlyBookingsAdmin() {
                         type="button"
                         onClick={() => handleDeleteBooking(b)}
                         className="p-2 rounded-xl text-moss hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                        title="Delete booking (DELETE)"
+                        title={t('admin.hb.deleteBookingDelete')}
                       >
                         <Trash2 size={15} />
                       </button>
@@ -508,34 +508,34 @@ export default function HourlyBookingsAdmin() {
                   {/* Booking Metadata Details */}
                   <div className="mt-4 pt-3 border-t border-soot/8 space-y-2 text-xs text-moss">
                     <div className="flex items-center justify-between">
-                      <span className="flex items-center gap-1.5"><Clock size={13} className="text-emerald-700" /> Booked Hours:</span>
+                      <span className="flex items-center gap-1.5"><Clock size={13} className="text-emerald-700" /> {t('admin.hb.bookedHours')}</span>
                       <span className="font-semibold text-emerald-900 bg-emerald-100/80 px-2 py-0.5 rounded-md text-[11px]">
-                        {b.durationDetails || `${b.hoursUsed || b.package?.hoursAmount || 1} Hours`}
+                        {b.durationDetails || translateMessage(`${b.hoursUsed || b.package?.hoursAmount || 1} Hours`)}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="flex items-center gap-1.5"><Layers size={13} className="text-emerald-700" /> Section:</span>
+                      <span className="flex items-center gap-1.5"><Layers size={13} className="text-emerald-700" /> {t('admin.hb.section')}</span>
                       <span className="font-mono text-[11px] text-soot bg-soot/5 px-2 py-0.5 rounded-md">
                         {b.section?.name || b.sectionId.slice(0, 8) + '...'}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="flex items-center gap-1.5"><Package size={13} className="text-emerald-700" /> Package:</span>
+                      <span className="flex items-center gap-1.5"><Package size={13} className="text-emerald-700" /> {t('admin.hb.package')}</span>
                       <span className="font-medium text-soot">
                         {b.package?.packageName ? `${b.package.packageName} (${b.package.hoursAmount}h)` : b.packageId.slice(0, 8) + '...'}
                       </span>
                     </div>
                     <div className="flex items-center justify-between pt-1 border-t border-soot/6">
-                      <span className="flex items-center gap-1.5"><Calendar size={13} /> Start Date:</span>
+                      <span className="flex items-center gap-1.5"><Calendar size={13} /> {t('admin.hb.startDate')}</span>
                       <span className="font-semibold text-soot">{startStr}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="flex items-center gap-1.5"><Calendar size={13} /> End Date:</span>
+                      <span className="flex items-center gap-1.5"><Calendar size={13} /> {t('admin.hb.endDate')}</span>
                       <span className="font-semibold text-soot">{endStr}</span>
                     </div>
                     {b.createdAt && (
                       <div className="flex items-center justify-between text-[11px] text-moss/70 pt-1 border-t border-soot/4">
-                        <span className="flex items-center gap-1.5"><Clock size={12} /> Booked At:</span>
+                        <span className="flex items-center gap-1.5"><Clock size={12} /> {t('admin.hb.bookedAt')}</span>
                         <span className="font-medium text-soot/80">{formatBookingDateWithTime(b.createdAt)}</span>
                       </div>
                     )}
@@ -544,9 +544,9 @@ export default function HourlyBookingsAdmin() {
 
                 {/* Footer DB Marker */}
                 <div className="mt-5 pt-3 border-t border-soot/6 flex items-center justify-between text-[11px] text-moss/70 font-mono">
-                  <span>ID: {b.id.slice(0, 10)}...</span>
+                  <span>{t('admin.hb.idLbl')} {b.id.slice(0, 10)}...</span>
                   <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 px-2.5 py-0.5 rounded-lg text-[10px] font-medium">
-                    Prisma DB
+                    {t('admin.hb.prismaDb')}
                   </span>
                 </div>
               </div>
@@ -559,14 +559,14 @@ export default function HourlyBookingsAdmin() {
       <Modal
         open={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        title="Create Hourly Booking"
+        title={t('admin.hb.createHourlyBooking')}
         subtitle="Create a new hourly booking record synced directly to the PostgreSQL database"
       >
         <form onSubmit={handleCreateBooking} className="space-y-4 pt-2 text-start">
           {formError && (
             <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl text-rose-700 text-xs font-medium flex items-center gap-2">
               <AlertCircle size={16} className="shrink-0" />
-              <span>{formError}</span>
+              <span>{translateMessage(formError)}</span>
             </div>
           )}
 
@@ -574,7 +574,7 @@ export default function HourlyBookingsAdmin() {
             <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-xs font-medium space-y-1.5">
               <div className="flex items-center gap-2 font-bold text-sm">
                 <CheckCircle2 size={18} className="text-emerald-700" />
-                <span>Hourly Booking Created Successfully!</span>
+                <span>{t('admin.hb.hourlyBookingCreatedSuccessfully')}</span>
               </div>
               <p className="font-mono text-xs bg-white p-2 rounded-xl border border-emerald-200 select-all">
                 Booking ID: {createdBookingId}
@@ -584,7 +584,7 @@ export default function HourlyBookingsAdmin() {
 
           <div>
             <label className="block text-xs font-semibold text-soot mb-1.5">
-              Select User (userId) <span className="text-rose-600">*</span>
+              {t('admin.hb.selectUserUserid')} <span className="text-rose-600">*</span>
             </label>
             <select
               value={userId}
@@ -602,7 +602,7 @@ export default function HourlyBookingsAdmin() {
 
           <div>
             <label className="block text-xs font-semibold text-soot mb-1.5">
-              Select Workspace Section (sectionId) <span className="text-rose-600">*</span>
+              {t('admin.hb.selectWorkspaceSectionSectionid')} <span className="text-rose-600">*</span>
             </label>
             {sections.length > 0 ? (
               <select
@@ -617,13 +617,13 @@ export default function HourlyBookingsAdmin() {
                 ))}
               </select>
             ) : (
-              <p className="text-xs text-rose-600">No workspace sections available</p>
+              <p className="text-xs text-rose-600">{t('admin.hb.noWorkspaceSectionsAvailable')}</p>
             )}
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-soot mb-1.5">
-              Select Package (packageId) <span className="text-rose-600">*</span>
+              {t('admin.hb.selectPackagePackageid')} <span className="text-rose-600">*</span>
             </label>
             {packages.length > 0 ? (
               <select
@@ -638,14 +638,14 @@ export default function HourlyBookingsAdmin() {
                 ))}
               </select>
             ) : (
-              <p className="text-xs text-rose-600">No hourly packages available</p>
+              <p className="text-xs text-rose-600">{t('admin.hb.noHourlyPackagesAvailable')}</p>
             )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-soot mb-1.5">
-                Start Date <span className="text-rose-600">*</span>
+                {t('admin.hb.startDate2')} <span className="text-rose-600">*</span>
               </label>
               <input
                 type="date"
@@ -657,7 +657,7 @@ export default function HourlyBookingsAdmin() {
 
             <div>
               <label className="block text-xs font-semibold text-soot mb-1.5">
-                End Date <span className="text-rose-600">*</span>
+                {t('admin.hb.endDate2')} <span className="text-rose-600">*</span>
               </label>
               <input
                 type="date"
@@ -670,7 +670,7 @@ export default function HourlyBookingsAdmin() {
 
           <div>
             <label className="block text-xs font-semibold text-soot mb-1.5">
-              Initial Status
+              {t('admin.hb.initialStatus')}
             </label>
             <select
               value={status}
@@ -689,7 +689,7 @@ export default function HourlyBookingsAdmin() {
               onClick={() => setIsCreateModalOpen(false)}
               className="px-4 py-2.5 rounded-xl border border-soot/15 text-moss text-xs font-semibold hover:bg-soot/5 transition-colors cursor-pointer"
             >
-              Cancel
+              {t('admin.hb.cancel')}
             </button>
             <button
               type="submit"
@@ -706,20 +706,20 @@ export default function HourlyBookingsAdmin() {
       <Modal
         open={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
-        title="Update Booking Status"
+        title={t('admin.hb.updateBookingStatus')}
         subtitle={`Update booking status for ID (${editingBookingId?.slice(0, 10)}...) in database`}
       >
         <form onSubmit={handleUpdateBooking} className="space-y-4 pt-2 text-start">
           {editFormError && (
             <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl text-rose-700 text-xs font-medium flex items-center gap-2">
               <AlertCircle size={16} className="shrink-0" />
-              <span>{editFormError}</span>
+              <span>{translateMessage(editFormError)}</span>
             </div>
           )}
 
           <div>
             <label className="block text-xs font-semibold text-soot mb-2">
-              Select New Booking Status:
+              {t('admin.hb.selectNewBookingStatus')}
             </label>
             <div className="space-y-2">
               {(
@@ -746,8 +746,8 @@ export default function HourlyBookingsAdmin() {
                     className="mt-0.5 text-emerald-800 focus:ring-eucalyptus"
                   />
                   <div>
-                    <div className="text-xs font-bold text-soot">{opt.label}</div>
-                    <div className="text-[11px] text-moss/80">{opt.desc}</div>
+                    <div className="text-xs font-bold text-soot">{translateMessage(opt.label)}</div>
+                    <div className="text-[11px] text-moss/80">{translateMessage(opt.desc)}</div>
                   </div>
                 </label>
               ))}
@@ -760,7 +760,7 @@ export default function HourlyBookingsAdmin() {
               onClick={() => setIsEditModalOpen(false)}
               className="px-4 py-2.5 rounded-xl border border-soot/15 text-moss text-xs font-semibold hover:bg-soot/5 transition-colors cursor-pointer"
             >
-              Cancel
+              {t('admin.hb.cancel')}
             </button>
             <button
               type="submit"

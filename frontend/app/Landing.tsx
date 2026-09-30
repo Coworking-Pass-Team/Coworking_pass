@@ -1,6 +1,7 @@
 'use client';
 
 import { useI18n } from '@/i18n';
+import { useSpaceText } from '@/i18n/space-text';
 import { useState, useRef, useEffect } from 'react';
 import { ArrowRight, MapPin, Star, Users, Zap, Headphones, Shield, ChevronDown, Quote, Check, Building2, Presentation, Clapperboard } from 'lucide-react';
 import { useApp } from '@/app/store';
@@ -16,6 +17,7 @@ const cities = ['All Cities', ...SAUDI_CITIES];
 
 export default function Landing() {
   const { t } = useI18n();
+  const sx = useSpaceText();
   const { navigate, spaces, currentUser } = useApp();
   const [searchCity, setSearchCity] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -51,7 +53,7 @@ export default function Landing() {
         <div className="absolute inset-0">
           <img
             src="/landing-hero.jpg"
-            alt="Modern coworking space"
+            alt={t('landing.alt.hero')}
             className="w-full h-full object-cover object-center saturate-110"
             fetchPriority="high"
           />
@@ -66,12 +68,12 @@ export default function Landing() {
           </div>
 
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-normal text-plaster leading-[1.15] mb-6 tracking-tight drop-shadow-md text-center font-serif-display">
-            Your Perfect Workspace,<br />
-            <span className="text-eucalyptus italic font-serif">Anywhere in the Kingdom.</span>
+            {t('landing.heroLine1')}<br />
+            <span className="text-eucalyptus italic font-serif">{t('landing.heroLine2')}</span>
           </h1>
 
           <p className="text-plaster/95 text-base sm:text-lg leading-relaxed mb-8 max-w-2xl font-normal text-center mx-auto drop-shadow-sm">
-            Instantly access flexible, fully equipped coworking spaces in Riyadh, Jeddah, Dammam, and beyond. Book by the day, month, or year.
+            {t('landing.heroBody')}
           </p>
 
           {/* Clean Integrated Search Bar */}
@@ -117,7 +119,7 @@ export default function Landing() {
                         >
                           <div className="flex items-center gap-2.5">
                             <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-eucalyptus' : 'bg-transparent'}`} />
-                            <span>{city}</span>
+                            <span>{city === 'All Cities' ? t('landing.allCities') : sx.cityName(city)}</span>
                           </div>
                           {isSelected && <Check size={14} className="text-eucalyptus" />}
                         </button>
@@ -133,7 +135,7 @@ export default function Landing() {
               variant="primary"
               className="w-full sm:w-auto px-6 py-2.5 font-semibold text-sm shrink-0 bg-soot text-plaster hover:bg-moss focus-visible:ring-2 focus-visible:ring-eucalyptus transition-colors duration-200 shadow-md active:scale-[0.98] cursor-pointer rounded-xl"
             >
-              Find Spaces
+              {t('landing.findSpaces')}
               <ArrowRight size={16} />
             </Button>
           </div>
@@ -142,15 +144,15 @@ export default function Landing() {
           <div className="relative z-10 flex flex-wrap items-center justify-center gap-3 sm:gap-4 mt-10">
             <div className="bg-soot/80 backdrop-blur-md border border-plaster/20 px-5 py-2.5 rounded-full text-plaster text-xs sm:text-sm font-semibold flex items-center gap-2.5 shadow-lg">
               <Star size={16} fill="currentColor" className="text-eucalyptus" />
-              <span>4.8 Avg Rating</span>
+              <span>{t('landing.avgRating')}</span>
             </div>
             <div className="bg-soot/80 backdrop-blur-md border border-plaster/20 px-5 py-2.5 rounded-full text-plaster text-xs sm:text-sm font-semibold flex items-center gap-2.5 shadow-lg">
               <Users size={16} className="text-eucalyptus" />
-              <span>2,400+ Active Members</span>
+              <span>{t('landing.activeMembers')}</span>
             </div>
             <div className="bg-soot/80 backdrop-blur-md border border-plaster/20 px-5 py-2.5 rounded-full text-plaster text-xs sm:text-sm font-semibold flex items-center gap-2.5 shadow-lg">
               <MapPin size={16} className="text-eucalyptus" />
-              <span>Verified Workspaces</span>
+              <span>{t('landing.verifiedWorkspaces')}</span>
             </div>
           </div>
         </div>
@@ -163,12 +165,12 @@ export default function Landing() {
       {/* Explore by Space Category Section */}
       <section className="py-16 max-w-6xl mx-auto px-4 sm:px-6 w-full">
         <div className="text-center max-w-2xl mx-auto mb-10">
-          <p className="text-moss text-xs font-semibold uppercase tracking-wider mb-2">Space Categories</p>
+          <p className="text-moss text-xs font-semibold uppercase tracking-wider mb-2">{t('landing.categoriesEyebrow')}</p>
           <h2 className="text-3xl sm:text-4xl text-soot font-normal font-serif-display">
-            Find the Right Space for Every Need
+            {t('landing.categoriesTitle')}
           </h2>
           <p className="text-moss text-sm mt-2">
-            Explore dedicated work environments tailored for individuals, teams, presentations, and events.
+            {t('landing.categoriesBody')}
           </p>
         </div>
 
@@ -178,24 +180,24 @@ export default function Landing() {
             type="button"
             onClick={() => navigate('browse', { category: 'office' })}
             className="w-full text-start p-6 rounded-3xl bg-plaster-surface border border-soot/12 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-between focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus"
-            aria-label={`Browse Offices (${officeCount} available)`}
+            aria-label={t('landing.categoryAria', { title: t('landing.category.office.title'), count: officeCount })}
           >
             <div>
               <div className="w-12 h-12 rounded-2xl bg-soot text-plaster flex items-center justify-center mb-5 shadow-xs group-hover:bg-moss transition-colors">
                 <Building2 size={24} />
               </div>
               <div className="flex items-center justify-between mb-1.5">
-                <h3 className="text-xl font-semibold text-soot font-serif-display">Offices</h3>
+                <h3 className="text-xl font-semibold text-soot font-serif-display">{t('landing.category.office.title')}</h3>
                 <span className="text-xs font-bold text-moss bg-plaster-dark/60 px-2.5 py-0.5 rounded-full">
-                  {officeCount} Available
+                  {t('landing.categoryAvailable', { count: officeCount })}
                 </span>
               </div>
               <p className="text-xs text-moss leading-relaxed mb-4">
-                Hot desks, shared desks, dedicated workstations, and private team suites. Available for daily, monthly, and annual bookings.
+                {t('landing.category.office.desc')}
               </p>
             </div>
             <div className="flex items-center gap-1.5 text-xs font-semibold text-soot group-hover:text-emerald-900 transition-colors pt-3 border-t border-soot/8">
-              <span>Browse Offices</span>
+              <span>{t('landing.categoryBrowse', { title: t('landing.category.office.title') })}</span>
               <ArrowRight size={14} className="group-hover:translate-x-1 rtl:group-hover:-translate-x-1 transition-transform" />
             </div>
           </button>
@@ -205,24 +207,24 @@ export default function Landing() {
             type="button"
             onClick={() => navigate('browse', { category: 'hall' })}
             className="w-full text-start p-6 rounded-3xl bg-plaster-surface border border-soot/12 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-between focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus"
-            aria-label={`Browse Halls (${hallCount} available)`}
+            aria-label={t('landing.categoryAria', { title: t('landing.category.hall.title'), count: hallCount })}
           >
             <div>
               <div className="w-12 h-12 rounded-2xl bg-[#E5ECE9] text-soot border border-eucalyptus/40 flex items-center justify-center mb-5 shadow-xs group-hover:bg-eucalyptus transition-colors">
                 <Presentation size={24} className="text-moss" />
               </div>
               <div className="flex items-center justify-between mb-1.5">
-                <h3 className="text-xl font-semibold text-soot font-serif-display">Halls</h3>
+                <h3 className="text-xl font-semibold text-soot font-serif-display">{t('landing.category.hall.title')}</h3>
                 <span className="text-xs font-bold text-moss bg-plaster-dark/60 px-2.5 py-0.5 rounded-full">
-                  {hallCount} Available
+                  {t('landing.categoryAvailable', { count: hallCount })}
                 </span>
               </div>
               <p className="text-xs text-moss leading-relaxed mb-4">
-                Meeting halls, interactive training halls, workshop spaces, and multi-purpose event halls with flexible hourly scheduling.
+                {t('landing.category.hall.desc')}
               </p>
             </div>
             <div className="flex items-center gap-1.5 text-xs font-semibold text-soot group-hover:text-emerald-900 transition-colors pt-3 border-t border-soot/8">
-              <span>Browse Halls</span>
+              <span>{t('landing.categoryBrowse', { title: t('landing.category.hall.title') })}</span>
               <ArrowRight size={14} className="group-hover:translate-x-1 rtl:group-hover:-translate-x-1 transition-transform" />
             </div>
           </button>
@@ -232,24 +234,24 @@ export default function Landing() {
             type="button"
             onClick={() => navigate('browse', { category: 'theater' })}
             className="w-full text-start p-6 rounded-3xl bg-plaster-surface border border-soot/12 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer group flex flex-col justify-between focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus"
-            aria-label={`Browse Theaters (${theaterCount} available)`}
+            aria-label={t('landing.categoryAria', { title: t('landing.category.theater.title'), count: theaterCount })}
           >
             <div>
               <div className="w-12 h-12 rounded-2xl bg-soot/10 text-soot flex items-center justify-center mb-5 shadow-xs group-hover:bg-soot group-hover:text-plaster transition-colors">
                 <Clapperboard size={24} />
               </div>
               <div className="flex items-center justify-between mb-1.5">
-                <h3 className="text-xl font-semibold text-soot font-serif-display">Theaters</h3>
+                <h3 className="text-xl font-semibold text-soot font-serif-display">{t('landing.category.theater.title')}</h3>
                 <span className="text-xs font-bold text-moss bg-plaster-dark/60 px-2.5 py-0.5 rounded-full">
-                  {theaterCount} Available
+                  {t('landing.categoryAvailable', { count: theaterCount })}
                 </span>
               </div>
               <p className="text-xs text-moss leading-relaxed mb-4">
-                Auditoriums, cinema-grade screening halls, and tiered conference & performance theaters equipped with laser projection and stage lighting.
+                {t('landing.category.theater.desc')}
               </p>
             </div>
             <div className="flex items-center gap-1.5 text-xs font-semibold text-soot group-hover:text-emerald-900 transition-colors pt-3 border-t border-soot/8">
-              <span>Browse Theaters</span>
+              <span>{t('landing.categoryBrowse', { title: t('landing.category.theater.title') })}</span>
               <ArrowRight size={14} className="group-hover:translate-x-1 rtl:group-hover:-translate-x-1 transition-transform" />
             </div>
           </button>
@@ -260,14 +262,14 @@ export default function Landing() {
       <section className="py-12 max-w-6xl mx-auto px-4 sm:px-6 w-full">
         <div className="flex items-end justify-between mb-10">
           <div>
-            <p className="text-moss text-xs font-semibold uppercase tracking-wider mb-2">Featured Workspaces</p>
-            <h2 className="text-4xl sm:text-5xl text-soot font-normal font-serif-display">Popular spaces</h2>
+            <p className="text-moss text-xs font-semibold uppercase tracking-wider mb-2">{t('landing.featuredEyebrow')}</p>
+            <h2 className="text-4xl sm:text-5xl text-soot font-normal font-serif-display">{t('landing.featuredTitle')}</h2>
           </div>
           <button
             onClick={() => navigate('browse')}
             className="hidden sm:flex items-center gap-2 text-sm font-medium text-soot hover:text-moss focus-visible:ring-2 focus-visible:ring-eucalyptus rounded-lg px-2 py-1 transition-colors duration-200 cursor-pointer"
           >
-            View all <ArrowRight size={15} />
+            {t('landing.viewAll')} <ArrowRight size={15} />
           </button>
         </div>
 
@@ -278,24 +280,24 @@ export default function Landing() {
               type="button"
               onClick={() => navigate('space-details', { spaceId: space.id })}
               className="w-full text-start group cursor-pointer bg-plaster-dark/40 hover:bg-plaster-dark/80 rounded-3xl border border-soot/12 overflow-hidden transition-colors duration-200 active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus"
-              aria-label={`View space details for ${space.name}`}
+              aria-label={t('landing.viewDetails', { name: sx.name(space), city: sx.city(space) })}
             >
               <div className="relative h-56 overflow-hidden">
                 {/* حل المشكلة FE-07: حماية الصور بالـ Optional Chaining وصورة بديلة */}
                 <img
                   src={space.images?.[0] || FALLBACK_SPACE_IMAGE}
-                  alt={space.name || 'Workspace'}
+                  alt={sx.name(space)}
                   loading="lazy"
                   decoding="async"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-soot/70 via-soot/20 to-transparent" />
                 <div className="absolute bottom-4 start-4 end-4">
-                  <div className="text-white font-semibold text-lg leading-snug font-serif-display">{space.name}</div>
+                  <div className="text-white font-semibold text-lg leading-snug font-serif-display">{sx.name(space)}</div>
                   {/* حل المشكلة FE-08: استبدال الرمز المشوه بنقطة فاصلة سليمة */}
                   <div className="flex items-center gap-1.5 text-plaster/90 text-xs font-medium mt-1">
                     <MapPin size={13} className="text-eucalyptus" />
-                    <span>{space.city} • {space.address}</span>
+                    <span>{sx.city(space)} • {sx.address(space)}</span>
                   </div>
                 </div>
                 <div className="absolute top-4 end-4 bg-plaster-surface/95 backdrop-blur-md rounded-2xl px-3 py-1.5 text-center border border-soot/12 shadow-xs">
@@ -305,7 +307,7 @@ export default function Landing() {
                       return (
                         <div className="flex items-center gap-1 text-soot font-bold text-xs">
                           <Check size={12} className="text-moss shrink-0" />
-                          <span>Included</span>
+                          <span>{t('landing.included')}</span>
                         </div>
                       );
                     }
@@ -320,9 +322,9 @@ export default function Landing() {
                     return (
                       <>
                         <div className="text-soot font-bold text-sm">
-                          {space.pricing?.daily ? `${t('common.sar')} ${space.pricing.daily}` : 'Contact for price'}
+                          {space.pricing?.daily ? `${t('common.sar')} ${space.pricing.daily}` : t('landing.contactForPrice')}
                         </div>
-                        <div className="text-moss text-[10px] font-medium">/ day</div>
+                        <div className="text-moss text-[10px] font-medium">{t('landing.perDay')}</div>
                       </>
                     );
                   })()}
@@ -333,10 +335,10 @@ export default function Landing() {
                 <div className="flex items-center gap-1.5 text-sm text-soot font-semibold">
                   <Star size={14} fill="currentColor" className="text-eucalyptus" />
                   <span>{space.rating}</span>
-                  <span className="text-moss font-normal text-xs">({space.reviewCount} reviews)</span>
+                  <span className="text-moss font-normal text-xs">({t('landing.reviewsCount', { count: space.reviewCount ?? 0 })})</span>
                 </div>
                 <Badge variant={space.availableCapacity === 0 ? 'danger' : space.availableCapacity <= 5 ? 'warning' : 'eucalyptus'}>
-                  {space.availableCapacity === 0 ? 'Fully Booked' : space.availableCapacity <= 5 ? 'Almost Full' : 'Available'}
+                  {space.availableCapacity === 0 ? t('landing.fullyBooked') : space.availableCapacity <= 5 ? t('landing.almostFull') : t('space.available')}
                 </Badge>
               </div>
             </button>
@@ -349,7 +351,7 @@ export default function Landing() {
             variant="secondary"
             className="px-6 py-2.5 text-sm font-medium"
           >
-            View all spaces
+            {t('landing.viewAllSpaces')}
           </Button>
         </div>
       </section>
@@ -360,13 +362,13 @@ export default function Landing() {
           <div className="text-center max-w-2xl mx-auto mb-16">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-plaster-surface border border-soot/10 text-moss text-xs font-semibold mb-3 shadow-xs">
               <Zap size={13} className="text-eucalyptus shrink-0" />
-              <span>Seamless Experience</span>
+              <span>{t('landing.howEyebrow')}</span>
             </div>
             <h2 className="text-4xl sm:text-5xl text-soot font-normal font-serif-display tracking-tight mb-4">
-              How it works
+              {t('landing.howTitle')}
             </h2>
             <p className="text-moss text-sm sm:text-base leading-relaxed">
-              Get instant access to top-tier coworking spaces across the Kingdom in three simple steps.
+              {t('landing.howBody')}
             </p>
           </div>
 
@@ -377,7 +379,7 @@ export default function Landing() {
                 <div className="relative h-48 rounded-2xl overflow-hidden mb-6 bg-soot/5 border border-soot/8">
                   <img
                     src="https://images.unsplash.com/photo-1497366216548-37526070297c?w=600&auto=format&fit=crop&q=80"
-                    alt="Browse spaces"
+                    alt={t('landing.browseSpaces')}
                     loading="lazy"
                     decoding="async"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
@@ -388,7 +390,7 @@ export default function Landing() {
                       <MapPin size={13} className="text-moss shrink-0" />
                       <span className="text-[11px] font-semibold text-soot">Riyadh &bull; Digital City</span>
                     </div>
-                    <span className="text-[10px] font-bold text-eucalyptus uppercase bg-soot/90 px-2 py-0.5 rounded-md">8+ Spaces</span>
+                    <span className="text-[10px] font-bold text-eucalyptus uppercase bg-soot/90 px-2 py-0.5 rounded-md">{t('landing.step1.count')}</span>
                   </div>
                 </div>
 
@@ -397,11 +399,11 @@ export default function Landing() {
                     1
                   </span>
                   <h3 className="text-xl font-semibold text-soot font-serif-display">
-                    Browse & Discover
+                    {t('landing.step1.title')}
                   </h3>
                 </div>
                 <p className="text-moss text-xs sm:text-sm leading-relaxed mt-2">
-                  Explore curated, high-speed verified workspaces across Saudi Arabia filtered by your exact needs.
+                  {t('landing.step1.body')}
                 </p>
               </div>
             </div>
@@ -412,7 +414,7 @@ export default function Landing() {
                 <div className="relative h-48 rounded-2xl overflow-hidden mb-6 bg-soot/5 border border-soot/8">
                   <img
                     src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=600&auto=format&fit=crop&q=80"
-                    alt="Choose your plan"
+                    alt={t('landing.alt.plan')}
                     loading="lazy"
                     decoding="async"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
@@ -421,9 +423,9 @@ export default function Landing() {
                   <div className="absolute bottom-3 start-3 end-3 bg-plaster-surface/95 backdrop-blur-md px-3 py-1.5 rounded-xl border border-soot/10 flex items-center justify-between shadow-md">
                     <div className="flex items-center gap-2">
                       <Zap size={13} className="text-moss shrink-0" />
-                      <span className="text-[11px] font-semibold text-soot">Flexible Passes</span>
+                      <span className="text-[11px] font-semibold text-soot">{t('landing.step2.place')}</span>
                     </div>
-                    <span className="text-[10px] font-bold text-soot bg-eucalyptus/30 border border-soot/10 px-2 py-0.5 rounded-md">Day / Monthly</span>
+                    <span className="text-[10px] font-bold text-soot bg-eucalyptus/30 border border-soot/10 px-2 py-0.5 rounded-md">{t('landing.step2.count')}</span>
                   </div>
                 </div>
 
@@ -432,11 +434,11 @@ export default function Landing() {
                     2
                   </span>
                   <h3 className="text-xl font-semibold text-soot font-serif-display">
-                    Choose Your Plan
+                    {t('landing.step2.title')}
                   </h3>
                 </div>
                 <p className="text-moss text-xs sm:text-sm leading-relaxed mt-2">
-                  Select a flexible daily pass or recurring monthly membership with zero lock-in and seamless upgrades.
+                  {t('landing.step2.body')}
                 </p>
               </div>
             </div>
@@ -447,7 +449,7 @@ export default function Landing() {
                 <div className="relative h-48 rounded-2xl overflow-hidden mb-6 bg-soot/5 border border-soot/8">
                   <img
                     src="https://images.unsplash.com/photo-1497215728101-856f4ea42174?w=600&auto=format&fit=crop&q=80"
-                    alt="Instant workspace access"
+                    alt={t('landing.alt.access')}
                     loading="lazy"
                     decoding="async"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
@@ -456,9 +458,9 @@ export default function Landing() {
                   <div className="absolute bottom-3 start-3 end-3 bg-plaster-surface/95 backdrop-blur-md px-3 py-1.5 rounded-xl border border-soot/10 flex items-center justify-between shadow-md">
                     <div className="flex items-center gap-2">
                       <Check size={13} className="text-eucalyptus shrink-0 stroke-[3]" />
-                      <span className="text-[11px] font-semibold text-soot">Instant Check-in</span>
+                      <span className="text-[11px] font-semibold text-soot">{t('landing.step3.place')}</span>
                     </div>
-                    <span className="text-[10px] font-mono font-bold text-plaster bg-soot px-2 py-0.5 rounded-md">Pass Ready</span>
+                    <span className="text-[10px] font-mono font-bold text-plaster bg-soot px-2 py-0.5 rounded-md">{t('landing.step3.count')}</span>
                   </div>
                 </div>
 
@@ -467,11 +469,11 @@ export default function Landing() {
                     3
                   </span>
                   <h3 className="text-xl font-semibold text-soot font-serif-display">
-                    Book & Access
+                    {t('landing.step3.title')}
                   </h3>
                 </div>
                 <p className="text-moss text-xs sm:text-sm leading-relaxed mt-2">
-                  Confirm instantly, receive digital access passes, and work productively right away.
+                  {t('landing.step3.body')}
                 </p>
               </div>
             </div>
@@ -484,10 +486,10 @@ export default function Landing() {
         <div className="max-w-3xl mb-12">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-soot/5 border border-soot/10 text-moss text-xs font-semibold mb-4 shadow-xs">
             <Shield size={13} className="text-moss shrink-0" />
-            <span>Enterprise Grade</span>
+            <span>{t('landing.whyBadge')}</span>
           </div>
           <h2 className="text-4xl sm:text-5xl text-soot font-normal font-serif-display tracking-tight leading-[1.15] mb-4">
-            Built for the modern <span className="text-moss italic font-serif">professional.</span>
+            {t('landing.whyTitle1')} <span className="text-moss italic font-serif">{t('landing.whyTitle2')}</span>
           </h2>
           <p className="text-moss text-sm sm:text-base leading-relaxed">
             Everything you need to stay productive, flexible, and connected across Saudi Arabia&apos;s fastest-growing workspace network.
@@ -499,22 +501,22 @@ export default function Landing() {
             {[
               {
                 icon: Zap,
-                title: 'Instant 2-Minute Booking',
-                desc: 'Reserve on demand with real-time seat availability and zero waiting times.',
+                title: t('landing.feature.instant.title'),
+                desc: t('landing.feature.instant.desc'),
                 bg: 'bg-eucalyptus/25',
                 iconColor: 'text-soot',
               },
               {
                 icon: Shield,
-                title: 'Secure & Verified',
-                desc: 'Every space is personally vetted for ultra-fast Wi-Fi, ergonomics, and quiet zones.',
+                title: t('landing.feature.secure.title'),
+                desc: t('landing.feature.secure.desc'),
                 bg: 'bg-mist-light',
                 iconColor: 'text-moss',
               },
               {
                 icon: Headphones,
-                title: 'Dedicated Support',
-                desc: '24/7 dedicated assistance for your team bookings, modifications, and billing.',
+                title: t('landing.feature.support.title'),
+                desc: t('landing.feature.support.desc'),
                 bg: 'bg-eucalyptus/25',
                 iconColor: 'text-soot',
               },
@@ -541,7 +543,7 @@ export default function Landing() {
           <div className="relative rounded-3xl overflow-hidden border border-soot/12 shadow-sm min-h-[360px] h-full flex flex-col justify-end">
             <img
               src="https://images.unsplash.com/photo-1556761175-b413da4baf72?w=1000&auto=format&fit=crop&q=80"
-              alt="Coworking professionals collaborating"
+              alt={t('landing.alt.team')}
               loading="lazy"
               decoding="async"
               className="absolute inset-0 w-full h-full object-cover"
@@ -554,12 +556,12 @@ export default function Landing() {
                   99%
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-soot">Member Satisfaction</div>
-                  <div className="text-[10px] text-moss">Over 2,400+ reviews Kingdom-wide</div>
+                  <div className="text-xs font-bold text-soot">{t('landing.satisfaction')}</div>
+                  <div className="text-[10px] text-moss">{t('landing.reviews')}</div>
                 </div>
               </div>
               <span className="text-[10px] font-bold text-eucalyptus uppercase bg-soot/90 px-2.5 py-1 rounded-lg">
-                Top Rated
+                {t('landing.topRated')}
               </span>
             </div>
           </div>
@@ -571,11 +573,11 @@ export default function Landing() {
         <div className="max-w-4xl mx-auto px-4 text-center space-y-4">
           <Quote size={32} className="text-eucalyptus mx-auto opacity-80" />
           <p className="text-xl sm:text-2xl text-soot font-serif-display italic leading-relaxed">
-            &ldquo;Coworking Pass simplified remote work for our entire team across Riyadh and Jeddah. Seamless booking and outstanding space quality.&rdquo;
+            {t('landing.quote')}
           </p>
           <div className="pt-2">
-            <div className="text-sm font-semibold text-soot">Sarah Al-Qahtani</div>
-            <div className="text-xs text-moss">Head of People &amp; Culture, TechFlow Saudi</div>
+            <div className="text-sm font-semibold text-soot">{t('landing.testimonialName')}</div>
+            <div className="text-xs text-moss">{t('landing.testimonialRole')}</div>
           </div>
         </div>
       </section>
@@ -589,10 +591,10 @@ export default function Landing() {
 
           <div className="relative z-10 max-w-3xl mx-auto">
             <h2 className="text-3xl sm:text-5xl text-plaster mb-4 font-normal font-serif-display tracking-tight">
-              Ready to find your workspace?
+              {t('landing.ctaTitle')}
             </h2>
             <p className="text-plaster/80 text-sm sm:text-base mb-8 leading-relaxed max-w-xl mx-auto">
-              Join thousands of professionals working smarter across Saudi Arabia.
+              {t('landing.ctaBody')}
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 relative z-20">
@@ -601,14 +603,14 @@ export default function Landing() {
                 onClick={() => navigate('signup')}
                 className="btn-primary w-full sm:w-auto px-8 py-3.5"
               >
-                Get started free
+                {t('landing.getStarted')}
               </button>
               <button
                 type="button"
                 onClick={() => navigate('browse')}
                 className="btn-secondary !bg-plaster !text-soot hover:!bg-plaster w-full sm:w-auto px-8 py-3.5 inline-flex items-center justify-center"
               >
-                Browse spaces
+                {t('landing.browseSpaces')}
               </button>
             </div>
           </div>

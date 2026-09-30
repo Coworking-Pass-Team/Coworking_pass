@@ -164,7 +164,7 @@ export default function Reports() {
             <BarChart3 size={18} className="text-moss" />
             <h2 className="font-bold text-soot text-base">{t('reports.revenueByCity')}</h2>
           </div>
-          <p className="text-sm text-moss mb-2">{period}</p>
+          <p className="text-sm text-moss mb-2">{translateMessage(period)}</p>
           <BarChart data={revenueData} color="#98AA9D" />
         </div>
 
@@ -174,7 +174,7 @@ export default function Reports() {
             <CalendarDays size={18} className="text-moss" />
             <h2 className="font-bold text-soot text-base">{t('reports.bookingsByPlan')}</h2>
           </div>
-          <p className="text-sm text-moss mb-2">{period}</p>
+          <p className="text-sm text-moss mb-2">{translateMessage(period)}</p>
           <BarChart data={bookingsByPlan} color="#697C70" />
         </div>
 

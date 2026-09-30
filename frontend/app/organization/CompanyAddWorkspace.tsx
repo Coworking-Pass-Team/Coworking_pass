@@ -1,5 +1,7 @@
 'use client';
 
+import { useI18n } from '@/i18n';
+import { useSpaceText } from '@/i18n/space-text';
 import React, { useState, useEffect } from 'react';
 import {
   ArrowLeft,
@@ -69,6 +71,8 @@ const AVAILABLE_AMENITIES = [
 ];
 
 export default function CompanyAddWorkspace() {
+  const { t, translateMessage } = useI18n();
+  const st = useSpaceText();
   const { currentUser, addSpace, navigate } = useApp();
 
   const [name, setName] = useState('');
@@ -110,9 +114,9 @@ export default function CompanyAddWorkspace() {
         <div className="w-16 h-16 rounded-2xl bg-amber-500/15 text-amber-700 flex items-center justify-center mx-auto mb-4 border border-amber-500/30">
           <AlertCircle size={30} />
         </div>
-        <h2 className="text-2xl font-serif-display text-soot mb-2">Access Restricted</h2>
+        <h2 className="text-2xl font-serif-display text-soot mb-2">{t('org.aw.accessRestricted')}</h2>
         <p className="text-sm text-moss mb-6 leading-relaxed">
-          Adding new workspaces is reserved exclusively for registered Space Partners. Organizations can browse and book workspaces for their team members.
+          {t('org.aw.addingNewWorkspacesIsReserved')}
         </p>
         <button
           type="button"
@@ -120,7 +124,7 @@ export default function CompanyAddWorkspace() {
           className="btn-primary inline-flex items-center gap-2 px-5 py-2.5 text-sm shadow-sm cursor-pointer"
         >
           <ArrowLeft size={16} />
-          <span>Return to Workspaces</span>
+          <span>{t('org.aw.returnToWorkspaces')}</span>
         </button>
       </div>
     );
@@ -214,20 +218,20 @@ export default function CompanyAddWorkspace() {
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-soot/5 hover:bg-soot/10 border border-soot/10 text-xs font-semibold text-soot mb-3 transition-colors cursor-pointer"
         >
           <ArrowLeft size={14} />
-          <span>Back to Company Workspaces</span>
+          <span>{t('org.aw.backToCompanyWorkspaces')}</span>
         </button>
         <h1 className="text-3xl sm:text-4xl text-soot font-normal font-serif-display tracking-tight">
-          Add Company Workspace
+          {t('org.aw.addCompanyWorkspace')}
         </h1>
         <p className="text-moss text-xs sm:text-sm mt-1 max-w-2xl leading-relaxed">
-          Register an enterprise office suite, private conference hall, or company branch to make it bookable by your verified teams and departments.
+          {t('org.aw.registerAnEnterpriseOfficeSuite')}
         </p>
       </div>
 
       {errors.global && (
         <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-900 text-sm flex items-center gap-2.5">
           <AlertCircle size={18} className="text-rose-600 shrink-0" />
-          <span>{errors.global}</span>
+          <span>{translateMessage(errors.global)}</span>
         </div>
       )}
 
@@ -239,15 +243,15 @@ export default function CompanyAddWorkspace() {
               <Building2 size={16} />
             </div>
             <div>
-              <h2 className="text-base font-semibold text-soot">1. General Information</h2>
-              <p className="text-xs text-moss">Specify workspace identification and layout category.</p>
+              <h2 className="text-base font-semibold text-soot">{t('org.aw.1GeneralInformation')}</h2>
+              <p className="text-xs text-moss">{t('org.aw.specifyWorkspaceIdentificationAndLayout')}</p>
             </div>
           </div>
 
           <div className="space-y-4">
             <div>
               <label className="block text-xs font-semibold text-soot uppercase tracking-wider mb-1.5">
-                Workspace Name <span className="text-rose-600">*</span>
+                {t('org.aw.workspaceName')} <span className="text-rose-600">*</span>
               </label>
               <input
                 type="text"
@@ -256,18 +260,18 @@ export default function CompanyAddWorkspace() {
                   setName(e.target.value);
                   if (errors.name) setErrors((prev) => ({ ...prev, name: '' }));
                 }}
-                placeholder="e.g., Saudi Tech Innovation Hub - Olaya Suite A"
+                placeholder={t('org.aw.eGSaudiTechInnovation')}
                 className={`w-full px-4 py-2.5 rounded-xl bg-plaster border ${
                   errors.name ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-soot/15 focus-visible:ring-2 focus-visible:ring-eucalyptus'
                 } text-soot placeholder:text-moss/60 text-sm shadow-xs transition-all`}
               />
-              {errors.name && <p className="text-xs text-rose-600 font-medium mt-1">* {errors.name}</p>}
+              {errors.name && <p className="text-xs text-rose-600 font-medium mt-1">* {translateMessage(errors.name)}</p>}
             </div>
 
             {/* Type Selection Radio Cards */}
             <div>
               <label className="block text-xs font-semibold text-soot uppercase tracking-wider mb-2">
-                Workspace Category <span className="text-rose-600">*</span>
+                {t('org.aw.workspaceCategory')} <span className="text-rose-600">*</span>
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                 {WORKSPACE_TYPES.map((wt) => {
@@ -284,10 +288,10 @@ export default function CompanyAddWorkspace() {
                       }`}
                     >
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-bold text-soot">{wt.label}</span>
+                        <span className="text-xs font-bold text-soot">{translateMessage(wt.label)}</span>
                         {isSelected && <Check size={14} className="text-emerald-800 shrink-0" />}
                       </div>
-                      <p className="text-[11px] text-moss leading-relaxed">{wt.desc}</p>
+                      <p className="text-[11px] text-moss leading-relaxed">{translateMessage(wt.desc)}</p>
                     </button>
                   );
                 })}
@@ -297,7 +301,7 @@ export default function CompanyAddWorkspace() {
             {/* Description */}
             <div>
               <label className="block text-xs font-semibold text-soot uppercase tracking-wider mb-1.5">
-                Overview & Description <span className="text-rose-600">*</span>
+                {t('org.aw.overviewDescription')} <span className="text-rose-600">*</span>
               </label>
               <textarea
                 rows={3}
@@ -306,13 +310,13 @@ export default function CompanyAddWorkspace() {
                   setDescription(e.target.value);
                   if (errors.description) setErrors((prev) => ({ ...prev, description: '' }));
                 }}
-                placeholder="Describe this corporate workspace, target team capacity, and usage guidelines..."
+                placeholder={t('org.aw.describeThisCorporateWorkspaceTarget')}
                 className={`w-full px-4 py-2.5 rounded-xl bg-plaster border ${
                   errors.description ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-soot/15 focus-visible:ring-2 focus-visible:ring-eucalyptus'
                 } text-soot placeholder:text-moss/60 text-sm shadow-xs transition-all`}
               />
               {errors.description && (
-                <p className="text-xs text-rose-600 font-medium mt-1">* {errors.description}</p>
+                <p className="text-xs text-rose-600 font-medium mt-1">* {translateMessage(errors.description)}</p>
               )}
             </div>
           </div>
@@ -325,15 +329,15 @@ export default function CompanyAddWorkspace() {
               <MapPin size={16} />
             </div>
             <div>
-              <h2 className="text-base font-semibold text-soot">2. Location & Operating Hours</h2>
-              <p className="text-xs text-moss">Where the corporate facility is located.</p>
+              <h2 className="text-base font-semibold text-soot">{t('org.aw.2LocationOperatingHours')}</h2>
+              <p className="text-xs text-moss">{t('org.aw.whereTheCorporateFacilityIs')}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-soot uppercase tracking-wider mb-1.5">
-                City <span className="text-rose-600">*</span>
+                {t('org.aw.city')} <span className="text-rose-600">*</span>
               </label>
               <select
                 value={city}
@@ -342,7 +346,7 @@ export default function CompanyAddWorkspace() {
               >
                 {SAUDI_CITIES_DATA.map((c) => (
                   <option key={c.name} value={c.name}>
-                    {c.name} ({c.nameAr})
+                    {st.cityName(c.name)}
                   </option>
                 ))}
               </select>
@@ -350,20 +354,20 @@ export default function CompanyAddWorkspace() {
 
             <div>
               <label className="block text-xs font-semibold text-soot uppercase tracking-wider mb-1.5">
-                District / Area
+                {t('org.aw.districtArea')}
               </label>
               <input
                 type="text"
                 value={district}
                 onChange={(e) => setDistrict(e.target.value)}
-                placeholder="e.g., Al Olaya, KAFD, or Al Malqa"
+                placeholder={t('org.aw.eGAlOlayaKafd')}
                 className="w-full px-4 py-2.5 rounded-xl bg-plaster border border-soot/15 text-soot placeholder:text-moss/60 text-sm shadow-xs focus-visible:ring-2 focus-visible:ring-eucalyptus"
               />
             </div>
 
             <div className="sm:col-span-2">
               <label className="block text-xs font-semibold text-soot uppercase tracking-wider mb-1.5">
-                Full Street Address <span className="text-rose-600">*</span>
+                {t('org.aw.fullStreetAddress')} <span className="text-rose-600">*</span>
               </label>
               <input
                 type="text"
@@ -372,23 +376,23 @@ export default function CompanyAddWorkspace() {
                   setAddress(e.target.value);
                   if (errors.address) setErrors((prev) => ({ ...prev, address: '' }));
                 }}
-                placeholder="e.g., King Fahd Road, Tower 2, 14th Floor"
+                placeholder={t('org.aw.eGKingFahdRoad')}
                 className={`w-full px-4 py-2.5 rounded-xl bg-plaster border ${
                   errors.address ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-soot/15 focus-visible:ring-2 focus-visible:ring-eucalyptus'
                 } text-soot placeholder:text-moss/60 text-sm shadow-xs transition-all`}
               />
-              {errors.address && <p className="text-xs text-rose-600 font-medium mt-1">* {errors.address}</p>}
+              {errors.address && <p className="text-xs text-rose-600 font-medium mt-1">* {translateMessage(errors.address)}</p>}
             </div>
 
             <div className="sm:col-span-2">
               <label className="block text-xs font-semibold text-soot uppercase tracking-wider mb-1.5">
-                Access & Operating Hours
+                {t('org.aw.accessOperatingHours')}
               </label>
               <input
                 type="text"
                 value={openHours}
                 onChange={(e) => setOpenHours(e.target.value)}
-                placeholder="e.g., Sun–Thu: 8:00 AM – 8:00 PM or 24/7 Access"
+                placeholder={t('org.aw.eGSunThu8')}
                 className="w-full px-4 py-2.5 rounded-xl bg-plaster border border-soot/15 text-soot placeholder:text-moss/60 text-sm shadow-xs focus-visible:ring-2 focus-visible:ring-eucalyptus"
               />
             </div>
@@ -402,15 +406,15 @@ export default function CompanyAddWorkspace() {
               <Users size={16} />
             </div>
             <div>
-              <h2 className="text-base font-semibold text-soot">3. Seating Capacity & Contact Point</h2>
-              <p className="text-xs text-moss">Define capacity quotas and workspace management contact.</p>
+              <h2 className="text-base font-semibold text-soot">{t('org.aw.3SeatingCapacityContactPoint')}</h2>
+              <p className="text-xs text-moss">{t('org.aw.defineCapacityQuotasAndWorkspace')}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-soot uppercase tracking-wider mb-1.5">
-                Total Capacity (Seats) <span className="text-rose-600">*</span>
+                {t('org.aw.totalCapacitySeats')} <span className="text-rose-600">*</span>
               </label>
               <input
                 type="number"
@@ -427,13 +431,13 @@ export default function CompanyAddWorkspace() {
                 } text-soot text-sm shadow-xs`}
               />
               {errors.totalCapacity && (
-                <p className="text-xs text-rose-600 font-medium mt-1">* {errors.totalCapacity}</p>
+                <p className="text-xs text-rose-600 font-medium mt-1">* {translateMessage(errors.totalCapacity)}</p>
               )}
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-soot uppercase tracking-wider mb-1.5">
-                Initial Available Seats
+                {t('org.aw.initialAvailableSeats')}
               </label>
               <input
                 type="number"
@@ -448,7 +452,7 @@ export default function CompanyAddWorkspace() {
 
             <div>
               <label className="block text-xs font-semibold text-soot uppercase tracking-wider mb-1.5">
-                Contact Phone
+                {t('org.aw.contactPhone')}
               </label>
               <input
                 type="tel"
@@ -461,7 +465,7 @@ export default function CompanyAddWorkspace() {
 
             <div>
               <label className="block text-xs font-semibold text-soot uppercase tracking-wider mb-1.5">
-                Contact Email
+                {t('org.aw.contactEmail')}
               </label>
               <input
                 type="email"
@@ -481,15 +485,15 @@ export default function CompanyAddWorkspace() {
               <DollarSign size={16} />
             </div>
             <div>
-              <h2 className="text-base font-semibold text-soot">4. Corporate Billing & Rates</h2>
-              <p className="text-xs text-moss">Internal reservation cost or billing allocation rates (SAR).</p>
+              <h2 className="text-base font-semibold text-soot">{t('org.aw.4CorporateBillingRates')}</h2>
+              <p className="text-xs text-moss">{t('org.aw.internalReservationCostOrBilling')}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-semibold text-soot uppercase tracking-wider mb-1.5">
-                Daily Rate (SAR) <span className="text-rose-600">*</span>
+                {t('org.aw.dailyRateSar')} <span className="text-rose-600">*</span>
               </label>
               <div className="relative">
                 <input
@@ -507,13 +511,13 @@ export default function CompanyAddWorkspace() {
                 />
               </div>
               {errors.dailyPrice && (
-                <p className="text-xs text-rose-600 font-medium mt-1">* {errors.dailyPrice}</p>
+                <p className="text-xs text-rose-600 font-medium mt-1">* {translateMessage(errors.dailyPrice)}</p>
               )}
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-soot uppercase tracking-wider mb-1.5">
-                Monthly Rate (SAR)
+                {t('org.aw.monthlyRateSar')}
               </label>
               <input
                 type="number"
@@ -527,7 +531,7 @@ export default function CompanyAddWorkspace() {
 
             <div>
               <label className="block text-xs font-semibold text-soot uppercase tracking-wider mb-1.5">
-                Yearly Rate (SAR)
+                {t('org.aw.yearlyRateSar')}
               </label>
               <input
                 type="number"
@@ -548,8 +552,8 @@ export default function CompanyAddWorkspace() {
               <Sparkles size={16} />
             </div>
             <div>
-              <h2 className="text-base font-semibold text-soot">5. Amenities & Equipment</h2>
-              <p className="text-xs text-moss">Select available tools and facilities provided at this workspace.</p>
+              <h2 className="text-base font-semibold text-soot">{t('org.aw.5AmenitiesEquipment')}</h2>
+              <p className="text-xs text-moss">{t('org.aw.selectAvailableToolsAndFacilities')}</p>
             </div>
           </div>
 
@@ -567,7 +571,7 @@ export default function CompanyAddWorkspace() {
                       : 'border-soot/10 bg-plaster text-moss hover:bg-plaster-dark/40 hover:text-soot'
                   }`}
                 >
-                  <span>{amenity}</span>
+                  <span>{st.amenity(amenity)}</span>
                   {checked ? (
                     <CheckCircle2 size={15} className="text-emerald-800 shrink-0 ms-1.5" />
                   ) : (
@@ -586,15 +590,15 @@ export default function CompanyAddWorkspace() {
               <ImageIcon size={16} />
             </div>
             <div>
-              <h2 className="text-base font-semibold text-soot">6. Workspace Photo / Image</h2>
-              <p className="text-xs text-moss">Choose a high-res curated photo preset or enter a direct image URL.</p>
+              <h2 className="text-base font-semibold text-soot">{t('org.aw.6WorkspacePhotoImage')}</h2>
+              <p className="text-xs text-moss">{t('org.aw.chooseAHighResCurated')}</p>
             </div>
           </div>
 
           {/* Preset Buttons */}
           <div>
             <span className="block text-xs font-semibold text-soot uppercase tracking-wider mb-2">
-              Select Preset Photo:
+              {t('org.aw.selectPresetPhoto')}
             </span>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
               {PRESET_IMAGES.map((preset) => {
@@ -615,11 +619,11 @@ export default function CompanyAddWorkspace() {
                   >
                     <img
                       src={preset.url}
-                      alt={preset.label}
+                      alt={translateMessage(preset.label)}
                       className="w-full h-20 object-cover"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-soot/80 via-transparent to-transparent flex items-end p-1.5">
-                      <span className="text-[10px] text-white font-medium truncate">{preset.label}</span>
+                      <span className="text-[10px] text-white font-medium truncate">{translateMessage(preset.label)}</span>
                     </div>
                   </button>
                 );
@@ -630,7 +634,7 @@ export default function CompanyAddWorkspace() {
           {/* Custom URL Input */}
           <div>
             <label className="block text-xs font-semibold text-soot uppercase tracking-wider mb-1.5">
-              Or Custom Image URL
+              {t('org.aw.orCustomImageUrl')}
             </label>
             <input
               type="url"
@@ -645,16 +649,16 @@ export default function CompanyAddWorkspace() {
           <div className="rounded-2xl border border-soot/10 p-3 bg-plaster flex items-center gap-4">
             <img
               src={customImageUrl.trim() || selectedImage}
-              alt="Preview"
+              alt={t('org.aw.preview')}
               className="w-24 h-16 rounded-xl object-cover border border-soot/15 shadow-2xs shrink-0"
               onError={(e) => {
                 (e.target as HTMLImageElement).src = PRESET_IMAGES[0].url;
               }}
             />
             <div className="text-xs">
-              <span className="font-semibold text-soot block">Workspace Card Preview</span>
+              <span className="font-semibold text-soot block">{t('org.aw.workspaceCardPreview')}</span>
               <span className="text-moss">
-                This photograph will be displayed on workspace listings, team cards, and booking vouchers.
+                {t('org.aw.thisPhotographWillBeDisplayed')}
               </span>
             </div>
           </div>
@@ -667,7 +671,7 @@ export default function CompanyAddWorkspace() {
             onClick={() => navigate('company-workspaces')}
             className="btn-secondary px-5 py-3 text-sm cursor-pointer"
           >
-            Cancel
+            {t('org.aw.cancel')}
           </button>
           <button
             type="submit"
@@ -675,7 +679,7 @@ export default function CompanyAddWorkspace() {
             className="btn-primary px-7 py-3 text-sm flex items-center gap-2 shadow-md cursor-pointer disabled:opacity-50"
           >
             <Check size={17} />
-            <span>{isSubmitting ? 'Registering Workspace...' : 'Save & Publish Workspace'}</span>
+            <span>{translateMessage(isSubmitting ? 'Registering Workspace...' : 'Save & Publish Workspace')}</span>
           </button>
         </div>
       </form>
