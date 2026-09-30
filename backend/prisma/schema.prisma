@@ -255,6 +255,9 @@ model WorkspaceSection {
   dailyRate   Float?
   monthlyRate Float?
   yearlyRate  Float?
+  hourlyRate  Float?
+  /// Finer room kind chosen by the provider (e.g. private-office, training-hall); `type` keeps the booking category
+  subType     String?
 
   workspace      Workspace       @relation(fields: [workspaceId], references: [id])
   hourlyPackages HourlyPackage[]

@@ -88,6 +88,22 @@ export function getApiBaseUrl(): string {
 
 export const API_BASE_URL = getApiBaseUrl();
 
+/** Converts an API WorkspaceSection into the room shape used by the UI. */
+export function mapSectionToUnit(sec: any): SpaceUnit {
+  const rate = (v: unknown) => (v === null || v === undefined ? null : Number(v));
+  return {
+    id: sec.id as string,
+    name: sec.name as string,
+    capacity: Number(sec.capacity) || 0,
+    type: sec.type,
+    subType: sec.subType || undefined,
+    hourlyRate: rate(sec.hourlyRate),
+    dailyRate: rate(sec.dailyRate),
+    monthlyRate: rate(sec.monthlyRate),
+    yearlyRate: rate(sec.yearlyRate),
+  };
+}
+
 export function mapFrontendTypeToDbSectionType(type: string): 'DESK' | 'MEETING_ROOM' | 'THEATER' {
   const t = (type || '').toLowerCase();
   if (t === 'theater' || t.includes('theater') || t.includes('auditorium')) {
@@ -544,7 +560,7 @@ interface AppContextType {
   depositToCompanyWallet: (amount: number, companyId?: string) => Promise<{ success: boolean; message: string; balance?: number }>;
   checkSeatAvailability: (params: { spaceId: string; plan: string; date: string; startTime?: string; endTime?: string; days?: number; months?: number; seats?: number; unitId?: string }) => Promise<{ ok: boolean; message?: string }>;
   fetchUnitAvailability: (spaceId: string, date: string) => Promise<SpaceUnitAvailability[] | null>;
-  saveSpaceUnits: (spaceId: string, type: 'MEETING_ROOM' | 'THEATER', units: SpaceUnit[]) => Promise<{ success: boolean; error?: string; units?: SpaceUnit[] }>;
+  saveSpaceUnits: (spaceId: string, units: SpaceUnit[]) => Promise<{ success: boolean; error?: string; units?: SpaceUnit[] }>;
   withdrawFromCompanyWallet: (amount: number, companyId?: string, description?: string, idempotencyKey?: string) => Promise<{ success: boolean; message: string; balance?: number }>;
 
   loyaltyRules: LoyaltyRule[];
@@ -2016,7 +2032,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (!response.ok) return null;
       const data = await response.json();
       return Array.isArray(data.units)
-        ? data.units.map((u: any) => ({ id: u.id, name: u.name, capacity: Number(u.capacity) || 0, booked: Array.isArray(u.booked) ? u.booked : [] }))
+        ? data.units.map((u: any) => ({ ...mapSectionToUnit(u), booked: Array.isArray(u.booked) ? u.booked : [] }))
         : null;
     } catch (_) {
       return null;
@@ -2026,7 +2042,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   /** Persists the hall / theater inventory of a workspace (one WorkspaceSection per unit). */
   const saveSpaceUnits = async (
     spaceId: string,
-    type: 'MEETING_ROOM' | 'THEATER',
     units: SpaceUnit[]
   ): Promise<{ success: boolean; error?: string; units?: SpaceUnit[] }> => {
     try {
@@ -2034,7 +2049,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const response = await fetch(`${getApiBaseUrl()}/workspaces/${spaceId}/units`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ type, units }),
+        body: JSON.stringify({ units }),
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) return { success: false, error: data.error || 'Failed to save halls.' };
@@ -2643,7 +2658,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
           const preservedType = (savedType || sectionType || inferredType || existing?.type || (w as any).type || 'private-office') as SpaceType;
 
-          if (Array.isArray(w.sections) && w.sections.length > 0) {
+          // Only single-section listings are auto-corrected; multi-room hubs keep each room's own type
+          if (Array.isArray(w.sections) && w.sections.length === 1) {
             const sec = w.sections[0];
             const targetDbSecType = mapFrontendTypeToDbSectionType(preservedType);
             if (sec.type !== targetDbSecType && targetDbSecType !== 'DESK') {
@@ -2731,12 +2747,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
             email: isBelongingToCurrentUser ? (currentUser?.email || w.partner?.contactEmail || 'contact@coworkingpass.sa') : (w.partner?.contactEmail || existing?.email || 'contact@coworkingpass.sa'),
             ownerId: isBelongingToCurrentUser ? (currentUser?.id || w.partnerId) : w.partnerId,
             units: (() => {
-              const unitSections = Array.isArray(w.sections)
-                ? w.sections.filter((sec: any) => sec.type === 'MEETING_ROOM' || sec.type === 'THEATER')
-                : [];
-              return unitSections.length > 0
-                ? unitSections.map((sec: any) => ({ id: sec.id as string, name: sec.name as string, capacity: Number(sec.capacity) || 0 }))
-                : undefined;
+              const secs: any[] = Array.isArray(w.sections) ? w.sections : [];
+              // Expose rooms for multi-room hubs, hubs with a labelled room, and hubs whose only section is a hall / theater
+              const listed = secs.length >= 2 || secs.some((sec) => sec.subType) || (secs.length === 1 && secs[0].type !== 'DESK');
+              return listed ? secs.map((sec) => mapSectionToUnit(sec)) : undefined;
             })(),
           };
         });
@@ -4194,7 +4208,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
             try {
               if (space.units && space.units.length > 0) {
-                const savedUnits = await saveSpaceUnits(createdWs.id, dbSecType === 'THEATER' ? 'THEATER' : 'MEETING_ROOM', space.units);
+                const savedUnits = await saveSpaceUnits(createdWs.id, space.units);
                 if (!savedUnits.success) showToast(savedUnits.error || 'Failed to save halls.', 'error');
               } else await fetch(`${getApiBaseUrl()}/workspace-sections`, {
                 method: 'POST',
@@ -4309,8 +4323,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           }
 
           if (updates.units && updates.units.length > 0) {
-            const unitType = mapFrontendTypeToDbSectionType(updates.type || (updatedSpaceObj as any).type || 'meeting-room');
-            const saved = await saveSpaceUnits(targetDbId, unitType === 'THEATER' ? 'THEATER' : 'MEETING_ROOM', updates.units);
+            const saved = await saveSpaceUnits(targetDbId, updates.units);
             if (!saved.success) showToast(saved.error || 'Failed to save halls.', 'error');
           } else if (updates.type) {
             const dbSecType = mapFrontendTypeToDbSectionType(updates.type);
@@ -4623,7 +4636,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
 
     setSpaces(prev => prev.map(s =>
-      s.id === booking.spaceId
+      s.id === booking.spaceId && !booking.unitId
         ? { ...s, availableCapacity: Math.max(0, s.availableCapacity - booking.seats) }
         : s
     ));
@@ -4932,7 +4945,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, status: 'cancelled' } : b)));
     setSpaces((prev) =>
       prev.map((s) =>
-        s.id === booking.spaceId
+        s.id === booking.spaceId && !booking.unitId
           ? { ...s, availableCapacity: Math.min(s.totalCapacity, s.availableCapacity + booking.seats) }
           : s
       )

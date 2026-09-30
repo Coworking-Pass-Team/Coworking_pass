@@ -119,24 +119,6 @@ const corporatePlans: PlanItem[] = [
     cta: 'Get Business Pass',
     level: 2,
   },
-  {
-    id: 'enterprise',
-    name: 'Custom Enterprise',
-    tier: '50+ Desks',
-    price: null,
-    period: 'Custom Quote',
-    desc: 'Fully bespoke multi-city setups, custom security, and API integrations.',
-    features: [
-      'Bespoke headquarters space config',
-      'Kingdom-wide multi-city network access',
-      'Custom SSO and HRIS integrations',
-      'Strict corporate SLA guarantees',
-      'Exclusive private floor branding',
-    ],
-    featured: false,
-    cta: 'Contact Advisory',
-    level: 3,
-  },
 ];
 
 const faqs = [
@@ -184,32 +166,6 @@ export default function Pricing() {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethodType>('MADA');
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
-  // Custom Enterprise quote request modal state (the enterprise plan is priced by quote, not checkout)
-  const [showEnterpriseModal, setShowEnterpriseModal] = useState(false);
-  const [enterpriseForm, setEnterpriseForm] = useState({ company: '', contact: '', email: '', desks: '50', notes: '' });
-
-  const submitEnterpriseInquiry = () => {
-    if (!enterpriseForm.company.trim() || !enterpriseForm.email.trim()) {
-      showToast('Please enter your company name and a contact email.', 'error');
-      return;
-    }
-    addSupportTicket({
-      userId: currentUser?.id,
-      userName: enterpriseForm.contact.trim() || currentUser?.name || 'Enterprise Lead',
-      userEmail: enterpriseForm.email.trim(),
-      category: 'enterprise',
-      priority: 'high',
-      subject: `Enterprise quote request - ${enterpriseForm.company.trim()}`,
-      message: `Company: ${enterpriseForm.company.trim()}
-Contact: ${enterpriseForm.contact.trim() || currentUser?.name || '-'}
-Email: ${enterpriseForm.email.trim()}
-Desks required: ${enterpriseForm.desks}
-Notes: ${enterpriseForm.notes.trim() || '-'}`,
-    });
-    setShowEnterpriseModal(false);
-    showToast('Thanks! Our enterprise advisory team will contact you with a tailored quote.', 'success');
-  };
-
   // Manage Subscription modal state
   const [showManageModal, setShowManageModal] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
@@ -245,16 +201,6 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
   };
 
   const handlePlanCardClick = (plan: PlanItem) => {
-    if (!plan.price) {
-      // Custom-priced plan: collect a quote request instead of opening checkout
-      if (currentUser) {
-        setEnterpriseForm(f => ({ ...f, contact: currentUser.name || '', email: currentUser.email || '' }));
-        setShowEnterpriseModal(true);
-      } else {
-        navigate('contact');
-      }
-      return;
-    }
 
     if (!currentUser) {
       showToast('Please sign in or create an account to subscribe.', 'info');
@@ -499,7 +445,7 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
         )}
 
         {/* Pricing Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch mb-20">
+        <div className={`grid grid-cols-1 ${activePlans.length === 2 ? "md:grid-cols-2 max-w-4xl mx-auto" : "md:grid-cols-3"} gap-6 items-stretch mb-20`}>
           {activePlans.map(plan => {
             const isFeatured = plan.featured;
             const isCurrent = isPlanCurrent(plan);
@@ -936,64 +882,6 @@ Notes: ${enterpriseForm.notes.trim() || '-'}`,
             <div className="flex items-center gap-2 text-[11px] text-moss bg-soot/5 p-3 rounded-xl border border-soot/8">
               <ShieldCheck size={16} className="text-emerald-700 shrink-0" />
               <span>{t('pricing.secureNote')}</span>
-            </div>
-          </div>
-        </Modal>
-      )}
-
-      {/* Custom Enterprise quote request */}
-      {showEnterpriseModal && (
-        <Modal
-          open={showEnterpriseModal}
-          onClose={() => setShowEnterpriseModal(false)}
-          title={t('pricing.enterpriseTitle')}
-          subtitle={t('pricing.enterpriseSubtitle')}
-          size="md"
-          footer={
-            <>
-              <button
-                type="button"
-                onClick={() => setShowEnterpriseModal(false)}
-                className="px-4 py-2.5 rounded-xl border border-soot/12 text-xs font-semibold text-soot hover:bg-plaster-dark/40 cursor-pointer"
-              >
-                {t('common.cancel')}
-              </button>
-              <button
-                type="button"
-                onClick={submitEnterpriseInquiry}
-                className="px-4 py-2.5 rounded-xl bg-soot text-plaster text-xs font-semibold hover:bg-moss cursor-pointer"
-              >
-                {t('pricing.sendRequest')}
-              </button>
-            </>
-          }
-        >
-          <div className="space-y-3">
-            {([
-              [t('pricing.ent.company'), 'company', 'text'],
-              [t('pricing.ent.contact'), 'contact', 'text'],
-              [t('pricing.ent.email'), 'email', 'email'],
-              [t('pricing.ent.desks'), 'desks', 'number'],
-            ] as const).map(([label, key, type]) => (
-              <div key={key}>
-                <label className="block text-[11px] font-semibold uppercase tracking-wider text-moss mb-1">{label}</label>
-                <input
-                  type={type}
-                  min={type === 'number' ? 50 : undefined}
-                  value={enterpriseForm[key]}
-                  onChange={(e) => setEnterpriseForm(f => ({ ...f, [key]: e.target.value }))}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-eucalyptus"
-                />
-              </div>
-            ))}
-            <div>
-              <label className="block text-[11px] font-semibold uppercase tracking-wider text-moss mb-1">{t('pricing.requirements')}</label>
-              <textarea
-                rows={3}
-                value={enterpriseForm.notes}
-                onChange={(e) => setEnterpriseForm(f => ({ ...f, notes: e.target.value }))}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-eucalyptus"
-              />
             </div>
           </div>
         </Modal>

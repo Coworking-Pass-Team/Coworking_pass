@@ -320,7 +320,7 @@ export default function Navbar() {
             </span>
           </button>
 
-          <nav className="hidden lg:flex items-center gap-0.5 xl:gap-1.5 min-w-0 overflow-x-auto no-scrollbar py-1">
+          <nav className="hidden lg:flex items-center gap-0.5 xl:gap-1.5 min-w-0 overflow-hidden">
             {links.map(l => {
               const isActive = nav.screen === l.screen;
               return (
@@ -342,8 +342,6 @@ export default function Navbar() {
 
         {/* Right Section: Header Actions */}
         <div className="hidden lg:flex items-center gap-1.5 xl:gap-2 shrink-0 ms-2">
-          <LanguageSwitcher />
-
           {currentUser && <CartButton />}
 
           {isConsumerOrOrg && (
@@ -354,6 +352,8 @@ export default function Navbar() {
           )}
 
           {currentUser && <NotificationButton />}
+
+          <LanguageSwitcher />
 
           {currentUser ? (
             <div className="relative" ref={dropdownRef}>

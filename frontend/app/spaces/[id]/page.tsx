@@ -1,7 +1,7 @@
 'use client';
 
 import { useI18n } from '@/i18n';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -37,6 +37,7 @@ import {
   getFilteredStartTimes,
   getFixedSessionSlots,
   getSpaceCategory,
+  applyUnitToSpace,
   FIXED_SESSION_HOURS,
   calculateEndTime,
   calculateEndDate,
@@ -78,21 +79,32 @@ function SpaceDetailsView() {
     enableAutoBooking,
     addToCart,
     getSpaceCrowding,
-    showToast
+    showToast,
+    bookings
   } = useApp();
 
   const passActive = isUserPassHolder(currentUser);
 
   const urlId = typeof window !== 'undefined' ? window.location.pathname.split('/').pop() : '';
   const spaceId = nav?.params?.spaceId || (urlId && urlId !== 'page' && urlId !== '[id]' ? urlId : '') || '';
-  const space = spaces && spaces.length > 0 ? spaces.find(s => s.id === spaceId) || null : null;
+  const baseSpace = spaces && spaces.length > 0 ? spaces.find(s => s.id === spaceId) || null : null;
+
+  // Rooms / sections of the hub: the selected room decides plans, pricing, capacity and the session grid
+  const [bookingDate, setBookingDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  const { units: unitList } = useUnitAvailability(baseSpace, bookingDate, Boolean(baseSpace?.units && baseSpace.units.length > 0), bookings?.length || 0);
+  const [unitId, setUnitId] = useState<string>(() => (nav?.params?.unitId as string) || '');
+  const selectedUnit = unitList.find((u) => u.id === unitId) || unitList[0];
+  const space = useMemo(
+    () => (baseSpace ? applyUnitToSpace(baseSpace, selectedUnit, unitList.length) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [baseSpace, selectedUnit?.id, selectedUnit?.capacity, selectedUnit?.type, selectedUnit?.subType, selectedUnit?.hourlyRate, selectedUnit?.dailyRate, selectedUnit?.monthlyRate, selectedUnit?.yearlyRate, unitList.length]
+  );
 
   const allowedPlans: BookingPlan[] = space ? getAllowedPlansForSpace(space) : (['daily'] as BookingPlan[]);
   const defaultPlan: BookingPlan = allowedPlans[0] || 'daily';
 
   const [imgIndex, setImgIndex] = useState(0);
   const [selectedPlan, setSelectedPlan] = useState<BookingPlan>(defaultPlan);
-  const [bookingDate, setBookingDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
   const [bookingEndDate, setBookingEndDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
   const isHourlySpace = Boolean(space && isHourlyAllowed(space));
   const [selectedHours, setSelectedHours] = useState<number>(() => (space && isHourlyAllowed(space) ? FIXED_SESSION_HOURS : 1));
@@ -130,12 +142,8 @@ function SpaceDetailsView() {
 
   const fixedSlots = isHourlySpace && space ? getFixedSessionSlots(space.openHours, bookingDate) : [];
 
-  // Individual halls / theaters: the selected unit decides which sessions are free and how many seats fit
-  const { units: unitList } = useUnitAvailability(space, bookingDate, isHourlySpace);
-  const [unitId, setUnitId] = useState('');
-  const selectedUnit = unitList.find((u) => u.id === unitId) || unitList[0];
   const unitKind: 'hall' | 'theater' = space && getSpaceCategory(space) === 'theater' ? 'theater' : 'hall';
-  const seatCap = isHourlySpace && selectedUnit ? selectedUnit.capacity : null;
+  const seatCap = selectedUnit ? selectedUnit.capacity : null;
   useEffect(() => {
     if (unitList.length > 0 && !unitList.some((u) => u.id === unitId)) setUnitId(unitList[0].id);
   }, [unitList, unitId]);
@@ -251,7 +259,7 @@ function SpaceDetailsView() {
 
 
 
-      const crowding = getSpaceCrowding ? getSpaceCrowding(space) : {
+      const crowdingBase = getSpaceCrowding ? getSpaceCrowding(space) : {
     scannedCount: 0,
     totalCapacity: space.totalCapacity !== undefined && space.totalCapacity !== null ? Number(space.totalCapacity) : 0,
     availableCapacity: space.availableCapacity !== undefined && space.availableCapacity !== null ? Number(space.availableCapacity) : (space.totalCapacity ?? 0),
@@ -264,6 +272,20 @@ function SpaceDetailsView() {
     trackColor: 'bg-[#E5EBE7]',
   };
 
+
+  // Halls and theaters: availability belongs to the selected 2-hour session of the selected unit, not to the whole day
+  const slotBooked = Boolean(isHourlySpace && selectedUnit && isUnitSlotBooked(selectedUnit, startTime, endTime));
+  const crowding = isHourlySpace && selectedUnit
+    ? {
+        ...crowdingBase,
+        totalCapacity: selectedUnit.capacity,
+        availableCapacity: slotBooked ? 0 : selectedUnit.capacity,
+        occupiedSeats: slotBooked ? selectedUnit.capacity : 0,
+        occupancyPercentage: slotBooked ? 100 : 0,
+        ...(slotBooked ? {} : { barColor: 'bg-emerald-600', textColor: 'text-emerald-700', badgeClass: 'bg-emerald-100/90 text-emerald-900 border-emerald-200/90' }),
+        level: (slotBooked ? 'Busy' : 'Quiet') as typeof crowdingBase.level,
+      }
+    : crowdingBase;
 
   const isFav = favorites.includes(space.id) || (space.name ? favorites.includes(space.name) : false);
   const isFullyBooked = crowding.availableCapacity === 0 || crowding.level === 'Busy';
@@ -293,8 +315,8 @@ function SpaceDetailsView() {
       durationHours: hasTimeWindow ? durationHours : undefined,
       durationMonths,
       seats: selectedSeats,
-      unitId: isHourlySpace ? selectedUnit?.id : undefined,
-      unitName: isHourlySpace ? selectedUnit?.name : undefined,
+      unitId: selectedUnit?.id,
+      unitName: selectedUnit?.name,
     };
     if (currentUser.role === 'organization' || (currentUser.role as any) === 'HR_ADMIN') {
       navigate('team-booking', params);
@@ -594,6 +616,9 @@ function SpaceDetailsView() {
               </div>
 
               <div className="mb-6 space-y-4">
+                {unitList.length > 0 && (
+                  <UnitPicker units={unitList} selectedId={selectedUnit?.id || ''} onSelect={setUnitId} />
+                )}
                 <div>
                   <div className="flex items-center justify-between mb-2.5 gap-2">
                     <label className="text-xs font-semibold uppercase tracking-wider text-moss whitespace-nowrap">
@@ -822,10 +847,6 @@ function SpaceDetailsView() {
                         className="w-full px-3 py-2.5 rounded-xl bg-white border border-soot/12 text-soot text-xs font-medium focus:outline-none focus:border-eucalyptus cursor-pointer shadow-2xs"
                       />
                     </div>
-
-                    {isHourlySpace && (
-                      <UnitPicker units={unitList} selectedId={selectedUnit?.id || ''} onSelect={setUnitId} kind={unitKind} />
-                    )}
 
                     {isHourlySpace ? (
                       <div className="space-y-1.5">
