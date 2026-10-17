@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { canManageWorkspace } from '@/lib/ownership';
+import { requireRoles } from '@/lib/ownership';
 import { prisma } from '@/lib/prisma';
 import { getTokenFromRequest, unauthorizedResponse } from '@/lib/auth/verify-token';
 
@@ -23,6 +25,14 @@ export async function GET(
       return NextResponse.json({ error: 'Payment not found.' }, { status: 404 });
     }
 
+    const mayView =
+      payment.userId === user.userId ||
+      user.role === 'SUPER_ADMIN' ||
+      (payment.workspaceId ? await canManageWorkspace(user, payment.workspaceId) : false);
+    if (!mayView) {
+      return NextResponse.json({ error: 'You are not allowed to view this payment.' }, { status: 403 });
+    }
+
     return NextResponse.json(payment);
   } catch (error) {
     console.error('❌ Error fetching payment:', error);
@@ -39,6 +49,9 @@ export async function PUT(
     if (!user) {
       return unauthorizedResponse(request);
     }
+    const roleDenied = requireRoles(user, ['SUPER_ADMIN']);
+    if (roleDenied) return roleDenied;
+
     const { id } = await params;
     const body = await request.json();
 
@@ -86,6 +99,9 @@ export async function DELETE(
     if (!user) {
       return unauthorizedResponse(request);
     }
+    const roleDenied = requireRoles(user, ['SUPER_ADMIN']);
+    if (roleDenied) return roleDenied;
+
     const { id } = await params;
 
     await prisma.payment.delete({

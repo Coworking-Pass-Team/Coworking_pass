@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireRoles } from '@/lib/ownership';
 import { prisma } from "@/lib/prisma";
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
@@ -39,6 +40,9 @@ export async function PUT(
   try {
     const user = await getTokenFromRequest(request);
 if (!user) return unauthorizedResponse(request);
+    const roleDenied = requireRoles(user, ['SUPER_ADMIN']);
+    if (roleDenied) return roleDenied;
+
     const { id } = await params;
     const { status } = await request.json();
 
@@ -72,6 +76,9 @@ export async function DELETE(
   try {
     const user = await getTokenFromRequest(request);
 if (!user) return unauthorizedResponse(request);
+    const roleDenied = requireRoles(user, ['SUPER_ADMIN']);
+    if (roleDenied) return roleDenied;
+
     const { id } = await params;
     await prisma.amenityCatalog.delete({ where: { id } });
     return NextResponse.json({ message: "Amenity deleted successfully." });

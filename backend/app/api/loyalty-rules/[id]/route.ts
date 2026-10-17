@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { requireRoles } from '@/lib/ownership';
 import { prisma } from '@/lib/prisma'
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
@@ -38,6 +39,8 @@ export async function PUT(
   try {
     const user = await getTokenFromRequest(request);
 if (!user) return unauthorizedResponse(request);
+    const roleDenied = requireRoles(user, ['SUPER_ADMIN']);
+    if (roleDenied) return roleDenied;
     const { id } = await params
     const body = await request.json()
     const { status, approvedBy, isActive } = body
@@ -73,6 +76,13 @@ export async function DELETE(
     const user = await getTokenFromRequest(request);
 if (!user) return unauthorizedResponse(request);
     const { id } = await params
+    const existingRule = await prisma.loyaltyRule.findUnique({ where: { id }, select: { proposedBy: true } })
+    if (!existingRule) {
+      return NextResponse.json({ error: 'Loyalty rule not found.' }, { status: 404 })
+    }
+    if (user.role !== 'SUPER_ADMIN' && existingRule.proposedBy !== user.userId) {
+      return NextResponse.json({ error: 'You can only delete rules you proposed.' }, { status: 403 })
+    }
     await prisma.loyaltyRule.delete({
       where: { id }
     })

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { requireRoles } from '@/lib/ownership';
 import { prisma } from '@/lib/prisma'
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
@@ -118,6 +119,9 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return unauthorizedResponse(request);
     }
+    const roleDenied = requireRoles(user, ['SUPER_ADMIN']);
+    if (roleDenied) return roleDenied;
+
 
     const body = await request.json();
     const { planName, type, totalVisitsAllowed, price } = body;

@@ -1,4 +1,6 @@
+import type { ApprovalStatus } from "@prisma/client"
 import { NextRequest, NextResponse } from 'next/server'
+import { requireRoles } from '@/lib/ownership';
 import { prisma } from '@/lib/prisma'
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
@@ -62,8 +64,15 @@ export async function POST(request: NextRequest) {
   try {
     const user = await getTokenFromRequest(request);
 if (!user) return unauthorizedResponse(request);
+    const roleDenied = requireRoles(user, ['SUPER_ADMIN', 'PARTNER_ADMIN']);
+    if (roleDenied) return roleDenied;
+
     const body = await request.json()
-    const { ruleName, ruleType, pointsValue, monetaryValue, description, proposedBy, status = 'PENDING_APPROVAL' } = body
+    const { ruleName, ruleType, pointsValue, monetaryValue, description } = body
+    // A partner always proposes as themselves and can never self-approve; only super admins pick these
+    const isAdmin = user.role === 'SUPER_ADMIN'
+    const proposedBy: string | undefined = isAdmin ? (body.proposedBy || user.userId) : user.userId
+    const status = (isAdmin ? (body.status || "PENDING_APPROVAL") : "PENDING_APPROVAL") as ApprovalStatus
 
     if (!ruleName || !ruleType || !pointsValue || !monetaryValue || !proposedBy) {
       return NextResponse.json(

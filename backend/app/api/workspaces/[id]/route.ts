@@ -4,6 +4,7 @@ import { pickBilingualFields } from "@/lib/bilingual";
 import { canViewHiddenWorkspace } from "@/lib/workspace-visibility";
 import { prisma } from "@/lib/prisma";
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
+import { canManageWorkspace } from "@/lib/ownership";
 
 
 
@@ -202,6 +203,11 @@ export async function DELETE(
 if (!user) return unauthorizedResponse(request);
 
     const { id } = await params;
+
+    // Only a super admin or the partner that owns the workspace may delete it
+    if (!(await canManageWorkspace(user, id))) {
+      return NextResponse.json({ error: "You are not allowed to delete this workspace." }, { status: 403 });
+    }
 
     await prisma.workspaceAmenity.deleteMany({ where: { workspaceId: id } });
     await prisma.workspaceSection.deleteMany({ where: { workspaceId: id } });

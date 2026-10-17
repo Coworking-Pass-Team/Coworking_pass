@@ -38,3 +38,15 @@ export async function canManageWorkspace(caller: Caller, workspaceId: string): P
 export function forbiddenResponse(message = "You are not allowed to perform this action.") {
   return NextResponse.json({ error: message }, { status: 403 });
 }
+
+/** Returns a 403 response unless the caller has one of the allowed roles (null means allowed). */
+export function requireRoles(caller: Caller, roles: string[]) {
+  return roles.includes(caller.role) ? null : forbiddenResponse();
+}
+
+/** True for super admins and for the partner that owns the workspace the section belongs to. */
+export async function canManageSection(caller: Caller, sectionId: string): Promise<boolean> {
+  const section = await prisma.workspaceSection.findUnique({ where: { id: sectionId }, select: { workspaceId: true } });
+  if (!section) return false;
+  return canManageWorkspace(caller, section.workspaceId);
+}

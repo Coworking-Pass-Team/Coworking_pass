@@ -44,7 +44,9 @@ export async function POST(request: NextRequest) {
     const user = await getTokenFromRequest(request);
 if (!user) return unauthorizedResponse(request);
     const body = await request.json()
-    const { userId, workspaceId, sectionId, durationType, bookingDate } = body
+    const { workspaceId, sectionId, durationType, bookingDate } = body
+    // The waitlist entry always belongs to the caller; only super admins may add someone else
+    const userId: string = user.role === 'SUPER_ADMIN' && body.userId ? body.userId : user.userId
 
     if (!userId || !workspaceId || !sectionId || !durationType || !bookingDate) {
       return NextResponse.json(

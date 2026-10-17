@@ -28,6 +28,10 @@ if (!user) return unauthorizedResponse(request);
 
     const { transactionId, amount, userId } = await request.json()
 
+    if (user.role !== 'SUPER_ADMIN' && userId !== user.userId) {
+      return NextResponse.json({ error: 'You can only request refunds for your own payments.' }, { status: 403 })
+    }
+
     if (!transactionId || !amount || !userId) {
       return NextResponse.json(
         { error: 'All fields are required.' },

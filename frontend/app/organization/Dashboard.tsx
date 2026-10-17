@@ -121,7 +121,7 @@ export default function OrgDashboard() {
             {currentUser.orgName || t('dash.org.orgDashboardTitle')}
           </h1>
           <p className="text-moss text-sm mt-1">
-            {t('dash.org.welcome')} <span className="text-soot font-medium">{currentUser.name}</span> {t('dash.org.hrAdmin')} · {currentUser.industry || t('dash.org.enterprise')} · {employees.length || currentUser.orgSize || 15} {t('dash.org.teamOnPass')}
+            {t('dash.org.welcome')} <span className="text-soot font-medium">{currentUser.name}</span> {t('dash.org.hrAdmin')} · {currentUser.industry || t('dash.org.enterprise')}{hasPass && <> · {employees.length} {t('dash.org.teamOnPass')}</>}
           </p>
         </div>
 

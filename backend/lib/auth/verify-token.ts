@@ -55,17 +55,19 @@ export async function getTokenFromRequest(request: Request): Promise<TokenPayloa
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as TokenPayload;
 
+    const state = await getUserState(decoded.userId);
+    // A suspended account is reported as such (403 ACCOUNT_SUSPENDED) even if its sessions were also revoked
+    if (state.exists && state.banned) {
+      suspendedRequests.add(request);
+      return null;
+    }
+
     // Reject token if user is explicitly blacklisted (e.g. logged out)
     if (isBlacklisted(decoded.userId)) {
       return null;
     }
 
-    const state = await getUserState(decoded.userId);
     if (!state.exists) {
-      return null;
-    }
-    if (state.banned) {
-      suspendedRequests.add(request);
       return null;
     }
 

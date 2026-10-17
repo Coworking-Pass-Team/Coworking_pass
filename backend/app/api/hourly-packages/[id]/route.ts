@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { canManageSection } from '@/lib/ownership';
 import { prisma } from "@/lib/prisma";
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
@@ -45,6 +46,9 @@ if (!user) return unauthorizedResponse(request);
     if (!existing) {
       return NextResponse.json({ error: "Package not found." }, { status: 404 });
     }
+    if (!(await canManageSection(user, existing.sectionId))) {
+      return NextResponse.json({ error: "You are not allowed to manage this venue's packages." }, { status: 403 });
+    }
 
     const effectivePeriod = data.periodType || existing.periodType;
     const effectiveHours = data.hoursAmount !== undefined ? Number(data.hoursAmount) : existing.hoursAmount;
@@ -57,9 +61,14 @@ if (!user) return unauthorizedResponse(request);
       return NextResponse.json({ error: "Monthly hours cannot exceed 12 hours." }, { status: 400 });
     }
 
+    // Only these columns may change; ownership (sectionId) and id are fixed
+    const allowed: Record<string, unknown> = {};
+    for (const key of ["packageName", "hoursAmount", "periodType", "price"] as const) {
+      if (data[key] !== undefined) allowed[key] = data[key];
+    }
     const hourlyPackage = await prisma.hourlyPackage.update({
       where: { id },
-      data,
+      data: allowed,
     });
 
     return NextResponse.json({ message: "Hourly package updated successfully.", hourlyPackage });
@@ -81,6 +90,13 @@ export async function DELETE(
     const user = await getTokenFromRequest(request);
 if (!user) return unauthorizedResponse(request);
     const { id } = await params;
+    const existing = await prisma.hourlyPackage.findUnique({ where: { id }, select: { sectionId: true } });
+    if (!existing) {
+      return NextResponse.json({ error: "Package not found." }, { status: 404 });
+    }
+    if (!(await canManageSection(user, existing.sectionId))) {
+      return NextResponse.json({ error: "You are not allowed to manage this venue's packages." }, { status: 403 });
+    }
     await prisma.hourlyPackage.delete({ where: { id } });
     return NextResponse.json({ message: "Hourly package deleted successfully." });
   } catch (error) {

@@ -201,6 +201,24 @@ export async function POST(request: Request) {
 
     let finalPartnerId = partnerId;
     let partnerExists = partnerId ? await prisma.partner.findUnique({ where: { id: partnerId } }) : null;
+
+    // A venue partner can only add workspaces under their own partner record; never under another
+    // partner's id and never under an arbitrary fallback partner.
+    if (userRole === 'PARTNER_ADMIN' || userRole === 'PROVIDER') {
+      const me = await prisma.user.findUnique({ where: { id: user.userId }, select: { email: true } });
+      const ownPartner = me?.email
+        ? await prisma.partner.findFirst({ where: { contactEmail: { equals: me.email, mode: 'insensitive' } } })
+        : null;
+      if (!ownPartner) {
+        return NextResponse.json({ error: 'No partner profile is linked to your account.' }, { status: 403 });
+      }
+      if (partnerId && partnerId !== ownPartner.id) {
+        return NextResponse.json({ error: 'You can only add workspaces to your own partner profile.' }, { status: 403 });
+      }
+      partnerExists = ownPartner;
+      finalPartnerId = ownPartner.id;
+    }
+
     if (!partnerExists) {
       const dbUser = await prisma.user.findUnique({ where: { id: user.userId } });
       if (dbUser?.email) {

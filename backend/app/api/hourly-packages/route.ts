@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { canManageSection } from '@/lib/ownership';
 import { prisma } from "@/lib/prisma";
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
@@ -79,6 +80,9 @@ if (!user) return unauthorizedResponse(request);
     const sectionExists = await prisma.workspaceSection.findUnique({ where: { id: sectionId } });
     if (!sectionExists) {
       return NextResponse.json({ error: "Section (sectionId) not found." }, { status: 404 });
+    }
+    if (!(await canManageSection(user, sectionId))) {
+      return NextResponse.json({ error: "You are not allowed to manage this venue's packages." }, { status: 403 });
     }
 
     const parsedHours = Number(hoursAmount);

@@ -53,6 +53,15 @@ export async function GET(
       );
     }
 
+    // Only a super admin, the company's HR admin, or one of its employees may read it
+    if (user.role !== "SUPER_ADMIN") {
+      const me = await prisma.user.findUnique({ where: { id: user.userId }, select: { companyId: true } });
+      const isOwner = company.hrAdminId === user.userId;
+      if (!isOwner && me?.companyId !== company.id) {
+        return NextResponse.json({ error: "You are not allowed to view this company." }, { status: 403 });
+      }
+    }
+
     return NextResponse.json(company);
   } catch (error) {
     console.error("❌ Error fetching company:", error);

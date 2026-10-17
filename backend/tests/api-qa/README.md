@@ -13,3 +13,8 @@ node tests/api-qa/suite-company-capacity-payments.mjs
 Env: `QA_API_URL` (default `http://localhost:3001/api`), `QA_DATABASE_URL` (default local `coworking` DB).
 Covers: IDOR/RBAC, wallet idempotency and overdraft races, hall/theater slot and operating-hour
 boundaries, concurrent booking (no overbooking), refunds, corporate wallet ledger, payment validation.
+
+Suites: `suite-security-wallet-slots`, `suite-company-capacity-payments`, `suite-past-sessions`,
+`suite-roles` (provider onboarding/moderation, HR, loyalty points, admin portal) and
+`suite-authz-mutations` (admin-only configuration, package/payment/waitlist ownership).
+Run them against a freshly migrated local database (`prisma migrate deploy`).

@@ -5,13 +5,15 @@ import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-tok
 export async function GET(request: Request) {
   try {
     const user = await getTokenFromRequest(request);
+    if (!user) return unauthorizedResponse(request);
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
 
+    // Loyalty balances are private: super admins may query anyone, everyone else only themselves
     const whereClause: any = {};
-    if (userId) {
-      whereClause.userId = userId;
-    } else if (user && user.role !== 'SUPER_ADMIN') {
+    if (user.role === 'SUPER_ADMIN') {
+      if (userId) whereClause.userId = userId;
+    } else {
       whereClause.userId = user.userId;
     }
 
@@ -57,9 +59,14 @@ export async function POST(request: NextRequest) {
   try {
     const user = await getTokenFromRequest(request);
 if (!user) return unauthorizedResponse(request);
-    const { userId, totalEarned = 0, totalRedeemed = 0 } = await request.json()
+    const payload = await request.json().catch(() => ({}))
+    // Balances are only ever set by a super admin; customers get an empty balance for themselves
+    const isAdmin = user.role === 'SUPER_ADMIN'
+    const userId: string | undefined = isAdmin ? payload.userId : user.userId
+    const totalEarned: number = isAdmin ? Number(payload.totalEarned ?? 0) : 0
+    const totalRedeemed: number = isAdmin ? Number(payload.totalRedeemed ?? 0) : 0
 
-    if (!userId) {
+    if (!userId || !Number.isFinite(totalEarned) || !Number.isFinite(totalRedeemed) || totalEarned < 0 || totalRedeemed < 0) {
       return NextResponse.json(
         { error: 'User ID is required.' },
         { status: 400 }

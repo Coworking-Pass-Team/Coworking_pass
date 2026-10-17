@@ -8,10 +8,27 @@ export async function GET(request: Request) {
     const user = await getTokenFromRequest(request);
     if (!user) return unauthorizedResponse(request);
 
-    const partners = await prisma.partner.findMany({
+    // Super admins see every partner in full; a partner sees only their own records; everyone else gets
+    // the public profile (no tax number, contact email or revenue share) of approved partners.
+    if (user.role === "SUPER_ADMIN") {
+      return NextResponse.json(await prisma.partner.findMany({ orderBy: { createdAt: "desc" } }));
+    }
+    if (user.role === "PARTNER_ADMIN") {
+      const me = await prisma.user.findUnique({ where: { id: user.userId }, select: { email: true } });
+      const own = me?.email
+        ? await prisma.partner.findMany({
+            where: { contactEmail: { equals: me.email, mode: "insensitive" } },
+            orderBy: { createdAt: "desc" },
+          })
+        : [];
+      return NextResponse.json(own);
+    }
+    const publicPartners = await prisma.partner.findMany({
+      where: { status: "APPROVED" },
+      select: { id: true, brandName: true, status: true },
       orderBy: { createdAt: "desc" },
     });
-    return NextResponse.json(partners);
+    return NextResponse.json(publicPartners);
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Internal server error." }, { status: 500 });
@@ -61,8 +78,22 @@ if (!user) return unauthorizedResponse(request);
       );
     }
 
+    // Only super admins and venue partners may create partner records. A partner can only register
+    // themselves (their own email) at the platform's standard revenue share, and starts unapproved.
+    if (user.role !== "SUPER_ADMIN" && user.role !== "PARTNER_ADMIN") {
+      return NextResponse.json({ error: "You are not allowed to create partners." }, { status: 403 });
+    }
+    let ownerEmail: string = contactEmail;
+    let share: number = revenueSharePercentage;
+    if (user.role === "PARTNER_ADMIN") {
+      const me = await prisma.user.findUnique({ where: { id: user.userId }, select: { email: true } });
+      if (!me?.email) return NextResponse.json({ error: "User not found." }, { status: 404 });
+      ownerEmail = me.email;
+      share = 15;
+    }
+
     const partner = await prisma.partner.create({
-      data: { brandName, contactEmail, taxNumber, revenueSharePercentage },
+      data: { brandName, contactEmail: ownerEmail, taxNumber, revenueSharePercentage: share },
     });
 
     return NextResponse.json(

@@ -24,8 +24,22 @@ export async function GET(request: Request) {
     if (!user) return unauthorizedResponse(request);
 
 
+    // Super admins see every company; everyone else only their own (as HR admin or employee).
+    // Users are returned without credentials or other private columns.
+    let where: Record<string, unknown> = {};
+    if (user.role !== "SUPER_ADMIN") {
+      const me = await prisma.user.findUnique({
+        where: { id: user.userId },
+        select: { companyId: true, hrAdminOf: { select: { id: true } } },
+      });
+      const ownId = me?.hrAdminOf?.id ?? me?.companyId ?? null;
+      where = { id: ownId ?? "__none__" };
+    }
+
+    const safeUser = { id: true, name: true, email: true, role: true, companyId: true, isBanned: true } as const;
     const companies = await prisma.company.findMany({
-      include: { hrAdmin: true, employees: true },
+      where,
+      include: { hrAdmin: { select: safeUser }, employees: { select: safeUser } },
     });
     return NextResponse.json(companies);
   } catch (error) {
@@ -69,6 +83,13 @@ export async function POST(request: Request) {
 
     const { companyName, hrAdminId, totalPassesAllocated } = await request.json();
 
+    // Only a super admin, or the HR admin the company belongs to, may create or change it
+    if (user.role !== "SUPER_ADMIN" && !(user.role === "HR_ADMIN" && hrAdminId === user.userId)) {
+      return NextResponse.json({ error: "You are not allowed to manage this company." }, { status: 403 });
+    }
+    // Pass allocations are granted by the platform: ignore the field for anyone but a super admin
+    const allocation: number | undefined = user.role === "SUPER_ADMIN" ? totalPassesAllocated : undefined;
+
     if (!companyName || !hrAdminId) {
       return NextResponse.json(
         { error: "Required fields: companyName, hrAdminId" },
@@ -98,7 +119,7 @@ export async function POST(request: Request) {
         where: { hrAdminId },
         data: {
           companyName: companyName.trim(),
-          ...(totalPassesAllocated !== undefined ? { totalPassesAllocated } : {}),
+          ...(allocation !== undefined ? { totalPassesAllocated: allocation } : {}),
         },
       });
     } else {
@@ -106,7 +127,7 @@ export async function POST(request: Request) {
         data: {
           companyName: companyName.trim(),
           hrAdminId,
-          totalPassesAllocated: totalPassesAllocated ?? 0,
+          totalPassesAllocated: allocation ?? 0,
         },
       });
     }
