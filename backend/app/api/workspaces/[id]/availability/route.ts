@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { directBookingEnd, getOccupiedSeats, getOccupiedSeatsForSection } from "@/lib/capacity";
-import { getOperatingRange, isFixedSlotSection, FIXED_SLOT_MINUTES, LATEST_SESSION_END_MINUTES, hhmmToMinutes } from "@/lib/operating-hours";
+import { getOperatingRange, isFixedSlotSection, FIXED_SLOT_MINUTES, LATEST_SESSION_END_MINUTES } from "@/lib/operating-hours";
 import { parseDateAndTimeToKsaDate } from "@/lib/time-utils";
 
 /**

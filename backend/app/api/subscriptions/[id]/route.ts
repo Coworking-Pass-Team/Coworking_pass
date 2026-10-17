@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
+import type { Prisma } from "@prisma/client";
 
 export async function GET(
   request: NextRequest,
@@ -78,7 +79,7 @@ export async function PUT(
     const body = await request.json();
     const { planId, startDate, endDate, visitsUsed, status } = body;
 
-    const dataToUpdate: Record<string, any> = {};
+    const dataToUpdate: Prisma.SubscriptionUncheckedUpdateInput = {};
     if (planId !== undefined) dataToUpdate.planId = planId;
     if (startDate !== undefined) dataToUpdate.startDate = new Date(startDate);
     if (endDate !== undefined) dataToUpdate.endDate = new Date(endDate);

@@ -22,7 +22,7 @@ export async function GET(request: Request) {
       },
       details: syncResult.details,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("[GET /api/db-sync Error]:", error);
     return NextResponse.json(
       {

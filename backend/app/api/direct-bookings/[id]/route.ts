@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getTokenFromRequest, unauthorizedResponse } from '@/lib/auth/verify-token';
+import type { Prisma } from "@prisma/client";
 
 /**
  * @swagger
@@ -108,7 +109,7 @@ export async function PUT(
       return NextResponse.json({ error: 'You are not allowed to modify this booking.' }, { status: 403 });
     }
 
-    const updateData: any = {};
+    const updateData: Prisma.DirectBookingUncheckedUpdateInput = {};
     if (body.durationType) updateData.durationType = body.durationType.toUpperCase();
     if (body.durationDetails) updateData.durationDetails = body.durationDetails;
     if (body.bookingDate) updateData.bookingDate = new Date(body.bookingDate);

@@ -6,7 +6,7 @@ import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-tok
 
 import { seedLoyaltyRules } from '@/lib/seed-data';
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     let rules = await prisma.loyaltyRule.findMany({
       include: {

@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     }
 
     const primarySection = primaryWs.sections[0];
-    let primaryPkg: any = primarySection?.hourlyPackages?.[0];
+    let primaryPkg: { id: string } | null | undefined = primarySection?.hourlyPackages?.[0];
     if (!primaryPkg && primarySection) {
       primaryPkg = await prisma.hourlyPackage.findFirst({ where: { sectionId: primarySection.id } });
     }
@@ -74,7 +74,7 @@ export async function POST(request: Request) {
       for (const sec of dupWs.sections) {
         // Find all packages for this section
         const secPackages = await prisma.hourlyPackage.findMany({ where: { sectionId: sec.id } });
-        const secPkgIds = secPackages.map((p: any) => p.id);
+        const secPkgIds = secPackages.map((p) => p.id);
 
         if (primarySection && primaryPkg) {
           const hbUpdate = await prisma.hourlyBooking.updateMany({
@@ -195,7 +195,7 @@ export async function POST(request: Request) {
       remainingHubCount: remaining.length,
       remaining,
     });
-  } catch (error: any) {
+  } catch (error) {
   console.error("[clean-workspaces Error]:", error);
   return NextResponse.json({
     success: false,

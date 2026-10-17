@@ -43,13 +43,13 @@ if (!user) return unauthorizedResponse(request);
     if (roleDenied) return roleDenied;
     const { id } = await params
     const body = await request.json()
-    const { status, approvedBy, isActive } = body
+    const { status } = body
 
     const rule = await prisma.loyaltyRule.update({
       where: { id },
       data: {
         status,
-        approvedBy,
+        approvedBy: user.userId, // the approver is whoever is signed in, never a client-supplied id
         isActive: status === 'APPROVED'
       },
       include: {

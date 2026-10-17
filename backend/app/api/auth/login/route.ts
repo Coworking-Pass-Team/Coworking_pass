@@ -6,10 +6,6 @@ import { sendOtpEmail } from "@/lib/mailer";
 import { ensureDatabaseSchema } from "@/lib/db-schema-sync";
 import { isRateLimited, recordFailedAttempt, clearAttempts } from "@/lib/rate-limit/login-attempts";
 
-function generateOtp() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
-
 /**
  * @swagger
  * /api/auth/login:
@@ -114,7 +110,7 @@ export async function POST(request: Request) {
       message: "Verification code sent to your email address.",
       userId: user.id,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("[Login API Error]:", error);
     return NextResponse.json({
       error: "Internal server error.",

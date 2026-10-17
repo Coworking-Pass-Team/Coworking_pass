@@ -17,5 +17,5 @@ export async function makeUser(name, email, role, extra = {}) {
   return { email, pw, userId, token: v.body?.token, reg, login, v };
 }
 let pass = 0, fail = 0; export const results = [];
-export function check(name, cond, detail = '') { (cond ? pass++ : fail++); results.push({ name, ok: !!cond, detail }); console.log((cond ? 'PASS ' : 'FAIL ') + name + (detail ? '  -> ' + detail : '')); }
+export function check(name, cond, detail = '') { if (cond) pass++; else fail++; results.push({ name, ok: !!cond, detail }); console.log((cond ? 'PASS ' : 'FAIL ') + name + (detail ? '  -> ' + detail : '')); }
 export const summary = () => console.log(`\n${pass} passed, ${fail} failed`);

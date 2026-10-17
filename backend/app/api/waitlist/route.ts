@@ -31,6 +31,7 @@ if (!user) return unauthorizedResponse(request);
     })
     return NextResponse.json(waitlist)
   } catch (error) {
+    console.error('❌ Error fetching waitlist:', error)
     return NextResponse.json(
       { error: 'Failed to fetch waitlist.' },
       { status: 500 }

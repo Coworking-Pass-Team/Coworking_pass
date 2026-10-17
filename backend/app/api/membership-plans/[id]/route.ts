@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireRoles } from '@/lib/ownership';
 import { prisma } from '@/lib/prisma'
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
+import type { Prisma } from "@prisma/client";
 
 // GET: جلب خطة معينة
 export async function GET(
@@ -77,7 +78,7 @@ export async function PUT(
     const body = await request.json();
     const { planName, type, totalVisitsAllowed, price } = body;
 
-    const dataToUpdate: Record<string, any> = {};
+    const dataToUpdate: Prisma.MembershipPlanUpdateInput = {};
     if (planName !== undefined) dataToUpdate.planName = planName.trim();
     if (type !== undefined) dataToUpdate.type = type === 'B2B' ? 'B2B' : 'B2C';
     if (totalVisitsAllowed !== undefined) dataToUpdate.totalVisitsAllowed = Number(totalVisitsAllowed);

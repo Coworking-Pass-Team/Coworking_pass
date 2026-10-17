@@ -38,7 +38,7 @@ console.log('\n## Corporate wallet');
   check('duplicate deposit key applied once', (await bal()) === 1000, 'bal ' + (await bal()));
   const par = await Promise.all(Array.from({ length: 10 }, () => wd(300, { referenceId: 'book-1' })));
   check('10 rapid identical withdrawals -> one debit', (await bal()) === 700, `bal ${await bal()} ok=${par.filter(r => r.status < 300 && !r.body?.duplicate).length}`);
-  const par2 = await Promise.all(Array.from({ length: 6 }, (_, i) => wd(300, { referenceId: 'm-' + i })));
+  await Promise.all(Array.from({ length: 6 }, (_, i) => wd(300, { referenceId: 'm-' + i })));
   const b2 = await bal();
   check('concurrent distinct withdrawals never overdraw', b2 >= 0 && b2 === 100, `bal ${b2}`);
   const ledger = Number((await db.query('select count(*) n from "CompanyWalletTransaction" where "companyId"=$1', [cid])).rows[0].n);

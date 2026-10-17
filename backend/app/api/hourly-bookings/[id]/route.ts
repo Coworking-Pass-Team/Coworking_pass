@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
+import type { LifecycleStatus } from "@prisma/client";
 
 export async function GET(
   request: NextRequest,
@@ -82,7 +83,7 @@ if (!user) return unauthorizedResponse(request);
     }
 
     // Only the lifecycle status may change after creation
-    const data: { status?: any } = {}
+    const data: { status?: LifecycleStatus } = {}
     if (body.status !== undefined) data.status = body.status
 
     const booking = await prisma.hourlyBooking.update({

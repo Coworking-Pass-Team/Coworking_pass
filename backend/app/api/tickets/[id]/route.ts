@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
+import type { TicketStatus } from "@prisma/client";
 
 const VALID_STATUSES = ["OPEN", "IN_PROGRESS", "CLOSED"];
 
@@ -53,7 +54,7 @@ if (!user) return unauthorizedResponse(request);
     }
 
     // Only the status can be changed after creation
-    const data: { status?: string } = {};
+    const data: { status?: TicketStatus } = {};
     if (body.status !== undefined) data.status = body.status;
 
     if (data.status && !VALID_STATUSES.includes(data.status)) {
@@ -65,7 +66,7 @@ if (!user) return unauthorizedResponse(request);
 
     const ticket = await prisma.ticket.update({
       where: { id },
-      data: data as any,
+      data,
     });
 
     return NextResponse.json({ message: "Support ticket updated successfully.", ticket });

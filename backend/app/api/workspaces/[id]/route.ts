@@ -110,7 +110,7 @@ export async function GET(
       ...workspace,
       images: Array.isArray(workspace.images) ? workspace.images : [],
       amenities: Array.isArray(workspace.amenities)
-        ? workspace.amenities.map((wa: any) => wa.amenity?.name || wa.name).filter(Boolean)
+        ? workspace.amenities.map((wa) => wa.amenity.name).filter(Boolean)
         : [],
     };
 
@@ -179,7 +179,7 @@ export async function PUT(
           ...updatedWithAmenities,
           images: Array.isArray(updatedWithAmenities.images) ? updatedWithAmenities.images : [],
           amenities: Array.isArray(updatedWithAmenities.amenities)
-            ? updatedWithAmenities.amenities.map((wa: any) => wa.amenity?.name || wa.name).filter(Boolean)
+            ? updatedWithAmenities.amenities.map((wa) => wa.amenity.name).filter(Boolean)
             : [],
         }
       : workspace;

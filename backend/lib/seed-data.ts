@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { ensureDatabaseSchema } from '@/lib/db-schema-sync';
+import type { Prisma } from '@prisma/client';
 
 export interface StandardSpaceSeed {
   name: string;
@@ -608,17 +609,17 @@ export async function seedStandardWorkspaces() {
 
     // Backfill the Arabic name on existing rows without overriding provider edits
     const backfill: Record<string, string> = {};
-    if (s.nameAr && !(ws as any).nameAr) backfill.nameAr = s.nameAr;
+    if (s.nameAr && !ws.nameAr) backfill.nameAr = s.nameAr;
     const desc = standardDescriptions(s);
-    if (!(ws as any).description) backfill.description = desc.description;
-    if (!(ws as any).descriptionAr) backfill.descriptionAr = desc.descriptionAr;
+    if (!ws.description) backfill.description = desc.description;
+    if (!ws.descriptionAr) backfill.descriptionAr = desc.descriptionAr;
     if (Object.keys(backfill).length > 0) {
       await prisma.workspace.update({ where: { id: ws.id }, data: backfill });
     }
 
     // 3. Ensure Sections exist based on space category
     if (s.category === 'theater') {
-      let theaterSec = ws.sections.find((sec: any) => sec.type === 'THEATER');
+      let theaterSec = ws.sections.find((sec) => sec.type === 'THEATER');
       if (!theaterSec) {
         theaterSec = await prisma.workspaceSection.create({
           data: {
@@ -644,7 +645,7 @@ export async function seedStandardWorkspaces() {
         });
       }
     } else if (s.category === 'hall') {
-      let hallSec = ws.sections.find((sec: any) => sec.type === 'MEETING_ROOM');
+      let hallSec = ws.sections.find((sec) => sec.type === 'MEETING_ROOM');
       if (!hallSec) {
         hallSec = await prisma.workspaceSection.create({
           data: {
@@ -671,7 +672,7 @@ export async function seedStandardWorkspaces() {
       }
     } else {
       // Office / Desk
-      let deskSec = ws.sections.find((sec: any) => sec.type === 'DESK');
+      let deskSec = ws.sections.find((sec) => sec.type === 'DESK');
       if (!deskSec) {
         deskSec = await prisma.workspaceSection.create({
           data: {
@@ -687,7 +688,7 @@ export async function seedStandardWorkspaces() {
       }
 
       if (s.type === 'mixed') {
-        let mrSec = ws.sections.find((sec: any) => sec.type === 'MEETING_ROOM');
+        let mrSec = ws.sections.find((sec) => sec.type === 'MEETING_ROOM');
         if (!mrSec) {
           mrSec = await prisma.workspaceSection.create({
             data: {
@@ -844,12 +845,12 @@ export async function deduplicateWorkspaces() {
       if (workspacesList.length <= 1) continue;
 
       // احتفظ بالمساحة التي تحتوي على أكبر عدد من الأقسام
-      workspacesList.sort((a: any, b: any) => b.sections.length - a.sections.length);
+      workspacesList.sort((a, b) => b.sections.length - a.sections.length);
       const primaryWs = workspacesList[0];
       const duplicates = workspacesList.slice(1);
 
       const primarySection = primaryWs.sections[0];
-      let primaryPkg: any = primarySection?.hourlyPackages?.[0];
+      let primaryPkg: { id: string } | null | undefined = primarySection?.hourlyPackages?.[0];
       if (!primaryPkg && primarySection) {
         primaryPkg = await prisma.hourlyPackage.findFirst({ where: { sectionId: primarySection.id } });
       }
@@ -871,10 +872,10 @@ export async function deduplicateWorkspaces() {
           for (const sec of dup.sections) {
             try {
               const secPackages = await prisma.hourlyPackage.findMany({ where: { sectionId: sec.id } });
-              const secPkgIds = secPackages.map((p: any) => p.id);
+              const secPkgIds = secPackages.map((p) => p.id);
 
               if (primarySection) {
-                const updateData: any = { sectionId: primarySection.id };
+                const updateData: Prisma.HourlyBookingUncheckedUpdateManyInput = { sectionId: primarySection.id };
                 if (primaryPkg) updateData.packageId = primaryPkg.id;
 
                 await prisma.hourlyBooking.updateMany({

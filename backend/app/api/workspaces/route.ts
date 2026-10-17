@@ -62,7 +62,8 @@ async function syncWorkspaceAmenities(workspaceId: string, amenities: string[]) 
   }
 }
 
-import { seedStandardWorkspaces, deduplicateWorkspaces } from "@/lib/seed-data";
+import { seedStandardWorkspaces } from "@/lib/seed-data";
+import { errorMessage } from "@/lib/errors";
 
 export async function GET(request: Request) {
   try {
@@ -89,7 +90,7 @@ export async function GET(request: Request) {
     }
 
     // Live availability for today, computed from confirmed bookings
-    const occupiedByWorkspace = await getOccupiedSeatsToday(workspaces.map((w: any) => w.id));
+    const occupiedByWorkspace = await getOccupiedSeatsToday(workspaces.map((w) => w.id));
 
     // Hidden workspaces are redacted for everyone except admins and the owning partner
     const caller = await getTokenFromRequest(request);
@@ -98,7 +99,7 @@ export async function GET(request: Request) {
       ? (await prisma.user.findUnique({ where: { id: caller.userId }, select: { email: true } }))?.email?.toLowerCase()
       : undefined;
 
-    const formatted = workspaces.map((w: any) => w.isVisible === false && !isAdmin && !(ownerEmail && w.partner?.contactEmail?.toLowerCase() === ownerEmail)
+    const formatted = workspaces.map((w) => w.isVisible === false && !isAdmin && !(ownerEmail && w.partner?.contactEmail?.toLowerCase() === ownerEmail)
       ? redactHiddenWorkspace(w)
       : ({
       ...w,
@@ -106,14 +107,14 @@ export async function GET(request: Request) {
       availableCapacity: Math.max(0, (Number(w.totalCapacity) || 0) - (occupiedByWorkspace.get(w.id) || 0)),
       images: Array.isArray(w.images) ? w.images : [],
       amenities: Array.isArray(w.amenities)
-        ? w.amenities.map((wa: any) => wa.amenity?.name || wa.name).filter(Boolean)
+        ? w.amenities.map((wa) => wa.amenity.name).filter(Boolean)
         : [],
     }));
 
     return NextResponse.json(formatted);
-  } catch (error: any) {
+  } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "Internal server error.", details: error?.message || String(error) }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error.", details: errorMessage(error, String(error)) }, { status: 500 });
   }
 }
 

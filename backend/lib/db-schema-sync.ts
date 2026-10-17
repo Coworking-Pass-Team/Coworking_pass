@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { provisionSuperAdmin } from "@/lib/super-admin";
+import { errorMessage } from "@/lib/errors";
 
 let isSchemaEnsured = false;
 
@@ -8,7 +9,7 @@ let isSchemaEnsured = false;
  * Guarantees that any missing columns on Neon PostgreSQL are added seamlessly
  * and the Super Admin account is provisioned from environment variables (see lib/super-admin.ts).
  */
-export async function ensureDatabaseSchema(force = false): Promise<{ success: boolean; message: string; details?: any }> {
+export async function ensureDatabaseSchema(force = false): Promise<{ success: boolean; message: string; details?: unknown }> {
   if (isSchemaEnsured && !force) {
     return { success: true, message: "Database schema already synchronized." };
   }
@@ -159,11 +160,11 @@ export async function ensureDatabaseSchema(force = false): Promise<{ success: bo
       message: "Database schema and Super Admin account synchronized successfully.",
       details: executedStatements,
     };
-  } catch (error: any) {
+  } catch (error) {
     console.error("[Schema Sync Error]:", error);
     return {
       success: false,
-      message: error?.message || "Database schema synchronization failed.",
+      message: errorMessage(error, "Database schema synchronization failed."),
       details: error,
     };
   }

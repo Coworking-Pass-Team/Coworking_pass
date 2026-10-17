@@ -13,30 +13,30 @@ export async function DELETE(request: Request) {
     // Ensure durationDetails column exists in Neon DB
     await prisma.$executeRawUnsafe(
       'ALTER TABLE "DirectBooking" ADD COLUMN IF NOT EXISTS "durationDetails" TEXT;'
-    ).catch((err: any) => console.warn('Alter table column warning:', err));
+    ).catch((err: unknown) => console.warn('Alter table column warning:', err));
 
     // Ensure workspaceId and durationDetails columns exist in HourlyBooking on Neon DB
     await prisma.$executeRawUnsafe(
       'ALTER TABLE "HourlyBooking" ADD COLUMN IF NOT EXISTS "workspaceId" TEXT;'
-    ).catch((err: any) => console.warn('Alter table HourlyBooking workspaceId warning:', err));
+    ).catch((err: unknown) => console.warn('Alter table HourlyBooking workspaceId warning:', err));
 
     await prisma.$executeRawUnsafe(
       'ALTER TABLE "HourlyBooking" ADD COLUMN IF NOT EXISTS "durationDetails" TEXT;'
-    ).catch((err: any) => console.warn('Alter table HourlyBooking durationDetails warning:', err));
+    ).catch((err: unknown) => console.warn('Alter table HourlyBooking durationDetails warning:', err));
 
     // Drop redundant durationHours column if it exists
     await prisma.$executeRawUnsafe(
       'ALTER TABLE "HourlyBooking" DROP COLUMN IF EXISTS "durationHours";'
-    ).catch((err: any) => console.warn('Drop table HourlyBooking durationHours warning:', err));
+    ).catch((err: unknown) => console.warn('Drop table HourlyBooking durationHours warning:', err));
 
     // Ensure Payment has workspaceId and createdAt columns in Neon DB
     await prisma.$executeRawUnsafe(
       'ALTER TABLE "Payment" ADD COLUMN IF NOT EXISTS "workspaceId" TEXT;'
-    ).catch((err: any) => console.warn('Alter table Payment workspaceId warning:', err));
+    ).catch((err: unknown) => console.warn('Alter table Payment workspaceId warning:', err));
 
     await prisma.$executeRawUnsafe(
       'ALTER TABLE "Payment" ADD COLUMN IF NOT EXISTS "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;'
-    ).catch((err: any) => console.warn('Alter table Payment createdAt warning:', err));
+    ).catch((err: unknown) => console.warn('Alter table Payment createdAt warning:', err));
 
     await prisma.$executeRawUnsafe(`
       DO $$
@@ -48,7 +48,7 @@ export async function DELETE(request: Request) {
           FOREIGN KEY ("workspaceId") REFERENCES "Workspace"("id") ON DELETE SET NULL ON UPDATE CASCADE;
         END IF;
       END $$;
-    `).catch((err: any) => console.warn('Foreign key Payment_workspaceId_fkey warning:', err));
+    `).catch((err: unknown) => console.warn('Foreign key Payment_workspaceId_fkey warning:', err));
 
     // Fix workspace cities for Khobar spaces
     await prisma.workspace.updateMany({
@@ -112,7 +112,7 @@ export async function DELETE(request: Request) {
         remaining: 0,
       },
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("[clean-tables Error]:", error);
     return NextResponse.json({
       success: false,

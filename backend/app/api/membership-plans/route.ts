@@ -43,7 +43,7 @@ const DEFAULT_PLANS = [
   },
 ];
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     let plans = await prisma.membershipPlan.findMany();
 

@@ -13,15 +13,15 @@ export async function GET(request: Request) {
       success: true,
       message: 'All workspaces, sections, and packages seeded successfully in database.',
       count: workspaces.length,
-      workspaces: workspaces.map((w: any) => ({
+      workspaces: workspaces.map((w) => ({
         id: w.id,
         name: w.name,
         city: w.city,
         sectionsCount: w.sections?.length || 0,
-        sections: w.sections?.map((s: any) => ({ id: s.id, type: s.type, name: s.name })) || []
+        sections: w.sections?.map((s) => ({ id: s.id, type: s.type, name: s.name })) || []
       }))
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error seeding workspaces:', error);
     return NextResponse.json({ success: false, error: 'Failed to seed database.' }, { status: 500 });
   }

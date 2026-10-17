@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 import { calculateDistance } from "@/lib/haversine";
 
 /**

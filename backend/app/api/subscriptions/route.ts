@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
+import type { Prisma } from "@prisma/client";
 
 export async function GET(request: Request) {
   try {
@@ -16,7 +17,7 @@ export async function GET(request: Request) {
       ? requestedUserId
       : (canViewOthers ? undefined : user.userId);
 
-    const whereClause: any = {};
+    const whereClause: Prisma.SubscriptionWhereInput = {};
     if (userIdFilter) {
       whereClause.userId = userIdFilter;
     }

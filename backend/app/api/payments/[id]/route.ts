@@ -3,6 +3,7 @@ import { canManageWorkspace } from '@/lib/ownership';
 import { requireRoles } from '@/lib/ownership';
 import { prisma } from '@/lib/prisma';
 import { getTokenFromRequest, unauthorizedResponse } from '@/lib/auth/verify-token';
+import type { Prisma } from '@prisma/client';
 
 export async function GET(
   request: NextRequest,
@@ -55,7 +56,7 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
 
-    const updateData: any = {};
+    const updateData: Prisma.PaymentUncheckedUpdateInput = {};
     if (body.status !== undefined) {
       updateData.status = body.status === 'FAILED' ? 'FAILED' : 'SUCCESS';
     }

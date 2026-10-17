@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 import { canManageWorkspace, forbiddenResponse } from "@/lib/ownership";
+import type { Prisma, SectionType } from '@prisma/client';
 
 const VALID_TYPES = ["DESK", "MEETING_ROOM", "THEATER"];
 
@@ -12,9 +13,9 @@ export async function GET(request: Request) {
     const workspaceId = searchParams.get('workspaceId');
     const type = searchParams.get('type');
 
-    const whereClause: any = {};
+    const whereClause: Prisma.WorkspaceSectionWhereInput = {};
     if (workspaceId) whereClause.workspaceId = workspaceId;
-    if (type && VALID_TYPES.includes(type)) whereClause.type = type;
+    if (type && VALID_TYPES.includes(type)) whereClause.type = type as SectionType;
 
     const sections = await prisma.workspaceSection.findMany({
       where: whereClause,

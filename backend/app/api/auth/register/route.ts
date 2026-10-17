@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { sendOtpEmail } from "@/lib/mailer";
+import type { Role } from "@prisma/client";
 
 const VALID_ROLES = ["GUEST", "B2C", "HR_ADMIN", "PARTNER_ADMIN"];
 
@@ -109,7 +110,7 @@ if (existingUser && !existingUser.emailVerified) {
         name: name.trim(),
         email: cleanEmail,
         passwordHash,
-        role: assignedRole as any,
+        role: assignedRole as Role,
         companyId: companyId || null,
         emailVerified: false,
       },

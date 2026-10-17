@@ -53,6 +53,7 @@ if (!user) return unauthorizedResponse(request);
       { status: 200 }
     )
   } catch (error) {
+    console.error('❌ Error removing waitlist entry:', error)
     return NextResponse.json(
       { error: 'Failed to remove from waitlist.' },
       { status: 500 }

@@ -7,6 +7,8 @@ import { getOccupiedSeats } from '@/lib/capacity';
 import { hiddenWorkspaceError } from '@/lib/workspace-visibility';
 import { getOwnedWorkspaceIds } from '@/lib/ownership';
 import { validateHourlyWindow, isFixedSlotSection } from '@/lib/operating-hours';
+import type { Prisma, SectionType, LifecycleStatus } from "@prisma/client";
+import { errorMessage } from '@/lib/errors';
 
 
 export async function GET(request: Request) {
@@ -16,7 +18,7 @@ export async function GET(request: Request) {
 
     // Scope the listing: super admins see everything, partners their own workspaces (plus their own bookings),
     // HR admins their team's bookings, everyone else only their own
-    let where: any = { userId: user.userId };
+    let where: Prisma.HourlyBookingWhereInput = { userId: user.userId };
     if (user.role === 'SUPER_ADMIN') {
       where = {};
     } else if (user.role === 'PARTNER_ADMIN') {
@@ -154,7 +156,7 @@ export async function POST(request: NextRequest) {
       return 'Riyadh';
     };
 
-    let effectiveUserId = (user && user.role === 'SUPER_ADMIN' && userId) ? userId : (user ? user.userId : null);
+    const effectiveUserId = (user && user.role === 'SUPER_ADMIN' && userId) ? userId : (user ? user.userId : null);
 
     if (!effectiveUserId) {
       return unauthorizedResponse(request);
@@ -349,7 +351,7 @@ const requestedType = (validSectionTypes.includes(sectionType) && sectionType !=
       sec = await prisma.workspaceSection.create({
         data: {
           workspaceId: ws.id,
-          type: requestedType as any,
+          type: requestedType as SectionType,
           name: sectionName,
           capacity: requestedType === 'THEATER' ? 100 : 20,
           dailyRate: requestedType === 'THEATER' ? 1500 : 200,
@@ -409,7 +411,7 @@ const requestedType = (validSectionTypes.includes(sectionType) && sectionType !=
 
     // التأكد من وجود باقة
     let pkg = sec.hourlyPackages && sec.hourlyPackages.length > 0
-      ? sec.hourlyPackages.find((p: any) => p.id === targetPackageId) || sec.hourlyPackages[0]
+      ? sec.hourlyPackages.find((p) => p.id === targetPackageId) || sec.hourlyPackages[0]
       : await prisma.hourlyPackage.findFirst({ where: { sectionId: sec.id } });
 
     if (!pkg) {
@@ -462,7 +464,7 @@ const requestedType = (validSectionTypes.includes(sectionType) && sectionType !=
         endDate: endObj,
         durationDetails: computedDetails,
         seats: requestedSeats,
-        status: normalizedStatus as any,
+        status: normalizedStatus as LifecycleStatus,
         hoursUsed: computedHours,
         createdAt: getKsaNow(),
       },
@@ -485,10 +487,10 @@ const requestedType = (validSectionTypes.includes(sectionType) && sectionType !=
     }
 
     return NextResponse.json(txResult.booking, { status: 201 });
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ Error creating hourly booking:', error);
     return NextResponse.json(
-      { error: error?.message || 'Failed to create hourly booking.' },
+      { error: errorMessage(error, 'Failed to create hourly booking.') },
       { status: 500 }
     );
   }

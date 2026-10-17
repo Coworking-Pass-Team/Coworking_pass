@@ -36,7 +36,7 @@ export async function GET(request: Request) {
           await prisma.amenityCatalog.create({
             data: { name, isDefault: true, status: "APPROVED" }
           });
-        } catch (_) {}
+        } catch {}
       }
       amenities = await prisma.amenityCatalog.findMany();
     }

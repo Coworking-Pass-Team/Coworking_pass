@@ -6,6 +6,8 @@ import { getOwnedWorkspaceIds } from '@/lib/ownership';
 import { directBookingEnd, getOccupiedSeats, getOccupiedSeatsForSection } from '@/lib/capacity';
 import { hiddenWorkspaceError } from '@/lib/workspace-visibility';
 import { getKsaNow, parseDateAndTimeToKsaDate } from '@/lib/time-utils';
+import type { Prisma, DurationType, DirectBookingStatus } from "@prisma/client";
+import { errorMessage } from '@/lib/errors';
 
 export async function GET(request: Request) {
   try {
@@ -20,21 +22,22 @@ export async function GET(request: Request) {
     const sectionId = searchParams.get('sectionId');
     const status = searchParams.get('status');
 
-    const whereClause: any = {};
+    const whereClause: Prisma.DirectBookingWhereInput = {};
     if (user.role === 'SUPER_ADMIN') {
       if (userId) whereClause.userId = userId;
     } else if (user.role === 'PARTNER_ADMIN') {
       // A partner sees bookings made at their own workspaces, plus any they made themselves as a customer
       const owned = await getOwnedWorkspaceIds(user.userId);
-      whereClause.AND = [{ OR: [{ workspaceId: { in: owned } }, { userId: user.userId }] }];
-      if (userId) whereClause.AND.push({ userId });
+      const and: Prisma.DirectBookingWhereInput[] = [{ OR: [{ workspaceId: { in: owned } }, { userId: user.userId }] }];
+      if (userId) and.push({ userId });
+      whereClause.AND = and;
     } else {
       whereClause.userId = user.userId;
     }
 
     if (workspaceId) whereClause.workspaceId = workspaceId;
     if (sectionId) whereClause.sectionId = sectionId;
-    if (status) whereClause.status = status;
+    if (status) whereClause.status = status as DirectBookingStatus;
 
     const bookings = await prisma.directBooking.findMany({
       where: whereClause,
@@ -258,7 +261,7 @@ export async function POST(request: NextRequest) {
     targetWorkspaceId = ws.id;
 
     let sec = ws.sections && ws.sections.length > 0
-      ? (targetSectionId ? ws.sections.find((s: any) => s.id === targetSectionId) : null) || ws.sections[0]
+      ? (targetSectionId ? ws.sections.find((s) => s.id === targetSectionId) : null) || ws.sections[0]
       : null;
 
     if (!sec) {
@@ -340,10 +343,10 @@ export async function POST(request: NextRequest) {
         seats: requestedSeats,
         workspaceId: targetWorkspaceId,
         sectionId: targetSectionId,
-        durationType: finalDuration as any,
+        durationType: finalDuration as DurationType,
         durationDetails: finalDurationDetails,
         bookingDate: parseDateAndTimeToKsaDate(bookingDate, null, 9),
-        status: (status as any) || 'CONFIRMED',
+        status: (status as DirectBookingStatus) || 'CONFIRMED',
         createdAt: getKsaNow(),
       },
       include: {
@@ -370,10 +373,10 @@ export async function POST(request: NextRequest) {
     }).catch(() => {});
 
     return NextResponse.json(booking, { status: 201 });
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ Error creating direct booking:', error);
     return NextResponse.json(
-      { error: error?.message || 'Failed to create direct booking.' },
+      { error: errorMessage(error, 'Failed to create direct booking.') },
       { status: 500 }
     );
   }

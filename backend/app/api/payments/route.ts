@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getTokenFromRequest, unauthorizedResponse, suspendedResponse } from '@/lib/auth/verify-token';
 import { getKsaNow } from '@/lib/time-utils';
+import type { Prisma, PaymentMethod, PaymentFor, PaymentStatus } from '@prisma/client';
 
 export async function GET(request: Request) {
   try {
@@ -14,7 +15,7 @@ export async function GET(request: Request) {
     const paymentFor = searchParams.get('paymentFor');
     const method = searchParams.get('method');
 
-    const whereClause: any = {};
+    const whereClause: Prisma.PaymentWhereInput = {};
     const canViewOthers = user.role === 'SUPER_ADMIN' || user.role === 'PARTNER_ADMIN';
     if (userId && (canViewOthers || userId === user.userId)) {
       whereClause.userId = userId;
@@ -22,9 +23,9 @@ export async function GET(request: Request) {
       whereClause.userId = user.userId;
     }
 
-    if (status) whereClause.status = status;
-    if (paymentFor) whereClause.paymentFor = paymentFor;
-    if (method) whereClause.method = method;
+    if (status) whereClause.status = status as PaymentStatus;
+    if (paymentFor) whereClause.paymentFor = paymentFor as PaymentFor;
+    if (method) whereClause.method = method as PaymentMethod;
 
     const payments = await prisma.payment.findMany({
       where: whereClause,
@@ -92,7 +93,7 @@ export async function POST(request: NextRequest) {
       gatewayTransactionId,
     } = body;
 
-    let effectiveUserId = (user && user.role === 'SUPER_ADMIN' && userId) ? userId : (user ? user.userId : null);
+    const effectiveUserId = (user && user.role === 'SUPER_ADMIN' && userId) ? userId : (user ? user.userId : null);
     if (!effectiveUserId) {
       return unauthorizedResponse(request);
     }
@@ -169,8 +170,8 @@ export async function POST(request: NextRequest) {
         userId: effectiveUserId,
         workspaceId: resolvedWorkspaceId,
         amount: Number(amount),
-        method: normalizedMethod as any,
-        paymentFor: normalizedPaymentFor as any,
+        method: normalizedMethod as PaymentMethod,
+        paymentFor: normalizedPaymentFor as PaymentFor,
         referenceId: referenceId || null,
         status: status === 'FAILED' ? 'FAILED' : 'SUCCESS',
         gatewayTransactionId: gatewayTransactionId || `TX-${Date.now()}`,

@@ -8,6 +8,19 @@ const ALL_TYPES = ["DESK", "MEETING_ROOM", "THEATER"] as const;
 type UnitType = (typeof ALL_TYPES)[number];
 
 /** Booking category of a room kind chosen by the provider (frontend space type). */
+/** A room or section as sent by the client; every field is validated before use. */
+interface RawUnit {
+  id?: unknown;
+  name?: unknown;
+  type?: unknown;
+  subType?: unknown;
+  capacity?: unknown;
+  hourlyRate?: unknown;
+  dailyRate?: unknown;
+  monthlyRate?: unknown;
+  yearlyRate?: unknown;
+}
+
 function sectionTypeFor(subType: unknown, explicit: unknown): UnitType {
   if (typeof explicit === "string" && (ALL_TYPES as readonly string[]).includes(explicit)) return explicit as UnitType;
   const kind = String(subType || "").toLowerCase();
@@ -101,7 +114,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     const body = await request.json();
-    const rawUnits: any[] = Array.isArray(body.units) ? body.units : [];
+    const rawUnits: RawUnit[] = Array.isArray(body.units) ? body.units : [];
     if (rawUnits.length === 0) {
       return NextResponse.json({ error: "At least one room or section is required." }, { status: 400 });
     }
