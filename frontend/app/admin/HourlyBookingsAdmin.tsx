@@ -419,7 +419,7 @@ export default function HourlyBookingsAdmin() {
               const d = new Date(dateIso);
               if (isNaN(d.getTime())) return dateIso;
               const datePart = d.toISOString().split('T')[0];
-              const timePart = d.toLocaleTimeString(lang === 'ar' ? 'ar-SA' : 'en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+              const timePart = d.toLocaleTimeString(lang === 'ar' ? 'ar-SA' : 'en-US', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'UTC' });
               return `${datePart} · ${timePart}`;
             };
 

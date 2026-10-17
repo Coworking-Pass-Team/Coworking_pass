@@ -15,7 +15,8 @@ console.log('\n## Direct booking capacity');
   const created = rs.filter(r => r.status === 201).length;
   const seats = Number((await db.query(`select coalesce(sum(seats),0) n from "DirectBooking" where "workspaceId"=$1 and status='CONFIRMED' and "bookingDate"::date=$2::date`, [d.wid, when])).rows[0].n);
   check('8 concurrent desk bookings, capacity 2 -> never more than 2 seats', seats <= 2 && created <= 2, `created=${created} seats=${seats} statuses=${rs.map(r => r.status).join(',')}`);
-  const again = await api('/direct-bookings', { method: 'POST', token: users[0].token, body: { workspaceId: d.wid, sectionId: d.sid, durationType: 'DAILY', bookingDate: when, seats: 1 } });
+  const winner = users[rs.findIndex(r => r.status === 201)];
+  const again = await api('/direct-bookings', { method: 'POST', token: winner.token, body: { workspaceId: d.wid, sectionId: d.sid, durationType: 'DAILY', bookingDate: when, seats: 1 } });
   check('same user cannot hold a second active booking', again.status === 400, 'status ' + again.status);
 }
 

@@ -2313,7 +2313,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           const userIdStr = b.userId || (typeof b.user === 'object' && b.user && 'id' in b.user ? (b.user as any).id : '') || '';
           const hours = b.hoursUsed || b.package?.hoursAmount || 1;
           const hourlyRate = matchedSpace?.pricing?.hourly || 45;
-          const computedPrice = b.package?.price || (hourlyRate * hours);
+          const computedPrice = (typeof b.paidAmount === "number" && b.paidAmount > 0) ? b.paidAmount : (b.package?.price || (hourlyRate * hours));
 
           let startTimeStr = '09:00';
           let endTimeStr = '18:00';
@@ -2321,7 +2321,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             try {
               const d = new Date(b.startDate);
               if (!isNaN(d.getTime())) {
-                startTimeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+                startTimeStr = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' });
               }
             } catch (e) { }
           }
@@ -2329,7 +2329,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             try {
               const d = new Date(b.endDate);
               if (!isNaN(d.getTime())) {
-                endTimeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+                endTimeStr = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' });
               }
             } catch (e) { }
           }

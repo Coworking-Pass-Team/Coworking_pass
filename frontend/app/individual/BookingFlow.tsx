@@ -1570,7 +1570,7 @@ export default function BookingFlow() {
                   )}
                   <Row
                     label={t('bf.vat')}
-                    value={planInfo.effectivePrice === 0 ? 'SAR 0' : `${t('common.sar')} ${((planInfo.effectivePrice * seats) * 0.15).toFixed(0)}`}
+                    value={planInfo.effectivePrice === 0 ? 'SAR 0' : `${t('common.sar')} ${((planInfo.effectivePrice * seats) * 15 / 115).toFixed(2)}`}
                   />
 
                   {/* Highlighted Final Payable Amount */}

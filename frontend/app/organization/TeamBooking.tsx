@@ -1473,7 +1473,7 @@ export default function TeamBooking() {
                   <div className="flex justify-between text-xs sm:text-sm">
                     <span className="text-moss">VAT (15% included)</span>
                     <span className="text-soot font-medium">
-                      {planInfo.isCovered ? `${t('common.sar')} 0` : `${t('common.sar')} ${((finalPayablePrice) * 0.15).toFixed(0)}`}
+                      {planInfo.isCovered ? `${t('common.sar')} 0` : `${t('common.sar')} ${((finalPayablePrice) * 15 / 115).toFixed(2)}`}
                     </span>
                   </div>
 

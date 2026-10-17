@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 import { ensureDatabaseSchema } from "@/lib/db-schema-sync";
 import { creditWallet } from "@/lib/wallet";
+import { getKsaNow } from "@/lib/time-utils";
 
 /**
  * @swagger
@@ -142,9 +143,17 @@ export async function POST(request: NextRequest) {
     // Cancellation window: 6 hours for individuals, 24 hours for organizations
     if (!isAdmin) {
       const start = direct ? new Date(direct.bookingDate) : new Date(hourly!.startDate)
-      const hoursDiff = (start.getTime() - Date.now()) / 3_600_000
+      // Booking timestamps hold KSA wall-clock time, so compare them with KSA "now"
+      const nowKsa = getKsaNow()
+      const hoursDiff = (start.getTime() - nowKsa.getTime()) / 3_600_000
       const requiredHours = booking.user?.role === 'B2C' ? 6 : 24
-      if (hoursDiff < requiredHours && start > new Date()) {
+      if (hourly && start <= nowKsa) {
+        return NextResponse.json(
+          { error: 'Cancellation not allowed. This session has already started.' },
+          { status: 400 }
+        )
+      }
+      if (hoursDiff < requiredHours && start > nowKsa) {
         return NextResponse.json(
           { error: `Cancellation not allowed. Must cancel at least ${requiredHours} hours before booking time.` },
           { status: 400 }

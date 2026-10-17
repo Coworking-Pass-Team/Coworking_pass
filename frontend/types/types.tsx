@@ -1118,6 +1118,14 @@ export function getFixedSessionSlots(openHoursStr?: string, dateStr?: string): F
   for (let m = range.openMinutes; m + FIXED_SESSION_HOURS * 60 <= latestEnd; m += (FIXED_SESSION_HOURS + 1) * 60) {
     slots.push({ start: formatMinutesTo12h(m), end: formatMinutesTo12h(m + FIXED_SESSION_HOURS * 60) });
   }
+
+  // For today (KSA time) hide sessions that have already ended
+  const ksaNow = new Date(Date.now() + 3 * 60 * 60 * 1000);
+  const ksaToday = ksaNow.toISOString().slice(0, 10);
+  if (dateStr && dateStr.slice(0, 10) === ksaToday) {
+    const nowMinutes = ksaNow.getUTCHours() * 60 + ksaNow.getUTCMinutes();
+    return slots.filter((sl) => timeStringToMinutes(sl.end) > nowMinutes);
+  }
   return slots;
 }
 
@@ -1802,6 +1810,8 @@ export interface HourlyBookingApi {
   startDate: string;
   endDate: string;
   hoursUsed: number;
+  seats?: number;
+  paidAmount?: number | null;
   status: string;
   createdAt?: string;
   updatedAt?: string;

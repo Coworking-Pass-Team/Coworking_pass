@@ -44,7 +44,21 @@ export async function GET(request: Request) {
         package: true
       }
     });
-    return NextResponse.json(bookings);
+    // Attach what was actually paid for each booking (successful payments referencing it), so clients
+    // show the real amount instead of the package list price
+    const ids = bookings.map((b) => b.id);
+    const payments = ids.length
+      ? await prisma.payment.findMany({
+          where: { referenceId: { in: ids }, paymentFor: 'HOURLY_BOOKING', status: 'SUCCESS' },
+          select: { referenceId: true, amount: true },
+        })
+      : [];
+    const paidByBooking = new Map<string, number>();
+    for (const p of payments) {
+      if (p.referenceId) paidByBooking.set(p.referenceId, (paidByBooking.get(p.referenceId) || 0) + p.amount);
+    }
+
+    return NextResponse.json(bookings.map((b) => ({ ...b, paidAmount: paidByBooking.get(b.id) ?? null })));
   } catch (error) {
     console.error('❌ Error fetching hourly bookings:', error)
     return NextResponse.json(
@@ -356,6 +370,11 @@ const requestedType = (validSectionTypes.includes(sectionType) && sectionType !=
     const windowError = validateHourlyWindow({ workspace: ws, sectionType: sec.type, start: startObj, end: endObj });
     if (windowError) {
       return NextResponse.json({ error: windowError }, { status: 400 });
+    }
+
+    // A session that has already ended cannot be booked (timestamps hold KSA wall-clock time)
+    if (normalizedStatus === 'ACTIVE' && endObj.getTime() <= getKsaNow().getTime()) {
+      return NextResponse.json({ error: 'This session has already ended. Please choose a later time.' }, { status: 400 });
     }
 
     // Capacity check for the requested time window

@@ -825,6 +825,8 @@ export interface HourlyBookingItemApi {
   startDate: string;
   endDate: string;
   hoursUsed?: number;
+  seats?: number;
+  paidAmount?: number | null;
   durationDetails?: string;
   status: string;
   createdAt?: string;
