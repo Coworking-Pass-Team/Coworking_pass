@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import crypto from 'crypto'
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
-import { getOwnedWorkspaceIds } from '@/lib/ownership'
+import { getOwnedWorkspaceIds, canManageWorkspace } from '@/lib/ownership'
 
 
 function generateQRHash() {
@@ -89,14 +89,22 @@ if (!user) return unauthorizedResponse(request);
     const body = await request.json()
     const { workspaceId, sectionId } = body
     const status = 'VALID'
-    // A check-in always belongs to the caller; only super admins may record one for somebody else
-    const userId: string = user.role === 'SUPER_ADMIN' && body.userId ? body.userId : user.userId
-
-    if (!userId || !workspaceId || !sectionId) {
+    if (!workspaceId || !sectionId) {
       return NextResponse.json(
         { error: 'All fields are required.' },
         { status: 400 }
       )
+    }
+
+    // A check-in belongs to the caller. Staff may record one for a customer: super admins anywhere, and
+    // a venue partner only at a workspace they own (this is how the partner scanner works).
+    let userId: string = user.userId
+    if (body.userId && body.userId !== user.userId) {
+      const mayRecordForOthers = user.role === 'SUPER_ADMIN' || (user.role === 'PARTNER_ADMIN' && await canManageWorkspace(user, workspaceId))
+      if (!mayRecordForOthers) {
+        return NextResponse.json({ error: 'You can only record your own check-in.' }, { status: 403 })
+      }
+      userId = body.userId
     }
 
     // 1. إنشاء سجل QR Check-in

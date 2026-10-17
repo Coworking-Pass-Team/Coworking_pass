@@ -77,6 +77,16 @@ check('provider "QR check-ins" count increments', (qr1.body || []).filter(x => x
 const qrC = await api('/qr-check-ins', { token: C.token });
 check('other provider cannot see my check-ins', !(qrC.body || []).some(x => x.workspaceId === wsA));
 
+// The partner scanner: staff record a check-in for the customer whose QR they scanned
+const walkIn = await mk('walkin');
+const staffScan = await api('/qr-check-ins', { method: 'POST', token: A.token, body: { userId: walkIn.userId, workspaceId: wsA, sectionId: secId } });
+check('provider scans a customer QR at their own venue', staffScan.status === 201 && staffScan.body?.userId === walkIn.userId, 'status ' + staffScan.status);
+const qr2 = await api('/qr-check-ins', { token: A.token });
+check('"QR Check-ins Today" counts the scanned customer', (qr2.body || []).filter(x => x.workspaceId === wsA).length === n0 + 2);
+check('other provider cannot scan customers into my venue', (await api('/qr-check-ins', { method: 'POST', token: C.token, body: { userId: walkIn.userId, workspaceId: wsA, sectionId: secId } })).status === 403);
+check('a customer cannot check in somebody else', (await api('/qr-check-ins', { method: 'POST', token: ind.token, body: { userId: walkIn.userId, workspaceId: wsA, sectionId: secId } })).status === 403);
+check('anonymous check-in refused', (await api('/qr-check-ins', { method: 'POST', body: { userId: walkIn.userId, workspaceId: wsA, sectionId: secId } })).status === 401);
+
 // ---------- HR admin ----------
 console.log('\n## HR admin');
 const hr = await mk('hr', 'HR_ADMIN', { companyName: 'QA Corp ' + run });

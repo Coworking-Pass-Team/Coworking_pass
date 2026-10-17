@@ -84,6 +84,16 @@ check('customer joins a waitlist', wl.status === 201, 'status ' + wl.status);
 check('waitlist entry belongs to the caller, not the userId in the body', wl.body?.userId === c.userId);
 check('another customer cannot remove my waitlist entry', denied(await api('/waitlist/' + wlId, { method: 'DELETE', token: c2.token })));
 check('owner can leave the waitlist', (await api('/waitlist/' + wlId, { method: 'DELETE', token: c.token })).status < 300);
+
+// What the web client sends when it does not know the section id
+const wlNote = await api('/waitlist', { method: 'POST', token: c2.token, body: { userId: c2.userId, workspaceId: ws, sectionId: 'sec-' + ws, durationType: 'DAILY', bookingDate: '2030-02-02' } });
+check('joining with an unknown section id falls back to the venue\'s own section', wlNote.status === 201 && wlNote.body?.sectionId === wsec, 'status ' + wlNote.status + ' ' + (wlNote.body?.error || ''));
+const notes = (await db.query(`select title, type from "Notification" where "userId"=$1 and type='WAITLIST_JOINED'`, [c2.userId])).rows;
+check('a stored waitlist confirmation notification is sent', notes.length === 1, JSON.stringify(notes));
+check('joining the same venue twice is refused', (await api('/waitlist', { method: 'POST', token: c2.token, body: { workspaceId: ws, sectionId: wsec, durationType: 'DAILY', bookingDate: '2030-03-03' } })).status === 409);
+check('unknown workspace is a 404, not a 500', (await api('/waitlist', { method: 'POST', token: c2.token, body: { workspaceId: '00000000-0000-0000-0000-000000000000', sectionId: wsec, durationType: 'DAILY', bookingDate: '2030-01-01' } })).status === 404);
+check('invalid date is a 400', (await api('/waitlist', { method: 'POST', token: c.token, body: { workspaceId: ws, sectionId: wsec, durationType: 'DAILY', bookingDate: 'not-a-date' } })).status === 400);
+check('leaving removes the queued entry from the database', (await api('/waitlist/' + wlNote.body?.id, { method: 'DELETE', token: c2.token })).status < 300 && Number((await db.query('select count(*) n from "DirectBooking" where id=$1', [wlNote.body?.id])).rows[0].n) === 0);
 const booking = (await db.query(
   `insert into "DirectBooking" (id,"userId","workspaceId","sectionId","durationType","bookingDate",status,seats,"createdAt") values (gen_random_uuid(), $1, $2, $3, 'DAILY', now(), 'CONFIRMED', 1, now()) returning id`,
   [c.userId, ws, wsec])).rows[0].id;

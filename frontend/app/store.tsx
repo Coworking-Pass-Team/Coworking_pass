@@ -3211,6 +3211,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
     fetchPartners().catch(() => { });
     fetchUsers().catch(() => { });
     fetchTickets().catch(() => { });
+    fetch(`${getApiBaseUrl()}/waitlist`, { headers: { Authorization: `Bearer ${getStoredToken()}` } })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((rows) => {
+        if (!Array.isArray(rows)) return;
+        setWaitlist((prev) => {
+          const next = { ...prev };
+          for (const r of rows) {
+            if (r.status === 'WAITLISTED' && r.userId === userId) next[`${userId}_${r.workspaceId}`] = true;
+          }
+          if (typeof window !== 'undefined') {
+            try { localStorage.setItem('cp_waitlist', JSON.stringify(next)); } catch (_) {}
+          }
+          return next;
+        });
+      })
+      .catch(() => { });
     fetchHourlyBookings().catch(() => { });
     fetchDirectBookings().catch(() => { });
     fetchSubscriptions().catch(() => { });
@@ -5193,7 +5209,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       'BOOKING_CONFIRMED', 'BOOKING_CANCELLED', 'WAITLIST_PROMOTED', 'MEETING_BOOKED',
       'PAYMENT_SUCCESS', 'PAYMENT_FAILED', 'PASS_ASSIGNED', 'PASS_EXPIRING',
       'ACCOUNT_VERIFIED', 'POINTS_EARNED', 'POINTS_REDEEMED', 'PAYOUT_PROCESSED',
-      'PARTNER_APPROVED', 'AMENITY_REQUEST_STATUS'
+      'PARTNER_APPROVED', 'AMENITY_REQUEST_STATUS', 'WAITLIST_JOINED'
     ];
     if (validEnums.includes(upper)) return upper;
 
@@ -5639,6 +5655,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return next;
     });
 
+    const undoJoin = () => {
+      setWaitlist(prev => {
+        const next = { ...prev };
+        delete next[key];
+        if (typeof window !== 'undefined') {
+          try { localStorage.setItem('cp_waitlist', JSON.stringify(next)); } catch (_) {}
+        }
+        return next;
+      });
+    };
+
     const targetSpace = spaces.find(s => s.id === spaceId) || workspacesApi.find(w => w.id === spaceId);
 
     const actualWorkspaceId = targetSpace?.id || spaceId;
@@ -5666,19 +5693,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       if (!response.ok) {
         console.error('Waitlist Server Error Details:', resData.error || resData);
-        showToast(resData.error || 'Failed to join waitlist', 'error');
+        // Already queued on the server (e.g. joined from another device): keep the local flag
+        if (response.status !== 409) {
+          undoJoin();
+        }
+        showToast(resData.error || 'Failed to join waitlist', response.status === 409 ? 'info' : 'error');
         return;
       }
 
-      addNotification({
-        userId,
-        title: 'Joined Waitlist',
-        message: `You successfully joined the waitlist. We'll notify you as soon as a spot opens!`,
-        type: 'info',
-      });
+      // The server stores the confirmation notification; pull it in
+      fetchNotifications().catch(() => { });
       showToast('You have joined the priority waitlist successfully!');
     } catch (err) {
       console.warn('Waitlist API sync notice:', err);
+      undoJoin();
       showToast('Network error while joining waitlist', 'error');
     }
   };
@@ -5696,6 +5724,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
       return next;
     });
+
+    // Remove the queued entry on the server as well, otherwise the user would still be promoted later
+    (async () => {
+      const storedToken = getStoredToken();
+      if (!storedToken) return;
+      const headers: Record<string, string> = { 'Content-Type': 'application/json', Authorization: `Bearer ${storedToken}` };
+      try {
+        const listRes = await fetch(`${getApiBaseUrl()}/waitlist`, { headers });
+        const rows = listRes.ok ? await listRes.json() : [];
+        const mine = (Array.isArray(rows) ? rows : []).filter(
+          (r: any) => r.userId === userId && r.workspaceId === spaceId && r.status === 'WAITLISTED'
+        );
+        for (const entry of mine) {
+          await fetch(`${getApiBaseUrl()}/waitlist/${entry.id}`, { method: 'DELETE', headers });
+        }
+      } catch (err) {
+        console.warn('Waitlist leave sync notice:', err);
+        showToast('Could not update the waitlist on the server. Please try again.', 'error');
+      }
+    })();
     showToast('You have left the priority waitlist.', 'info');
   };
 
