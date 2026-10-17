@@ -16,7 +16,7 @@ const FALLBACK_SPACE_IMAGE = 'https://images.unsplash.com/photo-1497366216548-37
 const cities = ['All Cities', ...SAUDI_CITIES];
 
 export default function Landing() {
-  const { t } = useI18n();
+  const { t, translateMessage } = useI18n();
   const sx = useSpaceText();
   const { navigate, spaces, currentUser } = useApp();
   const [searchCity, setSearchCity] = useState('');
@@ -64,7 +64,7 @@ export default function Landing() {
           {/* Top Badge */}
           <div className="mb-6 inline-flex items-center gap-2 bg-soot/80 backdrop-blur-md text-plaster border border-plaster/25 shadow-md px-4 py-2 rounded-full text-xs sm:text-sm font-semibold">
             <Zap size={14} className="text-plaster shrink-0" />
-            <span>Saudi Arabia&apos;s Premier Coworking Network</span>
+            <span>{translateMessage('Saudi Arabia\'s Premier Coworking Network')}</span>
           </div>
 
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-normal text-plaster leading-[1.15] mb-6 tracking-tight drop-shadow-md text-center font-serif-display">
@@ -388,7 +388,7 @@ export default function Landing() {
                   <div className="absolute bottom-3 start-3 end-3 bg-plaster-surface/95 backdrop-blur-md px-3 py-1.5 rounded-xl border border-soot/10 flex items-center justify-between shadow-md">
                     <div className="flex items-center gap-2">
                       <MapPin size={13} className="text-moss shrink-0" />
-                      <span className="text-[11px] font-semibold text-soot">Riyadh &bull; Digital City</span>
+                      <span className="text-[11px] font-semibold text-soot">{translateMessage('Riyadh • Digital City')}</span>
                     </div>
                     <span className="text-[10px] font-bold text-eucalyptus uppercase bg-soot/90 px-2 py-0.5 rounded-md">{t('landing.step1.count')}</span>
                   </div>
@@ -492,7 +492,7 @@ export default function Landing() {
             {t('landing.whyTitle1')} <span className="text-moss italic font-serif">{t('landing.whyTitle2')}</span>
           </h2>
           <p className="text-moss text-sm sm:text-base leading-relaxed">
-            Everything you need to stay productive, flexible, and connected across Saudi Arabia&apos;s fastest-growing workspace network.
+            {translateMessage('Everything you need to stay productive, flexible, and connected across Saudi Arabia\'s fastest-growing workspace network.')}
           </p>
         </div>
 

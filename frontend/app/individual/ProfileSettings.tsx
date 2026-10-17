@@ -51,7 +51,7 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
   );
   const [editPhone, setEditPhone] = useState(currentUser?.phone || '');
   const [editUniversity, setEditUniversity] = useState(currentUser?.university || '');
-  const [editCity, setEditCity] = useState(currentUser?.city || 'Riyadh, Saudi Arabia');
+  const [editCity, setEditCity] = useState(currentUser?.city || '');
   const [editBio, setEditBio] = useState(currentUser?.bio || '');
   const [editAvatar, setEditAvatar] = useState(currentUser?.avatar || '');
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -98,7 +98,7 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
     setEditUsername(currentUser.username || usernameDisplay);
     setEditPhone(currentUser.phone || '');
     setEditUniversity(currentUser.university || '');
-    setEditCity(currentUser.city || 'Riyadh, Saudi Arabia');
+    setEditCity(currentUser.city || '');
     setEditBio(currentUser.bio || '');
     setEditAvatar(currentUser.avatar || '');
     setErrors({});
@@ -213,7 +213,7 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-3xl sm:text-4xl text-soot font-normal" style={{ fontFamily: 'DM Serif Display, serif' }}>
-            {activeTab === 'profile' ? t('ind.ps.memberProfile') : 'Account Settings'}
+            {activeTab === 'profile' ? t('ind.ps.memberProfile') : translateMessage('Account Settings')}
           </h1>
           <p className="text-moss text-xs sm:text-sm mt-1 font-normal">
             {t('ind.ps.manageYourPersonalIdentityContact')}
@@ -393,7 +393,7 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
                   {t('ind.ps.contactPhoneNumber')}
                 </div>
                 <div className="text-sm sm:text-base font-normal text-soot">
-                  {currentUser.phone || '+966 55 123 4567'}
+                  {currentUser.phone || '—'}
                 </div>
               </div>
 
@@ -404,7 +404,7 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
                   {t('ind.ps.universityEducation')}
                 </div>
                 <div className="text-sm sm:text-base font-normal text-soot">
-                  {currentUser.university || 'King Saud University'}
+                  {currentUser.university || '—'}
                 </div>
               </div>
 
@@ -426,8 +426,7 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
                   {t('ind.ps.personalBioWorkspaceFocus')}
                 </div>
                 <div className="text-sm font-normal text-soot leading-relaxed">
-                  {currentUser.bio ||
-                    'Active Coworking Pass member exploring collaborative shared spaces, quiet focus hubs, and tech incubators across Saudi Arabia.'}
+                  {currentUser.bio || translateMessage('No bio added yet.')}
                 </div>
               </div>
 
@@ -833,7 +832,7 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
                 type="text"
                 value={editCity}
                 onChange={e => setEditCity(e.target.value)}
-                placeholder="e.g. Riyadh, Saudi Arabia"
+                placeholder={translateMessage('e.g. Riyadh, Saudi Arabia')}
                 className="w-full px-4 py-3 rounded-2xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs font-normal"
               />
             </div>

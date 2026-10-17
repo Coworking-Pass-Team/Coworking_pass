@@ -381,7 +381,7 @@ export default function ProviderLoyaltyProposals() {
                       }`}
                     >
                       {isEarning ? <Coins size={12} /> : <Gift size={12} />}
-                      {isEarning ? t('prov.loy.earningRule') : 'Redemption Rule'}
+                      {isEarning ? t('prov.loy.earningRule') : translateMessage('Redemption Rule')}
                     </span>
 
                     <span
@@ -397,7 +397,7 @@ export default function ProviderLoyaltyProposals() {
                       {isApproved && <CheckCircle2 size={12} />}
                       {isRejected && <XCircle size={12} />}
                       <span>
-                        {isPending ? 'Pending Review' : isApproved ? t('prov.loy.approvedActive') : 'Rejected'}
+                        {isPending ? translateMessage('Pending Review') : isApproved ? t('prov.loy.approvedActive') : 'Rejected'}
                       </span>
                     </span>
                   </div>
@@ -665,7 +665,7 @@ export default function ProviderLoyaltyProposals() {
                 }`}
               >
                 {selectedRuleDetail.status === 'PENDING_APPROVAL'
-                  ? 'Pending Review'
+                  ? translateMessage('Pending Review')
                   : selectedRuleDetail.status === 'APPROVED'
                   ? t('prov.loy.approvedActive')
                   : 'Rejected'}

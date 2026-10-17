@@ -25,7 +25,7 @@ interface SharedWalletModalProps {
 }
 
 export default function SharedWalletModal({ isOpen, onClose }: SharedWalletModalProps) {
-  const { t, dir } = useI18n();
+  const { t, dir, translateMessage } = useI18n();
   const {
     currentUser,
     companyWalletBalance,
@@ -153,7 +153,7 @@ export default function SharedWalletModal({ isOpen, onClose }: SharedWalletModal
                 className="flex-1 py-2.5 px-4 rounded-xl bg-[#DDE6DF] hover:bg-[#CFDDD2] text-soot text-xs font-semibold transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer"
               >
                 <PlusCircle size={15} />
-                <span>{activeTab === 'deposit' ? 'View Overview' : 'Top Up Wallet'}</span>
+                <span>{activeTab === 'deposit' ? translateMessage('View Overview') : translateMessage('Top Up Wallet')}</span>
               </button>
             </div>
           </div>

@@ -593,7 +593,7 @@ export default function BookingFlow() {
               )}
               <Row label={t('bf.reservedSeats')} value={`${seats} seat${seats > 1 ? 's' : ''}`} />
               <div className="pt-3 border-t border-soot/8 flex justify-between items-center font-semibold text-base">
-                <span className="text-soot">{totalPrice === 0 ? 'Reservation Status' : 'Total Paid (incl. VAT)'}</span>
+                <span className="text-soot">{totalPrice === 0 ? translateMessage('Reservation Status') : translateMessage('Total Paid (incl. VAT)')}</span>
                 {totalPrice === 0 ? (
                   <span className="text-moss font-bold text-xs sm:text-sm bg-eucalyptus/25 px-3 py-1 rounded-full border border-eucalyptus/30">
                     {t('bf.includedSubscription')}
@@ -720,7 +720,7 @@ export default function BookingFlow() {
           ) : (
             <>
               <span className="text-[10px] font-bold uppercase tracking-wider text-moss block">
-                {seats > 1 ? `Total (${seats} Seats)` : 'Total Price'}
+                {seats > 1 ? `Total (${seats} Seats)` : translateMessage('Total Price')}
               </span>
               <div className="font-bold text-soot text-lg sm:text-xl leading-tight">
                 {t('common.sar')} {(planInfo.effectivePrice * seats).toLocaleString()}
@@ -1065,11 +1065,11 @@ export default function BookingFlow() {
                   </div>
                   <div className="text-start sm:text-end">
                     <span className="text-moss block text-[10px] uppercase font-semibold">
-                      {hasActiveSubscription ? 'Pass Coverage' : 'Daily Rate Calculation'}
+                      {hasActiveSubscription ? translateMessage('Pass Coverage') : translateMessage('Daily Rate Calculation')}
                     </span>
                     <span className="font-bold text-soot">
                       {hasActiveSubscription ? (
-                        <span className="text-emerald-800">Included in your Pass ({durationDays} {durationDays === 1 ? 'day' : 'days'})</span>
+                        <span className="text-emerald-800">{translateMessage(`Included in your Pass (${durationDays} ${durationDays === 1 ? 'day' : 'days'})`)}</span>
                       ) : (
                         t('bf.dailyTotalLine', { currency: t('common.sar'), rate: (space.pricing?.daily ?? 150).toLocaleString(), days: durationDays, unit: durationDays === 1 ? t('bf.dayUnit') : t('bf.daysUnit'), total: ((space.pricing?.daily ?? 150) * durationDays).toLocaleString() })
                       )}
@@ -1136,7 +1136,7 @@ export default function BookingFlow() {
                         >
                           <div className="font-bold text-xs">{h} {h === 1 ? 'Hour' : 'Hours'}</div>
                           <div className={`text-[10px] mt-0.5 ${isSelected ? 'text-plaster/80 font-medium' : 'text-moss'}`}>
-                            {hasActiveSubscription && hPrice.isCovered ? 'Pass Quota' : `${t('common.sar')} ${hPrice.effectivePrice.toLocaleString()}`}
+                            {hasActiveSubscription && hPrice.isCovered ? translateMessage('Pass Quota') : `${t('common.sar')} ${hPrice.effectivePrice.toLocaleString()}`}
                           </div>
                         </button>
                       );
@@ -1272,7 +1272,7 @@ export default function BookingFlow() {
                   </div>
                   <div className="text-end">
                     <span className="text-moss block text-[10px] uppercase font-semibold">
-                      {hasActiveSubscription ? 'Plan Coverage' : 'Months Total'}
+                      {hasActiveSubscription ? translateMessage('Plan Coverage') : translateMessage('Months Total')}
                     </span>
                     <span className="font-bold text-soot">
                       {hasActiveSubscription ? (
@@ -1351,7 +1351,7 @@ export default function BookingFlow() {
         <div className="bg-white rounded-3xl border border-soot/8 p-6 sm:p-8 shadow-sm space-y-6">
           <div>
             <h2 className="text-2xl text-soot font-normal mb-1 font-serif-display">
-              {totalPrice === 0 ? 'Review & Confirm Reservation' : 'Review & Payment'}
+              {totalPrice === 0 ? translateMessage('Review & Confirm Reservation') : translateMessage('Review & Payment')}
             </h2>
             <p className="text-moss text-sm">
               {totalPrice === 0
@@ -1409,7 +1409,7 @@ export default function BookingFlow() {
                     <div className="flex justify-between items-center">
                       <span className="text-moss">{t('bf.planHoursApplied')}</span>
                       <span className="font-semibold text-emerald-800">
-                        {planInfo.coveredHours} {planInfo.coveredHours === 1 ? 'Hour' : 'Hours'} ({currentUser.remainingHours !== undefined ? currentUser.remainingHours : 0} hrs remaining in monthly quota)
+                        {translateMessage(`${planInfo.coveredHours} ${planInfo.coveredHours === 1 ? 'Hour' : 'Hours'} (${currentUser.remainingHours !== undefined ? currentUser.remainingHours : 0} hrs remaining in monthly quota)`)}
                       </span>
                     </div>
                   )}
@@ -1438,7 +1438,7 @@ export default function BookingFlow() {
                       <span>{t('bf.partialQuota')}</span>
                     </div>
                     <p className="text-xs text-amber-800/90 leading-relaxed">
-                      {planInfo.coveredHours} free {planInfo.coveredHours === 1 ? 'hour is' : 'hours are'} covered by your {currentUser.membershipTier || 'Pass'} quota ({currentUser.remainingHours !== undefined ? currentUser.remainingHours : 0} hrs remaining). The remaining {planInfo.payableHours} {planInfo.payableHours === 1 ? 'hour is' : 'hours are'} charged at {t('common.sar')} {space.pricing?.hourly ?? 0}/hour.
+                      {translateMessage(`${planInfo.coveredHours} free ${planInfo.coveredHours === 1 ? 'hour is' : 'hours are'} covered by your ${currentUser.membershipTier || 'Pass'} quota (${currentUser.remainingHours !== undefined ? currentUser.remainingHours : 0} hrs remaining). The remaining ${planInfo.payableHours} ${planInfo.payableHours === 1 ? 'hour is' : 'hours are'} charged at ${t('common.sar')} ${space.pricing?.hourly ?? 0}/hour.`)}
                     </p>
                   </div>
                 )}
@@ -1498,7 +1498,7 @@ export default function BookingFlow() {
                       <Wallet size={16} className="text-emerald-700 shrink-0" />
                       <div>
                         <div className="text-xs font-semibold text-soot">{t('bf.walletBalance')}</div>
-                        <div className="text-[11px] text-moss">Available Balance: {t('common.sar')} {userWalletBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+                        <div className="text-[11px] text-moss">{translateMessage('Available Balance:')} {t('common.sar')} {userWalletBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
                       </div>
                     </div>
                     {userWalletBalance > 0 && totalPrice > 0 && (
@@ -1586,12 +1586,12 @@ export default function BookingFlow() {
                         <div>
                           <span className="text-2xl font-bold text-soot">{t('bf.zeroToPay')}</span>
                           <div className="text-xs text-moss font-semibold bg-eucalyptus/25 border border-eucalyptus/30 px-2.5 py-0.5 rounded-full inline-block ms-2">
-                            {walletDeduction >= totalPrice && totalPrice > 0 ? 'Paid with Wallet' : 'Included in your Plan'}
+                            {walletDeduction >= totalPrice && totalPrice > 0 ? translateMessage('Paid with Wallet') : 'Included in your Plan'}
                           </div>
                         </div>
                       ) : planInfo.isPartiallyCovered ? (
                         <div>
-                          <span className="text-2xl font-bold text-soot">{t('common.sar')} {finalPayablePrice.toLocaleString()} to Pay</span>
+                          <span className="text-2xl font-bold text-soot">{t('common.sar')} {finalPayablePrice.toLocaleString()} {translateMessage('to Pay')}</span>
                           <div className="text-xs text-amber-900 font-semibold bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 rounded-full block mt-0.5">
                             {(planInfo.coveredSeats || 0) > 0 ? `${planInfo.coveredSeats} Seat Included in Plan` : `${planInfo.coveredHours || 0}h Included in Plan`}
                           </div>
@@ -1657,7 +1657,7 @@ export default function BookingFlow() {
               ) : totalPrice === 0 ? (
                 <>
                   <Check size={16} className="text-moss" />
-                  <span>Confirm Reservation (Covered by your Pass)</span>
+                  <span>{translateMessage('Confirm Reservation (Covered by your Pass)')}</span>
                 </>
               ) : (
                 <>

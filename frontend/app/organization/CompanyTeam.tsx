@@ -360,7 +360,7 @@ export default function CompanyTeam() {
         open={addModal}
         onClose={() => setAddModal(false)}
         title={t('org.ct.addTeamMember')}
-        subtitle="Invite a new colleague to your corporate pass account."
+        subtitle={translateMessage('Invite a new colleague to your corporate pass account.')}
         size="md"
         footer={
           <>
@@ -552,7 +552,7 @@ export default function CompanyTeam() {
         >
           <div className="text-sm text-soot space-y-2 py-2">
             <p>
-              Are you sure you want to remove <span className="font-semibold">{deleteModal.name}</span> {t('org.ct.fromYourTeam')}
+              {translateMessage('Are you sure you want to remove')} <span className="font-semibold">{deleteModal.name}</span> {t('org.ct.fromYourTeam')}
             </p>
             <p className="text-xs text-moss">{t('org.ct.theyWillNoLongerHave')}</p>
           </div>

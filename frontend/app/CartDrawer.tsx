@@ -174,7 +174,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
             </div>
           </div>
 
-          <button
+          <button aria-label={t('common.close')}
             type="button"
             onClick={onClose}
             className="p-2 rounded-full text-moss hover:text-soot hover:bg-soot/8 transition-colors cursor-pointer"
@@ -301,7 +301,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                           {t('cart.seatsLabel')}
                         </span>
                         <div className="flex items-center gap-1.5 bg-plaster-dark/40 rounded-xl p-1 border border-soot/10">
-                          <button
+                          <button aria-label={t('tb.decrease')}
                             type="button"
                             onClick={() => updateCartItemSeats(item.id, item.seats - 1)}
                             disabled={item.seats <= 1}
@@ -310,7 +310,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                             <Minus size={12} />
                           </button>
                           <span className="text-xs font-semibold text-soot px-1.5">{item.seats}</span>
-                          <button
+                          <button aria-label={t('tb.increase')}
                             type="button"
                             onClick={() => updateCartItemSeats(item.id, item.seats + 1)}
                             className="w-6 h-6 rounded-lg bg-white text-soot flex items-center justify-center text-xs font-semibold hover:bg-plaster shadow-2xs transition-colors cursor-pointer"

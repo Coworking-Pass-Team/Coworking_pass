@@ -162,7 +162,7 @@ export default function CompanyBookings() {
               <h3 className="text-xl font-normal font-serif-display text-soot">{t('prov.cb.hourlyTitle')}</h3>
               <p className="text-xs text-moss mt-0.5">{t('prov.cb.hourlySub')}</p>
             </div>
-            <button
+            <button aria-label={t('browse.refresh')}
               type="button"
               onClick={() => {
                 setLoadingHourly(true);
@@ -327,7 +327,7 @@ export default function CompanyBookings() {
                 className="w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/50 border border-soot/12 transition-all duration-200 text-start cursor-pointer focus:outline-none"
               >
                 <span className="text-sm font-medium text-soot truncate capitalize">
-                  {filterStatus ? t('prov.bk.spaceFilter', { status: lb.status(filterStatus) }) : 'All Status'}
+                  {filterStatus ? t('prov.bk.spaceFilter', { status: lb.status(filterStatus) }) : translateMessage('All Status')}
                 </span>
                 <ChevronDown
                   size={15}

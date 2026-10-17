@@ -289,8 +289,8 @@ export default function LoyaltyProposalsAdmin() {
           <h3 className="text-lg font-serif-display text-soot">{t('loyaltyAdmin.none')}</h3>
           <p className="text-moss text-xs sm:text-sm max-w-md mx-auto">
             {searchQuery || statusFilter !== 'ALL' || typeFilter !== 'ALL'
-              ? 'No proposals matched your active filters. Try clearing your search query.'
-              : 'There are no loyalty points proposals submitted by space providers currently.'}
+              ? translateMessage('No proposals matched your active filters. Try clearing your search query.')
+              : translateMessage('There are no loyalty points proposals submitted by space providers currently.')}
           </p>
         </div>
       ) : (
@@ -374,7 +374,7 @@ export default function LoyaltyProposalsAdmin() {
                     <div className="flex items-center justify-between text-xs pt-1 border-t border-soot/6">
                       <span className="text-moss font-medium">{t('loyaltyAdmin.targetSpace')}</span>
                       <span className="text-soot font-medium truncate max-w-[150px]">
-                        {rule.workspaceName || 'All Listed Workspaces'}
+                        {rule.workspaceName || translateMessage('All Listed Workspaces')}
                       </span>
                     </div>
                   </div>
@@ -406,7 +406,7 @@ export default function LoyaltyProposalsAdmin() {
                           type="button"
                           onClick={(e) => handleOpenApproveModal(rule, e)}
                           className="flex-1 py-2 px-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold shadow-xs transition-colors flex items-center justify-center gap-1 cursor-pointer"
-                          title="Approve Proposal"
+                          title={translateMessage('Approve Proposal')}
                         >
                           <Check size={13} />
                           <span>{t('loyaltyAdmin.approve')}</span>
@@ -415,7 +415,7 @@ export default function LoyaltyProposalsAdmin() {
                           type="button"
                           onClick={(e) => handleOpenRejectModal(rule, e)}
                           className="flex-1 py-2 px-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold shadow-xs transition-colors flex items-center justify-center gap-1 cursor-pointer"
-                          title="Reject Proposal"
+                          title={translateMessage('Reject Proposal')}
                         >
                           <X size={13} />
                           <span>{t('admin.spaces.reject')}</span>
@@ -468,7 +468,7 @@ export default function LoyaltyProposalsAdmin() {
                 }`}
               >
                 {selectedDetailRule.status === 'PENDING_APPROVAL'
-                  ? 'Pending Review'
+                  ? translateMessage('Pending Review')
                   : selectedDetailRule.status === 'APPROVED'
                   ? translateMessage('Approved & Active')
                   : 'Rejected'}
@@ -506,7 +506,7 @@ export default function LoyaltyProposalsAdmin() {
               <div className="flex justify-between">
                 <span className="text-moss">{t('loyaltyAdmin.targetWorkspace')}</span>
                 <span className="text-soot font-semibold">
-                  {selectedDetailRule.workspaceName || 'All Listed Workspaces'}
+                  {selectedDetailRule.workspaceName || translateMessage('All Listed Workspaces')}
                 </span>
               </div>
               {selectedDetailRule.bonusMultiplier && selectedDetailRule.bonusMultiplier > 1 && (
@@ -591,7 +591,7 @@ export default function LoyaltyProposalsAdmin() {
               <div className="space-y-1">
                 <h4 className="text-sm font-bold text-emerald-950">{t('loyaltyAdmin.approveActivate')}</h4>
                 <p className="text-xs text-emerald-800 leading-relaxed">
-                  Are you sure you want to approve <span className="font-bold text-emerald-950">&quot;{approveConfirmRule.ruleName}&quot;</span>?
+                  {translateMessage('Are you sure you want to approve')} <span className="font-bold text-emerald-950">&quot;{approveConfirmRule.ruleName}&quot;</span>?
                 </p>
               </div>
             </div>
@@ -635,7 +635,7 @@ export default function LoyaltyProposalsAdmin() {
                 className="px-6 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold shadow-xs cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
               >
                 <Check size={14} />
-                <span>{isProcessing ? 'Approving...' : 'Confirm & Approve'}</span>
+                <span>{isProcessing ? 'Approving...' : translateMessage('Confirm & Approve')}</span>
               </button>
             </div>
           </div>
@@ -701,7 +701,7 @@ export default function LoyaltyProposalsAdmin() {
                 className="px-6 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold shadow-xs cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
               >
                 <X size={14} />
-                <span>{isProcessing ? 'Rejecting...' : 'Confirm Rejection'}</span>
+                <span>{isProcessing ? 'Rejecting...' : translateMessage('Confirm Rejection')}</span>
               </button>
             </div>
           </div>

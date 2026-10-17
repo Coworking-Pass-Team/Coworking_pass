@@ -241,7 +241,7 @@ export default function Contact() {
                       <span className="font-semibold text-xs sm:text-sm">{t('contact.generalInquiry')}</span>
                     </div>
                     <span className="text-[11px] text-moss leading-tight hidden sm:block">
-                      Questions &amp; workspace info
+                      {translateMessage('Questions & workspace info')}
                     </span>
                   </button>
 
@@ -338,10 +338,10 @@ export default function Contact() {
                   }}
                   placeholder={
                     inquiryType === 'complaint'
-                      ? 'e.g., Issue with workspace amenities at Hub Riyadh'
+                      ? translateMessage(translateMessage('e.g., Issue with workspace amenities at Hub Riyadh'))
                       : inquiryType === 'refund'
-                      ? 'e.g., Cancellation refund request for booking #BK-102'
-                      : 'e.g., Question about custom team workspace passes'
+                      ? translateMessage('e.g., Cancellation refund request for booking #BK-102')
+                      : translateMessage('e.g., Question about custom team workspace passes')
                   }
                   className={`w-full px-4 py-3 rounded-xl border text-soot text-sm placeholder:text-moss/60 focus:outline-none transition-all shadow-xs ${
                     fieldErrors.subject ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/20' : 'border-soot/15 focus:ring-2 focus:ring-eucalyptus/40 bg-plaster-dark/30'
@@ -364,10 +364,10 @@ export default function Contact() {
                   }}
                   placeholder={
                     inquiryType === 'complaint'
-                      ? 'Please describe the problem in detail...'
+                      ? translateMessage(translateMessage('Please describe the problem in detail...'))
                       : inquiryType === 'refund'
-                      ? 'Please mention your booking ID and reason for refund request...'
-                      : 'Provide details about your inquiry...'
+                      ? translateMessage('Please mention your booking ID and reason for refund request...')
+                      : translateMessage('Provide details about your inquiry...')
                   }
                   className={`w-full px-4 py-3 rounded-xl border text-soot text-sm placeholder:text-moss/60 focus:outline-none transition-all shadow-xs resize-y ${
                     fieldErrors.message ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/20' : 'border-soot/15 focus:ring-2 focus:ring-eucalyptus/40 bg-plaster-dark/30'
@@ -394,7 +394,7 @@ export default function Contact() {
                       <div className="min-w-0">
                         <span className="font-semibold text-xs text-soot block truncate">{fileName}</span>
                         <span className="text-[11px] text-emerald-800 font-medium flex items-center gap-1 mt-0.5">
-                          <CheckCircle2 size={12} /> Image attached
+                          <CheckCircle2 size={12} /> {translateMessage('Image attached')}
                         </span>
                       </div>
                     </div>

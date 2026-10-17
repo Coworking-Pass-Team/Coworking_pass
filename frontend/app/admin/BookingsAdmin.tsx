@@ -26,7 +26,7 @@ import { updateDirectBookingApi } from '@/services/authApi';
 import HourlyBookingsAdmin from './HourlyBookingsAdmin';
 
 export default function BookingsAdmin() {
-  const { t, localizeTime } = useI18n();
+  const { t, localizeTime, translateMessage } = useI18n();
   const st = useSpaceText();
   const lb = useLabels();
   const { bookings, spaces, users, updateBookingStatus, deleteBooking, showToast, fetchHourlyBookings } = useApp();
@@ -427,7 +427,7 @@ export default function BookingsAdmin() {
           <div className="py-20 text-center text-moss">
             <CalendarDays size={40} className="mx-auto mb-3 text-moss/50" />
             <div className="text-base font-medium text-soot">{t('admin.bk.none')}</div>
-            <p className="text-xs text-moss mt-1">Try updating your filter criteria or search query.</p>
+            <p className="text-xs text-moss mt-1">{translateMessage('Try updating your filter criteria or search query.')}</p>
           </div>
         )}
       </div>
@@ -449,7 +449,7 @@ export default function BookingsAdmin() {
                 </h3>
                 <p className="text-xs text-moss mt-0.5">Reference: #{selectedBooking.id.slice(-8).toUpperCase()}</p>
               </div>
-              <button
+              <button aria-label={t('common.close')}
                 type="button"
                 onClick={() => setSelectedBooking(null)}
                 className="p-2 rounded-full text-moss hover:text-soot hover:bg-soot/8 transition-colors cursor-pointer"

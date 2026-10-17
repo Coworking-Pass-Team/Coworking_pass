@@ -32,7 +32,7 @@ import { deleteDirectBookingApi, getHourlyBookingsApi, updateHourlyBookingApi, H
 const FALLBACK_SPACE_IMAGE = 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80';
 
 export default function MyBookings() {
-  const { t, formatDate, localizeTime } = useI18n();
+  const { t, formatDate, localizeTime, translateMessage } = useI18n();
   const st = useSpaceText();
   const { bookings, spaces, currentUser, navigate, cancelBooking, requestRefund, nav, showToast, fetchDirectBookings } = useApp();
   const [bookingCategory, setBookingCategory] = useState<'direct' | 'hourly'>('direct');
@@ -153,9 +153,9 @@ export default function MyBookings() {
           <div className="bg-white rounded-3xl p-6 border border-soot/10 shadow-xs flex items-center justify-between">
             <div>
               <h3 className="text-xl font-normal font-serif-display text-soot">{t('myBookings.hourlyPackages')}</h3>
-              <p className="text-xs text-moss mt-0.5">Your hourly meeting room &amp; desk packages booked across Saudi Arabia.</p>
+              <p className="text-xs text-moss mt-0.5">{translateMessage('Your hourly meeting room & desk packages booked across Saudi Arabia.')}</p>
             </div>
-            <button
+            <button aria-label={t('browse.refresh')}
               type="button"
               onClick={() => {
                 setLoadingHourly(true);

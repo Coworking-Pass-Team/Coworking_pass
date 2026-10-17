@@ -1078,7 +1078,7 @@ export default function Pricing() {
               <div className="flex justify-between">
                 <span className="text-moss">{t('pricing.accountType')}</span>
                 <span className="font-semibold text-soot">
-                  {isOrg ? 'HR Admin (Organization)' : 'Individual Member (B2C)'}
+                  {isOrg ? translateMessage('HR Admin (Organization)') : translateMessage('Individual Member (B2C)')}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -1102,7 +1102,7 @@ export default function Pricing() {
             {/* Upgrade/Change Plan Options for User's Account Type */}
             <div className="p-4 bg-plaster-dark/30 border border-soot/10 rounded-2xl text-xs space-y-3">
               <span className="font-semibold text-soot block">
-                {isOrg ? 'Organization Plans Available to Switch' : 'Individual Plans Available to Switch'}
+                {isOrg ? translateMessage('Organization Plans Available to Switch') : translateMessage('Individual Plans Available to Switch')}
               </span>
               <p className="text-moss text-[11px]">
                 {t('pricing.switchBetween', { type: isOrg ? t('pricing.typeOrg') : t('pricing.typeInd') })}
@@ -1129,7 +1129,7 @@ export default function Pricing() {
                         }}
                         className="px-3 py-1.5 rounded-lg bg-soot text-plaster hover:bg-moss text-xs font-semibold cursor-pointer transition-colors whitespace-nowrap shadow-2xs"
                       >
-                        {isUpgrade ? 'Upgrade Plan' : 'Switch Plan'}
+                        {isUpgrade ? translateMessage('Upgrade Plan') : translateMessage('Switch Plan')}
                       </button>
                     </div>
                   );

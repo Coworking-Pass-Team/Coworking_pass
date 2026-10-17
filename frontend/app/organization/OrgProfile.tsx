@@ -47,15 +47,12 @@ export default function OrgProfile() {
   const [editOrgName, setEditOrgName] = useState(currentUser?.orgName || '');
   const [editOwnerName, setEditOwnerName] = useState(currentUser?.name || '');
   const [editIndustry, setEditIndustry] = useState(currentUser?.industry || 'Technology & Digital Solutions');
-  const [editOrgSize, setEditOrgSize] = useState(String(currentUser?.orgSize || '15'));
-  const [editWebsite, setEditWebsite] = useState(currentUser?.website || 'https://sauditech.sa');
-  const [editPhone, setEditPhone] = useState(currentUser?.phone || '+966 56 456 7890');
-  const [editCrNumber, setEditCrNumber] = useState(currentUser?.crNumber || '1010874921');
-  const [editCity, setEditCity] = useState(currentUser?.city || 'Riyadh, Saudi Arabia');
-  const [editOrgDescription, setEditOrgDescription] = useState(
-    currentUser?.orgDescription ||
-      'Leading enterprise technology and consulting firm specializing in distributed workspace solutions across Saudi Arabia.'
-  );
+  const [editOrgSize, setEditOrgSize] = useState(String(currentUser?.orgSize || ''));
+  const [editWebsite, setEditWebsite] = useState(currentUser?.website || '');
+  const [editPhone, setEditPhone] = useState(currentUser?.phone || '');
+  const [editCrNumber, setEditCrNumber] = useState(currentUser?.crNumber || '');
+  const [editCity, setEditCity] = useState(currentUser?.city || '');
+  const [editOrgDescription, setEditOrgDescription] = useState(currentUser?.orgDescription || '');
   const [editAvatar, setEditAvatar] = useState(currentUser?.avatar || '');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
@@ -63,11 +60,7 @@ export default function OrgProfile() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Employees State
-  const [employees, setEmployees] = useState<Employee[]>(currentUser?.employees || [
-    { id: 'emp-1', name: 'Sara Al-Ghamdi', email: 'sara@sauditech.sa', department: 'Product Design' },
-    { id: 'emp-2', name: 'Fahad Al-Dosari', email: 'fahad@sauditech.sa', department: 'Engineering' },
-    { id: 'emp-3', name: 'Noura Al-Mutairi', email: 'noura@sauditech.sa', department: 'Operations' },
-  ]);
+  const [employees, setEmployees] = useState<Employee[]>(currentUser?.employees || []);
   const [addEmpModal, setAddEmpModal] = useState(false);
   const [newEmp, setNewEmp] = useState({ name: '', email: '', department: '' });
   const [empErrors, setEmpErrors] = useState<Record<string, string>>({});
@@ -96,15 +89,12 @@ export default function OrgProfile() {
     setEditOrgName(currentUser.orgName || '');
     setEditOwnerName(currentUser.name || '');
     setEditIndustry(currentUser.industry || 'Technology & Digital Solutions');
-    setEditOrgSize(String(currentUser.orgSize || '15'));
-    setEditWebsite(currentUser.website || 'https://sauditech.sa');
-    setEditPhone(currentUser.phone || '+966 56 456 7890');
-    setEditCrNumber(currentUser.crNumber || '1010874921');
-    setEditCity(currentUser.city || 'Riyadh, Saudi Arabia');
-    setEditOrgDescription(
-      currentUser.orgDescription ||
-        'Leading enterprise technology and consulting firm specializing in distributed workspace solutions across Saudi Arabia.'
-    );
+    setEditOrgSize(String(currentUser.orgSize || ''));
+    setEditWebsite(currentUser.website || '');
+    setEditPhone(currentUser.phone || '');
+    setEditCrNumber(currentUser.crNumber || '');
+    setEditCity(currentUser.city || '');
+    setEditOrgDescription(currentUser.orgDescription || '');
     setEditAvatar(currentUser.avatar || '');
     setErrors({});
     setIsEditModalOpen(true);
@@ -339,7 +329,7 @@ export default function OrgProfile() {
                 <div className="text-xs sm:text-sm text-moss font-normal flex flex-wrap items-center gap-3">
                   <span>{translateMessage(currentUser.industry || 'Technology & Digital Solutions')}</span>
                   <span>•</span>
-                  <span>{translateMessage(currentUser.city || 'Riyadh, Saudi Arabia')}</span>
+                  <span>{currentUser.city ? translateMessage(currentUser.city) : '—'}</span>
                   {currentUser.website && (
                     <>
                       <span>•</span>
@@ -355,7 +345,7 @@ export default function OrgProfile() {
                     </>
                   )}
                   <span>•</span>
-                  <span>{orgBookings.length} Total Bookings</span>
+                  <span>{translateMessage(`${orgBookings.length} Total Bookings`)}</span>
                 </div>
 
                 {currentUser.orgDescription && (
@@ -442,7 +432,7 @@ export default function OrgProfile() {
                   {t('org.op.contactPhoneNumber')}
                 </div>
                 <div className="text-sm sm:text-base font-normal text-soot">
-                  {currentUser.phone || '+966 56 456 7890'}
+                  {currentUser.phone || '—'}
                 </div>
               </div>
 
@@ -453,7 +443,7 @@ export default function OrgProfile() {
                   {t('org.op.commercialRegistrationCr')}
                 </div>
                 <div className="text-sm sm:text-base font-normal text-soot">
-                  {currentUser.crNumber || '1010874921'}
+                  {currentUser.crNumber || '—'}
                 </div>
               </div>
 
@@ -475,7 +465,7 @@ export default function OrgProfile() {
                   {t('org.op.headquartersCity')}
                 </div>
                 <div className="text-sm sm:text-base font-normal text-soot">
-                  {translateMessage(currentUser.city || 'Riyadh, Saudi Arabia')}
+                  {currentUser.city ? translateMessage(currentUser.city) : '—'}
                 </div>
               </div>
 
@@ -486,7 +476,7 @@ export default function OrgProfile() {
                   {t('org.op.officialWebsiteUrl')}
                 </div>
                 <div className="text-sm sm:text-base font-normal text-soot truncate">
-                  {currentUser.website || 'https://sauditech.sa'}
+                  {currentUser.website || '—'}
                 </div>
               </div>
 
@@ -497,8 +487,7 @@ export default function OrgProfile() {
                   {t('org.op.companyDescriptionOverview')}
                 </div>
                 <div className="text-sm font-normal text-soot leading-relaxed">
-                  {currentUser.orgDescription ||
-                    'Leading enterprise technology and consulting firm specializing in distributed workspace solutions across Saudi Arabia.'}
+                  {currentUser.orgDescription || translateMessage('No description provided yet.')}
                 </div>
               </div>
 
@@ -854,7 +843,7 @@ export default function OrgProfile() {
             {/* Account Owner / Representative Name */}
             <div>
               <label className="block text-xs font-medium text-soot mb-1.5">
-                Owner / Representative Full Name <span className="text-red-500">*</span>
+                {translateMessage('Owner / Representative Full Name')} <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -952,7 +941,7 @@ export default function OrgProfile() {
                 type="text"
                 value={editCity}
                 onChange={e => setEditCity(e.target.value)}
-                placeholder="Riyadh, Saudi Arabia"
+                placeholder={translateMessage('Riyadh, Saudi Arabia')}
                 className="w-full px-4 py-3 rounded-2xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs font-normal"
               />
             </div>

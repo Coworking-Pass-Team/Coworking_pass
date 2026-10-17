@@ -747,7 +747,7 @@ export default function UsersAdmin() {
                           }
                         }}
                         className="p-2 rounded-xl bg-rose-100 text-rose-800 hover:bg-rose-200 border border-rose-300 transition-all cursor-pointer font-medium"
-                        title="Reject Application"
+                        title={translateMessage('Reject Application')}
                       >
                         <X size={15} />
                       </button>
@@ -838,7 +838,7 @@ export default function UsersAdmin() {
                 </h3>
                 <p className="text-xs text-moss mt-0.5">{t('admin.users.formSubtitle')}</p>
               </div>
-              <button
+              <button aria-label={t('common.close')}
                 type="button"
                 onClick={() => setAddEditModal(false)}
                 className="p-2 rounded-full text-moss hover:text-soot hover:bg-soot/8 transition-colors cursor-pointer"
@@ -926,7 +926,7 @@ export default function UsersAdmin() {
               {role === 'organization' && (
                 <div className="p-4 rounded-2xl bg-plaster-dark/30 border border-soot/12 space-y-3.5 mt-3">
                   <span className="text-[11px] font-bold text-soot uppercase tracking-wider block">
-                    Organization Details (B2B)
+                    {translateMessage('Organization Details (B2B)')}
                   </span>
                   <div>
                     <label className="block text-xs font-semibold text-soot mb-1">{t('admin.users.companyName')}</label>
@@ -1003,7 +1003,7 @@ export default function UsersAdmin() {
                 </h3>
                 <p className="text-xs text-moss mt-0.5">{t('admin.users.profileDetails')}</p>
               </div>
-              <button
+              <button aria-label={t('common.close')}
                 type="button"
                 onClick={() => {
                   setDetailsModal(false);
@@ -1167,7 +1167,7 @@ export default function UsersAdmin() {
               </div>
               <div>
                 <h3 className="text-base font-semibold text-soot mb-1 font-serif-display">
-                  {selectedUser.isBlocked ? 'Unblock User Account?' : 'Block User Account?'}
+                  {selectedUser.isBlocked ? translateMessage('Unblock User Account?') : translateMessage('Block User Account?')}
                 </h3>
                 <p className="text-xs text-moss leading-relaxed">
                   {selectedUser.isBlocked
@@ -1190,7 +1190,7 @@ export default function UsersAdmin() {
                 onClick={handleBlockAction}
                 className={`flex-1 ${selectedUser.isBlocked ? 'btn-primary' : 'btn-danger'}`}
               >
-                {selectedUser.isBlocked ? 'Yes, Unblock' : 'Yes, Block'}
+                {selectedUser.isBlocked ? translateMessage('Yes, Unblock') : translateMessage('Yes, Block')}
               </button>
             </div>
           </div>

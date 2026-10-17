@@ -915,7 +915,7 @@ export default function SpacesAdmin() {
                       type="button"
                       onClick={(e) => handleToggleVisibility(e, space.id)}
                       className="p-2 rounded-xl text-moss hover:text-soot hover:bg-plaster-surface border border-transparent hover:border-soot/10 transition-all cursor-pointer"
-                      title={space.isVisible ? 'Hide Space' : 'Make Visible'}
+                      title={space.isVisible ? translateMessage('Hide Space') : translateMessage('Make Visible')}
                     >
                       {space.isVisible ? <EyeOff size={15} /> : <Eye size={15} />}
                     </button>
@@ -955,11 +955,11 @@ export default function SpacesAdmin() {
             <div className="px-6 sm:px-8 py-5 border-b border-soot/10 flex items-center justify-between bg-plaster-dark/30 shrink-0">
               <div>
                 <h3 className="text-xl font-serif-display font-medium text-soot">
-                  {editingSpace ? 'Edit Workspace' : 'Add New Workspace'}
+                  {editingSpace ? translateMessage('Edit Workspace') : translateMessage('Add New Workspace')}
                 </h3>
                 <p className="text-xs text-moss mt-0.5">{t('admin.spaces.configure')}</p>
               </div>
-              <button
+              <button aria-label={t('common.close')}
                 type="button"
                 onClick={() => setEditModal(false)}
                 className="p-2 rounded-full text-moss hover:text-soot hover:bg-soot/8 transition-colors cursor-pointer"
@@ -972,7 +972,7 @@ export default function SpacesAdmin() {
               {saved && (
                 <div className="flex items-center gap-2.5 bg-eucalyptus/25 border border-eucalyptus text-soot rounded-2xl px-4 py-3 text-sm font-semibold shadow-xs">
                   <Check size={16} className="text-moss" />
-                  <span>{editingSpace ? 'Workspace updated successfully!' : 'New workspace published successfully!'}</span>
+                  <span>{editingSpace ? translateMessage('Workspace updated successfully!') : translateMessage('New workspace published successfully!')}</span>
                 </div>
               )}
 
@@ -1288,7 +1288,7 @@ export default function SpacesAdmin() {
 
                   {currentUnits.length === 0 && (
 <div>
-                    <label className="block text-xs font-semibold text-soot mb-1.5">Total Capacity (Desks)</label>
+                    <label className="block text-xs font-semibold text-soot mb-1.5">{translateMessage('Total Capacity (Desks)')}</label>
                     <input
                       type="number"
                       value={form.totalCapacity || 20}
@@ -1441,7 +1441,7 @@ export default function SpacesAdmin() {
                   <div className="p-3.5 rounded-2xl bg-plaster-dark/40 border border-soot/10 space-y-2.5">
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-soot">
-                        Multi-Hour Duration Pricing (SAR)
+                        {translateMessage('Multi-Hour Duration Pricing (SAR)')}
                       </span>
                       <span className="text-[10px] text-moss">{t('mySpaces.hourlyCustom')}</span>
                     </div>
@@ -1476,7 +1476,7 @@ export default function SpacesAdmin() {
                 <div className="p-3.5 rounded-2xl bg-plaster-dark/40 border border-soot/10 space-y-2.5">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-soot">
-                      Multi-Month Duration Pricing (SAR)
+                      {translateMessage('Multi-Month Duration Pricing (SAR)')}
                     </span>
                     <span className="text-[10px] text-moss">{t('mySpaces.monthlyCustom')}</span>
                   </div>
@@ -1688,7 +1688,7 @@ export default function SpacesAdmin() {
                 onClick={handleSave}
                 className="btn-primary"
               >
-                {editingSpace ? 'Save Changes' : 'Publish Space'}
+                {editingSpace ? translateMessage('Save Changes') : translateMessage('Publish Space')}
               </button>
             </div>
           </div>
@@ -1709,7 +1709,7 @@ export default function SpacesAdmin() {
                   {t('admin.spaces.deleteTitle')}
                 </h3>
                 <p className="text-xs text-moss leading-relaxed">
-                  Are you sure you want to remove <strong className="text-soot">{spaceToDelete?.name}</strong>{t('admin.spaces.deleteAssoc')}
+                  {translateMessage('Are you sure you want to remove')} <strong className="text-soot">{spaceToDelete?.name}</strong>{t('admin.spaces.deleteAssoc')}
                 </p>
               </div>
             </div>
@@ -1750,7 +1750,7 @@ export default function SpacesAdmin() {
               <h3 className="text-lg font-serif-display font-medium text-soot">
                 {t('admin.spaces.rejectTitle')}
               </h3>
-              <button
+              <button aria-label={t('common.close')}
                 type="button"
                 onClick={() => setRejectingReq(null)}
                 className="p-1 rounded-full text-moss hover:text-soot cursor-pointer"
@@ -1760,12 +1760,12 @@ export default function SpacesAdmin() {
             </div>
 
             <p className="text-xs text-moss">
-              You are declining the amenity request for <strong className="text-soot">{rejectingReq.amenityName}</strong> submitted by {rejectingReq.providerName}.
+              {translateMessage('You are declining the amenity request for')} <strong className="text-soot">{rejectingReq.amenityName}</strong> {translateMessage('submitted by')} {rejectingReq.providerName}.
             </p>
 
             <div>
               <label className="text-xs font-semibold text-soot block mb-1.5">
-                Rejection Reason (Notification sent to Provider)
+                {translateMessage('Rejection Reason (Notification sent to Provider)')}
               </label>
               <textarea
                 value={rejectionReasonInput}

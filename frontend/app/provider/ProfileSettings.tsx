@@ -184,7 +184,7 @@ function ProviderProfileSettingsContent() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-3xl sm:text-4xl text-soot font-normal" style={{ fontFamily: 'DM Serif Display, serif' }}>
-            {activeTab === 'profile' ? t('prov.ps.businessProfile') : 'Provider Settings'}
+            {activeTab === 'profile' ? t('prov.ps.businessProfile') : translateMessage('Provider Settings')}
           </h1>
           <p className="text-moss text-xs sm:text-sm mt-1 font-normal">
             {t('prov.ps.manageYourWorkspaceBrandContact')}
@@ -273,7 +273,7 @@ function ProviderProfileSettingsContent() {
                   {/* Managed Spaces Count Badge */}
                   <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-medium bg-white text-moss border border-soot/10">
                     <Building2 size={12} />
-                    <span>{providerSpaces.length} Managed Spaces</span>
+                    <span>{translateMessage(`${providerSpaces.length} Managed Spaces`)}</span>
                   </span>
                 </div>
 
@@ -369,7 +369,7 @@ function ProviderProfileSettingsContent() {
               <div className="bg-[#F9F8F5] rounded-2xl p-4 border border-soot/6 transition-all hover:border-soot/12">
                 <div className="text-[11px] font-medium uppercase tracking-wider text-moss mb-1 flex items-center gap-1.5">
                   <FileText size={13} className="text-moss/80" />
-                  Commercial Registration (CR)
+                  {translateMessage('Commercial Registration (CR)')}
                 </div>
                 <div className="text-sm sm:text-base font-normal text-soot">
                   {effectiveCrNumber || translateMessage('Not specified')}
@@ -405,7 +405,7 @@ function ProviderProfileSettingsContent() {
                   {t('prov.ps.businessDescriptionOperations')}
                 </div>
                 <div className="text-sm font-normal text-soot leading-relaxed">
-                  {effectiveBusinessDescription || 'No description provided yet.'}
+                  {effectiveBusinessDescription || translateMessage('No description provided yet.')}
                 </div>
               </div>
 
@@ -427,7 +427,7 @@ function ProviderProfileSettingsContent() {
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-soot/8 gap-4 flex-wrap">
               <div>
                 <h3 className="text-xl font-normal text-soot" style={{ fontFamily: 'DM Serif Display, serif' }}>
-                  Managed Spaces ({providerSpaces.length})
+                  {translateMessage(`Managed Spaces (${providerSpaces.length})`)}
                 </h3>
                 <p className="text-moss text-xs mt-0.5 font-normal">{t('prov.ps.activeCoworkingSpacesListedUnder')}</p>
               </div>
@@ -443,7 +443,7 @@ function ProviderProfileSettingsContent() {
 
             {providerSpaces.length === 0 ? (
               <div className="text-center py-10 text-moss text-sm">
-                No spaces registered yet. Click &quot;Manage Spaces&quot; to list your first workspace.
+                {translateMessage('No spaces registered yet. Click "Manage Spaces" to list your first workspace.')}
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -492,7 +492,7 @@ function ProviderProfileSettingsContent() {
               ].map(item => (
                 <div key={item.key} className="flex items-center justify-between pt-4 first:pt-0">
                   <div className="pe-4">
-                    <div className="text-sm font-medium text-soot">{item.label}</div>
+                    <div className="text-sm font-medium text-soot">{translateMessage(item.label)}</div>
                     <div className="text-xs text-moss mt-0.5 font-normal">{item.desc}</div>
                   </div>
                   <button
@@ -751,7 +751,7 @@ function ProviderProfileSettingsContent() {
                   type="text"
                   value={editCity}
                   onChange={e => setEditCity(e.target.value)}
-                  placeholder="Riyadh, Saudi Arabia"
+                  placeholder={translateMessage('Riyadh, Saudi Arabia')}
                   className="w-full px-4 py-3 rounded-2xl border border-soot/12 bg-white text-sm text-soot outline-none focus:border-eucalyptus font-normal"
                 />
               </div>

@@ -755,7 +755,17 @@
     "agreePrefix": "I agree to the",
     "and": "and",
     "cancelReturn": "Cancel and return to",
-    "createSecurePasswordFor": "Create a new secure password for"
+    "createSecurePasswordFor": "Create a new secure password for",
+    "noAccount": "Don't have an account?",
+    "haveAccount": "Already have an account?",
+    "rememberedPassword": "Remembered your password?",
+    "otpSentTo": "We've sent a 6-digit one-time code to",
+    "otpEnterBelow": "Enter the code below to {action}.",
+    "otpActionSignup": "complete your account registration",
+    "otpActionForgot": "verify your identity and reset your password",
+    "otpActionLogin": "complete your sign in",
+    "resendIn": "Resend code in {time}",
+    "noCode": "Didn't receive the code?"
   },
   "wallet": {
     "transactionsCount": "{count} transaction",

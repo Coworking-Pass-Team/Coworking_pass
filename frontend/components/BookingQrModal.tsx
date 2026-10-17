@@ -90,7 +90,7 @@ export default function BookingQrModal({
             <h3 className="text-base font-semibold text-soot">{t('qr.title')}</h3>
             <p className="text-[11px] text-moss">{t('qr.ref', { id: booking.id })}</p>
           </div>
-          <button
+          <button aria-label={t('common.close')}
             type="button"
             onClick={onClose}
             className="p-1.5 rounded-full hover:bg-soot/10 text-moss hover:text-soot transition-colors cursor-pointer"

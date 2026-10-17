@@ -10,7 +10,7 @@ import { createQrCheckInApi } from '@/services/authApi';
 function PassVerificationContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { t } = useI18n();
+  const { t, translateMessage } = useI18n();
   const { spaces, recordQrScan, fetchQrCheckIns, currentUser } = useApp();
 
   const bookingId = searchParams.get('bookingId') || 'BK-DEMO-01';
@@ -120,7 +120,7 @@ function PassVerificationContent() {
           </div>
 
           <div className="flex items-center justify-between pb-3 border-b border-soot/8">
-            <span className="text-moss">Pass Type</span>
+            <span className="text-moss">{translateMessage('Pass Type')}</span>
             <span className="font-semibold text-soot capitalize">{plan}</span>
           </div>
 
@@ -146,7 +146,7 @@ function PassVerificationContent() {
 
           {startTime && endTime && (
             <div className="flex items-center justify-between pb-3 border-b border-soot/8">
-              <span className="text-moss">Allowed Hours</span>
+              <span className="text-moss">{translateMessage('Allowed Hours')}</span>
               <span className="font-semibold text-emerald-800 text-end">
                 {startTime} – {endTime}
               </span>
@@ -154,17 +154,17 @@ function PassVerificationContent() {
           )}
 
           <div className="flex items-center justify-between pb-3 border-b border-soot/8">
-            <span className="text-moss">Pass Allocated</span>
+            <span className="text-moss">{translateMessage('Pass Allocated')}</span>
             <span className="font-semibold text-soot">{seats} Seat(s)</span>
           </div>
 
           <div className="flex items-center justify-between pb-3 border-b border-soot/8">
-            <span className="text-moss">Booking Reference</span>
+            <span className="text-moss">{translateMessage('Booking Reference')}</span>
             <span className="font-mono text-xs text-soot font-semibold">{bookingId}</span>
           </div>
 
           <div className="flex items-center justify-between">
-            <span className="text-moss">Verified At</span>
+            <span className="text-moss">{translateMessage('Verified At')}</span>
             <span className="font-medium text-soot font-mono text-xs">
               {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
             </span>
@@ -175,7 +175,7 @@ function PassVerificationContent() {
         <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-xl p-3 flex items-start gap-2.5 text-start text-xs text-emerald-900">
           <Database size={15} className="text-emerald-700 shrink-0 mt-0.5" />
           <div>
-            <div className="font-semibold">Database Live Sync</div>
+            <div className="font-semibold">{translateMessage('Database Live Sync')}</div>
             <div className="text-[11px] text-emerald-800/90 leading-relaxed mt-0.5">
               {dbStatus}
             </div>

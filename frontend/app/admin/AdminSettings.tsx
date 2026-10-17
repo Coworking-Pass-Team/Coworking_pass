@@ -57,7 +57,7 @@ export default function AdminSettings() {
   // Edit Profile Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editName, setEditName] = useState(currentUser?.name || 'System Admin');
-  const [editPhone, setEditPhone] = useState(currentUser?.phone || '+966 50 000 0001');
+  const [editPhone, setEditPhone] = useState(currentUser?.phone || '');
   const [editAvatar, setEditAvatar] = useState(currentUser?.avatar || '');
   const [isSaving, setIsSaving] = useState(false);
 
@@ -87,7 +87,7 @@ export default function AdminSettings() {
 
   const handleOpenEdit = () => {
     setEditName(currentUser.name || '');
-    setEditPhone(currentUser.phone || '+966 50 000 0001');
+    setEditPhone(currentUser.phone || '');
     setEditAvatar(currentUser.avatar || '');
     setIsEditModalOpen(true);
   };
@@ -159,7 +159,7 @@ export default function AdminSettings() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-3xl sm:text-4xl text-soot font-normal" style={{ fontFamily: 'DM Serif Display, serif' }}>
-            {activeTab === 'profile' ? 'Admin Profile & Security' : activeTab === 'plans' ? 'Membership Plans Management' : 'Platform Settings'}
+            {activeTab === 'profile' ? translateMessage('Admin Profile & Security') : activeTab === 'plans' ? 'Membership Plans Management' : 'Platform Settings'}
           </h1>
           <p className="text-moss text-xs sm:text-sm mt-1 font-normal">
             {t('admin.set.superAdminSystemAdministrationSecurity')}
@@ -387,7 +387,7 @@ export default function AdminSettings() {
                     ) : (
                       <div className="flex items-center justify-between w-full">
                         <span className="text-[11px] text-moss">
-                          {isApproved ? 'Status: Active on platform' : 'Status: Rejected'}
+                          {isApproved ? translateMessage('Status: Active on platform') : translateMessage('Status: Rejected')}
                         </span>
                         <button
                           type="button"
@@ -513,7 +513,7 @@ export default function AdminSettings() {
                   {t('admin.set.directPhoneContact')}
                 </div>
                 <div className="text-sm sm:text-base font-normal text-soot">
-                  {currentUser.phone || '+966 50 000 0001'}
+                  {currentUser.phone || '—'}
                 </div>
               </div>
 
@@ -625,7 +625,7 @@ export default function AdminSettings() {
                   type="submit"
                   className="btn-primary"
                 >
-                  {passwordSaved ? '✓ Admin Password Updated' : 'Update Admin Password'}
+                  {passwordSaved ? '✓ Admin Password Updated' : translateMessage('Update Admin Password')}
                 </button>
               </div>
             </form>
@@ -729,7 +729,7 @@ export default function AdminSettings() {
         open={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         title={t('admin.set.editAdministratorInfo')}
-        subtitle="Update display name, photo, and direct phone contact."
+        subtitle={translateMessage('Update display name, photo, and direct phone contact.')}
         size="md"
         footer={
           <>

@@ -204,13 +204,13 @@ export default function SubscriptionsAdmin() {
         <div>
           <div className="flex items-center gap-2 text-moss text-xs font-semibold uppercase tracking-wider mb-1">
             <Sparkles size={14} className="text-emerald-700" />
-            <span>Passes &amp; Subscriptions Database</span>
+            <span>{translateMessage('Passes & Subscriptions Database')}</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-normal text-soot font-serif-display">
             {t('admin.sub.subscriptionsManagement')}
           </h2>
           <p className="text-xs sm:text-sm text-moss mt-1">
-            Full CRUD operations for B2C &amp; B2B subscriptions (GET, POST, PUT, DELETE /api/subscriptions).
+            {translateMessage('Full CRUD operations for B2C & B2B subscriptions (GET, POST, PUT, DELETE /api/subscriptions).')}
           </p>
         </div>
 
@@ -253,7 +253,7 @@ export default function SubscriptionsAdmin() {
                   : 'text-moss hover:text-soot hover:bg-soot/5'
               }`}
             >
-              {st === 'ALL' ? 'All Statuses' : st}
+              {st === 'ALL' ? translateMessage('All Statuses') : st}
             </button>
           ))}
         </div>
@@ -282,7 +282,7 @@ export default function SubscriptionsAdmin() {
         <div className="text-center py-16 bg-white rounded-3xl border border-soot/8">
           <Calendar size={28} className="text-moss/50 mx-auto mb-2" />
           <h3 className="text-base font-semibold text-soot">{t('admin.sub.noSubscriptionsFound')}</h3>
-          <p className="text-xs text-moss mt-1">Try adjusting your filter or click &quot;Create Subscription&quot; to issue a pass.</p>
+          <p className="text-xs text-moss mt-1">{translateMessage('Try adjusting your filter or click "Create Subscription" to issue a pass.')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">

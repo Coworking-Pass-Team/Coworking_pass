@@ -438,7 +438,7 @@ export default function ProviderSpaceBookings() {
                 </div>
               </div>
 
-              <button
+              <button aria-label={t('common.close')}
                 type="button"
                 onClick={() => setSelectedBooking(null)}
                 className="p-2 rounded-full hover:bg-soot/10 text-moss hover:text-soot transition-colors"

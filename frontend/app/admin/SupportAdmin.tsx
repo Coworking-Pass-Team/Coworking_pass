@@ -157,7 +157,7 @@ export default function SupportAdmin() {
             <span>{t('support.eyebrow')}</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-normal font-serif-display text-soot tracking-tight">
-            Support &amp; Complaints Desk
+            {translateMessage('Support & Complaints Desk')}
           </h1>
           <p className="text-moss text-xs sm:text-sm mt-1">
             {t('support.subtitle')}
@@ -211,7 +211,7 @@ export default function SupportAdmin() {
               </div>
               <div>
                 <div className="text-3xl font-normal text-soot tracking-tight font-serif-display">{stat.count}</div>
-                <div className="text-xs font-medium text-moss mt-0.5">{stat.label}</div>
+                <div className="text-xs font-medium text-moss mt-0.5">{translateMessage(stat.label)}</div>
               </div>
             </div>
             <span className={`text-xs px-2.5 py-1 rounded-full font-bold shadow-2xs ${stat.badge}`}>
@@ -251,7 +251,7 @@ export default function SupportAdmin() {
                 className="w-full flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/50 border border-soot/12 transition-all duration-200 text-start cursor-pointer focus:outline-none"
               >
                 <span className="text-xs sm:text-sm font-semibold text-soot truncate">
-                  {statusOptions.find(o => o.value === statusFilter)?.label || 'All Statuses'}
+                  {translateMessage(statusOptions.find(o => o.value === statusFilter)?.label || 'All Statuses')}
                 </span>
                 <ChevronDown
                   size={15}
@@ -280,7 +280,7 @@ export default function SupportAdmin() {
                               : 'text-soot hover:bg-plaster-dark/60'
                           }`}
                         >
-                          <span>{item.label}</span>
+                          <span>{translateMessage(item.label)}</span>
                           {isSelected && <Check size={14} className="text-eucalyptus" />}
                         </button>
                       );
@@ -298,7 +298,7 @@ export default function SupportAdmin() {
                 className="w-full flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/50 border border-soot/12 transition-all duration-200 text-start cursor-pointer focus:outline-none"
               >
                 <span className="text-xs sm:text-sm font-semibold text-soot truncate">
-                  {priorityOptions.find(o => o.value === priorityFilter)?.label || 'All Priorities'}
+                  {translateMessage(priorityOptions.find(o => o.value === priorityFilter)?.label || 'All Priorities')}
                 </span>
                 <ChevronDown
                   size={15}
@@ -327,7 +327,7 @@ export default function SupportAdmin() {
                               : 'text-soot hover:bg-plaster-dark/60'
                           }`}
                         >
-                          <span>{item.label}</span>
+                          <span>{translateMessage(item.label)}</span>
                           {isSelected && <Check size={14} className="text-eucalyptus" />}
                         </button>
                       );
@@ -366,7 +366,7 @@ export default function SupportAdmin() {
                   : 'text-moss hover:text-soot'
               }`}
             >
-              All Topics ({supportTickets.length})
+              {translateMessage(`All Topics (${supportTickets.length})`)}
             </button>
             <button
               type="button"
@@ -378,7 +378,7 @@ export default function SupportAdmin() {
               }`}
             >
               <AlertCircle size={14} />
-              <span>Complaints ({supportTickets.filter(t => t.category === 'complaint').length})</span>
+              <span>{translateMessage(`Complaints (${supportTickets.filter(t => t.category === 'complaint').length})`)}</span>
             </button>
             <button
               type="button"
@@ -390,7 +390,7 @@ export default function SupportAdmin() {
               }`}
             >
               <RotateCcw size={14} />
-              <span>Refund Requests ({supportTickets.filter(t => t.category === 'refund').length})</span>
+              <span>{translateMessage(`Refund Requests (${supportTickets.filter(t => t.category === 'refund').length})`)}</span>
             </button>
             <button
               type="button"
@@ -402,7 +402,7 @@ export default function SupportAdmin() {
               }`}
             >
               <HelpCircle size={14} />
-              <span>General Inquiries ({supportTickets.filter(t => t.category === 'general').length})</span>
+              <span>{translateMessage(`General Inquiries (${supportTickets.filter(t => t.category === 'general').length})`)}</span>
             </button>
             <button
               type="button"
@@ -437,7 +437,7 @@ export default function SupportAdmin() {
                 <tr className="bg-plaster-dark/40 text-moss border-b border-soot/10 font-semibold uppercase text-xs tracking-wider">
                   <th className="px-4 py-4 min-w-[130px]">{t('support.colTicket')}</th>
                   <th className="px-4 py-4 min-w-[180px]">{t('support.colCustomer')}</th>
-                  <th className="px-4 py-4 min-w-[280px]">Topic &amp; Subject</th>
+                  <th className="px-4 py-4 min-w-[280px]">{translateMessage('Topic & Subject')}</th>
                   <th className="px-4 py-4 min-w-[110px]">{t('support.colProof')}</th>
                   <th className="px-4 py-4 min-w-[100px]">{t('support.colPriority')}</th>
                   <th className="px-4 py-4 min-w-[120px]">{t('admin.users.colStatus')}</th>
@@ -578,7 +578,7 @@ export default function SupportAdmin() {
                   {selectedTicket.subject}
                 </h3>
                 <p className="text-xs text-moss mt-1 font-mono">
-                  Submitted on {selectedTicket.createdAt}
+                  {translateMessage(`Submitted on ${selectedTicket.createdAt}`)}
                 </p>
               </div>
             </div>
@@ -666,7 +666,7 @@ export default function SupportAdmin() {
                   className="px-4 py-2.5 rounded-xl bg-soot text-plaster hover:bg-soot/85 text-xs font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center gap-2 shadow-2xs"
                 >
                   <Send size={14} />
-                  <span>Send Response &amp; Mark Resolved</span>
+                  <span>{translateMessage('Send Response & Mark Resolved')}</span>
                 </button>
               </div>
             </div>
@@ -675,7 +675,7 @@ export default function SupportAdmin() {
             <div className="space-y-2 pt-2 border-t border-soot/10">
               <label className="text-xs font-semibold text-soot uppercase tracking-wider block flex items-center gap-1.5">
                 <FileText size={13} className="text-moss" />
-                Internal Admin Notes (Staff only)
+                {translateMessage('Internal Admin Notes (Staff only)')}
               </label>
               <textarea
                 rows={2}
@@ -709,7 +709,7 @@ export default function SupportAdmin() {
                           : 'bg-plaster-surface border-soot/15 text-soot hover:bg-plaster-dark/40 hover:border-soot/30'
                       }`}
                     >
-                      {item.label}
+                      {translateMessage(item.label)}
                     </button>
                   );
                 })}
@@ -724,7 +724,7 @@ export default function SupportAdmin() {
         <Modal
           open={!!previewImage}
           onClose={() => setPreviewImage(null)}
-          title="Attached Proof Document"
+          title={translateMessage('Attached Proof Document')}
         >
           <div className="space-y-4 pt-2">
             <div className="bg-plaster-dark/30 rounded-2xl p-2 border border-soot/10 flex items-center justify-center min-h-[300px]">

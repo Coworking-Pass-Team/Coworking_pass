@@ -74,13 +74,13 @@ function AuthVisualBanner({
         <div className="absolute bottom-6 start-6 end-6 bg-plaster-surface/95 backdrop-blur-md rounded-2xl p-5 border border-soot/12 shadow-xl">
           <div className="flex items-center gap-2 text-moss text-xs font-bold uppercase tracking-wider mb-2">
             <CheckCircle2 size={15} className="text-eucalyptus shrink-0" />
-            <span className="text-soot">{tag}</span>
+            <span className="text-soot">{translateMessage(tag)}</span>
           </div>
           <p className="text-sm font-serif-display leading-relaxed italic text-soot mb-2.5">
-            &ldquo;{quote}&rdquo;
+            &ldquo;{translateMessage(quote)}&rdquo;
           </p>
           <div className="text-xs text-moss">
-            <span className="font-semibold text-soot">{author}</span> &bull; {role}
+            <span className="font-semibold text-soot">{translateMessage(author)}</span> &bull; {translateMessage(role)}
           </div>
         </div>
       </div>
@@ -282,7 +282,7 @@ export function LoginScreen() {
           </form>
 
           <p className="text-center text-xs sm:text-sm text-moss mt-6 pt-4 border-t border-soot/10">
-            Don&apos;t have an account?{' '}
+            {t('auth.noAccount')}{' '}
             <button
               type="button"
               onClick={() => navigate('signup')}
@@ -295,7 +295,7 @@ export function LoginScreen() {
 
         {/* Bottom Micro Footer */}
         <div className="w-full max-w-md mx-auto text-center text-[11px] text-moss">
-          &copy; 2026 Coworking Pass Inc. All rights reserved.
+          {t('footer.rights', { year: 2026 })}
         </div>
       </div>
 
@@ -609,7 +609,7 @@ export function SignUpScreen() {
             className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-soot/5 hover:bg-soot/10 border border-soot/10 text-xs font-semibold text-soot transition-all duration-200 cursor-pointer group"
           >
             <ArrowLeft size={14} className="group-hover:-translate-x-0.5 rtl:group-hover:translate-x-0.5 transition-transform" />
-            <span>{step === 2 ? 'Change Role' : 'Home'}</span>
+            <span>{step === 2 ? translateMessage('Change Role') : 'Home'}</span>
           </button>
         </div>
 
@@ -617,12 +617,12 @@ export function SignUpScreen() {
         <div className="w-full max-w-md mx-auto my-auto py-2">
           <div className="mb-4">
             <h1 className="text-2xl sm:text-3xl font-normal font-serif-display text-soot tracking-tight mb-1">
-              {step === 1 ? 'Choose Account Type' : 'Create Account'}
+              {step === 1 ? translateMessage('Choose Account Type') : translateMessage('Create Account')}
             </h1>
             <p className="text-moss text-xs sm:text-sm leading-relaxed">
               {step === 1
-                ? 'Select how you plan to use Coworking Pass'
-                : `Step 2 of 2: Registering as ${erdBadge.label}`}
+                ? translateMessage('Select how you plan to use Coworking Pass')
+                : translateMessage(`Step 2 of 2: Registering as ${translateMessage(erdBadge.label)}`)}
             </p>
           </div>
 
@@ -1004,7 +1004,7 @@ export function SignUpScreen() {
           )}
 
           <p className="text-center text-xs sm:text-sm text-moss mt-4 pt-3 border-t border-soot/10">
-            Already have an account?{' '}
+            {t('auth.haveAccount')}{' '}
             <button
               type="button"
               onClick={() => navigate('login')}
@@ -1017,7 +1017,7 @@ export function SignUpScreen() {
 
         {/* Bottom Micro Footer */}
         <div className="w-full max-w-md mx-auto text-center text-[11px] text-moss mt-2">
-          &copy; 2026 Coworking Pass Inc. All rights reserved.
+          {t('footer.rights', { year: 2026 })}
         </div>
       </div>
 
@@ -1256,7 +1256,7 @@ export function ChooseAccountType() {
         </div>
 
         <div className="w-full max-w-lg mx-auto text-center text-[11px] text-moss">
-          &copy; 2026 Coworking Pass Inc. All rights reserved.
+          {t('footer.rights', { year: 2026 })}
         </div>
       </div>
 
@@ -1323,7 +1323,7 @@ export function ForgotPasswordScreen() {
               {t('auth.forgotYourPassword')}
             </h1>
             <p className="text-moss text-xs sm:text-sm leading-relaxed">
-              Enter your registered account email and we&apos;ll send a 6-digit one-time verification code to reset your password.
+              {translateMessage('Enter your registered account email and we\'ll send a 6-digit one-time verification code to reset your password.')}
             </p>
           </div>
 
@@ -1373,7 +1373,7 @@ export function ForgotPasswordScreen() {
           </form>
 
           <p className="text-center text-xs sm:text-sm text-moss mt-6 pt-4 border-t border-soot/10">
-            Remembered your password?{' '}
+            {t('auth.rememberedPassword')}{' '}
             <button
               type="button"
               onClick={() => navigate('login')}
@@ -1386,7 +1386,7 @@ export function ForgotPasswordScreen() {
 
         {/* Micro Footer */}
         <div className="w-full max-w-md mx-auto text-center text-[11px] text-moss">
-          &copy; 2026 Coworking Pass Inc. All rights reserved.
+          {t('footer.rights', { year: 2026 })}
         </div>
       </div>
 
@@ -1616,7 +1616,7 @@ export function OtpVerificationScreen() {
 
           {/* Micro Footer */}
           <div className="w-full max-w-md mx-auto text-center text-[11px] text-moss">
-            &copy; 2026 Coworking Pass Inc. All rights reserved.
+            {t('footer.rights', { year: 2026 })}
           </div>
         </div>
 
@@ -1644,7 +1644,7 @@ export function OtpVerificationScreen() {
             className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-soot/5 hover:bg-soot/10 border border-soot/10 text-xs font-semibold text-soot transition-all duration-200 cursor-pointer group"
           >
             <ArrowLeft size={14} className="group-hover:-translate-x-0.5 rtl:group-hover:translate-x-0.5 transition-transform" />
-            <span>{isSignup ? 'Back to Sign Up' : isForgotPassword ? 'Back to Forgot Password' : 'Back to Sign In'}</span>
+            <span>{isSignup ? translateMessage('Back to Sign Up') : isForgotPassword ? translateMessage('Back to Forgot Password') : translateMessage('Back to Sign In')}</span>
           </button>
         </div>
 
@@ -1653,14 +1653,14 @@ export function OtpVerificationScreen() {
           <div className="mb-7">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-eucalyptus/20 border border-eucalyptus/40 text-soot text-xs font-semibold mb-3.5">
               <ShieldCheck size={14} className="text-emerald-800 shrink-0" />
-              <span>{isForgotPassword ? 'Password Recovery Verification' : 'Two-Factor Security Verification'}</span>
+              <span>{isForgotPassword ? translateMessage('Password Recovery Verification') : translateMessage('Two-Factor Security Verification')}</span>
             </div>
             <h1 className="text-3xl sm:text-4xl font-normal font-serif-display text-soot tracking-tight mb-2">
               {t('auth.enterCode')}
             </h1>
             <p className="text-moss text-xs sm:text-sm leading-relaxed">
-              We&apos;ve sent a 6-digit one-time code to{' '}
-              <span className="font-semibold text-soot">{recipient}</span>. Enter the code below to {isSignup ? 'complete your account registration' : isForgotPassword ? 'verify your identity and reset your password' : 'complete your sign in'}.
+              {t('auth.otpSentTo')}{' '}
+              <span className="font-semibold text-soot">{recipient}</span>. {t('auth.otpEnterBelow', { action: isSignup ? t('auth.otpActionSignup') : isForgotPassword ? t('auth.otpActionForgot') : t('auth.otpActionLogin') })}
             </p>
             {isProviderSignup && (
               <div className="mt-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-900 text-xs flex items-start gap-2">
@@ -1685,7 +1685,7 @@ export function OtpVerificationScreen() {
             {/* 6 Digit Input Boxes */}
             <div>
               <label className="block text-xs font-semibold text-soot mb-2.5 uppercase tracking-wider text-center">
-                6-Digit Security Code
+                {translateMessage('6-Digit Security Code')}
               </label>
               <div className="flex items-center justify-center gap-2 sm:gap-3">
                 {digits.map((digit, idx) => (
@@ -1732,11 +1732,11 @@ export function OtpVerificationScreen() {
               {!canResend ? (
                 <span className="flex items-center justify-center gap-1.5 font-medium">
                   <Clock size={13} className="text-moss" />
-                  <span>Resend code in {Math.floor(countdown / 60)}:{countdown % 60 < 10 ? `0${countdown % 60}` : countdown % 60}</span>
+                  <span>{t('auth.resendIn', { time: `${Math.floor(countdown / 60)}:${countdown % 60 < 10 ? `0${countdown % 60}` : countdown % 60}` })}</span>
                 </span>
               ) : (
                 <span>
-                  Didn&apos;t receive the code?{' '}
+                  {t('auth.noCode')}{' '}
                   <button
                     type="button"
                     onClick={handleResend}
@@ -1762,7 +1762,7 @@ export function OtpVerificationScreen() {
 
         {/* Micro Footer */}
         <div className="w-full max-w-md mx-auto text-center text-[11px] text-moss">
-          &copy; 2026 Coworking Pass Inc. All rights reserved.
+          {t('footer.rights', { year: 2026 })}
         </div>
       </div>
 
@@ -1943,7 +1943,7 @@ export function ResetPasswordScreen() {
 
         {/* Micro Footer */}
         <div className="w-full max-w-md mx-auto text-center text-[11px] text-moss">
-          &copy; 2026 Coworking Pass Inc. All rights reserved.
+          {t('footer.rights', { year: 2026 })}
         </div>
       </div>
 

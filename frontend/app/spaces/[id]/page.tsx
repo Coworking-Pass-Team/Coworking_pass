@@ -743,7 +743,7 @@ function SpaceDetailsView() {
 
                     <div className="bg-white p-3 rounded-xl border border-soot/8 flex items-center justify-between text-xs">
                       <div>
-                        <span className="text-moss block text-[10px] uppercase font-semibold">Selected Range</span>
+                        <span className="text-moss block text-[10px] uppercase font-semibold">{translateMessage('Selected Range')}</span>
                         <span className="font-semibold text-soot">{formatDateRange(bookingDate, effectiveDailyEndDate)}</span>
                       </div>
                       <div className="text-end">
@@ -789,7 +789,7 @@ function SpaceDetailsView() {
                     <div className="flex items-center justify-between gap-2">
                       <label className="text-[11px] font-semibold uppercase tracking-wider text-moss flex items-center gap-1.5 whitespace-nowrap">
                         <Clock size={12} className="shrink-0" />
-                        <span>Select Hourly Booking Duration</span>
+                        <span>{translateMessage('Select Hourly Booking Duration')}</span>
                       </label>
                       <span className="text-xs font-bold text-emerald-900 bg-emerald-100/80 px-2.5 py-1 rounded-full border border-emerald-300 shadow-2xs whitespace-nowrap shrink-0">
                         {t(durationHours === 1 ? 'spaceDetails.hoursDuration' : 'spaceDetails.hoursDurationMany', { count: durationHours })}
@@ -800,7 +800,7 @@ function SpaceDetailsView() {
                     {!isHourlySpace && (
                     <div className="space-y-1.5">
                       <span className="text-[10px] font-semibold uppercase tracking-wider text-moss block">
-                        Duration (Hours)
+                        {translateMessage('Duration (Hours)')}
                       </span>
                       <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
                         {[1, 2, 3, 4, 6, 8].map((h) => {
@@ -820,7 +820,7 @@ function SpaceDetailsView() {
                               <div className="font-bold text-xs">{t(h === 1 ? 'spaceDetails.hourOne' : 'spaceDetails.hourMany', { count: h })}</div>
                               <div className={`text-[10px] mt-0.5 ${isSelected ? 'text-plaster/80 font-medium' : 'text-moss'}`}>
                                 {hasActiveSubscription && hourlyP.isCovered
-                                  ? 'Pass Quota'
+                                  ? translateMessage('Pass Quota')
                                   : `${t('common.sar')} ${hourlyP.effectivePrice.toLocaleString()}`}
                               </div>
                             </button>
@@ -955,7 +955,7 @@ function SpaceDetailsView() {
                         <span>{t('spaceDetails.numberOfSeats')}</span>
                       </label>
                       <p className="text-[10px] text-moss mt-0.5">
-                        Select how many desks / seats for your team
+                        {translateMessage('Select how many desks / seats for your team')}
                       </p>
                     </div>
                     <span className="text-xs font-bold text-soot bg-white px-3 py-1 rounded-full border border-soot/10 shadow-2xs">
@@ -1213,11 +1213,11 @@ function SpaceDetailsView() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="p-3.5 rounded-2xl bg-plaster-surface border border-soot/12">
-                  <div className="text-[11px] text-moss mb-0.5">Queue Status</div>
+                  <div className="text-[11px] text-moss mb-0.5">{translateMessage('Queue Status')}</div>
                   <div className="text-lg font-semibold text-soot">Position #{queuePosition}</div>
                 </div>
                 <div className="p-3.5 rounded-2xl bg-plaster-surface border border-soot/12">
-                  <div className="text-[11px] text-moss mb-0.5">Est. Notification</div>
+                  <div className="text-[11px] text-moss mb-0.5">{translateMessage('Est. Notification')}</div>
                   <div className="text-lg font-semibold text-soot">~{estimatedMins} mins</div>
                 </div>
               </div>

@@ -76,6 +76,48 @@ test.describe('Internationalization', () => {
   }
 });
 
+test.describe('Sign-in screens in Arabic', () => {
+  const ENGLISH_UI = /All rights reserved|Verified Saudi Workspace Network|Two-Factor|Back to Sign|Choose Account Type|Don't have an account|Already have an account|Remembered your password|Digit Security Code|Resend code in/;
+
+  async function openLogin(page: Page) {
+    await open(page);
+    await setLanguage(page, 'ar');
+    await page.evaluate(() => {
+      const t = Array.from(document.querySelectorAll('button')).find((b) => /تبديل قائمة|toggle/i.test(b.getAttribute('aria-label') || ''));
+      t && (t as HTMLElement).click();
+    });
+    await page.waitForTimeout(500);
+    await page.evaluate(() => {
+      Array.from(document.querySelectorAll('button')).filter((b) => /^تسجيل الدخول$/.test((b.textContent || '').trim())).forEach((b) => (b as HTMLElement).click());
+    });
+    await expect(page.locator('input[type=email]')).toBeVisible({ timeout: 10000 });
+  }
+
+  test('login and registration text is Arabic', async ({ page }) => {
+    await openLogin(page);
+    expect(await page.evaluate(() => document.body.innerText)).not.toMatch(ENGLISH_UI);
+    await page.evaluate(() => {
+      Array.from(document.querySelectorAll('button')).filter((b) => /^إنشاء حساب$/.test((b.textContent || '').trim())).forEach((b) => (b as HTMLElement).click());
+    });
+    await page.waitForTimeout(1200);
+    const signup = await page.evaluate(() => document.body.innerText);
+    expect(signup).toMatch(/اختر نوع الحساب/);
+    expect(signup).not.toMatch(ENGLISH_UI);
+  });
+
+  test('verification-code screen is Arabic', async ({ page }) => {
+    await openLogin(page);
+    await page.locator('input[type=email]').fill('admin@coworkingpass.sa');
+    await page.locator('input[type=password]').fill('password');
+    await page.locator('button[type=submit]').click();
+    await expect(page.locator('input[maxlength="1"]').first()).toBeVisible({ timeout: 15000 });
+    await page.waitForTimeout(800);
+    const text = await page.evaluate(() => document.body.innerText);
+    expect(text).toMatch(/التحقق الأمني بخطوتين/);
+    expect(text).not.toMatch(ENGLISH_UI);
+  });
+});
+
 test.describe('QR scan page', () => {
   test('is translated: Arabic by default for the saved language, English when switched', async ({ page }) => {
     await open(page);

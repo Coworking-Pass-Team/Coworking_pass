@@ -91,7 +91,7 @@ export default function WalletModal({ isOpen, onClose }: WalletModalProps) {
               <p className="text-xs text-soot/60 dark:text-white/60">{t('wallet.subtitle')}</p>
             </div>
           </div>
-          <button
+          <button aria-label={t('common.close')}
             onClick={onClose}
             className="w-8 h-8 rounded-full bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 text-soot dark:text-white flex items-center justify-center transition-colors cursor-pointer"
           >
@@ -173,7 +173,7 @@ export default function WalletModal({ isOpen, onClose }: WalletModalProps) {
 
               {/* Quick Amount Buttons */}
               <div>
-                <label className="block text-xs font-semibold text-soot/70 dark:text-white/70 mb-2">Quick Amounts (SAR)</label>
+                <label className="block text-xs font-semibold text-soot/70 dark:text-white/70 mb-2">{translateMessage('Quick Amounts (SAR)')}</label>
                 <div className="grid grid-cols-4 gap-2">
                   {[50, 100, 250, 500].map((val) => (
                     <button
@@ -194,7 +194,7 @@ export default function WalletModal({ isOpen, onClose }: WalletModalProps) {
 
               {/* Amount Input */}
               <div>
-                <label className="block text-xs font-semibold text-soot/70 dark:text-white/70 mb-1">Amount (SAR)</label>
+                <label className="block text-xs font-semibold text-soot/70 dark:text-white/70 mb-1">{translateMessage('Amount (SAR)')}</label>
                 <input
                   type="number"
                   min="1"
@@ -209,7 +209,7 @@ export default function WalletModal({ isOpen, onClose }: WalletModalProps) {
 
               {/* Description Input */}
               <div>
-                <label className="block text-xs font-semibold text-soot/70 dark:text-white/70 mb-1">Description / Notes (Optional)</label>
+                <label className="block text-xs font-semibold text-soot/70 dark:text-white/70 mb-1">{translateMessage('Description / Notes (Optional)')}</label>
                 <input
                   type="text"
                   placeholder={t('wallet.notesTopUp')}
@@ -254,7 +254,7 @@ export default function WalletModal({ isOpen, onClose }: WalletModalProps) {
 
               {/* Amount Input */}
               <div>
-                <label className="block text-xs font-semibold text-soot/70 dark:text-white/70 mb-1">Amount to Withdraw (SAR)</label>
+                <label className="block text-xs font-semibold text-soot/70 dark:text-white/70 mb-1">{translateMessage('Amount to Withdraw (SAR)')}</label>
                 <input
                   type="number"
                   min="1"

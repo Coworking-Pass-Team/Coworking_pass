@@ -61,7 +61,7 @@ export default function ProviderMySpaces() {
 
 /** All hooks live here, so the session check above can return early without changing the hook order. */
 function ProviderMySpacesContent() {
-  const { t } = useI18n();
+  const { t, translateMessage } = useI18n();
   const st = useSpaceText();
   const { nav, currentUser: sessionUser, spaces, partners, addSpace, updateSpace, toggleSpaceVisibility, deleteSpace, amenityRequests, requestCustomAmenity, getApprovedAmenities, fetchAmenities } = useApp();
   const [query, setQuery] = useState('');
@@ -1333,7 +1333,7 @@ function ProviderMySpacesContent() {
                   {form.images.map((img, idx) => (
                     <div key={idx} className="relative group rounded-xl overflow-hidden border border-soot/10 aspect-video">
                       <img src={img || FALLBACK_SPACE_IMAGE} alt={`Space photo ${idx + 1}`} className="w-full h-full object-cover" />
-                      <button
+                      <button aria-label={t('admin.spaces.removeImage')}
                         type="button"
                         onClick={() => removeImage(idx)}
                         className="absolute top-1 end-1 p-1 bg-red-600/90 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
@@ -1471,7 +1471,7 @@ function ProviderMySpacesContent() {
       >
         <div className="text-sm text-soot space-y-2 py-2">
           <p>
-            Are you sure you want to delete <span className="font-semibold">{spaceToDelete?.name}</span>?
+            {translateMessage('Are you sure you want to delete')} <span className="font-semibold">{spaceToDelete?.name}</span>?
           </p>
           <p className="text-xs text-moss">{t('mySpaces.deleteWarning')}</p>
         </div>

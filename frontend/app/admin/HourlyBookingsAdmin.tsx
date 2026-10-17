@@ -560,7 +560,7 @@ export default function HourlyBookingsAdmin() {
         open={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         title={t('admin.hb.createHourlyBooking')}
-        subtitle="Create a new hourly booking record synced directly to the PostgreSQL database"
+        subtitle={translateMessage('Create a new hourly booking record synced directly to the PostgreSQL database')}
       >
         <form onSubmit={handleCreateBooking} className="space-y-4 pt-2 text-start">
           {formError && (
@@ -696,7 +696,7 @@ export default function HourlyBookingsAdmin() {
               disabled={submitting}
               className="bg-soot text-plaster hover:bg-soot/90 text-xs font-semibold px-5 py-2.5 rounded-xl shadow-xs transition-all cursor-pointer disabled:opacity-50"
             >
-              {submitting ? 'Creating...' : 'Create Booking in Database'}
+              {submitting ? 'Creating...' : translateMessage('Create Booking in Database')}
             </button>
           </div>
         </form>
@@ -767,7 +767,7 @@ export default function HourlyBookingsAdmin() {
               disabled={editSubmitting}
               className="bg-soot text-plaster hover:bg-soot/90 text-xs font-semibold px-5 py-2.5 rounded-xl shadow-xs transition-all cursor-pointer disabled:opacity-50"
             >
-              {editSubmitting ? 'Updating...' : 'Save Status Changes'}
+              {editSubmitting ? 'Updating...' : translateMessage('Save Status Changes')}
             </button>
           </div>
         </form>

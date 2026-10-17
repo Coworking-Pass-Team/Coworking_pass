@@ -61,7 +61,7 @@ const STEPS = STEP_KEYS;
 const DURATION_OPTIONS = [1, 2, 3, 4, 6, 8];
 
 export default function TeamBooking() {
-  const { t, localizeTime } = useI18n();
+  const { t, localizeTime, translateMessage } = useI18n();
   const st = useSpaceText();
   const { nav, goBack, spaces, bookings, currentUser, addBooking, navigate, showToast, addToCart, updateCurrentUser, withdrawFromWallet, companyWalletBalance, fetchCompanyWallet, withdrawFromCompanyWallet, checkSeatAvailability } = useApp();
   const spaceId = nav.params?.spaceId;
@@ -481,7 +481,7 @@ export default function TeamBooking() {
             {t('tb.confirmedTitle')}
           </h1>
           <p className="text-moss text-xs sm:text-sm mb-8 font-normal">
-            Your workspace for {seats} team member{seats > 1 ? 's' : ''} is reserved.
+            {translateMessage(`Your workspace for ${seats} team member${seats > 1 ? 's' : ''} is reserved.`)}
           </p>
 
           <div className="bg-white rounded-3xl border border-soot/8 p-6 text-start mb-6 shadow-sm">
@@ -522,7 +522,7 @@ export default function TeamBooking() {
               )}
               {(isHourlySpace || isHourly) && (
                 <div className="flex justify-between">
-                  <span className="text-moss text-xs">{isHourly ? 'Time Window' : 'Daily Allowed Hours'}</span>
+                  <span className="text-moss text-xs">{isHourly ? translateMessage('Time Window') : translateMessage('Daily Allowed Hours')}</span>
                   <span className="text-soot font-medium text-xs">{startTime} – {endTime} ({durationHours} {durationHours === 1 ? 'hour' : 'hours'}{isHourly ? '' : '/day'})</span>
                 </div>
               )}
@@ -535,7 +535,7 @@ export default function TeamBooking() {
               {!hasActiveSubscription && pointsDiscount > 0 && (
                 <div className="flex justify-between">
                   <span className="text-moss text-xs">{t('tb.pointsRedeemed')}</span>
-                  <span className="text-emerald-700 font-semibold text-xs">-{maxRedeemablePoints} pts (SAR {pointsDiscount})</span>
+                  <span className="text-emerald-700 font-semibold text-xs">{translateMessage(`-${maxRedeemablePoints} pts (SAR ${pointsDiscount})`)}</span>
                 </div>
               )}
               {!hasActiveSubscription && earnedPoints > 0 && (
@@ -549,7 +549,7 @@ export default function TeamBooking() {
               )}
 
               <div className="pt-3 border-t border-soot/8 flex justify-between items-center font-semibold text-base">
-                <span className="text-soot">{hasActiveSubscription ? 'Corporate Plan Status' : 'Total Paid (incl. VAT)'}</span>
+                <span className="text-soot">{hasActiveSubscription ? translateMessage('Corporate Plan Status') : translateMessage('Total Paid (incl. VAT)')}</span>
                 {hasActiveSubscription ? (
                   <span className="text-moss font-bold text-xs sm:text-sm bg-eucalyptus/25 px-3 py-1 rounded-full border border-eucalyptus/30">
                     {t('tb.coveredCorporate')}
@@ -625,7 +625,7 @@ export default function TeamBooking() {
             <div className="font-semibold text-soot text-sm truncate">{st.name(space)}</div>
             <div className="text-xs text-moss flex items-center gap-1 mt-0.5">
               <MapPin size={11} />
-              <span>{space.city} · {space.availableCapacity} seats available</span>
+              <span>{space.city} · {translateMessage(`${space.availableCapacity} seats available`)}</span>
               {(space.loyaltyPointsMultiplier || 1) > 1 && (
                 <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-900 border border-amber-500/30">
                   <Sparkles size={10} className="text-amber-500" />
@@ -647,13 +647,13 @@ export default function TeamBooking() {
                 {t('tb.activeCorporatePass')}
               </div>
               <div className="text-[10px] text-moss">
-                Included in your Plan ({seats} seats)
+                {translateMessage(`Included in your Plan (${seats} seats)`)}
               </div>
             </>
           ) : (
             <>
               <span className="text-[9px] font-bold uppercase tracking-wider text-moss block">
-                Total ({seats} seats)
+                {translateMessage(`Total (${seats} seats)`)}
               </span>
               <div className="font-bold text-soot text-base">
                 {planInfo.isCovered ? `${t('common.sar')} 0` : `${t('common.sar')} ${finalPayablePrice.toLocaleString()}`}
@@ -797,7 +797,7 @@ export default function TeamBooking() {
                   onClick={toggleSelectAll}
                   className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-plaster-dark/60 hover:bg-[#DDE6DF] text-soot border border-soot/10 transition-all cursor-pointer"
                 >
-                  {allEmployeesSelected ? 'Deselect All' : 'Select All'}
+                  {allEmployeesSelected ? translateMessage('Deselect All') : translateMessage('Select All')}
                 </button>
               )}
             </div>
@@ -805,7 +805,7 @@ export default function TeamBooking() {
 
           {employees.length === 0 ? (
             <div className="p-4 rounded-2xl bg-plaster text-xs text-moss text-center">
-              No employees registered. You can still book {seats} seats for unnamed team members.
+              {translateMessage(`No employees registered. You can still book ${seats} seats for unnamed team members.`)}
             </div>
           ) : (
             <div className="space-y-2.5">
@@ -1166,7 +1166,7 @@ export default function TeamBooking() {
                 <div>
                   <span className="text-xs font-semibold text-soot block">{t('tb.corporateSubPlan')}</span>
                   <span className="text-[11px] text-moss">
-                    All {seats} {seats === 1 ? 'seat' : 'seats'} fully covered under active corporate membership
+                    {translateMessage(`All ${seats} ${seats === 1 ? 'seat' : 'seats'} fully covered under active corporate membership`)}
                   </span>
                 </div>
                 <div className="text-end">
@@ -1248,7 +1248,7 @@ export default function TeamBooking() {
                 )}
                 {(isHourlySpace || isHourly) && (
                   <div className="flex justify-between">
-                    <span className="text-moss">{isHourly ? 'Time Window' : 'Daily Allowed Hours'}</span>
+                    <span className="text-moss">{isHourly ? translateMessage('Time Window') : translateMessage('Daily Allowed Hours')}</span>
                     <span className="text-soot font-medium">{startTime} – {endTime} ({durationHours} {durationHours === 1 ? 'hour' : 'hours'}{isHourly ? '' : '/day'})</span>
                   </div>
                 )}
@@ -1369,7 +1369,7 @@ export default function TeamBooking() {
                       <div>
                         <div className="text-sm font-semibold text-soot">{t('tb.loyaltyRewards')}</div>
                         <div className="text-xs text-moss mt-0.5">
-                          You have <strong className="text-soot">{availablePoints}</strong> points. (100 pts = SAR 25 discount)
+                          {translateMessage('You have')} <strong className="text-soot">{availablePoints}</strong> {translateMessage('points. (100 pts = SAR 25 discount)')}
                         </div>
                       </div>
                     </div>
@@ -1461,7 +1461,7 @@ export default function TeamBooking() {
                   </div>
                   {pointsDiscount > 0 && (
                     <div className="flex justify-between text-xs sm:text-sm">
-                      <span className="text-moss">Loyalty Points Discount ({maxRedeemablePoints} pts)</span>
+                      <span className="text-moss">{translateMessage(`Loyalty Points Discount (${maxRedeemablePoints} pts)`)}</span>
                       <span className="text-emerald-700 font-semibold">-SAR {pointsDiscount.toLocaleString()}</span>
                     </div>
                   )}
@@ -1472,7 +1472,7 @@ export default function TeamBooking() {
                     </div>
                   )}
                   <div className="flex justify-between text-xs sm:text-sm">
-                    <span className="text-moss">VAT (15% included)</span>
+                    <span className="text-moss">{translateMessage('VAT (15% included)')}</span>
                     <span className="text-soot font-medium">
                       {planInfo.isCovered ? `${t('common.sar')} 0` : `${t('common.sar')} ${((finalPayablePrice) * 15 / 115).toFixed(2)}`}
                     </span>
@@ -1488,7 +1488,7 @@ export default function TeamBooking() {
                         <div>
                           <span className="text-2xl font-bold text-soot">{t('bf.zeroToPay')}</span>
                           <div className="text-xs text-moss font-semibold bg-eucalyptus/25 border border-eucalyptus/30 px-2.5 py-0.5 rounded-full inline-block ms-2">
-                            {walletDeduction >= finalPayablePrice && finalPayablePrice > 0 ? t('tb.paidWithWallet') : 'Included in your Plan'}
+                            {walletDeduction >= finalPayablePrice && finalPayablePrice > 0 ? t('tb.paidWithWallet') : translateMessage('Included in your Plan')}
                           </div>
                         </div>
                       ) : (
@@ -1565,17 +1565,17 @@ export default function TeamBooking() {
               ) : hasActiveSubscription ? (
                 <>
                   <Check size={15} className="text-moss" />
-                  <span>Confirm Reservation (Covered by Corporate Pass)</span>
+                  <span>{translateMessage('Confirm Reservation (Covered by Corporate Pass)')}</span>
                 </>
               ) : finalPayablePrice === 0 ? (
                 <>
                   <Check size={15} className="text-moss" />
-                  <span>Confirm Reservation (Included in your Plan · SAR 0 to Pay)</span>
+                  <span>{translateMessage('Confirm Reservation (Included in your Plan · SAR 0 to Pay)')}</span>
                 </>
               ) : (
                 <>
                   <CreditCard size={15} />
-                  <span>Confirm Reservation (SAR {finalPayablePrice.toLocaleString()})</span>
+                  <span>{translateMessage(`Confirm Reservation (SAR ${finalPayablePrice.toLocaleString()})`)}</span>
                 </>
               )}
             </button>

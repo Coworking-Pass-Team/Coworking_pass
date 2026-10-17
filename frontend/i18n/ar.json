@@ -755,7 +755,17 @@
     "agreePrefix": "أوافق على",
     "and": "و",
     "cancelReturn": "إلغاء والعودة إلى",
-    "createSecurePasswordFor": "أنشئ كلمة مرور جديدة وآمنة لـ"
+    "createSecurePasswordFor": "أنشئ كلمة مرور جديدة وآمنة لـ",
+    "noAccount": "ليس لديك حساب؟",
+    "haveAccount": "لديك حساب بالفعل؟",
+    "rememberedPassword": "تذكّرت كلمة المرور؟",
+    "otpSentTo": "أرسلنا رمزًا لمرة واحدة من 6 أرقام إلى",
+    "otpEnterBelow": "أدخل الرمز أدناه لـ{action}.",
+    "otpActionSignup": "إكمال تسجيل حسابك",
+    "otpActionForgot": "التحقق من هويتك وإعادة تعيين كلمة المرور",
+    "otpActionLogin": "إكمال تسجيل الدخول",
+    "resendIn": "إعادة إرسال الرمز بعد {time}",
+    "noCode": "لم يصلك الرمز؟"
   },
   "wallet": {
     "transactionsCount": "{count} معاملة",
