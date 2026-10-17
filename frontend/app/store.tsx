@@ -64,6 +64,7 @@ import {
   deleteLoyaltyRuleApi,
   getLoyaltyPointsApi,
   getQrCheckInsApi,
+  getQrSummaryApi,
   createQrCheckInApi,
   getCompaniesApi,
   getCompanyApi,
@@ -745,15 +746,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const fetchQrCheckIns = async (): Promise<Record<string, number>> => {
     try {
-      const res = await getQrCheckInsApi();
-      if (res.success && Array.isArray(res.data)) {
-        const dbCounts: Record<string, number> = {};
-        for (const checkIn of res.data) {
-          const wId = checkIn.workspaceId || checkIn.workspace?.id;
-          if (wId) {
-            dbCounts[wId] = (dbCounts[wId] || 0) + 1;
-          }
-        }
+      const res = await getQrSummaryApi();
+      if (res.success) {
+        const dbCounts: Record<string, number> = res.counts;
         setQrScans(dbCounts);
         if (typeof window !== 'undefined') {
           try {

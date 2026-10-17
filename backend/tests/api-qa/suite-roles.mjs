@@ -85,6 +85,9 @@ const qr2 = await api('/qr-check-ins', { token: A.token });
 check('"QR Check-ins Today" counts the scanned customer', (qr2.body || []).filter(x => x.workspaceId === wsA).length === n0 + 2);
 check('other provider cannot scan customers into my venue', (await api('/qr-check-ins', { method: 'POST', token: C.token, body: { userId: walkIn.userId, workspaceId: wsA, sectionId: secId } })).status === 403);
 check('a customer cannot check in somebody else', (await api('/qr-check-ins', { method: 'POST', token: ind.token, body: { userId: walkIn.userId, workspaceId: wsA, sectionId: secId } })).status === 403);
+const summaryRes = await api('/qr-check-ins?summary=today');
+check('public "check-ins today" counters need no sign-in', summaryRes.status === 200 && (summaryRes.body?.counts?.[wsA] ?? 0) >= 2, 'status ' + summaryRes.status + ' count=' + summaryRes.body?.counts?.[wsA]);
+check('the public counters expose no personal data', !/email|userId|name/i.test(JSON.stringify(summaryRes.body)));
 check('anonymous check-in refused', (await api('/qr-check-ins', { method: 'POST', body: { userId: walkIn.userId, workspaceId: wsA, sectionId: secId } })).status === 401);
 
 // ---------- HR admin ----------

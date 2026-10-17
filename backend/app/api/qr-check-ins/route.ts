@@ -22,6 +22,20 @@ function generateQRHash() {
  */
 export async function GET(request: Request) {
   try {
+    // Public crowd indicator: how many check-ins each workspace had today (KSA day). Counts only, no people.
+    if (new URL(request.url).searchParams.get('summary') === 'today') {
+      const ksaNow = new Date(Date.now() + 3 * 60 * 60 * 1000)
+      const startUtc = new Date(Date.UTC(ksaNow.getUTCFullYear(), ksaNow.getUTCMonth(), ksaNow.getUTCDate()) - 3 * 60 * 60 * 1000)
+      const grouped = await prisma.qrCheckIn.groupBy({
+        by: ['workspaceId'],
+        where: { scannedAt: { gte: startUtc } },
+        _count: { _all: true },
+      })
+      const counts: Record<string, number> = {}
+      for (const row of grouped) counts[row.workspaceId] = row._count._all
+      return NextResponse.json({ date: startUtc.toISOString(), counts })
+    }
+
     const user = await getTokenFromRequest(request);
 if (!user) return unauthorizedResponse(request);
 

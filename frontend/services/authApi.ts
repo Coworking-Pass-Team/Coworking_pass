@@ -1119,6 +1119,18 @@ export async function createQrCheckInApi(payload: QrCheckInPayload) {
   }
 }
 
+/** Public per-workspace check-in counters for today (no personal data, no sign-in needed). */
+export async function getQrSummaryApi(): Promise<{ success: boolean; counts: Record<string, number> }> {
+  try {
+    const response = await fetch(`${getAuthBaseUrl()}/api/qr-check-ins?summary=today`, { method: 'GET', cache: 'no-store' });
+    if (!response.ok) return { success: false, counts: {} };
+    const data = await response.json().catch(() => ({}));
+    return { success: true, counts: (data && typeof data.counts === 'object' && data.counts) || {} };
+  } catch (_) {
+    return { success: false, counts: {} };
+  }
+}
+
 export async function getQrCheckInsApi() {
   const url = `${getAuthBaseUrl()}/api/qr-check-ins`;
   try {
