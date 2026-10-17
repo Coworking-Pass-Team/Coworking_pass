@@ -1,6 +1,7 @@
 'use client';
 
 import { useI18n } from '@/i18n';
+import UserAvatar from '@/components/ui/UserAvatar';
 import React from 'react';
 import { 
   Building2, 
@@ -462,11 +463,7 @@ export default function AdminDashboard() {
               {recentUsers.map(u => (
                 <div key={u.id} className="py-3.5 first:pt-0 last:pb-0 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
-                    <img 
-                      src={u.avatar} 
-                      alt={u.name} 
-                      className="w-11 h-11 rounded-full object-cover shrink-0 border border-soot/8 shadow-2xs" 
-                    />
+                    <UserAvatar src={u.avatar} name={u.name} size="md" />
                     <div className="min-w-0">
                       <div className="text-sm font-semibold text-soot truncate">
                         {u.role === 'organization' ? u.orgName || u.name : u.name}

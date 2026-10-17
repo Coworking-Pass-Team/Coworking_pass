@@ -1,6 +1,7 @@
 'use client';
 
 import { useI18n } from '@/i18n';
+import UserAvatar from '@/components/ui/UserAvatar';
 import { useLabels } from '@/i18n/labels';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import {
@@ -629,11 +630,7 @@ export default function UsersAdmin() {
               >
                 {/* User Info & Avatar */}
                 <div className="col-span-5 flex items-center gap-3.5 min-w-0">
-                  <img
-                    src={u.avatar}
-                    alt={displayName}
-                    className="w-11 h-11 rounded-full object-cover border border-soot/10 shrink-0 shadow-2xs group-hover:scale-105 transition-transform"
-                  />
+                  <UserAvatar src={u.avatar} name={displayName} size="md" />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm font-semibold text-soot group-hover:text-emerald-900 transition-colors truncate">
@@ -1020,11 +1017,7 @@ export default function UsersAdmin() {
 
             <div className="p-6 sm:p-8 space-y-6">
               <div className="flex items-center gap-4 pb-5 border-b border-soot/10">
-                <img
-                  src={selectedUser.avatar}
-                  alt={selectedUser.name}
-                  className="w-16 h-16 rounded-full object-cover border border-soot/10 shadow-sm"
-                />
+                <UserAvatar src={selectedUser.avatar} name={selectedUser.name} size="lg" />
                 <div>
                   <h4 className="font-semibold text-soot text-lg leading-tight">
                     {selectedUser.role === 'organization' ? selectedUser.orgName || selectedUser.name : selectedUser.name}

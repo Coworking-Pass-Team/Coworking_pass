@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import UserAvatar from '@/components/ui/UserAvatar';
 import { AppProvider, useApp } from './store';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
@@ -242,7 +243,7 @@ function AdminSettingsPage() {
       <div className="bg-white rounded-2xl border border-soot/8 p-6 mb-4">
         <h2 className="font-semibold text-soot mb-4">Account</h2>
         <div className="flex items-center gap-4 mb-4">
-          <img src={currentUser.avatar} alt={currentUser.name} className="w-14 h-14 rounded-full object-cover" />
+          <UserAvatar src={currentUser.avatar} name={currentUser.name} size="lg" />
           <div>
             <div className="font-semibold text-soot">{currentUser.name}</div>
             <div className="text-sm text-moss">{currentUser.email}</div>
