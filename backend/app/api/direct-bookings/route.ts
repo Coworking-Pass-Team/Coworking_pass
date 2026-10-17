@@ -303,6 +303,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: hiddenError }, { status: 403 });
     }
 
+    // Capacity check + insert run under a per-workspace advisory lock, so simultaneous requests for the
+    // last seats cannot both pass the check (no overbooking). Shares its lock key with hourly bookings.
+    const lockedWorkspaceId: string = targetWorkspaceId;
+    const created = await prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${'hourly-slot:' + lockedWorkspaceId}))`;
+
     // Capacity check: reject requests that would exceed the venue's total seats for the booked period
     const requestedSeats = Math.max(1, Math.floor(Number(body.seats) || 1));
     const bookingStart = parseDateAndTimeToKsaDate(bookingDate, null, 9);
@@ -328,7 +334,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const booking = await prisma.directBooking.create({
+    return await tx.directBooking.create({
       data: {
         userId: effectiveUserId,
         seats: requestedSeats,
@@ -346,6 +352,11 @@ export async function POST(request: NextRequest) {
         section: true,
       },
     });
+    });
+
+    // A NextResponse here means the capacity check inside the transaction rejected the request
+    if (created instanceof NextResponse) return created;
+    const booking = created;
 
     await prisma.notification.create({
       data: {

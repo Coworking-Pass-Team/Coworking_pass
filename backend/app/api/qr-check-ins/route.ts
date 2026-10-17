@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import crypto from 'crypto'
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
+import { getOwnedWorkspaceIds } from '@/lib/ownership'
 
 
 function generateQRHash() {
@@ -23,7 +24,19 @@ export async function GET(request: Request) {
   try {
     const user = await getTokenFromRequest(request);
 if (!user) return unauthorizedResponse(request);
+
+    // Scope the listing: super admins see everything, partners their own venues (plus their own scans),
+    // everyone else only their own check-ins
+    let where: Record<string, unknown> = { userId: user.userId }
+    if (user.role === 'SUPER_ADMIN') {
+      where = {}
+    } else if (user.role === 'PARTNER_ADMIN') {
+      const owned = await getOwnedWorkspaceIds(user.userId)
+      where = { OR: [{ workspaceId: { in: owned } }, { userId: user.userId }] }
+    }
+
     const checkIns = await prisma.qrCheckIn.findMany({
+      where,
       include: {
         user: { select: { name: true, email: true } },
         workspace: true,
@@ -74,7 +87,10 @@ export async function POST(request: NextRequest) {
     const user = await getTokenFromRequest(request);
 if (!user) return unauthorizedResponse(request);
     const body = await request.json()
-    const { userId, workspaceId, sectionId, status = 'VALID' } = body
+    const { workspaceId, sectionId } = body
+    const status = 'VALID'
+    // A check-in always belongs to the caller; only super admins may record one for somebody else
+    const userId: string = user.role === 'SUPER_ADMIN' && body.userId ? body.userId : user.userId
 
     if (!userId || !workspaceId || !sectionId) {
       return NextResponse.json(
@@ -112,8 +128,18 @@ if (!user) return unauthorizedResponse(request);
         }
       })
 
+      // Points are earned once per booking per day, so repeated scans cannot farm loyalty points
+      const dayStart = new Date()
+      dayStart.setUTCHours(0, 0, 0, 0)
+      const alreadyEarned = activeBooking
+        ? await prisma.pointsTransaction.findFirst({
+            where: { userId, type: 'EARNED', referenceId: activeBooking.id, createdAt: { gte: dayStart } },
+            select: { id: true },
+          })
+        : null
+
       // إذا كان هناك حجز نشط، نمنح نقاط
-      if (activeBooking) {
+      if (activeBooking && !alreadyEarned) {
         const pointsToEarn = 10 // 10 نقاط لكل حجز
 
         await prisma.pointsTransaction.create({

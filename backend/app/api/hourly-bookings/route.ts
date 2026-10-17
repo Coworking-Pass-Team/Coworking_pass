@@ -407,8 +407,33 @@ const requestedType = (validSectionTypes.includes(sectionType) && sectionType !=
 
     targetPackageId = pkg.id;
 
-    // إنشاء الحجز
-    const booking = await prisma.hourlyBooking.create({
+    // Serialize bookings per workspace and re-check availability under the lock, so two simultaneous
+    // requests for the same unit / session / last seats can never both succeed (no overbooking).
+    const wsId = ws.id;
+    const secId = sec.id;
+    const secName = sec.name;
+    const isFixedSlot = isFixedSlotSection(sec.type);
+    const totalCapacity = ws.totalCapacity;
+    const txResult = await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${'hourly-slot:' + wsId}))`;
+
+      if (isFixedSlot) {
+        const taken = await tx.hourlyBooking.findFirst({
+          where: { sectionId: secId, status: 'ACTIVE', startDate: { lt: endObj }, endDate: { gt: startObj } },
+          select: { id: true },
+        });
+        if (taken) {
+          return { error: `${secName} is already booked for the selected time. Please choose another session or hall.` };
+        }
+      } else if (totalCapacity > 0) {
+        const occupied = (await getOccupiedSeats([wsId], startObj, endObj)).get(wsId) || 0;
+        if (occupied + requestedSeats > totalCapacity) {
+          return { error: `Not enough availability. Only ${Math.max(0, totalCapacity - occupied)} seat(s) left for the selected time.` };
+        }
+      }
+
+      // إنشاء الحجز
+      const created = await tx.hourlyBooking.create({
       data: {
         userId: effectiveUserId,
         workspaceId: ws.id,
@@ -432,9 +457,15 @@ const requestedType = (validSectionTypes.includes(sectionType) && sectionType !=
         },
         package: true,
       }
+      });
+      return { booking: created };
     });
 
-    return NextResponse.json(booking, { status: 201 });
+    if ('error' in txResult) {
+      return NextResponse.json({ error: txResult.error }, { status: 409 });
+    }
+
+    return NextResponse.json(txResult.booking, { status: 201 });
   } catch (error: any) {
     console.error('❌ Error creating hourly booking:', error);
     return NextResponse.json(
