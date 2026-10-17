@@ -83,6 +83,8 @@ export default function SpaceCard({ space, distance, onSelect }: SpaceCardProps)
         {currentUser && (
           <button
             type="button"
+            aria-label={t('spaceDetails.saveSpace')}
+            aria-pressed={isFav}
             className="absolute top-3.5 end-3.5 w-8 h-8 rounded-full bg-white/90 hover:bg-white backdrop-blur-sm flex items-center justify-center shadow-xs transition-transform active:scale-90 cursor-pointer"
             onClick={e => {
               e.stopPropagation();

@@ -244,7 +244,7 @@ export default function AdminDashboard() {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-semibold text-soot">
-                  New Space Partner Applications Pending Approval ({pendingPartnersCount})
+                  {t('admin.dash.pendingApplications', { count: pendingPartnersCount })}
                 </span>
                 <span className="text-[11px] font-semibold bg-amber-500/20 text-amber-900 px-2 py-0.5 rounded-full border border-amber-500/30">
                   {t('admin.dash.actionRequired')}

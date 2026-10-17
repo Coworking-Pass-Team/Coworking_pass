@@ -45,7 +45,7 @@ const ROW_ROLES: { value: UserRole; label: string }[] = [
 ];
 
 export default function UsersAdmin() {
-  const { t, translateMessage } = useI18n();
+  const { t, translateMessage, lang } = useI18n();
   const lb = useLabels();
   const {
     nav,
@@ -333,7 +333,7 @@ export default function UsersAdmin() {
                     {t('admin.users.pendingApps')}
                   </h2>
                   <span className="px-2.5 py-0.5 rounded-full bg-amber-500 text-white text-xs font-bold shadow-2xs">
-                    {pendingPartnersCount} Action Required
+                    {t('admin.users.actionRequired', { count: pendingPartnersCount })}
                   </span>
                 </div>
                 <p className="text-xs text-moss mt-0.5">
@@ -367,7 +367,7 @@ export default function UsersAdmin() {
                   </div>
                   {partner.createdAt && (
                     <div className="text-[11px] text-moss/70 mt-2">
-                      Submitted: {new Date(partner.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                      {t('admin.users.submittedOn', { date: new Date(partner.createdAt).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric' }) })}
                     </div>
                   )}
                 </div>

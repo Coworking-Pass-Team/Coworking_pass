@@ -4,11 +4,13 @@ import React, { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { CheckCircle2, ShieldCheck, MapPin, Loader2, Database, ArrowRight } from 'lucide-react';
 import { useApp } from '@/app/store';
+import { useI18n } from '@/i18n';
 import { createQrCheckInApi } from '@/services/authApi';
 
 function PassVerificationContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { t } = useI18n();
   const { spaces, recordQrScan, fetchQrCheckIns, currentUser } = useApp();
 
   const bookingId = searchParams.get('bookingId') || 'BK-DEMO-01';
@@ -28,7 +30,7 @@ function PassVerificationContent() {
   const displayCity = matchedSpace?.city || 'Saudi Arabia';
 
   const [status, setStatus] = useState<'verifying' | 'valid' | 'error'>('verifying');
-  const [dbStatus, setDbStatus] = useState<string>('Connecting to database...');
+  const [dbStatus, setDbStatus] = useState<string>('');
 
   useEffect(() => {
     let isMounted = true;
@@ -48,9 +50,9 @@ function PassVerificationContent() {
 
         if (isMounted) {
           if (res.success && res.data) {
-            setDbStatus('Successfully recorded in PostgreSQL database (QrCheckIn table)');
+            setDbStatus(t('passScan.dbRecorded'));
           } else {
-            setDbStatus('Check-in processed and verified');
+            setDbStatus(t('passScan.dbProcessed'));
           }
           setStatus('valid');
 
@@ -62,7 +64,7 @@ function PassVerificationContent() {
         console.error('Check-in verification error:', err);
         if (isMounted) {
           setStatus('valid');
-          setDbStatus('Check-in verified successfully');
+          setDbStatus(t('passScan.dbVerified'));
         }
       }
     }
@@ -84,8 +86,8 @@ function PassVerificationContent() {
             <div className="w-16 h-16 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center mx-auto text-emerald-600 animate-pulse">
               <Loader2 size={32} className="animate-spin" />
             </div>
-            <h1 className="text-xl font-bold font-serif-display text-soot">Verifying Entry Pass...</h1>
-            <p className="text-xs text-moss">Connecting to Coworking Pass secure database...</p>
+            <h1 className="text-xl font-bold font-serif-display text-soot">{t('passScan.verifying')}</h1>
+            <p className="text-xs text-moss">{t('passScan.connecting')}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -94,10 +96,10 @@ function PassVerificationContent() {
             </div>
             <div>
               <span className="inline-block px-3 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 mb-2">
-                AUTHORIZED &amp; VERIFIED
+                {t('passScan.authorized')}
               </span>
-              <h1 className="text-2xl font-bold font-serif-display text-soot">Access Granted</h1>
-              <p className="text-xs text-moss mt-0.5">Entry scan registered in database</p>
+              <h1 className="text-2xl font-bold font-serif-display text-soot">{t('passScan.accessGranted')}</h1>
+              <p className="text-xs text-moss mt-0.5">{t('passScan.registered')}</p>
             </div>
           </div>
         )}
@@ -125,10 +127,10 @@ function PassVerificationContent() {
           {startDate && (
             <div className="flex items-center justify-between pb-3 border-b border-soot/8">
               <span className="text-moss">
-                {plan.toLowerCase().includes('daily') || plan === 'daily' ? 'Date Range' : 'Booking Date'}
+                {plan.toLowerCase().includes('daily') || plan === 'daily' ? t('passScan.dateRange') : t('passScan.bookingDate')}
               </span>
               <span className="font-semibold text-soot text-end">
-                {endDate && endDate !== startDate ? `${startDate} to ${endDate}` : startDate}
+                {endDate && endDate !== startDate ? t('passScan.dateTo', { from: startDate, to: endDate }) : startDate}
               </span>
             </div>
           )}
@@ -137,7 +139,7 @@ function PassVerificationContent() {
             <div className="flex items-center justify-between pb-3 border-b border-soot/8">
               <span className="text-moss">Duration</span>
               <span className="font-semibold text-soot">
-                {durationDays} {Number(durationDays) === 1 ? 'Day' : 'Days'}
+                {durationDays} {Number(durationDays) === 1 ? t('passScan.day') : t('passScan.days')}
               </span>
             </div>
           )}
@@ -183,7 +185,7 @@ function PassVerificationContent() {
         {/* Security Footer Badge */}
         <div className="flex items-center justify-center gap-1.5 text-xs text-moss font-medium pt-1">
           <ShieldCheck size={14} className="text-emerald-700 shrink-0" />
-          <span>Encrypted &amp; Authorized by Coworking Pass</span>
+          <span>{t('passScan.encrypted')}</span>
         </div>
 
         {/* Action Button */}
@@ -192,7 +194,7 @@ function PassVerificationContent() {
           onClick={() => router.push('/')}
           className="w-full py-3.5 px-4 rounded-xl bg-soot hover:bg-black text-white font-medium text-sm flex items-center justify-center gap-2 shadow-xs transition-all active:scale-[0.98] cursor-pointer"
         >
-          <span>Return to Coworking Pass</span>
+          <span>{t('passScan.return')}</span>
           <ArrowRight size={15} />
         </button>
       </div>

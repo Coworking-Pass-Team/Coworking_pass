@@ -819,7 +819,7 @@ function ProviderMySpacesContent() {
         open={editModal}
         onClose={() => setEditModal(false)}
         title={editingSpace ? t('mySpaces.modalEdit') : t('mySpaces.modalAdd')}
-        subtitle="Configure details, amenities, pricing, and media options."
+        subtitle={t('mySpaces.formSubtitle')}
         size="2xl"
         footer={
           <>
@@ -1188,13 +1188,13 @@ function ProviderMySpacesContent() {
               <div className="flex items-center justify-between border-b border-soot/10 pb-1.5">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-moss">
                   {isHourlyAllowed(form.type)
-                    ? `${getSpaceCategory(form.type).toUpperCase()} Rates (Hourly, Daily, Monthly, Yearly)`
-                    : 'Office Periodic Rates (Daily, Monthly, Yearly)'}
+                    ? t('mySpaces.ratesGroup', { category: getSpaceCategory(form.type).toUpperCase() })
+                    : t('mySpaces.ratesOffice')}
                 </span>
                 <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#E5ECE9] text-soot">
                   {isHourlyAllowed(form.type)
-                    ? 'Hourly • Daily • Monthly • Yearly'
-                    : 'Daily • Monthly • Yearly (No Hourly)'}
+                    ? t('mySpaces.ratesBadgeAll')
+                    : t('mySpaces.ratesBadgeNoHourly')}
                 </span>
               </div>
 
@@ -1376,7 +1376,7 @@ function ProviderMySpacesContent() {
                   className="px-3.5 py-2 rounded-xl bg-soot text-plaster hover:bg-soot/90 text-xs font-semibold cursor-pointer transition-all shrink-0 flex items-center gap-1 shadow-2xs"
                 >
                   <Plus size={14} />
-                  <span>{getApprovedAmenities().some(a => a.toLowerCase() === customAmenityInput.trim().toLowerCase()) ? 'Add' : 'Request Admin'}</span>
+                  <span>{getApprovedAmenities().some(a => a.toLowerCase() === customAmenityInput.trim().toLowerCase()) ? t('mySpaces.addAmenity') : t('mySpaces.requestAmenity')}</span>
                 </button>
               </div>
 

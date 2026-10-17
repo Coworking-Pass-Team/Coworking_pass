@@ -172,7 +172,14 @@
     "modalEdit": "Edit Workspace",
     "modalAdd": "Add New Workspace",
     "selectCity": "Select City",
-    "selectType": "Select Type"
+    "selectType": "Select Type",
+    "formSubtitle": "Configure details, amenities, pricing, and media options.",
+    "ratesGroup": "{category} Rates (Hourly, Daily, Monthly, Yearly)",
+    "ratesOffice": "Office Periodic Rates (Daily, Monthly, Yearly)",
+    "ratesBadgeAll": "Hourly • Daily • Monthly • Yearly",
+    "ratesBadgeNoHourly": "Daily • Monthly • Yearly (No Hourly)",
+    "addAmenity": "Add",
+    "requestAmenity": "Request Admin"
   },
   "space": {
     "available": "Available",
@@ -1560,7 +1567,9 @@
       "companyPlaceholder": "Saudi Tech Systems LLC",
       "totalUsers": "Total Users",
       "activeMembers": "Active Members",
-      "blockedAccounts": "Blocked Accounts"
+      "blockedAccounts": "Blocked Accounts",
+      "actionRequired": "{count} Action Required",
+      "submittedOn": "Submitted: {date}"
     },
     "dash": {
       "hourlyHrs": "Hourly ({count} hr)",
@@ -1593,7 +1602,8 @@
         "loyaltyDesc": "Review and moderate partner loyalty points rules",
         "reports": "Analytics & Reports",
         "reportsDesc": "Export VAT statements and utilization insights"
-      }
+      },
+      "pendingApplications": "New Space Partner Applications Pending Approval ({count})"
     },
     "bk": {
       "allStatus": "All Status",
@@ -2621,5 +2631,22 @@
     "yearlyRate": "Yearly rate (SAR)",
     "hubRate": "Hub default",
     "selectRoom": "Select room / section"
+  },
+  "passScan": {
+    "verifying": "Verifying Entry Pass...",
+    "connecting": "Connecting to Coworking Pass secure database...",
+    "authorized": "AUTHORIZED & VERIFIED",
+    "accessGranted": "Access Granted",
+    "registered": "Entry scan registered in database",
+    "dateRange": "Date Range",
+    "bookingDate": "Booking Date",
+    "day": "Day",
+    "days": "Days",
+    "dateTo": "{from} to {to}",
+    "dbRecorded": "Check-in recorded successfully",
+    "dbProcessed": "Check-in processed and verified",
+    "dbVerified": "Check-in verified successfully",
+    "encrypted": "Encrypted & Authorized by Coworking Pass",
+    "return": "Return to Coworking Pass"
   }
 }

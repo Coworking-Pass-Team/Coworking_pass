@@ -172,7 +172,14 @@
     "modalEdit": "تعديل مساحة العمل",
     "modalAdd": "إضافة مساحة عمل جديدة",
     "selectCity": "اختر المدينة",
-    "selectType": "اختر النوع"
+    "selectType": "اختر النوع",
+    "formSubtitle": "اضبط التفاصيل والمرافق والأسعار وخيارات الوسائط.",
+    "ratesGroup": "أسعار {category} (بالساعة، يومي، شهري، سنوي)",
+    "ratesOffice": "أسعار المكاتب الدورية (يومي، شهري، سنوي)",
+    "ratesBadgeAll": "بالساعة • يومي • شهري • سنوي",
+    "ratesBadgeNoHourly": "يومي • شهري • سنوي (بدون حجز بالساعة)",
+    "addAmenity": "إضافة",
+    "requestAmenity": "طلب موافقة الإدارة"
   },
   "space": {
     "available": "متاح",
@@ -1560,7 +1567,9 @@
       "companyPlaceholder": "شركة الأنظمة التقنية السعودية",
       "totalUsers": "إجمالي المستخدمين",
       "activeMembers": "الأعضاء النشطون",
-      "blockedAccounts": "الحسابات المحظورة"
+      "blockedAccounts": "الحسابات المحظورة",
+      "actionRequired": "{count} إجراء مطلوب",
+      "submittedOn": "تاريخ التقديم: {date}"
     },
     "dash": {
       "hourlyHrs": "بالساعة ({count} ساعة)",
@@ -1593,7 +1602,8 @@
         "loyaltyDesc": "راجع قواعد نقاط ولاء الشركاء واعتمدها",
         "reports": "التحليلات والتقارير",
         "reportsDesc": "صدّر بيانات ضريبة القيمة المضافة ورؤى الاستخدام"
-      }
+      },
+      "pendingApplications": "طلبات شركاء مساحات جدد بانتظار الموافقة ({count})"
     },
     "bk": {
       "allStatus": "جميع الحالات",
@@ -2621,5 +2631,22 @@
     "yearlyRate": "السعر السنوي (ر.س)",
     "hubRate": "افتراضي المقر",
     "selectRoom": "اختر الغرفة / القسم"
+  },
+  "passScan": {
+    "verifying": "جارٍ التحقق من بطاقة الدخول...",
+    "connecting": "جارٍ الاتصال بقاعدة بيانات كوورك باس الآمنة...",
+    "authorized": "مصرّح ومُتحقَّق منه",
+    "accessGranted": "تم السماح بالدخول",
+    "registered": "تم تسجيل مسح الدخول",
+    "dateRange": "الفترة",
+    "bookingDate": "تاريخ الحجز",
+    "day": "يوم",
+    "days": "أيام",
+    "dateTo": "{from} إلى {to}",
+    "dbRecorded": "تم تسجيل الدخول بنجاح",
+    "dbProcessed": "تمت معالجة الدخول والتحقق منه",
+    "dbVerified": "تم التحقق من الدخول بنجاح",
+    "encrypted": "مشفّر ومعتمد من كوورك باس",
+    "return": "العودة إلى كوورك باس"
   }
 }

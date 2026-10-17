@@ -76,6 +76,22 @@ test.describe('Internationalization', () => {
   }
 });
 
+test.describe('QR scan page', () => {
+  test('is translated: Arabic by default for the saved language, English when switched', async ({ page }) => {
+    await open(page);
+    await setLanguage(page, 'ar');
+    await page.goto(BASE_URL + '/pass?spaceId=space-1&spaceName=Test');
+    await page.waitForTimeout(2500);
+    const ar = await page.evaluate(() => document.body.innerText);
+    expect(ar).toMatch(/العودة إلى كوورك باس/);
+    expect(ar).not.toMatch(/Access Granted|Return to Coworking Pass|Encrypted/);
+    await setLanguage(page, 'en');
+    await page.goto(BASE_URL + '/pass?spaceId=space-1&spaceName=Test');
+    await page.waitForTimeout(2500);
+    expect(await page.evaluate(() => document.body.innerText)).toMatch(/Return to Coworking Pass/);
+  });
+});
+
 test.describe('Catalog', () => {
   test('categories add up to the total and halls are priced per hour', async ({ page }) => {
     await open(page);
@@ -142,6 +158,21 @@ test.describe('Pricing page', () => {
 });
 
 test.describe('Console hygiene', () => {
+  test('a guest never calls protected API endpoints (no 401/403 noise)', async ({ page }) => {
+    const denied: string[] = [];
+    page.on('response', (r) => {
+      if (r.url().includes('/api/') && (r.status() === 401 || r.status() === 403)) denied.push(r.status() + ' ' + r.url());
+    });
+    await open(page);
+    await page.evaluate(() => {
+      const b = Array.from(document.querySelectorAll('button, a')).find((e) => /browse|تصفّح/i.test(e.textContent || '') && (e as HTMLElement).offsetWidth > 0);
+      (b as HTMLElement | undefined)?.click();
+    });
+    await page.waitForTimeout(2500);
+    await expect(page.locator('h3').first()).toBeVisible();
+    expect(denied).toEqual([]);
+  });
+
   test('no React warnings or uncaught exceptions on landing and spaces', async ({ page }) => {
     const problems: string[] = [];
     page.on('pageerror', (e) => problems.push('pageerror: ' + e.message));

@@ -3155,13 +3155,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     fetchWorkspaces().catch(() => { });
     fetchMembershipPlans().catch(() => { });
-    fetchAmenities().catch(() => { });
     fetchLoyaltyRules().catch(() => { });
-    fetchPartners().catch(() => { });
-    fetchUsers().catch(() => { });
 
     const storedToken = getStoredToken();
     if (storedToken) {
+      // These lists require authentication; calling them as a guest only produced 401 errors
+      fetchAmenities().catch(() => { });
+      fetchPartners().catch(() => { });
+      fetchUsers().catch(() => { });
       fetchHourlyBookings().catch(() => { });
       fetchPayouts().catch(() => { });
       fetchSubscriptions().catch(() => { });
@@ -3206,6 +3207,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (privateDataLoadedFor.current === currentUser.id || !getStoredToken()) return;
     privateDataLoadedFor.current = currentUser.id;
     const userId = currentUser.id;
+    fetchAmenities().catch(() => { });
+    fetchPartners().catch(() => { });
+    fetchUsers().catch(() => { });
+    fetchTickets().catch(() => { });
     fetchHourlyBookings().catch(() => { });
     fetchDirectBookings().catch(() => { });
     fetchSubscriptions().catch(() => { });
@@ -3414,9 +3419,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      fetchTickets().catch(() => { });
-      fetchPartners().catch(() => { });
-      fetchWorkspaces().catch(() => { });
+      if (getStoredToken()) fetchTickets().catch(() => { });
     } catch (e) {
       console.error('Failed to load storage state:', e);
     }
