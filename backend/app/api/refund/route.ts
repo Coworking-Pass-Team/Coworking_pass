@@ -149,13 +149,13 @@ export async function POST(request: NextRequest) {
       const requiredHours = booking.user?.role === 'B2C' ? 6 : 24
       if (hourly && start <= nowKsa) {
         return NextResponse.json(
-          { error: 'Cancellation not allowed. This session has already started.' },
+          { error: 'Cancellation not allowed. This session has already started.', code: 'SESSION_STARTED' },
           { status: 400 }
         )
       }
       if (hoursDiff < requiredHours && start > nowKsa) {
         return NextResponse.json(
-          { error: `Cancellation not allowed. Must cancel at least ${requiredHours} hours before booking time.` },
+          { error: `Cancellation not allowed. Must cancel at least ${requiredHours} hours before booking time.`, code: 'CANCELLATION_WINDOW', requiredHours },
           { status: 400 }
         )
       }

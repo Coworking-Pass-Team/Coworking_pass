@@ -12,5 +12,12 @@ if (h < 20) {
   const st = String(Math.max(h + 1, 8)).padStart(2, '0') + ':00', en = String(Math.max(h + 1, 8) + 2).padStart(2, '0') + ':00';
   const fut = await b(st, en);
   check(`later session today (${st}-${en}) accepted`, fut.status === 201, fut.status + ' ' + (fut.body?.error || ''));
+  if (fut.status === 201) {
+    await api('/payments', { method: 'POST', token: u.token, body: { amount: 300, method: 'MADA', paymentFor: 'HOURLY_BOOKING', referenceId: fut.body.id } });
+    const late = await api('/refund', { method: 'POST', token: u.token, body: { bookingId: fut.body.id } });
+    check('refund inside the cancellation window is refused with a reason code', late.status === 400 && late.body?.code === 'CANCELLATION_WINDOW', late.status + ' ' + JSON.stringify(late.body));
+    const stillActive = (await db.query('select status from "HourlyBooking" where id=$1', [fut.body.id])).rows[0].status;
+    check('refused refund leaves the booking untouched', stillActive === 'ACTIVE', stillActive);
+  }
 }
 summary(); await db.end();

@@ -504,7 +504,7 @@ interface AppContextType {
   addBooking: (booking: Omit<Booking, 'id' | 'createdAt'>, charge?: WalletCharge) => Booking | undefined;
   cancelBooking: (id: string, refundMethod?: 'wallet' | 'card') => void;
   /** Server-side refund of a paid booking (applies the cancellation window); cancels the booking on success */
-  requestRefund: (payload: { bookingId?: string; subscriptionId?: string }) => Promise<{ success: boolean; error?: string; refundAmount?: number; walletTarget?: 'COMPANY' | 'PERSONAL'; walletBalance?: number }>;
+  requestRefund: (payload: { bookingId?: string; subscriptionId?: string }) => Promise<{ success: boolean; error?: string; code?: string; refundAmount?: number; walletTarget?: 'COMPANY' | 'PERSONAL'; walletBalance?: number }>;
   updateBookingStatus: (id: string, status: Booking['status']) => void;
   deleteBooking: (bookingId: string) => void;
 
@@ -1279,6 +1279,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const requestRefund = async (payload: { bookingId?: string; subscriptionId?: string }): Promise<{
     success: boolean;
     error?: string;
+    code?: string;
     refundAmount?: number;
     walletTarget?: 'COMPANY' | 'PERSONAL';
     walletBalance?: number;
@@ -1294,7 +1295,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        return { success: false, error: data.error || 'Refund failed' };
+        return { success: false, error: data.error || 'Refund failed', code: data.code };
       }
       if (typeof data.walletBalance === 'number') {
         if (data.walletTarget === 'COMPANY') {

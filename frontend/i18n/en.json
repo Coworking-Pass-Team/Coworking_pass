@@ -1005,6 +1005,7 @@
     "hourlyCancelled": "Hourly booking cancelled successfully",
     "hourlyRefunded": "Booking cancelled. SAR {amount} was refunded to your wallet.",
     "hourlyCancelBlocked": "This booking can no longer be cancelled for a refund.",
+    "hourlyCancelledNoRefund": "Booking cancelled. It was too close to the start time to be refunded.",
     "passDirect": "Pass & Direct Bookings"
   },
   "qr": {

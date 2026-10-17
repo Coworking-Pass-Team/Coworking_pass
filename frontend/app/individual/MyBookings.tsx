@@ -27,7 +27,7 @@ import { useSpaceText } from '@/i18n/space-text';
 import { Booking, BookingStatus, getHourlyPriceForDuration, getBookingPrice, isCancellationRefundEligible, calculateDailyDurationDays } from '@/types/types';
 import Modal from '@/components/ui/Modal';
 import BookingQrModal from '@/components/BookingQrModal';
-import { deleteDirectBookingApi, getHourlyBookingsApi, HourlyBookingItemApi } from '@/services/authApi';
+import { deleteDirectBookingApi, getHourlyBookingsApi, updateHourlyBookingApi, HourlyBookingItemApi } from '@/services/authApi';
 
 const FALLBACK_SPACE_IMAGE = 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80';
 
@@ -236,11 +236,20 @@ export default function MyBookings() {
                           // The server applies the cancellation window and credits the refund atomically,
                           // so a booking is never cancelled without the refund the policy entitles it to.
                           const refund = await requestRefund({ bookingId: hb.id });
-                          if (!refund.success) {
+                          if (refund.success) {
+                            showToast(t('myBookings.hourlyRefunded', { amount: (refund.refundAmount ?? 0).toLocaleString() }), 'success');
+                          } else if (refund.code === 'CANCELLATION_WINDOW') {
+                            // Too close to the start for a refund: the guest may still release the slot, without a refund
+                            const done = await updateHourlyBookingApi(hb.id, { status: 'CANCELLED' });
+                            if (!done.success) {
+                              showToast(done.error || t('myBookings.hourlyCancelBlocked'), 'error');
+                              return;
+                            }
+                            showToast(t('myBookings.hourlyCancelledNoRefund'), 'info');
+                          } else {
                             showToast(refund.error || t('myBookings.hourlyCancelBlocked'), 'error');
                             return;
                           }
-                          showToast(t('myBookings.hourlyRefunded', { amount: (refund.refundAmount ?? 0).toLocaleString() }), 'success');
                           setHourlyBookings(prev => prev.map(b => b.id === hb.id ? { ...b, status: 'CANCELLED' } : b));
                         }}
                         className="py-2 px-3 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 text-xs font-semibold hover:bg-rose-100 transition-colors cursor-pointer"
