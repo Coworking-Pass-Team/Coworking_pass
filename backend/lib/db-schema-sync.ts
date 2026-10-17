@@ -1,12 +1,12 @@
 import { prisma } from "@/lib/prisma";
-import bcrypt from "bcryptjs";
+import { provisionSuperAdmin } from "@/lib/super-admin";
 
 let isSchemaEnsured = false;
 
 /**
  * Idempotent database schema self-healing and admin account synchronization.
  * Guarantees that any missing columns on Neon PostgreSQL are added seamlessly
- * and the Super Admin account (admin@coworkingpass.sa / password) is provisioned.
+ * and the Super Admin account is provisioned from environment variables (see lib/super-admin.ts).
  */
 export async function ensureDatabaseSchema(force = false): Promise<{ success: boolean; message: string; details?: any }> {
   if (isSchemaEnsured && !force) {
@@ -149,45 +149,9 @@ export async function ensureDatabaseSchema(force = false): Promise<{ success: bo
       END $$;
     `).catch((err) => console.warn("[Schema Sync] CompanyWalletTransaction FK warning:", err));
 
-    // 5. Ensure Super Admin Account is provisioned with unified password "password"
-    const adminEmail = "admin@coworkingpass.sa";
-    const unifiedPassword = "password";
-    const passwordHash = await bcrypt.hash(unifiedPassword, 10);
-
-    const existingAdmin = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { email: adminEmail },
-          { role: "SUPER_ADMIN" },
-        ],
-      },
-    });
-
-    if (!existingAdmin) {
-      await prisma.user.create({
-        data: {
-          name: "Platform Super Admin",
-          email: adminEmail,
-          passwordHash,
-          role: "SUPER_ADMIN",
-          emailVerified: true,
-          isBanned: false,
-        },
-      });
-      executedStatements.push('Created Super Admin user (admin@coworkingpass.sa)');
-    } else {
-      await prisma.user.update({
-        where: { id: existingAdmin.id },
-        data: {
-          email: adminEmail,
-          passwordHash,
-          role: "SUPER_ADMIN",
-          emailVerified: true,
-          isBanned: false,
-        },
-      });
-      executedStatements.push('Synchronized Super Admin user password to "password"');
-    }
+    // 5. Super Admin provisioning comes from environment variables only (see lib/super-admin.ts);
+    //    no credentials are hard-coded any more.
+    executedStatements.push(...(await provisionSuperAdmin()));
 
     isSchemaEnsured = true;
     return {
