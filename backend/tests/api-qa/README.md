@@ -1,0 +1,15 @@
+# API integration QA suites
+
+Black-box tests that hit a **local** backend (`npm run dev`, port 3001) and its **local** Postgres.
+They create throw-away users directly in the database and use the dev-only master login code, so
+never point them at a shared or production environment.
+
+```bash
+npm i -D pg                      # once
+node tests/api-qa/suite-security-wallet-slots.mjs
+node tests/api-qa/suite-company-capacity-payments.mjs
+```
+
+Env: `QA_API_URL` (default `http://localhost:3001/api`), `QA_DATABASE_URL` (default local `coworking` DB).
+Covers: IDOR/RBAC, wallet idempotency and overdraft races, hall/theater slot and operating-hour
+boundaries, concurrent booking (no overbooking), refunds, corporate wallet ledger, payment validation.

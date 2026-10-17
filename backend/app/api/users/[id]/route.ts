@@ -32,6 +32,12 @@ export async function GET(
 
   try {
     const { id } = await params;
+
+    // A profile is private: only its owner or a super admin may read it
+    if (user.role !== "SUPER_ADMIN" && user.userId !== id) {
+      return NextResponse.json({ error: "You can only view your own profile." }, { status: 403 });
+    }
+
     const targetUser = await prisma.user.findUnique({
       where: { id },
       select: {

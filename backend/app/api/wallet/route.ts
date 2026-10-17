@@ -78,7 +78,11 @@ export async function POST(request: NextRequest) {
     const user = await getTokenFromRequest(request);
     if (!user) return unauthorizedResponse(request);
 
-    const { userId, amount, type, description, referenceId } = await request.json()
+    const payload = await request.json().catch(() => null)
+    if (!payload || typeof payload !== 'object') {
+      return NextResponse.json({ error: 'Request body must be valid JSON.' }, { status: 400 })
+    }
+    const { userId, amount, type, description, referenceId } = payload
 
     if (!userId || !amount || !type) {
       return NextResponse.json(

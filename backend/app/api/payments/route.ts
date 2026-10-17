@@ -111,6 +111,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Amounts must be real, non-negative numbers; a zero amount only makes sense for a points redemption
+    const numericAmount = typeof amount === 'number' ? amount : Number.NaN;
+    if (!Number.isFinite(numericAmount) || numericAmount < 0 || (numericAmount === 0 && String(paymentFor).toUpperCase() !== 'POINTS_REDEMPTION')) {
+      return NextResponse.json({ error: 'amount must be a positive number.' }, { status: 400 });
+    }
+
     const validMethods = ['MADA', 'VISA', 'APPLE_PAY', 'SAMSUNG_PAY'];
     const normalizedMethod = (method || '').toUpperCase();
     if (!validMethods.includes(normalizedMethod)) {
