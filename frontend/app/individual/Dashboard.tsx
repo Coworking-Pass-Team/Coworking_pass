@@ -367,7 +367,7 @@ export default function IndividualDashboard() {
                       className="w-12 h-12 rounded-xl object-cover border border-soot/10 shrink-0 shadow-2xs group-hover:scale-105 transition-transform"
                     />
                     <div className="min-w-0">
-                      <h4 className="font-semibold text-soot text-sm truncate group-hover:text-emerald-900 transition-colors">{space.name}</h4>
+                      <h4 className="font-semibold text-soot text-sm truncate group-hover:text-emerald-900 transition-colors">{st.name(space)}</h4>
                       <div className="flex items-center gap-1.5 text-xs text-moss mt-0.5 font-medium">
                         <MapPin size={12} className="shrink-0" />
                         <span>{st.city(space)}</span>
@@ -383,7 +383,7 @@ export default function IndividualDashboard() {
                       const isHourly = isHourlyAllowed(space);
                       const targetPlan = isHourly ? 'hourly' : userPassPlan;
                       const planInfo = getEffectiveSpacePrice(currentUser, space, targetPlan);
-                      const unitLabel = isHourly ? '/hour' : '/day';
+                      const unitLabel = isHourly ? t('space.perHour') : t('space.perDay');
                       const displayPrice = isHourly
                         ? (space.pricing?.hourly ?? (space.pricing?.daily ? Math.round(space.pricing.daily / 4) : 150))
                         : (space.pricing?.daily ?? 0);

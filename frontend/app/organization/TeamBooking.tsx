@@ -62,6 +62,7 @@ const DURATION_OPTIONS = [1, 2, 3, 4, 6, 8];
 
 export default function TeamBooking() {
   const { t, localizeTime } = useI18n();
+  const st = useSpaceText();
   const { nav, goBack, spaces, bookings, currentUser, addBooking, navigate, showToast, addToCart, updateCurrentUser, withdrawFromWallet, companyWalletBalance, fetchCompanyWallet, withdrawFromCompanyWallet, checkSeatAvailability } = useApp();
   const spaceId = nav.params?.spaceId;
   const baseSpace = spaces.find((s: Space) => s.id === spaceId);
@@ -273,7 +274,7 @@ export default function TeamBooking() {
     : plan === 'monthly'
     ? t(durationMonths > 1 ? 'bf.forMonthsMany' : 'bf.forMonths', { count: durationMonths })
     : plan === 'daily'
-    ? '/day'
+    ? t('bf.perDay')
     : '/year';
 
   const allEmployeesSelected = employees.length > 0 && selectedEmployees.length === employees.length;
@@ -487,7 +488,7 @@ export default function TeamBooking() {
             <div className="flex items-start gap-3 mb-4 pb-4 border-b border-soot/8">
               <img src={space.images[0]} alt={space.name} className="w-14 h-14 rounded-2xl object-cover" />
               <div>
-                <div className="font-semibold text-soot text-base">{space.name}</div>
+                <div className="font-semibold text-soot text-base">{st.name(space)}</div>
                 <div className="flex items-center gap-1 text-xs text-moss mt-0.5">
                   <MapPin size={11} />
                   <span>{space.city}</span>
@@ -621,7 +622,7 @@ export default function TeamBooking() {
         <div className="flex items-center gap-3.5 min-w-0">
           <img src={space.images[0]} alt={space.name} className="w-12 h-12 rounded-2xl object-cover shrink-0" />
           <div className="min-w-0">
-            <div className="font-semibold text-soot text-sm truncate">{space.name}</div>
+            <div className="font-semibold text-soot text-sm truncate">{st.name(space)}</div>
             <div className="text-xs text-moss flex items-center gap-1 mt-0.5">
               <MapPin size={11} />
               <span>{space.city} · {space.availableCapacity} seats available</span>
@@ -1219,7 +1220,7 @@ export default function TeamBooking() {
               <div className="pb-2.5 space-y-2">
                 <div className="flex justify-between">
                   <span className="text-moss">{t('bf.workspace')}</span>
-                  <span className="text-soot font-medium">{space.name}</span>
+                  <span className="text-soot font-medium">{st.name(space)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-moss">{t('tb.type')}</span>

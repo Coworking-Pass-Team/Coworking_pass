@@ -146,7 +146,7 @@ export default function ProviderDashboard() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-sm font-semibold text-soot truncate group-hover:text-emerald-900 transition-colors">
-                        {space.name}
+                        {st.name(space)}
                       </span>
                       {!space.isVisible && (
                         <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-red-500/10 text-red-700 shrink-0">

@@ -1003,6 +1003,8 @@
     "viewDetails": "View Details",
     "cancelReservation": "Cancel Reservation",
     "hourlyCancelled": "Hourly booking cancelled successfully",
+    "hourlyRefunded": "Booking cancelled. SAR {amount} was refunded to your wallet.",
+    "hourlyCancelBlocked": "This booking can no longer be cancelled for a refund.",
     "passDirect": "Pass & Direct Bookings"
   },
   "qr": {
@@ -1038,6 +1040,10 @@
   "bf": {
     "stepOf": "Step {step} of 3",
     "stepOf4": "Step {step} of 4",
+    "stepPlan": "Plan",
+    "stepDetails": "Details",
+    "stepReview": "Review",
+    "stepConfirm": "Confirm",
     "backToStep": "Back to Step {step}",
     "planLabel": "{plan} Plan",
     "hourlyDesc": "Reserve for specific hours with custom duration pricing",

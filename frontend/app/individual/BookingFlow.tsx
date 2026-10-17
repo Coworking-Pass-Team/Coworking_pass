@@ -61,15 +61,16 @@ import {
 
 const FALLBACK_SPACE_IMAGE = 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80';
 
-const STEPS = ['Plan', 'Details', 'Review', 'Confirm'];
+const STEP_KEYS = ['bf.stepPlan', 'bf.stepDetails', 'bf.stepReview', 'bf.stepConfirm'] as const;
 
 const DURATION_OPTIONS = [1, 2, 3, 4, 6, 8];
 
 function StepIndicator({ current }: { current: number }) {
+  const { t } = useI18n();
   return (
     <div className="flex items-center gap-2 mb-8">
-      {STEPS.map((s, i) => (
-        <div key={s} className="flex items-center gap-2">
+      {STEP_KEYS.map((key, i) => (
+        <div key={key} className="flex items-center gap-2">
           <div
             className={`flex items-center gap-2.5 ${
               i < current ? 'text-moss' : i === current ? 'text-soot font-semibold' : 'text-moss/40'
@@ -86,9 +87,9 @@ function StepIndicator({ current }: { current: number }) {
             >
               {i < current ? <Check size={14} /> : i + 1}
             </div>
-            <span className="text-sm hidden sm:inline">{s}</span>
+            <span className="text-sm hidden sm:inline">{t(key)}</span>
           </div>
-          {i < STEPS.length - 1 && <div className="w-8 h-px bg-soot/15" />}
+          {i < STEP_KEYS.length - 1 && <div className="w-8 h-px bg-soot/15" />}
         </div>
       ))}
     </div>
@@ -566,7 +567,7 @@ export default function BookingFlow() {
                 className="w-16 h-16 rounded-2xl object-cover shadow-sm"
               />
               <div>
-                <div className="font-semibold text-soot text-lg">{space.name}</div>
+                <div className="font-semibold text-soot text-lg">{st.name(space)}</div>
                 <div className="flex items-center gap-1.5 text-xs text-moss mt-1">
                   <MapPin size={12} />
                   <span>{space.city} · <span className="capitalize">{getSpaceCategory(space)}</span></span>
@@ -694,7 +695,7 @@ export default function BookingFlow() {
             className="w-14 h-14 rounded-2xl object-cover shadow-sm shrink-0"
           />
           <div className="min-w-0">
-            <div className="font-semibold text-soot text-base truncate">{space.name}</div>
+            <div className="font-semibold text-soot text-base truncate">{st.name(space)}</div>
             <div className="flex items-center gap-1.5 text-xs text-moss mt-0.5">
               <MapPin size={12} />
               <span>{space.city} · <span className="capitalize">{getSpaceCategory(space)}</span></span>
@@ -1362,7 +1363,7 @@ export default function BookingFlow() {
           <div className="space-y-4">
             {/* Booking Details Summary */}
             <div className="p-5 rounded-2xl bg-[#F9F8F5] border border-soot/8 divide-y divide-soot/6">
-              <Row label={t('bf.workspace')} value={space.name} />
+              <Row label={t('bf.workspace')} value={st.name(space)} />
               <Row label={t('bf.location')} value={`${space.address}, ${space.city}`} />
               <Row label={t('bf.deskType')} value={deskType.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())} />
               <Row label={t('bf.planMode')} value={isHourly ? `Hourly Reservation (${durationHours} hours)` : plan === 'daily' ? `Daily Pass (${durationDays} ${durationDays === 1 ? 'day' : 'days'})` : `${plan.charAt(0).toUpperCase() + plan.slice(1)} Pass`} />

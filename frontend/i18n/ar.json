@@ -1003,6 +1003,8 @@
     "viewDetails": "عرض التفاصيل",
     "cancelReservation": "إلغاء الحجز",
     "hourlyCancelled": "تم إلغاء الحجز بالساعة بنجاح",
+    "hourlyRefunded": "تم إلغاء الحجز وإعادة {amount} ر.س إلى محفظتك.",
+    "hourlyCancelBlocked": "لم يعد بالإمكان إلغاء هذا الحجز مع استرداد المبلغ.",
     "passDirect": "الباقات والحجوزات المباشرة"
   },
   "qr": {
@@ -1038,6 +1040,10 @@
   "bf": {
     "stepOf": "الخطوة {step} من 3",
     "stepOf4": "الخطوة {step} من 4",
+    "stepPlan": "الخطة",
+    "stepDetails": "التفاصيل",
+    "stepReview": "المراجعة",
+    "stepConfirm": "التأكيد",
     "backToStep": "العودة إلى الخطوة {step}",
     "planLabel": "باقة {plan}",
     "hourlyDesc": "احجز لساعات محددة بأسعار حسب المدة",

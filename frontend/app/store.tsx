@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import {
   User,
   Space,
@@ -503,6 +503,8 @@ interface AppContextType {
   bookings: Booking[];
   addBooking: (booking: Omit<Booking, 'id' | 'createdAt'>, charge?: WalletCharge) => Booking | undefined;
   cancelBooking: (id: string, refundMethod?: 'wallet' | 'card') => void;
+  /** Server-side refund of a paid booking (applies the cancellation window); cancels the booking on success */
+  requestRefund: (payload: { bookingId?: string; subscriptionId?: string }) => Promise<{ success: boolean; error?: string; refundAmount?: number; walletTarget?: 'COMPANY' | 'PERSONAL'; walletBalance?: number }>;
   updateBookingStatus: (id: string, status: Booking['status']) => void;
   deleteBooking: (bookingId: string) => void;
 
@@ -706,6 +708,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [subscriptionsApi, setSubscriptionsApi] = useState<SubscriptionApi[]>([]);
   const [directBookingsApi, setDirectBookingsApi] = useState<DirectBookingApi[]>([]);
   const [paymentsApi, setPaymentsApi] = useState<PaymentApi[]>([]);
+  const privateDataLoadedFor = useRef<string | null>(null);
   const [loyaltyRules, setLoyaltyRules] = useState<LoyaltyRule[]>(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('cp_loyaltyRules');
@@ -2353,7 +2356,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
             startTime: startTimeStr,
             endTime: endTimeStr,
             totalPrice: computedPrice,
-            status: b.status === 'ACTIVE' || b.status === 'CONFIRMED' ? 'active' : b.status === 'CANCELLED' ? 'cancelled' : 'previous',
+            // A session that has already ended is a past visit even if the server still lists it as active
+            // (timestamps hold KSA wall-clock time in their UTC fields)
+            status: b.status === 'ACTIVE' || b.status === 'CONFIRMED'
+              ? (b.endDate && new Date(b.endDate).getTime() <= Date.now() + 3 * 60 * 60 * 1000 ? 'previous' : 'active')
+              : b.status === 'CANCELLED' ? 'cancelled' : 'previous',
             createdAt: b.createdAt ? new Date(b.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
           };
         });
@@ -3161,6 +3168,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       fetchPayments().catch(() => { });
       fetchNotifications().catch(() => { });
       if (currentUser) {
+        privateDataLoadedFor.current = currentUser.id;
         fetchWallet(currentUser.id).catch(() => { });
         getLoyaltyPointsApi(currentUser.id).then(ptsRes => {
           if (ptsRes.success && Array.isArray(ptsRes.data)) {
@@ -3186,6 +3194,37 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
     }
   }, [currentUser?.id, currentUser?.companyId, currentUser?.role]);
+
+  // The mount effect above only sees a guest when the user signs in without reloading the page, so load
+  // the signed-in user's private data (bookings, payments, passes, notifications, points) on login.
+  useEffect(() => {
+    if (!currentUser?.id) {
+      privateDataLoadedFor.current = null;
+      return;
+    }
+    if (privateDataLoadedFor.current === currentUser.id || !getStoredToken()) return;
+    privateDataLoadedFor.current = currentUser.id;
+    const userId = currentUser.id;
+    fetchHourlyBookings().catch(() => { });
+    fetchDirectBookings().catch(() => { });
+    fetchSubscriptions().catch(() => { });
+    fetchPayments().catch(() => { });
+    fetchPayouts().catch(() => { });
+    fetchNotifications().catch(() => { });
+    getLoyaltyPointsApi(userId).then(ptsRes => {
+      if (ptsRes.success && Array.isArray(ptsRes.data)) {
+        const uPts = ptsRes.data.find((pt: any) => pt.userId === userId);
+        if (uPts && typeof uPts.availableBalance === 'number') {
+          setCurrentUser((prev) => {
+            if (!prev || prev.id !== userId) return prev;
+            const synced = { ...prev, loyaltyPoints: uPts.availableBalance };
+            if (typeof window !== 'undefined') localStorage.setItem('cp_currentUser', JSON.stringify(synced));
+            return synced;
+          });
+        }
+      }
+    }).catch(() => { });
+  }, [currentUser?.id]);
 
   const sanitizeBookings = (list: Booking[]): Booking[] => {
     const seen = new Set<string>();
@@ -6448,7 +6487,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       currentUser, login, signup, logout, setPendingUser, pendingUser,
       userLocation, locationStatus, locationErrorMessage, requestUserLocation,
       spaces, favorites, toggleFavorite, addSpace, updateSpace, toggleSpaceVisibility, deleteSpace,
-      bookings, addBooking, cancelBooking, updateBookingStatus, deleteBooking,
+      bookings, addBooking, cancelBooking, requestRefund, updateBookingStatus, deleteBooking,
       amenityRequests, approvedCustomAmenities, requestCustomAmenity, approveAmenityRequest, rejectAmenityRequest, deleteAmenityRequest, getApprovedAmenities, fetchAmenities,
       supportTickets, fetchTickets, addSupportTicket, updateTicketStatus, replyToTicket,
       notifications: userNotifications,
