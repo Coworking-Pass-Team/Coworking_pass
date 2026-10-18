@@ -65,6 +65,13 @@ async function syncWorkspaceAmenities(workspaceId: string, amenities: string[]) 
 import { seedStandardWorkspaces } from "@/lib/seed-data";
 import { errorMessage } from "@/lib/errors";
 
+// A workspace saved with capacity 0 but with sections that do have seats must not show as "0/0 full" in the catalog
+function effectiveCapacity(w: { totalCapacity: number | null; sections?: { capacity: number | null }[] }): number {
+  const own = Number(w.totalCapacity) || 0;
+  if (own > 0) return own;
+  return (w.sections || []).reduce((sum, sec) => sum + (Number(sec.capacity) || 0), 0);
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -103,8 +110,9 @@ export async function GET(request: Request) {
       ? redactHiddenWorkspace(w)
       : ({
       ...w,
+      totalCapacity: effectiveCapacity(w),
       occupiedSeats: occupiedByWorkspace.get(w.id) || 0,
-      availableCapacity: Math.max(0, (Number(w.totalCapacity) || 0) - (occupiedByWorkspace.get(w.id) || 0)),
+      availableCapacity: Math.max(0, effectiveCapacity(w) - (occupiedByWorkspace.get(w.id) || 0)),
       images: Array.isArray(w.images) ? w.images : [],
       amenities: Array.isArray(w.amenities)
         ? w.amenities.map((wa) => wa.amenity.name).filter(Boolean)
