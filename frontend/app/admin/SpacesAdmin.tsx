@@ -995,6 +995,8 @@ export default function SpacesAdmin() {
                     </label>
                     <input
                       type="text"
+                      dir="ltr"
+                      lang="en"
                       value={form.name || ''}
                       onChange={(e) => {
                         setForm((p) => ({ ...p, name: e.target.value }));
@@ -1119,6 +1121,8 @@ export default function SpacesAdmin() {
                     </label>
                     <input
                       type="text"
+                      dir="ltr"
+                      lang="en"
                       value={form.address || ''}
                       onChange={(e) => {
                         setForm((p) => ({ ...p, address: e.target.value }));
@@ -1137,6 +1141,8 @@ export default function SpacesAdmin() {
                     <label className="block text-xs font-semibold text-soot mb-1.5">{t('admin.spaces.descEn')}</label>
                     <textarea
                       rows={3}
+                      dir="ltr"
+                      lang="en"
                       value={form.description || ''}
                       onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
                       placeholder={t('admin.spaces.descPlaceholder')}

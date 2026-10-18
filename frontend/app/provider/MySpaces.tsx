@@ -852,6 +852,8 @@ function ProviderMySpacesContent() {
                   {t('mySpaces.nameEn')} <span className="text-rose-600">*</span>
                 </label>
                 <input
+                  dir="ltr"
+                  lang="en"
                   value={form.name || ''}
                   onChange={(e) => {
                     setForm((p) => ({ ...p, name: e.target.value }));
@@ -1012,6 +1014,8 @@ function ProviderMySpacesContent() {
                 {t('mySpaces.addressEn')} <span className="text-rose-600">*</span>
               </label>
               <input
+                dir="ltr"
+                lang="en"
                 value={form.address || ''}
                 onChange={(e) => {
                   setForm((p) => ({ ...p, address: e.target.value }));
@@ -1044,6 +1048,8 @@ function ProviderMySpacesContent() {
                 {t('mySpaces.descriptionEn')}
               </label>
               <textarea
+                dir="ltr"
+                lang="en"
                 value={form.description || ''}
                 onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
                 rows={3}
