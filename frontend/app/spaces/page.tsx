@@ -7,7 +7,7 @@ import { useSpaceText } from '@/i18n/space-text';
 import SpaceCard from '@/components/spaces/spaceCard';
 import Badge from '@/components/ui/Badge';
 import App from '@/app/app';
-import { getSpaceCategory, SpaceCategory, calculateHaversineDistance, getSpaceCoordinates, SAUDI_CITIES } from '@/types/types';
+import { ALL_SPACE_TYPES, getSpaceCategory, normalizeSpaceType, SpaceCategory, calculateHaversineDistance, getSpaceCoordinates, SAUDI_CITIES } from '@/types/types';
 
 const CITIES = ['All Cities', ...SAUDI_CITIES];
 const CATEGORY_TABS: { id: 'all' | SpaceCategory; label: string; icon: any }[] = [
@@ -17,38 +17,9 @@ const CATEGORY_TABS: { id: 'all' | SpaceCategory; label: string; icon: any }[] =
   { id: 'theater', label: 'Theaters', icon: Clapperboard },
 ];
 
-const OFFICE_TYPES = [
-  { id: 'all', label: 'All Offices' },
-  { id: 'hot-desk', label: 'Hot Desk' },
-  { id: 'shared-desk', label: 'Shared Desk' },
-  { id: 'private-office', label: 'Private Office' },
-  { id: 'meeting-room', label: 'Meeting Room' },
-  { id: 'mixed', label: 'Mixed Workspace' },
-];
-
-const HALL_TYPES = [
-  { id: 'all', label: 'All Halls' },
-  { id: 'meeting-hall', label: 'Meeting Hall' },
-  { id: 'training-hall', label: 'Training Hall' },
-  { id: 'conference-hall', label: 'Conference Hall' },
-  { id: 'workshop-hall', label: 'Workshop Hall' },
-  { id: 'event-hall', label: 'Event Hall' },
-  { id: 'lecture-hall', label: 'Lecture Hall' },
-  { id: 'multipurpose-hall', label: 'Multi-purpose Hall' },
-];
-
-const THEATER_TYPES = [
-  { id: 'all', label: 'All Theaters' },
-  { id: 'theater', label: 'Theaters & Auditoriums' },
-  { id: 'performance-theater', label: 'Performance Theater' },
-  { id: 'conference-theater', label: 'Conference & Event Theater' },
-];
-
 const ALL_TYPES = [
   { id: 'all', label: 'All Types' },
-  ...OFFICE_TYPES.filter(t => t.id !== 'all'),
-  ...HALL_TYPES.filter(t => t.id !== 'all'),
-  ...THEATER_TYPES.filter(t => t.id !== 'all'),
+  ...ALL_SPACE_TYPES.map(t => ({ id: t.value as string, label: t.label })),
 ];
 
 const AMENITIES = ['WiFi', 'Coffee', 'Printer', 'Parking', 'Prayer Room', 'Meeting Rooms', 'Projector', 'Sound System'];
@@ -204,7 +175,7 @@ function BrowseView() {
       }
       if (categoryFilter !== 'all' && getSpaceCategory(s) !== categoryFilter) return false;
       if (city && s.city !== city) return false;
-      if (spaceType !== 'all' && s.type !== spaceType) return false;
+      if (spaceType !== 'all' && normalizeSpaceType(s.type) !== spaceType) return false;
       
       if ((s.pricing?.daily ?? 0) > maxPrice) return false;
       

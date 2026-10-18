@@ -9,6 +9,8 @@ export interface StandardSpaceSeed {
   city: string;
   category: 'office' | 'hall' | 'theater';
   type: string;
+  /** An office workspace that also has a bookable meeting room */
+  withMeetingRoom?: boolean;
   dailyRate: number;
   monthlyRate: number;
   yearlyRate: number;
@@ -44,15 +46,9 @@ export function standardDescriptions(s: Pick<StandardSpaceSeed, 'category' | 'ty
       descriptionAr: `قاعة مرنة في ${cityAr} للاجتماعات والدورات التدريبية وورش العمل والفعاليات المؤسسية، مجهزة بمعدات عرض حديثة وواي فاي عالي السرعة وخدمات ضيافة. متاحة للحجز بالساعة.`,
     };
   }
-  if (s.type === 'hot-desk') {
-    return {
-      description: `A vibrant hot-desk coworking space in ${s.city} with ergonomic seating, fast Wi-Fi, coffee and meeting facilities. Book by the day, month or year.`,
-      descriptionAr: `مساحة عمل مشترك نابضة بالحياة في ${cityAr} بمكاتب مشتركة ومقاعد مريحة وواي فاي سريع وقهوة ومرافق اجتماعات. متاحة للحجز باليوم أو الشهر أو السنة.`,
-    };
-  }
   return {
-    description: `A professional coworking space in ${s.city} offering desks, meeting rooms and private work areas in a productive, well-connected environment. Book by the day, month or year.`,
-    descriptionAr: `مساحة عمل مشترك احترافية في ${cityAr} توفر مكاتب وقاعات اجتماعات ومناطق عمل خاصة في بيئة منتجة ومتصلة جيداً. متاحة للحجز باليوم أو الشهر أو السنة.`,
+    description: `Private offices in ${s.city} in a professional, well-connected workspace, with fast Wi-Fi, reception and shared amenities. Paid directly: book by the day, month or year.`,
+    descriptionAr: `مكاتب خاصة في ${cityAr} ضمن بيئة عمل احترافية ومتصلة جيداً، مع واي فاي سريع واستقبال ومرافق مشتركة. الدفع مباشر: متاحة للحجز باليوم أو الشهر أو السنة.`,
   };
 }
 
@@ -62,7 +58,8 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
     nameAr: 'ذا هب الرياض',
     city: 'Riyadh',
     category: 'office',
-    type: 'mixed',
+    type: 'private-office',
+    withMeetingRoom: true,
     dailyRate: 150,
     monthlyRate: 1800,
     yearlyRate: 18000,
@@ -80,7 +77,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
     nameAr: 'وورك باي جدة',
     city: 'Jeddah',
     category: 'office',
-    type: 'hot-desk',
+    type: 'private-office',
     dailyRate: 120,
     monthlyRate: 1500,
     yearlyRate: 14400,
@@ -97,7 +94,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
     nameAr: 'ديسك سوسايتي',
     city: 'Riyadh',
     category: 'office',
-    type: 'hot-desk',
+    type: 'private-office',
     dailyRate: 180,
     monthlyRate: 2200,
     yearlyRate: 22000,
@@ -114,7 +111,8 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
     nameAr: 'ذا كوليكتيف الدمام',
     city: 'Dammam',
     category: 'office',
-    type: 'mixed',
+    type: 'private-office',
+    withMeetingRoom: true,
     dailyRate: 100,
     monthlyRate: 1200,
     yearlyRate: 12000,
@@ -148,7 +146,8 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
     nameAr: 'ريد سي هب',
     city: 'Jeddah',
     category: 'office',
-    type: 'mixed',
+    type: 'private-office',
+    withMeetingRoom: true,
     dailyRate: 140,
     monthlyRate: 1700,
     yearlyRate: 17000,
@@ -165,7 +164,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
     nameAr: 'مساحة الخبر التقنية',
     city: 'Al Khobar',
     category: 'office',
-    type: 'hot-desk',
+    type: 'private-office',
     dailyRate: 110,
     monthlyRate: 1350,
     yearlyRate: 13500,
@@ -199,7 +198,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
     nameAr: 'قاعة المجلس الكبرى للمؤتمرات',
     city: 'Riyadh',
     category: 'hall',
-    type: 'conference-hall',
+    type: 'meeting-room',
     dailyRate: 1800,
     monthlyRate: 25000,
     yearlyRate: 250000,
@@ -217,7 +216,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
     nameAr: 'قاعة هورايزن التدريبية التفاعلية',
     city: 'Jeddah',
     category: 'hall',
-    type: 'training-hall',
+    type: 'meeting-room',
     dailyRate: 1200,
     monthlyRate: 18000,
     yearlyRate: 180000,
@@ -251,7 +250,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
     nameAr: 'قاعة البحر الأحمر التنفيذية',
     city: 'Jeddah',
     category: 'theater',
-    type: 'performance-theater',
+    type: 'theater',
     dailyRate: 4000,
     monthlyRate: 60000,
     yearlyRate: 600000,
@@ -268,7 +267,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
     nameAr: 'قاعة الأندلس متعددة الأغراض',
     city: 'Jeddah',
     category: 'hall',
-    type: 'multipurpose-hall',
+    type: 'meeting-room',
     dailyRate: 1500,
     monthlyRate: 22000,
     yearlyRate: 220000,
@@ -285,7 +284,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
     nameAr: 'قاعة اجتماعات الدرعية التراثية',
     city: 'Riyadh',
     category: 'hall',
-    type: 'meeting-hall',
+    type: 'meeting-room',
     dailyRate: 1000,
     monthlyRate: 15000,
     yearlyRate: 150000,
@@ -302,7 +301,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
     nameAr: 'قاعة ورش تك فرونتير',
     city: 'Dammam',
     category: 'hall',
-    type: 'workshop-hall',
+    type: 'meeting-room',
     dailyRate: 1100,
     monthlyRate: 16000,
     yearlyRate: 160000,
@@ -319,7 +318,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
     nameAr: 'قاعة فعاليات الواحة للشركات',
     city: 'Riyadh',
     category: 'hall',
-    type: 'event-hall',
+    type: 'meeting-room',
     dailyRate: 2500,
     monthlyRate: 35000,
     yearlyRate: 350000,
@@ -336,7 +335,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
     nameAr: 'قاعة محاضرات وندوات الخبر',
     city: 'Al Khobar',
     category: 'hall',
-    type: 'lecture-hall',
+    type: 'meeting-room',
     dailyRate: 1300,
     monthlyRate: 19000,
     yearlyRate: 190000,
@@ -353,7 +352,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
     nameAr: 'مسرح وادي الظهران التقني',
     city: 'Dammam',
     category: 'theater',
-    type: 'conference-theater',
+    type: 'theater',
     dailyRate: 4500,
     monthlyRate: 70000,
     yearlyRate: 700000,
@@ -387,7 +386,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
     nameAr: 'ذا هايف ستوديو مشترك',
     city: 'Riyadh',
     category: 'office',
-    type: 'shared-desk',
+    type: 'private-office',
     dailyRate: 90,
     monthlyRate: 1100,
     yearlyRate: 11000,
@@ -404,7 +403,8 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
     nameAr: 'مركز المدينة التقني',
     city: 'Madinah',
     category: 'office',
-    type: 'mixed',
+    type: 'private-office',
+    withMeetingRoom: true,
     dailyRate: 110,
     monthlyRate: 1400,
     yearlyRate: 13200,
@@ -422,7 +422,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
     nameAr: 'كرييتف كولوني',
     city: 'Jeddah',
     category: 'office',
-    type: 'hot-desk',
+    type: 'private-office',
     dailyRate: 140,
     monthlyRate: 1700,
     yearlyRate: 16800,
@@ -458,7 +458,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
     nameAr: 'مسرح البحر الأحمر للفنون الأدائية',
     city: 'Jeddah',
     category: 'theater',
-    type: 'performance-theater',
+    type: 'theater',
     dailyRate: 2600,
     monthlyRate: 38000,
     yearlyRate: 380000,
@@ -476,7 +476,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
     nameAr: 'قاعة اجتماعات الفيصلية التنفيذية',
     city: 'Riyadh',
     category: 'hall',
-    type: 'meeting-hall',
+    type: 'meeting-room',
     dailyRate: 1000,
     monthlyRate: 15000,
     yearlyRate: 150000,
@@ -494,7 +494,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
     nameAr: 'قاعة ورش واحة السيليكون التقنية',
     city: 'Al Khobar',
     category: 'hall',
-    type: 'workshop-hall',
+    type: 'meeting-room',
     dailyRate: 1100,
     monthlyRate: 16000,
     yearlyRate: 160000,
@@ -512,7 +512,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
     nameAr: 'مسرح مؤتمر قمة الدمام التقنية',
     city: 'Dammam',
     category: 'theater',
-    type: 'conference-theater',
+    type: 'theater',
     dailyRate: 3200,
     monthlyRate: 45000,
     yearlyRate: 450000,
@@ -530,7 +530,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
     nameAr: 'مسرح مكة للفنون الثقافية',
     city: 'Mecca',
     category: 'theater',
-    type: 'performance-theater',
+    type: 'theater',
     dailyRate: 2700,
     monthlyRate: 39000,
     yearlyRate: 390000,
@@ -548,7 +548,7 @@ export const ALL_STANDARD_SPACES: StandardSpaceSeed[] = [
     nameAr: 'ذا هايف مكاتب مخصصة ومشتركة',
     city: 'Riyadh',
     category: 'office',
-    type: 'shared-desk',
+    type: 'private-office',
     dailyRate: 130,
     monthlyRate: 1600,
     yearlyRate: 16000,
@@ -687,7 +687,7 @@ export async function seedStandardWorkspaces() {
         });
       }
 
-      if (s.type === 'mixed') {
+      if (s.withMeetingRoom) {
         let mrSec = ws.sections.find((sec) => sec.type === 'MEETING_ROOM');
         if (!mrSec) {
           mrSec = await prisma.workspaceSection.create({

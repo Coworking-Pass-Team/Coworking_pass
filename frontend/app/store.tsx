@@ -6,6 +6,8 @@ import {
   User,
   Space,
   SpaceType,
+  normalizeSpaceType,
+  getSpaceCategory,
   Booking,
   Screen,
   NavState,
@@ -667,7 +669,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (typeof window !== 'undefined') {
       try {
         const raw = localStorage.getItem('cp_custom_spaces');
-        if (raw) customSpaces = JSON.parse(raw);
+        if (raw) customSpaces = (JSON.parse(raw) as Space[]).map((s) => ({ ...s, type: normalizeSpaceType(s.type) }));
       } catch (_) { }
     }
     const seen = new Set<string>();
@@ -2741,7 +2743,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             }
           }
 
-          const preservedType = (savedType || sectionType || inferredType || existing?.type || (w as any).type || 'private-office') as SpaceType;
+          const preservedType = normalizeSpaceType(savedType || sectionType || inferredType || existing?.type || (w as any).type || 'private-office');
 
           // Only single-section listings are auto-corrected; multi-room hubs keep each room's own type
           if (Array.isArray(w.sections) && w.sections.length === 1) {
@@ -2814,7 +2816,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               monthly: w.monthlyRate !== undefined && w.monthlyRate !== null ? w.monthlyRate : (existing?.pricing?.monthly ?? 2000),
               yearly: w.yearlyRate !== undefined && w.yearlyRate !== null ? w.yearlyRate : (existing?.pricing?.yearly ?? 20000),
             },
-            bookingMode: existing?.bookingMode || (preservedType === 'meeting-room' || preservedType === 'event-hall' || (preservedType as string).includes('hall') ? 'hourly' : 'subscription'),
+            bookingMode: existing?.bookingMode || (preservedType === 'private-office' ? 'subscription' : 'hourly'),
             bookingPackages: existing?.bookingPackages || [],
             rating: existing?.rating || 4.8,
             reviewCount: existing?.reviewCount || 12,
@@ -2856,7 +2858,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (typeof window !== 'undefined') {
           try {
             const raw = localStorage.getItem('cp_custom_spaces');
-            if (raw) customSpaces = JSON.parse(raw);
+            if (raw) customSpaces = (JSON.parse(raw) as Space[]).map((s) => ({ ...s, type: normalizeSpaceType(s.type) }));
           } catch (_) { }
         }
 
@@ -4545,7 +4547,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             });
 
             if (createRes.success && createRes.workspace) {
-              const dbSecType = mapFrontendTypeToDbSectionType((updatedSpaceObj as any).type || 'mixed');
+              const dbSecType = mapFrontendTypeToDbSectionType((updatedSpaceObj as any).type || 'private-office');
               const headers: Record<string, string> = { 'Content-Type': 'application/json' };
               headers['Authorization'] = `Bearer ${storedToken}`;
               try {
@@ -4669,26 +4671,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const rawPrice = booking.totalPrice || 0;
     const earnedPoints = (rawPrice > 0 ? Math.max(10, Math.floor(rawPrice / 10)) : 10) * multiplier;
 
-    // Quota deduction for Meeting Room & Theater hourly bookings
-    const bCat = (booking.category || '').toLowerCase();
-    const bType = (booking.type || '').toLowerCase();
-    const sType = (space?.type || '').toLowerCase();
-    const sName = (space?.name || booking.spaceName || '').toLowerCase();
-    const isMeetingOrTheater =
-      bType.includes('meeting') ||
-      bType.includes('hall') ||
-      bType.includes('theater') ||
-      bCat.includes('meeting') ||
-      bCat.includes('hall') ||
-      bCat.includes('theater') ||
-      sType.includes('meeting') ||
-      sType.includes('hall') ||
-      sType.includes('theater') ||
-      sName.includes('meeting') ||
-      sName.includes('قاعة') ||
-      sName.includes('مسرح') ||
-      sName.includes('theater') ||
-      sName.includes('hall');
+    // Meeting rooms and theaters draw on one shared hours quota; private offices never do
+    const isMeetingOrTheater = getSpaceCategory(space ?? booking.category ?? booking.type) !== 'office';
 
     // Read freshest user from localStorage if available
     let latestUser = currentUser;

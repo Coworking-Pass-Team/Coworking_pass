@@ -196,7 +196,7 @@ function ProviderMySpacesContent() {
       city: 'Riyadh',
       address: '',
       description: '',
-      type: 'mixed',
+      type: 'private-office',
       amenities: [],
       totalCapacity: 20,
       availableCapacity: 20,

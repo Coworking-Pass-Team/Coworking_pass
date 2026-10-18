@@ -18,5 +18,7 @@ Suites: `suite-security-wallet-slots`, `suite-company-capacity-payments`, `suite
 `suite-roles` (provider onboarding/moderation, HR, loyalty points, admin portal) and
 `suite-authz-mutations` (admin-only configuration, package/payment/waitlist ownership) and
 `suite-partner-workspaces` (partner create/delete, zero-capacity workspaces) and
-`suite-notifications` (read/unread/delete ownership, hourly booking notice).
+`suite-notifications` (read/unread/delete ownership, hourly booking notice) and
+`suite-booking-lifecycle` (past bookings reported as completed, newest-first lists).
+`suite-past-sessions` only runs its time-sensitive checks during Saudi daytime hours.
 Run them against a freshly migrated local database (`prisma migrate deploy`).

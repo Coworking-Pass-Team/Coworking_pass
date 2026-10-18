@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { normalizeSpaceType } from "@/lib/space-types";
 import { prisma } from "@/lib/prisma";
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 import { canManageWorkspace, forbiddenResponse } from "@/lib/ownership";
@@ -52,6 +53,8 @@ if (!user) return unauthorizedResponse(request);
     for (const key of ["type", "name", "capacity", "dailyRate", "monthlyRate", "yearlyRate", "hourlyRate", "subType"]) {
       if (body[key] !== undefined) data[key] = body[key];
     }
+    // Room kinds are one of the three space types, whatever the client sends
+    if (typeof data.subType === "string" && data.subType) data.subType = normalizeSpaceType(data.subType);
 
     const section = await prisma.workspaceSection.update({
       where: { id },

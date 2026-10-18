@@ -2,7 +2,7 @@
 
 import { useApp } from '@/app/store';
 import { useI18n, pickLocalized } from '@/i18n';
-import { SAUDI_CITIES_DATA, type Space } from '@/types/types';
+import { SAUDI_CITIES_DATA, normalizeSpaceType, type Space } from '@/types/types';
 
 /**
  * Localized text of workspaces (dynamic content). Providers/admins author both languages; in Arabic mode the
@@ -33,12 +33,10 @@ export function useSpaceText() {
     const known = SAUDI_CITIES_DATA.find((c) => c.name.toLowerCase() === wanted);
     return known?.nameAr || city;
   };
-  /** Localized label of a space type such as 'hot-desk' or 'theater'. */
+  /** Localized label of a space type; values saved before the three-type standardization resolve to one of the three. */
   const typeLabel = (type?: string | null) => {
     if (!type) return '';
-    const key = `spaceTypes.${type}`;
-    const translated = t(key as never);
-    return translated === key ? type.replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()) : translated;
+    return t(`spaceTypes.${normalizeSpaceType(type)}` as never);
   };
   const city = (space?: Pick<Space, 'city' | 'cityAr'> | null) => cityName(space?.city, space?.cityAr);
 

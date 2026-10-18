@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 import { startOfDay } from "@/lib/capacity";
+import { normalizeSpaceType } from "@/lib/space-types";
 import { parseDateAndTimeToKsaDate } from "@/lib/time-utils";
 
 const ALL_TYPES = ["DESK", "MEETING_ROOM", "THEATER"] as const;
@@ -123,7 +124,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     const units = rawUnits.map((u, i) => {
-      const subType = typeof u.subType === "string" && u.subType ? u.subType.slice(0, 60) : null;
+      const subType = typeof u.subType === "string" && u.subType ? normalizeSpaceType(u.subType) : null;
       const type = sectionTypeFor(subType, u.type ?? body.type);
       const fallbackLabel = type === "THEATER" ? "Theater" : type === "MEETING_ROOM" ? "Meeting Hall" : "Room";
       return {

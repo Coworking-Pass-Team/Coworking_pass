@@ -55,7 +55,7 @@ const emptyForm = (): Partial<Space> => ({
   city: 'Riyadh',
   address: '',
   description: '',
-  type: 'meeting-hall',
+  type: 'meeting-room',
   bookingMode: 'hourly',
   bookingPackages: [
     { id: `package-${Date.now()}`, name: '2 hours per day', period: 'day', hours: 2, price: 100 }
@@ -1254,7 +1254,7 @@ export default function SpacesAdmin() {
                       className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border border-soot/12 bg-white text-soot text-sm font-medium text-start transition-all duration-200 cursor-pointer focus:outline-none shadow-2xs"
                     >
                       <span className="capitalize truncate">
-                        {st.typeLabel(form.type || 'mixed')}
+                        {st.typeLabel(form.type || 'private-office')}
                       </span>
                       <ChevronDown
                         size={15}

@@ -144,7 +144,7 @@ export default function BookingFlow() {
 
   const [step, setStep] = useState(0); 
   const [plan, setPlan] = useState<BookingPlan>(defaultInitialPlan);
-  const [deskType, setDeskType] = useState<BookingType>(space?.type || 'hot-desk');
+  const [deskType, setDeskType] = useState<BookingType>(space?.type || 'private-office');
   
   // Duration & Exact Time State
   const [durationMonths, setDurationMonths] = useState<number>(initialMonths);
@@ -755,27 +755,6 @@ export default function BookingFlow() {
             </p>
           </div>
 
-          {/* Workspace Desk Type Selector */}
-          {!isHourlySpace && !isOffice && (
-            <div>
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-moss mb-3">{t('bf.workspaceType')}</h3>
-              <div className="grid grid-cols-3 gap-3">
-                {(['hot-desk', 'private-office', 'meeting-room'] as BookingType[]).map(t => (
-                  <button
-                    key={t}
-                    onClick={() => setDeskType(t)}
-                    className={`py-3 px-3 rounded-2xl border text-xs font-semibold text-center transition-all cursor-pointer ${
-                      deskType === t
-                        ? 'bg-soot text-plaster border-soot shadow-sm'
-                        : 'border-soot/10 text-moss hover:border-soot/30 bg-plaster/30'
-                    }`}
-                  >
-                    {t.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Plan Choice List */}
           <div className="space-y-3">

@@ -19,7 +19,7 @@ npm run seed:test-accounts      # creates the accounts, or resets them if they a
 | Individual member (empty) | `newmember@cwp-test.local` | Nothing booked yet: use it for first-time flows |
 | HR admin (company) | `hr@cwp-test.local` | Company *Test Company Ltd*, shared wallet SAR 5,000, 10 passes, two employees |
 | Company employee | `employee1@cwp-test.local`, `employee2@cwp-test.local` | Members of *Test Company Ltd* |
-| Venue partner (approved) | `partner@cwp-test.local` | Owns *Test Partner Hub* (open desks + Meeting Room A with a 2-hour package) |
+| Venue partner (approved) | `partner@cwp-test.local` | Owns *Test Partner Hub* (private offices + Meeting Room A with a 2-hour package) |
 | Venue partner (pending) | `partner.pending@cwp-test.local` | Sign-in is refused until a super admin approves it: use it to test the approval flow |
 | Super admin | `superadmin@cwp-test.local` | Full platform access |
 | Suspended member | `suspended@cwp-test.local` | Sign-in is refused with the "account suspended" message |

@@ -16,14 +16,14 @@ import { cookies } from 'next/headers';
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://coworkingpass.sa'),
   title: 'Coworking Pass | Flexible Coworking Spaces Across Saudi Arabia',
-  description: 'Instantly access flexible, fully equipped coworking spaces in Riyadh, Jeddah, Dammam, and beyond. Book hot desks, private offices, meeting halls, and event spaces by the day, month, or year.',
+  description: 'Instantly access flexible, fully equipped coworking spaces in Riyadh, Jeddah, Dammam, and beyond. Book private offices, meeting rooms, and theaters across Saudi Arabia.',
   keywords: [
     'coworking saudi arabia',
     'coworking riyadh',
     'shared office jeddah',
     'dammam meeting rooms',
     'flexible workspace',
-    'hot desk saudi',
+    'private office saudi',
     'coworking pass',
     'office spaces khobar',
     'meeting halls saudi arabia',

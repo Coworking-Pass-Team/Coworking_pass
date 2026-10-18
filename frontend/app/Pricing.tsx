@@ -32,7 +32,7 @@ const individualPlans: PlanItem[] = [
     period: '/day',
     desc: 'Ideal for occasional visits, focused sprints, and business day trips.',
     features: [
-      'Access to any hot desk in the network',
+      'Day access across the whole network',
       'High-speed business fiber WiFi',
       'Complimentary specialty coffee & tea',
       'Flexible booking & cancel anytime',
@@ -48,7 +48,7 @@ const individualPlans: PlanItem[] = [
     period: '/month',
     desc: 'Tailored for remote professionals, creators, and ambitious founders.',
     features: [
-      'Unlimited workspace visits across Saudi',
+      'Network access across Saudi',
       '2 Guest passes per month',
       '8 Hours monthly meeting room & theater credits (renews monthly)',
       'Priority waitlist & booking access',
@@ -89,7 +89,7 @@ const corporatePlans: PlanItem[] = [
     period: '/month',
     desc: 'For agile startups looking for high-end flexible desk allocation.',
     features: [
-      'Shared hot desk pool for team members',
+      'Shared team access across the network',
       '10 Hours monthly meeting room access',
       'Centralized HR admin dashboard',
       'Single consolidated monthly VAT invoice',

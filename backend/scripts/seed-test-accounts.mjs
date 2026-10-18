@@ -83,13 +83,17 @@ if (!workspace) {
       isVisible: true,
       sections: {
         create: [
-          { type: 'DESK', name: 'Open Desks', capacity: 20, dailyRate: 60, monthlyRate: 900, yearlyRate: 9000 },
-          { type: 'MEETING_ROOM', name: 'Meeting Room A', capacity: 8, hourlyRate: 75, dailyRate: 400 },
+          { type: 'DESK', name: 'Private Offices', subType: 'private-office', capacity: 20, dailyRate: 60, monthlyRate: 900, yearlyRate: 9000 },
+          { type: 'MEETING_ROOM', name: 'Meeting Room A', subType: 'meeting-room', capacity: 8, hourlyRate: 75, dailyRate: 400 },
         ],
       },
     },
     include: { sections: { include: { hourlyPackages: true } } },
   });
+}
+for (const sec of workspace.sections) {
+  const patch = sec.type === 'DESK' ? { name: 'Private Offices', subType: 'private-office' } : sec.type === 'MEETING_ROOM' ? { subType: 'meeting-room' } : null;
+  if (patch && (sec.subType !== patch.subType || (patch.name && sec.name !== patch.name))) await prisma.workspaceSection.update({ where: { id: sec.id }, data: patch });
 }
 const meetingRoom = workspace.sections.find((s) => s.type === 'MEETING_ROOM');
 let pkg = meetingRoom.hourlyPackages[0];

@@ -1,11 +1,13 @@
-import { User, Space, BookingPlan, SpaceType, BookingType, SpaceCategory, getSpaceCategory } from '@/types/types';
+import { User, Space, BookingPlan, SpaceType, BookingType, SpaceCategory, getSpaceCategory, normalizeSpaceType } from '@/types/types';
 
 export interface PlanCoverageRule {
   key: string;
   names: string[];
   audience: 'B2C' | 'B2B' | 'ALL';
   allowedBookingPlans: BookingPlan[];
-  includedWorkspaceTypes: string[]; // ['hot-desk', 'shared-desk', 'desk', 'office'] or ['*']
+  /** Space types the pass can cover. Private offices are never listed: they are always paid directly. */
+  includedWorkspaceTypes: SpaceType[];
+  /** One pooled monthly quota, spent on meeting rooms and theaters alike */
   includedMeetingHoursPerMonth: number;
   maxSeatsCoveredPerBooking: number;
   description: string;
@@ -17,60 +19,60 @@ export const PLAN_COVERAGE_RULES: PlanCoverageRule[] = [
     names: ['day pass', 'daily pass', 'basic pass', 'day'],
     audience: 'B2C',
     allowedBookingPlans: ['daily'],
-    includedWorkspaceTypes: ['hot-desk', 'shared-desk', 'desk', 'office'],
+    includedWorkspaceTypes: [],
     includedMeetingHoursPerMonth: 0,
     maxSeatsCoveredPerBooking: 1,
-    description: 'Covers 1 hot desk or shared desk for a full business day.',
+    description: 'Day access. Meeting rooms, theaters and private offices are paid directly.',
   },
   {
     key: 'monthly',
     names: ['monthly pass', 'pro pass', 'all-access pass', 'all-access', 'monthly'],
     audience: 'B2C',
     allowedBookingPlans: ['daily', 'monthly'],
-    includedWorkspaceTypes: ['hot-desk', 'shared-desk', 'desk', 'office'],
+    includedWorkspaceTypes: ['meeting-room', 'theater'],
     includedMeetingHoursPerMonth: 8,
     maxSeatsCoveredPerBooking: 1,
-    description: 'Unlimited hot desk visits across Saudi Arabia + up to 8 meeting room & theater hours monthly.',
+    description: 'Up to 8 hours a month, shared between meeting rooms and theaters. Extra hours are charged at the space rate. Private offices are paid directly.',
   },
   {
     key: 'yearly',
     names: ['yearly pass', 'annual pass', 'yearly', 'annual', 'executive pass'],
     audience: 'B2C',
     allowedBookingPlans: ['daily', 'monthly', 'yearly'],
-    includedWorkspaceTypes: ['hot-desk', 'shared-desk', 'private-office', 'desk', 'office'],
+    includedWorkspaceTypes: ['meeting-room', 'theater'],
     includedMeetingHoursPerMonth: 12,
     maxSeatsCoveredPerBooking: 1,
-    description: 'All-inclusive desk & private office visits + 12 meeting room & theater hours monthly (renews monthly).',
+    description: 'Up to 12 hours a month (renews monthly), shared between meeting rooms and theaters. Extra hours are charged at the space rate. Private offices are paid directly.',
   },
   {
     key: 'team',
     names: ['team pass', 'corporate pass', 'corporate plan', 'team'],
     audience: 'B2B',
     allowedBookingPlans: ['daily', 'monthly'],
-    includedWorkspaceTypes: ['hot-desk', 'shared-desk', 'meeting-room', 'desk', 'office'],
+    includedWorkspaceTypes: ['meeting-room', 'theater'],
     includedMeetingHoursPerMonth: 10,
     maxSeatsCoveredPerBooking: 20,
-    description: 'Team desk pool for up to 20 members + 10 hours monthly meeting room reservations.',
+    description: 'Up to 10 hours a month for the team, shared between meeting rooms and theaters (up to 20 members). Private offices are paid directly.',
   },
   {
     key: 'business',
     names: ['business pass', 'business'],
     audience: 'B2B',
     allowedBookingPlans: ['daily', 'monthly', 'yearly'],
-    includedWorkspaceTypes: ['hot-desk', 'shared-desk', 'private-office', 'meeting-room', 'desk', 'office'],
+    includedWorkspaceTypes: ['meeting-room', 'theater'],
     includedMeetingHoursPerMonth: 9999,
     maxSeatsCoveredPerBooking: 50,
-    description: 'Dedicated team bays, private suites & unlimited meeting room reservations (up to 50 seats).',
+    description: 'Unlimited meeting room and theater hours (up to 50 seats). Private offices are paid directly.',
   },
   {
     key: 'enterprise',
     names: ['enterprise pass', 'custom enterprise', 'enterprise'],
     audience: 'B2B',
     allowedBookingPlans: ['daily', 'monthly', 'yearly', 'hourly'],
-    includedWorkspaceTypes: ['*'],
+    includedWorkspaceTypes: ['meeting-room', 'theater'],
     includedMeetingHoursPerMonth: 9999,
     maxSeatsCoveredPerBooking: 9999,
-    description: 'Full network coverage for all workspace types and custom facilities.',
+    description: 'Unlimited meeting room and theater hours across the network. Private offices are paid directly.',
   },
 ];
 
@@ -133,7 +135,7 @@ export function evaluateReservationCoverage(
 ): ReservationCoverageResult {
   const effectiveSeats = Math.max(1, seats);
   const targetCategory: SpaceCategory = getSpaceCategory(space);
-  const targetType = String(deskType || space?.type || 'hot-desk').toLowerCase().trim();
+  const targetType = normalizeSpaceType(String(deskType || space?.type || 'private-office'));
 
   // 1. Calculate standard un-discounted price for 1 seat
   let singleOriginalPrice = 150;
@@ -166,6 +168,24 @@ export function evaluateReservationCoverage(
     };
   }
 
+  // Private offices are always paid directly: no pass covers them, whatever the plan
+  if (targetCategory === 'office') {
+    return {
+      isCovered: false,
+      isPartiallyCovered: false,
+      effectivePrice: fullOriginalTotal,
+      originalPrice: fullOriginalTotal,
+      displayPriceLabel: `SAR ${singleOriginalPrice.toLocaleString()}`,
+      totalPayableLabel: `SAR ${fullOriginalTotal.toLocaleString()}`,
+      hasDiscount: false,
+      coveredSeats: 0,
+      payableSeats: effectiveSeats,
+      coveredHours: 0,
+      payableHours: durationHours,
+      coverageNote: 'Private offices are paid directly and are not included in the pass',
+    };
+  }
+
   // 3. User has active subscription: evaluate against plan rules
   const rule = findMatchingPlanRule(user.membershipTier, user.role);
   if (!rule) {
@@ -184,31 +204,12 @@ export function evaluateReservationCoverage(
     };
   }
 
-  // 4. Check workspace type inclusion
-  const isTypeIncluded =
-    rule.includedWorkspaceTypes.includes('*') ||
-    rule.includedWorkspaceTypes.includes(targetType) ||
-    rule.includedWorkspaceTypes.includes(targetCategory) ||
-    (targetCategory === 'office' && rule.includedWorkspaceTypes.includes('office')) ||
-    (targetType.includes('desk') && rule.includedWorkspaceTypes.some(t => t.includes('desk')));
-
-  // Check hourly meeting room, hall, and theater inclusion
-  const isMeetingOrTheater =
-    targetCategory === 'hall' ||
-    targetCategory === 'theater' ||
-    targetType.includes('meeting') ||
-    targetType.includes('hall') ||
-    targetType.includes('theater') ||
-    targetType.includes('auditorium');
+  // 4. Meeting rooms and theaters share one hours quota; they are covered when the plan includes hours
+  const isTypeIncluded = rule.includedWorkspaceTypes.includes(targetType);
+  const isMeetingOrTheater = targetCategory === 'hall' || targetCategory === 'theater';
   const hasIncludedMeetingHours = isMeetingOrTheater && planType === 'hourly' && rule.includedMeetingHoursPerMonth > 0;
 
-  // Excluded space types (theaters only excluded if plan has no meeting/theater hours)
-  const isHardExcluded =
-    (targetCategory === 'theater' || targetType.includes('theater')) &&
-    !hasIncludedMeetingHours &&
-    !rule.includedWorkspaceTypes.includes('*');
-
-  if (isHardExcluded || (!isTypeIncluded && !hasIncludedMeetingHours)) {
+  if (!isTypeIncluded && !hasIncludedMeetingHours) {
     // Not covered by this plan
     return {
       isCovered: false,

@@ -5,10 +5,16 @@ const s = (await db.query(`select s.id sid, w.id wid from "WorkspaceSection" s j
 const ksa = new Date(Date.now() + 3 * 3600e3);
 const today = ksa.toISOString().slice(0, 10);
 const b = (st, en) => api('/hourly-bookings', { method: 'POST', token: u.token, body: { workspaceId: s.wid, sectionId: s.sid, sectionType: 'MEETING_ROOM', startDate: today, endDate: today, startTime: st, endTime: en, durationHours: 2 } });
-const past = await b('08:00', '10:00');
-check('already-ended session today rejected', past.status === 400, past.status + ' ' + (past.body?.error || ''));
 const h = ksa.getUTCHours();
-if (h < 20) {
+// The 08:00-10:00 session has only ended once it is past 10:00 in Saudi Arabia; before that it is a legitimate booking
+if (h >= 10) {
+  const past = await b('08:00', '10:00');
+  check('already-ended session today rejected', past.status === 400, past.status + ' ' + (past.body?.error || ''));
+} else {
+  console.log('(skipped: the already-ended session check needs the Saudi time to be past 10:00)');
+}
+// Between 07:00 and 20:00 the next free session starts within the cancellation window, which is what these checks need
+if (h >= 7 && h < 20) {
   const st = String(Math.max(h + 1, 8)).padStart(2, '0') + ':00', en = String(Math.max(h + 1, 8) + 2).padStart(2, '0') + ':00';
   const fut = await b(st, en);
   check(`later session today (${st}-${en}) accepted`, fut.status === 201, fut.status + ' ' + (fut.body?.error || ''));

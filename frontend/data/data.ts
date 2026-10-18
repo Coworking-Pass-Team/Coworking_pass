@@ -8,7 +8,7 @@ export const INITIAL_SPACES: Space[] = [
     city: 'Riyadh',
     address: 'Al Olaya District, King Fahd Rd, Riyadh 12211',
     description: 'A flagship coworking destination in the heart of Riyadh\'s business district. The Hub offers premium hot desks, private offices, and state-of-the-art meeting rooms with stunning city views. Designed for focused work and meaningful connections.',
-    type: 'mixed',
+    type: 'private-office',
     images: [
       'https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&h=800&fit=crop&auto=format',
       'https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=1200&h=800&fit=crop&auto=format',
@@ -57,7 +57,7 @@ export const INITIAL_SPACES: Space[] = [
     city: 'Jeddah',
     address: 'Al Corniche Road, Al Shati District, Jeddah 23521',
     description: 'Creative coworking space overlooking the Jeddah Corniche. WorkBay blends modern design with warm hospitality, offering flexible hot desks and creative studios perfect for entrepreneurs, freelancers, and remote teams.',
-    type: 'hot-desk',
+    type: 'private-office',
     images: [
       'https://images.unsplash.com/photo-1556761175-b413da4baf72?w=1200&h=800&fit=crop&auto=format',
       'https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=1200&h=800&fit=crop&auto=format',
@@ -95,7 +95,7 @@ export const INITIAL_SPACES: Space[] = [
     city: 'Riyadh',
     address: 'King Abdullah Financial District, Riyadh 13519',
     description: 'Riyadh\'s most exclusive hot-desk experience in KAFD. Desk Society offers ultra-premium workstations with full amenities, concierge service, and a network of ambitious professionals. Ideal for focused professionals who demand the best.',
-    type: 'hot-desk',
+    type: 'private-office',
     images: [
       'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=1200&h=800&fit=crop&auto=format',
       'https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&h=800&fit=crop&auto=format',
@@ -134,7 +134,7 @@ export const INITIAL_SPACES: Space[] = [
     city: 'Dammam',
     address: 'Al Murjan Street, Al Shati, Dammam 32244',
     description: 'Eastern Province\'s top coworking community. The Collective brings together startups, freelancers, and established companies in a collaborative environment with flexible spaces and regular community events.',
-    type: 'mixed',
+    type: 'private-office',
     images: [
       'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=1200&h=800&fit=crop&auto=format',
       'https://images.unsplash.com/photo-1527192491265-7e15c55b1ed2?w=1200&h=800&fit=crop&auto=format',
@@ -210,7 +210,7 @@ export const INITIAL_SPACES: Space[] = [
     city: 'Madinah',
     address: 'King Fahd Road, Al Aziziyah, Madinah 42318',
     description: 'The first premium tech-focused coworking space in Madinah. A growing community of entrepreneurs, developers, and innovators. Madinah Tech Hub supports the Kingdom\'s Vision 2030 with world-class facilities.',
-    type: 'mixed',
+    type: 'private-office',
     images: [
       'https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=1200&h=800&fit=crop&auto=format',
       'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=1200&h=800&fit=crop&auto=format',
@@ -248,7 +248,7 @@ export const INITIAL_SPACES: Space[] = [
     city: 'Jeddah',
     address: 'Al Hamra District, Tahlia Street, Jeddah 23435',
     description: 'Jeddah\'s most vibrant creative coworking hub. Creative Colony is home to designers, artists, marketers, and digital creators. An inspiring environment that fuels creativity with curated interiors and a dynamic community.',
-    type: 'hot-desk',
+    type: 'private-office',
     images: [
       'https://images.unsplash.com/photo-1527192491265-7e15c55b1ed2?w=1200&h=800&fit=crop&auto=format',
       'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=1200&h=800&fit=crop&auto=format',
@@ -324,7 +324,7 @@ export const INITIAL_SPACES: Space[] = [
     city: 'Riyadh',
     address: 'King Fahd Road, Al Olaya District, Riyadh 12211',
     description: 'A state-of-the-art corporate conference hall equipped with full acoustic treatment, 4K dual projection, simultaneous translation booths, and executive catering staging. Available for hourly booking.',
-    type: 'conference-hall',
+    type: 'meeting-room',
     images: [
       'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?w=1200&h=800&fit=crop&auto=format',
       'https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&h=800&fit=crop&auto=format',
@@ -372,7 +372,7 @@ export const INITIAL_SPACES: Space[] = [
     city: 'Jeddah',
     address: 'Al Rawdah District, Prince Mohammed Bin Abdulaziz St, Jeddah 23432',
     description: 'Modern modular training and workshop hall with flexible classroom seating, interactive smartboards, and breakout pods. Ideal for corporate training, workshops, and seminars.',
-    type: 'training-hall',
+    type: 'meeting-room',
     images: [
       'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=1200&h=800&fit=crop&auto=format',
       'https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=1200&h=800&fit=crop&auto=format',
@@ -467,7 +467,7 @@ export const INITIAL_SPACES: Space[] = [
     city: 'Jeddah',
     address: 'Al Andalus District, Al Tahlia, Jeddah 23326',
     description: 'Boutique performance and presentation theater ideal for product launches, cultural gatherings, keynote addresses, and film screenings with tiered plush seating.',
-    type: 'performance-theater',
+    type: 'theater',
     images: [
       'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=1200&h=800&fit=crop&auto=format',
       'https://images.unsplash.com/photo-1514306191717-452ec28c7814?w=1200&h=800&fit=crop&auto=format',
@@ -514,7 +514,7 @@ export const INITIAL_SPACES: Space[] = [
     city: 'Khobar',
     address: 'King Salman Road, Al Yarmouk, Al Khobar 34423',
     description: 'Versatile multi-purpose hall adaptable for hackathons, corporate banquets, exhibition booths, and large team workshops with flexible partitioning.',
-    type: 'multipurpose-hall',
+    type: 'meeting-room',
     images: [
       'https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&h=800&fit=crop&auto=format',
       'https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&h=800&fit=crop&auto=format',
@@ -561,7 +561,7 @@ export const INITIAL_SPACES: Space[] = [
     city: 'Riyadh',
     address: 'King Fahd Rd, Al Olaya, Riyadh 12212',
     description: 'High-end executive meeting hall with integrated video conference systems, acoustic wall paneling, wireless presentation screens, and premium leather seating. Ideal for board meetings and executive strategy sessions.',
-    type: 'meeting-hall',
+    type: 'meeting-room',
     images: [
       'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?w=1200&h=800&fit=crop&auto=format',
       'https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=1200&h=800&fit=crop&auto=format',
@@ -609,7 +609,7 @@ export const INITIAL_SPACES: Space[] = [
     city: 'Khobar',
     address: 'Dhahran Techno Valley, Al Khobar 34464',
     description: 'Dynamic interactive workshop and collaborative design hall equipped with movable high-top tables, digital whiteboards, rapid-prototyping tech, and high-speed fiber internet for sprint workshops and hackathons.',
-    type: 'workshop-hall',
+    type: 'meeting-room',
     images: [
       'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=1200&h=800&fit=crop&auto=format',
       'https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=1200&h=800&fit=crop&auto=format',
@@ -656,7 +656,7 @@ export const INITIAL_SPACES: Space[] = [
     city: 'Riyadh',
     address: 'Al Bujairi Heritage District, Diriyah, Riyadh 13711',
     description: 'Expansive premium event hall blending Najdi architectural heritage with cutting-edge event production capabilities, intelligent lighting, stage rigging, and VIP staging for large corporate events.',
-    type: 'event-hall',
+    type: 'meeting-room',
     images: [
       'https://images.unsplash.com/photo-1511578314322-379afb476865?w=1200&h=800&fit=crop&auto=format',
       'https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=1200&h=800&fit=crop&auto=format',
@@ -704,7 +704,7 @@ export const INITIAL_SPACES: Space[] = [
     city: 'Jeddah',
     address: 'Al Jamiah District, University Road, Jeddah 21589',
     description: 'Tiered academic and corporate lecture hall with stepped theater-style seating, dual HD projection screens, dedicated speaker lectern, and audience microphone distribution.',
-    type: 'lecture-hall',
+    type: 'meeting-room',
     images: [
       'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=1200&h=800&fit=crop&auto=format',
       'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&h=800&fit=crop&auto=format',
@@ -751,7 +751,7 @@ export const INITIAL_SPACES: Space[] = [
     city: 'Dammam',
     address: 'Corniche Road, Al Shati District, Dammam 32414',
     description: 'Flagship tiered auditorium and conference theater built for global summits, developer conferences, and corporate annual meetings with high-definition laser projection and live broadcasting infrastructure.',
-    type: 'conference-theater',
+    type: 'theater',
     images: [
       'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=1200&h=800&fit=crop&auto=format',
       'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&h=800&fit=crop&auto=format',
@@ -799,7 +799,7 @@ export const INITIAL_SPACES: Space[] = [
     city: 'Makkah',
     address: 'Ibrahim Al Khalil Road, Al Kakiyyah, Makkah 24351',
     description: 'World-class performance and presentation theater featuring acoustic wall architecture, cinema screen, ergonomic tiered seating, and theatrical stage lighting.',
-    type: 'performance-theater',
+    type: 'theater',
     images: [
       'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=1200&h=800&fit=crop&auto=format',
       'https://images.unsplash.com/photo-1514306191717-452ec28c7814?w=1200&h=800&fit=crop&auto=format',
@@ -846,7 +846,7 @@ export const INITIAL_SPACES: Space[] = [
     city: 'Riyadh',
     address: 'Al Takhassusi St, Al Rahmaniyah, Riyadh 12341',
     description: 'Modern coworking space specialized in dedicated and shared desk stations with lockable storage, ergonomic Herman Miller chairs, high-speed fiber WiFi, and premium coffee.',
-    type: 'shared-desk',
+    type: 'private-office',
     images: [
       'https://images.unsplash.com/photo-1527192491265-7e15c55b1ed2?w=1200&h=800&fit=crop&auto=format',
       'https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&h=800&fit=crop&auto=format',
@@ -1081,7 +1081,7 @@ export const INITIAL_BOOKINGS: Booking[] = [
     spaceCity: 'Riyadh',
     spaceAddress: 'Al Olaya District, King Fahd Rd',
     spaceImage: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=600&h=400&fit=crop&auto=format',
-    type: 'hot-desk',
+    type: 'private-office',
     plan: 'monthly',
     startDate: '2025-09-01',
     endDate: '2025-09-30',
@@ -1099,7 +1099,7 @@ export const INITIAL_BOOKINGS: Booking[] = [
     spaceCity: 'Riyadh',
     spaceAddress: 'King Abdullah Financial District',
     spaceImage: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=600&h=400&fit=crop&auto=format',
-    type: 'hot-desk',
+    type: 'private-office',
     plan: 'daily',
     startDate: '2025-07-15',
     endDate: '2025-07-15',
@@ -1117,7 +1117,7 @@ export const INITIAL_BOOKINGS: Booking[] = [
     spaceCity: 'Jeddah',
     spaceAddress: 'Al Corniche Road, Al Shati District',
     spaceImage: 'https://images.unsplash.com/photo-1556761175-b413da4baf72?w=600&h=400&fit=crop&auto=format',
-    type: 'hot-desk',
+    type: 'private-office',
     plan: 'daily',
     startDate: '2025-06-10',
     endDate: '2025-06-10',
@@ -1171,7 +1171,7 @@ export const INITIAL_BOOKINGS: Booking[] = [
     spaceCity: 'Khobar',
     spaceAddress: 'King Fahd Causeway Road',
     spaceImage: 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=600&h=400&fit=crop&auto=format',
-    type: 'hot-desk',
+    type: 'private-office',
     plan: 'monthly',
     startDate: '2025-09-01',
     endDate: '2025-09-30',
@@ -1210,7 +1210,7 @@ export const INITIAL_BOOKINGS: Booking[] = [
     spaceCity: 'Riyadh',
     spaceAddress: 'King Abdullah Financial District',
     spaceImage: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=600&h=400&fit=crop&auto=format',
-    type: 'hot-desk',
+    type: 'private-office',
     plan: 'hourly',
     durationHours: 2,
     startTime: '02:00 PM',

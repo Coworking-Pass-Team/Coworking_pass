@@ -12,7 +12,7 @@ interface UnitsEditorProps {
   onChange: (units: SpaceUnit[]) => void;
 }
 
-const ROOM_KINDS = ['meeting-room', 'training-hall', 'event-hall', 'theater', 'shared-desk', 'private-office', 'hot-desk'] as const;
+const ROOM_KINDS = ['meeting-room', 'theater', 'private-office'] as const;
 
 const dbTypeFor = (kind: string): SpaceUnit['type'] =>
   kind.includes('theater') ? 'THEATER' : kind.includes('hall') || kind.startsWith('meeting') ? 'MEETING_ROOM' : 'DESK';
@@ -75,7 +75,7 @@ export default function UnitsEditor({ units, defaultSubType, onChange }: UnitsEd
 
       <div className="space-y-3">
         {units.map((unit, index) => {
-          const kind = unit.subType || (unit.type === 'THEATER' ? 'theater' : unit.type === 'MEETING_ROOM' ? 'meeting-room' : 'shared-desk');
+          const kind = unit.subType || (unit.type === 'THEATER' ? 'theater' : unit.type === 'MEETING_ROOM' ? 'meeting-room' : 'private-office');
           const hourly = isHourlyAllowed(kind);
           const fields: readonly (readonly [keyof SpaceUnit, string])[] = hourly
             ? [['hourlyRate', 'units.hourlyRate'], ['dailyRate', 'units.dailyRate']]

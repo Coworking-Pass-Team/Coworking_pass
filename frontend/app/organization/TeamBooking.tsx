@@ -96,7 +96,7 @@ export default function TeamBooking() {
   const initialEndTime = (nav?.params?.endTime as string) || calculateEndTime(initialStartTime, initialHours);
 
   const [step, setStep] = useState(0);
-  const [bookingType, setBookingType] = useState<BookingType>(space?.type || 'hot-desk');
+  const [bookingType, setBookingType] = useState<BookingType>(space?.type || 'private-office');
   const [plan, setPlan] = useState<BookingPlan>(defaultInitialPlan);
   const [durationMonths, setDurationMonths] = useState<number>(initialMonths);
   const [dailyEndDate, setDailyEndDate] = useState(initialEndDate);
@@ -674,31 +674,6 @@ export default function TeamBooking() {
               {isHourlySpace ? t('tb.configHourly') : isOffice ? t('tb.selectOfficePlan') : t('tb.selectTypePlan')}
             </h2>
 
-            {!isHourlySpace && !isOffice && (
-              <div className="space-y-2.5">
-                {[
-                  { type: 'hot-desk' as BookingType, label: t('tb.hotDesks'), desc: t('tb.hotDesksDesc') },
-                  { type: 'meeting-room' as BookingType, label: t('tb.meetingRoom'), desc: t('tb.meetingRoomDesc') },
-                  { type: 'private-office' as BookingType, label: t('tb.privateOffice'), desc: t('tb.privateOfficeDesc') },
-                ].map(opt => (
-                  <button
-                    key={opt.type}
-                    onClick={() => setBookingType(opt.type)}
-                    className={`w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all text-start cursor-pointer ${
-                      bookingType === opt.type
-                        ? 'border-eucalyptus bg-[#E5ECE9]/60 shadow-xs'
-                        : 'border-soot/8 bg-white hover:border-soot/20'
-                    }`}
-                  >
-                    <div>
-                      <div className="font-medium text-soot text-sm">{opt.label}</div>
-                      <div className="text-xs text-moss mt-0.5">{opt.desc}</div>
-                    </div>
-                    {bookingType === opt.type && <Check size={16} className="text-moss shrink-0" />}
-                  </button>
-                ))}
-              </div>
-            )}
 
             {/* Plan selector */}
             <div className="pt-2">

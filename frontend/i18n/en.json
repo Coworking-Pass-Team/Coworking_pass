@@ -88,26 +88,13 @@
   },
   "spaceTypes": {
     "private-office": "Private Office",
-    "meeting-room": "Meeting Room / Hall",
-    "meeting-hall": "Meeting Hall",
-    "training-hall": "Training Hall",
-    "conference-hall": "Conference Hall",
-    "workshop-hall": "Workshop Hall",
-    "event-hall": "Event Hall",
-    "lecture-hall": "Lecture Hall",
-    "multipurpose-hall": "Multi-purpose Hall",
-    "theater": "Theater",
-    "performance-theater": "Performance Theater",
-    "conference-theater": "Conference & Event Theater",
-    "hot-desk": "Hot Desk",
-    "shared-desk": "Shared Desk",
-    "mixed": "Mixed Workspace"
+    "meeting-room": "Meeting Room",
+    "theater": "Theater"
   },
   "spaceGroups": {
     "Offices": "Offices",
     "Halls": "Halls",
-    "Theaters": "Theaters",
-    "DesksWorkspaces": "Desks & Workspaces"
+    "Theaters": "Theaters"
   },
   "categories": {
     "all": "All Spaces",
@@ -583,7 +570,7 @@
     "category": {
       "office": {
         "title": "Offices",
-        "desc": "Hot desks, shared desks, dedicated workstations, and private team suites. Available for daily, monthly, and annual bookings."
+        "desc": "Private offices for focused work and small teams. Paid directly: book by the day, month or year."
       },
       "hall": {
         "title": "Halls",
@@ -1234,8 +1221,6 @@
     "stepSchedule": "Schedule",
     "stepReview": "Review",
     "stepOf": "Step {step} of {total}",
-    "hotDesks": "Hot Desks",
-    "hotDesksDesc": "Flexible open seating for your team",
     "meetingRoom": "Meeting Room",
     "meetingRoomDesc": "Private room for client presentations and collaborative sessions",
     "privateOffice": "Private Office",
@@ -1503,7 +1488,7 @@
       "general": "General Details",
       "bookingMode": "Booking Mode & Packages",
       "hallsHourly": "Halls and Theaters use hourly booking packages.",
-      "desksPricing": "Shared desks and private offices support standard subscription pricing (Daily, Monthly, Yearly).",
+      "desksPricing": "Private offices are paid directly and support standard pricing (Daily, Monthly, Yearly).",
       "pkgName": "Package name",
       "hours": "Hours",
       "priceSar": "Price SAR",
@@ -2150,7 +2135,7 @@
       "automatedMonthlyDirectDeposit": "Automated Monthly Direct Deposit",
       "automaticallyTransferAccumulatedBookingEarnings": "Automatically transfer accumulated booking earnings to your Saudi IBAN on the 1st of each month",
       "instantDeskConfirmation": "Instant Desk Confirmation",
-      "automaticallyApproveHotDeskReservations": "Automatically approve hot desk reservations without manual host approval",
+      "automaticallyApproveHotDeskReservations": "Automatically approve private office reservations without manual host approval",
       "deleteProviderAccount": "Delete Provider Account",
       "brandLogoProfilePicture": "Brand Logo / Profile Picture",
       "uploadPhoto": "Upload Photo",
@@ -2347,7 +2332,7 @@
       "updatePassword": "Update Password",
       "managePermissionsForTeamReservations": "Manage permissions for team reservations and automated billing",
       "teamSelfBookingPermission": "Team Self-Booking Permission",
-      "allowRosteredTeamMembersTo": "Allow rostered team members to book hot desks directly under the enterprise pass",
+      "allowRosteredTeamMembersTo": "Allow rostered team members to book meeting rooms and theaters under the enterprise pass",
       "centralizedCorporateBilling": "Centralized Corporate Billing",
       "automaticallyChargeAllTeamBookings": "Automatically charge all team bookings to the primary organization invoice",
       "deleteOrganizationAccount": "Delete Organization Account",
@@ -2509,7 +2494,7 @@
     "t4redeem": "Redemption Value",
     "t4redeemBody": "Every 100 points equals a 25 SAR cash discount at checkout.",
     "t5Title": "5. Code of Conduct & Guest Policy",
-    "t5Body": "Hot desk reservations are strictly individual and non-transferable. Visitors to meeting rooms and private offices must adhere to max capacity limits and register at partner receptions upon arrival.",
+    "t5Body": "Private office reservations are strictly individual and non-transferable. Visitors to meeting rooms and private offices must adhere to max capacity limits and register at partner receptions upon arrival.",
     "p0Title": "Saudi Arabia PDPL Data Protection Compliance",
     "p0Body": "Coworking Pass is committed to safeguarding user personal data in strict compliance with the Saudi Personal Data Protection Law (PDPL) and National Data Governance policies.",
     "p1Title": "1. Data We Collect",

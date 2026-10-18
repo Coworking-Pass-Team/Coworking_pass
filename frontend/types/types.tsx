@@ -14,22 +14,23 @@ export type BookingPlan = 'hourly' | 'daily' | 'monthly' | 'yearly';
 
 export type SpaceCategory = 'office' | 'hall' | 'theater';
 
-export type SpaceType =
-  | 'hot-desk'
-  | 'shared-desk'
-  | 'private-office'
-  | 'meeting-room'
-  | 'meeting-hall'
-  | 'training-hall'
-  | 'conference-hall'
-  | 'workshop-hall'
-  | 'event-hall'
-  | 'lecture-hall'
-  | 'multipurpose-hall'
-  | 'theater'
-  | 'performance-theater'
-  | 'conference-theater'
-  | 'mixed';
+/** The three kinds of workspace on the platform. */
+export type SpaceType = 'theater' | 'meeting-room' | 'private-office';
+
+export const SPACE_TYPE_VALUES: readonly SpaceType[] = ['theater', 'meeting-room', 'private-office'];
+
+/**
+ * Maps any stored or legacy value (hot-desk, event-hall, auditorium ...) onto one of the three space types,
+ * so data saved before the standardization keeps working: theaters and auditoriums are theaters, halls and
+ * meeting spaces are meeting rooms, and everything else (desks, mixed workspaces) is a private office.
+ */
+export function normalizeSpaceType(raw?: string | null): SpaceType {
+  const t = String(raw || '').toLowerCase().trim();
+  if (!t) return 'private-office';
+  if (t.includes('theater') || t.includes('theatre') || t.includes('auditorium')) return 'theater';
+  if (/(hall|meeting|room|majlis|conference|training|workshop|event|lecture)/.test(t) && !t.includes('office')) return 'meeting-room';
+  return 'private-office';
+}
 
 export type BookingType = SpaceType;
 
@@ -44,24 +45,9 @@ export function getSpaceCategory(spaceOrType?: Space | SpaceType | string): Spac
     if (spaceOrType.category) return spaceOrType.category;
     return getSpaceCategory(spaceOrType.type);
   }
-  const t = String(spaceOrType).toLowerCase().trim();
-  if (t === 'theater' || t === 'performance-theater' || t === 'conference-theater' || t.includes('theater')) {
-    return 'theater';
-  }
-  if (
-    t === 'meeting-hall' ||
-    t === 'training-hall' ||
-    t === 'conference-hall' ||
-    t === 'workshop-hall' ||
-    t === 'event-hall' ||
-    t === 'lecture-hall' ||
-    t === 'multipurpose-hall' ||
-    t === 'meeting-room' ||
-    t === 'event-space' ||
-    t.includes('hall')
-  ) {
-    return 'hall';
-  }
+  const type = normalizeSpaceType(String(spaceOrType));
+  if (type === 'theater') return 'theater';
+  if (type === 'meeting-room') return 'hall';
   return 'office';
 }
 
@@ -173,29 +159,10 @@ export function formatDateRange(startDate: string, endDate?: string): string {
   return `${startDate} → ${endDate} (${days} ${days === 1 ? 'day' : 'days'})`;
 }
 
-export const ALL_SPACE_TYPES: { value: SpaceType; label: string; group: 'Offices' | 'Halls' | 'Theaters' | 'Desks & Workspaces' }[] = [
-  // Offices
+export const ALL_SPACE_TYPES: { value: SpaceType; label: string; group: 'Offices' | 'Halls' | 'Theaters' }[] = [
   { value: 'private-office', label: 'Private Office', group: 'Offices' },
-  
-  // Halls
-  { value: 'meeting-room', label: 'Meeting Room / Hall', group: 'Halls' },
-  { value: 'meeting-hall', label: 'Meeting Hall', group: 'Halls' },
-  { value: 'training-hall', label: 'Training Hall', group: 'Halls' },
-  { value: 'conference-hall', label: 'Conference Hall', group: 'Halls' },
-  { value: 'workshop-hall', label: 'Workshop Hall', group: 'Halls' },
-  { value: 'event-hall', label: 'Event Hall', group: 'Halls' },
-  { value: 'lecture-hall', label: 'Lecture Hall', group: 'Halls' },
-  { value: 'multipurpose-hall', label: 'Multi-purpose Hall', group: 'Halls' },
-  
-  // Theaters
+  { value: 'meeting-room', label: 'Meeting Room', group: 'Halls' },
   { value: 'theater', label: 'Theater', group: 'Theaters' },
-  { value: 'performance-theater', label: 'Performance Theater', group: 'Theaters' },
-  { value: 'conference-theater', label: 'Conference & Event Theater', group: 'Theaters' },
-  
-  // Desks & Workspaces
-  { value: 'hot-desk', label: 'Hot Desk', group: 'Desks & Workspaces' },
-  { value: 'shared-desk', label: 'Shared Desk', group: 'Desks & Workspaces' },
-  { value: 'mixed', label: 'Mixed Workspace', group: 'Desks & Workspaces' },
 ];
 
 export function getSpaceTypeLabel(type?: string): string {
@@ -1252,7 +1219,7 @@ export function getEffectiveSpacePrice(
 
   const effectiveSeats = Math.max(1, seats);
   const targetCategory = getSpaceCategory(space);
-  const targetType = String(deskType || space.type || 'hot-desk').toLowerCase().trim();
+  const targetType = normalizeSpaceType(String(deskType || space.type || 'private-office'));
 
   // 1. Calculate standard price for a single seat
   let singleOriginalPrice = 150;
@@ -1284,6 +1251,25 @@ export function getEffectiveSpacePrice(
       payableSeats: effectiveSeats,
       coveredHours: 0,
       payableHours: durationHours,
+    };
+  }
+
+  // Private offices are always paid directly: no pass ever covers them, whatever the plan
+  if (targetCategory === 'office') {
+    return {
+      isCovered: false,
+      isPartiallyCovered: false,
+      effectivePrice: fullOriginalTotal,
+      originalPrice: fullOriginalTotal,
+      badgeLabel: `SAR ${singleOriginalPrice.toLocaleString()}`,
+      displayPriceLabel: `SAR ${singleOriginalPrice.toLocaleString()}`,
+      totalPayableLabel: `SAR ${fullOriginalTotal.toLocaleString()}`,
+      hasDiscount: false,
+      coveredSeats: 0,
+      payableSeats: effectiveSeats,
+      coveredHours: 0,
+      payableHours: durationHours,
+      coverageNote: 'Private offices are paid directly and are not included in the pass',
     };
   }
 
@@ -1319,25 +1305,25 @@ export function getEffectiveSpacePrice(
     maxCoveredSeats = 50;
   } else if (isTeamPass) {
     planDisplayName = 'Team Pass';
-    isTypeIncluded = (targetType.includes('desk') || targetType === 'meeting-room' || targetCategory === 'office') && targetCategory !== 'theater';
+    isTypeIncluded = targetType === 'meeting-room';
     isPlanDurationAllowed = planType === 'daily' || planType === 'monthly' || (planType === 'hourly' && targetType.includes('meeting'));
     includedMeetingHours = 10;
     maxCoveredSeats = 20;
   } else if (isAnnualPass) {
     planDisplayName = 'Yearly Pass';
-    isTypeIncluded = targetCategory === 'office' || targetType.includes('desk') || targetType === 'private-office' || targetType === 'meeting-room';
+    isTypeIncluded = targetType === 'meeting-room' || targetType === 'theater';
     isPlanDurationAllowed = planType === 'daily' || planType === 'monthly' || planType === 'yearly' || (planType === 'hourly' && (targetType.includes('meeting') || targetCategory === 'hall' || targetCategory === 'theater'));
     includedMeetingHours = 12;
     maxCoveredSeats = 1;
   } else if (isMonthlyPass) {
     planDisplayName = 'Monthly Pass';
-    isTypeIncluded = (targetCategory === 'office' || targetType.includes('desk') || targetType === 'meeting-room') && targetType !== 'private-office';
+    isTypeIncluded = targetType === 'meeting-room' || targetType === 'theater';
     isPlanDurationAllowed = planType === 'daily' || planType === 'monthly' || (planType === 'hourly' && (targetType.includes('meeting') || targetCategory === 'hall' || targetCategory === 'theater'));
     includedMeetingHours = 8;
     maxCoveredSeats = 1;
   } else if (isDayPass) {
     planDisplayName = 'Day Pass';
-    isTypeIncluded = targetType.includes('desk') || (targetCategory === 'office' && targetType !== 'private-office' && targetType !== 'meeting-room');
+    isTypeIncluded = false; // the Day Pass has no hours quota
     isPlanDurationAllowed = planType === 'daily';
     includedMeetingHours = 0;
     maxCoveredSeats = 1;
@@ -1954,10 +1940,10 @@ export function isValidSaudiCrNumber(cr: string): boolean {
 
 /** Space type that describes a room, used to drive plans, sessions and pricing for the selected room. */
 export function unitSpaceType(unit: Pick<SpaceUnit, 'type' | 'subType'>): SpaceType {
-  if (unit.subType) return unit.subType as SpaceType;
+  if (unit.subType) return normalizeSpaceType(unit.subType);
   if (unit.type === 'THEATER') return 'theater';
   if (unit.type === 'MEETING_ROOM') return 'meeting-room';
-  return 'shared-desk';
+  return 'private-office';
 }
 
 /**
