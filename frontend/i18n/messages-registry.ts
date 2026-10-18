@@ -11,6 +11,11 @@ export function registerMessages(entries: Record<string, string>, patternEntries
   patterns.push(...patternEntries);
 }
 
+/** For sentences that a broader, older pattern would otherwise catch first: these are checked before the rest. */
+export function registerPriorityPatterns(patternEntries: Array<[RegExp, string]>) {
+  patterns.unshift(...patternEntries);
+}
+
 export function translateMessageToArabic(message: string): string {
   if (!message) return message;
   const direct = exact[message];

@@ -1,5 +1,5 @@
 // Arabic versions of screen text that used to be hard-coded in English (admin, provider, booking and auth screens).
-import { registerMessages } from './messages-registry';
+import { registerMessages, registerPriorityPatterns } from './messages-registry';
 
 registerMessages({
   "Admin Profile & Security": "الملف الشخصي للمدير والأمان",
@@ -195,4 +195,20 @@ registerMessages({
   'Verification code sent to your email address.': 'تم إرسال رمز التحقق إلى بريدك الإلكتروني.',
 }, [
   [/^Step 2 of 2: Registering as (.+)$/, 'الخطوة 2 من 2: التسجيل بصفة $1'],
+]);
+
+// Texts of the notifications the server and the app create
+registerMessages({
+  'Session Booked': 'تم حجز الجلسة',
+  'Loyalty Points Earned': 'تم كسب نقاط الولاء',
+  'New support ticket': 'تذكرة دعم جديدة',
+  'New Custom Enterprise inquiry': 'استفسار جديد عن باقة مؤسسية مخصصة',
+  'Pass Expiring Soon': 'باقتك على وشك الانتهاء',
+  'Your pass will renew in 3 days.': 'ستتجدد باقتك خلال 3 أيام.',
+}, []);
+
+registerPriorityPatterns([
+  [/^You joined the waitlist for (.+). We['’]ll notify you as soon as a spot opens.$/, 'انضممت إلى قائمة انتظار $1. سنخبرك فور توفر مقعد.'],
+  [/^Your session at (.+) ((.+)) has been confirmed.$/, 'تم تأكيد جلستك في $1 ($2).'],
+  [/^You earned (d+) loyalty points for your booking at (.+).$/, 'كسبت $1 نقطة ولاء عن حجزك في $2.'],
 ]);

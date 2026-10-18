@@ -487,6 +487,19 @@ const requestedType = (validSectionTypes.includes(sectionType) && sectionType !=
       return NextResponse.json({ error: txResult.error }, { status: 409 });
     }
 
+    // Tell the guest their session is confirmed (a failure here must never undo the booking)
+    await prisma.notification.create({
+      data: {
+        userId: txResult.booking.userId,
+        type: 'MEETING_BOOKED',
+        title: 'Session Booked',
+        message: `Your session at ${txResult.booking.workspace?.name || ws.name} (${secName}) has been confirmed.`,
+        channel: 'IN_APP',
+        isRead: false,
+        sentAt: new Date(),
+      },
+    }).catch((err) => console.error('Hourly booking notification failed:', err));
+
     return NextResponse.json(txResult.booking, { status: 201 });
   } catch (error) {
     console.error('❌ Error creating hourly booking:', error);

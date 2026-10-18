@@ -1037,7 +1037,13 @@
     "hourlyRefunded": "Booking cancelled. SAR {amount} was refunded to your wallet.",
     "hourlyCancelBlocked": "This booking can no longer be cancelled for a refund.",
     "hourlyCancelledNoRefund": "Booking cancelled. It was too close to the start time to be refunded.",
-    "passDirect": "Pass & Direct Bookings"
+    "passDirect": "Pass & Direct Bookings",
+    "dateLabel": "Date",
+    "timeLabel": "Time",
+    "durationLabel": "Duration",
+    "seatsLabel": "Seats",
+    "paidLabel": "Paid",
+    "includedInPass": "Included in your pass"
   },
   "qr": {
     "title": "Reservation Pass",
@@ -1325,7 +1331,15 @@
     "markUnread": "Mark as Unread",
     "markRead": "Mark as Read",
     "clearAllTitle": "Clear all notifications",
-    "delete": "Delete Notification"
+    "delete": "Delete Notification",
+    "type": {
+      "booking": "Booking",
+      "cancelled": "Cancellation",
+      "reminder": "Reminder",
+      "payment": "Payment",
+      "system": "System",
+      "info": "Info"
+    }
   },
   "pricing": {
     "upgradeTo": "Upgrade to {name}",

@@ -16,9 +16,10 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { useApp } from '@/app/store';
+import { formatRelativeTime } from '@/i18n/relative-time';
 
 export default function Notifications() {
-  const { t, translateMessage } = useI18n();
+  const { t, translateMessage, lang, formatDate } = useI18n();
   const {
     notifications,
     markAllNotificationsRead,
@@ -75,6 +76,13 @@ export default function Notifications() {
   });
 
   const unreadCount = notifications.filter((n: any) => !n.read).length;
+
+  const formatWhen = (value: string) => formatRelativeTime(value, lang, formatDate, translateMessage);
+  const typeLabel = (type: string) => {
+    const key = `notifPage.type.${type}`;
+    const label = t(key as never);
+    return label === key ? type : label;
+  };
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6">
@@ -188,9 +196,9 @@ export default function Notifications() {
                   </div>
                   <p className="text-sm text-moss mt-1 leading-relaxed">{translateMessage(notification.message)}</p>
                   <div className="flex items-center gap-3 mt-2 text-xs text-moss/70 font-medium">
-                    <span>{notification.createdAt}</span>
-                    <span className="capitalize px-2 py-0.5 rounded-md bg-soot/5 text-soot/70 text-[10px]">
-                      {notification.type}
+                    <span>{formatWhen(notification.createdAt)}</span>
+                    <span className="px-2 py-0.5 rounded-md bg-soot/5 text-soot/70 text-[10px]">
+                      {typeLabel(notification.type)}
                     </span>
                   </div>
                 </div>

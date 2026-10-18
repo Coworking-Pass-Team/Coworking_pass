@@ -1037,7 +1037,13 @@
     "hourlyRefunded": "تم إلغاء الحجز وإعادة {amount} ر.س إلى محفظتك.",
     "hourlyCancelBlocked": "لم يعد بالإمكان إلغاء هذا الحجز مع استرداد المبلغ.",
     "hourlyCancelledNoRefund": "تم إلغاء الحجز. لم يكن الاسترداد متاحًا لأن الموعد قريب جدًا.",
-    "passDirect": "الباقات والحجوزات المباشرة"
+    "passDirect": "الباقات والحجوزات المباشرة",
+    "dateLabel": "التاريخ",
+    "timeLabel": "الوقت",
+    "durationLabel": "المدة",
+    "seatsLabel": "المقاعد",
+    "paidLabel": "المبلغ المدفوع",
+    "includedInPass": "مشمول في باقتك"
   },
   "qr": {
     "title": "بطاقة الحجز",
@@ -1325,7 +1331,15 @@
     "markUnread": "تحديد كغير مقروء",
     "markRead": "تحديد كمقروء",
     "clearAllTitle": "مسح جميع الإشعارات",
-    "delete": "حذف الإشعار"
+    "delete": "حذف الإشعار",
+    "type": {
+      "booking": "حجز",
+      "cancelled": "إلغاء",
+      "reminder": "تذكير",
+      "payment": "مدفوعات",
+      "system": "النظام",
+      "info": "معلومة"
+    }
   },
   "pricing": {
     "upgradeTo": "الترقية إلى {name}",

@@ -328,3 +328,70 @@ test.describe('Admin portal (local development account)', () => {
     await expect(page.locator('body')).toContainText(/Total Users|Platform Overview|System Overview/i, { timeout: 20000 });
   });
 });
+
+// Needs the accounts from `npm run seed:test-accounts` in the backend (see TEST_ACCOUNTS.md)
+test.describe('Member bookings and notifications (seeded test account)', () => {
+  async function signInSeeded(page: Page, lang: 'ar' | 'en') {
+    await open(page);
+    await setLanguage(page, lang);
+    await page.evaluate(() => {
+      const open = Array.from(document.querySelectorAll('button')).find((e) => /^(sign in|log in|login|تسجيل الدخول)$/i.test((e.textContent || '').trim()));
+      (open as HTMLElement | undefined)?.click();
+    });
+    await page.locator('input[type=email]').fill('individual@cwp-test.local');
+    await page.locator('input[type=password]').fill('Test@12345');
+    await page.locator('button[type=submit]').click();
+    const boxes = page.locator('input[maxlength="1"]');
+    await expect(boxes).toHaveCount(6, { timeout: 15000 });
+    for (let i = 0; i < 6; i++) await boxes.nth(i).fill('123456'[i]);
+    await page.evaluate(() => {
+      const b = Array.from(document.querySelectorAll('button')).find((x) => /verify|تحقق وتابع/i.test(x.textContent || ''));
+      (b as HTMLElement | undefined)?.click();
+    });
+    await page.waitForTimeout(4000);
+  }
+
+  for (const lang of ['en', 'ar'] as const) {
+    test(`hourly booking cards show venue, room, date, time, duration and price (${lang})`, async ({ page }) => {
+      await signInSeeded(page, lang);
+      await page.evaluate(() => {
+        const b = Array.from(document.querySelectorAll('button, a')).find((e) => /^(bookings|الحجوزات)$/i.test((e.textContent || '').trim()) && (e as HTMLElement).offsetWidth > 0);
+        (b as HTMLElement | undefined)?.click();
+      });
+      await page.waitForTimeout(2000);
+      await page.evaluate(() => {
+        const b = Array.from(document.querySelectorAll('button')).find((e) => /hourly bookings|الحجوزات بالساعة/i.test(e.textContent || ''));
+        (b as HTMLElement | undefined)?.click();
+      });
+      await expect(page.locator('body')).toContainText(lang === 'ar' ? 'مركز الشريك التجريبي' : 'Test Partner Hub', { timeout: 15000 });
+      const text = await page.evaluate(() => document.body.innerText);
+      expect(text).toContain('Meeting Room A');
+      expect(text).toMatch(/150/);
+      expect(text).toMatch(/10:00/);
+      expect(text).not.toMatch(/Hourly Package 1|Hour Hourly/);
+      expect(text).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{1,4}.../i);
+    });
+
+    test(`notifications are localized, grouped and persist a refresh (${lang})`, async ({ page }) => {
+      await signInSeeded(page, lang);
+      await page.evaluate(() => {
+        const bell = Array.from(document.querySelectorAll('button')).find((x) => /notifications|الإشعارات/i.test(x.getAttribute('aria-label') || '') && (x as HTMLElement).offsetWidth > 0);
+        (bell as HTMLElement | undefined)?.click();
+      });
+      await page.waitForTimeout(800);
+      await page.evaluate(() => {
+        const b = Array.from(document.querySelectorAll('button')).find((x) => /view all|عرض جميع الإشعارات/i.test(x.textContent || ''));
+        (b as HTMLElement | undefined)?.click();
+      });
+      await expect(page.locator('body')).toContainText(lang === 'ar' ? 'تم حجز الجلسة' : 'Session Booked', { timeout: 15000 });
+      const text = await page.evaluate(() => document.body.innerText);
+      expect(text).not.toMatch(/d{4}-d{2}-d{2}Td{2}:/); // no raw ISO timestamp
+      expect(text).not.toMatch(/booking_confirmed|meeting_booked|payment_success|pass_expiring/i); // no raw server type
+      if (lang === 'ar') expect(text).not.toMatch(/Session Booked|Payment Successful/);
+      // The page is still there after a refresh
+      await page.reload();
+      await page.waitForLoadState('networkidle').catch(() => undefined);
+      await expect(page.locator('body')).toContainText(lang === 'ar' ? 'تم حجز الجلسة' : 'Session Booked', { timeout: 15000 });
+    });
+  }
+});

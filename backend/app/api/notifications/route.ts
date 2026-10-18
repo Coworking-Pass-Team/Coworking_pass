@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { NotificationType } from '@prisma/client'
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
 
@@ -71,6 +72,9 @@ if (!user) return unauthorizedResponse(request);
         { status: 400 }
       )
     }
+    if (!Object.values(NotificationType).includes(type)) {
+      return NextResponse.json({ error: 'Unknown notification type.' }, { status: 400 })
+    }
 
     // Notifications may target the caller, or (admin / venue owner alerts) another account of an allowed kind
     if (userId !== user.userId && user.role !== 'SUPER_ADMIN') {
@@ -113,7 +117,13 @@ export async function PUT(request: NextRequest) {
     const user = await getTokenFromRequest(request);
     if (!user) return unauthorizedResponse(request);
 
-    const { id, isRead } = await request.json()
+    const { id, isRead, all } = await request.json()
+
+    // Mark every notification of the caller as read in one call
+    if (all === true) {
+      const result = await prisma.notification.updateMany({ where: { userId: user.userId }, data: { isRead: isRead !== false } })
+      return NextResponse.json({ updated: result.count })
+    }
 
     // Only the recipient may change a notification
     const existing = await prisma.notification.findUnique({ where: { id }, select: { userId: true } })
@@ -136,5 +146,36 @@ export async function PUT(request: NextRequest) {
       { error: 'Failed to update notification.' },
       { status: 500 }
     )
+  }
+}
+
+/** DELETE /api/notifications?id=<id> removes one notification; ?all=true removes every notification of the caller. */
+export async function DELETE(request: NextRequest) {
+  try {
+    const user = await getTokenFromRequest(request);
+    if (!user) return unauthorizedResponse(request);
+
+    const { searchParams } = new URL(request.url)
+    if (searchParams.get('all') === 'true') {
+      const result = await prisma.notification.deleteMany({ where: { userId: user.userId } })
+      return NextResponse.json({ deleted: result.count })
+    }
+
+    const id = searchParams.get('id')
+    if (!id) {
+      return NextResponse.json({ error: 'A notification id is required.' }, { status: 400 })
+    }
+    const existing = await prisma.notification.findUnique({ where: { id }, select: { userId: true } })
+    if (!existing) {
+      return NextResponse.json({ error: 'Notification not found.' }, { status: 404 })
+    }
+    if (existing.userId !== user.userId) {
+      return NextResponse.json({ error: 'You are not allowed to delete this notification.' }, { status: 403 })
+    }
+    await prisma.notification.delete({ where: { id } })
+    return NextResponse.json({ deleted: 1 })
+  } catch (error) {
+    console.error('❌ Error deleting notification:', error)
+    return NextResponse.json({ error: 'Failed to delete notification.' }, { status: 500 })
   }
 }

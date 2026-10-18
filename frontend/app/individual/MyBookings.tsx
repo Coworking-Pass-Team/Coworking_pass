@@ -27,6 +27,7 @@ import { useSpaceText } from '@/i18n/space-text';
 import { Booking, BookingStatus, getHourlyPriceForDuration, getBookingPrice, isCancellationRefundEligible, calculateDailyDurationDays } from '@/types/types';
 import Modal from '@/components/ui/Modal';
 import BookingQrModal from '@/components/BookingQrModal';
+import HourlyBookingCard from '@/components/bookings/HourlyBookingCard';
 import { deleteDirectBookingApi, getHourlyBookingsApi, updateHourlyBookingApi, HourlyBookingItemApi } from '@/services/authApi';
 
 const FALLBACK_SPACE_IMAGE = 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80';
@@ -180,86 +181,58 @@ export default function MyBookings() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {hourlyBookings.map(hb => (
-                <div key={hb.id} className="bg-white rounded-3xl p-6 border border-soot/10 shadow-xs space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full uppercase tracking-wider">
-                      {t(('booking.status.' + String(hb.status).toLowerCase()) as never) === ('booking.status.' + String(hb.status).toLowerCase()) ? hb.status : t(('booking.status.' + String(hb.status).toLowerCase()) as never)}
-                    </span>
-                    <span className="text-xs font-mono text-moss">{hb.id.slice(0, 10)}...</span>
-                  </div>
-                  <h4 className="text-base font-semibold text-soot font-serif-display">
-                    {hb.package?.packageName || hb.section?.name || t('myBookings.hourlyPackageFallback')}
-                  </h4>
-                  <div className="text-xs text-moss space-y-1 pt-2 border-t border-soot/6">
-                    <div>{t('myBookings.startDate')} <span className="font-medium text-soot">{hb.startDate ? formatDate(hb.startDate) : t('myBookings.na')}</span></div>
-                    <div>{t('myBookings.endDate')} <span className="font-medium text-soot">{hb.endDate ? formatDate(hb.endDate) : t('myBookings.na')}</span></div>
-                  </div>
-                  <div className="flex items-center gap-2 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        // حل المشكلة FE-09: ربط ديناميكي بالمساحة الأصلية لجلب المدينة والعنوان والصورة الحقيقيين
-                        const targetWorkspaceId = (hb as any).workspaceId || (hb.section as any)?.workspaceId || (hb.package as any)?.workspaceId;
-                        const matchedSpace = spaces.find(s => s.id === targetWorkspaceId);
-
-                        const converted: Booking = {
-                          id: hb.id,
-                          userId: hb.userId || currentUser?.id || 'guest',
-                          spaceId: targetWorkspaceId || matchedSpace?.id || spaces[0]?.id || 'sp-1',
-                          spaceName: hb.package?.packageName || hb.section?.name || matchedSpace?.name || 'Meeting Room & Desk Package',
-                          spaceCity: matchedSpace?.city || (hb as any).workspace?.city || 'Riyadh',
-                          spaceAddress: matchedSpace?.address || (hb as any).workspace?.address || 'Workspace Location',
-                          spaceImage: matchedSpace?.images?.[0] || (hb as any).workspace?.image || FALLBACK_SPACE_IMAGE,
-                          type: (matchedSpace?.type as any) || 'meeting-room',
-                          plan: 'hourly',
-                          startDate: hb.startDate ? new Date(hb.startDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-                          endDate: hb.endDate ? new Date(hb.endDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-                          seats: 1,
-                          employees: [],
-                          totalPrice: hb.package?.price || 150,
-                          status: hb.status === 'CONFIRMED' || hb.status === 'ACTIVE' ? 'active' : hb.status === 'CANCELLED' ? 'cancelled' : 'previous',
-                          createdAt: hb.createdAt || new Date().toISOString(),
-                        };
-                        setSelectedBooking(converted);
-                      }}
-                      className="flex-1 py-2 px-3 rounded-xl bg-soot text-plaster text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-black transition-colors cursor-pointer"
-                    >
-                      <QrCode size={14} />
-                      <span>{t('myBookings.viewQr')}</span>
-                    </button>
-
-                    {hb.status !== 'CANCELLED' && (
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          // The server applies the cancellation window and credits the refund atomically,
-                          // so a booking is never cancelled without the refund the policy entitles it to.
-                          const refund = await requestRefund({ bookingId: hb.id });
-                          if (refund.success) {
-                            showToast(t('myBookings.hourlyRefunded', { amount: (refund.refundAmount ?? 0).toLocaleString() }), 'success');
-                          } else if (refund.code === 'CANCELLATION_WINDOW') {
-                            // Too close to the start for a refund: the guest may still release the slot, without a refund
-                            const done = await updateHourlyBookingApi(hb.id, { status: 'CANCELLED' });
-                            if (!done.success) {
-                              showToast(done.error || t('myBookings.hourlyCancelBlocked'), 'error');
-                              return;
-                            }
-                            showToast(t('myBookings.hourlyCancelledNoRefund'), 'info');
-                          } else {
-                            showToast(refund.error || t('myBookings.hourlyCancelBlocked'), 'error');
-                            return;
-                          }
-                          setHourlyBookings(prev => prev.map(b => b.id === hb.id ? { ...b, status: 'CANCELLED' } : b));
-                        }}
-                        className="py-2 px-3 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 text-xs font-semibold hover:bg-rose-100 transition-colors cursor-pointer"
-                      >
-                        {t('common.cancel')}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
+              {hourlyBookings.map(hb => {
+                const targetWorkspaceId = hb.workspaceId || hb.section?.workspace?.id;
+                const matchedSpace = spaces.find(s => s.id === targetWorkspaceId);
+                return (
+                  <HourlyBookingCard
+                    key={hb.id}
+                    booking={hb}
+                    space={matchedSpace}
+                    onViewQr={() => {
+                      const converted: Booking = {
+                        id: hb.id,
+                        userId: hb.userId || currentUser?.id || 'guest',
+                        spaceId: targetWorkspaceId || matchedSpace?.id || '',
+                        spaceName: matchedSpace?.name || hb.workspace?.name || hb.section?.name || '',
+                        spaceCity: matchedSpace?.city || hb.workspace?.city || '',
+                        spaceAddress: matchedSpace?.address || '',
+                        spaceImage: matchedSpace?.images?.[0] || hb.workspace?.images?.[0] || FALLBACK_SPACE_IMAGE,
+                        type: (matchedSpace?.type as any) || 'meeting-room',
+                        plan: 'hourly',
+                        startDate: hb.startDate ? new Date(hb.startDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+                        endDate: hb.endDate ? new Date(hb.endDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+                        seats: hb.seats || 1,
+                        employees: [],
+                        totalPrice: hb.paidAmount ?? hb.package?.price ?? 0,
+                        status: hb.status === 'CONFIRMED' || hb.status === 'ACTIVE' ? 'active' : hb.status === 'CANCELLED' ? 'cancelled' : 'previous',
+                        createdAt: hb.createdAt || new Date().toISOString(),
+                      };
+                      setSelectedBooking(converted);
+                    }}
+                    onCancel={async () => {
+                      // The server applies the cancellation window and credits the refund atomically,
+                      // so a booking is never cancelled without the refund the policy entitles it to.
+                      const refund = await requestRefund({ bookingId: hb.id });
+                      if (refund.success) {
+                        showToast(t('myBookings.hourlyRefunded', { amount: (refund.refundAmount ?? 0).toLocaleString() }), 'success');
+                      } else if (refund.code === 'CANCELLATION_WINDOW') {
+                        // Too close to the start for a refund: the guest may still release the slot, without a refund
+                        const done = await updateHourlyBookingApi(hb.id, { status: 'CANCELLED' });
+                        if (!done.success) {
+                          showToast(done.error || t('myBookings.hourlyCancelBlocked'), 'error');
+                          return;
+                        }
+                        showToast(t('myBookings.hourlyCancelledNoRefund'), 'info');
+                      } else {
+                        showToast(refund.error || t('myBookings.hourlyCancelBlocked'), 'error');
+                        return;
+                      }
+                      setHourlyBookings(prev => prev.map(b => b.id === hb.id ? { ...b, status: 'CANCELLED' } : b));
+                    }}
+                  />
+                );
+              })}
             </div>
           )}
         </div>

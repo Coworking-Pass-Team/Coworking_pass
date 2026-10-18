@@ -2,6 +2,7 @@
 import { useI18n } from '@/i18n';
 import { useState, useRef, useEffect } from 'react';
 import { Menu, X, User as UserIcon, LogOut, ChevronDown, Calendar, Building2, Users, Settings, CreditCard, HelpCircle, Wallet, Bell, CheckCheck, ChevronRight, Sparkles, ShoppingBag, Clock } from 'lucide-react';
+import { formatRelativeTime } from '@/i18n/relative-time';
 import { useApp } from '@/app/store';
 import Logo from './logo';
 import LanguageSwitcher from './LanguageSwitcher';
@@ -59,7 +60,7 @@ export function LoyaltyButton() {
 }
 
 export function NotificationButton() {
-  const { t, translateMessage } = useI18n();
+  const { t, translateMessage, lang, formatDate } = useI18n();
   const { navigate, notifications, unreadNotificationsCount, markNotificationRead, markAllNotificationsRead } = useApp();
   const [isOpen, setIsOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
@@ -151,7 +152,7 @@ export function NotificationButton() {
                       <p className={`text-xs ${n.read ? 'font-medium text-soot' : 'font-bold text-soot'} truncate`}>
                         {translateMessage(n.title)}
                       </p>
-                      <span className="text-[10px] text-moss/80 shrink-0 font-medium">{n.createdAt}</span>
+                      <span className="text-[10px] text-moss/80 shrink-0 font-medium">{formatRelativeTime(n.createdAt, lang, formatDate, translateMessage)}</span>
                     </div>
                     <p className="text-xs text-moss line-clamp-2 mt-0.5 leading-snug">{translateMessage(n.message)}</p>
                   </div>

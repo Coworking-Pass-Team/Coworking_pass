@@ -526,7 +526,6 @@ interface AppContextType {
   deleteNotification: (id: string) => void;
   clearAllNotifications: () => void;
   addNotification: (notif: Omit<Notification, 'id' | 'createdAt' | 'read'> & { read?: boolean }) => Notification;
-  generateFakeNotification: (presetType?: string, customTitle?: string, customMessage?: string) => Notification;
 
   users: User[];
   fetchUsers: () => Promise<User[]>;
@@ -603,6 +602,37 @@ interface AppContextType {
 }
 
 const AppContext = createContext<AppContextType | null>(null);
+
+/** Groups the server's notification kinds into the categories the notifications page filters by. */
+function notificationCategory(serverType?: string): Notification['type'] {
+  switch ((serverType || '').toUpperCase()) {
+    case 'BOOKING_CONFIRMED':
+    case 'MEETING_BOOKED':
+    case 'WAITLIST_PROMOTED':
+    case 'WAITLIST_JOINED':
+    case 'PASS_ASSIGNED':
+      return 'booking';
+    case 'BOOKING_CANCELLED':
+      return 'cancelled';
+    case 'PAYMENT_SUCCESS':
+    case 'PAYMENT_FAILED':
+    case 'PAYOUT_PROCESSED':
+    case 'POINTS_EARNED':
+    case 'POINTS_REDEEMED':
+      return 'payment';
+    case 'PASS_EXPIRING':
+      return 'reminder';
+    case 'PARTNER_APPROVED':
+    case 'AMENITY_REQUEST_STATUS':
+    case 'SUPPORT_TICKET':
+    case 'ACCOUNT_VERIFIED':
+      return 'system';
+    default:
+      return 'info';
+  }
+}
+/** Notifications saved on the server have uuid ids; the ones only shown locally start with "notif-". */
+const isServerNotificationId = (id: string) => !id.startsWith('notif-');
 
 // Screens that can be reopened after a page refresh, per kind of account (the app keeps its screen in memory, not in the URL)
 const NAV_STORAGE_KEY = 'cp_nav';
@@ -1386,12 +1416,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (serverRefund.walletTarget !== 'COMPANY' && typeof serverRefund.walletBalance === 'number') {
         newWalletBalance = serverRefund.walletBalance;
       }
-      addNotification({
-        userId: u.id,
-        title: 'Subscription Cancelled & Refunded',
-        message: `Your ${u.membershipTier || 'Pass'} has been cancelled. SAR ${(serverRefund.refundAmount ?? eligibility.refundAmount).toLocaleString()} was refunded to your ${serverRefund.walletTarget === 'COMPANY' ? 'corporate shared wallet' : 'wallet'}.`,
-        type: 'payment',
-      });
+      fetchNotifications().catch(() => { }); // the server already recorded the refund
       showToast(`Subscription cancelled. SAR ${(serverRefund.refundAmount ?? eligibility.refundAmount).toLocaleString()} refunded to your ${serverRefund.walletTarget === 'COMPANY' ? 'corporate shared wallet' : 'wallet'}!`, 'success');
     } else if (eligibility.isEligible && eligibility.refundAmount > 0) {
       newWalletBalance = currentWallet + eligibility.refundAmount;
@@ -1762,19 +1787,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const res = await fetch(`${getApiBaseUrl()}/notifications`, { headers });
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           const dbNotifs: Notification[] = data.map((n: any) => ({
             id: n.id,
             userId: n.userId,
             title: n.title,
             message: n.message,
-            type: (n.type?.toLowerCase() || 'info') as any,
+            type: notificationCategory(n.type),
             read: n.isRead ?? false,
-            createdAt: n.sentAt ? new Date(n.sentAt).toLocaleString() : 'Just now',
+            createdAt: n.createdAt || n.sentAt || new Date().toISOString(),
           }));
 
           setNotifications((prev) => {
-            const map = new Map(prev.map((item) => [item.id, item]));
+            const serverIds = new Set(dbNotifs.map((n) => n.id));
+            // The server returns the latest 50: anything saved earlier that it no longer lists was deleted elsewhere
+            const kept = prev.filter((item) => !isServerNotificationId(item.id) || serverIds.has(item.id) || data.length >= 50);
+            const map = new Map(kept.map((item) => [item.id, item]));
             dbNotifs.forEach((dbItem) => map.set(dbItem.id, dbItem));
             return Array.from(map.values());
           });
@@ -4763,13 +4791,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    addNotification({
-      userId: booking.userId,
-      title: 'Booking confirmed',
-      message: `${booking.spaceName} confirmed.${earnedPoints > 0 ? ` Earned ${earnedPoints} loyalty points!` : ''}`,
-      type: 'booking',
-      read: false,
-    });
+    // The server records "booking confirmed" itself (fetched below), so only the points message is added here
+    if (earnedPoints > 0) {
+      addNotification({
+        userId: booking.userId,
+        title: 'Loyalty Points Earned',
+        message: `You earned ${earnedPoints} loyalty points for your booking at ${booking.spaceName}.`,
+        type: 'payment',
+        read: false,
+      });
+    }
 
     setSpaces(prev => prev.map(s =>
       s.id === booking.spaceId && !booking.unitId
@@ -4947,6 +4978,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           }
           if (directRes.ok) {
             persisted = true;
+            fetchNotifications().catch(() => { });
             const dbBooking = await directRes.json();
             setDirectBookingsApi(prev => [dbBooking, ...prev]);
 
@@ -5066,6 +5098,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               }
               if (hbRes.ok) {
                 persisted = true;
+                fetchNotifications().catch(() => { });
                 const hbData = await hbRes.json();
                 setHourlyBookingsApi(prev => [hbData, ...prev]);
 
@@ -5154,6 +5187,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             setWalletTransactions((prev) => [refundTx, ...prev]);
           }
         }
+        fetchNotifications().catch(() => { });
       } catch (err) {
         console.warn('Booking cancellation DB sync notice:', err);
       }
@@ -5181,13 +5215,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('cp_currentUser', JSON.stringify(updatedUser));
         localStorage.setItem('cp_users', JSON.stringify(updatedUsers));
       }
-
-      addNotification({
-        userId: currentUser.id,
-        title: 'Booking Cancelled',
-        message: msg,
-        type: 'cancelled',
-      });
 
       showToast(msg, eligible ? 'info' : 'error');
     } else {
@@ -5332,15 +5359,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const storedToken = getStoredToken();
         const headers: Record<string, string> = { 'Content-Type': 'application/json' };
         if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
-        for (const n of userNotifications) {
-          if (!n.read) {
-            await fetch(`${getApiBaseUrl()}/notifications`, {
-              method: 'PUT',
-              headers,
-              body: JSON.stringify({ id: n.id, isRead: true }),
-            }).catch(() => { });
-          }
-        }
+        await fetch(`${getApiBaseUrl()}/notifications`, {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify({ all: true, isRead: true }),
+        }).catch(() => { });
       } catch (err) { }
     })();
   };
@@ -5352,6 +5375,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return updated;
     });
     showToast('Notification removed', 'info');
+    // Remove it on the server too, otherwise it comes back at the next refresh
+    const storedToken = getStoredToken();
+    if (storedToken && isServerNotificationId(id)) {
+      fetch(`${getApiBaseUrl()}/notifications?id=${encodeURIComponent(id)}`, { method: 'DELETE', headers: { Authorization: `Bearer ${storedToken}` } }).catch(() => { });
+    }
   };
 
   const clearAllNotifications = () => {
@@ -5362,6 +5390,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return updated;
     });
     showToast('All notifications cleared', 'info');
+    const storedToken = getStoredToken();
+    if (storedToken) {
+      fetch(`${getApiBaseUrl()}/notifications?all=true`, { method: 'DELETE', headers: { Authorization: `Bearer ${storedToken}` } }).catch(() => { });
+    }
   };
 
   const addNotification = (notifData: Omit<Notification, 'id' | 'createdAt' | 'read'> & { read?: boolean }): Notification => {
@@ -5372,7 +5404,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       message: notifData.message,
       type: notifData.type || 'info',
       read: notifData.read ?? false,
-      createdAt: 'Just now',
+      createdAt: new Date().toISOString(),
     };
     setNotifications(prev => {
       const updated = [newNotif, ...prev];
@@ -5417,51 +5449,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     })();
 
     return newNotif;
-  };
-
-  const generateFakeNotification = (presetType: string = 'booking', customTitle?: string, customMessage?: string): Notification => {
-    const userId = currentUser?.id || 'user-1';
-    let title = customTitle || '';
-    let message = customMessage || '';
-    let type: Notification['type'] = 'booking';
-
-    if (!customTitle || !customMessage) {
-      switch (presetType) {
-        case 'booking':
-          title = 'Booking Confirmed!';
-          message = 'Your reservation at The Hub Riyadh has been confirmed for tomorrow at 9:00 AM.';
-          type = 'booking';
-          break;
-        case 'reminder':
-          title = 'Pass Expiring Soon';
-          message = 'Your All-Access Pass will renew in 3 days. Ensure your billing card is up to date.';
-          type = 'reminder';
-          break;
-        case 'info':
-          title = 'Waitlist Spot Available!';
-          message = 'A hot desk opened up at WorkBay Jeddah. Click here to confirm your reservation.';
-          type = 'info';
-          break;
-        case 'payment':
-          title = 'Payment Received';
-          message = 'SAR 150.00 successfully processed for Daily Pass booking #BP-8821.';
-          type = 'payment';
-          break;
-        case 'system':
-          title = 'System Maintenance';
-          message = 'Coworking Pass platform upgraded with instant auto-booking capabilities.';
-          type = 'system';
-          break;
-        default:
-          title = 'Test Notification';
-          message = 'This is a mock notification generated for testing user notification flows.';
-          type = 'info';
-      }
-    } else {
-      type = (presetType as Notification['type']) || 'info';
-    }
-
-    return addNotification({ userId, title, message, type });
   };
 
   const blockUser = async (id: string): Promise<{ success: boolean; error?: string }> => {
@@ -6588,7 +6575,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       supportTickets, fetchTickets, addSupportTicket, updateTicketStatus, replyToTicket,
       notifications: userNotifications,
       unreadNotificationsCount: userNotifications.filter(n => !n.read).length,
-      markNotificationRead, toggleNotificationRead, markAllNotificationsRead, deleteNotification, clearAllNotifications, addNotification, generateFakeNotification,
+      markNotificationRead, toggleNotificationRead, markAllNotificationsRead, deleteNotification, clearAllNotifications, addNotification,
       users, fetchUsers, blockUser, unblockUser, deleteUser, changeUserRole, updateUserProfile,
       waitlist, autobooking, autobookingCard, joinWaitlist, leaveWaitlist, enableAutoBooking, disableAutoBooking,
       addPaymentCard,
