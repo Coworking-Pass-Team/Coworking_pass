@@ -2,6 +2,7 @@
 
 import { useI18n } from '@/i18n';
 import { useSpaceText } from '@/i18n/space-text';
+import { durationLabel } from '@/i18n/duration';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import {
   Search,
@@ -726,7 +727,7 @@ function ProviderMySpacesContent() {
                                 className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-lg bg-soot/5 border border-soot/10 text-soot"
                               >
                                 <Check size={10} className="text-emerald-600 shrink-0" />
-                                <span className="truncate max-w-[90px]">{typeof a === 'string' ? a : (a as any)?.name}</span>
+                                <span className="truncate max-w-[90px]">{st.amenity(typeof a === 'string' ? a : (a as any)?.name)}</span>
                               </span>
                             ))}
                             {space.amenities.length > 3 && (
@@ -1246,7 +1247,7 @@ function ProviderMySpacesContent() {
                             ));
                       return (
                         <div key={hours} className="space-y-1 bg-white p-2 rounded-xl border border-soot/10">
-                          <span className="block text-[10px] font-semibold text-moss text-center">{hours}h Duration</span>
+                          <span className="block text-[10px] font-semibold text-moss text-center">{durationLabel(t, 'hour', hours)}</span>
                           <input
                             type="number"
                             value={currentPrice}
@@ -1280,7 +1281,7 @@ function ProviderMySpacesContent() {
                         : Math.round(baseMonthly * (months === 2 ? 1.9 : months === 3 ? 2.8 : 5.3)));
                     return (
                       <div key={months} className="space-y-1 bg-white p-2 rounded-xl border border-soot/10">
-                        <span className="block text-[10px] font-semibold text-moss text-center">{months} Mo{months > 1 ? 's' : ''} Duration</span>
+                        <span className="block text-[10px] font-semibold text-moss text-center">{durationLabel(t, 'month', months)}</span>
                         <input
                           type="number"
                           value={currentPrice}
@@ -1399,7 +1400,7 @@ function ProviderMySpacesContent() {
                         sel ? 'bg-soot text-plaster font-semibold shadow-xs' : 'bg-plaster-dark/40 text-soot hover:bg-plaster-dark/70'
                       }`}
                     >
-                      <span>{a}</span>
+                      <span>{st.amenity(a)}</span>
                       {sel && <Check size={12} className="text-emerald-400" />}
                     </button>
                   );
@@ -1440,7 +1441,7 @@ function ProviderMySpacesContent() {
                               : 'Pending review by Admin'
                           }
                         >
-                          <span className="font-semibold">{req.amenityName}</span>
+                          <span className="font-semibold">{st.amenity(req.amenityName)}</span>
                           <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded-md bg-white/60">
                             {isApproved ? 'Approved' : isRejected ? 'Rejected' : 'Pending Admin'}
                           </span>

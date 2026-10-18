@@ -23,7 +23,21 @@
     "confirmDelete": "تأكيد الحذف",
     "upload": "رفع",
     "total": "الإجمالي",
-    "closeModal": "إغلاق النافذة"
+    "closeModal": "إغلاق النافذة",
+    "duration": {
+      "hour": {
+        "one": "ساعة واحدة",
+        "two": "ساعتان",
+        "few": "{count} ساعات",
+        "many": "{count} ساعة"
+      },
+      "month": {
+        "one": "شهر واحد",
+        "two": "شهران",
+        "few": "{count} أشهر",
+        "many": "{count} شهرًا"
+      }
+    }
   },
   "nav": {
     "home": "الرئيسية",

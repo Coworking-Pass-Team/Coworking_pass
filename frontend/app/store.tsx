@@ -570,7 +570,7 @@ interface AppContextType {
   companyData: any | null;
   fetchCompanyWallet: (companyId?: string) => Promise<{ balance: number; company?: any } | null>;
   depositToCompanyWallet: (amount: number, companyId?: string) => Promise<{ success: boolean; message: string; balance?: number }>;
-  checkSeatAvailability: (params: { spaceId: string; plan: string; date: string; startTime?: string; endTime?: string; days?: number; months?: number; seats?: number; unitId?: string }) => Promise<{ ok: boolean; message?: string }>;
+  checkSeatAvailability: (params: { spaceId: string; plan: string; date: string; startTime?: string; endTime?: string; days?: number; months?: number; seats?: number; unitId?: string; strict?: boolean }) => Promise<{ ok: boolean; message?: string }>;
   fetchUnitAvailability: (spaceId: string, date: string) => Promise<SpaceUnitAvailability[] | null>;
   saveSpaceUnits: (spaceId: string, units: SpaceUnit[]) => Promise<{ success: boolean; error?: string; units?: SpaceUnit[] }>;
   withdrawFromCompanyWallet: (amount: number, companyId?: string, description?: string, idempotencyKey?: string) => Promise<{ success: boolean; message: string; balance?: number }>;
@@ -603,6 +603,24 @@ interface AppContextType {
 }
 
 const AppContext = createContext<AppContextType | null>(null);
+
+// Screens that can be reopened after a page refresh, per kind of account (the app keeps its screen in memory, not in the URL)
+const NAV_STORAGE_KEY = 'cp_nav';
+const SHARED_SCREENS = ['browse', 'space-details', 'pricing', 'contact', 'privacy-policy', 'terms-of-service', 'legal'];
+const SIGNED_IN_SCREENS = ['notifications', 'loyalty', 'waitlist'];
+const GUEST_ONLY_SCREENS = ['login', 'signup', 'choose-type', 'forgot-password'];
+const ROLE_SCREENS: Record<string, string[]> = {
+  individual: ['ind-dashboard', 'booking-flow', 'my-bookings', 'booking-details', 'ind-profile', 'ind-settings'],
+  organization: ['org-dashboard', 'company-bookings', 'company-team', 'team-booking', 'team-bookings', 'org-profile', 'org-settings'],
+  provider: ['provider-dashboard', 'provider-spaces', 'provider-bookings', 'provider-loyalty-proposals', 'provider-profile', 'provider-settings'],
+};
+function isRestorableScreen(screen: string, role?: string): boolean {
+  if (SHARED_SCREENS.includes(screen)) return true;
+  if (!role) return GUEST_ONLY_SCREENS.includes(screen);
+  if (SIGNED_IN_SCREENS.includes(screen)) return true;
+  if (role === 'admin') return screen.startsWith('admin-');
+  return (ROLE_SCREENS[role] || []).includes(screen);
+}
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const { translateMessage } = useI18n();
@@ -2093,6 +2111,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const checkSeatAvailability = async (params: {
     spaceId: string; plan: string; date: string; startTime?: string; endTime?: string; days?: number; months?: number; seats?: number; unitId?: string;
+    /** strict: a failed check blocks (used where nothing else validates afterwards); default lets the booking request decide */
+    strict?: boolean;
   }): Promise<{ ok: boolean; message?: string }> => {
     try {
       const query = new URLSearchParams({
@@ -2106,7 +2126,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (params.months) query.set('months', String(params.months));
       if (params.unitId) query.set('sectionId', params.unitId);
       const response = await fetch(`${getApiBaseUrl()}/workspaces/${params.spaceId}/availability?${query.toString()}`);
-      if (!response.ok) return { ok: true };
+      if (!response.ok) return params.strict ? { ok: false, message: 'Could not verify availability right now. Please try again.' } : { ok: true };
       const data = await response.json();
       if (data.available === false) {
         return { ok: false, message: data.reason || 'This time is no longer available.' };
@@ -2114,7 +2134,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return { ok: true };
     } catch (_) {
       // Network problem: the server still validates when the booking is created
-      return { ok: true };
+      return params.strict ? { ok: false, message: 'Could not verify availability right now. Please try again.' } : { ok: true };
     }
   };
 
@@ -2953,8 +2973,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         headers,
       });
 
-      const resData = await response.json();
-      if (!response.ok) {
+      const resData = await response.json().catch(() => ({} as { error?: string }));
+      // 404 means it is already gone, which is the outcome the user asked for
+      if (!response.ok && response.status !== 404) {
         throw new Error(resData.error || 'Failed to delete workspace');
       }
 
@@ -3500,6 +3521,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
     }
   }, [currentUser?.id, currentUser?.role, currentUser?.companyId]);
+
+  // Reopen the screen the user was on after a refresh instead of dropping them on the home page
+  const [navRestored, setNavRestored] = useState(false);
+  useEffect(() => {
+    try {
+      const rawNav = sessionStorage.getItem(NAV_STORAGE_KEY);
+      const rawUser = localStorage.getItem('cp_currentUser');
+      const savedUser = rawUser ? JSON.parse(rawUser) : null;
+      if (rawNav && !savedUser?.isBlocked) {
+        const saved = JSON.parse(rawNav);
+        if (saved && typeof saved.screen === 'string' && isRestorableScreen(saved.screen, savedUser?.role)) {
+          setNav({ screen: saved.screen as Screen, params: saved.params && typeof saved.params === 'object' ? saved.params : {} });
+        }
+      }
+    } catch (_) { }
+    setNavRestored(true);
+  }, []);
+  useEffect(() => {
+    if (!navRestored) return;
+    try {
+      if (nav.screen === 'landing' || !isRestorableScreen(nav.screen, currentUser?.role)) sessionStorage.removeItem(NAV_STORAGE_KEY);
+      else sessionStorage.setItem(NAV_STORAGE_KEY, JSON.stringify({ screen: nav.screen, params: nav.params }));
+    } catch (_) { }
+  }, [nav, navRestored, currentUser?.role]);
 
   const navigate = (screen: Screen, params: Record<string, any> = {}) => {
     setHistory(prev => [...prev.slice(-9), nav]);
@@ -4224,7 +4269,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             validPartnerId = partnerRes.partner.id;
           }
         }
-        if (!validPartnerId && currentPartners.length > 0) {
+        if (!validPartnerId && currentPartners.length > 0 && currentUser?.role === 'admin') {
           validPartnerId = currentPartners[0].id;
         }
 
@@ -4542,7 +4587,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
       } catch (_) { }
     }
-    showToast('Space deleted.');
+    // A space that never reached the database has nothing to delete there
+    if (/^space-d+$/.test(id)) {
+      showToast('Space deleted.');
+      return;
+    }
 
     (async () => {
       try {
@@ -4560,10 +4609,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
           } catch (_) { }
         }
         if (storedToken) {
+          // deleteWorkspace shows the success or the error message itself
           const res = await deleteWorkspace(id);
-          if (res.success) {
-            await fetchWorkspaces();
-          }
+          await fetchWorkspaces();
+          if (!res.success) return;
         }
       } catch (err) {
         console.warn('Failed to delete space from database:', err);

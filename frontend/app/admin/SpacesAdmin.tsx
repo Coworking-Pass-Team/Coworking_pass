@@ -27,6 +27,7 @@ import {
 import UnitsEditor from '@/components/spaces/UnitsEditor';
 import { useApp } from '@/app/store';
 import { useSpaceText } from '@/i18n/space-text';
+import { durationLabel } from '@/i18n/duration';
 import { Space, SpaceBookingPackage, SpaceCategory, ALL_SPACE_TYPES, isHourlyOnlySpace, isOfficeSpace, isHourlyAllowed, getSpaceCategory, AmenityRequest, SAUDI_CITIES, SAUDI_CITIES_DATA, hhmmTo12h } from '@/types/types';
 
 const AMENITY_OPTIONS = [
@@ -686,7 +687,7 @@ export default function SpacesAdmin() {
                           <Sparkles size={16} />
                         </div>
                         <h3 className="text-base font-semibold text-soot font-serif-display">
-                          {req.amenityName}
+                          {st.amenity(req.amenityName)}
                         </h3>
                       </div>
                       <span
@@ -1464,7 +1465,7 @@ export default function SpacesAdmin() {
                               ));
                         return (
                           <div key={hours} className="space-y-1 bg-white p-2 rounded-xl border border-soot/10">
-                            <span className="block text-[10px] font-semibold text-moss text-center">{hours}h Duration</span>
+                            <span className="block text-[10px] font-semibold text-moss text-center">{durationLabel(t, 'hour', hours)}</span>
                             <input
                               type="number"
                               value={currentPrice}
@@ -1498,7 +1499,7 @@ export default function SpacesAdmin() {
                           : Math.round(baseMonthly * (months === 2 ? 1.9 : months === 3 ? 2.8 : 5.3)));
                       return (
                         <div key={months} className="space-y-1 bg-white p-2 rounded-xl border border-soot/10">
-                          <span className="block text-[10px] font-semibold text-moss text-center">{months} Mo{months > 1 ? 's' : ''} Duration</span>
+                          <span className="block text-[10px] font-semibold text-moss text-center">{durationLabel(t, 'month', months)}</span>
                           <input
                             type="number"
                             value={currentPrice}
@@ -1558,7 +1559,7 @@ export default function SpacesAdmin() {
                             : 'bg-white border-soot/15 text-soot hover:border-soot/30 hover:bg-plaster-dark/30'
                         }`}
                       >
-                        {item}
+                        {st.amenity(item)}
                       </button>
                     );
                   })}
@@ -1578,7 +1579,7 @@ export default function SpacesAdmin() {
                               : 'bg-white border-soot/15 text-soot hover:border-soot/30 hover:bg-plaster-dark/30'
                           }`}
                         >
-                          <span>{item}</span>
+                          <span>{st.amenity(item)}</span>
                           <button
                             type="button"
                             onClick={(e) => {

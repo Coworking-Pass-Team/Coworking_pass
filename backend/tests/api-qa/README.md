@@ -16,5 +16,6 @@ boundaries, concurrent booking (no overbooking), refunds, corporate wallet ledge
 
 Suites: `suite-security-wallet-slots`, `suite-company-capacity-payments`, `suite-past-sessions`,
 `suite-roles` (provider onboarding/moderation, HR, loyalty points, admin portal) and
-`suite-authz-mutations` (admin-only configuration, package/payment/waitlist ownership).
+`suite-authz-mutations` (admin-only configuration, package/payment/waitlist ownership) and
+`suite-partner-workspaces` (partner create/delete, zero-capacity workspaces).
 Run them against a freshly migrated local database (`prisma migrate deploy`).

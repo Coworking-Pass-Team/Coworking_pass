@@ -23,7 +23,21 @@
     "confirmDelete": "Confirm Delete",
     "upload": "Upload",
     "total": "Total",
-    "closeModal": "Close modal"
+    "closeModal": "Close modal",
+    "duration": {
+      "hour": {
+        "one": "1 Hour",
+        "two": "2 Hours",
+        "few": "{count} Hours",
+        "many": "{count} Hours"
+      },
+      "month": {
+        "one": "1 Month",
+        "two": "2 Months",
+        "few": "{count} Months",
+        "many": "{count} Months"
+      }
+    }
   },
   "nav": {
     "home": "Home",

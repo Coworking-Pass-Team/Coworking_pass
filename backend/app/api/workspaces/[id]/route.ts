@@ -204,6 +204,11 @@ if (!user) return unauthorizedResponse(request);
 
     const { id } = await params;
 
+    // Deleting something that is already gone is a 404, not a permission problem
+    if (!(await prisma.workspace.findUnique({ where: { id }, select: { id: true } }))) {
+      return NextResponse.json({ error: "Workspace not found." }, { status: 404 });
+    }
+
     // Only a super admin or the partner that owns the workspace may delete it
     if (!(await canManageWorkspace(user, id))) {
       return NextResponse.json({ error: "You are not allowed to delete this workspace." }, { status: 403 });

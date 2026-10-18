@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getTokenFromRequest, unauthorizedResponse, suspendedResponse } from "@/lib/auth/verify-token";
 import { seedStandardWorkspaces } from '@/lib/seed-data';
 import { getKsaNow, parseDateAndTimeToKsaDate } from '@/lib/time-utils';
-import { getOccupiedSeats } from '@/lib/capacity';
+import { effectiveCapacity, getOccupiedSeats } from '@/lib/capacity';
 import { hiddenWorkspaceError } from '@/lib/workspace-visibility';
 import { getOwnedWorkspaceIds } from '@/lib/ownership';
 import { validateHourlyWindow, isFixedSlotSection } from '@/lib/operating-hours';
@@ -399,11 +399,12 @@ const requestedType = (validSectionTypes.includes(sectionType) && sectionType !=
           { status: 409 }
         );
       }
-    } else if (ws.totalCapacity > 0) {
+    } else {
+      const seatLimit = effectiveCapacity(ws);
       const occupied = (await getOccupiedSeats([ws.id], startObj, endObj)).get(ws.id) || 0;
-      if (occupied + requestedSeats > ws.totalCapacity) {
+      if (occupied + requestedSeats > seatLimit) {
         return NextResponse.json(
-          { error: `Not enough availability. Only ${Math.max(0, ws.totalCapacity - occupied)} seat(s) left for the selected time.` },
+          { error: `Not enough availability. Only ${Math.max(0, seatLimit - occupied)} seat(s) left for the selected time.` },
           { status: 409 }
         );
       }
@@ -434,7 +435,7 @@ const requestedType = (validSectionTypes.includes(sectionType) && sectionType !=
     const secId = sec.id;
     const secName = sec.name;
     const isFixedSlot = isFixedSlotSection(sec.type);
-    const totalCapacity = ws.totalCapacity;
+    const totalCapacity = effectiveCapacity(ws);
     const txResult = await prisma.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${'hourly-slot:' + wsId}))`;
 
@@ -446,7 +447,7 @@ const requestedType = (validSectionTypes.includes(sectionType) && sectionType !=
         if (taken) {
           return { error: `${secName} is already booked for the selected time. Please choose another session or hall.` };
         }
-      } else if (totalCapacity > 0) {
+      } else {
         const occupied = (await getOccupiedSeats([wsId], startObj, endObj)).get(wsId) || 0;
         if (occupied + requestedSeats > totalCapacity) {
           return { error: `Not enough availability. Only ${Math.max(0, totalCapacity - occupied)} seat(s) left for the selected time.` };

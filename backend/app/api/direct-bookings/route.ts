@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getTokenFromRequest, unauthorizedResponse, suspendedResponse } from '@/lib/auth/verify-token';
 import { seedStandardWorkspaces } from '@/lib/seed-data';
 import { getOwnedWorkspaceIds } from '@/lib/ownership';
-import { directBookingEnd, getOccupiedSeats, getOccupiedSeatsForSection } from '@/lib/capacity';
+import { directBookingEnd, effectiveCapacity, getOccupiedSeats, getOccupiedSeatsForSection } from '@/lib/capacity';
 import { hiddenWorkspaceError } from '@/lib/workspace-visibility';
 import { getKsaNow, parseDateAndTimeToKsaDate } from '@/lib/time-utils';
 import type { Prisma, DurationType, DirectBookingStatus } from "@prisma/client";
@@ -315,7 +315,7 @@ export async function POST(request: NextRequest) {
     // Capacity check: reject requests that would exceed the venue's total seats for the booked period
     const requestedSeats = Math.max(1, Math.floor(Number(body.seats) || 1));
     const bookingStart = parseDateAndTimeToKsaDate(bookingDate, null, 9);
-    const workspaceForCapacity = await prisma.workspace.findUnique({ where: { id: targetWorkspaceId }, select: { totalCapacity: true } });
+
     if (ws.sections.length > 1 && sec.capacity > 0) {
       // A hub with several rooms: each room seats only its own capacity
       const roomEnd = directBookingEnd({ bookingDate: bookingStart, durationType: finalDuration, durationDetails: finalDurationDetails });
@@ -326,12 +326,13 @@ export async function POST(request: NextRequest) {
           { status: 409 }
         );
       }
-    } else if (workspaceForCapacity && workspaceForCapacity.totalCapacity > 0) {
+    } else {
+      const seatLimit = effectiveCapacity(ws);
       const bookingEnd = directBookingEnd({ bookingDate: bookingStart, durationType: finalDuration, durationDetails: finalDurationDetails });
       const occupied = (await getOccupiedSeats([targetWorkspaceId], bookingStart, bookingEnd)).get(targetWorkspaceId) || 0;
-      if (occupied + requestedSeats > workspaceForCapacity.totalCapacity) {
+      if (occupied + requestedSeats > seatLimit) {
         return NextResponse.json(
-          { error: `Not enough availability. Only ${Math.max(0, workspaceForCapacity.totalCapacity - occupied)} seat(s) left for the selected period.` },
+          { error: `Not enough availability. Only ${Math.max(0, seatLimit - occupied)} seat(s) left for the selected period.` },
           { status: 409 }
         );
       }

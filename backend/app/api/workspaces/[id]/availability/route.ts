@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { directBookingEnd, getOccupiedSeats, getOccupiedSeatsForSection } from "@/lib/capacity";
+import { directBookingEnd, effectiveCapacity, getOccupiedSeats, getOccupiedSeatsForSection } from "@/lib/capacity";
 import { getOperatingRange, isFixedSlotSection, FIXED_SLOT_MINUTES, LATEST_SESSION_END_MINUTES } from "@/lib/operating-hours";
 import { parseDateAndTimeToKsaDate } from "@/lib/time-utils";
 
@@ -22,7 +22,7 @@ export async function GET(
 
     const workspace = await prisma.workspace.findUnique({
       where: { id },
-      select: { id: true, isVisible: true, totalCapacity: true, openingTime: true, closingTime: true, is24Hours: true, sections: { select: { type: true } } },
+      select: { id: true, isVisible: true, totalCapacity: true, openingTime: true, closingTime: true, is24Hours: true, sections: { select: { type: true, capacity: true } } },
     });
     if (!workspace) {
       return NextResponse.json({ error: "Workspace not found." }, { status: 404 });
@@ -95,14 +95,14 @@ export async function GET(
     }
 
     const occupied = (await getOccupiedSeats([id], from, to)).get(id) || 0;
-    const total = workspace.totalCapacity;
+    const total = effectiveCapacity(workspace);
     const remaining = Math.max(0, total - occupied);
 
-    if (total > 0 && occupied + seats > total) {
+    if (occupied + seats > total) {
       return NextResponse.json({
         available: false,
         remaining,
-        reason: `Not enough availability. Only ${remaining} seat(s) left for the selected period.`,
+        reason: total === 0 ? "This workspace has no seats available." : `Not enough availability. Only ${remaining} seat(s) left for the selected period.`,
       });
     }
     return NextResponse.json({ available: true, remaining });

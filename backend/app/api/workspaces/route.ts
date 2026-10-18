@@ -64,13 +64,7 @@ async function syncWorkspaceAmenities(workspaceId: string, amenities: string[]) 
 
 import { seedStandardWorkspaces } from "@/lib/seed-data";
 import { errorMessage } from "@/lib/errors";
-
-// A workspace saved with capacity 0 but with sections that do have seats must not show as "0/0 full" in the catalog
-function effectiveCapacity(w: { totalCapacity: number | null; sections?: { capacity: number | null }[] }): number {
-  const own = Number(w.totalCapacity) || 0;
-  if (own > 0) return own;
-  return (w.sections || []).reduce((sum, sec) => sum + (Number(sec.capacity) || 0), 0);
-}
+import { effectiveCapacity } from "@/lib/capacity";
 
 export async function GET(request: Request) {
   try {
@@ -211,8 +205,8 @@ export async function POST(request: Request) {
     let finalPartnerId = partnerId;
     let partnerExists = partnerId ? await prisma.partner.findUnique({ where: { id: partnerId } }) : null;
 
-    // A venue partner can only add workspaces under their own partner record; never under another
-    // partner's id and never under an arbitrary fallback partner.
+    // A venue partner always adds workspaces under their own partner record (taken from the signed-in
+    // account). A partnerId sent by the browser is ignored: it can be stale or belong to someone else.
     if (userRole === 'PARTNER_ADMIN' || userRole === 'PROVIDER') {
       const me = await prisma.user.findUnique({ where: { id: user.userId }, select: { email: true } });
       const ownPartner = me?.email
@@ -220,9 +214,6 @@ export async function POST(request: Request) {
         : null;
       if (!ownPartner) {
         return NextResponse.json({ error: 'No partner profile is linked to your account.' }, { status: 403 });
-      }
-      if (partnerId && partnerId !== ownPartner.id) {
-        return NextResponse.json({ error: 'You can only add workspaces to your own partner profile.' }, { status: 403 });
       }
       partnerExists = ownPartner;
       finalPartnerId = ownPartner.id;

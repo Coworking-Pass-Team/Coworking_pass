@@ -3,6 +3,16 @@ import { getKsaNow } from "@/lib/time-utils";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+/**
+ * Seats a workspace can actually hold. A workspace saved with total 0 but with sections that have seats
+ * takes the sections' seats; a workspace with no seats at all holds nobody (it is full, never "unlimited").
+ */
+export function effectiveCapacity(w: { totalCapacity: number | null; sections?: { capacity: number | null }[] }): number {
+  const own = Number(w.totalCapacity) || 0;
+  if (own > 0) return own;
+  return (w.sections || []).reduce((sum, sec) => sum + (Number(sec.capacity) || 0), 0);
+}
+
 /** First instant (KSA wall-clock stored as UTC) of the day containing `date`. */
 export function startOfDay(date: Date): Date {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));

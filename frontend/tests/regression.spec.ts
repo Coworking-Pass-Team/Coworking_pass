@@ -237,6 +237,21 @@ test.describe('Pricing page', () => {
   });
 });
 
+test.describe('Page refresh keeps the current screen', () => {
+  test('a guest on the pricing page is still there after a reload', async ({ page }) => {
+    await open(page);
+    await setLanguage(page, 'en');
+    await page.evaluate(() => {
+      const b = Array.from(document.querySelectorAll('button')).find((e) => /pricing/i.test(e.textContent || '') && (e as HTMLElement).offsetWidth > 0);
+      (b as HTMLElement | undefined)?.click();
+    });
+    await expect(page.locator('body')).toContainText(/Day Pass/, { timeout: 15000 });
+    await page.reload();
+    await page.waitForLoadState('networkidle').catch(() => undefined);
+    await expect(page.locator('body')).toContainText(/Day Pass/, { timeout: 15000 });
+  });
+});
+
 test.describe('Console hygiene', () => {
   test('a guest never calls protected API endpoints (no 401/403 noise)', async ({ page }) => {
     const denied: string[] = [];
@@ -306,6 +321,10 @@ test.describe('Admin portal (local development account)', () => {
     await expect(boxes).toHaveCount(6, { timeout: 15000 });
     for (let i = 0; i < 6; i++) await boxes.nth(i).fill('123456'[i]);
     await page.getByRole('button', { name: /verify|continue/i }).first().click();
+    await expect(page.locator('body')).toContainText(/Total Users|Platform Overview|System Overview/i, { timeout: 20000 });
+    // A refresh must keep the admin on the dashboard, not send them back to the home page
+    await page.reload();
+    await page.waitForLoadState('networkidle').catch(() => undefined);
     await expect(page.locator('body')).toContainText(/Total Users|Platform Overview|System Overview/i, { timeout: 20000 });
   });
 });

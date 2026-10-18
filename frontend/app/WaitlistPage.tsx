@@ -40,10 +40,27 @@ export default function WaitlistPage() {
     autobooking,
     enableAutoBooking,
     disableAutoBooking,
+    checkSeatAvailability,
+    showToast,
   } = useApp();
 
   const [query, setQuery] = useState('');
+  const [checkingSpaceId, setCheckingSpaceId] = useState<string | null>(null);
   const [selectedSpaceToLeave, setSelectedSpaceToLeave] = useState<{ id: string; name: string } | null>(null);
+
+  // "Check availability" asks the server for the live seat count first; the booking screen opens only when a seat is really free
+  const handleCheckAvailability = async (spaceId: string) => {
+    if (checkingSpaceId) return;
+    setCheckingSpaceId(spaceId);
+    const today = new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10); // Saudi calendar day
+    const result = await checkSeatAvailability({ spaceId, plan: 'daily', date: today, days: 1, seats: 1, strict: true });
+    setCheckingSpaceId(null);
+    if (!result.ok) {
+      showToast(result.message || 'This space is still fully booked. You stay in the waitlist queue.', 'info');
+      return;
+    }
+    navigate(isOrg ? 'team-booking' : 'booking-flow', { spaceId });
+  };
 
   // Compute active waitlist items for the current user
   const waitlistItems = useMemo(() => {
@@ -335,14 +352,9 @@ export default function WaitlistPage() {
 
                   <button
                     type="button"
-                    onClick={() => {
-                      if (isOrg) {
-                        navigate('team-booking', { spaceId: item.spaceId });
-                      } else {
-                        navigate('booking-flow', { spaceId: item.spaceId });
-                      }
-                    }}
-                    className="btn-primary px-4 py-2 text-xs flex items-center gap-1.5 cursor-pointer shadow-xs"
+                    onClick={() => handleCheckAvailability(item.spaceId)}
+                    disabled={checkingSpaceId === item.spaceId}
+                    className="btn-primary px-4 py-2 text-xs flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-60 disabled:cursor-wait"
                   >
                     <Zap size={14} />
                     <span>{t('waitlist.checkAvailability')}</span>
