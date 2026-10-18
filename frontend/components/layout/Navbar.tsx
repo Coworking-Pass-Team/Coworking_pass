@@ -304,7 +304,7 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 w-full bg-plaster-surface/95 backdrop-blur-md border-b border-soot/12 shadow-xs transition-colors duration-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-2 sm:gap-4">
+      <div className="max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-2 sm:gap-4">
         {/* Left Section: Logo & Main Navigation */}
         <div className="flex items-center gap-2 sm:gap-3 xl:gap-5 min-w-0 flex-1">
           <button
@@ -315,12 +315,12 @@ export default function Navbar() {
             aria-label={t('nav.homeAria')}
           >
             <Logo className="h-8 sm:h-9 xl:h-10 w-auto shrink-0" />
-            <span className="font-serif-display font-normal text-soot text-lg sm:text-xl xl:text-2xl tracking-tight group-hover:text-soot-light transition-colors hidden sm:block whitespace-nowrap">
+            <span className="font-serif-display font-normal text-soot text-lg sm:text-xl xl:text-2xl tracking-tight group-hover:text-soot-light transition-colors hidden sm:block lg:hidden xl:block whitespace-nowrap">
               {t('common.appName')}
             </span>
           </button>
 
-          <nav className="hidden lg:flex items-center gap-0.5 xl:gap-1.5 min-w-0 overflow-hidden">
+          <nav className="hidden lg:flex items-center gap-0.5 xl:gap-1.5 min-w-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {links.map(l => {
               const isActive = nav.screen === l.screen;
               return (

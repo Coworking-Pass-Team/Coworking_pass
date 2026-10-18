@@ -55,6 +55,44 @@ test.describe('Responsive layout: no horizontal scrollbar', () => {
   }
 });
 
+test.describe('Header layout', () => {
+  /** Overlaps between header controls, menu items cut off by their neighbours, and controls pushed off screen. */
+  const measureHeader = () => {
+    const row = document.querySelector('header')!.firstElementChild as HTMLElement;
+    const nav = document.querySelector('header nav');
+    const controls = Array.from(row.querySelectorAll('button, a'))
+      .map((e) => ({ name: (e.getAttribute('aria-label') || e.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 24), r: e.getBoundingClientRect() }))
+      .filter((c) => c.r.width > 0 && c.r.height > 0);
+    const overlaps: string[] = [];
+    for (let i = 0; i < controls.length; i++) {
+      for (let j = i + 1; j < controls.length; j++) {
+        const a = controls[i], b = controls[j];
+        const ix = Math.min(a.r.right, b.r.right) - Math.max(a.r.left, b.r.left);
+        const iy = Math.min(a.r.bottom, b.r.bottom) - Math.max(a.r.top, b.r.top);
+        if (ix > 2 && iy > 2) overlaps.push(`${a.name} x ${b.name}`);
+      }
+    }
+    const navBox = nav ? nav.getBoundingClientRect() : null;
+    const clipped = nav && navBox
+      ? Array.from(nav.querySelectorAll('button, a')).filter((l) => { const r = l.getBoundingClientRect(); return r.right > navBox.right + 1 || r.left < navBox.left - 1; }).map((l) => (l.textContent || '').trim())
+      : [];
+    const outside = controls.filter((c) => c.r.right > innerWidth + 1 || c.r.left < -1).map((c) => c.name);
+    return { overlaps, clipped, outside };
+  };
+
+  for (const width of [1024, 1280, 1600, 1920]) {
+    for (const lang of ['ar', 'en'] as const) {
+      test(`guest header has no overlap or clipping at ${width}px (${lang})`, async ({ page }) => {
+        await page.setViewportSize({ width, height: 800 });
+        await open(page);
+        await setLanguage(page, lang);
+        const m = await page.evaluate(measureHeader);
+        expect(m).toEqual({ overlaps: [], clipped: [], outside: [] });
+      });
+    }
+  }
+});
+
 test.describe('Internationalization', () => {
   test('switching language flips direction and html lang', async ({ page }) => {
     await open(page);
@@ -142,7 +180,9 @@ test.describe('Catalog', () => {
       const b = Array.from(document.querySelectorAll('button, a')).find((e) => /browse/i.test(e.textContent || '') && (e as HTMLElement).offsetWidth > 0);
       (b as HTMLElement | undefined)?.click();
     });
-    await page.waitForTimeout(2500);
+    await expect(page.getByRole('button', { name: /^All Spaces/ })).toBeVisible({ timeout: 20000 });
+    await expect.poll(() => page.locator('h3').count(), { timeout: 20000 }).toBeGreaterThan(0);
+    await page.waitForLoadState('networkidle').catch(() => undefined);
     const counts = await page.evaluate(() => {
       const read = (label: string) => {
         const btn = Array.from(document.querySelectorAll('button')).find((b) => (b.textContent || '').trim().startsWith(label));
@@ -157,7 +197,7 @@ test.describe('Catalog', () => {
       const b = Array.from(document.querySelectorAll('button')).find((x) => (x.textContent || '').trim().startsWith('Halls'));
       (b as HTMLElement | undefined)?.click();
     });
-    await page.waitForTimeout(1500);
+    await expect.poll(() => page.locator('h3').first().innerText(), { timeout: 15000 }).toMatch(/Hall|Theater|Auditorium|Summit|Meeting|Workshop|Lecture|Event|Training|Conference/i);
     const prices = await page.evaluate(() => Array.from(document.querySelectorAll('h3')).slice(0, 5).map((h) => (h.closest('div[class*=rounded]') as HTMLElement | null)?.innerText || ''));
     expect(prices.length).toBeGreaterThan(0);
     for (const card of prices) expect(card).toMatch(/\/ ?hour/i);
@@ -171,10 +211,8 @@ test.describe('Catalog', () => {
       const b = Array.from(document.querySelectorAll('button, a')).find((e) => /browse/i.test(e.textContent || '') && (e as HTMLElement).offsetWidth > 0);
       (b as HTMLElement | undefined)?.click();
     });
-    await page.waitForTimeout(2500);
-    const text = await page.evaluate(() => document.body.innerText);
-    expect(text).toMatch(/Location Permission Denied|Enable Location|nearest/i);
-    expect(await page.locator('h3').count()).toBeGreaterThan(3);
+    await expect(page.locator('body')).toContainText(/Location Permission Denied|Enable Location|nearest/i, { timeout: 20000 });
+    await expect.poll(() => page.locator('h3').count(), { timeout: 20000 }).toBeGreaterThan(3);
   });
 });
 
