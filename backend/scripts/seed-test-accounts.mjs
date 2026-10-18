@@ -121,6 +121,19 @@ if (!hasHistory) {
   });
 }
 
+// Daily passes: one that already ended and one coming up, to check how past bookings are shown
+const hasDirect = await prisma.directBooking.count({ where: { userId: individual.id, workspaceId: workspace.id } });
+if (!hasDirect) {
+  const deskSection = workspace.sections.find((sec) => sec.type === 'DESK');
+  const dayStart = (offset) => { const d = new Date(Date.now() + 3 * 3600000 + offset * 86400000); return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())); };
+  await prisma.directBooking.createMany({
+    data: [
+      { userId: individual.id, workspaceId: workspace.id, sectionId: deskSection.id, durationType: 'DAILY', durationDetails: '1 Days', bookingDate: dayStart(-40), seats: 1, status: 'CONFIRMED' },
+      { userId: individual.id, workspaceId: workspace.id, sectionId: deskSection.id, durationType: 'DAILY', durationDetails: '1 Days', bookingDate: dayStart(10), seats: 1, status: 'CONFIRMED' },
+    ],
+  });
+}
+
 // Notifications are reset on every run, so tests always start from the same three entries
 await prisma.notification.deleteMany({ where: { userId: individual.id } });
 await prisma.notification.createMany({

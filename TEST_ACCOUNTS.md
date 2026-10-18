@@ -15,7 +15,7 @@ npm run seed:test-accounts      # creates the accounts, or resets them if they a
 
 | Role | Email | What is set up |
 |---|---|---|
-| Individual member | `individual@cwp-test.local` | Wallet SAR 500, 200 loyalty points, one upcoming and one past hourly booking at *Test Partner Hub*, three notifications |
+| Individual member | `individual@cwp-test.local` | Wallet SAR 500, 200 loyalty points, an upcoming and a past hourly booking plus an upcoming and a past daily pass at *Test Partner Hub*, three notifications |
 | Individual member (empty) | `newmember@cwp-test.local` | Nothing booked yet: use it for first-time flows |
 | HR admin (company) | `hr@cwp-test.local` | Company *Test Company Ltd*, shared wallet SAR 5,000, 10 passes, two employees |
 | Company employee | `employee1@cwp-test.local`, `employee2@cwp-test.local` | Members of *Test Company Ltd* |

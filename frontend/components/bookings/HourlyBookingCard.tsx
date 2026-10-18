@@ -25,10 +25,13 @@ interface Props {
   space?: Space;
   onViewQr: () => void;
   onCancel: () => void;
+  /** When set, the card shows a selection checkbox for bulk actions */
+  selected?: boolean;
+  onToggleSelect?: () => void;
 }
 
 /** One hourly booking: where (venue, room, city), when (date, time range, hours), how much, and the actions. */
-export default function HourlyBookingCard({ booking: hb, space, onViewQr, onCancel }: Props) {
+export default function HourlyBookingCard({ booking: hb, space, onViewQr, onCancel, selected = false, onToggleSelect }: Props) {
   const { t, formatDate, localizeTime } = useI18n();
   const st = useSpaceText();
 
@@ -59,6 +62,15 @@ export default function HourlyBookingCard({ booking: hb, space, onViewQr, onCanc
         <span className={`absolute top-3 start-3 text-[11px] font-bold px-3 py-1 rounded-full border uppercase tracking-wider ${STATUS_STYLES[statusKey] || STATUS_STYLES.COMPLETED}`}>
           {statusLabel}
         </span>
+        {onToggleSelect && (
+          <input
+            type="checkbox"
+            aria-label={t('bookingsList.selectRow')}
+            checked={selected}
+            onChange={onToggleSelect}
+            className="absolute bottom-3 start-3 w-5 h-5 rounded border-soot/30 accent-soot cursor-pointer bg-white shadow-xs"
+          />
+        )}
         <span className="absolute top-3 end-3 text-[11px] font-mono text-white bg-soot/70 backdrop-blur-sm px-2 py-1 rounded-lg"><bdi dir="ltr">#{ref}</bdi></span>
       </div>
 
@@ -114,7 +126,7 @@ export default function HourlyBookingCard({ booking: hb, space, onViewQr, onCanc
             <QrCode size={14} />
             <span>{t('myBookings.viewQr')}</span>
           </button>
-          {statusKey !== 'CANCELLED' && statusKey !== 'REFUNDED' && (
+          {statusKey !== 'CANCELLED' && statusKey !== 'REFUNDED' && statusKey !== 'EXPIRED' && statusKey !== 'COMPLETED' && (
             <button
               type="button"
               onClick={onCancel}

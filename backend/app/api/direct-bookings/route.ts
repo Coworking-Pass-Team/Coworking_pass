@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getTokenFromRequest, unauthorizedResponse, suspendedResponse } from '@/lib/auth/verify-token';
 import { seedStandardWorkspaces } from '@/lib/seed-data';
 import { getOwnedWorkspaceIds } from '@/lib/ownership';
+import { directBookingEffectiveStatus } from '@/lib/booking-lifecycle';
 import { directBookingEnd, effectiveCapacity, getOccupiedSeats, getOccupiedSeatsForSection } from '@/lib/capacity';
 import { hiddenWorkspaceError } from '@/lib/workspace-visibility';
 import { getKsaNow, parseDateAndTimeToKsaDate } from '@/lib/time-utils';
@@ -46,10 +47,10 @@ export async function GET(request: Request) {
         workspace: true,
         section: true,
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ bookingDate: 'desc' }, { createdAt: 'desc' }],
     });
 
-    return NextResponse.json(bookings);
+    return NextResponse.json(bookings.map((b) => ({ ...b, effectiveStatus: directBookingEffectiveStatus(b) })));
   } catch (error) {
     console.error(' Error fetching direct bookings:', error);
     return NextResponse.json(

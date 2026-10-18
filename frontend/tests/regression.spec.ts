@@ -393,5 +393,42 @@ test.describe('Member bookings and notifications (seeded test account)', () => {
       await page.waitForLoadState('networkidle').catch(() => undefined);
       await expect(page.locator('body')).toContainText(lang === 'ar' ? 'تم حجز الجلسة' : 'Session Booked', { timeout: 15000 });
     });
+
+    test(`bookings: past ones are not active, sorting flips the order, bulk selection asks once (${lang})`, async ({ page }) => {
+      await signInSeeded(page, lang);
+      const click = (re: string) => page.evaluate((src) => {
+        const r = new RegExp(src, 'i');
+        const b = Array.from(document.querySelectorAll('button, a')).find((e) => r.test((e.textContent || '').trim()) && (e as HTMLElement).offsetWidth > 0);
+        (b as HTMLElement | undefined)?.click();
+      }, re);
+      await click('^(bookings|الحجوزات)$');
+      await page.waitForTimeout(2500);
+
+      // The daily pass from 40 days ago is under "previous", never under "active"
+      const bodyText = () => page.evaluate(() => document.body.innerText);
+      const firstDate = (iso: string) => iso.slice(0, 10);
+      const day = (offset: number) => firstDate(new Date(Date.now() + 3 * 3600000 + offset * 86400000).toISOString());
+      expect(await bodyText()).toContain(day(10));
+      expect(await bodyText()).not.toContain(day(-40));
+      await click(lang === 'ar' ? 'سابقة' : 'Previous');
+      await page.waitForTimeout(800);
+      expect(await bodyText()).toContain(day(-40));
+
+      // Hourly tab: newest first by default, "oldest first" reverses it
+      await click('(hourly bookings|الحجوزات بالساعة)');
+      await expect(page.locator('body')).toContainText('Meeting Room A', { timeout: 15000 });
+      const order = async () => page.evaluate(() => Array.from(document.querySelectorAll('h4')).map((h) => h.closest('div.rounded-3xl')?.textContent || '').filter((t) => /Meeting Room A/.test(t)).map((t) => (/(Active|نشط)/.test(t) ? 'upcoming' : 'past')));
+      expect(await order()).toEqual(['upcoming', 'past']);
+      await page.getByLabel(lang === 'ar' ? 'ترتيب الحجوزات حسب التاريخ' : 'Sort bookings by date').selectOption('oldest');
+      await expect.poll(order).toEqual(['past', 'upcoming']);
+
+      // Select all, then the bulk action asks for one confirmation that names the count
+      await page.getByLabel(lang === 'ar' ? 'تحديد كل الحجوزات' : 'Select all bookings').check();
+      await expect(page.locator('body')).toContainText(lang === 'ar' ? 'تم تحديد 2' : '2 selected');
+      await click(lang === 'ar' ? 'إلغاء المحدد' : 'Cancel selected');
+      await expect(page.locator('body')).toContainText(lang === 'ar' ? 'سيتم إلغاء 2 حجز' : '2 booking(s) will be cancelled');
+      await click(lang === 'ar' ? '^إلغاء$' : '^Cancel$'); // dismiss without confirming: nothing is changed
+      await expect(page.locator('body')).not.toContainText(lang === 'ar' ? 'سيتم إلغاء 2 حجز' : '2 booking(s) will be cancelled');
+    });
   }
 });

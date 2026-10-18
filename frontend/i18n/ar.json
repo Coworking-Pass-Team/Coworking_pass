@@ -2686,5 +2686,27 @@
     "dbVerified": "تم التحقق من الدخول بنجاح",
     "encrypted": "مشفّر ومعتمد من كوورك باس",
     "return": "العودة إلى كوورك باس"
+  },
+  "bookingsList": {
+    "sortBy": "ترتيب الحجوزات حسب التاريخ",
+    "newestFirst": "الأحدث أولًا",
+    "oldestFirst": "الأقدم أولًا",
+    "selectAll": "تحديد كل الحجوزات",
+    "selectRow": "تحديد هذا الحجز",
+    "selectedCount": "تم تحديد {count}",
+    "clearSelection": "إلغاء التحديد",
+    "bulkBar": "إجراءات جماعية",
+    "cancelSelected": "إلغاء المحدد",
+    "deleteSelected": "حذف المحدد",
+    "bulkCancelTitle": "إلغاء الحجوزات المحددة؟",
+    "bulkCancelBody": "سيتم إلغاء {count} حجز. يُطبَّق الاسترداد وفق سياسة الإلغاء المعتادة لكل حجز، ويتم تخطي الحجوزات الملغاة أو المكتملة.",
+    "bulkDeleteTitle": "حذف الحجوزات المحددة؟",
+    "bulkDeleteBody": "سيتم حذف {count} حجز نهائيًا، ولا يمكن التراجع عن ذلك.",
+    "confirmCount": "تأكيد ({count})",
+    "working": "جارٍ التنفيذ...",
+    "doneCancelled": "تم إلغاء {count} حجز.",
+    "doneDeleted": "تم حذف {count} حجز.",
+    "nothingToCancel": "لا يمكن إلغاء أي من الحجوزات المحددة.",
+    "completed": "مكتملة"
   }
 }

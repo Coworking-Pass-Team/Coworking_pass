@@ -20,12 +20,25 @@ import { useApp } from '@/app/store';
 import { useSpaceText } from '@/i18n/space-text';
 import { useLabels } from '@/i18n/labels';
 import { Booking, BookingStatus, getBookingPrice, calculateDailyDurationDays } from '@/types/types';
+import BookingSortSelect from '@/components/bookings/BookingSortSelect';
+import BulkActionBar from '@/components/bookings/BulkActionBar';
+import { useBookingSelection } from '@/components/bookings/useBookingSelection';
+import { sortBookings, type BookingSortOrder } from '@/lib/bookingLifecycle';
 
 export default function ProviderSpaceBookings() {
+  const { currentUser } = useApp();
+  if (!currentUser) return null;
+  return <ProviderSpaceBookingsContent />;
+}
+
+/** All hooks live here, so the session check above can return early without changing the hook order. */
+function ProviderSpaceBookingsContent() {
   const { t, translateMessage, localizeTime } = useI18n();
   const sx = useSpaceText();
   const lb = useLabels();
-  const { currentUser, spaces, partners, bookings, users, updateBookingStatus, showToast } = useApp();
+  const { currentUser: sessionUser, spaces, partners, bookings, users, updateBookingStatus, showToast } = useApp();
+  const currentUser = sessionUser!;
+  const [sortOrder, setSortOrder] = useState<BookingSortOrder>('newest');
   const [query, setQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterSpace, setFilterSpace] = useState('');
@@ -52,8 +65,6 @@ export default function ProviderSpaceBookings() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  if (!currentUser) return null;
-
   const userPartner = partners.find(p => p.contactEmail?.toLowerCase() === currentUser.email?.toLowerCase());
   const mySpaces = spaces.filter((s) =>
     s.ownerId === currentUser.id ||
@@ -73,7 +84,7 @@ export default function ProviderSpaceBookings() {
     return u.role === 'organization' ? (u.orgName || u.name) : u.name;
   };
 
-  const filtered = myBookings
+  const filtered = sortBookings(myBookings
     .filter((b) => {
       const q = query.trim().toLowerCase();
       if (
@@ -87,13 +98,19 @@ export default function ProviderSpaceBookings() {
       if (filterStatus && b.status !== filterStatus) return false;
       if (filterSpace && b.spaceId !== filterSpace) return false;
       return true;
-    })
-    .slice()
-    .sort((a, b) => {
-      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      return timeB - timeA;
-    });
+    }), sortOrder);
+
+  const selection = useBookingSelection(filtered.map((b) => b.id));
+  const bulkCancel = () => {
+    const targets = filtered.filter((b) => selection.isSelected(b.id) && b.status === 'active');
+    if (targets.length === 0) {
+      showToast(t('bookingsList.nothingToCancel'), 'info');
+    } else {
+      targets.forEach((b) => updateBookingStatus(b.id, 'cancelled'));
+      showToast(t('bookingsList.doneCancelled', { count: targets.length }), 'info');
+    }
+    selection.clear();
+  };
 
   const activeCount = myBookings.filter((b) => b.status === 'active').length;
   const previousCount = myBookings.filter((b) => b.status === 'previous').length;
@@ -302,10 +319,30 @@ export default function ProviderSpaceBookings() {
         </div>
       </div>
 
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <BookingSortSelect value={sortOrder} onChange={setSortOrder} />
+      </div>
+
+      <BulkActionBar
+        count={selection.count}
+        onClear={selection.clear}
+        actions={[{ key: 'cancel', kind: 'cancel', label: t('bookingsList.cancelSelected'), run: bulkCancel }]}
+      />
+
       {/* Table Layout */}
       <div className="bg-plaster-surface rounded-3xl border border-soot/10 overflow-hidden shadow-2xs relative z-10">
         <div className="hidden lg:grid grid-cols-12 gap-6 px-6 py-4 border-b border-soot/10 text-xs font-semibold uppercase tracking-wider text-moss bg-plaster-dark/40 items-center">
-          <div className="col-span-4">{t('myBookings.colWorkspace')}</div>
+          <div className="col-span-4 flex items-center gap-3">
+            <input
+              type="checkbox"
+              aria-label={t('bookingsList.selectAll')}
+              checked={selection.allSelected}
+              ref={(el) => { if (el) el.indeterminate = selection.someSelected; }}
+              onChange={selection.toggleAll}
+              className="w-4 h-4 rounded border-soot/30 accent-soot cursor-pointer"
+            />
+            <span>{t('myBookings.colWorkspace')}</span>
+          </div>
           <div className="col-span-2">{t('prov.bk.colCustomer')}</div>
           <div className="col-span-2">{t('myBookings.colPeriod')}</div>
           <div className="col-span-1">{t('myBookings.colPlan')}</div>
@@ -328,6 +365,14 @@ export default function ProviderSpaceBookings() {
               >
                 {/* Workspace Name & Image */}
                 <div className="col-span-4 flex items-center gap-3.5 min-w-0">
+                  <input
+                    type="checkbox"
+                    aria-label={t('bookingsList.selectRow')}
+                    checked={selection.isSelected(b.id)}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={() => selection.toggle(b.id)}
+                    className="w-4 h-4 rounded border-soot/30 accent-soot cursor-pointer shrink-0"
+                  />
                   <img
                     src={b.spaceImage}
                     alt={sx.bookingName(b)}

@@ -29,12 +29,25 @@ import { useApp } from '@/app/store';
 import { Booking, BookingStatus, Employee, getHourlyPriceForDuration, getBookingPrice, isCancellationRefundEligible, calculateDailyDurationDays } from '@/types/types';
 import Modal from '@/components/ui/Modal';
 import BookingQrModal from '@/components/BookingQrModal';
+import BookingSortSelect from '@/components/bookings/BookingSortSelect';
+import BulkActionBar from '@/components/bookings/BulkActionBar';
+import { useBookingSelection } from '@/components/bookings/useBookingSelection';
+import { sortBookings, type BookingSortOrder } from '@/lib/bookingLifecycle';
 
 export default function TeamBookings() {
+  const { currentUser } = useApp();
+  if (!currentUser) return null;
+  return <TeamBookingsContent />;
+}
+
+/** All hooks live here, so the session check above can return early without changing the hook order. */
+function TeamBookingsContent() {
   const { t, translateMessage, localizeTime, formatDate } = useI18n();
   const sx = useSpaceText();
   const lb = useLabels();
-  const { bookings, spaces, currentUser, navigate, cancelBooking, showToast } = useApp();
+  const { bookings, spaces, currentUser: sessionUser, navigate, cancelBooking, showToast } = useApp();
+  const currentUser = sessionUser!;
+  const [sortOrder, setSortOrder] = useState<BookingSortOrder>('newest');
   const [activeTab, setActiveTab] = useState<BookingStatus>('active');
   const [query, setQuery] = useState('');
 
@@ -57,12 +70,10 @@ export default function TeamBookings() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  if (!currentUser) return null;
-
   const orgBookings = bookings.filter((b: Booking) => b.userId === currentUser.id);
   const employees = currentUser.employees || [];
 
-  const filtered = orgBookings
+  const filtered = sortBookings(orgBookings
     .filter((b: Booking) => {
       const q = query.trim().toLowerCase();
       if (
@@ -74,12 +85,19 @@ export default function TeamBookings() {
       }
       if (activeTab && b.status !== activeTab) return false;
       return true;
-    })
-    .sort((a, b) => {
-      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      return timeB - timeA;
-    });
+    }), sortOrder);
+
+  const selection = useBookingSelection(filtered.map((b) => b.id));
+  const bulkCancel = () => {
+    const targets = filtered.filter((b) => selection.isSelected(b.id) && b.status === 'active');
+    if (targets.length === 0) {
+      showToast(t('bookingsList.nothingToCancel'), 'info');
+    } else {
+      targets.forEach((b) => cancelBooking(b.id, 'wallet'));
+      showToast(t('bookingsList.doneCancelled', { count: targets.length }), 'info');
+    }
+    selection.clear();
+  };
 
   const activeCount = orgBookings.filter((b) => b.status === 'active').length;
   const previousCount = orgBookings.filter((b) => b.status === 'previous').length;
@@ -215,10 +233,30 @@ export default function TeamBookings() {
         </div>
       </div>
 
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <BookingSortSelect value={sortOrder} onChange={setSortOrder} />
+      </div>
+
+      <BulkActionBar
+        count={selection.count}
+        onClear={selection.clear}
+        actions={[{ key: 'cancel', kind: 'cancel', label: t('bookingsList.cancelSelected'), run: bulkCancel }]}
+      />
+
       {/* Admin-Matching 12-Column Table Layout */}
       <div className="bg-plaster-surface rounded-3xl border border-soot/10 overflow-hidden shadow-2xs relative z-10">
         <div className="hidden lg:grid grid-cols-12 gap-6 px-6 py-4 border-b border-soot/10 text-xs font-semibold uppercase tracking-wider text-moss bg-plaster-dark/40 items-center">
-          <div className="col-span-4">{t('org.tb2b.workspaceLocation')}</div>
+          <div className="col-span-4 flex items-center gap-3">
+            <input
+              type="checkbox"
+              aria-label={t('bookingsList.selectAll')}
+              checked={selection.allSelected}
+              ref={(el) => { if (el) el.indeterminate = selection.someSelected; }}
+              onChange={selection.toggleAll}
+              className="w-4 h-4 rounded border-soot/30 accent-soot cursor-pointer"
+            />
+            <span>{t('org.tb2b.workspaceLocation')}</span>
+          </div>
           <div className="col-span-2">{t('org.tb2b.assignedTeamMember')}</div>
           <div className="col-span-2">{t('org.tb2b.bookingPeriod')}</div>
           <div className="col-span-2">{t('org.tb2b.planSeats')}</div>
@@ -241,6 +279,14 @@ export default function TeamBookings() {
               >
                 {/* Workspace Name & Image */}
                 <div className="col-span-4 flex items-center gap-3.5 min-w-0">
+                  <input
+                    type="checkbox"
+                    aria-label={t('bookingsList.selectRow')}
+                    checked={selection.isSelected(b.id)}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={() => selection.toggle(b.id)}
+                    className="w-4 h-4 rounded border-soot/30 accent-soot cursor-pointer shrink-0"
+                  />
                   <img
                     src={b.spaceImage}
                     alt={sx.bookingName(b)}

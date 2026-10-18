@@ -1,6 +1,7 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
+import { withLifecycleStatus } from '@/lib/bookingLifecycle';
+import React, { createContext, useContext, useState, useEffect, useMemo, useRef, ReactNode } from 'react';
 import {
   User,
   Space,
@@ -6555,6 +6556,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Bookings whose time has passed show as completed even if they were saved as active; re-evaluated every minute
+  const [lifecycleTick, setLifecycleTick] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => setLifecycleTick((n) => n + 1), 60000);
+    return () => clearInterval(timer);
+  }, []);
+  const bookingsWithLifecycle = useMemo(() => bookings.map((b) => withLifecycleStatus(b)), [bookings, lifecycleTick]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <AppContext.Provider value={{
       nav, navigate, goBack,
@@ -6570,7 +6579,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       currentUser, login, signup, logout, setPendingUser, pendingUser,
       userLocation, locationStatus, locationErrorMessage, requestUserLocation,
       spaces, favorites, toggleFavorite, addSpace, updateSpace, toggleSpaceVisibility, deleteSpace,
-      bookings, addBooking, cancelBooking, requestRefund, updateBookingStatus, deleteBooking,
+      bookings: bookingsWithLifecycle, addBooking, cancelBooking, requestRefund, updateBookingStatus, deleteBooking,
       amenityRequests, approvedCustomAmenities, requestCustomAmenity, approveAmenityRequest, rejectAmenityRequest, deleteAmenityRequest, getApprovedAmenities, fetchAmenities,
       supportTickets, fetchTickets, addSupportTicket, updateTicketStatus, replyToTicket,
       notifications: userNotifications,

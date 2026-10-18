@@ -2686,5 +2686,27 @@
     "dbVerified": "Check-in verified successfully",
     "encrypted": "Encrypted & Authorized by Coworking Pass",
     "return": "Return to Coworking Pass"
+  },
+  "bookingsList": {
+    "sortBy": "Sort bookings by date",
+    "newestFirst": "Newest first",
+    "oldestFirst": "Oldest first",
+    "selectAll": "Select all bookings",
+    "selectRow": "Select this booking",
+    "selectedCount": "{count} selected",
+    "clearSelection": "Clear selection",
+    "bulkBar": "Bulk actions",
+    "cancelSelected": "Cancel selected",
+    "deleteSelected": "Delete selected",
+    "bulkCancelTitle": "Cancel the selected bookings?",
+    "bulkCancelBody": "{count} booking(s) will be cancelled. Refunds follow the usual cancellation policy of each booking. Bookings that are already cancelled or completed are skipped.",
+    "bulkDeleteTitle": "Delete the selected bookings?",
+    "bulkDeleteBody": "{count} booking(s) will be permanently deleted. This cannot be undone.",
+    "confirmCount": "Confirm ({count})",
+    "working": "Working...",
+    "doneCancelled": "{count} booking(s) cancelled.",
+    "doneDeleted": "{count} booking(s) deleted.",
+    "nothingToCancel": "None of the selected bookings can be cancelled.",
+    "completed": "Completed"
   }
 }

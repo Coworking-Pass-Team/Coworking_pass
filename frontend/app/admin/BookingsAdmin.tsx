@@ -24,6 +24,10 @@ import { useLabels } from '@/i18n/labels';
 import { Booking, BookingStatus, getBookingPrice, calculateDailyDurationDays } from '@/types/types';
 import { updateDirectBookingApi } from '@/services/authApi';
 import HourlyBookingsAdmin from './HourlyBookingsAdmin';
+import BookingSortSelect from '@/components/bookings/BookingSortSelect';
+import BulkActionBar from '@/components/bookings/BulkActionBar';
+import { useBookingSelection } from '@/components/bookings/useBookingSelection';
+import { sortBookings, type BookingSortOrder } from '@/lib/bookingLifecycle';
 
 export default function BookingsAdmin() {
   const { t, localizeTime, translateMessage } = useI18n();
@@ -33,6 +37,7 @@ export default function BookingsAdmin() {
   const [query, setQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterPlan, setFilterPlan] = useState('');
+  const [sortOrder, setSortOrder] = useState<BookingSortOrder>('newest');
 
   // Dropdown states for filters
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
@@ -66,7 +71,7 @@ export default function BookingsAdmin() {
     return u.role === 'organization' ? u.orgName || u.name : u.name;
   };
 
-  const filtered = bookings
+  const filtered = sortBookings(bookings
     .filter((b) => {
       const q = query.trim().toLowerCase();
       if (
@@ -80,12 +85,9 @@ export default function BookingsAdmin() {
       if (filterStatus && b.status !== filterStatus) return false;
       if (filterPlan && b.plan !== filterPlan) return false;
       return true;
-    })
-    .sort((a, b) => {
-      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      return timeB - timeA;
-    });
+    }), sortOrder);
+
+  const selection = useBookingSelection(filtered.map((b) => b.id));
 
   const activeCount = bookings.filter((b) => b.status === 'active').length;
   const previousCount = bookings.filter((b) => b.status === 'previous').length;
@@ -101,6 +103,27 @@ export default function BookingsAdmin() {
       console.warn('[Direct Booking PUT Sync]', err)
     );
     showToast(`Booking status changed to ${status}`);
+  };
+
+  const bulkCancel = () => {
+    const targets = filtered.filter((b) => selection.isSelected(b.id) && b.status === 'active');
+    if (targets.length === 0) {
+      showToast(t('bookingsList.nothingToCancel'), 'info');
+    } else {
+      targets.forEach((b) => {
+        updateBookingStatus(b.id, 'cancelled');
+        updateDirectBookingApi(b.id, { status: 'CANCELLED' }).catch((err: any) => console.warn('[Direct Booking PUT Sync]', err));
+      });
+      showToast(t('bookingsList.doneCancelled', { count: targets.length }));
+    }
+    selection.clear();
+  };
+
+  const bulkDelete = () => {
+    const ids = filtered.filter((b) => selection.isSelected(b.id)).map((b) => b.id);
+    ids.forEach((id) => deleteBooking(id));
+    showToast(t('bookingsList.doneDeleted', { count: ids.length }));
+    selection.clear();
   };
 
   return (
@@ -298,10 +321,33 @@ export default function BookingsAdmin() {
         </div>
       </div>
 
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <BookingSortSelect value={sortOrder} onChange={setSortOrder} />
+      </div>
+
+      <BulkActionBar
+        count={selection.count}
+        onClear={selection.clear}
+        actions={[
+          { key: 'cancel', kind: 'cancel', label: t('bookingsList.cancelSelected'), run: bulkCancel },
+          { key: 'delete', kind: 'delete', label: t('bookingsList.deleteSelected'), run: bulkDelete },
+        ]}
+      />
+
       {/* Clean Table Layout */}
       <div className="bg-plaster-surface rounded-3xl border border-soot/10 overflow-hidden shadow-2xs relative z-10">
         <div className="hidden lg:grid grid-cols-12 gap-6 px-6 py-4 border-b border-soot/10 text-xs font-semibold uppercase tracking-wider text-moss bg-plaster-dark/40 items-center">
-          <div className="col-span-4">{t('myBookings.colWorkspace')}</div>
+          <div className="col-span-4 flex items-center gap-3">
+            <input
+              type="checkbox"
+              aria-label={t('bookingsList.selectAll')}
+              checked={selection.allSelected}
+              ref={(el) => { if (el) el.indeterminate = selection.someSelected; }}
+              onChange={selection.toggleAll}
+              className="w-4 h-4 rounded border-soot/30 accent-soot cursor-pointer"
+            />
+            <span>{t('myBookings.colWorkspace')}</span>
+          </div>
           <div className="col-span-2">{t('admin.bk.colUser')}</div>
           <div className="col-span-2">{t('myBookings.colPeriod')}</div>
           <div className="col-span-1">{t('myBookings.colPlan')}</div>
@@ -318,6 +364,14 @@ export default function BookingsAdmin() {
             >
               {/* Workspace Thumbnail & Name */}
               <div className="col-span-4 flex items-center gap-3.5 min-w-0">
+                <input
+                  type="checkbox"
+                  aria-label={t('bookingsList.selectRow')}
+                  checked={selection.isSelected(b.id)}
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={() => selection.toggle(b.id)}
+                  className="w-4 h-4 rounded border-soot/30 accent-soot cursor-pointer shrink-0"
+                />
                 <img
                   src={b.spaceImage}
                   alt={st.bookingName(b)}

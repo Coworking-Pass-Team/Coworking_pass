@@ -28,14 +28,27 @@ import { Booking, BookingStatus, getHourlyPriceForDuration, getBookingPrice, isC
 import Modal from '@/components/ui/Modal';
 import BookingQrModal from '@/components/BookingQrModal';
 import HourlyBookingCard from '@/components/bookings/HourlyBookingCard';
+import BookingSortSelect from '@/components/bookings/BookingSortSelect';
+import BulkActionBar from '@/components/bookings/BulkActionBar';
+import { useBookingSelection } from '@/components/bookings/useBookingSelection';
+import { hourlyEffectiveStatus, sortBookings, type BookingSortOrder } from '@/lib/bookingLifecycle';
 import { deleteDirectBookingApi, getHourlyBookingsApi, updateHourlyBookingApi, HourlyBookingItemApi } from '@/services/authApi';
 
 const FALLBACK_SPACE_IMAGE = 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80';
 
 export default function MyBookings() {
+  const { currentUser } = useApp();
+  if (!currentUser) return null;
+  return <MyBookingsContent />;
+}
+
+/** All hooks live here, so the session check above can return early without changing the hook order. */
+function MyBookingsContent() {
   const { t, formatDate, localizeTime, translateMessage } = useI18n();
   const st = useSpaceText();
-  const { bookings, spaces, currentUser, navigate, cancelBooking, requestRefund, nav, showToast, fetchDirectBookings } = useApp();
+  const { bookings, spaces, currentUser: sessionUser, navigate, cancelBooking, requestRefund, nav, showToast, fetchDirectBookings } = useApp();
+  const currentUser = sessionUser!;
+  const [sortOrder, setSortOrder] = useState<BookingSortOrder>('newest');
   const [bookingCategory, setBookingCategory] = useState<'direct' | 'hourly'>('direct');
   const [hourlyBookings, setHourlyBookings] = useState<HourlyBookingItemApi[]>([]);
   const [loadingHourly, setLoadingHourly] = useState(false);
@@ -65,11 +78,9 @@ export default function MyBookings() {
     }
   }, [bookingCategory, currentUser]);
 
-  if (!currentUser) return null;
-
   const myBookings = bookings.filter(b => b.userId === currentUser.id || (currentUser.email && b.userId.toLowerCase() === currentUser.email.toLowerCase()));
 
-  const filtered = myBookings
+  const filtered = sortBookings(myBookings
     .filter(b => {
       const q = query.trim().toLowerCase();
       if (q && !b.spaceName.toLowerCase().includes(q) && !b.spaceCity.toLowerCase().includes(q)) {
@@ -77,12 +88,62 @@ export default function MyBookings() {
       }
       if (activeTab && b.status !== activeTab) return false;
       return true;
-    })
-    .sort((a, b) => {
-      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      return timeB - timeA;
-    });
+    }), sortOrder);
+
+  const directSelection = useBookingSelection(filtered.map(b => b.id));
+  const sortedHourly = sortBookings(hourlyBookings.map(hb => ({ ...hb, status: hourlyEffectiveStatus(hb) })), sortOrder);
+  const hourlySelection = useBookingSelection(sortedHourly.map(hb => hb.id));
+
+  // Cancels one hourly booking: the server refunds it per policy, or it is released without a refund close to the start
+  const cancelHourly = async (hb: HourlyBookingItemApi): Promise<'refunded' | 'released' | 'failed'> => {
+    const refund = await requestRefund({ bookingId: hb.id });
+    let outcome: 'refunded' | 'released' | 'failed' = 'failed';
+    if (refund.success) {
+      showToast(t('myBookings.hourlyRefunded', { amount: (refund.refundAmount ?? 0).toLocaleString() }), 'success');
+      outcome = 'refunded';
+    } else if (refund.code === 'CANCELLATION_WINDOW') {
+      const done = await updateHourlyBookingApi(hb.id, { status: 'CANCELLED' });
+      if (!done.success) {
+        showToast(done.error || t('myBookings.hourlyCancelBlocked'), 'error');
+        return 'failed';
+      }
+      showToast(t('myBookings.hourlyCancelledNoRefund'), 'info');
+      outcome = 'released';
+    } else {
+      showToast(refund.error || t('myBookings.hourlyCancelBlocked'), 'error');
+      return 'failed';
+    }
+    setHourlyBookings(prev => prev.map(b => b.id === hb.id ? { ...b, status: 'CANCELLED' } : b));
+    return outcome;
+  };
+
+  const bulkCancelDirect = () => {
+    const targets = filtered.filter(b => directSelection.isSelected(b.id) && b.status === 'active');
+    if (targets.length === 0) {
+      showToast(t('bookingsList.nothingToCancel'), 'info');
+    } else {
+      targets.forEach(b => {
+        cancelBooking(b.id, 'wallet');
+        deleteDirectBookingApi(b.id).catch((err: any) => console.warn('[Direct Booking DELETE Sync]', err));
+      });
+      showToast(t('bookingsList.doneCancelled', { count: targets.length }), 'info');
+    }
+    directSelection.clear();
+  };
+
+  const bulkCancelHourly = async () => {
+    const targets = sortedHourly.filter(hb => hourlySelection.isSelected(hb.id) && hb.status === 'ACTIVE');
+    if (targets.length === 0) {
+      showToast(t('bookingsList.nothingToCancel'), 'info');
+    } else {
+      let done = 0;
+      for (const hb of targets) {
+        if ((await cancelHourly(hb)) !== 'failed') done++;
+      }
+      showToast(t('bookingsList.doneCancelled', { count: done }), 'info');
+    }
+    hourlySelection.clear();
+  };
 
   const activeCount = myBookings.filter(b => b.status === 'active').length;
   const previousCount = myBookings.filter(b => b.status === 'previous').length;
@@ -171,6 +232,28 @@ export default function MyBookings() {
             </button>
           </div>
 
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <BookingSortSelect value={sortOrder} onChange={setSortOrder} />
+            {sortedHourly.length > 0 && (
+              <label className="inline-flex items-center gap-2 text-xs font-medium text-soot cursor-pointer">
+                <input
+                  type="checkbox"
+                  aria-label={t('bookingsList.selectAll')}
+                  checked={hourlySelection.allSelected}
+                  ref={(el) => { if (el) el.indeterminate = hourlySelection.someSelected; }}
+                  onChange={hourlySelection.toggleAll}
+                  className="w-4 h-4 rounded border-soot/30 accent-soot cursor-pointer"
+                />
+                {t('bookingsList.selectAll')}
+              </label>
+            )}
+          </div>
+          <BulkActionBar
+            count={hourlySelection.count}
+            onClear={hourlySelection.clear}
+            actions={[{ key: 'cancel', kind: 'cancel', label: t('bookingsList.cancelSelected'), run: bulkCancelHourly }]}
+          />
+
           {loadingHourly ? (
             <div className="text-center py-12 bg-white rounded-3xl border border-soot/8 text-moss text-xs">
               {t('myBookings.loadingHourly')}
@@ -181,7 +264,7 @@ export default function MyBookings() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {hourlyBookings.map(hb => {
+              {sortedHourly.map(hb => {
                 const targetWorkspaceId = hb.workspaceId || hb.section?.workspace?.id;
                 const matchedSpace = spaces.find(s => s.id === targetWorkspaceId);
                 return (
@@ -189,6 +272,8 @@ export default function MyBookings() {
                     key={hb.id}
                     booking={hb}
                     space={matchedSpace}
+                    selected={hourlySelection.isSelected(hb.id)}
+                    onToggleSelect={() => hourlySelection.toggle(hb.id)}
                     onViewQr={() => {
                       const converted: Booking = {
                         id: hb.id,
@@ -210,26 +295,7 @@ export default function MyBookings() {
                       };
                       setSelectedBooking(converted);
                     }}
-                    onCancel={async () => {
-                      // The server applies the cancellation window and credits the refund atomically,
-                      // so a booking is never cancelled without the refund the policy entitles it to.
-                      const refund = await requestRefund({ bookingId: hb.id });
-                      if (refund.success) {
-                        showToast(t('myBookings.hourlyRefunded', { amount: (refund.refundAmount ?? 0).toLocaleString() }), 'success');
-                      } else if (refund.code === 'CANCELLATION_WINDOW') {
-                        // Too close to the start for a refund: the guest may still release the slot, without a refund
-                        const done = await updateHourlyBookingApi(hb.id, { status: 'CANCELLED' });
-                        if (!done.success) {
-                          showToast(done.error || t('myBookings.hourlyCancelBlocked'), 'error');
-                          return;
-                        }
-                        showToast(t('myBookings.hourlyCancelledNoRefund'), 'info');
-                      } else {
-                        showToast(refund.error || t('myBookings.hourlyCancelBlocked'), 'error');
-                        return;
-                      }
-                      setHourlyBookings(prev => prev.map(b => b.id === hb.id ? { ...b, status: 'CANCELLED' } : b));
-                    }}
+                    onCancel={() => { void cancelHourly(hb); }}
                   />
                 );
               })}
@@ -328,10 +394,30 @@ export default function MyBookings() {
         </div>
       </div>
 
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <BookingSortSelect value={sortOrder} onChange={setSortOrder} />
+      </div>
+
+      <BulkActionBar
+        count={directSelection.count}
+        onClear={directSelection.clear}
+        actions={[{ key: 'cancel', kind: 'cancel', label: t('bookingsList.cancelSelected'), run: bulkCancelDirect }]}
+      />
+
       {/* Admin-Matching 12-Column Table Layout */}
       <div className="bg-plaster-surface rounded-3xl border border-soot/10 overflow-hidden shadow-2xs relative z-10">
         <div className="hidden lg:grid grid-cols-12 gap-6 px-6 py-4 border-b border-soot/10 text-xs font-semibold uppercase tracking-wider text-moss bg-plaster-dark/40 items-center">
-          <div className="col-span-5">{t('myBookings.colWorkspace')}</div>
+          <div className="col-span-5 flex items-center gap-3">
+            <input
+              type="checkbox"
+              aria-label={t('bookingsList.selectAll')}
+              checked={directSelection.allSelected}
+              ref={(el) => { if (el) el.indeterminate = directSelection.someSelected; }}
+              onChange={directSelection.toggleAll}
+              className="w-4 h-4 rounded border-soot/30 accent-soot cursor-pointer"
+            />
+            <span>{t('myBookings.colWorkspace')}</span>
+          </div>
           <div className="col-span-3">{t('myBookings.colPeriod')}</div>
           <div className="col-span-2">{t('myBookings.colPlan')}</div>
           <div className="col-span-1">{t('myBookings.colAmount')}</div>
@@ -353,6 +439,14 @@ export default function MyBookings() {
               >
                 {/* Workspace Name & Image */}
                 <div className="col-span-5 flex items-center gap-3.5 min-w-0">
+                  <input
+                    type="checkbox"
+                    aria-label={t('bookingsList.selectRow')}
+                    checked={directSelection.isSelected(b.id)}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={() => directSelection.toggle(b.id)}
+                    className="w-4 h-4 rounded border-soot/30 accent-soot cursor-pointer shrink-0"
+                  />
                   <img
                     src={b.spaceImage || FALLBACK_SPACE_IMAGE}
                     alt={b.spaceName}

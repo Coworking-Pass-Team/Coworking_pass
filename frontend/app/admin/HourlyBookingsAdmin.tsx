@@ -34,6 +34,10 @@ import {
   HourlyBookingItemApi 
 } from '@/services/authApi';
 import Modal from '@/components/ui/Modal';
+import BookingSortSelect from '@/components/bookings/BookingSortSelect';
+import BulkActionBar from '@/components/bookings/BulkActionBar';
+import { useBookingSelection } from '@/components/bookings/useBookingSelection';
+import { hourlyEffectiveStatus, sortBookings, type BookingSortOrder } from '@/lib/bookingLifecycle';
 
 export default function HourlyBookingsAdmin() {
   const { t, translateMessage, lang } = useI18n();
@@ -44,6 +48,7 @@ export default function HourlyBookingsAdmin() {
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<'ALL' | 'ACTIVE' | 'CANCELLED' | 'EXPIRED'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortOrder, setSortOrder] = useState<BookingSortOrder>('newest');
 
   // Create Modal State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -229,7 +234,10 @@ export default function HourlyBookingsAdmin() {
     }
   };
 
-  const filteredBookings = bookings.filter(b => {
+  // A session that has already ended is shown as expired, whatever status it was saved with
+  const effectiveBookings = bookings.map(b => ({ ...b, status: hourlyEffectiveStatus(b) }));
+
+  const filteredBookings = sortBookings(effectiveBookings.filter(b => {
     const matchesStatus = filterStatus === 'ALL' || b.status === filterStatus;
     const userName = b.user?.name || '';
     const userEmail = b.user?.email || '';
@@ -244,11 +252,35 @@ export default function HourlyBookingsAdmin() {
       sectionName.toLowerCase().includes(search) ||
       pkgName.toLowerCase().includes(search);
     return matchesStatus && matchesSearch;
-  });
+  }), sortOrder);
 
-  const totalCount = bookings.length;
-  const activeCount = bookings.filter(b => b.status === 'ACTIVE').length;
-  const cancelledCount = bookings.filter(b => b.status === 'CANCELLED').length;
+  const selection = useBookingSelection(filteredBookings.map(b => b.id));
+
+  const bulkCancel = async () => {
+    const targets = filteredBookings.filter(b => selection.isSelected(b.id) && b.status === 'ACTIVE');
+    if (targets.length === 0) {
+      showToast(t('bookingsList.nothingToCancel'), 'info');
+    } else {
+      const results = await Promise.all(targets.map(b => updateHourlyBookingApi(b.id, { status: 'CANCELLED' })));
+      const doneIds = new Set(targets.filter((_, i) => results[i].success).map(b => b.id));
+      setBookings(prev => prev.map(b => (doneIds.has(b.id) ? { ...b, status: 'CANCELLED' } : b)));
+      showToast(t('bookingsList.doneCancelled', { count: doneIds.size }), 'info');
+    }
+    selection.clear();
+  };
+
+  const bulkDelete = async () => {
+    const targets = filteredBookings.filter(b => selection.isSelected(b.id));
+    const results = await Promise.all(targets.map(b => deleteHourlyBookingApi(b.id)));
+    const doneIds = new Set(targets.filter((_, i) => results[i].success).map(b => b.id));
+    setBookings(prev => prev.filter(b => !doneIds.has(b.id)));
+    showToast(t('bookingsList.doneDeleted', { count: doneIds.size }), 'info');
+    selection.clear();
+  };
+
+  const totalCount = effectiveBookings.length;
+  const activeCount = effectiveBookings.filter(b => b.status === 'ACTIVE').length;
+  const cancelledCount = effectiveBookings.filter(b => b.status === 'CANCELLED').length;
   const packagesCount = packages.length;
 
   return (
@@ -397,6 +429,32 @@ export default function HourlyBookingsAdmin() {
         </div>
       </div>
 
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <BookingSortSelect value={sortOrder} onChange={setSortOrder} />
+        {filteredBookings.length > 0 && (
+          <label className="inline-flex items-center gap-2 text-xs font-medium text-soot cursor-pointer">
+            <input
+              type="checkbox"
+              aria-label={t('bookingsList.selectAll')}
+              checked={selection.allSelected}
+              ref={(el) => { if (el) el.indeterminate = selection.someSelected; }}
+              onChange={selection.toggleAll}
+              className="w-4 h-4 rounded border-soot/30 accent-soot cursor-pointer"
+            />
+            {t('bookingsList.selectAll')}
+          </label>
+        )}
+      </div>
+
+      <BulkActionBar
+        count={selection.count}
+        onClear={selection.clear}
+        actions={[
+          { key: 'cancel', kind: 'cancel', label: t('bookingsList.cancelSelected'), run: bulkCancel },
+          { key: 'delete', kind: 'delete', label: t('bookingsList.deleteSelected'), run: bulkDelete },
+        ]}
+      />
+
       {/* Bookings Grid View */}
       {loading && bookings.length === 0 ? (
         <div className="text-center py-20 bg-white rounded-3xl border border-soot/10 shadow-xs">
@@ -434,6 +492,14 @@ export default function HourlyBookingsAdmin() {
                 <div>
                   {/* Card Status & Actions Bar */}
                   <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2.5">
+                      <input
+                        type="checkbox"
+                        aria-label={t('bookingsList.selectRow')}
+                        checked={selection.isSelected(b.id)}
+                        onChange={() => selection.toggle(b.id)}
+                        className="w-4 h-4 rounded border-soot/30 accent-soot cursor-pointer"
+                      />
                     <span className={`inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold tracking-wider ${
                       isCancelled
                         ? 'bg-rose-100 text-rose-800 border border-rose-200'
@@ -444,6 +510,7 @@ export default function HourlyBookingsAdmin() {
                       {isCancelled ? <XCircle size={13} /> : <CheckCircle2 size={13} />}
                       <span>{translateMessage(b.status || 'ACTIVE')}</span>
                     </span>
+                    </div>
 
                     <div className="flex items-center gap-1">
                       <button

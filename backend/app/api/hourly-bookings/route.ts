@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getTokenFromRequest, unauthorizedResponse, suspendedResponse } from "@/lib/auth/verify-token";
 import { seedStandardWorkspaces } from '@/lib/seed-data';
 import { getKsaNow, parseDateAndTimeToKsaDate } from '@/lib/time-utils';
+import { hourlyBookingEffectiveStatus } from '@/lib/booking-lifecycle';
 import { effectiveCapacity, getOccupiedSeats } from '@/lib/capacity';
 import { hiddenWorkspaceError } from '@/lib/workspace-visibility';
 import { getOwnedWorkspaceIds } from '@/lib/ownership';
@@ -34,7 +35,7 @@ export async function GET(request: Request) {
 
     const bookings = await prisma.hourlyBooking.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ startDate: 'desc' }, { createdAt: 'desc' }],
       include: {
         user: { select: { id: true, name: true, email: true } },
         workspace: { select: { id: true, name: true, city: true, images: true } },
@@ -60,7 +61,7 @@ export async function GET(request: Request) {
       if (p.referenceId) paidByBooking.set(p.referenceId, (paidByBooking.get(p.referenceId) || 0) + p.amount);
     }
 
-    return NextResponse.json(bookings.map((b) => ({ ...b, paidAmount: paidByBooking.get(b.id) ?? null })));
+    return NextResponse.json(bookings.map((b) => ({ ...b, paidAmount: paidByBooking.get(b.id) ?? null, effectiveStatus: hourlyBookingEffectiveStatus(b) })));
   } catch (error) {
     console.error('❌ Error fetching hourly bookings:', error)
     return NextResponse.json(
