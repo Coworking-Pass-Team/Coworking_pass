@@ -377,7 +377,7 @@
     "maxRate": "Max Rate",
     "includedAmenities": "Included Amenities",
     "availabilityLabel": "Availability",
-    "availableOnly": "Available Desks Only",
+    "availableOnly": "Available Spaces Only",
     "noSpaces": "No spaces found",
     "resetFilters": "Reset Filters",
     "searchPlaceholder": "Search by space name, district, or keywords...",
@@ -386,7 +386,7 @@
   },
   "spaceDetails": {
     "reviews": "({count} reviews)",
-    "totalCapacityDesks": "Total Capacity: {count} desks",
+    "totalCapacityDesks": "Total Capacity: {count} seats",
     "pointsBonus": "{multiplier}× Points Bonus",
     "passCoverage": "Pass Coverage",
     "workspaceRate": "Workspace Rate",
@@ -1169,7 +1169,7 @@
     "scheduleSeats": "Schedule & Seats",
     "hourlyBooking": "Hourly Booking",
     "monthlyDuration": "Monthly Duration",
-    "numReserved": "Number of Reserved Desks / Seats",
+    "numReserved": "Number of Reserved Seats",
     "planCoverage": "Subscription Plan Coverage",
     "notes": "Special Requests or Notes (Optional)",
     "durationHours": "Duration (Hours)",
@@ -1402,7 +1402,7 @@
       "company": "Company name *",
       "contact": "Contact name",
       "email": "Contact email *",
-      "desks": "Desks required",
+      "desks": "Seats required",
       "requirements": "Requirements"
     },
     "orgPlansBadge": "Organization & Enterprise Pass Plans"

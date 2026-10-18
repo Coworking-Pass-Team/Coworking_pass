@@ -36,6 +36,7 @@ const individualPlans: PlanItem[] = [
       'High-speed business fiber WiFi',
       'Complimentary specialty coffee & tea',
       'Flexible booking & cancel anytime',
+      'Meeting rooms, theaters and private offices are paid directly',
     ],
     featured: false,
     cta: 'Select Day Pass',
@@ -50,7 +51,8 @@ const individualPlans: PlanItem[] = [
     features: [
       'Network access across Saudi',
       '2 Guest passes per month',
-      '8 Hours monthly meeting room & theater credits (renews monthly)',
+      '8 hours a month for meeting rooms & theaters, one shared balance (renews monthly)',
+      'Private offices are paid directly, not part of the pass',
       'Priority waitlist & booking access',
       'Full community directory networking',
       'Dedicated phone booths access',
@@ -69,7 +71,7 @@ const individualPlans: PlanItem[] = [
     features: [
       'All Monthly Pass network privileges',
       '5 Guest passes per month',
-      '12 Hours monthly meeting room & theater credits (renews monthly)',
+      '12 hours a month for meeting rooms & theaters, one shared balance (renews monthly)',
       'Dedicated personal storage locker',
       'Registered commercial business address',
       'Two months free vs monthly billing',
@@ -84,13 +86,13 @@ const corporatePlans: PlanItem[] = [
   {
     id: 'team',
     name: 'Team Pass',
-    tier: '5–20 Desks',
+    tier: '5–20 Members',
     price: 7500,
     period: '/month',
-    desc: 'For agile startups looking for high-end flexible desk allocation.',
+    desc: 'For agile teams that book meeting rooms and theaters together.',
     features: [
       'Shared team access across the network',
-      '10 Hours monthly meeting room access',
+      '10 hours a month for meeting rooms & theaters, shared by the team',
       'Centralized HR admin dashboard',
       'Single consolidated monthly VAT invoice',
       'Instant seat addition or downgrade',
@@ -102,13 +104,13 @@ const corporatePlans: PlanItem[] = [
   {
     id: 'business',
     name: 'Business Pass',
-    tier: '21–50 Desks',
+    tier: '21–50 Members',
     price: 18000,
     period: '/month',
     desc: 'Complete Kingdom coverage for regional enterprises and branches.',
     features: [
-      'Dedicated team bays & private suites',
-      'Unlimited meeting room reservations',
+      'Private offices billed directly on your corporate invoice',
+      'Unlimited meeting room & theater reservations',
       'Dedicated enterprise account manager',
       'Custom corporate billing terms (30-day net)',
       'Multi-city onboarding & badge access',
@@ -125,6 +127,10 @@ const faqs = [
   {
     q: 'Can I cancel or upgrade my pass anytime?',
     a: 'Yes. All daily and monthly passes can be cancelled or upgraded directly from your dashboard with zero penalty fees before the next billing cycle.',
+  },
+  {
+    q: 'What does my pass cover?',
+    a: 'Meeting rooms and theaters are covered by your monthly hours (8 on the Monthly Pass, 12 on the Yearly Pass), drawn from one balance shared between both. Extra hours are charged at the space\'s hourly rate. Private offices are always paid directly.',
   },
   {
     q: 'Which cities across Saudi Arabia are included?',
