@@ -49,7 +49,7 @@ registerMessages({
   'Exclusive private floor branding': 'هوية بصرية حصرية لطابق خاص',
   '12 Hours monthly meeting room & theater credits (renews monthly)': '12 ساعة شهرياً لغرف الاجتماعات والمسارح (تتجدد شهرياً)',
   '8 Hours monthly meeting room & theater credits (renews monthly)': '8 ساعات شهرياً لغرف الاجتماعات والمسارح (تتجدد شهرياً)',
-  '2 Guest passes per month': 'تصريحا ضيف شهرياً',
+  '2 Guest passes per month': '2 تصاريح ضيوف شهرياً',
   '5 Guest passes per month': '5 تصاريح ضيوف شهرياً',
   // FAQ
   'Can I cancel or upgrade my pass anytime?': 'هل يمكنني إلغاء باقتي أو ترقيتها في أي وقت؟',
