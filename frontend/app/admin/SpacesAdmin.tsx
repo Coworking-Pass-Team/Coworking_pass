@@ -832,11 +832,15 @@ export default function SpacesAdmin() {
                         )}
                       </div>
                       <div className="flex items-center gap-1.5 text-xs text-moss mt-1 font-medium">
-                        <span className="flex items-center gap-1 text-soot">
-                          <Star size={12} className="fill-amber-400 text-amber-400" />
-                          {space.rating}
-                        </span>
-                        <span>·</span>
+                        {(space.reviewCount ?? 0) > 0 && (
+                          <>
+                            <span className="flex items-center gap-1 text-soot">
+                              <Star size={12} className="fill-amber-400 text-amber-400" />
+                              {space.rating}
+                            </span>
+                            <span>·</span>
+                          </>
+                        )}
                         <span className="capitalize">{st.typeLabel(space.type)}</span>
                       </div>
 
