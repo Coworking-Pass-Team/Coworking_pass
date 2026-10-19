@@ -1,5 +1,11 @@
 import { test, expect, Page } from '@playwright/test';
 
+// The six verification-code boxes: the first one also accepts a pasted code (one-time-code, maxlength 6)
+const OTP_BOXES = 'input[autocomplete="one-time-code"], input[maxlength="1"]';
+// Seeded super admin from TEST_ACCOUNTS.md (override with QA_ADMIN_EMAIL / QA_ADMIN_PASSWORD)
+const ADMIN_EMAIL = process.env.QA_ADMIN_EMAIL || 'superadmin@cwp-test.local';
+const ADMIN_PASSWORD = process.env.QA_ADMIN_PASSWORD || 'Test@12345';
+
 /**
  * Regression checks for the QA audit. Unlike the smoke tests in e2e.spec.ts these assert concrete
  * outcomes. They run against the local frontend (port 3000) with the backend on port 3001.
@@ -145,10 +151,10 @@ test.describe('Sign-in screens in Arabic', () => {
 
   test('verification-code screen is Arabic', async ({ page }) => {
     await openLogin(page);
-    await page.locator('input[type=email]').fill('admin@coworkingpass.sa');
-    await page.locator('input[type=password]').fill('password');
+    await page.locator('input[type=email]').fill(ADMIN_EMAIL);
+    await page.locator('input[type=password]').fill(ADMIN_PASSWORD);
     await page.locator('button[type=submit]').click();
-    await expect(page.locator('input[maxlength="1"]').first()).toBeVisible({ timeout: 15000 });
+    await expect(page.locator(OTP_BOXES).first()).toBeVisible({ timeout: 15000 });
     await page.waitForTimeout(800);
     const text = await page.evaluate(() => document.body.innerText);
     expect(text).toMatch(/التحقق الأمني بخطوتين/);
@@ -314,10 +320,10 @@ test.describe('Admin portal (local development account)', () => {
         b.forEach((x) => (x as HTMLElement).click());
       });
     }
-    await page.locator('input[type=email]').fill('admin@coworkingpass.sa');
-    await page.locator('input[type=password]').fill('password');
+    await page.locator('input[type=email]').fill(ADMIN_EMAIL);
+    await page.locator('input[type=password]').fill(ADMIN_PASSWORD);
     await page.locator('button[type=submit]').click();
-    const boxes = page.locator('input[maxlength="1"]');
+    const boxes = page.locator(OTP_BOXES);
     await expect(boxes).toHaveCount(6, { timeout: 15000 });
     for (let i = 0; i < 6; i++) await boxes.nth(i).fill('123456'[i]);
     await page.getByRole('button', { name: /verify|continue/i }).first().click();
@@ -341,7 +347,7 @@ test.describe('Member bookings and notifications (seeded test account)', () => {
     await page.locator('input[type=email]').fill('individual@cwp-test.local');
     await page.locator('input[type=password]').fill('Test@12345');
     await page.locator('button[type=submit]').click();
-    const boxes = page.locator('input[maxlength="1"]');
+    const boxes = page.locator(OTP_BOXES);
     await expect(boxes).toHaveCount(6, { timeout: 15000 });
     for (let i = 0; i < 6; i++) await boxes.nth(i).fill('123456'[i]);
     await page.evaluate(() => {

@@ -23,6 +23,8 @@ import {
   Wallet
 } from 'lucide-react';
 import { useApp } from '@/app/store';
+import { useSpaceText } from '@/i18n/space-text';
+import { durationLabel } from '@/i18n/duration';
 import { formatHourlyTimeRange } from '@/types/types';
 
 interface CartDrawerProps {
@@ -39,6 +41,7 @@ function formatDateNice(dateStr?: string) {
 
 export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   const { t, translateMessage, localizeTime, formatDate } = useI18n();
+  const st = useSpaceText();
   const { cart, removeFromCart, updateCartItemSeats, clearCart, checkoutCart, currentUser, spaces, navigate, withdrawFromWallet } = useApp();
   const [step, setStep] = useState<'cart' | 'review'>('cart');
   const [useLoyaltyPoints, setUseLoyaltyPoints] = useState(false);
@@ -217,7 +220,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                       </div>
                     </div>
                     <span className="font-bold text-amber-950 bg-amber-200/60 px-2.5 py-1 rounded-xl text-xs">
-                      +{earnedLoyaltyPoints} Points
+                      {t('bf.loyaltyPointsPlus', { points: earnedLoyaltyPoints })}
                     </span>
                   </div>
                 )}
@@ -232,17 +235,17 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                       <div className="flex items-center gap-3 min-w-0">
                         <img
                           src={item.spaceImage}
-                          alt={item.spaceName}
+                          alt={st.bookingName(item)}
                           className="w-12 h-12 rounded-xl object-cover border border-soot/10 shrink-0 shadow-2xs"
                         />
                         <div className="min-w-0">
-                          <h4 className="font-semibold text-soot text-sm truncate">{item.spaceName}</h4>
+                          <h4 className="font-semibold text-soot text-sm truncate">{st.bookingName(item)}</h4>
                           <div className="flex items-center gap-1 text-xs text-moss mt-0.5">
                             <MapPin size={11} className="shrink-0" />
-                            <span className="truncate">{item.spaceCity}</span>
+                            <span className="truncate">{st.bookingCity(item)}</span>
                             <span className="mx-1">•</span>
                             <span className="font-semibold uppercase text-[10px] text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
-                              {item.plan}
+                              {t(`bf.planName.${item.plan}` as never)}
                             </span>
                           </div>
                         </div>
@@ -367,7 +370,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                         {idx + 1}
                       </span>
                       <h4 className="font-semibold text-soot text-sm truncate max-w-[200px]">
-                        {item.spaceName}
+                        {st.bookingName(item)}
                       </h4>
                     </div>
                     <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-moss/10 text-moss">
@@ -516,11 +519,11 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
             <div className="space-y-2 text-xs text-soot">
               <div className="flex justify-between">
                 <span className="text-moss">{t('cart.workspacesSelected')}</span>
-                <span className="font-semibold">{cart.length} Locations</span>
+                <span className="font-semibold">{cart.length}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-moss">{t('cart.totalSeats')}</span>
-                <span className="font-semibold">{totalSeats} Seats</span>
+                <span className="font-semibold">{durationLabel(t, 'seat', totalSeats)}</span>
               </div>
               {earnedLoyaltyPoints > 0 && (
                 <div className="flex justify-between text-amber-900 bg-amber-50 px-2 py-1 rounded-lg">
@@ -528,7 +531,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                     <Sparkles size={12} className="text-amber-700" />
                     {t('tb.pointsEarned')}
                   </span>
-                  <span className="font-bold">+{earnedLoyaltyPoints} Pts</span>
+                  <span className="font-bold">{t('bf.loyaltyPointsPlus', { points: earnedLoyaltyPoints })}</span>
                 </div>
               )}
               {pointsDiscount > 0 && (
@@ -545,11 +548,14 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
               )}
               <div className="flex justify-between text-sm pt-2 border-t border-soot/10 font-bold items-center">
                 <span className="text-soot font-serif-display text-base">
-                  {finalTotalAmount === 0 && hasActiveSubscription ? t('cart.passCoverage') : t('cart.totalAmount')}
+                  {totalAmount === 0 && hasActiveSubscription ? t('cart.passCoverage') : t('cart.totalAmount')}
                 </span>
                 {finalTotalAmount === 0 ? (
                   <span className="text-moss font-bold text-xs sm:text-sm bg-eucalyptus/30 px-3 py-1 rounded-full border border-eucalyptus/40">
-                    {hasActiveSubscription ? t('cart.coveredActive') : t('cart.zeroToPayPlan')}
+                    {/* Nothing left to pay: say what actually covered it (the pass, or the wallet / points) */}
+                    {totalAmount === 0
+                      ? (hasActiveSubscription ? t('cart.coveredActive') : t('cart.zeroToPayPlan'))
+                      : walletDeduction > 0 ? translateMessage('Paid with Wallet') : t('cart.zeroToPayPlan')}
                   </span>
                 ) : (
                   <span className="text-soot font-serif-display text-lg text-emerald-900">
@@ -595,8 +601,10 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                 >
                   <CreditCard size={16} />
                   <span>
-                    {finalTotalAmount === 0
+                    {totalAmount === 0
                       ? (hasActiveSubscription ? t('cart.confirmCovered') : t('cart.confirmIncluded'))
+                      : finalTotalAmount === 0 && walletDeduction > 0
+                      ? t('bf.payWallet', { currency: t('common.sar'), amount: walletDeduction.toLocaleString() })
                       : t('cart.confirmPay', { currency: t('common.sar'), amount: finalTotalAmount.toLocaleString() })}
                   </span>
                 </button>
