@@ -694,7 +694,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationStatus, setLocationStatus] = useState<'idle' | 'loading' | 'granted' | 'denied' | 'unavailable' | 'unsupported'>('idle');
   const [locationErrorMessage, setLocationErrorMessage] = useState<string | null>(null);
-  const [bookings, setBookings] = useState<Booking[]>(INITIAL_BOOKINGS);
+  // Bookings come from the server (plus this browser's pending ones); the demo bookings are never shown as real data
+  const [bookings, setBookings] = useState<Booking[]>([]);
   const [users, setUsers] = useState<User[]>(INITIAL_USERS);
   const [favorites, setFavorites] = useState<string[]>(() => {
     if (typeof window !== 'undefined') {
@@ -2306,13 +2307,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
         });
 
         setUsers((prev) => {
-          const map = new Map<string, User>();
+          // The server list is complete: accounts it does not return (demo users, deleted accounts) are dropped,
+          // while extra details this browser holds for a real account are kept
+          const previous = new Map<string, User>();
           prev.forEach((u) => {
-            if (u.email) map.set(u.email.toLowerCase(), u);
+            if (u.email) previous.set(u.email.toLowerCase(), u);
           });
+          const map = new Map<string, User>();
           mappedUsers.forEach((u) => {
             if (u.email) {
-              const existing = map.get(u.email.toLowerCase());
+              const existing = previous.get(u.email.toLowerCase());
               map.set(u.email.toLowerCase(), {
                 ...existing,
                 ...u,
@@ -3310,7 +3314,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const sanitizeBookings = (list: Booking[]): Booking[] => {
     const seen = new Set<string>();
-    return list.map((b, idx) => {
+    // Older builds saved the demo bookings into every browser: drop them
+    const demoIds = new Set(INITIAL_BOOKINGS.map((d) => d.id));
+    return list.filter((b) => !demoIds.has(b.id)).map((b, idx) => {
       let uniqueId = b.id;
       if (!uniqueId || seen.has(uniqueId)) {
         uniqueId = `${b.id || 'booking'}-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 6)}`;
@@ -3407,12 +3413,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           setBookings(sanitized);
           localStorage.setItem('cp_bookings', JSON.stringify(sanitized));
         } catch (e) {
-          setBookings(sanitizeBookings(INITIAL_BOOKINGS));
+          setBookings([]);
         }
-      } else {
-        const sanitized = sanitizeBookings(INITIAL_BOOKINGS);
-        setBookings(sanitized);
-        localStorage.setItem('cp_bookings', JSON.stringify(sanitized));
       }
 
       // Drop the demo notifications older builds seeded into every browser (ids notif-1 ... notif-99)

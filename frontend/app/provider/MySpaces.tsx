@@ -699,8 +699,8 @@ function ProviderMySpacesContent() {
                         <span className="text-sm font-semibold text-soot group-hover:text-emerald-900 transition-colors truncate">
                           {st.name(space)}
                         </span>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-soot/8 text-soot border border-soot/10 shrink-0 capitalize">
-                          {cat}
+                        <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-soot/8 text-soot border border-soot/10 shrink-0">
+                          {t(`bf.category.${cat}` as never)}
                         </span>
                         {!space.isVisible && (
                           <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-red-500/10 text-red-700 shrink-0">
@@ -709,12 +709,17 @@ function ProviderMySpacesContent() {
                         )}
                       </div>
                       <div className="flex items-center gap-1.5 text-xs text-moss mt-1 font-medium">
-                        <span className="flex items-center gap-1 text-soot">
-                          <Star size={12} className="fill-amber-400 text-amber-400" />
-                          {space.rating || '4.8'}
-                        </span>
-                        <span>·</span>
-                        <span className="capitalize">{space.type.replace('-', ' ')}</span>
+                        {/* A rating is only shown once the space has reviews */}
+                        {(space.reviewCount ?? 0) > 0 && space.rating ? (
+                          <>
+                            <span className="flex items-center gap-1 text-soot">
+                              <Star size={12} className="fill-amber-400 text-amber-400" />
+                              {space.rating}
+                            </span>
+                            <span>·</span>
+                          </>
+                        ) : null}
+                        <span>{st.typeLabel(space.type)}</span>
                       </div>
 
                       {/* Amenities Chips in Table */}
@@ -1213,7 +1218,7 @@ function ProviderMySpacesContent() {
                 ).map((plan) => (
                   <div key={plan} className="space-y-1">
                     <span className="block text-[10px] font-bold text-moss uppercase tracking-wider">
-                      {plan === 'hourly' ? '1 Hour (Base Rate)' : plan}
+                      {plan === 'hourly' ? t('mySpaces.hourBaseRate') : t(`bf.planName.${plan}` as never)}
                     </span>
                     <input
                       type="number"
@@ -1478,7 +1483,7 @@ function ProviderMySpacesContent() {
       >
         <div className="text-sm text-soot space-y-2 py-2">
           <p>
-            {translateMessage('Are you sure you want to delete')} <span className="font-semibold">{spaceToDelete?.name}</span>?
+            {t('mySpaces.deleteQuestion', { name: spaceToDelete ? st.name(spaceToDelete) : '' })}
           </p>
           <p className="text-xs text-moss">{t('mySpaces.deleteWarning')}</p>
         </div>

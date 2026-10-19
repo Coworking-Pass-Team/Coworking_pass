@@ -1,6 +1,7 @@
 'use client';
 
 import { useI18n } from '@/i18n';
+import { useSpaceText } from '@/i18n/space-text';
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Warehouse,
@@ -39,6 +40,7 @@ export default function ProviderProfileSettings() {
 /** All hooks live here, so the session check above can return early without changing the hook order. */
 function ProviderProfileSettingsContent() {
   const { t, translateMessage, formatDate } = useI18n();
+  const st = useSpaceText();
   const { currentUser: sessionUser, navigate, nav, updateCurrentUser, spaces, partners, showToast } = useApp();
   // Rendered only while a user is signed in (checked by the wrapper above)
   const currentUser = sessionUser!;
@@ -278,7 +280,7 @@ function ProviderProfileSettingsContent() {
                 </div>
 
                 <div className="text-xs sm:text-sm text-moss font-normal flex flex-wrap items-center gap-3">
-                  <span>Manager: {currentUser.name}</span>
+                  <span>{t('prov.profile.manager', { name: currentUser.name })}</span>
                   <span>•</span>
                   <span>{currentUser.city || translateMessage('Riyadh, Saudi Arabia')}</span>
                   {currentUser.website && (
@@ -416,7 +418,7 @@ function ProviderProfileSettingsContent() {
                   {t('prov.ps.partnerNetworkMemberSince')}
                 </div>
                 <div className="text-sm font-normal text-soot">
-                  {currentUser.joinDate || 'May 2023'}
+                  {currentUser.joinDate ? formatDate(currentUser.joinDate) : '—'}
                 </div>
               </div>
             </div>
@@ -461,7 +463,7 @@ function ProviderProfileSettingsContent() {
                       <div className="text-sm font-medium text-soot truncate">{space.name}</div>
                       <div className="text-xs text-moss flex items-center gap-1 mt-0.5">
                         <MapPin size={11} />
-                        <span>{space.city} · <span className="capitalize">{space.type.replace('-', ' ')}</span></span>
+                        <span>{st.city(space)} · {st.typeLabel(space.type)}</span>
                       </div>
                       <div className="text-xs font-medium text-soot mt-1">
                         {t('common.sar')} {space.pricing.daily} <span className="text-[10px] text-moss font-normal">{t('prov.ps.day')}</span>

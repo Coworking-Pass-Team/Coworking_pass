@@ -5,6 +5,7 @@ import { Warehouse, CalendarDays, TrendingUp, Percent, ArrowRight, MapPin, Build
 import { useApp } from '@/app/store';
 import { useSpaceText } from '@/i18n/space-text';
 import { useLabels } from '@/i18n/labels';
+import { durationLabel } from '@/i18n/duration';
 import { getBookingPrice, getSpaceCategory, isHourlyAllowed } from '@/types/types';
 
 const FALLBACK_SPACE_IMAGE = 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80';
@@ -156,14 +157,14 @@ export default function ProviderDashboard() {
                     </div>
                     <div className="flex items-center gap-1.5 text-xs text-moss mt-1 font-medium">
                       <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-soot/8 text-soot border border-soot/10 capitalize">
-                        {getSpaceCategory(space)}
+                        {t(`bf.category.${getSpaceCategory(space)}` as never)}
                       </span>
                       <span>·</span>
                       <MapPin size={12} className="text-moss shrink-0" />
-                      <span className="truncate">{space.city}</span>
+                      <span className="truncate">{st.city(space)}</span>
                       <span>·</span>
                       <span>
-                        {space.availableCapacity ?? 0}/{space.totalCapacity || 0} available
+                        {t('prov.dash.availableOf', { available: space.availableCapacity ?? 0, total: space.totalCapacity || 0 })}
                       </span>
                     </div>
                   </div>
@@ -172,7 +173,7 @@ export default function ProviderDashboard() {
                   <div className="text-end text-xs font-semibold text-soot shrink-0">
                     {t('common.sar')} {isHourlyAllowed(space) ? (space.pricing?.hourly ?? 150) : (space.pricing?.daily ?? 0)}
                     <span className="text-[10px] text-moss font-normal block">
-                      {isHourlyAllowed(space) ? '/ hour' : '/ day'}
+                      {isHourlyAllowed(space) ? t('prov.dash.perHour') : t('prov.dash.perDay')}
                     </span>
                   </div>
                 </div>
@@ -218,7 +219,7 @@ export default function ProviderDashboard() {
                       {st.bookingName(b)}
                     </div>
                     <div className="text-xs text-moss mt-0.5 truncate">
-                      {b.seats} seat{b.seats > 1 ? 's' : ''} · <span className="capitalize">{b.plan === 'hourly' ? `Hourly (${b.durationHours || 1} ${b.durationHours === 1 ? 'hr' : 'hrs'})` : b.plan}</span>
+                      {durationLabel(t, 'seat', b.seats)} · <span>{b.plan === 'hourly' ? `${lb.plan('hourly')} (${durationLabel(t, 'hour', b.durationHours || 1)})` : lb.plan(b.plan)}</span>
                     </div>
                   </div>
                   <div className="text-end shrink-0">

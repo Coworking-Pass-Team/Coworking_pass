@@ -194,7 +194,9 @@
     "ratesBadgeAll": "Hourly • Daily • Monthly • Yearly",
     "ratesBadgeNoHourly": "Daily • Monthly • Yearly (No Hourly)",
     "addAmenity": "Add",
-    "requestAmenity": "Request Admin"
+    "requestAmenity": "Request Admin",
+    "hourBaseRate": "1 Hour (Base Rate)",
+    "deleteQuestion": "Are you sure you want to delete {name}?"
   },
   "space": {
     "available": "Available",
@@ -1332,7 +1334,10 @@
     "planCoverage": "Corporate Subscription Plan Coverage",
     "decrease": "Decrease seats",
     "increase": "Increase seats",
-    "hourlyNotice": "Reservations for this venue are booked and priced on an hourly basis within the venue operating hours ({hours}). You can select your required duration in hours and specific time slot in the Schedule step."
+    "hourlyNotice": "Reservations for this venue are booked and priced on an hourly basis within the venue operating hours ({hours}). You can select your required duration in hours and specific time slot in the Schedule step.",
+    "dateRange": "Date Range",
+    "seatsAvailable": "{count} available",
+    "selectedOf": "{selected} of {total} selected"
   },
   "notifPage": {
     "newCount": "{count} new",
@@ -2057,7 +2062,10 @@
       "activeBookings": "Active Bookings",
       "totalRevenue": "Total Revenue",
       "occupancy": "Occupancy Rate",
-      "noneListed": "You haven't listed a workspace yet"
+      "noneListed": "You haven't listed a workspace yet",
+      "availableOf": "{available}/{total} available",
+      "perHour": "/ hour",
+      "perDay": "/ day"
     },
     "bk": {
       "spaceFilter": "{status} Bookings",
@@ -2203,6 +2211,9 @@
       "eGTheHubRiyadh": "e.g. The Hub Riyadh Holdings",
       "eGNawafAlQahtani": "e.g. Nawaf Al-Qahtani",
       "tellGuestsAboutYourVenue": "Tell guests about your venue amenities, atmosphere, and booking services..."
+    },
+    "profile": {
+      "manager": "Manager: {name}"
     }
   },
   "org": {

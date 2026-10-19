@@ -80,6 +80,9 @@ if (!user) return unauthorizedResponse(request);
         { status: 400 }
       )
     }
+    if (ruleType !== 'EARNING' && ruleType !== 'REDEMPTION') {
+      return NextResponse.json({ error: "ruleType must be 'EARNING' or 'REDEMPTION'." }, { status: 400 })
+    }
 
     const rule = await prisma.loyaltyRule.create({
       data: {
