@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
     if (activeBooking) {
       return NextResponse.json(
         { 
-          error: 'لديك حجز نشط بالفعل. يجب إلغاؤه قبل حجز مساحة أخرى.',
+          error: 'You already have an active booking. Cancel it before booking another space.',
           activeBookingId: activeBooking.id
         },
         { status: 400 }

@@ -28,7 +28,12 @@ import { SupportTicket, TicketCategory, TicketStatus, TicketPriority } from '@/t
 import Modal from '@/components/ui/Modal';
 
 export default function SupportAdmin() {
-  const { t, translateMessage } = useI18n();
+  const { t, translateMessage, formatDate } = useI18n();
+  // Stored timestamps are shown in the active language
+  const when = (value?: string) => {
+    const d = value ? new Date(value) : null;
+    return d && !isNaN(d.getTime()) ? formatDate(d, { dateStyle: 'medium', timeStyle: 'short' }) : value || '';
+  };
   const { supportTickets, updateTicketStatus, replyToTicket, fetchTickets } = useApp();
 
   useEffect(() => {
@@ -172,7 +177,7 @@ export default function SupportAdmin() {
             label: 'Total Tickets',
             count: totalCount,
             badge: 'bg-soot/10 text-soot border border-soot/15',
-            pct: `${totalCount} logged`,
+            pct: t('supportAdmin.logged', { count: totalCount }),
             icon: MessageSquare,
             iconBg: 'bg-soot text-plaster border-soot/20',
           },
@@ -180,7 +185,7 @@ export default function SupportAdmin() {
             label: 'Active Complaints',
             count: complaintCount,
             badge: 'bg-soot/10 text-soot border border-soot/15',
-            pct: `${complaintCount} active`,
+            pct: t('supportAdmin.active', { count: complaintCount }),
             icon: AlertCircle,
             iconBg: 'bg-soot/10 text-soot border-soot/20',
           },
@@ -188,7 +193,7 @@ export default function SupportAdmin() {
             label: 'Refund Requests',
             count: refundCount,
             badge: 'bg-soot/10 text-soot border border-soot/15',
-            pct: `${refundCount} pending`,
+            pct: t('supportAdmin.pending', { count: refundCount }),
             icon: RotateCcw,
             iconBg: 'bg-soot/10 text-soot border-soot/20',
           },
@@ -348,7 +353,7 @@ export default function SupportAdmin() {
                 }}
                 className="text-xs sm:text-sm text-moss font-semibold hover:text-soot hover:underline cursor-pointer px-2"
               >
-                Reset
+                {t('common.reset')}
               </button>
             )}
           </div>
@@ -527,7 +532,7 @@ export default function SupportAdmin() {
 
                       {/* Date */}
                       <td className="px-4 py-4 align-top text-moss text-xs font-mono whitespace-nowrap">
-                        {ticket.createdAt}
+                        {when(ticket.createdAt)}
                       </td>
 
                       {/* Action */}
@@ -558,7 +563,7 @@ export default function SupportAdmin() {
         <Modal
           open={!!selectedTicket}
           onClose={() => setSelectedTicket(null)}
-          title={`Review Ticket #${selectedTicket.ticketNumber}`}
+          title={translateMessage(`Review Ticket #${selectedTicket.ticketNumber}`)}
         >
           <div className="space-y-6 pt-1">
             {/* Ticket Summary Header Card */}
@@ -578,7 +583,7 @@ export default function SupportAdmin() {
                   {selectedTicket.subject}
                 </h3>
                 <p className="text-xs text-moss mt-1 font-mono">
-                  {translateMessage(`Submitted on ${selectedTicket.createdAt}`)}
+                  {translateMessage(`Submitted on ${when(selectedTicket.createdAt)}`)}
                 </p>
               </div>
             </div>
@@ -614,7 +619,7 @@ export default function SupportAdmin() {
                 <div className="space-y-2 max-h-52 overflow-y-auto">
                   {selectedTicket.replies.map((r) => (
                     <div key={r.id} className={`p-3 rounded-2xl border text-xs sm:text-sm whitespace-pre-wrap ${r.userId === selectedTicket.userId ? 'bg-plaster-surface border-soot/12' : 'bg-eucalyptus/15 border-eucalyptus/30'}`}>
-                      <div className="text-[11px] font-semibold text-moss mb-1">{r.userId === selectedTicket.userId ? r.authorName : t('support.you')} · {r.createdAt}</div>
+                      <div className="text-[11px] font-semibold text-moss mb-1">{r.userId === selectedTicket.userId ? r.authorName : t('support.you')} · {when(r.createdAt)}</div>
                       {r.message}
                     </div>
                   ))}

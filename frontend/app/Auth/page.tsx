@@ -33,6 +33,7 @@ import { isValidPhoneNumber, getCountryCallingCode } from 'libphonenumber-js';
 import 'react-phone-number-input/style.css';
 
 function Logo({ onClick }: { onClick: () => void }) {
+  const { t } = useI18n();
   return (
     <button
       type="button"
@@ -41,7 +42,7 @@ function Logo({ onClick }: { onClick: () => void }) {
     >
       <LogoImage className="h-10 sm:h-11 w-auto" />
       <span className="font-semibold text-soot text-lg sm:text-xl group-hover:text-moss transition-colors duration-200">
-        Coworking Pass
+        {t('common.appName')}
       </span>
     </button>
   );

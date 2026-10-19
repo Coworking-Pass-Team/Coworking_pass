@@ -467,7 +467,7 @@ export default function BookingFlow() {
       const pointsUsed = useLoyaltyPoints ? maxRedeemablePoints : 0;
       if (pointsUsed > 0) {
         const updatedPoints = Math.max(0, availablePoints - pointsUsed);
-        updateCurrentUser({ loyaltyPoints: updatedPoints });
+        updateCurrentUser({ loyaltyPoints: updatedPoints }, { silent: true });
 
         if (currentUser) {
           createPointsTransactionApi({
@@ -481,7 +481,7 @@ export default function BookingFlow() {
                 if (ptsRes.success && Array.isArray(ptsRes.data)) {
                   const uPts = ptsRes.data.find((p: any) => p.userId === currentUser.id);
                   if (uPts && typeof uPts.availableBalance === 'number') {
-                    updateCurrentUser({ loyaltyPoints: uPts.availableBalance });
+                    updateCurrentUser({ loyaltyPoints: uPts.availableBalance }, { silent: true });
                   }
                 }
               }).catch(() => {});

@@ -437,7 +437,7 @@ export default function TeamBooking() {
       // Update loyalty points for organization / user
       const pointsUsed = useLoyaltyPoints ? maxRedeemablePoints : 0;
       const updatedPoints = Math.max(0, availablePoints - pointsUsed + earnedPoints);
-      updateCurrentUser({ loyaltyPoints: updatedPoints });
+      updateCurrentUser({ loyaltyPoints: updatedPoints }, { silent: true });
 
       if (pointsUsed > 0 && currentUser) {
         createPointsTransactionApi({
@@ -451,7 +451,7 @@ export default function TeamBooking() {
               if (ptsRes.success && Array.isArray(ptsRes.data)) {
                 const uPts = ptsRes.data.find((p: any) => p.userId === currentUser.id);
                 if (uPts && typeof uPts.availableBalance === 'number') {
-                  updateCurrentUser({ loyaltyPoints: uPts.availableBalance });
+                  updateCurrentUser({ loyaltyPoints: uPts.availableBalance }, { silent: true });
                 }
               }
             }).catch(() => {});

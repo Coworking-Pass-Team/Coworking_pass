@@ -139,7 +139,7 @@ export default function UsersAdmin() {
           phone: '+966 50 000 0000',
           avatar: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=120&h=120&fit=crop&crop=faces',
           isBlocked: false,
-          joinDate: p.createdAt ? new Date(p.createdAt).toISOString().split('T')[0] : '2026-09-21',
+          joinDate: p.createdAt ? new Date(p.createdAt).toISOString().split('T')[0] : '',
           businessName: p.brandName,
           crNumber: p.taxNumber,
           partnerStatus: p.status,
@@ -219,7 +219,7 @@ export default function UsersAdmin() {
     setEditingUser(user);
     setName(user.name);
     setEmail(user.email);
-    setPhone(user.phone || '+966 50 123 4567');
+    setPhone(user.phone || '');
     setRole(user.role);
     setOrgName(user.orgName || '');
     setOrgSize(String(user.orgSize || 10));
@@ -367,7 +367,7 @@ export default function UsersAdmin() {
                   </div>
                   {partner.createdAt && (
                     <div className="text-[11px] text-moss/70 mt-2">
-                      {t('admin.users.submittedOn', { date: new Date(partner.createdAt).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric' }) })}
+                      {t('admin.users.submittedOn', { date: new Date(partner.createdAt).toLocaleDateString(lang === 'ar' ? 'ar-SA-u-ca-gregory-nu-latn' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric' }) })}
                     </div>
                   )}
                 </div>
@@ -717,7 +717,7 @@ export default function UsersAdmin() {
 
                 {/* Joined Date */}
                 <div className="col-span-2 mt-2 md:mt-0 text-xs font-medium text-moss">
-                  {u.joinDate}
+                  {u.joinDate || '—'}
                 </div>
 
                 {/* Actions */}
@@ -970,7 +970,7 @@ export default function UsersAdmin() {
                 onClick={() => setAddEditModal(false)}
                 className="btn-secondary"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 type="button"
@@ -1041,7 +1041,7 @@ export default function UsersAdmin() {
               <div className="space-y-3 text-sm">
                 {[
                   { label: t('admin.users.phone'), value: selectedUser.phone || t('admin.users.na'), icon: Phone },
-                  { label: t('admin.users.memberSince'), value: selectedUser.joinDate, icon: Calendar },
+                  { label: t('admin.users.memberSince'), value: selectedUser.joinDate || t('admin.users.na'), icon: Calendar },
                   ...(selectedUser.role === 'organization'
                     ? [
                         { label: t('admin.users.companyName'), value: selectedUser.orgName || t('admin.users.na'), icon: Building2 },
@@ -1183,7 +1183,7 @@ export default function UsersAdmin() {
                 onClick={() => setBlockModal(false)}
                 className="btn-secondary flex-1"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 type="button"

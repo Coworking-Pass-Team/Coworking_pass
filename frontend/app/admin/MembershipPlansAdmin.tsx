@@ -28,7 +28,7 @@ import {
 import Modal from '@/components/ui/Modal';
 
 export default function MembershipPlansAdmin() {
-  const { t, translateMessage } = useI18n();
+  const { t, translateMessage, formatDate } = useI18n();
   const { showToast } = useApp();
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -229,7 +229,7 @@ export default function MembershipPlansAdmin() {
                   : 'text-moss hover:text-soot hover:bg-soot/5'
               }`}
             >
-              {t === 'ALL' ? translateMessage('All Audiences') : t === 'B2C' ? 'B2C (Individual)' : 'B2B (Corporate)'}
+              {t === 'ALL' ? translateMessage('All Audiences') : t === 'B2C' ? translateMessage('B2C (Individual)') : translateMessage('B2B (Corporate)')}
             </button>
           ))}
         </div>
@@ -316,7 +316,7 @@ export default function MembershipPlansAdmin() {
                   <div className="space-y-2 text-xs text-moss">
                     <div className="flex items-center justify-between">
                       <span>{t('admin.mp.totalVisitsAllowed')}</span>
-                      <span className="font-semibold text-soot">{plan.totalVisitsAllowed} visits</span>
+                      <span className="font-semibold text-soot">{translateMessage(`${plan.totalVisitsAllowed} visits`)}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span>{t('admin.mp.networkAccess')}</span>

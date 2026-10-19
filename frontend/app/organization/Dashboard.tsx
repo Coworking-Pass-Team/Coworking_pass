@@ -194,7 +194,7 @@ export default function OrgDashboard() {
             <div>
               <div className="text-[11px] font-semibold uppercase tracking-wider text-moss mb-1.5">{t('dash.org.renewal')}</div>
               <div className="text-lg font-semibold text-soot">
-                {passRenewalDate ? passRenewalDate.toLocaleDateString(lang === 'ar' ? 'ar-SA-u-nu-latn' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                {passRenewalDate ? passRenewalDate.toLocaleDateString(lang === 'ar' ? 'ar-SA-u-ca-gregory-nu-latn' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
               </div>
               {daysToRenewal !== null && (
                 <div className={`text-[11px] mt-1 ${daysToRenewal <= 7 ? 'text-amber-700 font-semibold' : 'text-moss'}`}>

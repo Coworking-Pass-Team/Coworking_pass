@@ -100,7 +100,7 @@ const emptyForm = (): Partial<Space> => ({
 });
 
 export default function SpacesAdmin() {
-  const { t, translateMessage } = useI18n();
+  const { t, translateMessage, formatDate } = useI18n();
   const st = useSpaceText();
   const { spaces, addSpace, updateSpace, toggleSpaceVisibility, deleteSpace, navigate, amenityRequests, approveAmenityRequest, rejectAmenityRequest, deleteAmenityRequest, getApprovedAmenities } = useApp();
   const [query, setQuery] = useState('');
@@ -713,7 +713,7 @@ export default function SpacesAdmin() {
                         </div>
                       )}
                       <div>
-                        <span className="font-semibold text-soot">{t('admin.spaces.submitted')}</span> {new Date(req.createdAt).toLocaleDateString()}
+                        <span className="font-semibold text-soot">{t('admin.spaces.submitted')}</span> {formatDate(req.createdAt)}
                       </div>
                       {req.rejectionReason && (
                         <div className="text-rose-700 pt-1 font-medium border-t border-soot/10 mt-1">
@@ -1688,7 +1688,7 @@ export default function SpacesAdmin() {
                 onClick={() => setEditModal(false)}
                 className="btn-secondary"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 type="button"
@@ -1727,7 +1727,7 @@ export default function SpacesAdmin() {
                 onClick={() => setDeleteModal(false)}
                 className="btn-secondary flex-1"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 type="button"
@@ -1789,7 +1789,7 @@ export default function SpacesAdmin() {
                 onClick={() => setRejectingReq(null)}
                 className="px-4 py-2 rounded-xl bg-plaster-dark/40 text-soot hover:bg-plaster-dark/70 text-xs font-semibold cursor-pointer"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 type="button"

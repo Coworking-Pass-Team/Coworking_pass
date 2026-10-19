@@ -32,7 +32,7 @@ import {
 import Modal from '@/components/ui/Modal';
 
 export default function SubscriptionsAdmin() {
-  const { t, translateMessage } = useI18n();
+  const { t, translateMessage, formatDate } = useI18n();
   const { showToast, users } = useApp();
   const [subscriptions, setSubscriptions] = useState<SubscriptionItemApi[]>([]);
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
@@ -253,7 +253,7 @@ export default function SubscriptionsAdmin() {
                   : 'text-moss hover:text-soot hover:bg-soot/5'
               }`}
             >
-              {st === 'ALL' ? translateMessage('All Statuses') : st}
+              {st === 'ALL' ? translateMessage('All Statuses') : translateMessage(st)}
             </button>
           ))}
         </div>
@@ -289,8 +289,8 @@ export default function SubscriptionsAdmin() {
           {filteredSubscriptions.map(sub => {
             const isCancelled = sub.status === 'CANCELLED';
             const isExpired = sub.status === 'EXPIRED';
-            const startStr = sub.startDate ? new Date(sub.startDate).toLocaleDateString() : 'N/A';
-            const endStr = sub.endDate ? new Date(sub.endDate).toLocaleDateString() : 'N/A';
+            const startStr = sub.startDate ? formatDate(sub.startDate) : '—';
+            const endStr = sub.endDate ? formatDate(sub.endDate) : '—';
 
             return (
               <div 

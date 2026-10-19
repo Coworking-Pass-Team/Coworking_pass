@@ -32,7 +32,7 @@ import { LoyaltyRule, LoyaltyRuleType, ApprovalStatus } from '@/types/types';
 import Modal from '@/components/ui/Modal';
 
 export default function LoyaltyProposalsAdmin() {
-  const { t, translateMessage } = useI18n();
+  const { t, translateMessage, formatDate } = useI18n();
   const { currentUser, loyaltyRules, fetchLoyaltyRules, updateLoyaltyRuleStatus, deleteLoyaltyRule, showToast } = useApp();
 
   useEffect(() => {
@@ -517,7 +517,7 @@ export default function LoyaltyProposalsAdmin() {
               )}
               <div className="flex justify-between pt-1 border-t border-soot/6">
                 <span className="text-moss">{t('loyaltyAdmin.submissionDate')}</span>
-                <span className="text-soot">{new Date(selectedDetailRule.createdAt).toLocaleDateString()}</span>
+                <span className="text-soot">{formatDate(selectedDetailRule.createdAt)}</span>
               </div>
             </div>
 
@@ -544,7 +544,7 @@ export default function LoyaltyProposalsAdmin() {
                 onClick={() => setSelectedDetailRule(null)}
                 className="px-4 py-2 rounded-xl text-xs font-medium text-moss hover:text-soot cursor-pointer"
               >
-                Close
+                {t('common.close')}
               </button>
 
               {selectedDetailRule.status === 'PENDING_APPROVAL' && (
@@ -626,7 +626,7 @@ export default function LoyaltyProposalsAdmin() {
                 onClick={() => setApproveConfirmRule(null)}
                 className="px-4 py-2 rounded-xl text-xs font-medium text-moss hover:text-soot cursor-pointer"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 type="button"
@@ -692,7 +692,7 @@ export default function LoyaltyProposalsAdmin() {
                 onClick={() => setRejectRule(null)}
                 className="px-4 py-2 rounded-xl text-xs font-medium text-moss hover:text-soot cursor-pointer"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 type="button"

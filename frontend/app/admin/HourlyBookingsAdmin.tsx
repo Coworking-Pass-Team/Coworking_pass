@@ -1,6 +1,7 @@
 'use client';
 
 import { useI18n } from '@/i18n';
+import { useSpaceText } from '@/i18n/space-text';
 import React, { useState, useEffect } from 'react';
 import { 
   Clock, 
@@ -41,6 +42,7 @@ import { hourlyEffectiveStatus, sortBookings, type BookingSortOrder } from '@/li
 
 export default function HourlyBookingsAdmin() {
   const { t, translateMessage, lang } = useI18n();
+  const st = useSpaceText();
   const { showToast, users, hourlyBookingsApi, fetchHourlyBookings, bookings: storeBookings, spaces } = useApp();
   const [bookings, setBookings] = useState<HourlyBookingItemApi[]>([]);
   const [sections, setSections] = useState<any[]>([]);
@@ -477,7 +479,7 @@ export default function HourlyBookingsAdmin() {
               const d = new Date(dateIso);
               if (isNaN(d.getTime())) return dateIso;
               const datePart = d.toISOString().split('T')[0];
-              const timePart = d.toLocaleTimeString(lang === 'ar' ? 'ar-SA' : 'en-US', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'UTC' });
+              const timePart = d.toLocaleTimeString(lang === 'ar' ? 'ar-SA-u-ca-gregory-nu-latn' : 'en-US', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'UTC' });
               return `${datePart} · ${timePart}`;
             };
 
@@ -543,15 +545,15 @@ export default function HourlyBookingsAdmin() {
                       <>
                         <div className="flex items-center gap-1.5 text-xs text-moss mb-1">
                           <Building2 size={13} className="text-emerald-700 shrink-0" />
-                          <span className="font-semibold text-soot truncate">{spaceName}</span>
+                          <span className="font-semibold text-soot truncate">{st.bookingName({ spaceId: b.workspaceId, spaceName })}</span>
                           {spaceCity && (
                             <span className="bg-soot/6 text-soot text-[10px] font-medium px-2 py-0.5 rounded-md shrink-0">
-                              {spaceCity}
+                              {st.cityName(spaceCity)}
                             </span>
                           )}
                         </div>
                         <h3 className="text-lg font-semibold text-soot font-serif-display leading-snug">
-                          {b.package?.packageName || b.section?.name || `${hoursText} Booking`}
+                          {translateMessage(b.package?.packageName || b.section?.name || `${hoursText} Booking`)}
                         </h3>
                       </>
                     );
@@ -577,7 +579,7 @@ export default function HourlyBookingsAdmin() {
                     <div className="flex items-center justify-between">
                       <span className="flex items-center gap-1.5"><Clock size={13} className="text-emerald-700" /> {t('admin.hb.bookedHours')}</span>
                       <span className="font-semibold text-emerald-900 bg-emerald-100/80 px-2 py-0.5 rounded-md text-[11px]">
-                        {b.durationDetails || translateMessage(`${b.hoursUsed || b.package?.hoursAmount || 1} Hours`)}
+                        {translateMessage(b.durationDetails || `${b.hoursUsed || b.package?.hoursAmount || 1} Hours`)}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
@@ -589,7 +591,7 @@ export default function HourlyBookingsAdmin() {
                     <div className="flex items-center justify-between">
                       <span className="flex items-center gap-1.5"><Package size={13} className="text-emerald-700" /> {t('admin.hb.package')}</span>
                       <span className="font-medium text-soot">
-                        {b.package?.packageName ? `${b.package.packageName} (${b.package.hoursAmount}h)` : b.packageId.slice(0, 8) + '...'}
+                        {b.package?.packageName ? `${translateMessage(b.package.packageName)} (${t('bf.unitHour', { count: b.package.hoursAmount })})` : b.packageId.slice(0, 8) + '...'}
                       </span>
                     </div>
                     <div className="flex items-center justify-between pt-1 border-t border-soot/6">
@@ -627,7 +629,7 @@ export default function HourlyBookingsAdmin() {
         open={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         title={t('admin.hb.createHourlyBooking')}
-        subtitle={translateMessage('Create a new hourly booking record synced directly to the PostgreSQL database')}
+        subtitle={translateMessage('Create a new hourly booking record')}
       >
         <form onSubmit={handleCreateBooking} className="space-y-4 pt-2 text-start">
           {formError && (

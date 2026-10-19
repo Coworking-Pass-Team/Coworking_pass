@@ -49,7 +49,9 @@
         "few": "{count} Seats",
         "many": "{count} Seats"
       }
-    }
+    },
+    "done": "Done",
+    "reset": "Reset"
   },
   "nav": {
     "home": "Home",
@@ -1696,13 +1698,13 @@
     },
     "pay": {
       "automatedPayments": "Automated Payments",
-      "autoSyncedWithPostgresql": "Auto-synced with PostgreSQL",
+      "autoSyncedWithPostgresql": "Auto-synced with the database",
       "totalSalesVolume": "Total Sales Volume",
       "failedTransactions": "Failed Transactions",
       "gatewayProtection": "Gateway Protection",
       "madaVisaApplePay": "MADA, VISA, Apple Pay",
       "samaStandardCompliant": "SAMA Standard Compliant",
-      "automatedPostgresqlAuditLog": "Automated PostgreSQL Audit Log",
+      "automatedPostgresqlAuditLog": "Automated Database Audit Log",
       "syncRecords": "Sync Records",
       "fetchingPaymentAuditLogsFrom": "Fetching payment audit logs from database...",
       "noPaymentRecordsFound": "No payment records found",
@@ -1717,7 +1719,7 @@
       "status": "Status",
       "autoFlaggedGatewayFailures": "Auto-flagged Gateway Failures",
       "paymentsFinancialAuditLog": "Payments & Financial Audit Log",
-      "paymentsAreRecordedAutomaticallyIn": "Payments are recorded automatically in PostgreSQL whenever users purchase subscriptions or book workspaces.",
+      "paymentsAreRecordedAutomaticallyIn": "Payments are recorded automatically in the database whenever users purchase subscriptions or book workspaces.",
       "paymentsAreRecordedAutomaticallyWhen": "Payments are recorded automatically when users buy subscriptions or book spaces.",
       "searchByPaymentIdUser": "Search by Payment ID, User Email, Name, or Reference ID..."
     },
@@ -1728,7 +1730,7 @@
       "settledStatements": "Settled Statements",
       "registeredPartners": "Registered Partners",
       "activeNetworkProviders": "Active Network Providers",
-      "automatedPostgresqlPartnerAuditLog": "Automated PostgreSQL Partner Audit Log",
+      "automatedPostgresqlPartnerAuditLog": "Automated Partner Audit Log",
       "syncSettlements": "Sync Settlements",
       "fetchingPartnerPayoutAuditLogs": "Fetching partner payout audit logs from database...",
       "noPayoutRecordsFound": "No payout records found",
@@ -1783,7 +1785,7 @@
       "startDate": "Start Date:",
       "endDate": "End Date:",
       "price": "Price:",
-      "prismaDb": "Prisma DB",
+      "prismaDb": "Database",
       "subscriptionActivatedSuccessfully": "Subscription Activated Successfully!",
       "selectRegisteredUser": "-- Select Registered User --",
       "activeActivePass": "ACTIVE — Active Pass",
@@ -1817,10 +1819,10 @@
     },
     "hb": {
       "metricsOverview": "Metrics Overview",
-      "prismaDb": "Prisma DB",
+      "prismaDb": "Database",
       "hourlyBookingsManagement": "Hourly Bookings Management",
       "hourlyBookingsTable": "Hourly Bookings Table",
-      "monitorCreateAndManageAll": "Monitor, create, and manage all hourly bookings for meeting rooms and theaters synced with PostgreSQL database.",
+      "monitorCreateAndManageAll": "Monitor, create, and manage all hourly bookings for meeting rooms and theaters synced with database.",
       "refreshDatabaseRecords": "Refresh database records",
       "refresh": "Refresh",
       "createHourlyBooking": "Create Hourly Booking",
@@ -2555,7 +2557,7 @@
     "bonusStrong": "2× Points Bonus",
     "bonusBody2": "to double your earnings on every reservation.",
     "redeemBody1": "Toggle your points balance during checkout to receive",
-    "redeemStrong": "SAR 5 discount",
+    "redeemStrong": "SAR 25 discount",
     "redeemBody2": "for every 100 points redeemed.",
     "cashback": "Instant Cashback Value",
     "bonusPoints": "Bonus Points",
@@ -2726,5 +2728,15 @@
     "doneDeleted": "{count} booking(s) deleted.",
     "nothingToCancel": "None of the selected bookings can be cancelled.",
     "completed": "Completed"
+  },
+  "supportAdmin": {
+    "logged": "{count} logged",
+    "active": "{count} active",
+    "pending": "{count} pending"
+  },
+  "profilePage": {
+    "authRequired": "Authentication Required",
+    "authBody": "You must be logged in to view and manage your profile, team settings, and workspace passes.",
+    "signIn": "Sign In to Continue"
   }
 }

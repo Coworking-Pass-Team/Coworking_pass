@@ -489,7 +489,8 @@ interface AppContextType {
   setPendingUser: (user: Partial<User>) => void;
   pendingUser: Partial<User> | null;
   pendingResetUser: User | null;
-  updateCurrentUser: (updates: Partial<User>) => void;
+  /** silent: background syncs (e.g. points balance) that the customer did not trigger show no toast */
+  updateCurrentUser: (updates: Partial<User>, options?: { silent?: boolean }) => void;
 
   userLocation: { lat: number; lng: number } | null;
   locationStatus: 'idle' | 'loading' | 'granted' | 'denied' | 'unavailable' | 'unsupported';
@@ -660,6 +661,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [nav, setNav] = useState<NavState>({ screen: 'landing', params: {} });
   const [history, setHistory] = useState<NavState[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  // The stored copy always follows the in-memory user, so code that reads it never restores an old wallet or points balance
+  useEffect(() => {
+    if (!currentUser || typeof window === 'undefined') return;
+    try {
+      localStorage.setItem('cp_currentUser', JSON.stringify(currentUser));
+    } catch (_) { /* storage unavailable */ }
+  }, [currentUser]);
   const [isSuspended, setIsSuspended] = useState(false);
   const [pendingUser, setPendingUser] = useState<Partial<User> | null>(null);
   const [pendingResetUser, setPendingResetUser] = useState<User | null>(null);
@@ -2156,7 +2164,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (params.days) query.set('days', String(params.days));
       if (params.months) query.set('months', String(params.months));
       if (params.unitId) query.set('sectionId', params.unitId);
-      const response = await fetch(`${getApiBaseUrl()}/workspaces/${params.spaceId}/availability?${query.toString()}`);
+      // The token lets the server apply per-customer rules (one active daily / monthly booking) before anything is charged
+      const token = getStoredToken();
+      const response = await fetch(`${getApiBaseUrl()}/workspaces/${params.spaceId}/availability?${query.toString()}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
       if (!response.ok) return params.strict ? { ok: false, message: 'Could not verify availability right now. Please try again.' } : { ok: true };
       const data = await response.json();
       if (data.available === false) {
@@ -2283,10 +2295,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
             email: u.email,
             password: '',
             role,
-            phone: '+966 50 000 0000',
-            avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=120&h=120&fit=crop&crop=faces',
+            // The API stores no phone, photo or sign-up date: leave them empty rather than show invented values
+            phone: '',
+            avatar: '',
             isBlocked: !!u.isBanned,
-            joinDate: '2026-09-21',
+            joinDate: '',
             companyId: u.companyId,
             orgName: u.company?.companyName,
           };
@@ -4085,29 +4098,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
     showToast('Welcome to Coworking Pass!');
   };
 
-  const updateCurrentUser = (updates: Partial<User>) => {
-    let latestUser = currentUser;
-    if (typeof window !== 'undefined') {
-      try {
-        const stored = localStorage.getItem('cp_currentUser');
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          if (parsed && (!currentUser || parsed.id === currentUser.id)) {
-            latestUser = { ...(currentUser || {}), ...parsed };
-          }
-        }
-      } catch (e) { }
-    }
-    if (!latestUser) return;
-    const updated = { ...latestUser, ...updates };
-    setCurrentUser(updated);
-    const updatedUsers = users.map(u => u.id === updated.id ? updated : u);
-    setUsers(updatedUsers);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('cp_currentUser', JSON.stringify(updated));
-      localStorage.setItem('cp_users', JSON.stringify(updatedUsers));
-    }
-    showToast('Profile updated successfully.');
+  const updateCurrentUser = (updates: Partial<User>, options?: { silent?: boolean }) => {
+    if (!currentUser) return;
+    // Merge into the latest state: a snapshot could undo a wallet or points change made a moment earlier
+    setCurrentUser(prev => (prev ? { ...prev, ...updates } : prev));
+    setUsers(prev => {
+      const next = prev.map(u => (u.id === currentUser.id ? { ...u, ...updates } : u));
+      if (typeof window !== 'undefined') {
+        try { localStorage.setItem('cp_users', JSON.stringify(next)); } catch (_) { /* storage unavailable */ }
+      }
+      return next;
+    });
+    if (!options?.silent) showToast('Profile updated successfully.');
   };
 
   const logout = () => {
@@ -5300,7 +5302,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const currentDbUserId = getValidPostgresUserId(currentUser?.id);
   // Strictly the signed-in account's own notifications (admins included)
   const userNotifications = currentUser
-    ? notifications.filter(n => n.userId === currentUser.id || (currentDbUserId && n.userId === currentDbUserId))
+    ? notifications
+        .filter(n => n.userId === currentUser.id || (currentDbUserId && n.userId === currentDbUserId))
+        // Newest first: the bell shows the first five, so server items merged after local ones must not be pushed out
+        .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
     : [];
 
   const markNotificationRead = (id: string) => {
@@ -6464,22 +6469,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
         await updateTicketStatusApi(dbTicketId, dbStatus);
         // Reload so the thread shows exactly what the TicketReply table holds
         await fetchTickets();
+        showToast('Response sent to customer', 'success');
       } catch (err) {
         console.warn('DB TicketReply sync notice:', err);
         showToast('Reply could not be saved to the server.', 'error');
       }
     })();
 
-    if (ticket && ticket.userId) {
-      addNotification({
-        userId: ticket.userId,
-        title: `Response to Ticket ${ticket.ticketNumber}`,
-        message: `Admin Response: "${reply}"`,
-        type: 'system',
-      });
-    }
-
-    showToast(`Response sent to customer`, 'success');
+    // The server notifies the customer when the reply is saved ("Support replied to your ticket")
   };
 
   const deleteBooking = (bookingId: string) => {
