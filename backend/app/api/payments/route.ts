@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getTokenFromRequest, unauthorizedResponse, suspendedResponse } from '@/lib/auth/verify-token';
 import { getKsaNow } from '@/lib/time-utils';
+import { getOwnedWorkspaceIds } from '@/lib/ownership';
 import type { Prisma, PaymentMethod, PaymentFor, PaymentStatus } from '@prisma/client';
 
 export async function GET(request: Request) {
@@ -21,6 +22,11 @@ export async function GET(request: Request) {
       whereClause.userId = userId;
     } else if (!canViewOthers) {
       whereClause.userId = user.userId;
+    }
+    // Partners only see payments made at their own workspaces (other payments carry other customers' details)
+    if (user.role === 'PARTNER_ADMIN') {
+      const owned = await getOwnedWorkspaceIds(user.userId);
+      whereClause.workspaceId = { in: owned };
     }
 
     if (status) whereClause.status = status as PaymentStatus;

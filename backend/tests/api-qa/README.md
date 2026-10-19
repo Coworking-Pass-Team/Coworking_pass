@@ -20,5 +20,7 @@ Suites: `suite-security-wallet-slots`, `suite-company-capacity-payments`, `suite
 `suite-partner-workspaces` (partner create/delete, zero-capacity workspaces) and
 `suite-notifications` (read/unread/delete ownership, hourly booking notice) and
 `suite-booking-lifecycle` (past bookings reported as completed, newest-first lists).
+`suite-record-ownership` (a booking or payment is only readable/changeable by its customer, a super admin or the owning partner).
+The suites sign in as the seeded super admin (`superadmin@cwp-test.local`, see `TEST_ACCOUNTS.md`); override with `QA_ADMIN_EMAIL` / `QA_ADMIN_PASSWORD`.
 `suite-past-sessions` only runs its time-sensitive checks during Saudi daytime hours.
 Run them against a freshly migrated local database (`prisma migrate deploy`).

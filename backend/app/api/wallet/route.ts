@@ -104,6 +104,29 @@ export async function POST(request: NextRequest) {
 
     const safeReference: string | null = typeof referenceId === 'string' && referenceId ? referenceId.slice(0, 200) : null;
 
+    // A customer can only be refunded for one of their own wallet charges: the reference is "<charge reference>:<detail>",
+    // the amount cannot exceed that charge, and each charge is refunded at most once.
+    // Cancellation and subscription refunds are calculated by the server in /api/refund.
+    if (typeUpper === 'REFUND' && user.role !== 'SUPER_ADMIN') {
+      const chargeReference = safeReference ? safeReference.split(':')[0] : '';
+      const charge = chargeReference
+        ? await prisma.walletTransaction.findFirst({ where: { userId, type: 'WITHDRAW', referenceId: chargeReference } })
+        : null;
+      if (!charge) {
+        return NextResponse.json({ error: 'A refund must refer to one of your wallet payments.' }, { status: 403 });
+      }
+      if (amount > charge.amount) {
+        return NextResponse.json({ error: 'A refund cannot exceed the original payment.' }, { status: 400 });
+      }
+      const alreadyRefunded = await prisma.walletTransaction.findFirst({
+        where: { userId, type: 'REFUND', referenceId: { startsWith: `${chargeReference}:` }, NOT: { referenceId: safeReference } },
+        select: { id: true },
+      });
+      if (alreadyRefunded) {
+        return NextResponse.json({ error: 'This payment was already refunded.' }, { status: 409 });
+      }
+    }
+
     // One transaction per request; a repeated referenceId for the same wallet and type is applied only once,
     // so a double click or a retried request can never debit (or refund) twice.
     const outcome = await prisma.$transaction(async (tx) => {

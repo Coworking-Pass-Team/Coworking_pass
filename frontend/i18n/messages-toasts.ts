@@ -116,6 +116,7 @@ registerMessages({
   'SAMSUNG_PAY': 'Samsung Pay',
   'B2C (Individual)': 'أفراد (B2C)',
   'B2B (Corporate)': 'شركات (B2B)',
+  'Subscription cancelled. No payment was found to refund; please contact support if you were charged.': 'تم إلغاء الاشتراك. لم يُعثر على دفعة لاستردادها؛ يرجى التواصل مع الدعم إذا تم خصم أي مبلغ منك.',
   'This time is no longer available.': 'لم يعد هذا الوقت متاحاً.',
   'You already have an active booking. Cancel it before booking another space.': 'لديك حجز نشط بالفعل. يجب إلغاؤه قبل حجز مساحة أخرى.',
   'Response sent to customer': 'تم إرسال الرد إلى العميل',

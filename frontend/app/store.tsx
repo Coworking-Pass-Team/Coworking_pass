@@ -1431,56 +1431,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       fetchNotifications().catch(() => { }); // the server already recorded the refund
       showToast(`Subscription cancelled. SAR ${(serverRefund.refundAmount ?? eligibility.refundAmount).toLocaleString()} refunded to your ${serverRefund.walletTarget === 'COMPANY' ? 'corporate shared wallet' : 'wallet'}!`, 'success');
     } else if (eligibility.isEligible && eligibility.refundAmount > 0) {
-      newWalletBalance = currentWallet + eligibility.refundAmount;
-
-      // Sync refund to backend wallet endpoint
-      try {
-        const storedToken = getStoredToken();
-        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-        if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
-
-        const walletRes = await fetch(`${getApiBaseUrl()}/wallet`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            userId: u.id,
-            amount: eligibility.refundAmount,
-            type: 'REFUND',
-            description: `Pass Subscription Cancellation Refund (${u.membershipTier || 'Pass'})`,
-          }),
-        });
-        if (walletRes.ok) {
-          const wData = await walletRes.json();
-          if (typeof wData.balance === 'number') {
-            newWalletBalance = wData.balance;
-          }
-        }
-      } catch (wErr) {
-        console.warn('[Wallet Refund Sync Notice]', wErr);
-      }
-
-      // Record wallet transaction
-      const refundTx: WalletTransaction = {
-        id: `tx-${Date.now()}`,
-        walletId: u.id,
-        userId: u.id,
-        amount: eligibility.refundAmount,
-        type: 'REFUND',
-        description: `Pass Subscription Cancellation Refund (${u.membershipTier || 'Pass'})`,
-        balanceAfter: newWalletBalance,
-        createdAt: new Date().toISOString(),
-      };
-      setWalletTransactions(prev => [refundTx, ...prev]);
-
-      // In-app payment notification
-      addNotification({
-        userId: u.id,
-        title: 'Subscription Cancelled & Refunded',
-        message: `Your ${u.membershipTier || 'Pass'} has been cancelled within 3 days without usage. SAR ${eligibility.refundAmount.toLocaleString()} was refunded to your wallet.`,
-        type: 'payment',
-      });
-
-      showToast(`Subscription cancelled. SAR ${eligibility.refundAmount.toLocaleString()} refunded to your wallet!`, 'success');
+      // No server subscription was found, so there is no recorded payment to refund: the server would refuse a wallet credit
+      showToast('Subscription cancelled. No payment was found to refund; please contact support if you were charged.', 'info');
     } else {
       // In-app notification for non-refundable cancellation
       const reasonSummary = eligibility.ineligibleReasons.length > 0
@@ -3684,42 +3636,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    let user = users.find(u => u.email.toLowerCase() === cleanEmail && u.password === password);
-    if (!user) {
-      user = INITIAL_USERS.find(u => u.email.toLowerCase() === cleanEmail && u.password === password);
-    }
-    // Universal admin fallback compatibility: allow 'password', 'Admin@123456', or 'admin123'
-    if (!user && isAdminAccount) {
-      if (password === 'password' || password === 'Admin@123456' || password === 'admin123') {
-        user = INITIAL_USERS.find(u => u.email.toLowerCase() === 'admin@coworkingpass.sa');
-      }
-    }
-    if (!user) {
-      return { success: false, error: apiRes.error || 'Invalid email or password. Please try again.' };
-    }
-    if (user.isBlocked) {
-      setCurrentUser(null);
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('cp_token');
-        localStorage.removeItem('cp_currentUser');
-        localStorage.removeItem('token');
-        localStorage.removeItem('jwt');
-      }
-      navigate('account-suspended');
-      return { success: false, error: 'Your account has been suspended. Please contact support.' };
-    }
-
-    const session: OtpSession = {
-      user: isAdminAccount ? { ...user, role: 'admin' } : user,
-      targetEmailOrPhone: user.email || email,
-      mode: 'login',
-      role: isAdminAccount ? 'admin' : user.role,
-      devOtp: isAdminAccount ? '123456' : undefined,
-    };
-    setOtpSession(session);
-    navigate('otp-verify');
-    showToast(`Verification code sent to ${user.email}`, 'info');
-    return { success: true, requireOtp: true };
+    // The server could not be reached or failed: sign-in only ever happens against the server (no local demo accounts)
+    return { success: false, error: 'The sign-in service is temporarily unavailable. Please try again in a moment.' };
   };
 
   const signup = (name: string, email: string, password: string, phone: string, role: UserRole = 'individual') => {

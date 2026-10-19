@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getTokenFromRequest, unauthorizedResponse } from '@/lib/auth/verify-token';
+import { canManageWorkspace } from '@/lib/ownership';
+
+/** The customer who booked, a super admin, or the partner owning the workspace may act on a booking. */
+async function mayAccessBooking(caller: { userId: string; role: string }, booking: { userId: string; workspaceId: string | null }) {
+  if (caller.role === 'SUPER_ADMIN' || booking.userId === caller.userId) return true;
+  return caller.role === 'PARTNER_ADMIN' && !!booking.workspaceId && canManageWorkspace(caller, booking.workspaceId);
+}
 import type { Prisma } from "@prisma/client";
 
 /**
@@ -48,7 +55,7 @@ export async function GET(
       );
     }
 
-    if (user.role !== 'SUPER_ADMIN' && user.role !== 'PARTNER_ADMIN' && booking.userId !== user.userId) {
+    if (!(await mayAccessBooking(user, booking))) {
       return NextResponse.json({ error: 'You are not allowed to view this booking.' }, { status: 403 });
     }
 
@@ -101,11 +108,11 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
 
-    const existing = await prisma.directBooking.findUnique({ where: { id }, select: { userId: true } });
+    const existing = await prisma.directBooking.findUnique({ where: { id }, select: { userId: true, workspaceId: true } });
     if (!existing) {
       return NextResponse.json({ error: 'Booking not found.' }, { status: 404 });
     }
-    if (user.role !== 'SUPER_ADMIN' && user.role !== 'PARTNER_ADMIN' && existing.userId !== user.userId) {
+    if (!(await mayAccessBooking(user, existing))) {
       return NextResponse.json({ error: 'You are not allowed to modify this booking.' }, { status: 403 });
     }
 
@@ -181,7 +188,7 @@ export async function DELETE(
       );
     }
 
-    if (user.role !== 'SUPER_ADMIN' && user.role !== 'PARTNER_ADMIN' && booking.userId !== user.userId) {
+    if (!(await mayAccessBooking(user, booking))) {
       return NextResponse.json({ error: 'You are not allowed to cancel this booking.' }, { status: 403 });
     }
 

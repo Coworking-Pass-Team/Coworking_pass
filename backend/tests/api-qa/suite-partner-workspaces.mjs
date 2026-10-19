@@ -10,7 +10,8 @@ const mk = (n, role, x = {}) => makeUser('QA ' + n, `qa.${n}.${run}@test.local`.
 const denied = (r) => r.status === 401 || r.status === 403;
 const day = (n) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
 
-const admin = await loginAs('admin@coworkingpass.sa', 'password');
+// Seeded super admin: TEST_ACCOUNTS.md (override with QA_ADMIN_EMAIL / QA_ADMIN_PASSWORD)
+const admin = await loginAs(process.env.QA_ADMIN_EMAIL || 'superadmin@cwp-test.local', process.env.QA_ADMIN_PASSWORD || 'Test@12345');
 const pA = await mk('pwsA', 'PARTNER_ADMIN', { businessName: 'QA WS A ' + run, crNumber: '1010111111' });
 const pB = await mk('pwsB', 'PARTNER_ADMIN', { businessName: 'QA WS B ' + run, crNumber: '1010222222' });
 const cust = await mk('pwsC', 'B2C');
