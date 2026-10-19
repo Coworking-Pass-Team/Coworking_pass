@@ -88,11 +88,11 @@ export default async function Page() {
             longitude: space.coordinates.lng,
           }
         : undefined,
-      aggregateRating: space.rating
+      aggregateRating: space.rating && (space.reviewCount ?? 0) > 0
         ? {
             '@type': 'AggregateRating',
             ratingValue: space.rating,
-            reviewCount: space.reviewCount || 1,
+            reviewCount: space.reviewCount,
           }
         : undefined,
     })),

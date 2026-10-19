@@ -323,11 +323,15 @@ export default function WaitlistPage() {
                       <span>·</span>
                       {space?.rating && (
                         <>
-                          <span className="flex items-center gap-1 text-amber-600 font-semibold">
-                            <Star size={12} className="fill-amber-400 text-amber-400" />
-                            <span>{space.rating}</span>
-                          </span>
-                          <span>·</span>
+                          {(space.reviewCount ?? 0) > 0 && (
+                            <>
+                              <span className="flex items-center gap-1 text-amber-600 font-semibold">
+                                <Star size={12} className="fill-amber-400 text-amber-400" />
+                                <span>{space.rating}</span>
+                              </span>
+                              <span>·</span>
+                            </>
+                          )}
                         </>
                       )}
                       <span>{t('waitlist.daily')} {space?.pricing?.daily || 100} {t('common.sar')}</span>

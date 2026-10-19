@@ -301,10 +301,12 @@ export default function LoyaltyPage() {
                       <h3 className="font-semibold text-soot text-base group-hover:text-emerald-900 transition-colors truncate">
                         {sx.name(space)}
                       </h3>
-                      <div className="flex items-center gap-1 text-xs text-soot font-semibold shrink-0">
-                        <Star size={13} className="fill-amber-400 text-amber-400" />
-                        <span>{space.rating}</span>
-                      </div>
+                      {(space.reviewCount ?? 0) > 0 && (
+                        <div className="flex items-center gap-1 text-xs text-soot font-semibold shrink-0">
+                          <Star size={13} className="fill-amber-400 text-amber-400" />
+                          <span>{space.rating}</span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-1.5 text-xs text-moss font-medium">

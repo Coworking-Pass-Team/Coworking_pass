@@ -2835,8 +2835,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
             },
             bookingMode: existing?.bookingMode || (preservedType === 'private-office' ? 'subscription' : 'hourly'),
             bookingPackages: existing?.bookingPackages || [],
-            rating: existing?.rating || 4.8,
-            reviewCount: existing?.reviewCount || 12,
+            // No review system yet: keep a known rating, never invent one
+            rating: existing?.rating || 0,
+            reviewCount: existing?.reviewCount || 0,
             isVisible: (w as any).isVisible !== undefined && (w as any).isVisible !== null ? Boolean((w as any).isVisible) : (existing?.isVisible !== undefined ? existing.isVisible : true),
             isFeatured: existing?.isFeatured !== undefined ? existing.isFeatured : false,
             openHours: (w as any).is24Hours

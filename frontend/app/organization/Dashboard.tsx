@@ -414,10 +414,12 @@ export default function OrgDashboard() {
                         <MapPin size={12} className="shrink-0" />
                         <span>{st.city(space)}</span>
                       </div>
-                      <div className="flex items-center gap-1 text-xs text-moss mt-1 font-medium">
-                        <Star size={12} className="fill-amber-400 text-amber-400" />
-                        <span>{space.rating}</span>
-                      </div>
+                      {(space.reviewCount ?? 0) > 0 && (
+                        <div className="flex items-center gap-1 text-xs text-moss mt-1 font-medium">
+                          <Star size={12} className="fill-amber-400 text-amber-400" />
+                          <span>{space.rating}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="text-end shrink-0">
