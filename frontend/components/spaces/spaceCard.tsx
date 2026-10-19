@@ -101,11 +101,13 @@ export default function SpaceCard({ space, distance, onSelect }: SpaceCardProps)
         )}
 
         {/* Bottom-left Rating Overlay */}
-        <div className="absolute bottom-3 start-3.5 flex items-center gap-1.5 text-white text-xs font-medium drop-shadow-sm">
-          <Star size={12} fill="#FDB813" stroke="#FDB813" />
-          <span>{space.rating}</span>
-          <span className="opacity-80">({space.reviewCount})</span>
-        </div>
+        {(space.reviewCount ?? 0) > 0 && (
+          <div className="absolute bottom-3 start-3.5 flex items-center gap-1.5 text-white text-xs font-medium drop-shadow-sm">
+            <Star size={12} fill="#FDB813" stroke="#FDB813" />
+            <span>{space.rating}</span>
+            <span className="opacity-80">({space.reviewCount})</span>
+          </div>
+        )}
       </div>
 
       {/* Card Details */}
