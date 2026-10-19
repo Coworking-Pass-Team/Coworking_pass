@@ -2344,22 +2344,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       const data = await fetchPartnersFromApi();
       if (Array.isArray(data) && data.length > 0) {
-        setPartners((prev) => {
-          const map = new Map<string, Partner>();
-          prev.forEach((p) => {
-            const key = p.id || (p.contactEmail ? p.contactEmail.trim().toLowerCase() : '');
-            if (key) map.set(key, p);
-          });
-          data.forEach((p) => {
-            const key = p.id || (p.contactEmail ? p.contactEmail.trim().toLowerCase() : '');
-            if (key) map.set(key, p);
-          });
-          const merged = Array.from(map.values());
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('cp_partners', JSON.stringify(merged));
-          }
-          return merged;
-        });
+        // The server list is complete for this account: records removed on the server must disappear here too
+        const unique = Array.from(new Map(data.filter((p) => p.id).map((p) => [p.id, p])).values());
+        setPartners(unique);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('cp_partners', JSON.stringify(unique));
+        }
         return data;
       }
       return partners;
