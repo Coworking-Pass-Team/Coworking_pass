@@ -160,7 +160,7 @@ export default function MembershipPlansAdmin() {
   };
 
   const handleDeletePlan = async (plan: MembershipPlan) => {
-    if (!window.confirm(`Are you sure you want to delete the plan "${plan.planName}"?`)) return;
+    if (!window.confirm(t('admin.plans.deleteConfirm', { name: translateMessage(plan.planName) }))) return;
 
     const res = await deleteMembershipPlanApi(plan.id);
     if (res.success) {
@@ -301,7 +301,7 @@ export default function MembershipPlansAdmin() {
                   </div>
 
                   <h3 className="text-xl font-normal font-serif-display text-soot group-hover:text-emerald-900 transition-colors">
-                    {plan.planName}
+                    {translateMessage(plan.planName)}
                   </h3>
 
                   <div className="mt-4 mb-5 pb-4 border-b border-soot/8">

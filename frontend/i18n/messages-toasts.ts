@@ -278,6 +278,8 @@ registerMessages({
   [/^(\d+) visits?$/, '$1 زيارات'],
   [/^(\d+) Hours? Package$/, 'باقة $1 ساعات'],
   [/^(.+) - (\d+) Hours?$/, '$1 - $2 ساعات'],
+  [/^(.+) requested custom amenity "(.+)" for (.+)\.$/, 'طلب $1 إضافة المرفق المخصص «$2» إلى $3.'],
+  [/^(.+) requested custom amenity "(.+)"\.$/, 'طلب $1 إضافة المرفق المخصص «$2».'],
   [/^Review Ticket #(.+)$/, 'مراجعة التذكرة #$1'],
   [/^Earned points for booking: (.+)$/, 'نقاط مكتسبة من حجز: $1'],
   [/^Redeemed points for booking discount at (.+)$/, 'نقاط مستبدلة بخصم على حجز: $1'],

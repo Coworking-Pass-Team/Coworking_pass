@@ -585,13 +585,13 @@ export default function HourlyBookingsAdmin() {
                     <div className="flex items-center justify-between">
                       <span className="flex items-center gap-1.5"><Layers size={13} className="text-emerald-700" /> {t('admin.hb.section')}</span>
                       <span className="font-mono text-[11px] text-soot bg-soot/5 px-2 py-0.5 rounded-md">
-                        {b.section?.name || b.sectionId.slice(0, 8) + '...'}
+                        {b.section?.name || '—'}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="flex items-center gap-1.5"><Package size={13} className="text-emerald-700" /> {t('admin.hb.package')}</span>
                       <span className="font-medium text-soot">
-                        {b.package?.packageName ? `${translateMessage(b.package.packageName)} (${t('bf.unitHour', { count: b.package.hoursAmount })})` : b.packageId.slice(0, 8) + '...'}
+                        {b.package?.packageName ? `${translateMessage(b.package.packageName)} (${t('bf.unitHour', { count: b.package.hoursAmount })})` : '—'}
                       </span>
                     </div>
                     <div className="flex items-center justify-between pt-1 border-t border-soot/6">

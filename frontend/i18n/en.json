@@ -51,7 +51,8 @@
       }
     },
     "done": "Done",
-    "reset": "Reset"
+    "reset": "Reset",
+    "details": "Details"
   },
   "nav": {
     "home": "Home",
@@ -1917,6 +1918,9 @@
       "confirmNewPassword": "Confirm New Password",
       "updatePassword": "Update Password",
       "updateProfile": "Update Profile"
+    },
+    "plans": {
+      "deleteConfirm": "Are you sure you want to delete the plan \"{name}\"?"
     }
   },
   "role": {
