@@ -87,7 +87,7 @@ export async function POST(request: Request) {
     let partnerInfo = null;
     if (user.role === "PARTNER_ADMIN") {
       partnerInfo = await prisma.partner.findFirst({
-        where: { contactEmail: { equals: user.email, mode: "insensitive" } },
+        where: { contactEmail: { equals: user.email, mode: "insensitive" } }, orderBy: { createdAt: 'asc' },
       });
       if (partnerInfo && partnerInfo.status === "PENDING_APPROVAL") {
         return NextResponse.json({
