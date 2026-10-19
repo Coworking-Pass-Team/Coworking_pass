@@ -51,7 +51,7 @@ export default function LandingSpaceCard({ space }: LandingSpaceCardProps) {
           </h3>
           <div className="flex items-center gap-1.5 text-plaster/90 text-xs font-medium mt-1 truncate">
             <MapPin size={13} className="text-eucalyptus shrink-0" />
-            <span className="truncate">{st.city(space)} • {st.address(space)}</span>
+            <span className="truncate">{st.location(space)}</span>
           </div>
         </div>
 

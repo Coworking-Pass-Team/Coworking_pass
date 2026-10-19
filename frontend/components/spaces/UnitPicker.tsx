@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { DoorOpen } from 'lucide-react';
 import { useApp } from '@/app/store';
 import { useI18n } from '@/i18n';
+import { durationLabel } from '@/i18n/duration';
 import { timeStringToMinutes, type Space, type SpaceUnitAvailability } from '@/types/types';
 
 const hhmmToMinutes = (value: string) => {
@@ -82,7 +83,7 @@ export default function UnitPicker({ units, selectedId, onSelect }: UnitPickerPr
                 <span className="text-xs font-semibold truncate">{unit.name}</span>
               </span>
               <span className={`text-[11px] font-medium shrink-0 ${selected ? 'text-plaster/80' : 'text-moss'}`}>
-                {t('units.maxSeats', { count: unit.capacity })}
+                {t('units.maxSeats', { count: durationLabel(t, 'seat', unit.capacity) })}
               </span>
             </button>
           );

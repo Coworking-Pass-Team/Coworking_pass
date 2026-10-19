@@ -176,7 +176,7 @@ export default function LoyaltyPage() {
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div>
                 <span className="text-xs font-bold uppercase tracking-wider text-moss block mb-1">{t('loyalty.currentMembershipTier')}</span>
-                <h3 className="text-2xl font-semibold text-soot font-serif-display">{tier.name}</h3>
+                <h3 className="text-2xl font-semibold text-soot font-serif-display">{translateMessage(tier.name)}</h3>
               </div>
               <div className="text-end">
                 <span className="text-xs font-medium text-moss block">{t('loyalty.nextTierTarget')}</span>
@@ -229,7 +229,7 @@ export default function LoyaltyPage() {
             <div className="w-11 h-11 rounded-2xl bg-soot text-plaster border border-soot/20 flex items-center justify-center shadow-2xs">
               <TrendingUp size={20} />
             </div>
-            <h3 className="text-base font-semibold text-soot font-serif-display">1. Earn Points Automatically</h3>
+            <h3 className="text-base font-semibold text-soot font-serif-display">{t('loyalty.step1')}</h3>
             <p className="text-xs text-moss leading-relaxed">
               {t('loyalty.earnBody1')} <strong>{t('loyalty.earnPoints')}</strong> {t('loyalty.earnBody2')} <strong>{t('loyalty.earnSar')}</strong> {t('loyalty.earnBody3')}
             </p>
@@ -239,7 +239,7 @@ export default function LoyaltyPage() {
             <div className="w-11 h-11 rounded-2xl bg-eucalyptus/25 text-soot border border-eucalyptus/30 flex items-center justify-center shadow-2xs">
               <Zap size={20} className="text-moss" />
             </div>
-            <h3 className="text-base font-semibold text-soot font-serif-display">2. Multiply with Bonus Partners</h3>
+            <h3 className="text-base font-semibold text-soot font-serif-display">{t('loyalty.step2')}</h3>
             <p className="text-xs text-moss leading-relaxed">
               {t('loyalty.bonusBody1')} <strong>{t('loyalty.bonusStrong')}</strong> {t('loyalty.bonusBody2')}
             </p>
@@ -249,7 +249,7 @@ export default function LoyaltyPage() {
             <div className="w-11 h-11 rounded-2xl bg-soot/10 text-soot border border-soot/15 flex items-center justify-center shadow-2xs">
               <Gift size={20} className="text-moss" />
             </div>
-            <h3 className="text-base font-semibold text-soot font-serif-display">3. Instant Checkout Cashback</h3>
+            <h3 className="text-base font-semibold text-soot font-serif-display">{t('loyalty.step3')}</h3>
             <p className="text-xs text-moss leading-relaxed">
               {t('loyalty.redeemBody1')} <strong>{t('loyalty.redeemStrong')}</strong> {t('loyalty.redeemBody2')}
             </p>

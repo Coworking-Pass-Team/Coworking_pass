@@ -500,7 +500,7 @@ export default function IndividualDashboard() {
                     <h3 className="font-semibold text-base truncate font-serif-display">{st.name(space)}</h3>
                     <div className="flex items-center gap-1 text-xs text-plaster/90 mt-0.5">
                       <MapPin size={11} className="text-eucalyptus shrink-0" />
-                      <span className="truncate">{st.city(space)} • {st.address(space)}</span>
+                      <span className="truncate">{st.location(space)}</span>
                     </div>
                   </div>
                 </div>

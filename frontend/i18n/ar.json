@@ -36,6 +36,18 @@
         "two": "شهران",
         "few": "{count} أشهر",
         "many": "{count} شهرًا"
+      },
+      "day": {
+        "one": "يوم واحد",
+        "two": "يومان",
+        "few": "{count} أيام",
+        "many": "{count} يومًا"
+      },
+      "seat": {
+        "one": "مقعد واحد",
+        "two": "مقعدان",
+        "few": "{count} مقاعد",
+        "many": "{count} مقعدًا"
       }
     }
   },
@@ -1213,7 +1225,25 @@
     "startTime": "وقت البدء",
     "endTime": "وقت الانتهاء",
     "includedWithPass": "مشمول مع الباقة",
-    "confirmCovered": "تأكيد الحجز (مغطى بباقتك)"
+    "confirmCovered": "تأكيد الحجز (مغطى بباقتك)",
+    "category": {
+      "office": "مكتب",
+      "hall": "قاعة",
+      "theater": "مسرح"
+    },
+    "durationBadge": "المدة: {duration}",
+    "totalSeats": "الإجمالي ({seats})",
+    "passDiscount": "خصم الباقة {percent}%",
+    "included": "مشمول",
+    "covered": "مغطاة",
+    "hoursCovered": "{count} س مغطاة",
+    "seatsOpen": "{count} مقعد متاح حالياً",
+    "quotaApplied": "{hours} (متبقٍ {remaining} ساعة في الحصة الشهرية)",
+    "partialQuotaBody": "تغطي حصة {tier} {covered} (متبقٍ {remaining} ساعة). وتُحتسب المدة المتبقية ({payable}) بسعر {rate} {currency} للساعة.",
+    "pointsBalance": "الرصيد: {points} نقطة",
+    "includedInPlanCount": "{count} مشمولة في الباقة",
+    "payWallet": "تأكيد والدفع من المحفظة ({amount} {currency})",
+    "forDuration": "· {duration}"
   },
   "tb": {
     "stepType": "النوع والباقة",
@@ -2559,7 +2589,10 @@
     "reservationActivity": "نشاط الحجوزات",
     "bookingDate": "تاريخ الحجز",
     "passAmount": "مبلغ الباقة",
-    "pointsEarned": "النقاط المكتسبة"
+    "pointsEarned": "النقاط المكتسبة",
+    "step1": "1. اكسب النقاط تلقائياً",
+    "step2": "2. ضاعف نقاطك مع شركاء المكافآت",
+    "step3": "3. استرداد نقدي فوري عند الدفع"
   },
   "ind": {
     "ps": {
@@ -2638,10 +2671,10 @@
     "totalSeats": "الإجمالي: {count} مقعد",
     "selectHall": "اختر القاعة",
     "selectTheater": "اختر المسرح",
-    "maxSeats": "بحد أقصى {count} مقعد",
+    "maxSeats": "بحد أقصى {count}",
     "fullDay": "محجوزة بالكامل في هذا التاريخ",
     "slotTaken": "محجوز",
-    "seatCap": "تتسع هذه القاعة حتى {count} مقعد",
+    "seatCap": "تتسع حتى {count}",
     "errCapacity": "تحتاج كل قاعة أو مسرح إلى مقعد واحد على الأقل.",
     "title": "المرافق والأقسام",
     "helpRooms": "أضف كل غرفة في هذا المقر بنوعها وسعتها المقعدية وأسعارها الخاصة.",

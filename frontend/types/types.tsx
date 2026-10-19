@@ -131,6 +131,11 @@ export function calculateEndDate(
   return startDate;
 }
 
+/** Today's date (YYYY-MM-DD) on the Saudi calendar (UTC+3), the business day used for bookings. */
+export function todayKsa(): string {
+  return new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
 /**
  * Calculate the number of days between startDate and endDate (inclusive).
  * If endDate is missing, same as startDate, or earlier, returns 1.
