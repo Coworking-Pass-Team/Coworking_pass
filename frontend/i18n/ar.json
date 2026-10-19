@@ -49,7 +49,9 @@
         "few": "{count} مقاعد",
         "many": "{count} مقعدًا"
       }
-    }
+    },
+    "done": "تم",
+    "reset": "إعادة تعيين"
   },
   "nav": {
     "home": "الرئيسية",
@@ -1696,13 +1698,13 @@
     },
     "pay": {
       "automatedPayments": "مدفوعات آلية",
-      "autoSyncedWithPostgresql": "متزامنة تلقائياً مع PostgreSQL",
+      "autoSyncedWithPostgresql": "متزامنة تلقائياً مع قاعدة البيانات",
       "totalSalesVolume": "إجمالي حجم المبيعات",
       "failedTransactions": "المعاملات الفاشلة",
       "gatewayProtection": "حماية بوابة الدفع",
       "madaVisaApplePay": "مدى، فيزا، Apple Pay",
       "samaStandardCompliant": "متوافق مع معايير البنك المركزي (ساما)",
-      "automatedPostgresqlAuditLog": "سجل تدقيق آلي في PostgreSQL",
+      "automatedPostgresqlAuditLog": "سجل تدقيق آلي في قاعدة البيانات",
       "syncRecords": "مزامنة السجلات",
       "fetchingPaymentAuditLogsFrom": "جارٍ جلب سجلات تدقيق المدفوعات من قاعدة البيانات...",
       "noPaymentRecordsFound": "لا توجد سجلات مدفوعات",
@@ -1717,7 +1719,7 @@
       "status": "الحالة",
       "autoFlaggedGatewayFailures": "إخفاقات البوابة المرصودة تلقائياً",
       "paymentsFinancialAuditLog": "المدفوعات وسجل التدقيق المالي",
-      "paymentsAreRecordedAutomaticallyIn": "تُسجَّل المدفوعات تلقائياً في PostgreSQL كلما اشترى المستخدمون اشتراكات أو حجزوا مساحات.",
+      "paymentsAreRecordedAutomaticallyIn": "تُسجَّل المدفوعات تلقائياً في قاعدة البيانات كلما اشترى المستخدمون اشتراكات أو حجزوا مساحات.",
       "paymentsAreRecordedAutomaticallyWhen": "تُسجَّل المدفوعات تلقائياً عندما يشتري المستخدمون اشتراكات أو يحجزون مساحات.",
       "searchByPaymentIdUser": "ابحث برقم الدفعة أو بريد المستخدم أو الاسم أو الرقم المرجعي..."
     },
@@ -1728,7 +1730,7 @@
       "settledStatements": "كشوف مسوّاة",
       "registeredPartners": "الشركاء المسجلون",
       "activeNetworkProviders": "مزوّدو الشبكة النشطون",
-      "automatedPostgresqlPartnerAuditLog": "سجل تدقيق آلي للشركاء في PostgreSQL",
+      "automatedPostgresqlPartnerAuditLog": "سجل تدقيق آلي للشركاء في قاعدة البيانات",
       "syncSettlements": "مزامنة التسويات",
       "fetchingPartnerPayoutAuditLogs": "جارٍ جلب سجلات تدقيق دفعات الشركاء من قاعدة البيانات...",
       "noPayoutRecordsFound": "لا توجد سجلات دفعات",
@@ -1783,7 +1785,7 @@
       "startDate": "تاريخ البدء:",
       "endDate": "تاريخ الانتهاء:",
       "price": "السعر:",
-      "prismaDb": "قاعدة Prisma",
+      "prismaDb": "قاعدة البيانات",
       "subscriptionActivatedSuccessfully": "تم تفعيل الاشتراك بنجاح!",
       "selectRegisteredUser": "-- اختر مستخدماً مسجلاً --",
       "activeActivePass": "نشط — باقة فعّالة",
@@ -1817,10 +1819,10 @@
     },
     "hb": {
       "metricsOverview": "نظرة عامة على المؤشرات",
-      "prismaDb": "قاعدة Prisma",
+      "prismaDb": "قاعدة البيانات",
       "hourlyBookingsManagement": "إدارة الحجوزات بالساعة",
       "hourlyBookingsTable": "جدول الحجوزات بالساعة",
-      "monitorCreateAndManageAll": "راقب وأنشئ وأدر جميع الحجوزات بالساعة لقاعات الاجتماعات والمسارح المتزامنة مع قاعدة بيانات PostgreSQL.",
+      "monitorCreateAndManageAll": "راقب وأنشئ وأدر جميع الحجوزات بالساعة لقاعات الاجتماعات والمسارح المتزامنة مع قاعدة البيانات.",
       "refreshDatabaseRecords": "تحديث سجلات قاعدة البيانات",
       "refresh": "تحديث",
       "createHourlyBooking": "إنشاء حجز بالساعة",
@@ -2555,7 +2557,7 @@
     "bonusStrong": "مكافأة نقاط 2×",
     "bonusBody2": "لمضاعفة أرباحك في كل حجز.",
     "redeemBody1": "فعّل رصيد نقاطك أثناء الدفع للحصول على",
-    "redeemStrong": "خصم 5 ر.س",
+    "redeemStrong": "خصم 25 ر.س",
     "redeemBody2": "مقابل كل 100 نقطة يتم استبدالها.",
     "cashback": "قيمة الاسترداد النقدي الفوري",
     "bonusPoints": "نقاط مكافأة",
@@ -2726,5 +2728,15 @@
     "doneDeleted": "تم حذف {count} حجز.",
     "nothingToCancel": "لا يمكن إلغاء أي من الحجوزات المحددة.",
     "completed": "مكتملة"
+  },
+  "supportAdmin": {
+    "logged": "{count} مسجّلة",
+    "active": "{count} نشطة",
+    "pending": "{count} قيد الانتظار"
+  },
+  "profilePage": {
+    "authRequired": "تسجيل الدخول مطلوب",
+    "authBody": "يجب تسجيل الدخول لعرض ملفك الشخصي وإعدادات فريقك وباقات مساحات العمل وإدارتها.",
+    "signIn": "سجّل الدخول للمتابعة"
   }
 }

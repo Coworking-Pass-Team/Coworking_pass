@@ -37,7 +37,7 @@ export default function LoyaltyPage() {
       if (pointsRes.success && Array.isArray(pointsRes.data) && pointsRes.data.length > 0) {
         const userPts = pointsRes.data.find((p: any) => p.userId === currentUser.id);
         if (userPts && typeof userPts.availableBalance === 'number') {
-          updateCurrentUser({ loyaltyPoints: userPts.availableBalance });
+          updateCurrentUser({ loyaltyPoints: userPts.availableBalance }, { silent: true });
         }
       }
 
@@ -350,7 +350,7 @@ export default function LoyaltyPage() {
                   <div key={tx.id} className="px-6 py-4 flex flex-col md:grid md:grid-cols-12 md:gap-4 md:items-center text-xs">
                     <div className="col-span-5 font-semibold text-soot flex items-center gap-2">
                       <CheckCircle2 size={15} className={isEarned ? 'text-emerald-800 shrink-0' : 'text-rose-800 shrink-0'} />
-                      <span>{tx.description || translateMessage(isEarned ? 'Earned Points' : 'Redeemed Points')}</span>
+                      <span>{translateMessage(tx.description || (isEarned ? 'Earned Points' : 'Redeemed Points'))}</span>
                     </div>
                     <div className="col-span-3 font-medium">
                       <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${isEarned ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>

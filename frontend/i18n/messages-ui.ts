@@ -8,7 +8,7 @@ registerMessages({
   "Update Admin Password": "تحديث كلمة مرور المدير",
   "Update display name, photo, and direct phone contact.": "حدّث اسم العرض والصورة ورقم التواصل المباشر.",
   "Try updating your filter criteria or search query.": "جرّب تعديل معايير التصفية أو عبارة البحث.",
-  "Create a new hourly booking record synced directly to the PostgreSQL database": "أنشئ سجل حجز بالساعة جديدًا يُحفظ مباشرة في قاعدة البيانات",
+  "Create a new hourly booking record": "أنشئ سجل حجز بالساعة جديدًا",
   "Create Booking in Database": "إنشاء الحجز في قاعدة البيانات",
   "Save Status Changes": "حفظ تغييرات الحالة",
   "No proposals matched your active filters. Try clearing your search query.": "لا توجد مقترحات تطابق عوامل التصفية الحالية. جرّب مسح عبارة البحث.",
@@ -208,7 +208,7 @@ registerMessages({
 }, []);
 
 registerPriorityPatterns([
-  [/^You joined the waitlist for (.+). We['’]ll notify you as soon as a spot opens.$/, 'انضممت إلى قائمة انتظار $1. سنخبرك فور توفر مقعد.'],
-  [/^Your session at (.+) ((.+)) has been confirmed.$/, 'تم تأكيد جلستك في $1 ($2).'],
-  [/^You earned (d+) loyalty points for your booking at (.+).$/, 'كسبت $1 نقطة ولاء عن حجزك في $2.'],
+  [/^You joined the waitlist for (.+)\. We['’]ll notify you as soon as a spot opens\.$/, 'انضممت إلى قائمة انتظار $1. سنخبرك فور توفر مقعد.'],
+  [/^Your session at (.+) \((.+)\) has been confirmed\.$/, 'تم تأكيد جلستك في $1 ($2).'],
+  [/^You earned (\d+) loyalty points for your booking at (.+)\.$/, 'كسبت $1 نقطة ولاء عن حجزك في $2.'],
 ]);

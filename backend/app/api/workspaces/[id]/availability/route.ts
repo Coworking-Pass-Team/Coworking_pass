@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { directBookingEnd, effectiveCapacity, getOccupiedSeats, getOccupiedSeatsForSection } from "@/lib/capacity";
 import { getOperatingRange, isFixedSlotSection, FIXED_SLOT_MINUTES, LATEST_SESSION_END_MINUTES } from "@/lib/operating-hours";
-import { parseDateAndTimeToKsaDate } from "@/lib/time-utils";
+import { getKsaNow, parseDateAndTimeToKsaDate } from "@/lib/time-utils";
+import { getTokenFromRequest } from "@/lib/auth/verify-token";
 
 /**
  * GET /api/workspaces/{id}/availability
@@ -55,6 +56,17 @@ export async function GET(
         return NextResponse.json({ available: false, reason: "Halls and theaters can only be booked in fixed 2-hour sessions ending by 10:00 PM." });
       }
     } else {
+      // Signed-in customers hold one active daily / monthly / yearly booking at a time (same rule as POST /direct-bookings)
+      const caller = await getTokenFromRequest(request).catch(() => null);
+      if (caller && caller.role !== "SUPER_ADMIN") {
+        const active = await prisma.directBooking.findFirst({
+          where: { userId: caller.userId, status: "CONFIRMED", bookingDate: { gte: getKsaNow() } },
+          select: { id: true },
+        });
+        if (active) {
+          return NextResponse.json({ available: false, reason: "You already have an active booking. Cancel it before booking another space." });
+        }
+      }
       const durationType = plan === "monthly" ? "MONTHLY" : plan === "yearly" ? "YEARLY" : "DAILY";
       const details = durationType === "MONTHLY"
         ? `${Number(searchParams.get("months")) || 1} Months`

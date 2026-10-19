@@ -2,6 +2,7 @@
 
 import { Lock, ArrowRight } from 'lucide-react';
 import { useApp } from '@/app/store';
+import { useI18n } from '@/i18n';
 import { DashboardLayout } from '@/app/app';
 import ProfileSettings from '@/app/individual/ProfileSettings';
 import OrgProfile from '@/app/organization/OrgProfile';
@@ -12,6 +13,7 @@ import Footer from '@/components/layout/Footer';
 
 export default function ProfilePage() {
   const { currentUser, navigate } = useApp();
+  const { t } = useI18n();
 
   if (!currentUser) {
     return (
@@ -25,10 +27,10 @@ export default function ProfilePage() {
             </div>
 
             <h1 className="text-2xl sm:text-3xl font-normal font-serif-display text-soot tracking-tight mb-2">
-              Authentication Required
+              {t('profilePage.authRequired')}
             </h1>
             <p className="text-moss text-xs sm:text-sm leading-relaxed mb-8 max-w-xs mx-auto">
-              You must be logged in to view and manage your profile, team settings, and workspace passes.
+              {t('profilePage.authBody')}
             </p>
 
             <button
@@ -36,7 +38,7 @@ export default function ProfilePage() {
               onClick={() => navigate('login')}
               className="btn-primary w-full"
             >
-              <span>Sign In to Continue</span>
+              <span>{t('profilePage.signIn')}</span>
               <ArrowRight size={16} />
             </button>
           </div>

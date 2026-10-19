@@ -1,6 +1,6 @@
 'use client';
 import { useI18n } from '@/i18n';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   MessageCircle,
   Mail,
@@ -25,8 +25,14 @@ export default function Contact() {
   const { addSupportTicket, currentUser } = useApp();
   const [submitted, setSubmitted] = useState(false);
   const [inquiryType, setInquiryType] = useState<InquiryType>('general');
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [name, setName] = useState(currentUser?.name || '');
+  const [email, setEmail] = useState(currentUser?.email || '');
+  // Signed-in customers do not retype their own details (the user can load after the first render)
+  useEffect(() => {
+    if (!currentUser) return;
+    setName((prev) => prev || currentUser.name || '');
+    setEmail((prev) => prev || currentUser.email || '');
+  }, [currentUser]);
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [attachedImage, setAttachedImage] = useState<string | null>(null);

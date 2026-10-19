@@ -4,6 +4,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 import en from './en.json';
 import ar from './ar.json';
 import { translateMessageToArabic } from './messages';
+import { applyArabicNumberAgreement } from './arabic-numbers';
 
 export type Lang = 'ar' | 'en';
 export const DEFAULT_LANG: Lang = 'ar';
@@ -48,7 +49,9 @@ function interpolate(text: string, vars?: TranslateVars): string {
 /** Pure translate function (usable outside React, e.g. in tests). */
 export function translate(lang: Lang, key: TranslationKey, vars?: TranslateVars): string {
   const text = lookup(dictionaries[lang], key) ?? lookup(dictionaries.en, key) ?? key;
-  return interpolate(text, vars);
+  const result = interpolate(text, vars);
+  // Counted units ("{count} ساعات") take the Arabic form that agrees with the actual number
+  return lang === 'ar' && vars ? applyArabicNumberAgreement(result) : result;
 }
 
 /**
@@ -127,7 +130,10 @@ export function I18nProvider({ children, initialLang }: { children: React.ReactN
     toggleLang: () => setLang(lang === 'ar' ? 'en' : 'ar'),
     t: (key, vars) => translate(lang, key, vars),
     localized: (english, arabic) => pickLocalized(lang, english, arabic),
-    translateMessage: (message) => (lang === 'ar' ? translateMessageToArabic(message).replace(/\bAM\b/g, 'ص').replace(/\bPM\b/g, 'م') : message),
+    translateMessage: (message) =>
+      lang === 'ar'
+        ? applyArabicNumberAgreement(translateMessageToArabic(message).replace(/\bAM\b/g, 'ص').replace(/\bPM\b/g, 'م'))
+        : message,
     formatDate: (value, options = { month: 'short', day: 'numeric', year: 'numeric' }) => {
       const date = value instanceof Date ? value : new Date(value);
       if (isNaN(date.getTime())) return String(value ?? '');

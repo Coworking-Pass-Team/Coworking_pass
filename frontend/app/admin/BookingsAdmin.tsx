@@ -607,7 +607,7 @@ export default function BookingsAdmin() {
                 onClick={() => setSelectedBooking(null)}
                 className="btn-primary"
               >
-                Done
+                {t('common.done')}
               </button>
             </div>
           </div>

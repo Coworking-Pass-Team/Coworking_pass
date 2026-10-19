@@ -1,6 +1,7 @@
 'use client';
 
 import { useI18n } from '@/i18n';
+import { useSpaceText } from '@/i18n/space-text';
 import React, { useState, useEffect } from 'react';
 import {
   CreditCard,
@@ -21,6 +22,7 @@ import { getPaymentsApi, PaymentItemApi } from '@/services/authApi';
 
 export default function PaymentsAdmin() {
   const { t, translateMessage, lang, formatDate } = useI18n();
+  const st = useSpaceText();
   const { fetchPayments, paymentsApi } = useApp();
   const [payments, setPayments] = useState<PaymentItemApi[]>([]);
   const [loading, setLoading] = useState(true);
@@ -251,7 +253,7 @@ export default function PaymentsAdmin() {
                 {filteredPayments.map(p => {
                   const isSuccess = p.status === 'SUCCESS';
                   const dateStr = p.createdAt ? formatDate(p.createdAt) : translateMessage('N/A');
-                  const timeStr = p.createdAt ? new Date(p.createdAt).toLocaleTimeString(lang === 'ar' ? 'ar-SA' : 'en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : '';
+                  const timeStr = p.createdAt ? new Date(p.createdAt).toLocaleTimeString(lang === 'ar' ? 'ar-SA-u-ca-gregory-nu-latn' : 'en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : '';
 
                   return (
                     <tr key={p.id} className="hover:bg-plaster-dark/20 transition-colors">
@@ -274,7 +276,7 @@ export default function PaymentsAdmin() {
                         {p.workspace?.city && (
                           <div className="ps-5 mt-0.5">
                             <span className="bg-soot/6 text-soot text-[10px] font-medium px-2 py-0.5 rounded-md">
-                              {p.workspace.city}
+                              {st.cityName(p.workspace.city)}
                             </span>
                           </div>
                         )}

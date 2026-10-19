@@ -120,7 +120,9 @@ export default function Reports() {
 
   const revenueData = (report?.revenueByCity ?? []).map(x => ({ ...x, label: x.label === 'Passes & other' ? t('reports.passesOther') : st.cityName(x.label) }));
   const bookingsByPlan = (report?.bookingsByPlan ?? []).map(x => ({ ...x, label: t(('reports.plan.' + x.label) as never) }));
-  const occupancyData = (report?.occupancy ?? []).map(o => ({ label: o.name.split(' ')[0], value: o.occupancyPercent }));
+  // Full localized names (first words alone are ambiguous: "Test", "The"); long names are shortened with an ellipsis
+  const shortLabel = (text: string) => (text.length > 18 ? `${text.slice(0, 17)}…` : text);
+  const occupancyData = (report?.occupancy ?? []).map(o => ({ label: shortLabel(st.bookingName({ spaceId: o.id, spaceName: o.name })), value: o.occupancyPercent }));
   const userGrowth = (report?.usersByType ?? []).map(x => ({ ...x, label: t(('reports.type.' + x.label) as never) }));
   const topSpaces = (report?.topSpaces ?? []).map(t => ({ ...t, images: spaces.find(sp => sp.id === t.id)?.images ?? [] }));
 
@@ -210,8 +212,8 @@ export default function Reports() {
               </div>
               <img src={space.images[0] || 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=200&q=60'} alt={space.name} className="w-12 h-12 rounded-xl object-cover shrink-0" />
               <div className="flex-1 min-w-0">
-                <div className="font-semibold text-soot text-base truncate">{space.name}</div>
-                <div className="text-sm text-moss">{space.city}</div>
+                <div className="font-semibold text-soot text-base truncate">{st.bookingName({ spaceId: space.id, spaceName: space.name })}</div>
+                <div className="text-sm text-moss">{st.cityName(space.city)}</div>
               </div>
               <div className="text-end shrink-0">
                 <div className="font-bold text-soot text-base">{t('common.sar')} {space.revenue.toLocaleString()}</div>
