@@ -12,7 +12,8 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const requestedUserId = searchParams.get('userId');
-    const canViewOthers = user.role === 'SUPER_ADMIN' || user.role === 'PARTNER_ADMIN';
+    // Subscriptions carry customer names and emails: only super admins may list other users' passes
+    const canViewOthers = user.role === 'SUPER_ADMIN';
     const userIdFilter = (requestedUserId && (canViewOthers || requestedUserId === user.userId))
       ? requestedUserId
       : (canViewOthers ? undefined : user.userId);

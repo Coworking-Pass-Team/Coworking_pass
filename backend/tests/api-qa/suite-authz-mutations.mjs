@@ -7,7 +7,8 @@ const loginAs = async (email, pw) => {
   return { token: v.body?.token, userId: l.body.userId };
 };
 const mk = (n, role = 'B2C', x = {}) => makeUser('QA ' + n, `qa.${n}.${run}@test.local`.toLowerCase(), role, x);
-const admin = await loginAs('admin@coworkingpass.sa', 'password');
+// Seeded super admin: TEST_ACCOUNTS.md (override with QA_ADMIN_EMAIL / QA_ADMIN_PASSWORD)
+const admin = await loginAs(process.env.QA_ADMIN_EMAIL || 'superadmin@cwp-test.local', process.env.QA_ADMIN_PASSWORD || 'Test@12345');
 const c = await mk('cust'), c2 = await mk('cust2');
 const denied = (r) => r.status === 401 || r.status === 403;
 
