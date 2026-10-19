@@ -92,6 +92,17 @@ if (!user) return unauthorizedResponse(request);
       share = 15;
     }
 
+    // One partner record per email: repeated requests (the app re-checks on every visit) return the existing one
+    const existing = await prisma.partner.findFirst({
+      where: { contactEmail: { equals: ownerEmail, mode: "insensitive" } },
+    });
+    if (existing) {
+      if (user.role === "PARTNER_ADMIN") {
+        return NextResponse.json({ message: "Partner already registered.", partner: existing }, { status: 200 });
+      }
+      return NextResponse.json({ error: "A partner with this email already exists.", partner: existing }, { status: 409 });
+    }
+
     const partner = await prisma.partner.create({
       data: { brandName, contactEmail: ownerEmail, taxNumber, revenueSharePercentage: share },
     });
