@@ -4669,7 +4669,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const space = spaces.find(s => s.id === booking.spaceId);
     const multiplier = space?.loyaltyPointsMultiplier || 1;
     const rawPrice = booking.totalPrice || 0;
-    const earnedPoints = (rawPrice > 0 ? Math.max(10, Math.floor(rawPrice / 10)) : 10) * multiplier;
+    const earnedPoints = Math.floor(rawPrice / 100) * 10 * multiplier;
 
     // Meeting rooms and theaters draw on one shared hours quota; private offices never do
     const isMeetingOrTheater = getSpaceCategory(space ?? booking.category ?? booking.type) !== 'office';
@@ -4733,32 +4733,45 @@ export function AppProvider({ children }: { children: ReactNode }) {
         };
       }
 
-      setCurrentUser(updatedUser);
-      setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
+      // Only the fields changed here are applied: the snapshot is older than the wallet debit made just before
+      const patch: Partial<User> = {};
+      (['remainingHours', 'totalPlanHours', 'passUsed', 'loyaltyPoints'] as const).forEach((key) => {
+        if (updatedUser[key] !== latestUser[key]) (patch as Record<string, unknown>)[key] = updatedUser[key];
+      });
+      const applyPatch = (u: User) => (u.id === updatedUser.id ? { ...u, ...patch } : u);
+      setCurrentUser(prev => {
+        const next = prev ? applyPatch(prev) : prev;
+        if (next && typeof window !== 'undefined') localStorage.setItem('cp_currentUser', JSON.stringify(next));
+        return next;
+      });
+      setUsers(prev => prev.map(applyPatch));
       if (typeof window !== 'undefined') {
-        localStorage.setItem('cp_currentUser', JSON.stringify(updatedUser));
         try {
           const storedUsers = localStorage.getItem('cp_users');
           if (storedUsers) {
-            const parsedUsers = JSON.parse(storedUsers) as User[];
-            const updatedUsersList = parsedUsers.map(u => u.id === updatedUser.id ? updatedUser : u);
-            localStorage.setItem('cp_users', JSON.stringify(updatedUsersList));
+            localStorage.setItem('cp_users', JSON.stringify((JSON.parse(storedUsers) as User[]).map(applyPatch)));
           }
         } catch (e) { }
       }
 
-      if (earnedPoints > 0) {
+    }
+
+    // Points are credited against the server's booking id (the server only accepts the caller's own bookings)
+    const pointsOwner = latestUser && latestUser.id === booking.userId ? latestUser : null;
+    const awardPoints = (serverBookingId: string) => {
+      if (!pointsOwner || earnedPoints <= 0) return;
+      {
         createPointsTransactionApi({
-          userId: latestUser.id,
+          userId: pointsOwner.id,
           type: 'EARNED',
           points: earnedPoints,
           description: `Earned points for booking: ${booking.spaceName}`,
-          referenceId: newBooking.id,
+          referenceId: serverBookingId,
         }).then(res => {
           if (res.success) {
-            getLoyaltyPointsApi(latestUser.id).then(ptsRes => {
+            getLoyaltyPointsApi(pointsOwner.id).then(ptsRes => {
               if (ptsRes.success && Array.isArray(ptsRes.data)) {
-                const uPts = ptsRes.data.find((p: any) => p.userId === latestUser.id);
+                const uPts = ptsRes.data.find((p: any) => p.userId === pointsOwner.id);
                 if (uPts && typeof uPts.availableBalance === 'number') {
                   setCurrentUser(prevU => {
                     if (!prevU) return null;
@@ -4774,7 +4787,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           }
         }).catch(() => { });
       }
-    }
+    };
 
     // The server records "booking confirmed" itself (fetched below), so only the points message is added here
     if (earnedPoints > 0) {
@@ -4978,13 +4991,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
             }
 
             fetchWorkspaces();
-            await fetch(`${getApiBaseUrl()}/payments`, {
+            if (dbBooking?.id) awardPoints(dbBooking.id);
+            // Pass-covered bookings cost nothing, so no payment is recorded for them
+            if ((booking.totalPrice || 0) > 0) await fetch(`${getApiBaseUrl()}/payments`, {
               method: 'POST',
               headers,
               body: JSON.stringify({
                 userId: currentUser?.id || booking.userId,
                 workspaceId: validWorkspaceId || dbBooking.workspaceId || undefined,
-                amount: booking.totalPrice || 50,
+                amount: booking.totalPrice,
                 method: 'MADA',
                 paymentFor: 'DIRECT_BOOKING',
                 referenceId: dbBooking.id || newBooking.id,
@@ -5098,13 +5113,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 }
 
                 fetchWorkspaces();
-                await fetch(`${getApiBaseUrl()}/payments`, {
+                if (hbData?.id) awardPoints(hbData.id);
+                if ((booking.totalPrice || 0) > 0) await fetch(`${getApiBaseUrl()}/payments`, {
                   method: 'POST',
                   headers,
                   body: JSON.stringify({
                     userId: currentUser?.id || booking.userId,
                     workspaceId: validWorkspaceId || hbData.workspaceId || undefined,
-                    amount: booking.totalPrice || 50,
+                    amount: booking.totalPrice,
                     method: 'MADA',
                     paymentFor: 'HOURLY_BOOKING',
                     referenceId: hbData.id || newBooking.id,

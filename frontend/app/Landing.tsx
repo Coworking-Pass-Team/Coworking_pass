@@ -297,7 +297,7 @@ export default function Landing() {
                   {/* حل المشكلة FE-08: استبدال الرمز المشوه بنقطة فاصلة سليمة */}
                   <div className="flex items-center gap-1.5 text-plaster/90 text-xs font-medium mt-1">
                     <MapPin size={13} className="text-eucalyptus" />
-                    <span>{sx.city(space)} • {sx.address(space)}</span>
+                    <span>{sx.location(space)}</span>
                   </div>
                 </div>
                 <div className="absolute top-4 end-4 bg-plaster-surface/95 backdrop-blur-md rounded-2xl px-3 py-1.5 text-center border border-soot/12 shadow-xs">

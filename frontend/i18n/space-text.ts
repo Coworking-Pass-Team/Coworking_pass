@@ -18,8 +18,15 @@ export function useSpaceText() {
   const name = (space?: Pick<Space, 'name' | 'nameAr'> | null) => pickLocalized(lang, space?.name, space?.nameAr);
   const description = (space?: Pick<Space, 'description' | 'descriptionAr'> | null) =>
     pickLocalized(lang, space?.description, space?.descriptionAr);
-  const address = (space?: Pick<Space, 'address' | 'addressAr'> | null) =>
-    pickLocalized(lang, space?.address, space?.addressAr);
+  /** True when the stored address is only the city (the API falls back to the city when no address was entered). */
+  const isCityOnly = (space?: Pick<Space, 'address' | 'city'> | null) =>
+    !space?.address || space.address.trim().toLowerCase() === (space.city || '').trim().toLowerCase();
+  const address = (space?: Pick<Space, 'address' | 'addressAr' | 'city' | 'cityAr'> | null) => {
+    if (space?.addressAr && lang === 'ar') return space.addressAr;
+    // A city-only address is shown as the localized city instead of the raw English value
+    if (isCityOnly(space)) return cityName(space?.city, space?.cityAr);
+    return pickLocalized(lang, space?.address, space?.addressAr);
+  };
 
   /** City: provider-authored Arabic city first, then the standard Saudi cities list, then the raw value. */
   const cityName = (city?: string | null, cityAr?: string | null) => {
@@ -39,6 +46,9 @@ export function useSpaceText() {
     return t(`spaceTypes.${normalizeSpaceType(type)}` as never);
   };
   const city = (space?: Pick<Space, 'city' | 'cityAr'> | null) => cityName(space?.city, space?.cityAr);
+  /** "City • address" for cards, without repeating the city when no street address was entered. */
+  const location = (space?: Pick<Space, 'address' | 'addressAr' | 'city' | 'cityAr'> | null) =>
+    isCityOnly(space) && !(lang === 'ar' && space?.addressAr) ? city(space) : `${city(space)} • ${address(space)}`;
 
   /** Standard amenities (stored as English names) are translated; custom ones stay as typed. */
   const amenity = (name?: string | null) => {
@@ -57,5 +67,5 @@ export function useSpaceText() {
     return space ? city(space) : cityName(b.spaceCity);
   };
 
-  return { name, description, address, city, cityName, typeLabel, amenity, bookingName, bookingCity, byId };
+  return { name, description, address, city, location, cityName, typeLabel, amenity, bookingName, bookingCity, byId };
 }

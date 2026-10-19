@@ -483,10 +483,10 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
                       <div className="text-sm font-medium text-soot truncate">{sx.bookingName(b)}</div>
                       <div className="text-xs text-moss flex items-center gap-1 mt-0.5">
                         <MapPin size={11} />
-                        <span>{sx.bookingCity(b)} · <span className="capitalize">{b.plan === 'hourly' ? t(b.durationHours === 1 ? 'booking.hourlyHrs' : 'booking.hourlyHrsMany', { count: b.durationHours || 1 }) : b.plan}</span></span>
+                        <span>{sx.bookingCity(b)} · <span className="capitalize">{b.plan === 'hourly' ? t(b.durationHours === 1 ? 'booking.hourlyHrs' : 'booking.hourlyHrsMany', { count: b.durationHours || 1 }) : t(('booking.plan.' + b.plan) as never)}</span></span>
                       </div>
                       <div className="text-xs font-medium text-soot mt-1">
-                        {b.startDate} {b.plan === 'hourly' && (b.startTime || b.endTime) ? `· ${b.startTime || '09:00 AM'} – ${b.endTime || '05:00 PM'}` : ''}
+                        {b.startDate} {b.plan === 'hourly' && (b.startTime || b.endTime) ? `· ${localizeTime(b.startTime || '09:00 AM')} – ${localizeTime(b.endTime || '05:00 PM')}` : ''}
                       </div>
                     </div>
                   </div>

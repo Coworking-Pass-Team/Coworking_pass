@@ -1441,15 +1441,18 @@ export function OtpVerificationScreen() {
       return;
     }
 
-    const lastChar = cleaned[cleaned.length - 1];
-    const nextDigits = [...digits];
-    nextDigits[index] = lastChar;
-    setDigits(nextDigits);
+    // Several characters at once (fast typing, SMS/email autofill): spread them over the following boxes.
+    // The functional update keeps rapid keystrokes from overwriting each other with a stale copy.
+    const chars = cleaned.length > 1 ? cleaned.slice(0, 6 - index).split('') : [cleaned];
+    setDigits((prev) => {
+      const next = [...prev];
+      chars.forEach((c, i) => { next[index + i] = c; });
+      return next;
+    });
     setError('');
 
-    if (index < 5) {
-      inputRefs.current[index + 1]?.focus();
-    }
+    const focusIndex = Math.min(index + chars.length, 5);
+    inputRefs.current[focusIndex]?.focus();
   };
 
   const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -1687,7 +1690,8 @@ export function OtpVerificationScreen() {
               <label className="block text-xs font-semibold text-soot mb-2.5 uppercase tracking-wider text-center">
                 {translateMessage('6-Digit Security Code')}
               </label>
-              <div className="flex items-center justify-center gap-2 sm:gap-3">
+              {/* Codes are read left to right in both languages */}
+              <div dir="ltr" className="flex items-center justify-center gap-2 sm:gap-3">
                 {digits.map((digit, idx) => (
                   <input
                     key={idx}
@@ -1695,7 +1699,9 @@ export function OtpVerificationScreen() {
                     type="text"
                     inputMode="numeric"
                     pattern="[0-9]*"
-                    maxLength={1}
+                    autoComplete={idx === 0 ? 'one-time-code' : 'off'}
+                    aria-label={`${translateMessage('6-Digit Security Code')} ${idx + 1}`}
+                    maxLength={idx === 0 ? 6 : 1}
                     value={digit}
                     onChange={(e) => handleDigitChange(idx, e.target.value)}
                     onKeyDown={(e) => handleKeyDown(idx, e)}

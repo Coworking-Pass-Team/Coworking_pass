@@ -36,6 +36,18 @@
         "two": "2 Months",
         "few": "{count} Months",
         "many": "{count} Months"
+      },
+      "day": {
+        "one": "1 Day",
+        "two": "2 Days",
+        "few": "{count} Days",
+        "many": "{count} Days"
+      },
+      "seat": {
+        "one": "1 Seat",
+        "two": "2 Seats",
+        "few": "{count} Seats",
+        "many": "{count} Seats"
       }
     }
   },
@@ -1213,7 +1225,25 @@
     "startTime": "Start Time",
     "endTime": "End Time",
     "includedWithPass": "Included with Pass",
-    "confirmCovered": "Confirm Reservation (Covered by your Pass)"
+    "confirmCovered": "Confirm Reservation (Covered by your Pass)",
+    "category": {
+      "office": "Office",
+      "hall": "Hall",
+      "theater": "Theater"
+    },
+    "durationBadge": "{duration} Duration",
+    "totalSeats": "Total ({seats})",
+    "passDiscount": "{percent}% Pass Discount",
+    "included": "Included",
+    "covered": "Covered",
+    "hoursCovered": "{count}h Covered",
+    "seatsOpen": "{count} seats currently open",
+    "quotaApplied": "{hours} ({remaining} hrs remaining in monthly quota)",
+    "partialQuotaBody": "Your {tier} quota covers {covered} ({remaining} hrs remaining). The remaining {payable} are charged at {currency} {rate}/hour.",
+    "pointsBalance": "Balance: {points} points",
+    "includedInPlanCount": "{count} included in plan",
+    "payWallet": "Confirm & Pay from Wallet ({currency} {amount})",
+    "forDuration": "for {duration}"
   },
   "tb": {
     "stepType": "Type & Plan",
@@ -2559,7 +2589,10 @@
     "reservationActivity": "Reservation Activity",
     "bookingDate": "Booking Date",
     "passAmount": "Pass Amount",
-    "pointsEarned": "Points Earned"
+    "pointsEarned": "Points Earned",
+    "step1": "1. Earn Points Automatically",
+    "step2": "2. Multiply with Bonus Partners",
+    "step3": "3. Instant Checkout Cashback"
   },
   "ind": {
     "ps": {
@@ -2638,10 +2671,10 @@
     "totalSeats": "Total: {count} seats",
     "selectHall": "Select Hall",
     "selectTheater": "Select Theater",
-    "maxSeats": "Max {count} seats",
+    "maxSeats": "Max {count}",
     "fullDay": "Fully booked on this date",
     "slotTaken": "Booked",
-    "seatCap": "This hall seats up to {count}",
+    "seatCap": "Capacity: up to {count}",
     "errCapacity": "Every hall or theater needs at least 1 seat.",
     "title": "Facilities & Sections",
     "helpRooms": "Add each room of this hub with its own kind, seating capacity and rates.",
