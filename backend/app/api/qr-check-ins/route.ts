@@ -3,6 +3,32 @@ import { prisma } from '@/lib/prisma'
 import crypto from 'crypto'
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 import { getOwnedWorkspaceIds, canManageWorkspace } from '@/lib/ownership'
+import { getKsaNow } from '@/lib/time-utils'
+import { directBookingEnd } from '@/lib/capacity'
+
+/** Arrival up to this long before an hourly session still counts as checking in for it. */
+const EARLY_ARRIVAL_MS = 60 * 60 * 1000
+
+/**
+ * The booking that entitles a customer to enter this workspace right now, if any: a confirmed daily/monthly/yearly
+ * booking whose period covers today, or an active hourly session in progress (session times are stored in KSA time).
+ */
+async function findCurrentBooking(userId: string, workspaceId: string) {
+  const now = getKsaNow()
+  // Daily plans cover the whole booked day, whatever time of day the booking date was stored with
+  const endOfToday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1))
+  const direct = await prisma.directBooking.findMany({
+    where: { userId, workspaceId, status: 'CONFIRMED', bookingDate: { lt: endOfToday } },
+    orderBy: { bookingDate: 'desc' },
+    take: 20,
+  })
+  const coveringDirect = direct.find((b) => directBookingEnd(b) > now)
+  if (coveringDirect) return { id: coveringDirect.id, kind: coveringDirect.durationType as string }
+  const hourly = await prisma.hourlyBooking.findFirst({
+    where: { userId, workspaceId, status: 'ACTIVE', startDate: { lte: new Date(now.getTime() + EARLY_ARRIVAL_MS) }, endDate: { gt: now } },
+  })
+  return hourly ? { id: hourly.id, kind: 'HOURLY' } : null
+}
 
 
 function generateQRHash() {
@@ -121,6 +147,12 @@ if (!user) return unauthorizedResponse(request);
       userId = body.userId
     }
 
+    // Entry is only valid with a booking for this workspace right now (nothing is recorded otherwise)
+    const currentBooking = await findCurrentBooking(userId, workspaceId)
+    if (!currentBooking) {
+      return NextResponse.json({ error: 'No active booking for this space right now.', code: 'NO_ACTIVE_BOOKING' }, { status: 403 })
+    }
+
     // 1. إنشاء سجل QR Check-in
     const checkIn = await prisma.qrCheckIn.create({
       data: {
@@ -141,14 +173,7 @@ if (!user) return unauthorizedResponse(request);
     // ✅ 2. منح نقاط ولاء عند مسح QR
     try {
       // البحث عن حجز نشط للمستخدم في هذا القسم
-      const activeBooking = await prisma.directBooking.findFirst({
-        where: {
-          userId: userId,
-          sectionId: sectionId,
-          status: 'CONFIRMED',
-          bookingDate: { lte: new Date() }
-        }
-      })
+      const activeBooking = { id: currentBooking.id, durationType: currentBooking.kind }
 
       // Points are earned once per booking per day, so repeated scans cannot farm loyalty points
       const dayStart = new Date()
@@ -169,7 +194,7 @@ if (!user) return unauthorizedResponse(request);
             userId: userId,
             type: 'EARNED',
             points: pointsToEarn,
-            description: `Points earned from ${activeBooking.durationType} booking in ${activeBooking.workspaceId}`,
+            description: `Points earned from check-in at ${checkIn.workspace?.name || 'the workspace'}`,
             referenceId: activeBooking.id
           }
         })

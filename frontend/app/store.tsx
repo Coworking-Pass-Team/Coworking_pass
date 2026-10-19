@@ -5918,29 +5918,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return sum + Math.floor(item.itemTotal / 100) * 10 * multiplier;
     }, 0);
 
-    let freshestUser = currentUser;
-    if (typeof window !== 'undefined') {
-      try {
-        const stored = localStorage.getItem('cp_currentUser');
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          if (parsed && parsed.id === currentUser.id) {
-            freshestUser = { ...currentUser, ...parsed };
-          }
-        }
-      } catch (e) { }
-    }
-
+    // Only the points change here; merging into the latest state keeps the wallet debit made just before
     const updatedPoints = Math.max(0, userPoints - safePointsToUse) + earned;
-    const updatedUser = { ...freshestUser, loyaltyPoints: updatedPoints };
-    setCurrentUser(updatedUser);
-    const updatedUsers = users.map((u) => (u.id === updatedUser.id ? updatedUser : u));
-    setUsers(updatedUsers);
-
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('cp_currentUser', JSON.stringify(updatedUser));
-      localStorage.setItem('cp_users', JSON.stringify(updatedUsers));
-    }
+    setCurrentUser((prev) => (prev && prev.id === currentUser.id ? { ...prev, loyaltyPoints: updatedPoints } : prev));
+    setUsers((prev) => prev.map((u) => (u.id === currentUser.id ? { ...u, loyaltyPoints: updatedPoints } : u)));
 
     if (currentUser && safePointsToUse > 0) {
       createPointsTransactionApi({
@@ -5954,11 +5935,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             if (ptsRes.success && Array.isArray(ptsRes.data)) {
               const uPts = ptsRes.data.find((p: any) => p.userId === currentUser.id);
               if (uPts && typeof uPts.availableBalance === 'number') {
-                const syncedUser = { ...currentUser, loyaltyPoints: uPts.availableBalance };
-                setCurrentUser(syncedUser);
-                if (typeof window !== 'undefined') {
-                  localStorage.setItem('cp_currentUser', JSON.stringify(syncedUser));
-                }
+                setCurrentUser((prev) => (prev ? { ...prev, loyaltyPoints: uPts.availableBalance } : prev));
               }
             }
           }).catch(() => { });
