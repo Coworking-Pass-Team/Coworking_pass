@@ -58,7 +58,7 @@ export async function deleteUserCascade(tx: Tx, userId: string): Promise<void> {
 
   // Partner accounts also own a partner record and its venues
   if (user.role === "PARTNER_ADMIN") {
-    const partner = await tx.partner.findFirst({ where: { contactEmail: { equals: user.email, mode: "insensitive" } } });
+    const partner = await tx.partner.findFirst({ where: { contactEmail: { equals: user.email, mode: "insensitive" } }, orderBy: { createdAt: 'asc' } });
     if (partner) await deletePartnerCascade(tx, partner.id);
   }
 

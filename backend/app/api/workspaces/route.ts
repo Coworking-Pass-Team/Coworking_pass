@@ -210,7 +210,7 @@ export async function POST(request: Request) {
     if (userRole === 'PARTNER_ADMIN' || userRole === 'PROVIDER') {
       const me = await prisma.user.findUnique({ where: { id: user.userId }, select: { email: true } });
       const ownPartner = me?.email
-        ? await prisma.partner.findFirst({ where: { contactEmail: { equals: me.email, mode: 'insensitive' } } })
+        ? await prisma.partner.findFirst({ where: { contactEmail: { equals: me.email, mode: 'insensitive' } }, orderBy: { createdAt: 'asc' } })
         : null;
       if (!ownPartner) {
         return NextResponse.json({ error: 'No partner profile is linked to your account.' }, { status: 403 });
@@ -223,7 +223,7 @@ export async function POST(request: Request) {
       const dbUser = await prisma.user.findUnique({ where: { id: user.userId } });
       if (dbUser?.email) {
         const foundPartner = await prisma.partner.findFirst({
-          where: { contactEmail: { equals: dbUser.email, mode: 'insensitive' } },
+          where: { contactEmail: { equals: dbUser.email, mode: 'insensitive' } }, orderBy: { createdAt: 'asc' },
         });
         if (foundPartner) {
           partnerExists = foundPartner;

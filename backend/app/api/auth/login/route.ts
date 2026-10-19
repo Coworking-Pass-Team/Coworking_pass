@@ -73,7 +73,7 @@ export async function POST(request: Request) {
     // Check space provider approval status
     if (user.role === "PARTNER_ADMIN") {
       const partner = await prisma.partner.findFirst({
-        where: { contactEmail: { equals: user.email, mode: "insensitive" } },
+        where: { contactEmail: { equals: user.email, mode: "insensitive" } }, orderBy: { createdAt: 'asc' },
       });
       if (partner && partner.status === "PENDING_APPROVAL") {
         return NextResponse.json({
