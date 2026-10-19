@@ -3067,11 +3067,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       const newPartner: Partner = resData.partner || resData;
       setPartners((prev) => {
-        const updated = [newPartner, ...prev];
+        const updated = [newPartner, ...prev.filter((p) => p.id !== newPartner.id)];
         if (typeof window !== 'undefined') localStorage.setItem('cp_partners', JSON.stringify(updated));
         return updated;
       });
-      showToast(`Partner ${partnerData.brandName} created successfully`, 'success');
+      // 200 means the partner already existed (a background re-check), so nothing new to announce
+      if (response.status === 201) showToast(`Partner ${partnerData.brandName} created successfully`, 'success');
       return { success: true, partner: newPartner };
     } catch (err: any) {
       console.error('Error creating partner via POST /api/partners:', err);
