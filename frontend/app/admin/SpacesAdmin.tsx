@@ -1431,7 +1431,7 @@ export default function SpacesAdmin() {
                   ).map((plan) => (
                     <div key={plan} className="space-y-1">
                       <span className="block text-[10px] font-bold text-moss uppercase tracking-wider">
-                        {plan === 'hourly' ? '1 Hour (Base Rate)' : plan}
+                        {plan === 'hourly' ? t('mySpaces.hourBaseRate') : t(`bf.planName.${plan}` as never)}
                       </span>
                       <input
                         type="number"

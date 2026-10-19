@@ -42,19 +42,35 @@ const ROLE_BADGE: Record<CompanyRole, string> = {
 
 export default function CompanyTeam() {
   const { t, translateMessage } = useI18n();
-  const { currentUser, updateCurrentUser, showToast } = useApp();
+  const { currentUser, updateCurrentUser, showToast, companyData } = useApp();
 
   const rawEmployees = currentUser?.employees || [];
 
   const [members, setMembers] = useState<TeamMemberExt[]>([
-    { id: 'owner', name: currentUser?.name || '', email: currentUser?.email || '', department: 'Leadership', role: 'Company Owner', status: 'active', lastActive: '2026-09-01' },
-    ...rawEmployees.map((e: Employee, i: number) => ({
+    { id: 'owner', name: currentUser?.name || '', email: currentUser?.email || '', department: 'Leadership', role: 'Company Owner', status: 'active', lastActive: '-' },
+    ...rawEmployees.map((e: Employee) => ({
       ...e,
-      role: (['Company Manager', 'Booking Manager', 'Team Member', 'Team Member', 'Team Member', 'Team Member'][i] || 'Team Member') as CompanyRole,
-      status: 'active' as const,
-      lastActive: '2026-08-' + String(20 + i).padStart(2, '0'),
+      role: 'Team Member' as CompanyRole,
+      status: 'invited' as const,
+      lastActive: '-',
     })),
   ]);
+
+  // Employees registered to the company on the server are real members; entries kept only in this browser stay invitations
+  useEffect(() => {
+    const serverEmployees: Array<{ id: string; name?: string; email?: string }> = Array.isArray(companyData?.employees) ? companyData.employees : [];
+    if (serverEmployees.length === 0) return;
+    setMembers((prev) => {
+      const known = new Set(prev.map((m) => m.email.toLowerCase()));
+      const promoted = prev.map((m) =>
+        serverEmployees.some((e) => (e.email || '').toLowerCase() === m.email.toLowerCase()) ? { ...m, status: 'active' as const } : m
+      );
+      const added = serverEmployees
+        .filter((e) => e.email && e.email.toLowerCase() !== (currentUser?.email || '').toLowerCase() && !known.has(e.email.toLowerCase()))
+        .map((e) => ({ id: e.id, name: e.name || e.email || '', email: e.email || '', department: '', role: 'Team Member' as CompanyRole, status: 'active' as const, lastActive: '-' }));
+      return [...promoted, ...added];
+    });
+  }, [companyData?.employees, currentUser?.email]);
 
   const [query, setQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('All');

@@ -194,7 +194,9 @@
     "ratesBadgeAll": "بالساعة • يومي • شهري • سنوي",
     "ratesBadgeNoHourly": "يومي • شهري • سنوي (بدون حجز بالساعة)",
     "addAmenity": "إضافة",
-    "requestAmenity": "طلب موافقة الإدارة"
+    "requestAmenity": "طلب موافقة الإدارة",
+    "hourBaseRate": "ساعة واحدة (السعر الأساسي)",
+    "deleteQuestion": "هل أنت متأكد من حذف «{name}»؟"
   },
   "space": {
     "available": "متاح",
@@ -1332,7 +1334,10 @@
     "planCoverage": "تغطية باقة الاشتراك المؤسسي",
     "decrease": "تقليل المقاعد",
     "increase": "زيادة المقاعد",
-    "hourlyNotice": "تُحجز هذه المساحة وتُسعّر بالساعة ضمن ساعات تشغيل المكان ({hours}). يمكنك اختيار المدة المطلوبة بالساعات والفترة الزمنية في خطوة الجدول."
+    "hourlyNotice": "تُحجز هذه المساحة وتُسعّر بالساعة ضمن ساعات تشغيل المكان ({hours}). يمكنك اختيار المدة المطلوبة بالساعات والفترة الزمنية في خطوة الجدول.",
+    "dateRange": "الفترة",
+    "seatsAvailable": "{count} متاحة",
+    "selectedOf": "تم اختيار {selected} من {total}"
   },
   "notifPage": {
     "newCount": "{count} جديد",
@@ -2057,7 +2062,10 @@
       "activeBookings": "الحجوزات النشطة",
       "totalRevenue": "إجمالي الإيرادات",
       "occupancy": "معدل الإشغال",
-      "noneListed": "لم تُدرج أي مساحة بعد"
+      "noneListed": "لم تُدرج أي مساحة بعد",
+      "availableOf": "{available}/{total} متاح",
+      "perHour": "/ ساعة",
+      "perDay": "/ يوم"
     },
     "bk": {
       "spaceFilter": "حجوزات {status}",
@@ -2203,6 +2211,9 @@
       "eGTheHubRiyadh": "مثال: مجموعة ذا هب الرياض",
       "eGNawafAlQahtani": "مثال: نواف القحطاني",
       "tellGuestsAboutYourVenue": "عرّف الضيوف بمرافق موقعك وأجوائه وخدمات الحجز..."
+    },
+    "profile": {
+      "manager": "المدير: {name}"
     }
   },
   "org": {

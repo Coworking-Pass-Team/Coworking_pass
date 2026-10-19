@@ -438,7 +438,7 @@ function ProviderSpaceBookingsContent() {
                         : 'bg-red-500/15 text-red-700 border border-red-500/30'
                     }`}
                   >
-                    {b.status}
+                    {lb.status(b.status)}
                   </span>
                   <button
                     type="button"

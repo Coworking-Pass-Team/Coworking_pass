@@ -32,7 +32,8 @@ export function useSpaceText() {
   const cityName = (city?: string | null, cityAr?: string | null) => {
     if (!city) return '';
     if (lang !== 'ar') return city;
-    if (cityAr && cityAr.trim()) return cityAr;
+    // A Latin-only value typed into the Arabic field is ignored in favor of the known Arabic name
+    if (cityAr && /[؀-ۿ]/.test(cityAr)) return cityAr;
     // Common spelling variants used in stored data
     const aliases: Record<string, string> = { mecca: 'makkah', medina: 'madinah', 'al khobar': 'khobar', 'al-khobar': 'khobar' };
     const normalized = city.trim().toLowerCase();

@@ -734,7 +734,7 @@ export default function BookingFlow() {
                 {seats > 1 ? t('bf.totalSeats', { seats: seatsText(seats) }) : translateMessage('Total Price')}
               </span>
               <div className="font-bold text-soot text-lg sm:text-xl leading-tight">
-                {t('common.sar')} {(planInfo.effectivePrice * seats).toLocaleString()}
+                {t('common.sar')} {planInfo.effectivePrice.toLocaleString()}
               </div>
               <div className="text-[11px] text-moss mt-0.5">
                 {(planInfo.coveredHours || 0) > 0
@@ -891,7 +891,7 @@ export default function BookingFlow() {
                   <p className="text-xs text-moss mt-0.5">{t('bf.selectDateTimeHint')}</p>
                 </div>
                 <div className="text-sm font-bold text-soot whitespace-nowrap shrink-0 text-end">
-                  {hoursText(durationHours)} {planInfo.effectivePrice === 0 ? `· ${t('spaceDetails.includedInPass')}` : (planInfo.coveredHours || 0) > 0 ? `· ${t('bf.hoursCovered', { count: planInfo.coveredHours ?? 0 })} · ${t('common.sar')} ${(planInfo.effectivePrice * seats).toLocaleString()}` : `· ${t('common.sar')} ${getHourlyPriceForDuration(space, durationHours)}`}
+                  {hoursText(durationHours)} {planInfo.effectivePrice === 0 ? `· ${t('spaceDetails.includedInPass')}` : (planInfo.coveredHours || 0) > 0 ? `· ${t('bf.hoursCovered', { count: planInfo.coveredHours ?? 0 })} · ${t('common.sar')} ${planInfo.effectivePrice.toLocaleString()}` : `· ${t('common.sar')} ${getHourlyPriceForDuration(space, durationHours)}`}
                 </div>
               </div>
 
@@ -949,7 +949,7 @@ export default function BookingFlow() {
               onClick={next}
               className="flex-1 py-3.5 px-6 rounded-full bg-[#DDE6DF] text-soot hover:bg-[#D0DDD3] font-medium text-sm transition-all flex items-center justify-center gap-2 shadow-xs border border-soot/8 cursor-pointer"
             >
-              <span>{planInfo.effectivePrice === 0 ? t('bf.continueSchedule') : t('bf.continueSchedulePrice', { currency: t('common.sar'), amount: (planInfo.effectivePrice * seats).toLocaleString() })}</span>
+              <span>{planInfo.effectivePrice === 0 ? t('bf.continueSchedule') : t('bf.continueSchedulePrice', { currency: t('common.sar'), amount: planInfo.effectivePrice.toLocaleString() })}</span>
               <ChevronRight size={16} />
             </button>
           </div>
@@ -1493,14 +1493,14 @@ export default function BookingFlow() {
                       />
                       <Row
                         label={t('bf.extraPayable', { hours: planInfo.payableHours ?? 0, currency: t('common.sar'), rate: space.pricing?.hourly ?? 0 })}
-                        value={`${t('common.sar')} ${(planInfo.effectivePrice * seats).toLocaleString()}`}
+                        value={`${t('common.sar')} ${planInfo.effectivePrice.toLocaleString()}`}
                       />
                     </>
                   ) : (
                     <>
                       <Row
                         label={t('bf.ratePerSeat', { detail: isHourly ? `${localizeTime(startTime)} – ${localizeTime(endTime)} (${t('bf.unitHour', { count: durationHours })})` : plan === 'monthly' ? t('myBookings.monthlyMo', { count: durationMonths }) : plan === 'daily' ? t('bf.rateDaily', { count: durationDays, unit: durationDays === 1 ? t('bf.dayUnit') : t('bf.daysUnit') }) : t(('booking.planPass.' + plan) as never) })}
-                        value={planInfo.isCovered ? t('bf.includedInPlan') : `${t('common.sar')} ${planInfo.originalPrice.toLocaleString()}`}
+                        value={planInfo.isCovered ? t('bf.includedInPlan') : `${t('common.sar')} ${Math.round(planInfo.originalPrice / Math.max(1, seats)).toLocaleString()}`}
                       />
                       <Row
                         label={t('bf.numberSeats')}
@@ -1508,7 +1508,7 @@ export default function BookingFlow() {
                       />
                       <Row
                         label={t('bf.subtotal')}
-                        value={planInfo.isCovered ? t('bf.includedInPlan') : `${t('common.sar')} ${(planInfo.originalPrice * seats).toLocaleString()}`}
+                        value={planInfo.isCovered ? t('bf.includedInPlan') : `${t('common.sar')} ${planInfo.originalPrice.toLocaleString()}`}
                       />
                     </>
                   )}
@@ -1526,7 +1526,7 @@ export default function BookingFlow() {
                   )}
                   <Row
                     label={t('bf.vat')}
-                    value={planInfo.effectivePrice === 0 ? `${t('common.sar')} 0` : `${t('common.sar')} ${((planInfo.effectivePrice * seats) * 15 / 115).toFixed(2)}`}
+                    value={planInfo.effectivePrice === 0 ? `${t('common.sar')} 0` : `${t('common.sar')} ${(planInfo.effectivePrice * 15 / 115).toFixed(2)}`}
                   />
 
                   {/* Highlighted Final Payable Amount */}
