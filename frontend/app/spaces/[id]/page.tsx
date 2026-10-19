@@ -492,12 +492,16 @@ function SpaceDetailsView() {
               </div>
 
               <div className="flex items-center gap-4 text-xs sm:text-sm pt-1">
-                <div className="flex items-center gap-1.5 text-soot font-medium">
-                  <Star size={14} fill="#98AA9D" className="text-eucalyptus" />
-                  <span>{space.rating}</span>
-                  <span className="text-moss">{t('spaceDetails.reviews', { count: space.reviewCount })}</span>
-                </div>
-                <span className="text-soot/20">&bull;</span>
+                {(space.reviewCount ?? 0) > 0 && (
+                  <>
+                    <div className="flex items-center gap-1.5 text-soot font-medium">
+                      <Star size={14} fill="#98AA9D" className="text-eucalyptus" />
+                      <span>{space.rating}</span>
+                      <span className="text-moss">{t('spaceDetails.reviews', { count: space.reviewCount ?? 0 })}</span>
+                    </div>
+                    <span className="text-soot/20">&bull;</span>
+                  </>
+                )}
                 <div className="flex items-center gap-1.5 text-moss">
                   <Users size={14} />
                   <span>{t('spaceDetails.totalCapacityDesks', { count: space.totalCapacity })}</span>

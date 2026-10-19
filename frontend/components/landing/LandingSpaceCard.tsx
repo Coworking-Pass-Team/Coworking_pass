@@ -78,11 +78,14 @@ export default function LandingSpaceCard({ space }: LandingSpaceCardProps) {
       </div>
 
       <div className="p-5 flex items-center justify-between">
-        <div className="flex items-center gap-1.5 text-sm text-soot font-semibold">
-          <Star size={14} fill="currentColor" className="text-eucalyptus shrink-0" />
-          <span>{space.rating}</span>
-          <span className="text-moss font-normal text-xs">{t('spaceDetails.reviews', { count: space.reviewCount })}</span>
-        </div>
+        {/* Ratings are only shown for spaces that have reviews */}
+        {(space.reviewCount ?? 0) > 0 ? (
+          <div className="flex items-center gap-1.5 text-sm text-soot font-semibold">
+            <Star size={14} fill="currentColor" className="text-eucalyptus shrink-0" />
+            <span>{space.rating}</span>
+            <span className="text-moss font-normal text-xs">{t('spaceDetails.reviews', { count: space.reviewCount ?? 0 })}</span>
+          </div>
+        ) : <span />}
         <Badge variant={space.availableCapacity === 0 ? 'danger' : space.availableCapacity <= 5 ? 'warning' : 'eucalyptus'}>
           {space.availableCapacity === 0 ? t('landing.fullyBooked') : space.availableCapacity <= 5 ? t('landing.almostFull') : t('space.available')}
         </Badge>
