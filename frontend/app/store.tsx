@@ -3336,7 +3336,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         uniqueId = `${n.id || 'notif'}-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 6)}`;
       }
       seen.add(uniqueId);
-      return { ...n, id: uniqueId };
+      // Older builds saved the server's raw type ("booking_confirmed"); map it onto the UI categories
+      const uiTypes = ['booking', 'cancelled', 'reminder', 'info', 'payment', 'system'];
+      const type = uiTypes.includes(n.type) ? n.type : notificationCategory(n.type);
+      return { ...n, id: uniqueId, type };
     });
   };
 
@@ -3817,7 +3820,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         message: `Venue "${brand}" (CR: ${cr || 'N/A'}) has submitted a registration application pending your review and approval.`,
         type: 'info',
         read: false,
-        createdAt: 'Just now',
+        createdAt: new Date().toISOString(),
       };
       setNotifications((prev) => [adminNotif, ...prev]);
     }
@@ -6518,6 +6521,36 @@ export function AppProvider({ children }: { children: ReactNode }) {
     })();
     showToast('Amenity deleted from catalog', 'info');
   };
+
+  // Signed-in sessions end when the server token expires (24h): otherwise every page silently fails with 401
+  useEffect(() => {
+    if (typeof window === 'undefined' || !currentUser) return;
+    const token = getStoredToken();
+    if (!token) return;
+    let expiresAt = 0;
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+      expiresAt = typeof payload.exp === 'number' ? payload.exp * 1000 : 0;
+    } catch (_) {
+      return; // Not a JWT: nothing to check
+    }
+    if (!expiresAt) return;
+    const endSession = () => {
+      setCurrentUser(null);
+      ['cp_currentUser', 'cp_token', 'token', 'jwt'].forEach((key) => localStorage.removeItem(key));
+      showToast('Your session has expired. Please sign in again.', 'info');
+      navigate('login');
+    };
+    const remaining = expiresAt - Date.now();
+    if (remaining <= 0) {
+      endSession();
+      return;
+    }
+    // setTimeout cannot wait longer than ~24.8 days; tokens are far shorter
+    const timer = window.setTimeout(endSession, Math.min(remaining, 2_147_000_000));
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser?.id]);
 
   // Global API interceptor: any response carrying code ACCOUNT_SUSPENDED immediately raises the blocking modal
   useEffect(() => {

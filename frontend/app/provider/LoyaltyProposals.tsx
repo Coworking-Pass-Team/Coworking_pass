@@ -450,7 +450,7 @@ export default function ProviderLoyaltyProposals() {
                       </button>
                     )}
                     <span className="text-soot font-medium group-hover:text-emerald-900 flex items-center gap-0.5">
-                      Details <ChevronRight size={13} />
+                      {t('common.details')} <ChevronRight size={13} className="rtl:rotate-180" />
                     </span>
                   </div>
                 </div>
