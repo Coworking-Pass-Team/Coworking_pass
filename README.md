@@ -114,7 +114,7 @@ cp frontend/.env.example frontend/.env
 | `DATABASE_URL` | backend | PostgreSQL connection string |
 | `JWT_SECRET` | backend | Secret used to sign login tokens |
 | `RESEND_API_KEY` | backend | Email delivery (optional locally) |
-| `NEXT_PUBLIC_API_URL` | frontend | Backend base URL (defaults to `http://localhost:3001`) |
+| `NEXT_PUBLIC_API_URL` | frontend | Backend base URL. When unset, the frontend uses the live Render API (`https://coworking-pass-k49w.onrender.com`); set it to `http://localhost:3001` to use a local backend |
 
 ### 3. Install dependencies
 ```bash
