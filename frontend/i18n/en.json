@@ -684,7 +684,7 @@
     "roleOrg": "Organization / B2B",
     "roleProvider": "Space Venue Partner",
     "roleIndividualDesc": "For freelancers, solo workers, and remote employees needing day/monthly desk passes.",
-    "roleOrgDesc": "For corporate teams purchasing employee passes, managing centralized billing and bookings.",
+    "roleOrgDesc": "For companies: owners and HR admins set up the company team, and employees join their company's team.",
     "roleProviderDesc": "For venue owners listing spaces and tracking check-ins across the Kingdom.",
     "companyDetails": "Company Details",
     "companyName": "Company Name *",
@@ -776,7 +776,18 @@
     "otpActionForgot": "verify your identity and reset your password",
     "otpActionLogin": "complete your sign in",
     "resendIn": "Resend code in {time}",
-    "noCode": "Didn't receive the code?"
+    "noCode": "Didn't receive the code?",
+    "orgChoiceTitle": "Company account",
+    "orgChoiceSubtitle": "Are you setting up your company, or joining your company's team?",
+    "orgOwner": "Company owner / HR admin",
+    "orgOwnerDesc": "Create your company on Coworking Pass and manage its team, shared wallet and team bookings.",
+    "orgEmployee": "Company employee",
+    "orgEmployeeDesc": "Your company already uses Coworking Pass. Create your own account and ask to join your company's team.",
+    "orgEmployeeSignInHint": "Already have an employee or HR admin account? Use the regular sign-in below: it works for every account type.",
+    "employeeSection": "Your company",
+    "hrEmailLabel": "Your company HR admin's email *",
+    "hrEmailHelp": "Ask your HR admin for the email they use on Coworking Pass. Once you verify your email, they receive your request and approve it. Until then you can use your account as an individual member.",
+    "oneSignInHint": "Members, company employees, HR admins and partners all sign in here with their own email. Your account opens the right dashboard."
   },
   "wallet": {
     "transactionsCount": "{count} transaction",
@@ -2764,5 +2775,24 @@
     "leaveBody": "You will no longer be part of the {company} team. Your own bookings, wallet and loyalty points stay with you. Only the company's HR admin can add you again.",
     "left": "You left {company}.",
     "explainer": "Your company's HR admin can book workspaces for the team, including you. Your own bookings, wallet and loyalty points stay personal."
+  },
+  "companyJoin": {
+    "errEmail": "Please enter your company HR admin's email address.",
+    "sent": "Request sent to {company}. You will be notified when the HR admin answers.",
+    "withdrawn": "Join request withdrawn.",
+    "pendingTitle": "Request to join a company",
+    "pendingBody": "Waiting for {name} to approve your request. You can keep booking as an individual member meanwhile.",
+    "pendingBodyNoName": "Waiting for your company's HR admin to approve your request.",
+    "withdraw": "Withdraw request",
+    "formTitle": "Do you work for a company on Coworking Pass?",
+    "formBody": "Enter your HR admin's email to ask to join your company's team. Your own bookings, wallet and points stay yours.",
+    "hrEmailLabel": "HR admin's email",
+    "send": "Send request",
+    "requestsTitle": "Join requests ({count})",
+    "requestsBody": "These people asked to join your team. Approve only colleagues you know.",
+    "approve": "Approve",
+    "decline": "Decline",
+    "approved": "{name} joined your team.",
+    "declined": "{name}'s request was declined."
   }
 }

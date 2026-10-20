@@ -41,4 +41,5 @@ Notes:
 
 - The seed is safe to run repeatedly. The booking history is created once; the individual member's three notifications are reset on every run, so run it again after a test that deletes them.
 - The pending partner and the suspended member are refused at sign-in on purpose, so those two cannot be used to open a session.
+- Company employees sign in from the normal sign-in page. To test how a new employee joins: sign up under *Organization / B2B* → *Company employee* with `hr@cwp-test.local` as the HR admin's email, then approve the request as `hr@cwp-test.local` (team page or dashboard). `newmember@cwp-test.local` can also ask to join from its profile page.
 - These accounts are separate from the platform's real super admin, which is created from the `SUPER_ADMIN_EMAIL` / `SUPER_ADMIN_PASSWORD` environment variables (see `backend/.env.example`).

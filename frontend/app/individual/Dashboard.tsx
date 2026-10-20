@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '@/app/store';
 import CompanyMembershipCard from '@/components/company/CompanyMembershipCard';
+import CompanyJoinRequestCard from '@/components/company/CompanyJoinRequestCard';
 import { useSpaceText } from '@/i18n/space-text';
 import BookingQrModal from '@/components/BookingQrModal';
 import {
@@ -116,6 +117,7 @@ export default function IndividualDashboard() {
 
       {/* Members of a company team see their company and can leave it */}
       <CompanyMembershipCard />
+      <CompanyJoinRequestCard />
 
       {/* Stats Cards Matching Organization Dashboard */}
       <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 ${hasPass ? 'lg:grid-cols-6' : 'lg:grid-cols-5'} gap-4`}>

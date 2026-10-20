@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { sendOtpEmail } from "@/lib/mailer";
 import type { Role } from "@prisma/client";
+import { createPendingJoinRequest, findCompanyByHrEmail } from "@/lib/company-join";
 
 const VALID_ROLES = ["GUEST", "B2C", "HR_ADMIN", "PARTNER_ADMIN"];
 
@@ -32,15 +33,16 @@ function generateOtp() {
  *               role:
  *                 type: string
  *                 enum: [GUEST, B2C, HR_ADMIN, PARTNER_ADMIN]
- *               companyId:
+ *               companyHrEmail:
  *                 type: string
+ *                 description: Company employees only - the HR admin's email; sends a join request for the HR admin to approve
  *     responses:
  *       201:
  *         description: تم إنشاء الحساب بنجاح وإرسال رمز التحقق
  */
 export async function POST(request: Request) {
   try {
-    const { name, email, password, role, companyId, companyName, orgName, businessName, crNumber } = await request.json();
+    const { name, email, password, role, companyName, orgName, businessName, crNumber, companyHrEmail } = await request.json();
 
     if (!name || !email || !password) {
       return NextResponse.json(
@@ -50,6 +52,23 @@ export async function POST(request: Request) {
     }
 
     const cleanEmail = email.trim().toLowerCase();
+
+    // A company employee names their company by the HR admin's email; the HR admin approves the request.
+    // Accounts never join a company directly at sign-up.
+    let joinCompanyId: string | null = null;
+    const wantsToJoin = typeof companyHrEmail === "string" && companyHrEmail.trim() !== "";
+    if (wantsToJoin) {
+      if (role && role !== "B2C") {
+        return NextResponse.json({ error: "Only individual member accounts can join a company team." }, { status: 400 });
+      }
+      const target = await findCompanyByHrEmail(companyHrEmail);
+      if (!target.ok) return NextResponse.json({ error: target.error }, { status: target.status });
+      if (companyHrEmail.trim().toLowerCase() === cleanEmail) {
+        return NextResponse.json({ error: "Please enter your HR admin's email, not your own." }, { status: 400 });
+      }
+      joinCompanyId = target.company.id;
+    }
+
     const existingUser = await prisma.user.findUnique({
       where: { email: cleanEmail },
     });
@@ -67,6 +86,9 @@ if (existingUser && !existingUser.emailVerified) {
     where: { id: existingUser.id },
     data: { name: name.trim(), passwordHash },
   });
+  if (joinCompanyId && existingUser.role === "B2C" && !existingUser.companyId) {
+    await createPendingJoinRequest(existingUser.id, joinCompanyId);
+  }
 
   const otp = generateOtp();
   const otpHash = await bcrypt.hash(otp, 10);
@@ -111,10 +133,13 @@ if (existingUser && !existingUser.emailVerified) {
         email: cleanEmail,
         passwordHash,
         role: assignedRole as Role,
-        companyId: companyId || null,
         emailVerified: false,
       },
     });
+
+    if (joinCompanyId && assignedRole === "B2C") {
+      await createPendingJoinRequest(user.id, joinCompanyId);
+    }
 
     // إنشاء سجل الشركة للمنظمة بشكل منفصل عن اسم المالك الشخصي
     if (assignedRole === "HR_ADMIN") {

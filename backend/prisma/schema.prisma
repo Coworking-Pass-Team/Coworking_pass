@@ -167,6 +167,7 @@ model User {
   ticketReplies      TicketReply[]
   wallet             Wallet?
   walletTransactions WalletTransaction[]
+  companyJoinRequests CompanyJoinRequest[]
 }
 
 model Company {
@@ -180,6 +181,23 @@ model Company {
   employees User[]   @relation("CompanyEmployees")
   tickets   Ticket[]
   walletTransactions CompanyWalletTransaction[]
+  joinRequests       CompanyJoinRequest[]
+}
+
+/// A member account asking to join a company team; the company's HR admin approves or declines it
+model CompanyJoinRequest {
+  id        String    @id @default(uuid())
+  companyId String
+  userId    String
+  status    String    @default("PENDING") // PENDING, APPROVED, DECLINED, CANCELLED
+  createdAt DateTime  @default(now())
+  decidedAt DateTime?
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, status])
+  @@index([userId, status])
 }
 
 model CompanyWalletTransaction {

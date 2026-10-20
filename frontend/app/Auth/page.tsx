@@ -151,6 +151,10 @@ export function LoginScreen() {
             <p className="text-moss text-xs sm:text-sm leading-relaxed">
               {t('auth.signInSubtitle')}
             </p>
+            <div className="mt-4 flex items-start gap-2.5 p-3 rounded-2xl bg-plaster-surface border border-soot/10 text-xs text-moss leading-relaxed">
+              <Building2 size={15} className="text-soot shrink-0 mt-0.5" />
+              <span>{t('auth.oneSignInHint')}</span>
+            </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -513,8 +517,11 @@ export function SignUpScreen() {
   const { t, translateMessage } = useI18n();
   const { signup, requestSignupOtp, setPendingUser, navigate } = useApp();
 
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState<1 | 'org' | 2>(1);
   const [role, setRole] = useState<'individual' | 'organization' | 'provider'>('individual');
+  // Under "Organization": the company owner / HR admin creates the company, an employee asks to join one
+  const [orgKind, setOrgKind] = useState<'admin' | 'employee'>('admin');
+  const isEmployee = role === 'organization' && orgKind === 'employee';
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -529,13 +536,27 @@ export function SignUpScreen() {
   const [industry, setIndustry] = useState('');
   const [businessName, setBusinessName] = useState('');
   const [crNumber, setCrNumber] = useState('');
+  const [hrEmail, setHrEmail] = useState('');
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
   const handleSelectRoleAndNext = (selectedRole: 'individual' | 'organization' | 'provider') => {
     setRole(selectedRole);
+    setErrors({});
+    setStep(selectedRole === 'organization' ? 'org' : 2);
+  };
+
+  const handleSelectOrgKind = (kind: 'admin' | 'employee') => {
+    setOrgKind(kind);
+    setErrors({});
     setStep(2);
+  };
+
+  const goBack = () => {
+    if (step === 2 && role === 'organization') setStep('org');
+    else if (step === 2 || step === 'org') setStep(1);
+    else navigate('landing');
   };
 
   const validateStep2 = () => {
@@ -553,7 +574,11 @@ export function SignUpScreen() {
     if (password !== confirm) e.confirm = 'Passwords do not match.';
     if (!agreedToTerms) e.agreedToTerms = 'You must agree to the Terms of Service and Privacy Policy.';
 
-    if (role === 'organization') {
+    if (isEmployee) {
+      if (!hrEmail.trim()) e.hrEmail = "Please enter your company HR admin's email address.";
+      else if (!/\S+@\S+\.\S+/.test(hrEmail)) e.hrEmail = 'Enter a valid email address.';
+      else if (hrEmail.trim().toLowerCase() === email.trim().toLowerCase()) e.hrEmail = "Please enter your HR admin's email, not your own.";
+    } else if (role === 'organization') {
       if (!orgName.trim()) e.orgName = 'Organization name is required.';
     } else if (role === 'provider') {
       if (!businessName.trim()) e.businessName = 'Partner business name is required.';
@@ -573,11 +598,14 @@ export function SignUpScreen() {
     if (Object.keys(errs).length > 0) return;
 
     setLoading(true);
-    const newUser = signup(name, email, password, phone, role);
+    // Employees get a member account of their own; the company link waits for the HR admin's approval
+    const newUser = signup(name, email, password, phone, isEmployee ? 'individual' : role);
     setPendingUser(newUser);
 
     let res;
-    if (role === 'organization') {
+    if (isEmployee) {
+      res = await requestSignupOtp(newUser, 'individual', undefined, { companyHrEmail: hrEmail });
+    } else if (role === 'organization') {
       res = await requestSignupOtp(newUser, role, { orgName, orgSize: parseInt(orgSize, 10) || 10, industry });
     } else if (role === 'provider') {
       res = await requestSignupOtp(newUser, role, { businessName, crNumber });
@@ -587,15 +615,17 @@ export function SignUpScreen() {
 
     setLoading(false);
     if (res && !res.success && res.error) {
-      setErrors({ global: res.error });
+      setErrors(isEmployee && /HR (admin|email)/i.test(res.error) ? { hrEmail: res.error } : { global: res.error });
     }
   };
 
-  const erdBadge = {
-    individual: { label: 'Individual Member', code: 'B2C' },
-    organization: { label: 'Organization HR Admin', code: 'HR_ADMIN' },
-    provider: { label: 'Space Venue Partner', code: 'PARTNER_ADMIN' },
-  }[role];
+  const erdBadge = isEmployee
+    ? { label: 'Company Employee', code: 'B2C' }
+    : {
+        individual: { label: 'Individual Member', code: 'B2C' },
+        organization: { label: 'Organization HR Admin', code: 'HR_ADMIN' },
+        provider: { label: 'Space Venue Partner', code: 'PARTNER_ADMIN' },
+      }[role];
 
   return (
     <div className="min-h-screen w-full flex bg-plaster text-soot">
@@ -606,11 +636,11 @@ export function SignUpScreen() {
           <Logo onClick={() => navigate('landing')} />
           <button
             type="button"
-            onClick={() => (step === 2 ? setStep(1) : navigate('landing'))}
+            onClick={goBack}
             className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-soot/5 hover:bg-soot/10 border border-soot/10 text-xs font-semibold text-soot transition-all duration-200 cursor-pointer group"
           >
             <ArrowLeft size={14} className="group-hover:-translate-x-0.5 rtl:group-hover:translate-x-0.5 transition-transform" />
-            <span>{step === 2 ? translateMessage('Change Role') : 'Home'}</span>
+            <span>{step === 1 ? t('nav.home') : translateMessage('Change Role')}</span>
           </button>
         </div>
 
@@ -618,18 +648,20 @@ export function SignUpScreen() {
         <div className="w-full max-w-md mx-auto my-auto py-2">
           <div className="mb-4">
             <h1 className="text-2xl sm:text-3xl font-normal font-serif-display text-soot tracking-tight mb-1">
-              {step === 1 ? translateMessage('Choose Account Type') : translateMessage('Create Account')}
+              {step === 1 ? translateMessage('Choose Account Type') : step === 'org' ? t('auth.orgChoiceTitle') : translateMessage('Create Account')}
             </h1>
             <p className="text-moss text-xs sm:text-sm leading-relaxed">
               {step === 1
                 ? translateMessage('Select how you plan to use Coworking Pass')
+                : step === 'org'
+                ? t('auth.orgChoiceSubtitle')
                 : translateMessage(`Step 2 of 2: Registering as ${translateMessage(erdBadge.label)}`)}
             </p>
           </div>
 
           <div className="flex items-center gap-2 mb-4">
-            <div className={`h-1.5 flex-1 rounded-full ${step >= 1 ? 'bg-moss' : 'bg-soot/10'}`} />
-            <div className={`h-1.5 flex-1 rounded-full ${step >= 2 ? 'bg-moss' : 'bg-soot/10'}`} />
+            <div className="h-1.5 flex-1 rounded-full bg-moss" />
+            <div className={`h-1.5 flex-1 rounded-full ${step === 2 ? 'bg-moss' : 'bg-soot/10'}`} />
           </div>
 
           {step === 1 ? (
@@ -667,7 +699,7 @@ export function SignUpScreen() {
                   <div className="flex-1">
                     <div className="font-semibold text-soot text-sm sm:text-base flex items-center justify-between">
                       <span>{t('auth.roleOrg')}</span>
-                      <Badge variant="soot">HR_ADMIN</Badge>
+                      <Badge variant="soot">B2B</Badge>
                     </div>
                     <p className="text-xs text-moss mt-1 leading-relaxed">
                       {t('auth.roleOrgDesc')}
@@ -696,6 +728,48 @@ export function SignUpScreen() {
                   </div>
                 </div>
               </button>
+            </div>
+          ) : step === 'org' ? (
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={() => handleSelectOrgKind('admin')}
+                className="w-full p-4 rounded-2xl border border-soot/12 bg-plaster-surface hover:bg-plaster-dark/40 text-start transition-all duration-200 group shadow-xs hover:shadow-md cursor-pointer active:scale-[0.99]"
+              >
+                <div className="flex items-start gap-3.5">
+                  <div className="w-11 h-11 rounded-xl bg-soot text-plaster flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <Building2 size={20} />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-soot text-sm sm:text-base flex items-center justify-between gap-2">
+                      <span>{t('auth.orgOwner')}</span>
+                      <Badge variant="soot">HR_ADMIN</Badge>
+                    </div>
+                    <p className="text-xs text-moss mt-1 leading-relaxed">{t('auth.orgOwnerDesc')}</p>
+                  </div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleSelectOrgKind('employee')}
+                className="w-full p-4 rounded-2xl border border-soot/12 bg-plaster-surface hover:bg-plaster-dark/40 text-start transition-all duration-200 group shadow-xs hover:shadow-md cursor-pointer active:scale-[0.99]"
+              >
+                <div className="flex items-start gap-3.5">
+                  <div className="w-11 h-11 rounded-xl bg-eucalyptus/25 text-soot flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <Users size={20} />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-soot text-sm sm:text-base flex items-center justify-between gap-2">
+                      <span>{t('auth.orgEmployee')}</span>
+                      <Badge variant="eucalyptus">B2C</Badge>
+                    </div>
+                    <p className="text-xs text-moss mt-1 leading-relaxed">{t('auth.orgEmployeeDesc')}</p>
+                  </div>
+                </div>
+              </button>
+
+              <p className="text-xs text-moss leading-relaxed px-1">{t('auth.orgEmployeeSignInHint')}</p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-3.5">
@@ -782,8 +856,38 @@ export function SignUpScreen() {
                 {errors.email && <p className="text-rose-600 text-xs mt-0.5 font-medium">* {translateMessage(errors.email)}</p>}
               </div>
 
+              {/* Company employee: names the company by the HR admin's email */}
+              {isEmployee && (
+                <div className="p-3.5 rounded-2xl bg-plaster-surface border border-soot/12 space-y-2.5 shadow-xs">
+                  <div className="text-xs font-semibold text-soot uppercase tracking-wider flex items-center justify-between">
+                    <span>{t('auth.employeeSection')}</span>
+                    <Badge variant="eucalyptus">B2C</Badge>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-soot mb-1">{t('auth.hrEmailLabel')}</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 start-0 ps-3.5 flex items-center pointer-events-none text-moss">
+                        <Building2 size={15} />
+                      </div>
+                      <input
+                        type="email"
+                        value={hrEmail}
+                        onChange={(e) => {
+                          setHrEmail(e.target.value);
+                          if (errors.hrEmail) setErrors((prev) => { const n = { ...prev }; delete n.hrEmail; return n; });
+                        }}
+                        placeholder="hr@company.com"
+                        className={`w-full ps-9 pe-3 py-2.5 rounded-xl bg-plaster-dark/20 border ${errors.hrEmail ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-soot/15'} text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs`}
+                      />
+                    </div>
+                    {errors.hrEmail && <p className="text-rose-600 text-xs mt-0.5 font-medium">* {translateMessage(errors.hrEmail)}</p>}
+                  </div>
+                  <p className="text-[11px] text-moss leading-relaxed">{t('auth.hrEmailHelp')}</p>
+                </div>
+              )}
+
               {/* Organization Fields */}
-              {role === 'organization' && (
+              {role === 'organization' && !isEmployee && (
                 <div className="p-3.5 rounded-2xl bg-plaster-surface border border-soot/12 space-y-3 shadow-xs">
                   <div className="text-xs font-semibold text-soot uppercase tracking-wider flex items-center justify-between">
                     <span>{t('auth.companyDetails')}</span>
@@ -1034,7 +1138,7 @@ export function SignUpScreen() {
 
 export function ChooseAccountType() {
   const { t, translateMessage } = useI18n();
-  const { navigate, requestSignupOtp, pendingUser, setPendingUser } = useApp();
+  const { navigate, requestSignupOtp, pendingUser } = useApp();
   const [selected, setSelected] = useState<'individual' | 'organization' | 'provider' | null>(null);
   const [orgName, setOrgName] = useState('');
   const [orgSize, setOrgSize] = useState('');
@@ -1059,20 +1163,11 @@ export function ChooseAccountType() {
       setCrError('');
     }
 
-    const targetUser = pendingUser || {
-      id: `user-${Date.now()}`,
-      name: 'New Member',
-      username: `user_${Date.now().toString().slice(-4)}`,
-      email: 'member@coworkingpass.sa',
-      password: 'password',
-      role: selected,
-      phone: '+966 50 123 4567',
-      avatar: '',
-      isBlocked: false,
-      joinDate: new Date().toISOString().split('T')[0],
-      loyaltyPoints: 0,
-    };
-    if (!pendingUser) setPendingUser(targetUser);
+    if (!pendingUser) {
+      navigate('signup');
+      return;
+    }
+    const targetUser = pendingUser;
 
     if (selected === 'organization') {
       await requestSignupOtp(targetUser as any, selected, { orgName, orgSize: parseInt(orgSize, 10) || 10, industry: industry || 'Technology' });

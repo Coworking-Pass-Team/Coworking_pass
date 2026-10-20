@@ -478,7 +478,7 @@ interface AppContextType {
   otpSession: OtpSession | null;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string; requireOtp?: boolean }>;
   signup: (name: string, email: string, password: string, phone: string, role?: UserRole) => User;
-  requestSignupOtp: (newUser: User, role: UserRole, extraData?: Partial<User>) => Promise<{ success: boolean; error?: string; message?: string }>;
+  requestSignupOtp: (newUser: User, role: UserRole, extraData?: Partial<User>, options?: { companyHrEmail?: string }) => Promise<{ success: boolean; error?: string; message?: string }>;
   requestForgotPasswordOtp: (email: string) => { success: boolean; error?: string };
   resetPassword: (newPassword: string) => { success: boolean; error?: string };
   completeSignup: (role: UserRole, extraData?: Partial<User>) => void;
@@ -3667,7 +3667,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return newUser;
   };
 
-  const requestSignupOtp = async (newUser: User, role: UserRole, extraData?: Partial<User>): Promise<{ success: boolean; error?: string; message?: string }> => {
+  const requestSignupOtp = async (newUser: User, role: UserRole, extraData?: Partial<User>, options?: { companyHrEmail?: string }): Promise<{ success: boolean; error?: string; message?: string }> => {
     const apiRes = await registerUserApi({
       name: newUser.name,
       email: newUser.email,
@@ -3677,6 +3677,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       companyName: extraData?.orgName,
       businessName: extraData?.businessName,
       crNumber: extraData?.crNumber,
+      companyHrEmail: options?.companyHrEmail,
     });
 
     if (!apiRes.success && apiRes.error && !apiRes.error.includes('Network connection issue')) {
