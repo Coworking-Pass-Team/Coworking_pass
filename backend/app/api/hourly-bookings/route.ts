@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
 
       if (requestedSection && requestedSection.type === 'DESK') {
         return NextResponse.json(
-          { error: 'الحجز بالساعة غير متاح للمكاتب الفردية. يرجى اختيار غرفة اجتماعات أو قاعة' },
+          { error: 'Hourly booking is not available for private offices. Please choose a meeting room or a hall.' },
           { status: 400 }
         );
       }

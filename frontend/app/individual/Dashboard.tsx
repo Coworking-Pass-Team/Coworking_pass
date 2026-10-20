@@ -16,6 +16,7 @@ import {
   QrCode
 } from 'lucide-react';
 import { useApp } from '@/app/store';
+import CompanyMembershipCard from '@/components/company/CompanyMembershipCard';
 import { useSpaceText } from '@/i18n/space-text';
 import BookingQrModal from '@/components/BookingQrModal';
 import {
@@ -33,7 +34,7 @@ import {
 export default function IndividualDashboard() {
   const { t, localizeTime, translateMessage, formatDate } = useI18n();
   const st = useSpaceText();
-  const { currentUser, bookings, spaces, navigate, favorites } = useApp();
+  const { currentUser, bookings, spaces, navigate, favorites, companyData } = useApp();
   const [selectedCategory, setSelectedCategory] = useState<'all' | SpaceCategory>('all');
   const [selectedBookingForQr, setSelectedBookingForQr] = useState<Booking | null>(null);
 
@@ -67,6 +68,13 @@ export default function IndividualDashboard() {
 
   const tierName = currentUser.membershipTier || (currentUser.hasActivePass ? t('dash.allAccessPass') : t('dash.standardMember'));
   const tierLower = tierName.toLowerCase();
+  // Company members without a pass of their own are shown as part of their company team
+  const companyName = currentUser.companyId
+    ? (companyData?.id === currentUser.companyId ? companyData?.companyName : undefined) || currentUser.orgName
+    : undefined;
+  const companyBadge = companyName && !currentUser.membershipTier && !currentUser.hasActivePass
+    ? t('nav.roleEmployee', { company: companyName })
+    : '';
 
   const userPassPlan: BookingPlan = tierLower.includes('yearly') || tierLower.includes('annual') || tierLower.includes('enterprise') || tierLower.includes('all-access')
     ? 'yearly'
@@ -96,15 +104,18 @@ export default function IndividualDashboard() {
             </span>
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E2E8E4] border border-[#2D3536]/15 text-soot text-xs font-semibold shadow-2xs">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
-              <span>{translateMessage(tierName)}</span>
+              <span>{companyBadge || translateMessage(tierName)}</span>
             </span>
           </div>
           <h1 className="text-3xl sm:text-4xl text-soot font-normal font-serif-display">
-            {greeting()}, {currentUser.name.split(' ')[0]}
+            {t('dash.greetingName', { greeting: greeting(), name: currentUser.name.split(' ')[0] })}
           </h1>
           <p className="text-moss text-sm mt-1">{t('dash.ind.welcome')}</p>
         </div>
       </div>
+
+      {/* Members of a company team see their company and can leave it */}
+      <CompanyMembershipCard />
 
       {/* Stats Cards Matching Organization Dashboard */}
       <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 ${hasPass ? 'lg:grid-cols-6' : 'lg:grid-cols-5'} gap-4`}>

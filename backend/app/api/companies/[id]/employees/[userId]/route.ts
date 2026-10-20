@@ -25,7 +25,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
       return NextResponse.json({ error: "The company's HR admin cannot be removed from the team." }, { status: 400 });
     }
 
-    const member = await prisma.user.findUnique({ where: { id: userId }, select: { id: true, companyId: true } });
+    const member = await prisma.user.findUnique({ where: { id: userId }, select: { id: true, name: true, companyId: true } });
     if (!member || member.companyId !== id) {
       return NextResponse.json({ error: "This person is not in the team." }, { status: 404 });
     }
@@ -38,6 +38,18 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
           type: "PASS_ASSIGNED",
           title: "Removed from a company team",
           message: `You are no longer part of the ${company.companyName} team.`,
+          channel: "IN_APP",
+          sentAt: new Date(),
+        },
+      }).catch((err) => console.error("Team notification failed:", err));
+    } else if (company.hrAdminId) {
+      // Let the HR admin know the team changed
+      await prisma.notification.create({
+        data: {
+          userId: company.hrAdminId,
+          type: "PASS_ASSIGNED",
+          title: "A member left your team",
+          message: `${member.name} has left the ${company.companyName} team.`,
           channel: "IN_APP",
           sentAt: new Date(),
         },

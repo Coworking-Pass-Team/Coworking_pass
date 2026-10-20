@@ -150,7 +150,7 @@ type PaymentMethodType = 'MADA' | 'APPLE_PAY' | 'CREDIT_CARD' | 'CORPORATE_INVOI
 
 export default function Pricing() {
   const { t, translateMessage } = useI18n();
-  const { currentUser, showToast, navigate, updateCurrentUser, addNotification, withdrawFromWallet, getPassRefundEligibility, cancelSubscriptionPass, addSupportTicket } = useApp();
+  const { currentUser, showToast, navigate, updateCurrentUser, addNotification, withdrawFromWallet, getPassRefundEligibility, cancelSubscriptionPass, addSupportTicket, companyData } = useApp();
   
   const isOrg = currentUser?.role === 'organization' || currentUser?.role === 'HR_ADMIN' || (currentUser?.role as any) === 'B2B';
   const isInd = Boolean(currentUser && !isOrg);
@@ -221,6 +221,11 @@ export default function Pricing() {
     }
     if (isOrg && !corporatePlans.some(p => p.id === plan.id)) {
       showToast('Individual plans are only available for Individual accounts.', 'error');
+      return;
+    }
+    // Members of a company team get passes through their company (the server refuses individual plans for them)
+    if (isInd && currentUser?.companyId) {
+      showToast('This plan is for individual members only. Your account belongs to a company team, so passes are arranged by your company.', 'info');
       return;
     }
 
@@ -360,6 +365,13 @@ export default function Pricing() {
           <p className="text-moss text-xs sm:text-sm leading-relaxed max-w-xl mx-auto">
             {t('pricing.subtitle')}
           </p>
+
+          {isInd && currentUser?.companyId && (
+            <div className="mt-5 flex items-start gap-2.5 text-start p-4 rounded-2xl bg-[#E5ECE9]/70 border border-eucalyptus/40 text-xs text-soot leading-relaxed">
+              <Building2 size={16} className="text-moss shrink-0 mt-0.5" />
+              <span>{t('pricing.companyMemberNotice', { company: (companyData?.id === currentUser.companyId ? companyData?.companyName : currentUser.orgName) || t('companyMember.yourCompany') })}</span>
+            </div>
+          )}
 
           {/* Segmented Switcher (Only visible to unauthenticated guests) */}
           {!currentUser ? (
