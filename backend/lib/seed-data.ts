@@ -22,7 +22,7 @@ export interface StandardSpaceSeed {
 }
 
 
-const CITY_AR: Record<string, string> = {
+export const CITY_AR: Record<string, string> = {
   Riyadh: 'الرياض',
   Jeddah: 'جدة',
   Dammam: 'الدمام',
@@ -626,6 +626,7 @@ export async function seedStandardWorkspaces() {
             workspaceId: ws.id,
             type: 'THEATER',
             name: `${s.name} - Auditorium`,
+            nameAr: s.nameAr ? `${s.nameAr} - المسرح` : null,
             capacity: s.totalCapacity,
             dailyRate: s.dailyRate,
             monthlyRate: s.monthlyRate,
@@ -652,6 +653,7 @@ export async function seedStandardWorkspaces() {
             workspaceId: ws.id,
             type: 'MEETING_ROOM',
             name: `${s.name} - Hall`,
+            nameAr: s.nameAr ? `${s.nameAr} - القاعة` : null,
             capacity: s.totalCapacity,
             dailyRate: s.dailyRate,
             monthlyRate: s.monthlyRate,
@@ -679,6 +681,7 @@ export async function seedStandardWorkspaces() {
             workspaceId: ws.id,
             type: 'DESK',
             name: `${s.name} - Open Desks Area`,
+            nameAr: s.nameAr ? `${s.nameAr} - منطقة المكاتب المفتوحة` : null,
             capacity: s.totalCapacity,
             dailyRate: s.dailyRate,
             monthlyRate: s.monthlyRate,
@@ -695,6 +698,7 @@ export async function seedStandardWorkspaces() {
               workspaceId: ws.id,
               type: 'MEETING_ROOM',
               name: `${s.name} - Meeting Room`,
+            nameAr: s.nameAr ? `${s.nameAr} - غرفة الاجتماعات` : null,
               capacity: 10,
               dailyRate: 300,
             },
@@ -741,6 +745,10 @@ export async function seedStandardWorkspaces() {
 
   // 5. Ensure Default Loyalty Rules exist
   await seedLoyaltyRules();
+
+  // 6. Arabic content for venues and rooms created before it existed (dynamic import avoids a module cycle)
+  const { backfillStandardArabic } = await import('@/lib/arabic-backfill');
+  await backfillStandardArabic();
 
   return await prisma.workspace.findMany({
     include: { partner: true, sections: { include: { hourlyPackages: true } }, amenities: { include: { amenity: true } } },

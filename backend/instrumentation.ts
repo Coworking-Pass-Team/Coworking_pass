@@ -10,6 +10,10 @@ export async function register() {
     const { ensureDatabaseSchema } = await import("./lib/db-schema-sync");
     const result = await ensureDatabaseSchema();
     console.log("[Startup] Database schema sync:", result.message);
+    // Arabic names, descriptions and cities of the standard venues and their rooms (fills empty fields only)
+    const { backfillStandardArabic } = await import("./lib/arabic-backfill");
+    const filled = await backfillStandardArabic();
+    console.log("[Startup] Arabic backfill:", filled);
   } catch (error) {
     // Never block startup: routes still call ensureDatabaseSchema lazily where it matters
     console.warn("[Startup] Database schema sync failed:", error);

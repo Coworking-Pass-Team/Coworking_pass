@@ -106,6 +106,7 @@ export function mapSectionToUnit(sec: any): SpaceUnit {
   return {
     id: sec.id as string,
     name: sec.name as string,
+    nameAr: (sec.nameAr as string | null) || null,
     capacity: Number(sec.capacity) || 0,
     type: sec.type,
     subType: sec.subType || undefined,
@@ -2822,10 +2823,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
           } catch (_) { }
         }
 
+        // Static demo spaces are only a fallback when the API cannot be reached; they are not bookable, so never mixed in
         const mergedSpaces = [
           ...uniqueDbSpaces,
           ...customSpaces.filter(cs => !seenNames.has((cs.name || '').trim().toLowerCase())),
-          ...INITIAL_SPACES.filter(init => !seenNames.has(init.name.trim().toLowerCase()) && !customSpaces.some(cs => (cs.name || '').trim().toLowerCase() === init.name.trim().toLowerCase()))
         ];
 
         setSpaces(mergedSpaces);

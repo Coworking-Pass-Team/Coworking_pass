@@ -832,7 +832,7 @@ export interface HourlyBookingItemApi {
   createdAt?: string;
   user?: { id?: string; name: string; email: string };
   workspace?: { id: string; name: string; city: string; images?: string[] };
-  section?: { id: string; name: string; type: string; workspace?: { id: string; name: string; city: string } };
+  section?: { id: string; name: string; nameAr?: string | null; type: string; workspace?: { id: string; name: string; city: string } };
   package?: { id: string; packageName: string; hoursAmount: number; price: number };
 }
 
@@ -1241,6 +1241,32 @@ export async function getCompanyApi(id: string) {
     return { success: true, data };
   } catch (err: any) {
     return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+/** Adds an existing member account (by email) to the company team; HR admin or super admin only. */
+export async function addCompanyEmployeeApi(companyId: string, email: string) {
+  const url = `${getAuthBaseUrl()}/api/companies/${companyId}/employees`;
+  try {
+    const response = await fetch(url, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ email }) });
+    const data = await response.json().catch(() => null);
+    if (!response.ok) return { success: false as const, error: (data?.error as string) || 'Failed to add the team member.' };
+    return { success: true as const, data: data as { id: string; name: string; email: string } };
+  } catch (err: any) {
+    return { success: false as const, error: err.message || 'Network error' };
+  }
+}
+
+/** Removes a member from the company team (HR admin, super admin, or the member leaving). */
+export async function removeCompanyEmployeeApi(companyId: string, userId: string) {
+  const url = `${getAuthBaseUrl()}/api/companies/${companyId}/employees/${userId}`;
+  try {
+    const response = await fetch(url, { method: 'DELETE', headers: getAuthHeaders() });
+    const data = await response.json().catch(() => null);
+    if (!response.ok) return { success: false as const, error: (data?.error as string) || 'Failed to remove the team member.' };
+    return { success: true as const };
+  } catch (err: any) {
+    return { success: false as const, error: err.message || 'Network error' };
   }
 }
 

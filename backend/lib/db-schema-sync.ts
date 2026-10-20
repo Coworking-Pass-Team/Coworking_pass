@@ -107,6 +107,8 @@ export async function ensureDatabaseSchema(force = false): Promise<{ success: bo
       .then(() => executedStatements.push('WorkspaceSection.hourlyRate')).catch((err) => console.warn("[Schema Sync] WorkspaceSection.hourlyRate warning:", err));
     await prisma.$executeRawUnsafe('ALTER TABLE "WorkspaceSection" ADD COLUMN IF NOT EXISTS "subType" TEXT;')
       .then(() => executedStatements.push('WorkspaceSection.subType')).catch((err) => console.warn("[Schema Sync] WorkspaceSection.subType warning:", err));
+    await prisma.$executeRawUnsafe('ALTER TABLE "WorkspaceSection" ADD COLUMN IF NOT EXISTS "nameAr" TEXT;')
+      .then(() => executedStatements.push('WorkspaceSection.nameAr')).catch((err) => console.warn("[Schema Sync] WorkspaceSection.nameAr warning:", err));
 
     // Notification type used to alert administrators about new support tickets
     await prisma.$executeRawUnsafe(

@@ -222,6 +222,8 @@ export type UnitDbType = 'DESK' | 'MEETING_ROOM' | 'THEATER';
 export interface SpaceUnit {
   id: string;
   name: string;
+  /** Arabic room name (the English name is the fallback) */
+  nameAr?: string | null;
   capacity: number;
   type?: UnitDbType;
   /** Finer room kind chosen by the provider, e.g. 'private-office' or 'training-hall' */

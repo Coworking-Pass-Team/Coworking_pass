@@ -13,6 +13,7 @@ type UnitType = (typeof ALL_TYPES)[number];
 interface RawUnit {
   id?: unknown;
   name?: unknown;
+  nameAr?: unknown;
   type?: unknown;
   subType?: unknown;
   capacity?: unknown;
@@ -76,6 +77,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       units: sections.map((s) => ({
         id: s.id,
         name: s.name,
+        nameAr: s.nameAr,
         type: s.type,
         subType: s.subType,
         capacity: s.capacity,
@@ -130,6 +132,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return {
         id: typeof u.id === "string" && u.id ? u.id : undefined,
         name: (typeof u.name === "string" && u.name.trim() ? u.name.trim() : `${fallbackLabel} ${i + 1}`).slice(0, 120),
+        nameAr: typeof u.nameAr === "string" && u.nameAr.trim() ? u.nameAr.trim().slice(0, 120) : null,
         capacity: Math.floor(Number(u.capacity)),
         type,
         subType,
@@ -172,12 +175,12 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         if (u.id && keepIds.has(u.id)) {
           result.push(await tx.workspaceSection.update({
             where: { id: u.id },
-            data: { name: u.name, capacity: u.capacity, type: u.type, subType: u.subType, hourlyRate: u.hourlyRate, dailyRate: u.dailyRate, monthlyRate: u.monthlyRate, yearlyRate: u.yearlyRate },
+            data: { name: u.name, nameAr: u.nameAr, capacity: u.capacity, type: u.type, subType: u.subType, hourlyRate: u.hourlyRate, dailyRate: u.dailyRate, monthlyRate: u.monthlyRate, yearlyRate: u.yearlyRate },
           }));
         } else {
           result.push(await tx.workspaceSection.create({
             data: {
-              workspaceId: id, type: u.type, subType: u.subType, name: u.name, capacity: u.capacity,
+              workspaceId: id, type: u.type, subType: u.subType, name: u.name, nameAr: u.nameAr, capacity: u.capacity,
               hourlyRate: u.hourlyRate, dailyRate: u.dailyRate ?? workspace.dailyRate ?? null, monthlyRate: u.monthlyRate, yearlyRate: u.yearlyRate,
             },
           }));
@@ -188,7 +191,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     });
 
     return NextResponse.json({
-      units: saved.map((s) => ({ id: s.id, name: s.name, type: s.type, subType: s.subType, capacity: s.capacity, hourlyRate: s.hourlyRate, dailyRate: s.dailyRate, monthlyRate: s.monthlyRate, yearlyRate: s.yearlyRate })),
+      units: saved.map((s) => ({ id: s.id, name: s.name, nameAr: s.nameAr, type: s.type, subType: s.subType, capacity: s.capacity, hourlyRate: s.hourlyRate, dailyRate: s.dailyRate, monthlyRate: s.monthlyRate, yearlyRate: s.yearlyRate })),
     });
   } catch (error) {
     console.error("Error saving workspace units:", error);

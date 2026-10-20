@@ -71,6 +71,15 @@ const seenC = await api('/hourly-bookings', { token: C.token });
 check('other provider does not see them', seenC.status === 200 && !seenC.body.some(b => b.id === bk.body?.id));
 const qr0 = await api('/qr-check-ins', { token: A.token });
 const n0 = (qr0.body || []).filter(x => x.workspaceId === wsA).length;
+// A check-in is only valid with a booking for this venue right now (a future booking does not count)
+const early = await api('/qr-check-ins', { method: 'POST', token: ind.token, body: { workspaceId: wsA, sectionId: secId } });
+check('customer without a booking for today is refused at check-in', early.status === 403 && early.body?.code === 'NO_ACTIVE_BOOKING', 'status ' + early.status);
+const todayKsa = () => { const t = new Date(Date.now() + 3 * 3600000); return new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate(), 9)); };
+const bookToday = (userId) => db.query(
+  `insert into "DirectBooking" (id,"userId","workspaceId","sectionId","durationType","durationDetails","bookingDate",seats,status) values (gen_random_uuid(),$1,$2,$3,'DAILY','1 Days',$4,1,'CONFIRMED')`,
+  [userId, wsA, secId, todayKsa()]
+);
+await bookToday(ind.userId);
 const scan = await api('/qr-check-ins', { method: 'POST', token: ind.token, body: { workspaceId: wsA, sectionId: secId } });
 check('customer QR scan recorded', scan.status === 201, 'status ' + scan.status);
 const qr1 = await api('/qr-check-ins', { token: A.token });
@@ -80,6 +89,8 @@ check('other provider cannot see my check-ins', !(qrC.body || []).some(x => x.wo
 
 // The partner scanner: staff record a check-in for the customer whose QR they scanned
 const walkIn = await mk('walkin');
+check('provider cannot check in a customer without a booking', (await api('/qr-check-ins', { method: 'POST', token: A.token, body: { userId: walkIn.userId, workspaceId: wsA, sectionId: secId } })).status === 403);
+await bookToday(walkIn.userId);
 const staffScan = await api('/qr-check-ins', { method: 'POST', token: A.token, body: { userId: walkIn.userId, workspaceId: wsA, sectionId: secId } });
 check('provider scans a customer QR at their own venue', staffScan.status === 201 && staffScan.body?.userId === walkIn.userId, 'status ' + staffScan.status);
 const qr2 = await api('/qr-check-ins', { token: A.token });

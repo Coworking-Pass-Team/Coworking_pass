@@ -252,6 +252,8 @@ model WorkspaceSection {
   workspaceId String
   type        SectionType
   name        String
+  /// Arabic room name; the English name is the fallback
+  nameAr      String?
   capacity    Int
   dailyRate   Float?
   monthlyRate Float?

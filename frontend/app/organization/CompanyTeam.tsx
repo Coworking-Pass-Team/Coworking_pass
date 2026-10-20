@@ -20,6 +20,7 @@ import {
   Pencil,
 } from 'lucide-react';
 import { useApp } from '@/app/store';
+import { addCompanyEmployeeApi, removeCompanyEmployeeApi } from '@/services/authApi';
 import { Employee } from '@/types/types';
 import Modal from '@/components/ui/Modal';
 
@@ -42,7 +43,9 @@ const ROLE_BADGE: Record<CompanyRole, string> = {
 
 export default function CompanyTeam() {
   const { t, translateMessage } = useI18n();
-  const { currentUser, updateCurrentUser, showToast, companyData } = useApp();
+  const { currentUser, updateCurrentUser, showToast, companyData, fetchCompanyWallet } = useApp();
+  const companyId = currentUser?.companyId || companyData?.id;
+  const [saving, setSaving] = useState(false);
 
   const rawEmployees = currentUser?.employees || [];
 
@@ -112,33 +115,55 @@ export default function CompanyTeam() {
     return matchSearch && matchRole;
   });
 
-  const handleAdd = () => {
-    if (!newMember.name || !newMember.email) { showToast('Name and email are required.', 'error'); return; }
-    const member: TeamMemberExt = {
-      id: `team-${Date.now()}`,
-      name: newMember.name,
-      email: newMember.email,
-      department: newMember.department,
-      role: newMember.role,
-      status: 'invited',
-      lastActive: '-',
-    };
-    const updated = [...members, member];
-    setMembers(updated);
-    const newEmployees = updated.filter(m => m.id !== 'owner').map(m => ({ id: m.id, name: m.name, email: m.email, department: m.department }));
-    updateCurrentUser({ employees: newEmployees });
-    setNewMember({ name: '', email: '', department: '', role: 'Team Member' });
-    setAddModal(false);
-    showToast(`${newMember.name} invited to the team.`, 'success');
+  // Department and team role are not stored on the server yet: they stay as labels kept with the HR admin's account
+  const saveLabels = (list: TeamMemberExt[]) => {
+    const employees = list.filter(m => m.id !== 'owner').map(m => ({ id: m.id, name: m.name, email: m.email, department: m.department }));
+    updateCurrentUser({ employees }, { silent: true });
   };
 
-  const handleDelete = (member: TeamMemberExt) => {
+  // Membership is saved on the server: the colleague's own account (by email) joins the company
+  const handleAdd = async () => {
+    const email = newMember.email.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToast('Please enter a valid email address.', 'error'); return; }
+    if (!companyId) { showToast('Your company could not be found. Please sign in again.', 'error'); return; }
+    setSaving(true);
+    const res = await addCompanyEmployeeApi(companyId, email);
+    setSaving(false);
+    if (!res.success) { showToast(res.error, 'error'); return; }
+    const member: TeamMemberExt = {
+      id: res.data.id,
+      name: res.data.name || newMember.name || res.data.email,
+      email: res.data.email,
+      department: newMember.department,
+      role: newMember.role,
+      status: 'active',
+      lastActive: '-',
+    };
+    const updated = [...members.filter(m => m.email.toLowerCase() !== email), member];
+    setMembers(updated);
+    saveLabels(updated);
+    setNewMember({ name: '', email: '', department: '', role: 'Team Member' });
+    setAddModal(false);
+    showToast(`${member.name} added to the team.`, 'success');
+    fetchCompanyWallet(companyId).catch(() => {});
+  };
+
+  const handleDelete = async (member: TeamMemberExt) => {
+    // Entries kept only in this browser (older invitations) have no server membership to remove
+    const onServer = member.status === 'active' && !member.id.startsWith('team-');
+    if (onServer) {
+      if (!companyId) { showToast('Your company could not be found. Please sign in again.', 'error'); return; }
+      setSaving(true);
+      const res = await removeCompanyEmployeeApi(companyId, member.id);
+      setSaving(false);
+      if (!res.success) { showToast(res.error, 'error'); return; }
+    }
     const updated = members.filter(m => m.id !== member.id);
     setMembers(updated);
-    const newEmployees = updated.filter(m => m.id !== 'owner').map(m => ({ id: m.id, name: m.name, email: m.email, department: m.department }));
-    updateCurrentUser({ employees: newEmployees });
+    saveLabels(updated);
     setDeleteModal(null);
     showToast(`${member.name} removed from team.`, 'success');
+    if (onServer && companyId) fetchCompanyWallet(companyId).catch(() => {});
   };
 
   const handleEditSave = () => {
@@ -383,31 +408,24 @@ export default function CompanyTeam() {
             <button type="button" onClick={() => setAddModal(false)} className="btn-secondary">
               {t('org.ct.cancel')}
             </button>
-            <button type="button" onClick={handleAdd} className="btn-primary">
-              {t('org.ct.sendInvite')}
+            <button type="button" onClick={handleAdd} disabled={saving} className="btn-primary disabled:opacity-50">
+              {t('org.ct.addToTeam')}
             </button>
           </>
         }
       >
         <div className="space-y-4 text-sm text-soot">
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">{t('org.ct.fullName')}</label>
-            <input
-              value={newMember.name}
-              onChange={e => setNewMember(p => ({ ...p, name: e.target.value }))}
-              placeholder={t('org.ct.eGTariqMansoor')}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-eucalyptus"
-            />
-          </div>
-          <div>
             <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">{t('org.ct.corporateEmail')}</label>
             <input
               type="email"
+              dir="ltr"
               value={newMember.email}
               onChange={e => setNewMember(p => ({ ...p, email: e.target.value }))}
               placeholder={t('org.ct.nameCompanyCom')}
               className="w-full px-3.5 py-2.5 rounded-xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-eucalyptus"
             />
+            <p className="text-[11px] text-moss mt-1">{t('org.ct.accountHint')}</p>
           </div>
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">{t('org.ct.department')}</label>
@@ -560,7 +578,7 @@ export default function CompanyTeam() {
               <button type="button" onClick={() => setDeleteModal(null)} className="btn-secondary">
                 {t('org.ct.cancel')}
               </button>
-              <button type="button" onClick={() => handleDelete(deleteModal)} className="btn-danger">
+              <button type="button" onClick={() => handleDelete(deleteModal)} disabled={saving} className="btn-danger disabled:opacity-50">
                 {t('org.ct.removeMember')}
               </button>
             </>
