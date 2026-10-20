@@ -23,6 +23,7 @@ import {
   ArrowUpRight
 } from 'lucide-react';
 import { useApp } from '@/app/store';
+import { useCompanyTeam } from '@/app/organization/useCompanyTeam';
 import { useSpaceText } from '@/i18n/space-text';
 import BookingQrModal from '@/components/BookingQrModal';
 import SharedWalletModal from '@/components/ui/SharedWalletModal';
@@ -45,6 +46,7 @@ export default function OrgDashboard() {
   const { t, lang, localizeTime } = useI18n();
   const st = useSpaceText();
   const { currentUser, spaces, bookings, favorites, navigate, companyWalletBalance, companyData, subscriptionsApi, fetchSubscriptions } = useApp();
+  const companyTeam = useCompanyTeam();
   const [selectedCategory, setSelectedCategory] = useState<'all' | SpaceCategory>('all');
   const [selectedBookingForQr, setSelectedBookingForQr] = useState<Booking | null>(null);
   const [isSharedWalletOpen, setIsSharedWalletOpen] = useState(false);
@@ -71,7 +73,8 @@ export default function OrgDashboard() {
     (favorites.includes(s.id) || (s.name && favorites.includes(s.name))) && s.isVisible !== false
   );
   const visibleSpaces = spaces.filter((s: Space) => s.isVisible !== false);
-  const employees = currentUser.employees || [];
+  // Team members as stored on the server (the team page shows the same list)
+  const { employees, totalMembers } = companyTeam;
 
   const categoryFilteredSpaces = selectedCategory === 'all'
     ? visibleSpaces
@@ -251,7 +254,7 @@ export default function OrgDashboard() {
           },
           {
             label: t('footer.teamMembers'),
-            count: employees.length || 1,
+            count: totalMembers,
             badge: 'bg-amber-500/15 text-amber-800 border border-amber-500/30',
             icon: Users,
             iconBg: 'bg-amber-500/15 text-amber-800 border-amber-500/30',

@@ -108,14 +108,14 @@ export async function POST(request: NextRequest) {
 
     if (!userData) {
       return NextResponse.json(
-        { error: 'المستخدم غير موجود' },
+        { error: 'User not found.' },
         { status: 404 }
       );
     }
 
     if (!plan) {
       return NextResponse.json(
-        { error: 'الخطة غير موجودة' },
+        { error: 'Plan not found.' },
         { status: 404 }
       );
     }
@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
     // B2C: للأفراد فقط (بدون شركة)
     if (plan.type === 'B2C' && userData.companyId) {
       return NextResponse.json(
-        { error: 'هذه الباقة مخصصة للأفراد فقط. أنت مرتبط بشركة.' },
+        { error: 'This plan is for individual members only. Your account belongs to a company team, so passes are arranged by your company.' },
         { status: 400 }
       );
     }
@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
     // B2B: للمؤسسات فقط (مرتبط بشركة)
     if (plan.type === 'B2B' && !userData.companyId) {
       return NextResponse.json(
-        { error: 'هذه الباقة مخصصة للمؤسسات فقط. يجب أن تكون مرتبطاً بشركة.' },
+        { error: 'This plan is for companies only. Your account must belong to a company.' },
         { status: 400 }
       );
     }

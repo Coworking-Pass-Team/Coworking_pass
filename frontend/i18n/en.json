@@ -99,7 +99,8 @@
     "viewAllNotifications": "View all notifications",
     "cartAria": "Shopping Cart ({count})",
     "cartEmpty": "Shopping Cart (Empty)",
-    "cartItems": "Shopping Cart ({count})"
+    "cartItems": "Shopping Cart ({count})",
+    "roleEmployee": "Employee · {company}"
   },
   "spaceTypes": {
     "private-office": "Private Office",
@@ -975,7 +976,8 @@
     "dailyPass": "Daily Pass",
     "bookNow": "Book Now",
     "perHourShort": "/hour",
-    "perDayShort": "/day"
+    "perDayShort": "/day",
+    "greetingName": "{greeting}, {name}"
   },
   "myBookings": {
     "hourlyPackageFallback": "Hourly Package",
@@ -1435,7 +1437,8 @@
       "desks": "Seats required",
       "requirements": "Requirements"
     },
-    "orgPlansBadge": "Organization & Enterprise Pass Plans"
+    "orgPlansBadge": "Organization & Enterprise Pass Plans",
+    "companyMemberNotice": "Your account belongs to the {company} team, so passes are arranged by your company's HR admin. You can still book workspaces and pay for them yourself."
   },
   "cart": {
     "title": "Shopping Cart",
@@ -2749,5 +2752,17 @@
     "authRequired": "Authentication Required",
     "authBody": "You must be logged in to view and manage your profile, team settings, and workspace passes.",
     "signIn": "Sign In to Continue"
+  },
+  "companyMember": {
+    "title": "Your company",
+    "yourCompany": "Your company",
+    "managedBy": "Team managed by {name}",
+    "teamSize": "Team members: {count}",
+    "leave": "Leave company",
+    "leaveTitle": "Leave this company?",
+    "leaveConfirm": "Yes, leave",
+    "leaveBody": "You will no longer be part of the {company} team. Your own bookings, wallet and loyalty points stay with you. Only the company's HR admin can add you again.",
+    "left": "You left {company}.",
+    "explainer": "Your company's HR admin can book workspaces for the team, including you. Your own bookings, wallet and loyalty points stay personal."
   }
 }

@@ -28,6 +28,7 @@ import {
   FileText
 } from 'lucide-react';
 import { useApp } from '@/app/store';
+import CompanyMembershipCard from '@/components/company/CompanyMembershipCard';
 import UserAvatar from '@/components/ui/UserAvatar';
 import Modal from '@/components/ui/Modal';
 import { PaymentCard } from '@/types/types';
@@ -35,7 +36,7 @@ import { PaymentCard } from '@/types/types';
 export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile' | 'settings' }) {
   const { t, translateMessage, formatDate, localizeTime } = useI18n();
   const sx = useSpaceText();
-  const { currentUser, updateCurrentUser, navigate, nav, showToast, addPaymentCard, bookings } = useApp();
+  const { currentUser, updateCurrentUser, navigate, nav, showToast, addPaymentCard, bookings, companyData } = useApp();
 
   const [activeTab, setActiveTab] = useState<'profile' | 'settings'>(
     mode || (nav.screen === 'ind-settings' ? 'settings' : 'profile')
@@ -257,6 +258,7 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
 
       {activeTab === 'profile' ? (
         <div className="space-y-7">
+          <CompanyMembershipCard />
           {/* Card 1: Main User Header Card */}
           <div className="bg-white rounded-3xl border border-soot/8 shadow-sm overflow-hidden">
             {/* Top Patterned Decorative Banner */}
@@ -296,14 +298,18 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
 
                   {/* Account Role Badge */}
                   <span className="inline-flex items-center px-3.5 py-1 rounded-full text-xs font-medium bg-[#DDE6DF] text-soot border border-soot/6">
-                    {t('ind.ps.individualMember')}
+                    {currentUser.companyId && (companyData?.id === currentUser.companyId ? companyData?.companyName : currentUser.orgName)
+                      ? t('nav.roleEmployee', { company: companyData?.id === currentUser.companyId ? companyData?.companyName : currentUser.orgName })
+                      : t('ind.ps.individualMember')}
                   </span>
 
-                  {/* Membership Tier Badge */}
-                  <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-medium bg-white text-moss border border-soot/10">
-                    <Check size={12} className="text-moss" />
-                    <span>{currentUser.membershipTier ? translateMessage(`${currentUser.membershipTier} Member`) : translateMessage('All-Access Pass Holder')}</span>
-                  </span>
+                  {/* Membership tier badge: only for members who actually hold a pass */}
+                  {(currentUser.membershipTier || currentUser.hasActivePass) && (
+                    <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-medium bg-white text-moss border border-soot/10">
+                      <Check size={12} className="text-moss" />
+                      <span>{currentUser.membershipTier ? translateMessage(`${currentUser.membershipTier} Member`) : translateMessage('All-Access Pass Holder')}</span>
+                    </span>
+                  )}
                 </div>
 
                 <div className="text-xs sm:text-sm text-moss font-normal flex flex-wrap items-center gap-3">

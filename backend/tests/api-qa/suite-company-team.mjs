@@ -32,6 +32,7 @@ check('the HR admin cannot be removed', (await remove(hr, hr.userId)).status ===
 check('the HR admin removes the member', (await remove(hr, member.userId)).status === 200 && (await companyOf(member.userId)) === null);
 check('removing someone not in the team is a 404', (await remove(hr, member.userId)).status === 404);
 check('a member can leave on their own', (await add(hr, member.email)).status === 201 && (await remove(member, member.userId)).status === 200 && (await companyOf(member.userId)) === null);
+check('the HR admin is told a member left', (await db.query(`select count(*)::int n from "Notification" where "userId"=$1 and title='A member left your team'`, [hr.userId])).rows[0].n === 1);
 
 await db.end();
 summary();

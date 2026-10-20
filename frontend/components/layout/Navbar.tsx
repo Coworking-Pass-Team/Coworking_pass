@@ -5,6 +5,7 @@ import { Menu, X, User as UserIcon, LogOut, ChevronDown, Calendar, Building2, Us
 import { formatRelativeTime } from '@/i18n/relative-time';
 import { useApp } from '@/app/store';
 import Logo from './logo';
+import UserAvatar from '@/components/ui/UserAvatar';
 import LanguageSwitcher from './LanguageSwitcher';
 import WalletModal from '@/components/ui/WalletModal';
 import SharedWalletModal from '@/components/ui/SharedWalletModal';
@@ -209,7 +210,7 @@ export function CartButton({ className = '' }: { className?: string }) {
 
 export default function Navbar() {
   const { t } = useI18n();
-  const { navigate, nav, currentUser, logout, companyWalletBalance } = useApp();
+  const { navigate, nav, currentUser, logout, companyWalletBalance, companyData } = useApp();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [walletModalOpen, setWalletModalOpen] = useState(false);
@@ -298,6 +299,11 @@ export default function Navbar() {
     if (currentUser.role === 'admin') return t('nav.roleAdmin');
     if (currentUser.role === 'organization') return t('nav.roleOrg');
     if (currentUser.role === 'provider') return t('nav.roleProvider');
+    // Members of a company team see which company they belong to
+    if (currentUser.companyId) {
+      const company = companyData?.id === currentUser.companyId ? companyData?.companyName : currentUser.orgName;
+      if (company) return t('nav.roleEmployee', { company });
+    }
     return t('nav.roleIndividual');
   };
 
@@ -363,11 +369,8 @@ export default function Navbar() {
                 className="flex items-center gap-1.5 xl:gap-2 p-1 xl:p-1.5 pe-2 xl:pe-3 rounded-2xl border border-soot/12 bg-plaster-dark/30 hover:bg-plaster-dark/60 transition-all duration-200 cursor-pointer active:scale-98 focus:outline-none focus:ring-2 focus:ring-soot/20"
                 aria-label={t('nav.profileMenu')}
               >
-                <img
-                  src={currentUser.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=faces'}
-                  alt={currentUser.name}
-                  className="w-8 h-8 xl:w-9 xl:h-9 rounded-xl object-cover border border-soot/10 shadow-xs shrink-0"
-                />
+                {/* The member's own photo, or their initials (never a stock photo of someone else) */}
+                <UserAvatar src={currentUser.avatar} name={currentUser.name} size="sm" className="shrink-0" />
                 <div className="text-start hidden 2xl:block max-w-[110px] 2xl:max-w-[140px]">
                   <div className="text-xs font-semibold text-soot leading-tight truncate">{currentUser.name}</div>
                   <div className="text-[10px] text-moss font-medium truncate">{getRoleLabel()}</div>
@@ -492,11 +495,7 @@ export default function Navbar() {
         <div className="lg:hidden border-t border-soot/10 bg-plaster-surface/98 backdrop-blur-md px-4 pt-3 pb-6 space-y-3 shadow-lg animate-in fade-in slide-in-from-top-2 duration-200 max-h-[calc(100vh-4.5rem)] overflow-y-auto">
           {currentUser && (
             <div className="flex items-center gap-3 p-3 rounded-2xl bg-plaster-dark/30 border border-soot/10 mb-2">
-              <img
-                src={currentUser.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=faces'}
-                alt={currentUser.name}
-                className="w-10 h-10 rounded-xl object-cover"
-              />
+              <UserAvatar src={currentUser.avatar} name={currentUser.name} size="md" />
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-semibold text-soot truncate">{currentUser.name}</div>
                 <div className="text-xs text-moss truncate">{currentUser.email}</div>
