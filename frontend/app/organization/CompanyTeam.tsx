@@ -23,6 +23,7 @@ import { useApp } from '@/app/store';
 import { addCompanyEmployeeApi, removeCompanyEmployeeApi } from '@/services/authApi';
 import { Employee } from '@/types/types';
 import Modal from '@/components/ui/Modal';
+import CompanyJoinRequestsPanel from '@/components/company/CompanyJoinRequestsPanel';
 
 type CompanyRole = 'Company Owner' | 'Company Manager' | 'Booking Manager' | 'Team Member';
 
@@ -200,6 +201,9 @@ export default function CompanyTeam() {
           <span>{t('org.ct.addMember')}</span>
         </button>
       </div>
+
+      {/* Employees asking to join the team */}
+      <CompanyJoinRequestsPanel />
 
       {/* Admin-Matching Elevated Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">

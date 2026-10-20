@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '@/app/store';
 import CompanyMembershipCard from '@/components/company/CompanyMembershipCard';
+import CompanyJoinRequestCard from '@/components/company/CompanyJoinRequestCard';
 import UserAvatar from '@/components/ui/UserAvatar';
 import Modal from '@/components/ui/Modal';
 import { PaymentCard } from '@/types/types';
@@ -448,6 +449,9 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
               </div>
             </div>
           </div>
+
+          {/* Members outside a company team can ask to join theirs */}
+          <CompanyJoinRequestCard showJoinForm />
 
           {/* Card 3: Active Bookings Overview */}
           <div className="bg-white rounded-3xl border border-soot/8 p-6 sm:p-8 shadow-sm">

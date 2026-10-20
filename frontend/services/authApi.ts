@@ -25,6 +25,8 @@ export interface RegisterPayload {
   companyName?: string;
   businessName?: string;
   crNumber?: string;
+  /** Company employees: the HR admin's email, which sends a join request for the HR admin to approve */
+  companyHrEmail?: string;
 }
 
 export interface RegisterResponse {
@@ -126,6 +128,7 @@ export async function registerUserApi(payload: RegisterPayload): Promise<Registe
         companyName: payload.companyName?.trim(),
         businessName: payload.businessName?.trim(),
         crNumber: payload.crNumber?.trim(),
+        companyHrEmail: payload.companyHrEmail?.trim().toLowerCase() || undefined,
       }),
     });
 
@@ -1269,6 +1272,50 @@ export async function removeCompanyEmployeeApi(companyId: string, userId: string
     return { success: false as const, error: err.message || 'Network error' };
   }
 }
+
+export interface MyJoinRequest {
+  id: string;
+  status: string;
+  createdAt: string;
+  company: { companyName: string; hrAdmin?: { name?: string; email?: string } };
+}
+
+export interface CompanyJoinRequestItem {
+  id: string;
+  createdAt: string;
+  user: { id: string; name: string; email: string };
+}
+
+async function joinRequestCall<T>(path: string, init: RequestInit, fallbackError: string) {
+  try {
+    const response = await fetch(`${getAuthBaseUrl()}/api/company-join-requests${path}`, { ...init, headers: getAuthHeaders() });
+    const data = await response.json().catch(() => null);
+    if (!response.ok) return { success: false as const, error: (data?.error as string) || fallbackError };
+    return { success: true as const, data: data as T };
+  } catch (err: any) {
+    return { success: false as const, error: err.message || 'Network error' };
+  }
+}
+
+/** The signed-in member's pending request to join a company, if any. */
+export const getMyJoinRequestApi = () =>
+  joinRequestCall<{ request: MyJoinRequest | null; company: { id: string; companyName: string } | null }>('', { method: 'GET' }, 'Failed to load your join request.');
+
+/** A member asks to join the company whose HR admin uses this email. */
+export const createJoinRequestApi = (hrEmail: string) =>
+  joinRequestCall<{ id: string; status: string; companyName: string }>('', { method: 'POST', body: JSON.stringify({ hrEmail }) }, 'Failed to send the join request.');
+
+/** The member withdraws their pending request. */
+export const cancelJoinRequestApi = (id: string) =>
+  joinRequestCall<{ status: string }>(`/${id}`, { method: 'DELETE' }, 'Failed to withdraw the join request.');
+
+/** Pending requests to join the HR admin's company. */
+export const listCompanyJoinRequestsApi = () =>
+  joinRequestCall<CompanyJoinRequestItem[]>('', { method: 'GET' }, 'Failed to load join requests.');
+
+/** The HR admin approves or declines a join request. */
+export const answerJoinRequestApi = (id: string, action: 'approve' | 'decline') =>
+  joinRequestCall<{ status: string }>(`/${id}`, { method: 'PATCH', body: JSON.stringify({ action }) }, 'Failed to answer the join request.');
 
 export async function depositCompanyWalletApi(companyId: string, amount: number, options?: { description?: string; referenceId?: string }) {
   const url = `${getAuthBaseUrl()}/api/companies/${companyId}/deposit`;

@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '@/app/store';
 import { useCompanyTeam } from '@/app/organization/useCompanyTeam';
+import CompanyJoinRequestsPanel from '@/components/company/CompanyJoinRequestsPanel';
 import { useSpaceText } from '@/i18n/space-text';
 import BookingQrModal from '@/components/BookingQrModal';
 import SharedWalletModal from '@/components/ui/SharedWalletModal';
@@ -154,6 +155,9 @@ export default function OrgDashboard() {
           </button>
         </div>
       </div>
+
+      {/* Employees asking to join the team */}
+      <CompanyJoinRequestsPanel />
 
       {/* Pass Details & Quota Usage */}
       <div className="bg-white rounded-3xl border border-soot/10 p-5 sm:p-6 shadow-xs">

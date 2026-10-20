@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { notifyPendingJoinRequestsOf } from "@/lib/company-join";
 
 
 
@@ -67,6 +68,9 @@ export async function POST(request: Request) {
       where: { id: userId },
       data: { emailVerified: true },
     });
+
+    // Join requests made at sign-up reach the HR admin only now that the email is confirmed
+    await notifyPendingJoinRequestsOf(userId).catch((err) => console.error("Join request notification failed:", err));
 
     return NextResponse.json({ message: "Account verified successfully." });
   } catch (error) {

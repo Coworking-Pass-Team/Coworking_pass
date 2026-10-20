@@ -152,6 +152,40 @@ export async function ensureDatabaseSchema(force = false): Promise<{ success: bo
       END $$;
     `).catch((err) => console.warn("[Schema Sync] CompanyWalletTransaction FK warning:", err));
 
+    // 4c. Requests from member accounts to join a company team
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "CompanyJoinRequest" (
+        "id" TEXT NOT NULL,
+        "companyId" TEXT NOT NULL,
+        "userId" TEXT NOT NULL,
+        "status" TEXT NOT NULL DEFAULT 'PENDING',
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "decidedAt" TIMESTAMP(3),
+        CONSTRAINT "CompanyJoinRequest_pkey" PRIMARY KEY ("id")
+      );
+    `).then(() => executedStatements.push('CompanyJoinRequest')).catch((err) => console.warn("[Schema Sync] CompanyJoinRequest warning:", err));
+
+    for (const statement of [
+      'CREATE INDEX IF NOT EXISTS "CompanyJoinRequest_companyId_status_idx" ON "CompanyJoinRequest"("companyId", "status");',
+      'CREATE INDEX IF NOT EXISTS "CompanyJoinRequest_userId_status_idx" ON "CompanyJoinRequest"("userId", "status");',
+    ]) {
+      await prisma.$executeRawUnsafe(statement).catch((err) => console.warn("[Schema Sync] CompanyJoinRequest index warning:", err));
+    }
+
+    await prisma.$executeRawUnsafe(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'CompanyJoinRequest_companyId_fkey') THEN
+          ALTER TABLE "CompanyJoinRequest" ADD CONSTRAINT "CompanyJoinRequest_companyId_fkey"
+            FOREIGN KEY ("companyId") REFERENCES "Company"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'CompanyJoinRequest_userId_fkey') THEN
+          ALTER TABLE "CompanyJoinRequest" ADD CONSTRAINT "CompanyJoinRequest_userId_fkey"
+            FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+        END IF;
+      END $$;
+    `).catch((err) => console.warn("[Schema Sync] CompanyJoinRequest FK warning:", err));
+
     // 5. Super Admin provisioning comes from environment variables only (see lib/super-admin.ts);
     //    no credentials are hard-coded any more.
     executedStatements.push(...(await provisionSuperAdmin()));

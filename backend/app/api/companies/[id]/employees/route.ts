@@ -67,6 +67,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
 
     const employee = await prisma.user.update({ where: { id: member.id }, data: { companyId: id }, select: employeeFields });
+    // Adding someone answers their pending join requests
+    await prisma.companyJoinRequest.updateMany({
+      where: { userId: member.id, status: "PENDING", companyId: id },
+      data: { status: "APPROVED", decidedAt: new Date() },
+    });
+    await prisma.companyJoinRequest.updateMany({
+      where: { userId: member.id, status: "PENDING" },
+      data: { status: "CANCELLED", decidedAt: new Date() },
+    });
     await prisma.notification.create({
       data: {
         userId: member.id,
