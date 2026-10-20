@@ -42,3 +42,8 @@ yarn-error.log*
 next-env.d.ts
 
 /app/generated/prisma
+
+# One-off database scripts and backups: they contain real account data, never commit them
+scripts/backup-*.txt
+scripts/dedupe-partners*.sql
+scripts/cleanup-test-data.sql
