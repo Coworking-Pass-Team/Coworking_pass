@@ -1,15 +1,28 @@
 # Test accounts
 
-Verified accounts for every role, for **local development and testing only**.
-The passwords are public, so these accounts must never exist on a shared or production database.
-The seed script refuses to run unless `DATABASE_URL` points to `localhost`.
+Verified accounts for every role, for development and the **QA stage on Render**.
+This repository is public, so the password below is public too: anyone can sign in to these accounts wherever they exist.
+They must be removed before the real launch (see `PRODUCTION_CHECKLIST.md`).
 
 ```bash
 cd backend
-npm run seed:test-accounts      # creates the accounts, or resets them if they already exist
+npm run seed:test-accounts      # local database: creates the accounts, or resets them if they already exist
 ```
 
-- Password for all accounts: `Test@12345`
+Seeding the QA database on Render (Neon) has to be asked for explicitly:
+
+```bash
+cd backend
+# DATABASE_URL = the QA database; a private password is strongly recommended because the repository is public
+TEST_ACCOUNTS_PASSWORD='<private password>' node scripts/seed-test-accounts.mjs --allow-remote
+```
+
+- Without `--allow-remote` the script refuses any database that is not on `localhost`.
+- On a remote database the **super admin test account is skipped**. Add it only with `--include-admin` and a private
+  `TEST_ADMIN_PASSWORD` (the published password is never accepted for an admin there).
+- Without `TEST_ACCOUNTS_PASSWORD` the published password is used and the script prints a warning.
+
+- Password for all accounts on a local database: `Test@12345`
 - Verification code (second login step): `123456`
 - Sign in at the member portal (`/`, then "Sign in").
 
@@ -21,7 +34,7 @@ npm run seed:test-accounts      # creates the accounts, or resets them if they a
 | Company employee | `employee1@cwp-test.local`, `employee2@cwp-test.local` | Members of *Test Company Ltd* |
 | Venue partner (approved) | `partner@cwp-test.local` | Owns *Test Partner Hub* (private offices + Meeting Room A with a 2-hour package) |
 | Venue partner (pending) | `partner.pending@cwp-test.local` | Sign-in is refused until a super admin approves it: use it to test the approval flow |
-| Super admin | `superadmin@cwp-test.local` | Full platform access |
+| Super admin | `superadmin@cwp-test.local` | Full platform access (local databases only, unless seeded with `--include-admin` and a private `TEST_ADMIN_PASSWORD`) |
 | Suspended member | `suspended@cwp-test.local` | Sign-in is refused with the "account suspended" message |
 
 Notes:
