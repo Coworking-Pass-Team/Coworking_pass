@@ -1,4 +1,4 @@
-import { api, db, makeUser, check, summary } from './lib.mjs';
+import { api, db, makeUser, check, summary, removeWorkspaces } from './lib.mjs';
 await db.connect();
 const run = Date.now().toString(36);
 const loginAs = async (email, pw) => {
@@ -54,7 +54,7 @@ await db.query(`update "WorkspaceSection" set capacity=4 where id=$1`, [sec.rows
 const list = (await api('/workspaces')).body.find((w) => w.id === zid);
 check('a workspace saved with 0 but with 4 section seats shows 4 in the catalog', list?.totalCapacity === 4 && list?.availableCapacity === 4, JSON.stringify({ t: list?.totalCapacity, a: list?.availableCapacity }));
 
-await db.query(`delete from "Workspace" where id = any($1)`, [[(stale.body?.workspace?.id ?? stale.body?.id), (none.body?.workspace?.id ?? none.body?.id), zid].filter(Boolean)]).catch(() => {});
+await removeWorkspaces([(stale.body?.workspace?.id ?? stale.body?.id), (none.body?.workspace?.id ?? none.body?.id), zid]);
 await db.end();
 summary();
 process.exit(0);
