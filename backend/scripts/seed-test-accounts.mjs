@@ -1,30 +1,52 @@
 /**
  * Creates (or resets) one verified test account for every role, with a little data to click through.
  *
- *   npm run seed:test-accounts
+ *   npm run seed:test-accounts                                   # local database
+ *   node scripts/seed-test-accounts.mjs --allow-remote           # QA database on Render / Neon
  *
- * LOCAL DATABASES ONLY: the script refuses to run unless DATABASE_URL points to localhost, because the
- * passwords below are public. The accounts are listed in TEST_ACCOUNTS.md at the repository root.
- * Safe to run again: existing test accounts are updated, not duplicated.
+ * The accounts are listed in TEST_ACCOUNTS.md, which is public (the repository is public). Therefore:
+ * - A database that is not on localhost is refused unless --allow-remote is passed.
+ * - On a remote database the super admin test account is NOT created, unless --include-admin is passed
+ *   together with a private TEST_ADMIN_PASSWORD (the published password is never used for an admin there).
+ * - TEST_ACCOUNTS_PASSWORD sets a private password for the other accounts; without it the published one is used
+ *   and a warning is printed.
+ * Safe to run again: existing test accounts are updated, not duplicated. Remove them before the real launch
+ * (see PRODUCTION_CHECKLIST.md).
  */
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 try { process.loadEnvFile('.env'); } catch { /* DATABASE_URL may already be in the environment */ }
 
+const args = process.argv.slice(2);
+const allowRemote = args.includes('--allow-remote');
+const includeAdmin = args.includes('--include-admin');
+
 const url = process.env.DATABASE_URL || '';
 const host = (() => { try { return new URL(url).hostname; } catch { return ''; } })();
-if (!['localhost', '127.0.0.1', '::1', '[::1]'].includes(host)) {
-  console.error(`Refusing to seed test accounts: DATABASE_URL host is "${host || 'unset'}", not localhost.`);
+const isLocal = ['localhost', '127.0.0.1', '::1', '[::1]'].includes(host);
+if (!host) {
+  console.error('Refusing to seed test accounts: DATABASE_URL is not set.');
+  process.exit(1);
+}
+if (!isLocal && !allowRemote) {
+  console.error(`Refusing to seed test accounts: DATABASE_URL host is "${host}", not localhost. Pass --allow-remote to seed a QA database on purpose.`);
   process.exit(1);
 }
 
 export const TEST_PASSWORD = 'Test@12345';
+const accountsPassword = process.env.TEST_ACCOUNTS_PASSWORD || TEST_PASSWORD;
+if (!isLocal) {
+  console.warn(`Seeding test accounts into the REMOTE database at ${host}.`);
+  if (!process.env.TEST_ACCOUNTS_PASSWORD) {
+    console.warn('WARNING: using the password published in TEST_ACCOUNTS.md. Anyone who reads the public repository can sign in to these accounts. Set TEST_ACCOUNTS_PASSWORD to use a private one.');
+  }
+}
 const prisma = new PrismaClient();
-const passwordHash = await bcrypt.hash(TEST_PASSWORD, 10);
+const passwordHash = await bcrypt.hash(accountsPassword, 10);
 
-async function upsertUser({ email, name, role, companyId = null, isBanned = false }) {
-  const data = { name, role, passwordHash, companyId, emailVerified: true, isBanned };
+async function upsertUser({ email, name, role, companyId = null, isBanned = false, hash = passwordHash }) {
+  const data = { name, role, passwordHash: hash, companyId, emailVerified: true, isBanned };
   return prisma.user.upsert({ where: { email }, update: data, create: { email, ...data } });
 }
 
@@ -83,8 +105,8 @@ if (!workspace) {
       isVisible: true,
       sections: {
         create: [
-          { type: 'DESK', name: 'Private Offices', subType: 'private-office', capacity: 20, dailyRate: 60, monthlyRate: 900, yearlyRate: 9000 },
-          { type: 'MEETING_ROOM', name: 'Meeting Room A', subType: 'meeting-room', capacity: 8, hourlyRate: 75, dailyRate: 400 },
+          { type: 'DESK', name: 'Private Offices', nameAr: 'المكاتب الخاصة', subType: 'private-office', capacity: 20, dailyRate: 60, monthlyRate: 900, yearlyRate: 9000 },
+          { type: 'MEETING_ROOM', name: 'Meeting Room A', nameAr: 'غرفة الاجتماعات A', subType: 'meeting-room', capacity: 8, hourlyRate: 75, dailyRate: 400 },
         ],
       },
     },
@@ -92,8 +114,12 @@ if (!workspace) {
   });
 }
 for (const sec of workspace.sections) {
-  const patch = sec.type === 'DESK' ? { name: 'Private Offices', subType: 'private-office' } : sec.type === 'MEETING_ROOM' ? { subType: 'meeting-room' } : null;
-  if (patch && (sec.subType !== patch.subType || (patch.name && sec.name !== patch.name))) await prisma.workspaceSection.update({ where: { id: sec.id }, data: patch });
+  const patch = sec.type === 'DESK'
+    ? { name: 'Private Offices', nameAr: 'المكاتب الخاصة', subType: 'private-office' }
+    : sec.type === 'MEETING_ROOM' ? { nameAr: sec.nameAr || 'غرفة الاجتماعات A', subType: 'meeting-room' } : null;
+  if (patch && (sec.subType !== patch.subType || sec.nameAr !== patch.nameAr || (patch.name && sec.name !== patch.name))) {
+    await prisma.workspaceSection.update({ where: { id: sec.id }, data: patch });
+  }
 }
 const meetingRoom = workspace.sections.find((s) => s.type === 'MEETING_ROOM');
 let pkg = meetingRoom.hourlyPackages[0];
@@ -108,8 +134,17 @@ const existingPending = await prisma.partner.findFirst({ where: { contactEmail: 
 if (existingPending) await prisma.partner.update({ where: { id: existingPending.id }, data: pendingData });
 else await prisma.partner.create({ data: pendingData });
 
-// 5. Super admin and a suspended account
-await upsertUser({ email: 'superadmin@cwp-test.local', name: 'Test Super Admin', role: 'SUPER_ADMIN' });
+// 5. Super admin and a suspended account. On a remote database the admin needs --include-admin and a private
+//    TEST_ADMIN_PASSWORD: with the published password and the master code anyone could take over the site.
+if (isLocal) {
+  await upsertUser({ email: 'superadmin@cwp-test.local', name: 'Test Super Admin', role: 'SUPER_ADMIN' });
+} else if (includeAdmin && process.env.TEST_ADMIN_PASSWORD && process.env.TEST_ADMIN_PASSWORD !== TEST_PASSWORD) {
+  const adminHash = await bcrypt.hash(process.env.TEST_ADMIN_PASSWORD, 10);
+  await upsertUser({ email: 'superadmin@cwp-test.local', name: 'Test Super Admin', role: 'SUPER_ADMIN', hash: adminHash });
+  console.log('Super admin test account created with the private TEST_ADMIN_PASSWORD.');
+} else {
+  console.log('Skipped the super admin test account on the remote database (use --include-admin with a private TEST_ADMIN_PASSWORD).');
+}
 await upsertUser({ email: 'suspended@cwp-test.local', name: 'Test Suspended Member', role: 'B2C', isBanned: true });
 
 // 6. Booking history for the individual member (created once) and notifications (reset on every run)
@@ -148,5 +183,7 @@ await prisma.notification.createMany({
   ],
 });
 
-console.log('Test accounts are ready. Password for all of them:', TEST_PASSWORD, '(verification code 123456)');
+console.log(process.env.TEST_ACCOUNTS_PASSWORD
+  ? 'Test accounts are ready with the private TEST_ACCOUNTS_PASSWORD (verification code 123456).'
+  : `Test accounts are ready. Password for all of them: ${TEST_PASSWORD} (verification code 123456)`);
 await prisma.$disconnect();
