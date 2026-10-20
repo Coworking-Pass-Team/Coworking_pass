@@ -68,8 +68,12 @@ Repository note: this repository is **public**. Anything committed (including `T
       `/api/clean-workspaces` (super-admin only today, but destructive).
 - [ ] Decide whether the API documentation (`/api-doc`) should be public.
 - [ ] Add security headers on the frontend (CSP, HSTS, X-Frame-Options) and run `npm audit` on both projects.
-- [ ] Company team membership: HR admins add existing member accounts by email directly. Consider an invitation that the
-      employee accepts, so nobody is added to a company without consent.
+- [ ] Company team membership: employees can now ask to join (sign-up "Company employee" or the profile card) and the
+      HR admin approves or declines the request (`/api/company-join-requests`). HR admins can still add an existing
+      member account by email directly, without the employee's consent (the member is only notified). Decide whether
+      direct add should become an invitation the employee accepts.
+- [ ] Company team details: department and team role labels are kept only in the HR admin's browser, and team bookings
+      are not linked to individual employees on the server. Store both on the server before companies rely on them.
 
 ## 5. Database
 

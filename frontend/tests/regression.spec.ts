@@ -371,7 +371,9 @@ test.describe('Member bookings and notifications (seeded test account)', () => {
       });
       await expect(page.locator('body')).toContainText(lang === 'ar' ? 'مركز الشريك التجريبي' : 'Test Partner Hub', { timeout: 15000 });
       const text = await page.evaluate(() => document.body.innerText);
-      expect(text).toContain('Meeting Room A');
+      // Rooms are bilingual: the Arabic page shows the Arabic room name only
+      expect(text).toContain(lang === 'ar' ? 'غرفة الاجتماعات A' : 'Meeting Room A');
+      if (lang === 'ar') expect(text).not.toContain('Meeting Room A');
       expect(text).toMatch(/150/);
       expect(text).toMatch(/10:00/);
       expect(text).not.toMatch(/Hourly Package 1|Hour Hourly/);
@@ -422,8 +424,9 @@ test.describe('Member bookings and notifications (seeded test account)', () => {
 
       // Hourly tab: newest first by default, "oldest first" reverses it
       await click('(hourly bookings|الحجوزات بالساعة)');
-      await expect(page.locator('body')).toContainText('Meeting Room A', { timeout: 15000 });
-      const order = async () => page.evaluate(() => Array.from(document.querySelectorAll('h4')).map((h) => h.closest('div.rounded-3xl')?.textContent || '').filter((t) => /Meeting Room A/.test(t)).map((t) => (/(Active|نشط)/.test(t) ? 'upcoming' : 'past')));
+      const room = lang === 'ar' ? 'غرفة الاجتماعات A' : 'Meeting Room A';
+      await expect(page.locator('body')).toContainText(room, { timeout: 15000 });
+      const order = async () => page.evaluate((name) => Array.from(document.querySelectorAll('h4')).map((h) => h.closest('div.rounded-3xl')?.textContent || '').filter((t) => t.includes(name)).map((t) => (/(Active|نشط)/.test(t) ? 'upcoming' : 'past')), room);
       expect(await order()).toEqual(['upcoming', 'past']);
       await page.getByLabel(lang === 'ar' ? 'ترتيب الحجوزات حسب التاريخ' : 'Sort bookings by date').selectOption('oldest');
       await expect.poll(order).toEqual(['past', 'upcoming']);

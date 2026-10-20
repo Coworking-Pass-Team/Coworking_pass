@@ -16,6 +16,19 @@ export async function makeUser(name, email, role, extra = {}) {
   const v = await api('/auth/verify-login', { method: 'POST', body: { userId, code: '123456' } });
   return { email, pw, userId, token: v.body?.token, reg, login, v };
 }
+// Removes workspaces a suite created, children first, so they never show up in the catalog of later runs
+export async function removeWorkspaces(ids) {
+  ids = ids.filter(Boolean);
+  if (!ids.length) return;
+  const sections = `select id from "WorkspaceSection" where "workspaceId" = any($1)`;
+  await db.query(`delete from "QrCheckIn" where "workspaceId" = any($1) or "sectionId" in (${sections})`, [ids]);
+  await db.query(`delete from "DirectBooking" where "workspaceId" = any($1) or "sectionId" in (${sections})`, [ids]);
+  await db.query(`delete from "HourlyBooking" where "workspaceId" = any($1) or "sectionId" in (${sections}) or "packageId" in (select id from "HourlyPackage" where "sectionId" in (${sections}))`, [ids]);
+  await db.query(`delete from "HourlyPackage" where "sectionId" in (${sections})`, [ids]);
+  await db.query(`delete from "WorkspaceSection" where "workspaceId" = any($1)`, [ids]);
+  await db.query(`delete from "WorkspaceAmenity" where "workspaceId" = any($1)`, [ids]);
+  await db.query(`delete from "Workspace" where id = any($1)`, [ids]);
+}
 let pass = 0, fail = 0; export const results = [];
 export function check(name, cond, detail = '') { if (cond) pass++; else fail++; results.push({ name, ok: !!cond, detail }); console.log((cond ? 'PASS ' : 'FAIL ') + name + (detail ? '  -> ' + detail : '')); }
 export const summary = () => console.log(`\n${pass} passed, ${fail} failed`);

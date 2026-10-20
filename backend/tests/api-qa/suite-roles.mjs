@@ -1,4 +1,4 @@
-import { api, db, makeUser, check, summary } from './lib.mjs';
+import { api, db, makeUser, check, summary, removeWorkspaces } from './lib.mjs';
 await db.connect();
 const run = Date.now().toString(36);
 const loginAs = async (email, pw) => {
@@ -186,4 +186,5 @@ const banned = await api('/wallet?userId=' + outsider.userId, { token: outsider.
 check('suspended user gets 403 ACCOUNT_SUSPENDED', banned.status === 403 && banned.body?.code === 'ACCOUNT_SUSPENDED', 'status ' + banned.status);
 check('B2C cannot suspend users', (await api('/users/' + hr.userId, { method: 'PUT', token: ind.token, body: { isBanned: true } })).status === 403);
 
+await removeWorkspaces([wsA, other.body?.id || other.body?.workspace?.id]);
 summary(); await db.end();
