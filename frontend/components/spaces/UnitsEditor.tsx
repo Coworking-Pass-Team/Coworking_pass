@@ -82,11 +82,17 @@ export default function UnitsEditor({ units, defaultSubType, onChange }: UnitsEd
             : [['dailyRate', 'units.dailyRate'], ['monthlyRate', 'units.monthlyRate'], ['yearlyRate', 'units.yearlyRate']];
           return (
             <div key={unit.id} className="rounded-xl border border-soot/10 bg-white/70 p-3 space-y-2">
-              <div className="grid grid-cols-1 sm:grid-cols-[1fr_170px_100px_auto] gap-2 items-end">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div>
-                  <label className={label}>{t('units.name')}</label>
-                  <input type="text" value={unit.name} onChange={(e) => update(index, { name: e.target.value })} className={input} />
+                  <label className={label}>{t('units.nameEn')}</label>
+                  <input type="text" dir="ltr" lang="en" value={unit.name} onChange={(e) => update(index, { name: e.target.value })} className={input} />
                 </div>
+                <div>
+                  <label className={label}>{t('units.nameAr')}</label>
+                  <input type="text" dir="rtl" lang="ar" value={unit.nameAr || ''} onChange={(e) => update(index, { nameAr: e.target.value })} className={input} />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-[170px_100px_auto] gap-2 items-end">
                 <div>
                   <label className={label}>{t('units.kind')}</label>
                   <select

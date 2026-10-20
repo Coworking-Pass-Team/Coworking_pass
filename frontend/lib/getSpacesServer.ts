@@ -34,12 +34,9 @@ export async function getSpacesServer(): Promise<SpacesServerData> {
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) {
-        // Merge API spaces with INITIAL_SPACES if any static ones are missing
-        // API rows carry no category, so derive it from their sections (otherwise everything counts as an office)
-        const categorized = data.map((w: any) => ({ ...w, category: getWorkspaceCategory(w) }));
-        const seen = new Set(categorized.map((w: any) => (w.name || '').trim().toLowerCase()));
-        const missingStatic = INITIAL_SPACES.filter(s => !seen.has(s.name.trim().toLowerCase()));
-        spaces = [...categorized, ...missingStatic];
+        // The live catalogue only: static demo spaces are a fallback for when the API is unreachable, never mixed in
+        // (they are not bookable). API rows carry no category, so derive it from their sections.
+        spaces = data.map((w: any) => ({ ...w, category: getWorkspaceCategory(w) }));
       }
     }
   } catch (_err) {

@@ -196,7 +196,7 @@ export default function CompanyBookings() {
                     <span className="text-xs font-mono text-moss">{hb.id.slice(0, 10)}...</span>
                   </div>
                   <h4 className="text-base font-semibold text-soot font-serif-display">
-                    {hb.package?.packageName || hb.section?.name || t('prov.cb.fallbackPackage')}
+                    {hb.package?.packageName ? translateMessage(hb.package.packageName) : hb.section ? sx.roomName(hb.section) : t('prov.cb.fallbackPackage')}
                   </h4>
                   <div className="text-xs text-moss space-y-1 pt-2 border-t border-soot/6">
                     <div>{t('prov.cb.userName')} <span className="font-semibold text-soot">{hb.user?.name || hb.userId}</span></div>

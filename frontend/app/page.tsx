@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Zap, Star, Users, MapPin, ChevronDown, Shield, Headphones, Quote } from 'lucide-react';
+import { Zap, MapPin, ChevronDown, Shield, Headphones } from 'lucide-react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import LandingHeroSearch from '@/components/landing/LandingHeroSearch';
@@ -143,14 +143,6 @@ export default async function Page() {
 
               {/* Trust Pills */}
               <div className="relative z-10 flex flex-wrap items-center justify-center gap-3 sm:gap-4 mt-10">
-                <div className="bg-soot/80 backdrop-blur-md border border-plaster/20 px-5 py-2.5 rounded-full text-plaster text-xs sm:text-sm font-semibold flex items-center gap-2.5 shadow-lg">
-                  <Star size={16} fill="currentColor" className="text-eucalyptus" />
-                  <span><T k="landing.avgRating" /></span>
-                </div>
-                <div className="bg-soot/80 backdrop-blur-md border border-plaster/20 px-5 py-2.5 rounded-full text-plaster text-xs sm:text-sm font-semibold flex items-center gap-2.5 shadow-lg">
-                  <Users size={16} className="text-eucalyptus" />
-                  <span><T k="landing.activeMembers" /></span>
-                </div>
                 <div className="bg-soot/80 backdrop-blur-md border border-plaster/20 px-5 py-2.5 rounded-full text-plaster text-xs sm:text-sm font-semibold flex items-center gap-2.5 shadow-lg">
                   <MapPin size={16} className="text-eucalyptus" />
                   <span><T k="landing.verifiedWorkspaces" /></span>
@@ -406,37 +398,10 @@ export default async function Page() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-soot/60 via-soot/10 to-transparent pointer-events-none" />
 
-                <div className="relative z-10 m-4 sm:m-6 bg-plaster-surface/95 backdrop-blur-md rounded-2xl p-4 border border-soot/12 shadow-lg flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-soot text-plaster flex items-center justify-center font-bold text-sm">
-                      99%
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold text-soot"><T k="landing.satisfaction" /></div>
-                      <div className="text-[10px] text-moss"><T k="landing.reviews" /></div>
-                    </div>
-                  </div>
-                  <span className="text-[10px] font-bold text-eucalyptus uppercase bg-soot/90 px-2.5 py-1 rounded-lg">
-                    <T k="landing.topRated" />
-                  </span>
-                </div>
               </div>
             </div>
           </section>
 
-          {/* Testimonials Band */}
-          <section className="bg-plaster-dark/40 py-16 border-y border-soot/10">
-            <div className="max-w-4xl mx-auto px-4 text-center space-y-4">
-              <Quote size={32} className="text-eucalyptus mx-auto opacity-80" />
-              <p className="text-xl sm:text-2xl text-soot font-serif-display italic leading-relaxed">
-                <T k="landing.quote" />
-              </p>
-              <div className="pt-2">
-                <div className="text-sm font-semibold text-soot"><T k="landing.testimonialName" /></div>
-                <div className="text-xs text-moss"><T k="landing.testimonialRole" /></div>
-              </div>
-            </div>
-          </section>
 
           {/* CTA Section */}
           <section className="py-20 max-w-6xl mx-auto px-4 sm:px-6 w-full">

@@ -50,7 +50,7 @@ if (!user) return unauthorizedResponse(request);
 
     // Whitelist editable fields: the workspace link and id can never be reassigned
     const data: Record<string, unknown> = {};
-    for (const key of ["type", "name", "capacity", "dailyRate", "monthlyRate", "yearlyRate", "hourlyRate", "subType"]) {
+    for (const key of ["type", "name", "nameAr", "capacity", "dailyRate", "monthlyRate", "yearlyRate", "hourlyRate", "subType"]) {
       if (body[key] !== undefined) data[key] = body[key];
     }
     // Room kinds are one of the three space types, whatever the client sends

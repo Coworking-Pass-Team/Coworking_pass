@@ -5,6 +5,7 @@ import { DoorOpen } from 'lucide-react';
 import { useApp } from '@/app/store';
 import { useI18n } from '@/i18n';
 import { durationLabel } from '@/i18n/duration';
+import { useSpaceText } from '@/i18n/space-text';
 import { timeStringToMinutes, type Space, type SpaceUnitAvailability } from '@/types/types';
 
 const hhmmToMinutes = (value: string) => {
@@ -59,6 +60,7 @@ interface UnitPickerProps {
 /** Radio-card selector for the specific hall or theater being booked, showing each one's maximum seats. */
 export default function UnitPicker({ units, selectedId, onSelect }: UnitPickerProps) {
   const { t } = useI18n();
+  const st = useSpaceText();
   if (units.length === 0) return null;
   return (
     <div className="space-y-1.5">
@@ -80,7 +82,7 @@ export default function UnitPicker({ units, selectedId, onSelect }: UnitPickerPr
             >
               <span className="flex items-center gap-2 min-w-0">
                 <DoorOpen size={14} className={selected ? 'text-eucalyptus' : 'text-moss'} />
-                <span className="text-xs font-semibold truncate">{unit.name}</span>
+                <span className="text-xs font-semibold truncate">{st.roomName(unit)}</span>
               </span>
               <span className={`text-[11px] font-medium shrink-0 ${selected ? 'text-plaster/80' : 'text-moss'}`}>
                 {t('units.maxSeats', { count: durationLabel(t, 'seat', unit.capacity) })}

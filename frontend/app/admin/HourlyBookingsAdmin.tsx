@@ -553,7 +553,7 @@ export default function HourlyBookingsAdmin() {
                           )}
                         </div>
                         <h3 className="text-lg font-semibold text-soot font-serif-display leading-snug">
-                          {translateMessage(b.package?.packageName || b.section?.name || `${hoursText} Booking`)}
+                          {b.package?.packageName ? translateMessage(b.package.packageName) : b.section ? st.roomName(b.section) : translateMessage(`${hoursText} Booking`)}
                         </h3>
                       </>
                     );
@@ -585,7 +585,7 @@ export default function HourlyBookingsAdmin() {
                     <div className="flex items-center justify-between">
                       <span className="flex items-center gap-1.5"><Layers size={13} className="text-emerald-700" /> {t('admin.hb.section')}</span>
                       <span className="font-mono text-[11px] text-soot bg-soot/5 px-2 py-0.5 rounded-md">
-                        {b.section?.name || '—'}
+                        {b.section ? st.roomName(b.section) : '—'}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">

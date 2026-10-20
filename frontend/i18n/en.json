@@ -578,8 +578,6 @@
     "heroLine1": "Your Perfect Workspace,",
     "heroLine2": "Anywhere in the Kingdom.",
     "heroBody": "Instantly access flexible, fully equipped coworking spaces in Riyadh, Jeddah, Dammam, and beyond. Book by the day, month, or year.",
-    "avgRating": "4.8 Avg Rating",
-    "activeMembers": "2,400+ Active Members",
     "verifiedWorkspaces": "Verified Workspaces",
     "categoriesEyebrow": "Space Categories",
     "categoriesTitle": "Find the Right Space for Every Need",
@@ -642,8 +640,6 @@
         "desc": "24/7 dedicated assistance for your team bookings, modifications, and billing."
       }
     },
-    "topRated": "Top Rated",
-    "quote": "“Coworking Pass simplified remote work for our entire team across Riyadh and Jeddah. Seamless booking and outstanding space quality.”",
     "ctaTitle": "Ready to find your workspace?",
     "ctaBody": "Join thousands of professionals working smarter across Saudi Arabia.",
     "getStarted": "Get started free",
@@ -664,10 +660,6 @@
     },
     "whyTitle1": "Built for the modern",
     "whyTitle2": "professional.",
-    "satisfaction": "Member Satisfaction",
-    "reviews": "Over 2,400+ reviews Kingdom-wide",
-    "testimonialName": "Sarah Al-Qahtani",
-    "testimonialRole": "Head of People & Culture, TechFlow Saudi",
     "included": "Included",
     "altSpace": "Choose your plan",
     "perDay": "/ day",
@@ -2320,7 +2312,9 @@
       "eGEngineeringProductSales": "e.g. Engineering, Product, Sales",
       "editTeamMember": "Edit Team Member",
       "removeTeamMember": "Remove Team Member",
-      "allRoles": "All Roles"
+      "allRoles": "All Roles",
+      "addToTeam": "Add to Team",
+      "accountHint": "Your colleague must already have a Coworking Pass account with this email; their name comes from that account."
     },
     "aw": {
       "accessRestricted": "Access Restricted",
@@ -2703,7 +2697,9 @@
     "monthlyRate": "Monthly rate (SAR)",
     "yearlyRate": "Yearly rate (SAR)",
     "hubRate": "Hub default",
-    "selectRoom": "Select room / section"
+    "selectRoom": "Select room / section",
+    "nameEn": "Name (English)",
+    "nameAr": "Name (Arabic)"
   },
   "passScan": {
     "verifying": "Verifying Entry Pass...",

@@ -59,6 +59,9 @@ export function useSpaceText() {
     return translated === key ? name : translated;
   };
 
+  /** Room / section name in the active language (rooms carry an optional Arabic name). */
+  const roomName = (room?: { name?: string | null; nameAr?: string | null } | null) => pickLocalized(lang, room?.name, room?.nameAr);
+
   const bookingName = (b: { spaceId?: string; spaceName?: string }) => {
     const space = byId(b.spaceId);
     return space ? name(space) : b.spaceName || '';
@@ -68,5 +71,5 @@ export function useSpaceText() {
     return space ? city(space) : cityName(b.spaceCity);
   };
 
-  return { name, description, address, city, location, cityName, typeLabel, amenity, bookingName, bookingCity, byId };
+  return { name, description, address, city, location, cityName, typeLabel, amenity, roomName, bookingName, bookingCity, byId };
 }

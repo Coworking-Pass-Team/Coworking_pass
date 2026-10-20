@@ -68,7 +68,7 @@ export async function POST(request: Request) {
   try {
     const user = await getTokenFromRequest(request);
 if (!user) return unauthorizedResponse(request);
-    const { workspaceId, type, name, capacity, dailyRate, monthlyRate, yearlyRate } =
+    const { workspaceId, type, name, nameAr, capacity, dailyRate, monthlyRate, yearlyRate } =
       await request.json();
 
     if (!workspaceId || !type || !name || !capacity) {
@@ -94,7 +94,7 @@ if (!user) return unauthorizedResponse(request);
     }
 
     const section = await prisma.workspaceSection.create({
-      data: { workspaceId, type, name, capacity, dailyRate, monthlyRate, yearlyRate },
+      data: { workspaceId, type, name, nameAr: typeof nameAr === 'string' && nameAr.trim() ? nameAr.trim() : null, capacity, dailyRate, monthlyRate, yearlyRate },
     });
 
     return NextResponse.json(

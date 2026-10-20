@@ -38,7 +38,7 @@ export default function HourlyBookingCard({ booking: hb, space, onViewQr, onCanc
   const venueName = space ? st.name(space) : hb.workspace?.name || hb.section?.workspace?.name || '';
   const city = space ? st.city(space) : st.cityName(hb.workspace?.city || hb.section?.workspace?.city);
   const image = space?.images?.[0] || hb.workspace?.images?.[0] || FALLBACK_SPACE_IMAGE;
-  const room = hb.section?.name || '';
+  const room = st.roomName(hb.section);
 
   // Booking times are Saudi wall-clock values stored in UTC fields, so they are read back as UTC
   const start = hb.startDate ? new Date(hb.startDate) : null;
