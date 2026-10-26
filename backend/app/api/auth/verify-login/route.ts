@@ -1,9 +1,9 @@
 import { suspendedResponse } from "@/lib/auth/verify-token";
 import { NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { prisma } from "@/lib/prisma";
 import { removeFromBlacklist } from "@/lib/auth/token-blacklist";
+import { checkOtp } from "@/lib/otp";
 
 /**
  * @swagger
@@ -35,34 +35,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "User ID and verification code are required." }, { status: 400 });
     }
 
-    const isMasterCode = code === "123456";
-
-    const otpRecord = await prisma.otpCode.findFirst({
-      where: {
-        userId,
-        purpose: "LOGIN",
-        isUsed: false,
-        expiresAt: { gt: new Date() },
-      },
-      orderBy: { createdAt: "desc" },
-    });
-
-    if (!isMasterCode) {
-      if (!otpRecord) {
-        return NextResponse.json({ error: "Invalid or expired verification code." }, { status: 400 });
-      }
-
-      const isValid = await bcrypt.compare(code, otpRecord.codeHash);
-      if (!isValid) {
-        return NextResponse.json({ error: "Invalid verification code." }, { status: 400 });
-      }
-    }
-
-    if (otpRecord) {
-      await prisma.otpCode.update({
-        where: { id: otpRecord.id },
-        data: { isUsed: true },
-      });
+    // The newest unused, unexpired code only; wrong guesses are counted and cancel the code after five
+    const check = await checkOtp(userId, "LOGIN", String(code));
+    if (!check.ok) {
+      return NextResponse.json({ error: check.error }, { status: 400 });
     }
 
     const user = await prisma.user.findUnique({

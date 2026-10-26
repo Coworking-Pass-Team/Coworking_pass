@@ -24,7 +24,7 @@ import { addCompanyEmployeeApi, removeCompanyEmployeeApi } from '@/services/auth
 import { Employee } from '@/types/types';
 import Modal from '@/components/ui/Modal';
 import CompanyJoinRequestsPanel from '@/components/company/CompanyJoinRequestsPanel';
-import CompanySpendingPolicyCard from '@/components/company/CompanySpendingPolicyCard';
+import CompanyFundsAllocationCard from '@/components/company/CompanyFundsAllocationCard';
 
 type CompanyRole = 'Company Owner' | 'Company Manager' | 'Booking Manager' | 'Team Member';
 
@@ -205,7 +205,7 @@ export default function CompanyTeam() {
 
       {/* Employees asking to join the team */}
       <CompanyJoinRequestsPanel />
-      <CompanySpendingPolicyCard />
+      <CompanyFundsAllocationCard />
 
       {/* Admin-Matching Elevated Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">

@@ -1372,7 +1372,7 @@ export function ForgotPasswordScreen() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) {
       setError(t('auth.errEnterEmail'));
@@ -1384,11 +1384,11 @@ export function ForgotPasswordScreen() {
     }
     setError('');
     setLoading(true);
-    const res = requestForgotPasswordOtp(email.trim());
+    const res = await requestForgotPasswordOtp(email.trim());
     if (!res.success) {
-      setError(res.error || 'No account found with this email address.');
-      setLoading(false);
+      setError(translateMessage(res.error || 'Something went wrong. Please try again.'));
     }
+    setLoading(false);
   };
 
   return (
@@ -1889,14 +1889,14 @@ export function ResetPasswordScreen() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!password) {
       setError(t('auth.errNewPassword'));
       return;
     }
-    if (password.length < 6) {
-      setError(t('auth.errPasswordLength'));
+    if (password.length < 8) {
+      setError(t('auth.errResetPasswordLength'));
       return;
     }
     if (password !== confirmPassword) {
@@ -1906,14 +1906,11 @@ export function ResetPasswordScreen() {
 
     setError('');
     setLoading(true);
-
-    setTimeout(() => {
-      const res = resetPassword(password);
-      if (!res.success) {
-        setError(res.error || 'Failed to update password.');
-        setLoading(false);
-      }
-    }, 400);
+    const res = await resetPassword(password);
+    if (!res.success) {
+      setError(translateMessage(res.error || 'Failed to update password.'));
+    }
+    setLoading(false);
   };
 
   const userEmail = pendingResetUser?.email || pendingResetUser?.username || translateMessage('your account');

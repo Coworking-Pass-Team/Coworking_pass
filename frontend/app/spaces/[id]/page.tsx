@@ -46,6 +46,7 @@ import {
 } from '@/types/types';
 import UnitPicker, { useUnitAvailability, isUnitSlotBooked } from '@/components/spaces/UnitPicker';
 import Modal from '@/components/ui/Modal';
+import { WithChrome } from '@/components/layout/Chrome';
 import App from '@/app/app';
 
 /**
@@ -59,7 +60,11 @@ export default function SpaceDetails() {
   if (screen && screen !== 'landing' && screen !== 'space-details') {
     return <App />;
   }
-  return <SpaceDetailsView />;
+  return (
+    <WithChrome>
+      <SpaceDetailsView />
+    </WithChrome>
+  );
 }
 
 function SpaceDetailsView() {

@@ -9,12 +9,10 @@ import UserAvatar from '@/components/ui/UserAvatar';
 import LanguageSwitcher from './LanguageSwitcher';
 import WalletModal from '@/components/ui/WalletModal';
 import SharedWalletModal from '@/components/ui/SharedWalletModal';
-import { useCompanyAllowance } from '@/components/company/CompanyAllowanceCard';
 
 export function WalletButton({ onClick, className = '' }: { onClick?: () => void; className?: string }) {
   const { t } = useI18n();
   const { currentUser, companyWalletBalance } = useApp();
-  const { isEmployee, company, balance: companyBalance } = useCompanyAllowance();
   if (!currentUser) return null;
 
   if (currentUser.role === 'admin' || currentUser.role === 'provider') return null;
@@ -23,7 +21,6 @@ export function WalletButton({ onClick, className = '' }: { onClick?: () => void
   const balance = isOrg ? (companyWalletBalance ?? 0) : (currentUser.walletBalance ?? 0);
 
   return (
-    <>
     <button
       type="button"
       onClick={onClick}
@@ -37,23 +34,6 @@ export function WalletButton({ onClick, className = '' }: { onClick?: () => void
         <span>{balance.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
       </span>
     </button>
-    {/* A company employee also sees the company's shared wallet */}
-    {isEmployee && company && (
-      <button
-        type="button"
-        onClick={onClick}
-        className={`flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 rounded-full bg-soot/10 hover:bg-soot/15 border border-[#2D3536]/20 text-soot text-xs font-semibold shadow-2xs transition-colors cursor-pointer ${className}`}
-        title={t('companyWallet.title')}
-        aria-label={t('companyWallet.badgeLabel', { amount: companyBalance.toLocaleString() })}
-      >
-        <Building2 size={14} className="text-moss shrink-0" />
-        <span className="font-bold text-soot flex items-center gap-0.5">
-          <span className="text-[10px] text-moss/80 font-medium">{t('common.sar')}</span>
-          <span>{companyBalance.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
-        </span>
-      </button>
-    )}
-    </>
   );
 }
 

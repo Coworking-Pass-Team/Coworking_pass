@@ -3,7 +3,6 @@
 import { Building2, Mail, Users } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { useApp } from '@/app/store';
-import CompanyAllowanceCard from '@/components/company/CompanyAllowanceCard';
 
 /**
  * Shown to a member account that belongs to a company team: which company and who manages it.
@@ -49,7 +48,6 @@ export default function CompanyMembershipCard({ compact = false }: { compact?: b
           </div>
         </div>
       </div>
-      {!compact && <div className="mt-4"><CompanyAllowanceCard compact /></div>}
       {!compact && <p className="text-xs text-moss mt-3 leading-relaxed">{t('companyMember.explainer')}</p>}
     </div>
   );

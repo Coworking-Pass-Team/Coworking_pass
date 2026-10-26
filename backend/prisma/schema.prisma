@@ -176,10 +176,6 @@ model Company {
   hrAdminId            String @unique
   totalPassesAllocated Int    @default(0)
   balance               Float  @default(0)  
-  /// Corporate policy: may team members pay their own bookings from the company wallet?
-  employeeSpendingEnabled Boolean @default(false)
-  /// Most one member may spend from the company wallet per calendar month (null = no cap)
-  employeeMonthlyLimit    Float?
 
   hrAdmin   User     @relation("CompanyHrAdmin", fields: [hrAdminId], references: [id])
   employees User[]   @relation("CompanyEmployees")
@@ -411,8 +407,6 @@ model Payment {
   paymentFor           PaymentFor
   referenceId          String?
   status               PaymentStatus
-  /// Set when a team member paid from the company wallet, so refunds and reschedule differences go back to it
-  companyId            String?
   createdAt            DateTime      @default(now())
 
   user      User       @relation(fields: [userId], references: [id])
@@ -453,6 +447,8 @@ model OtpCode {
   purpose   OtpPurpose
   expiresAt DateTime
   isUsed    Boolean    @default(false)
+  /// Wrong guesses so far; the code is cancelled after five
+  attempts  Int        @default(0)
   createdAt DateTime   @default(now())
 
   user User @relation(fields: [userId], references: [id])

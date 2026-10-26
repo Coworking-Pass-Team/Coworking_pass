@@ -61,8 +61,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       where: { referenceId: id, paymentFor: "DIRECT_BOOKING", status: "SUCCESS" },
       orderBy: { createdAt: "asc" },
     });
-    const fundingCompanyId = payments.find((p) => p.companyId)?.companyId ?? null;
-    if (!(await mayReschedule(user, booking, fundingCompanyId))) {
+    if (!mayReschedule(user, booking)) {
       return refuse(403, "FORBIDDEN", "You are not allowed to reschedule this booking.");
     }
 
@@ -75,8 +74,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return refuse(400, "RESCHEDULE_LIMIT", "This booking was already rescheduled once. You can cancel it (inside the cancellation window) and book again.");
     }
 
-    const companyFunded = Boolean(fundingCompanyId) || booking.user.role === "HR_ADMIN";
-    const requiredHours = rescheduleNoticeHours(booking.user.role, companyFunded);
+    const requiredHours = rescheduleNoticeHours(booking.user.role);
     const hoursUntilStart = (booking.bookingDate.getTime() - nowKsa.getTime()) / HOUR_MS;
     if (!isAdmin && hoursUntilStart < requiredHours) {
       return refuse(400, "RESCHEDULE_WINDOW", `Rescheduling is not allowed. Must reschedule at least ${requiredHours} hours before the booking starts.`, { requiredHours });
@@ -140,7 +138,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       const settled = await settlePriceDifference(tx, {
         ownerId: booking.userId,
         ownerRole: booking.user.role,
-        payment: latestPayment ? { id: latestPayment.id, companyId: latestPayment.companyId } : null,
+        payment: latestPayment ? { id: latestPayment.id } : null,
         delta,
         reference: `${id}:${booking.rescheduleCount + 1}`,
         label: `${workspace.name} booking moved`,
@@ -187,13 +185,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     await notifyRescheduled({
       ownerId: booking.userId,
-      actorId: user.userId,
       workspaceId: workspace.id,
       venueName: workspace.name,
       roomName: section.name,
       fromLabel: label(booking.bookingDate),
       toLabel: label(newStart),
-      companyId: fundingCompanyId,
       attendeeIds: booking.attendeeIds,
     });
 

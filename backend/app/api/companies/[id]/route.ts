@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
-import { memberAllowance } from "@/lib/company-spending";
 
 
 /**
@@ -61,13 +60,14 @@ export async function GET(
       if (!isOwner && me?.companyId !== company.id) {
         return NextResponse.json({ error: "You are not allowed to view this company." }, { status: 403 });
       }
-      // A team member sees the company, its wallet and their own allowance, but not their colleagues' details
+      // A team member sees which company they belong to and who runs it, never the company's money or their
+      // colleagues' details: the company balance is the HR admin's, and what an employee can spend is what
+      // the HR admin allocated to their own wallet
       if (!isOwner) {
-        return NextResponse.json({
-          ...company,
-          employees: company.employees.map((e) => ({ id: e.id })),
-          memberAllowance: await memberAllowance(prisma, company, user.userId),
-        });
+        const { balance: _balance, totalPassesAllocated: _passes, ...visible } = company;
+        void _balance;
+        void _passes;
+        return NextResponse.json({ ...visible, employees: company.employees.map((e) => ({ id: e.id })) });
       }
     }
 
@@ -127,23 +127,10 @@ export async function PUT(
     }
 
     // Whitelist fields; the wallet balance can only change via the deposit/withdraw endpoints
-    const data: { companyName?: string; totalPassesAllocated?: number; employeeSpendingEnabled?: boolean; employeeMonthlyLimit?: number | null } = {};
+    const data: { companyName?: string; totalPassesAllocated?: number } = {};
     if (typeof body.companyName === "string" && body.companyName.trim()) data.companyName = body.companyName.trim();
     if (Number.isInteger(body.totalPassesAllocated) && body.totalPassesAllocated >= 0) {
       data.totalPassesAllocated = body.totalPassesAllocated;
-    }
-
-    // Corporate spending policy: members may pay from the company wallet only with a positive monthly limit
-    if (typeof body.employeeSpendingEnabled === "boolean") data.employeeSpendingEnabled = body.employeeSpendingEnabled;
-    if (body.employeeMonthlyLimit === null) {
-      data.employeeMonthlyLimit = null;
-    } else if (typeof body.employeeMonthlyLimit === "number" && Number.isFinite(body.employeeMonthlyLimit) && body.employeeMonthlyLimit >= 0) {
-      data.employeeMonthlyLimit = Math.round(body.employeeMonthlyLimit * 100) / 100;
-    }
-    const nextEnabled = data.employeeSpendingEnabled ?? existing.employeeSpendingEnabled;
-    const nextLimit = data.employeeMonthlyLimit !== undefined ? data.employeeMonthlyLimit : existing.employeeMonthlyLimit;
-    if (nextEnabled && !(typeof nextLimit === "number" && nextLimit > 0)) {
-      return NextResponse.json({ error: "Set a monthly limit per team member before allowing them to pay from the company wallet." }, { status: 400 });
     }
 
     const company = await prisma.company.update({

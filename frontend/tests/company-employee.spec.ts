@@ -1,8 +1,9 @@
 import { test, expect, Page, APIRequestContext } from '@playwright/test';
 
 /**
- * Company employee experience, "My tickets" and the reschedule dialog, against the local stack
- * (frontend on 3000, backend on 3001, seeded test accounts from TEST_ACCOUNTS.md).
+ * Company employee experience (own wallet only, funds allocated by HR), "My tickets", the reschedule dialog,
+ * the spaces page shell and the password-reset screens, against the local stack (frontend on 3000, backend on
+ * 3001 started with ALLOW_MASTER_OTP=true, seeded test accounts from TEST_ACCOUNTS.md).
  */
 const BASE_URL = process.env.QA_BASE_URL || 'http://localhost:3000';
 const API = process.env.QA_API_URL || 'http://localhost:3001/api';
@@ -72,11 +73,14 @@ test.describe('Company employee', () => {
   test.beforeAll(async ({ request }) => {
     const hr = await apiLogin(request, 'hr@cwp-test.local');
     const employee = await apiLogin(request, 'employee1@cwp-test.local');
-    // Switch the team spending policy on so the allowance is shown
+    // The HR admin puts a little company money into the employee's own wallet
     const companies = await (await request.get(`${API}/companies`, { headers: authed(hr.token) })).json();
     const companyId = (Array.isArray(companies) ? companies : companies.companies || [])[0]?.id;
     if (companyId) {
-      await request.put(`${API}/companies/${companyId}`, { headers: authed(hr.token), data: { employeeSpendingEnabled: true, employeeMonthlyLimit: 500 } });
+      await request.post(`${API}/companies/${companyId}/allocate`, {
+        headers: authed(hr.token),
+        data: { requestId: `pw-${Date.now()}`, mode: 'SPECIFIC', allocations: [{ userId: employee.userId, amount: 12 }] },
+      });
     }
     // The HR admin books a meeting room session for the employee, on a day far enough ahead to be free
     const workspaces = await (await request.get(`${API}/workspaces`)).json();
@@ -110,16 +114,21 @@ test.describe('Company employee', () => {
       expect(nav).toContain('ind-dashboard');
     });
 
-    test(`the company card has no Leave button and shows the company wallet (${lang})`, async ({ page }) => {
+    test(`the company card has no Leave button and the employee never sees the company balance (${lang})`, async ({ page, request }) => {
+      const hr = await apiLogin(request, 'hr@cwp-test.local');
+      const companies = await (await request.get(`${API}/companies`, { headers: authed(hr.token) })).json();
+      const companyBalance = Number((Array.isArray(companies) ? companies : companies.companies || [])[0]?.balance);
       await signIn(page, 'employee1@cwp-test.local', lang);
       const text = await page.evaluate(() => document.body.innerText);
       expect(text).not.toMatch(/Leave company|مغادرة الشركة/);
       // Some labels are upper-cased by the page styles, so compare ignoring case
       expect(text.toLowerCase()).toContain(lang === 'ar' ? 'شركتك' : 'your company');
-      expect(text.toLowerCase()).toContain(lang === 'ar' ? 'محفظة الشركة' : 'company wallet');
-      // The header shows the company wallet next to the personal wallet
-      const pill = page.getByRole('button', { name: lang === 'ar' ? /رصيد محفظة الشركة/ : /Company wallet balance/ });
-      await expect(pill.first()).toBeVisible();
+      // No company wallet anywhere: not in the header, not in the card
+      expect(text.toLowerCase()).not.toContain(lang === 'ar' ? 'محفظة الشركة' : 'company wallet');
+      await expect(page.getByRole('button', { name: lang === 'ar' ? /محفظة الشركة/ : /Company wallet/ })).toHaveCount(0);
+      // The company's balance does not appear as a number either
+      expect(Number.isFinite(companyBalance)).toBe(true);
+      expect(text).not.toContain(companyBalance.toLocaleString('en-US'));
     });
 
     test(`a booking made by the company shows in the employee's bookings with a QR code (${lang})`, async ({ page }) => {
@@ -178,5 +187,71 @@ test.describe('My tickets and rescheduling', () => {
     await button.click();
     await expect(page.getByRole('dialog').or(page.locator('[role=dialog], .fixed.inset-0')).first()).toContainText('Reschedule booking');
     await expect(page.locator('body')).toContainText('One free reschedule per booking.');
+  });
+});
+
+test.describe('Funds allocated by HR, spaces page shell and password reset', () => {
+  test('HR splits money equally from the team page and employees get it in their wallets (en)', async ({ page, request }) => {
+    const employee = await apiLogin(request, 'employee2@cwp-test.local');
+    const walletOf = async () => Number((await (await request.get(`${API}/wallet?userId=${employee.userId}`, { headers: authed(employee.token) })).json()).balance ?? 0);
+    const walletBefore = await walletOf();
+
+    await signIn(page, 'hr@cwp-test.local', 'en');
+    await page.evaluate(() => sessionStorage.setItem('cp_nav', JSON.stringify({ screen: 'company-team' })));
+    await page.reload();
+    await page.waitForLoadState('networkidle').catch(() => undefined);
+    await expect(page.getByRole('heading', { name: 'Allocate funds to the team' })).toBeVisible({ timeout: 20000 });
+    await page.locator('#alloc-total').fill('40');
+    await expect(page.locator('body')).toContainText('receives');
+    await page.getByRole('button', { name: 'Review allocation' }).click();
+    await expect(page.getByText('This cannot be undone from here.')).toBeVisible();
+    await page.getByRole('button', { name: 'Allocate funds' }).click();
+    await expect(page.locator('body')).toContainText('Funds allocated to', { timeout: 15000 });
+
+    expect(await walletOf()).toBeGreaterThan(walletBefore);
+  });
+
+  test('the spaces page keeps the header and footer (en and ar)', async ({ page }) => {
+    for (const lang of ['en', 'ar'] as const) {
+      await open(page, '/spaces');
+      await setLanguage(page, lang);
+      await expect(page.locator('header').first()).toBeVisible({ timeout: 20000 });
+      await expect(page.locator('footer').first()).toBeVisible();
+      expect(await page.locator('header').count()).toBe(1);
+      expect(await page.locator('footer').count()).toBe(1);
+    }
+  });
+
+  test('a forgotten password is reset through the code screens (en)', async ({ page, request }) => {
+    const email = `pw.reset.${Date.now().toString(36)}@test.local`;
+    const registered = await request.post(`${API}/auth/register`, { data: { name: 'PW Reset', email, password: 'Old#Pass1234', role: 'B2C' } });
+    const { userId } = await registered.json();
+    await request.post(`${API}/auth/verify-email`, { data: { userId, code: '123456' } });
+
+    await open(page);
+    await setLanguage(page, 'en');
+    await page.evaluate(() => sessionStorage.setItem('cp_nav', JSON.stringify({ screen: 'forgot-password' })));
+    await page.reload();
+    await page.waitForLoadState('networkidle').catch(() => undefined);
+    await page.locator('input[type=email]').fill(email);
+    await page.locator('button[type=submit]').click();
+    const boxes = page.locator(OTP_BOXES);
+    await expect(boxes).toHaveCount(6, { timeout: 15000 });
+    for (let i = 0; i < 6; i++) await boxes.nth(i).fill('123456'[i]);
+    await page.evaluate(() => {
+      const b = Array.from(document.querySelectorAll('button')).find((x) => /verify/i.test(x.textContent || ''));
+      (b as HTMLElement | undefined)?.click();
+    });
+    const fields = page.locator('input[type=password]');
+    await expect(fields.first()).toBeVisible({ timeout: 15000 });
+    await fields.nth(0).fill('Brand#New5678');
+    await fields.nth(1).fill('Brand#New5678');
+    await page.locator('button[type=submit]').click();
+    await expect(page.locator('body')).toContainText('Password updated successfully', { timeout: 15000 });
+
+    const oldLogin = await request.post(`${API}/auth/login`, { data: { email, password: 'Old#Pass1234' } });
+    expect(oldLogin.status()).toBe(401);
+    const newLogin = await request.post(`${API}/auth/login`, { data: { email, password: 'Brand#New5678' } });
+    expect(newLogin.status()).toBe(200);
   });
 });

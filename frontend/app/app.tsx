@@ -6,6 +6,7 @@ import UserAvatar from '@/components/ui/UserAvatar';
 import { AppProvider, useApp } from './store';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
+import { ChromeContext } from '@/components/layout/Chrome';
 import CartDrawer from './CartDrawer';
 
 // Guest screens
@@ -59,11 +60,13 @@ import AdminSettings from './admin/AdminSettings';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen flex flex-col bg-plaster">
-      <Navbar />
-      <main className="flex-1">{children}</main>
-      <Footer />
-    </div>
+    <ChromeContext.Provider value={true}>
+      <div className="min-h-screen flex flex-col bg-plaster">
+        <Navbar />
+        <main className="flex-1">{children}</main>
+        <Footer />
+      </div>
+    </ChromeContext.Provider>
   );
 }
 
@@ -128,6 +131,7 @@ function Router() {
   if (!currentUser) {
 
     return (
+      <ChromeContext.Provider value={true}>
       <div className="min-h-screen flex flex-col bg-plaster">
         {screen !== 'login' && screen !== 'signup' && screen !== 'choose-type' && screen !== 'forgot-password' && screen !== 'otp-verify' && screen !== 'reset-password' && <Navbar />}
         <div className="flex-1">
@@ -145,6 +149,7 @@ function Router() {
         </div>
         {screen !== 'login' && screen !== 'signup' && screen !== 'choose-type' && screen !== 'forgot-password' && screen !== 'otp-verify' && screen !== 'reset-password' && <Footer />}
       </div>
+      </ChromeContext.Provider>
     );
   }
 

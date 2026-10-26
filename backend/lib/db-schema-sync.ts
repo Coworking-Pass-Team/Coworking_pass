@@ -186,11 +186,9 @@ export async function ensureDatabaseSchema(force = false): Promise<{ success: bo
       END $$;
     `).catch((err) => console.warn("[Schema Sync] CompanyJoinRequest FK warning:", err));
 
-    // 4d. Corporate spending policy, company-funded payments, team-booking attendees and rescheduling
+    // 4d. One-time code attempts, team-booking attendees and rescheduling
     for (const [label, statement] of [
-      ['Company.employeeSpendingEnabled', 'ALTER TABLE "Company" ADD COLUMN IF NOT EXISTS "employeeSpendingEnabled" BOOLEAN NOT NULL DEFAULT false;'],
-      ['Company.employeeMonthlyLimit', 'ALTER TABLE "Company" ADD COLUMN IF NOT EXISTS "employeeMonthlyLimit" DOUBLE PRECISION;'],
-      ['Payment.companyId', 'ALTER TABLE "Payment" ADD COLUMN IF NOT EXISTS "companyId" TEXT;'],
+      ['OtpCode.attempts', 'ALTER TABLE "OtpCode" ADD COLUMN IF NOT EXISTS "attempts" INTEGER NOT NULL DEFAULT 0;'],
       ['DirectBooking.attendeeIds', 'ALTER TABLE "DirectBooking" ADD COLUMN IF NOT EXISTS "attendeeIds" TEXT[] DEFAULT ARRAY[]::TEXT[];'],
       ['DirectBooking.rescheduleCount', 'ALTER TABLE "DirectBooking" ADD COLUMN IF NOT EXISTS "rescheduleCount" INTEGER NOT NULL DEFAULT 0;'],
       ['DirectBooking.rescheduledFrom', 'ALTER TABLE "DirectBooking" ADD COLUMN IF NOT EXISTS "rescheduledFrom" TIMESTAMP(3);'],
