@@ -16,7 +16,7 @@ export async function getSpacesServer(): Promise<SpacesServerData> {
   let spaces: Space[] = INITIAL_SPACES;
 
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || 'https://coworking-pass-k49w.onrender.com/api';
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || 'https://coworking-pass-backend.vercel.app/api';
     const baseUrl = apiUrl.replace(/\/$/, '');
     const fullUrl = baseUrl.endsWith('/api') ? `${baseUrl}/workspaces` : `${baseUrl}/api/workspaces`;
 

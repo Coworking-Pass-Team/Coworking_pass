@@ -101,8 +101,11 @@ Repository note: this repository is **public**. Anything committed can be read b
 - [ ] Choose a Vercel plan that allows commercial use (the Hobby plan is for personal, non-commercial projects).
 - [ ] Production deploys from `main`; keep QA on a separate Vercel project or environment fed by `develop`, with its
       own Neon database.
-- [ ] Custom domain with HTTPS; set `NEXT_PUBLIC_SITE_URL` and `NEXT_PUBLIC_API_URL` on the frontend project, and
-      replace the code fallbacks that still point to the old Render addresses (`frontend/services/api.ts`, `frontend/app/store.tsx`, `frontend/lib/spaces-server.ts` and `backend/lib/mailer.ts`).
+- [x] The code fallbacks point to the Vercel QA addresses (`https://coworking-pass-sa.vercel.app`, `https://coworking-pass-backend.vercel.app`) instead of the old Render ones.
+- [ ] Custom domain with HTTPS for production; set `NEXT_PUBLIC_SITE_URL` and `NEXT_PUBLIC_API_URL` on the frontend
+      project and `NEXT_PUBLIC_SITE_URL` on the backend project, and point the code fallbacks
+      (`frontend/services/api.ts`, `frontend/app/store.tsx`, `frontend/lib/spaces-server.ts`, `backend/lib/mailer.ts`)
+      at the production domains.
 - [ ] Uptime monitoring with alerts (add a health check endpoint to the backend).
 - [ ] Error tracking (e.g. Sentry) and log retention (runtime logs are kept only briefly on the lower Vercel plans).
 
