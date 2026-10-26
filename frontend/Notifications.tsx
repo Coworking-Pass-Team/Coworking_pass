@@ -27,6 +27,7 @@ export default function Notifications() {
     toggleNotificationRead,
     deleteNotification,
     clearAllNotifications,
+    navigate,
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'all' | 'unread' | 'bookings' | 'reminders' | 'system'>('all');
@@ -184,7 +185,10 @@ export default function Notifications() {
                 {/* Notification Content */}
                 <div
                   className="flex-1 min-w-0 cursor-pointer"
-                  onClick={() => markNotificationRead(notification.id)}
+                  onClick={() => {
+                    markNotificationRead(notification.id);
+                    if (notification.link === 'my-tickets') navigate('my-tickets');
+                  }}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <h2 className={`text-sm ${notification.read ? 'font-medium text-soot' : 'font-bold text-soot'}`}>

@@ -8,6 +8,7 @@ import {
   X, ShieldCheck, RefreshCw, CheckCircle2, History 
 } from 'lucide-react';
 import { useApp } from '@/app/store';
+import CompanyAllowanceCard from '@/components/company/CompanyAllowanceCard';
 
 interface WalletModalProps {
   isOpen: boolean;
@@ -101,7 +102,10 @@ export default function WalletModal({ isOpen, onClose }: WalletModalProps) {
 
         {/* Modal Content */}
         <div className="p-6 overflow-y-auto space-y-6 flex-1">
-          
+
+          {/* The company wallet and the member's monthly allowance (company employees only) */}
+          <CompanyAllowanceCard />
+
           {/* Balance Card */}
           <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#1C2D27] via-[#2A3F37] to-[#12211C] p-6 text-white shadow-xl">
             <div className="absolute top-0 end-0 w-32 h-32 bg-moss/20 rounded-full blur-2xl pointer-events-none" />

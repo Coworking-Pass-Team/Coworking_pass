@@ -72,8 +72,13 @@ Repository note: this repository is **public**. Anything committed (including `T
       HR admin approves or declines the request (`/api/company-join-requests`). HR admins can still add an existing
       member account by email directly, without the employee's consent (the member is only notified). Decide whether
       direct add should become an invitation the employee accepts.
-- [ ] Company team details: department and team role labels are kept only in the HR admin's browser, and team bookings
-      are not linked to individual employees on the server. Store both on the server before companies rely on them.
+- [ ] Company team details: department and team role labels are kept only in the HR admin's browser, and passes are not
+      allocated per employee on the server. Store both on the server before companies rely on them. (Team bookings are now
+      linked to the named employees, and members cannot leave a company by themselves.)
+- [ ] Team spending policy: members can pay from the company wallet only if the HR admin switches it on with a monthly limit.
+      Review the default (off) and the wording shown to employees before launch, and add spending reports for HR admins.
+- [ ] Rescheduling: the price difference is computed from the new room's rate over the old room's (scaling what was paid).
+      Replace it with the real price calculation once pricing moves to the server together with the payment gateway.
 
 ## 5. Database
 

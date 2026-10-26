@@ -113,8 +113,9 @@ A company employee is **not a separate role**: the account is `B2C` with `User.c
 2. **Request:** the server finds the company by the HR email and records a `CompanyJoinRequest` (`PENDING`). After the employee verifies their email, the HR administrator receives an in-app notification (`lib/company-join.ts`).
 3. **Decision:** the HR administrator approves or declines (`PATCH /api/company-join-requests/{id}`). Approval sets `User.companyId` in one transaction and cancels the person's other pending requests; the employee is notified and sees the company on the next load.
 4. **Alternative:** the HR administrator adds an existing member by email (`POST /api/companies/{id}/employees`); this also settles that member's pending requests.
-5. **Leaving:** a member can leave, or the HR administrator removes them (`DELETE /api/companies/{id}/employees/{userId}`); the HR administrator account itself cannot be removed.
-6. **Money:** only the HR administrator (or Super Admin) can deposit to or spend the company wallet, through idempotent, ledgered calls.
+5. **Leaving:** only the HR administrator removes a member (`DELETE /api/companies/{id}/employees/{userId}`; a member's own attempt is refused with 403); the HR administrator account itself cannot be removed.
+6. **Money:** the HR administrator deposits to and spends the company wallet through idempotent, ledgered calls. If the HR administrator switched on the team spending policy, a member pays their own bookings through `POST /api/companies/{id}/spend`: the server checks the policy, the member's monthly limit (net of refunds, Saudi calendar month) and the balance in one transaction, and tags the resulting payment with the company so refunds return to the company wallet.
+7. **Team bookings:** a booking the HR administrator makes for named employees stores their identifiers (`attendeeIds`); the employees' booking lists, notifications and check-in use it, while only the owner can change the booking.
 
 
 ### C. Support Ticketing Lifecycle
@@ -141,8 +142,11 @@ A company employee is **not a separate role**: the account is `B2C` with `User.c
 ### F. Notifications and Email
 The server writes in-app notifications inside the route that performs the action (best effort, never blocking it); the browser creates a few more and saves them through `POST /api/notifications`. Email goes through `lib/mailer.ts` and covers verification codes and partner decisions only. The complete matrix of triggers, senders, recipients and working status, including what is promised but not yet built, is in `Notifications_and_Emails.md`.
 
-### G. Booking Rescheduling (specified, not built)
-Booking rescheduling is not supported today. Its rules (eligibility, notice period, one free change, price difference, atomic transaction, notifications) are defined in `SRS.md` FR-BOOK-07 and `PRD.md` section 14.1.
+### G. Booking Rescheduling
+`POST /api/hourly-bookings/{id}/reschedule` and `POST /api/direct-bookings/{id}/reschedule` move a booking once, for free. Under the per-venue advisory lock used by new bookings, the server re-checks status and count, applies the notice window (6 hours individual, 24 hours HR administrator or company-funded), the operating hours and the fixed two-hour session grid, the 30-day horizon and the capacity or clash check (not counting the booking's own seats), settles any price difference on the wallet that paid (`lib/reschedule.ts`: the recorded payment is updated so a later refund returns the right amount), updates the booking and, for daily bookings, offers the freed seat to the waitlist. Rules: `SRS.md` FR-BOOK-07 and `PRD.md` section 14.1.
+
+### H. My Tickets
+The ticket owner reads their tickets (`GET /api/tickets` returns only their own, with the replies), answers (`POST /api/ticket-replies`, which notifies the Super Admins) and can close their own ticket; reopening or moving a ticket along is limited to the Super Admin.
 
 
 ## 4. Hosting and Data Localization (Hosting & Deployment)

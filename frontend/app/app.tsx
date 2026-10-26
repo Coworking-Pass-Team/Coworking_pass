@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { useI18n } from '@/i18n';
 import UserAvatar from '@/components/ui/UserAvatar';
 import { AppProvider, useApp } from './store';
 import Navbar from '@/components/layout/Navbar';
@@ -25,6 +26,7 @@ import LoyaltyPage from '@/app/loyalty/page';
 import LegalPage from '@/app/legal/page';
 import ProfileSettings from './individual/ProfileSettings';
 import WaitlistPage from '@/app/WaitlistPage';
+import MyTickets from './support/MyTickets';
 
 // Organization screens
 import OrgDashboard from './organization/Dashboard';
@@ -86,6 +88,19 @@ export function Toast() {
       {toast.message}
     </div>
   );
+}
+
+/** Company employees do not buy passes: send them home and explain why. */
+function EmployeePassesRedirect() {
+  const { navigate, showToast } = useApp();
+  const { t } = useI18n();
+  useEffect(() => {
+    navigate('ind-dashboard');
+    showToast(t('companyMember.passesByCompany'), 'info');
+    // Runs once when the screen is requested
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return null;
 }
 
 function Router() {
@@ -176,6 +191,7 @@ function Router() {
         {screen === 'waitlist' && <WaitlistPage />}
         {screen === 'org-profile' && <OrgProfile />}
         {screen === 'org-settings' && <OrgProfile />}
+        {screen === 'my-tickets' && <MyTickets />}
         {screen === 'notifications' && <Notifications />}
         {screen === 'loyalty' && <LoyaltyPage />}
         {screen === 'browse' && <Browse />}
@@ -197,6 +213,7 @@ function Router() {
         {screen === 'provider-loyalty-proposals' && <ProviderLoyaltyProposals />}
         {screen === 'provider-profile' && <ProviderProfileSettings />}
         {screen === 'provider-settings' && <ProviderProfileSettings />}
+        {screen === 'my-tickets' && <MyTickets />}
         {screen === 'notifications' && <Notifications />}
         {screen === 'waitlist' && <WaitlistPage />}
         {screen === 'loyalty' && <LoyaltyPage />}
@@ -222,9 +239,10 @@ function Router() {
       {screen === 'waitlist' && <WaitlistPage />}
       {screen === 'ind-profile' && <ProfileSettings mode="profile" />}
       {screen === 'ind-settings' && <ProfileSettings mode="settings" />}
+      {screen === 'my-tickets' && <MyTickets />}
       {screen === 'notifications' && <Notifications />}
       {screen === 'loyalty' && <LoyaltyPage />}
-      {screen === 'pricing' && <Pricing />}
+      {screen === 'pricing' && (currentUser.companyId ? <EmployeePassesRedirect /> : <Pricing />)}
       {screen === 'contact' && <Contact />}
       {(screen === 'privacy-policy' || screen === 'terms-of-service' || screen === 'legal') && <LegalPage />}
     </AppLayout>

@@ -1,7 +1,7 @@
 'use client';
 import { useI18n } from '@/i18n';
 import { useState, useRef, useEffect } from 'react';
-import { Menu, X, User as UserIcon, LogOut, ChevronDown, Calendar, Building2, Users, Settings, CreditCard, HelpCircle, Wallet, Bell, CheckCheck, ChevronRight, Sparkles, ShoppingBag, Clock } from 'lucide-react';
+import { Menu, X, User as UserIcon, LogOut, ChevronDown, Calendar, Building2, Users, Settings, CreditCard, HelpCircle, LifeBuoy, Wallet, Bell, CheckCheck, ChevronRight, Sparkles, ShoppingBag, Clock } from 'lucide-react';
 import { formatRelativeTime } from '@/i18n/relative-time';
 import { useApp } from '@/app/store';
 import Logo from './logo';
@@ -9,10 +9,12 @@ import UserAvatar from '@/components/ui/UserAvatar';
 import LanguageSwitcher from './LanguageSwitcher';
 import WalletModal from '@/components/ui/WalletModal';
 import SharedWalletModal from '@/components/ui/SharedWalletModal';
+import { useCompanyAllowance } from '@/components/company/CompanyAllowanceCard';
 
 export function WalletButton({ onClick, className = '' }: { onClick?: () => void; className?: string }) {
   const { t } = useI18n();
   const { currentUser, companyWalletBalance } = useApp();
+  const { isEmployee, company, balance: companyBalance } = useCompanyAllowance();
   if (!currentUser) return null;
 
   if (currentUser.role === 'admin' || currentUser.role === 'provider') return null;
@@ -21,6 +23,7 @@ export function WalletButton({ onClick, className = '' }: { onClick?: () => void
   const balance = isOrg ? (companyWalletBalance ?? 0) : (currentUser.walletBalance ?? 0);
 
   return (
+    <>
     <button
       type="button"
       onClick={onClick}
@@ -34,6 +37,23 @@ export function WalletButton({ onClick, className = '' }: { onClick?: () => void
         <span>{balance.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
       </span>
     </button>
+    {/* A company employee also sees the company's shared wallet */}
+    {isEmployee && company && (
+      <button
+        type="button"
+        onClick={onClick}
+        className={`flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 rounded-full bg-soot/10 hover:bg-soot/15 border border-[#2D3536]/20 text-soot text-xs font-semibold shadow-2xs transition-colors cursor-pointer ${className}`}
+        title={t('companyWallet.title')}
+        aria-label={t('companyWallet.badgeLabel', { amount: companyBalance.toLocaleString() })}
+      >
+        <Building2 size={14} className="text-moss shrink-0" />
+        <span className="font-bold text-soot flex items-center gap-0.5">
+          <span className="text-[10px] text-moss/80 font-medium">{t('common.sar')}</span>
+          <span>{companyBalance.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
+        </span>
+      </button>
+    )}
+    </>
   );
 }
 
@@ -137,7 +157,7 @@ export function NotificationButton() {
                   onClick={() => {
                     markNotificationRead(n.id);
                     setIsOpen(false);
-                    navigate('notifications');
+                    navigate(n.link === 'my-tickets' ? 'my-tickets' : 'notifications');
                   }}
                   className={`p-3.5 hover:bg-soot/3 transition-colors cursor-pointer flex gap-3 items-start ${
                     n.read ? 'bg-white' : 'bg-[#EAF1F5]/70'
@@ -273,10 +293,12 @@ export default function Navbar() {
       ];
     }
 
+    // Company employees never buy passes: their access comes from the company's corporate plan
+    const isCompanyEmployee = Boolean(currentUser.companyId);
     return [
       { label: t('nav.dashboard'), screen: 'ind-dashboard' as const },
       { label: t('nav.browse'), screen: 'browse' as const },
-      { label: t('nav.passes'), screen: 'pricing' as const },
+      ...(isCompanyEmployee ? [] : [{ label: t('nav.passes'), screen: 'pricing' as const }]),
       { label: t('nav.bookings'), screen: 'my-bookings' as const },
       { label: t('nav.waitlist'), screen: 'waitlist' as const },
     ];
@@ -418,6 +440,19 @@ export default function Navbar() {
                     </button>
                   )}
 
+                  {currentUser.role !== 'admin' && (
+                    <button
+                      onClick={() => {
+                        navigate('my-tickets');
+                        setDropdownOpen(false);
+                      }}
+                      className="w-full text-start px-3.5 py-2.5 rounded-xl text-xs font-semibold text-soot hover:bg-plaster-dark/50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                    >
+                      <LifeBuoy size={15} className="text-moss" />
+                      <span>{t('nav.myTickets')}</span>
+                    </button>
+                  )}
+
                   <button
                     onClick={() => {
                       navigate(currentUser.role === 'admin' ? 'admin-support' : 'contact');
@@ -526,6 +561,23 @@ export default function Navbar() {
                 </button>
               );
             })}
+
+            {currentUser && currentUser.role !== 'admin' && (
+              <button
+                onClick={() => {
+                  navigate('my-tickets');
+                  setMobileOpen(false);
+                }}
+                className={`w-full text-start px-4 py-3 rounded-xl text-base font-medium transition-all duration-150 cursor-pointer flex items-center justify-between ${
+                  nav.screen === 'my-tickets'
+                    ? 'bg-soot text-plaster font-semibold'
+                    : 'text-moss hover:text-soot hover:bg-plaster-dark/40'
+                }`}
+              >
+                <span>{t('nav.myTickets')}</span>
+                <LifeBuoy size={18} />
+              </button>
+            )}
 
             {currentUser && (
               <button

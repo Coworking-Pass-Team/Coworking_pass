@@ -832,6 +832,8 @@ export interface HourlyBookingItemApi {
   paidAmount?: number | null;
   durationDetails?: string;
   status: string;
+  attendeeIds?: string[];
+  rescheduleCount?: number;
   createdAt?: string;
   user?: { id?: string; name: string; email: string };
   workspace?: { id: string; name: string; city: string; images?: string[] };
@@ -1347,6 +1349,72 @@ export async function withdrawCompanyWalletApi(companyId: string, amount: number
   } catch (err: any) {
     return { success: false, error: err.message || 'Network error' };
   }
+}
+
+/** A team member pays from the company wallet (needs the company's spending policy and monthly limit). */
+export async function spendCompanyWalletApi(companyId: string, amount: number, options?: { description?: string; referenceId?: string }) {
+  const url = `${getAuthBaseUrl()}/api/companies/${companyId}/spend`;
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ amount, description: options?.description, referenceId: options?.referenceId }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) return { success: false, error: data.error || 'Failed to pay from the company wallet', code: data.code as string | undefined };
+    return { success: true, data };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+/** Undoes a member's company-wallet payment whose booking could not be confirmed (returns exactly what it took). */
+export async function refundCompanySpendApi(companyId: string, referenceId: string) {
+  const url = `${getAuthBaseUrl()}/api/companies/${companyId}/spend/refund`;
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ referenceId }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) return { success: false, error: data.error || 'Failed to return the payment to the company wallet' };
+    return { success: true, data };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+export interface RescheduleResult {
+  success: boolean;
+  error?: string;
+  /** Machine-readable reason: RESCHEDULE_WINDOW, RESCHEDULE_LIMIT, SLOT_UNAVAILABLE, INSUFFICIENT_BALANCE, ... */
+  code?: string;
+  requiredHours?: number;
+  /** Positive: charged to the wallet that paid; negative: refunded to it; 0: nothing to settle */
+  priceDifference?: number;
+  settledOn?: 'COMPANY' | 'PERSONAL' | 'NONE';
+}
+
+async function postReschedule(url: string, body: Record<string, unknown>): Promise<RescheduleResult> {
+  try {
+    const response = await fetch(url, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(body) });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) return { success: false, error: data.error || 'The booking could not be rescheduled', code: data.code, requiredHours: data.requiredHours };
+    return { success: true, priceDifference: data.priceDifference ?? 0, settledOn: data.settledOn };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+/** Moves an hourly session to another free session (same length). `startTime` accepts "2:00 PM" or "14:00". */
+export function rescheduleHourlyBookingApi(bookingId: string, move: { startDate: string; startTime: string; sectionId?: string }) {
+  return postReschedule(`${getAuthBaseUrl()}/api/hourly-bookings/${bookingId}/reschedule`, move);
+}
+
+/** Moves a daily, monthly or yearly booking to another start date. */
+export function rescheduleDirectBookingApi(bookingId: string, move: { bookingDate: string; sectionId?: string }) {
+  return postReschedule(`${getAuthBaseUrl()}/api/direct-bookings/${bookingId}/reschedule`, move);
 }
 
 export async function updateCompanyApi(id: string, data: any) {

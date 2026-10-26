@@ -111,6 +111,14 @@ export async function POST(request: NextRequest) {
       return suspendedResponse();
     }
 
+    // A payment funded by the company wallet is tagged with the company, so its refunds go back there.
+    // The tag is only kept when the payer really belongs to that company.
+    let fundedByCompanyId: string | null = null;
+    if (typeof body.companyId === 'string' && body.companyId) {
+      const payer = await prisma.user.findUnique({ where: { id: effectiveUserId }, select: { companyId: true } });
+      if (payer?.companyId === body.companyId) fundedByCompanyId = body.companyId;
+    }
+
     if (!effectiveUserId || amount === undefined || !method || !paymentFor) {
       return NextResponse.json(
         { error: 'All fields are required: userId (or token), amount, method, paymentFor' },
@@ -180,6 +188,7 @@ export async function POST(request: NextRequest) {
         paymentFor: normalizedPaymentFor as PaymentFor,
         referenceId: referenceId || null,
         status: status === 'FAILED' ? 'FAILED' : 'SUCCESS',
+        companyId: fundedByCompanyId,
         gatewayTransactionId: gatewayTransactionId || `TX-${Date.now()}`,
         createdAt: ksaCurrentTime,
       },

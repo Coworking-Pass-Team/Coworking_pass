@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 import { ensureDatabaseSchema } from "@/lib/db-schema-sync";
+import { returnToCompanyWallet } from '@/lib/company-spending'
 import { creditWallet } from "@/lib/wallet";
 import { getKsaNow } from "@/lib/time-utils";
 
@@ -185,13 +186,29 @@ export async function POST(request: NextRequest) {
         await tx.hourlyBooking.update({ where: { id: bookingId }, data: { status: 'CANCELLED' } })
       }
 
-      const credit = await creditWallet(tx, {
-        userId: booking.userId,
-        amount: refundAmount,
-        type: 'REFUND',
-        description: `Refund for booking ${bookingId}`,
-        referenceId: bookingId,
-      })
+      // A booking a team member paid from the company wallet is refunded to that wallet, never to their own
+      const fundingCompany = originalPayment.companyId
+        ? await tx.company.findUnique({ where: { id: originalPayment.companyId }, select: { id: true } })
+        : null
+      let credit: { target: 'COMPANY' | 'PERSONAL'; companyId: string | null; balance: number }
+      if (fundingCompany) {
+        const back = await returnToCompanyWallet(tx, {
+          companyId: fundingCompany.id,
+          userId: booking.userId,
+          amount: refundAmount,
+          referenceId: bookingId,
+          description: `Refund for booking ${bookingId}`,
+        })
+        credit = { target: 'COMPANY', companyId: fundingCompany.id, balance: back.balance }
+      } else {
+        credit = await creditWallet(tx, {
+          userId: booking.userId,
+          amount: refundAmount,
+          type: 'REFUND',
+          description: `Refund for booking ${bookingId}`,
+          referenceId: bookingId,
+        })
+      }
       await tx.payment.create({
         data: {
           userId: booking.userId,
@@ -201,6 +218,7 @@ export async function POST(request: NextRequest) {
           paymentFor: 'REFUND',
           referenceId: bookingId,
           status: 'SUCCESS',
+          companyId: fundingCompany?.id ?? null,
           gatewayTransactionId: `REF-${Date.now()}`,
         },
       })

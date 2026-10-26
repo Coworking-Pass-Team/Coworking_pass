@@ -73,6 +73,8 @@ import {
   getCompanyApi,
   depositCompanyWalletApi,
   withdrawCompanyWalletApi,
+  spendCompanyWalletApi,
+  refundCompanySpendApi,
   mapRoleToBackend,
   updateCompanyApi,
   createTicketApi,
@@ -473,6 +475,10 @@ interface AppContextType {
   addSupportTicket: (ticketData: Omit<SupportTicket, 'id' | 'ticketNumber' | 'createdAt' | 'status' | 'priority'> & { status?: TicketStatus; priority?: SupportTicket['priority'] }) => SupportTicket;
   updateTicketStatus: (id: string, status: TicketStatus, notes?: string) => void;
   replyToTicket: (id: string, reply: string, newStatus?: TicketStatus) => void;
+  /** The ticket owner adds a message to their own ticket's conversation */
+  sendTicketMessage: (ticketId: string, message: string) => Promise<{ success: boolean; error?: string }>;
+  /** The ticket owner closes their own open ticket */
+  closeMyTicket: (ticketId: string) => Promise<{ success: boolean; error?: string }>;
 
   currentUser: User | null;
   otpSession: OtpSession | null;
@@ -645,9 +651,9 @@ const SHARED_SCREENS = ['browse', 'space-details', 'pricing', 'contact', 'privac
 const SIGNED_IN_SCREENS = ['notifications', 'loyalty', 'waitlist'];
 const GUEST_ONLY_SCREENS = ['login', 'signup', 'choose-type', 'forgot-password'];
 const ROLE_SCREENS: Record<string, string[]> = {
-  individual: ['ind-dashboard', 'booking-flow', 'my-bookings', 'booking-details', 'ind-profile', 'ind-settings'],
-  organization: ['org-dashboard', 'company-bookings', 'company-team', 'team-booking', 'team-bookings', 'org-profile', 'org-settings'],
-  provider: ['provider-dashboard', 'provider-spaces', 'provider-bookings', 'provider-loyalty-proposals', 'provider-profile', 'provider-settings'],
+  individual: ['ind-dashboard', 'booking-flow', 'my-bookings', 'booking-details', 'ind-profile', 'ind-settings', 'my-tickets'],
+  organization: ['org-dashboard', 'company-bookings', 'company-team', 'team-booking', 'team-bookings', 'org-profile', 'org-settings', 'my-tickets'],
+  provider: ['provider-dashboard', 'provider-spaces', 'provider-bookings', 'provider-loyalty-proposals', 'provider-profile', 'provider-settings', 'my-tickets'],
 };
 function isRestorableScreen(screen: string, role?: string): boolean {
   if (SHARED_SCREENS.includes(screen)) return true;
@@ -1497,7 +1503,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
           const matchedSpace = spaces.find(s => s.id === b.workspaceId) || spaces.find(s => s.name === b.workspace?.name);
           const rawDuration = (b.durationType || '').toUpperCase();
           const p = rawDuration === 'MONTHLY' ? 'monthly' : rawDuration === 'YEARLY' ? 'yearly' : 'daily';
-          const userIdStr = b.userId || (typeof b.user === 'object' && b.user && 'id' in b.user ? (b.user as any).id : '') || '';
+          const ownerIdStr = b.userId || (typeof b.user === 'object' && b.user && 'id' in b.user ? (b.user as any).id : '') || '';
+          // A booking the company's HR admin made for this person belongs to them in their own list
+          const madeForMe = !!currentUser && b.userId !== currentUser.id && Array.isArray(b.attendeeIds) && b.attendeeIds.includes(currentUser.id);
+          const userIdStr = madeForMe && currentUser ? currentUser.id : ownerIdStr;
 
           let parsedMonths = 1;
           let parsedDays = 1;
@@ -1557,6 +1566,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
             startTime: '09:00',
             endTime: '18:00',
             totalPrice: computedPrice,
+            bookedByCompany: madeForMe || undefined,
+            rescheduleCount: b.rescheduleCount ?? 0,
             status: b.status === 'CONFIRMED' || b.status === 'ACTIVE' ? 'active' : b.status === 'CANCELLED' ? 'cancelled' : 'previous',
             createdAt: b.createdAt ? new Date(b.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
           };
@@ -1761,6 +1772,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
             type: notificationCategory(n.type),
             read: n.isRead ?? false,
             createdAt: n.createdAt || n.sentAt || new Date().toISOString(),
+            // A support message opens the person's own ticket conversation (admins use their dashboard)
+            link: n.type === 'SUPPORT_TICKET' && currentUser?.role !== 'admin' ? 'my-tickets' : undefined,
           }));
 
           setNotifications((prev) => {
@@ -2159,7 +2172,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const res = await withdrawCompanyWalletApi(targetCompId, amount, { description, referenceId: idempotencyKey });
+      // HR admins withdraw directly; team members pay through the policy-checked spend endpoint
+      const res = currentUser?.role === 'organization'
+        ? await withdrawCompanyWalletApi(targetCompId, amount, { description, referenceId: idempotencyKey })
+        : await spendCompanyWalletApi(targetCompId, amount, { description, referenceId: idempotencyKey });
       if (!res.success) {
         const msg = res.error || 'Insufficient corporate wallet balance or withdrawal failed';
         showToast(msg, 'error');
@@ -2172,6 +2188,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setCompanyData((prev: any) => prev ? { ...prev, balance: newBal } : { id: targetCompId, balance: newBal });
       }
       showToast(`SAR ${amount.toLocaleString()} debited from corporate shared wallet`, 'success');
+      // Team members' remaining monthly allowance changed too
+      if (currentUser?.role !== 'organization') fetchCompanyWallet(targetCompId).catch(() => { });
       return { success: true, message: 'Withdrawal successful', balance: newBal };
     } catch (err: any) {
       const msg = err.message || 'Failed to debit corporate wallet';
@@ -2320,7 +2338,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const dbBookings: Booking[] = data.map((b) => {
           const ws = b.workspace || b.section?.workspace;
           const matchedSpace = spaces.find(s => s.id === ws?.id || s.id === b.section?.workspaceId) || spaces.find(s => s.name === ws?.name);
-          const userIdStr = b.userId || (typeof b.user === 'object' && b.user && 'id' in b.user ? (b.user as any).id : '') || '';
+          const ownerIdStr = b.userId || (typeof b.user === 'object' && b.user && 'id' in b.user ? (b.user as any).id : '') || '';
+          // A session the company's HR admin booked for this person belongs to them in their own list
+          const madeForMe = !!currentUser && b.userId !== currentUser.id && Array.isArray(b.attendeeIds) && b.attendeeIds.includes(currentUser.id);
+          const userIdStr = madeForMe && currentUser ? currentUser.id : ownerIdStr;
           const hours = b.hoursUsed || b.package?.hoursAmount || 1;
           const hourlyRate = matchedSpace?.pricing?.hourly || 45;
           const computedPrice = (typeof b.paidAmount === "number" && b.paidAmount > 0) ? b.paidAmount : (b.package?.price || (hourlyRate * hours));
@@ -2363,6 +2384,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
             startTime: startTimeStr,
             endTime: endTimeStr,
             totalPrice: computedPrice,
+            bookedByCompany: madeForMe || undefined,
+            rescheduleCount: b.rescheduleCount ?? 0,
             // A session that has already ended is a past visit even if the server still lists it as active
             // (timestamps hold KSA wall-clock time in their UTC fields)
             status: b.status === 'ACTIVE' || b.status === 'CONFIRMED'
@@ -4728,6 +4751,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     // A wallet-paid booking that the server rejects must not keep the money: drop the local booking and credit the wallet back
     let persisted = false;
     let compensated = false;
+    // A booking fully paid from the company wallet is tagged with the company, so a refund goes back to that wallet
+    const paidByCompanyId: string | undefined =
+      charge && charge.target === 'company' && charge.amount >= (booking.totalPrice || 0) - 0.01
+        ? currentUser?.companyId || companyData?.id || undefined
+        : undefined;
     const compensate = async (reason: string) => {
       if (compensated || persisted) return;
       compensated = true;
@@ -4739,7 +4767,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (paid.target === 'company') {
           const companyId = currentUser?.companyId || companyData?.id;
           if (companyId) {
-            const res = await depositCompanyWalletApi(companyId, paid.amount, { description: `Refund: ${booking.spaceName} booking could not be confirmed`, referenceId });
+            // Team members get back exactly what their own company-wallet payment took; HR admins re-deposit
+            const res = currentUser?.role === 'organization'
+              ? await depositCompanyWalletApi(companyId, paid.amount, { description: `Refund: ${booking.spaceName} booking could not be confirmed`, referenceId })
+              : await refundCompanySpendApi(companyId, paid.key);
             refunded = res.success;
             if (refunded) fetchCompanyWallet(companyId);
           }
@@ -4884,6 +4915,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               durationDays: computedDays,
               durationMonths: computedMonths,
               seats: booking.seats || 1,
+              attendeeIds: booking.employees && booking.employees.length > 0 ? booking.employees : undefined,
               bookingDate,
               status: 'CONFIRMED',
             }),
@@ -4922,6 +4954,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 method: 'MADA',
                 paymentFor: 'DIRECT_BOOKING',
                 referenceId: dbBooking.id || newBooking.id,
+                companyId: paidByCompanyId,
               }),
             }).catch(() => { });
           }
@@ -5008,6 +5041,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                   hoursUsed: hourlyDuration,
                   durationDetails: hourlyDetails,
                   seats: booking.seats || 1,
+                  attendeeIds: booking.employees && booking.employees.length > 0 ? booking.employees : undefined,
                   status: 'ACTIVE',
                 }),
               });
@@ -5043,6 +5077,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                     method: 'MADA',
                     paymentFor: 'HOURLY_BOOKING',
                     referenceId: hbData.id || newBooking.id,
+                    companyId: paidByCompanyId,
                   }),
                 }).catch(() => { });
               }
@@ -6038,6 +6073,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             icon: 'Sparkles',
             isDefault: false,
             requestedBy: currentUser?.id || 'user-p1',
+            spaceName: spaceName || undefined,
           }),
         });
 
@@ -6062,12 +6098,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
     })();
 
-    addNotification({
-      userId: 'admin',
-      title: 'New Custom Amenity Request',
-      message: `${currentUser?.name || 'Provider'} requested custom amenity "${trimmed}"${spaceName ? ` for ${spaceName}` : ''}.`,
-      type: 'system',
-    });
+    // The server notifies the Super Admins when it stores the request
 
     showToast(`Amenity request for "${trimmed}" submitted to Admin for approval.`, 'info');
     return { success: true, message: 'Request submitted successfully!', request: newReq };
@@ -6156,12 +6187,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
     })();
 
-    addNotification({
-      userId: req.providerId,
-      title: 'Amenity Request Approved',
-      message: `Your custom amenity request "${req.amenityName}" has been approved by the Admin and added to the platform catalog!`,
-      type: 'system',
-    });
+    // The server notifies the requesting partner when it stores the decision
 
     showToast(`Approved custom amenity "${req.amenityName}".`, 'success');
   };
@@ -6203,7 +6229,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         let putRes = await fetch(`${getApiBaseUrl()}/amenities/${requestId}`, {
           method: 'PUT',
           headers,
-          body: JSON.stringify({ status: 'REJECTED' }),
+          body: JSON.stringify({ status: 'REJECTED', reason: reason || undefined }),
         });
 
         if (!putRes.ok) {
@@ -6238,12 +6264,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('cp_amenity_requests', JSON.stringify(updatedReqs));
     }
 
-    addNotification({
-      userId: req.providerId,
-      title: 'Amenity Request Rejected',
-      message: `Your custom amenity request "${req.amenityName}" was rejected by the Admin.${reason ? ` Reason: ${reason}` : ''}`,
-      type: 'system',
-    });
+    // The server notifies the requesting partner when it stores the decision
 
     showToast(`Rejected custom amenity request "${req.amenityName}".`, 'error');
   };
@@ -6371,6 +6392,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
     })();
 
     // The server notifies the customer when the reply is saved ("Support replied to your ticket")
+  };
+
+  const sendTicketMessage = async (ticketId: string, message: string): Promise<{ success: boolean; error?: string }> => {
+    const text = message.trim();
+    if (!text) return { success: false, error: 'Please write a message first.' };
+    const res = await createTicketReplyApi({ ticketId, userId: currentUser?.id || '', message: text });
+    if (!res.success) return { success: false, error: res.error || 'Your message could not be sent.' };
+    await fetchTickets();
+    return { success: true };
+  };
+
+  const closeMyTicket = async (ticketId: string): Promise<{ success: boolean; error?: string }> => {
+    const res = await updateTicketStatusApi(ticketId, 'CLOSED');
+    if (!res.success) return { success: false, error: res.error || 'The ticket could not be closed.' };
+    await fetchTickets();
+    return { success: true };
   };
 
   const deleteBooking = (bookingId: string) => {
@@ -6502,7 +6539,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       spaces, favorites, toggleFavorite, addSpace, updateSpace, toggleSpaceVisibility, deleteSpace,
       bookings: bookingsWithLifecycle, addBooking, cancelBooking, requestRefund, updateBookingStatus, deleteBooking,
       amenityRequests, approvedCustomAmenities, requestCustomAmenity, approveAmenityRequest, rejectAmenityRequest, deleteAmenityRequest, getApprovedAmenities, fetchAmenities,
-      supportTickets, fetchTickets, addSupportTicket, updateTicketStatus, replyToTicket,
+      supportTickets, fetchTickets, addSupportTicket, updateTicketStatus, replyToTicket, sendTicketMessage, closeMyTicket,
       notifications: userNotifications,
       unreadNotificationsCount: userNotifications.filter(n => !n.read).length,
       markNotificationRead, toggleNotificationRead, markAllNotificationsRead, deleteNotification, clearAllNotifications, addNotification,

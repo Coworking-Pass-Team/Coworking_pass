@@ -26,6 +26,8 @@ erDiagram
         uuid hr_admin_id FK "Unique - one company per HR admin"
         int total_passes_allocated "Legacy: passes"
         float balance "Corporate shared wallet balance - default 0, only changed through atomic conditional updates"
+        boolean employee_spending_enabled "default false - may team members pay their own bookings from the company wallet"
+        float employee_monthly_limit "Nullable - most one member may take per calendar month; required above zero when spending is enabled"
     }
 
     COMPANY_WALLET_TRANSACTIONS {
@@ -160,6 +162,9 @@ erDiagram
         date booking_date
         int seats "default 1 - counted against the room capacity"
         enum status "CONFIRMED, WAITLISTED, CANCELLED, REFUNDED"
+        string_array attendee_ids "default empty - team members a company booking was made for (they see it and can check in)"
+        int reschedule_count "default 0 - one free reschedule per booking"
+        datetime rescheduled_from "Nullable - the original start before it was moved"
         datetime created_at "Used for waitlist queue ordering"
     }
 
@@ -175,6 +180,9 @@ erDiagram
         int seats "default 1 - never above the room capacity"
         string duration_details "Nullable"
         enum status "ACTIVE, EXPIRED, CANCELLED"
+        string_array attendee_ids "default empty - team members a company booking was made for (they see it and can check in)"
+        int reschedule_count "default 0 - one free reschedule per booking"
+        datetime rescheduled_from "Nullable - the original start before it was moved"
         datetime created_at
     }
 
@@ -212,6 +220,7 @@ erDiagram
         enum payment_for "DIRECT_BOOKING, HOURLY_BOOKING, SUBSCRIPTION, POINTS_REDEMPTION, REFUND"
         uuid reference_id "FK to the relevant booking or subscription"
         enum status "SUCCESS, FAILED"
+        uuid company_id "Nullable - set when a team member paid from the company wallet, so refunds and reschedule differences return to it"
         datetime created_at
     }
 

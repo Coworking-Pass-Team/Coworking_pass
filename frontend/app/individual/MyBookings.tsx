@@ -21,6 +21,7 @@ import {
   Zap,
   Wallet,
   QrCode,
+  CalendarClock,
 } from 'lucide-react';
 import { useApp } from '@/app/store';
 import { useSpaceText } from '@/i18n/space-text';
@@ -33,6 +34,7 @@ import BulkActionBar from '@/components/bookings/BulkActionBar';
 import { useBookingSelection } from '@/components/bookings/useBookingSelection';
 import { hourlyEffectiveStatus, sortBookings, type BookingSortOrder } from '@/lib/bookingLifecycle';
 import { deleteDirectBookingApi, getHourlyBookingsApi, updateHourlyBookingApi, HourlyBookingItemApi } from '@/services/authApi';
+import RescheduleModal, { type RescheduleTarget } from '@/components/bookings/RescheduleModal';
 
 const FALLBACK_SPACE_IMAGE = 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80';
 
@@ -57,6 +59,7 @@ function MyBookingsContent() {
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [cancelModal, setCancelModal] = useState<Booking | null>(null);
   const [refundMethod, setRefundMethod] = useState<'wallet' | 'card'>('wallet');
+  const [rescheduleTarget, setRescheduleTarget] = useState<RescheduleTarget | null>(null);
 
   useEffect(() => {
     if (fetchDirectBookings) {
@@ -70,13 +73,20 @@ function MyBookingsContent() {
       getHourlyBookingsApi().then(res => {
         if (res.success && res.data) {
           const storedUserId = typeof window !== 'undefined' ? (localStorage.getItem('cp_userId') || currentUser?.id) : currentUser?.id;
-          const userHourly = res.data.filter(hb => hb.userId === storedUserId || hb.userId === currentUser?.id || !hb.userId);
+          const userHourly = res.data.filter(hb => hb.userId === storedUserId || hb.userId === currentUser?.id || !hb.userId || hb.attendeeIds?.includes(currentUser.id));
           setHourlyBookings(userHourly.length > 0 ? userHourly : res.data);
         }
         setLoadingHourly(false);
       });
     }
   }, [bookingCategory, currentUser]);
+
+  // After a move the server holds the new slot: reload both lists
+  const reloadAfterMove = () => {
+    fetchDirectBookings?.().catch(() => {});
+    getHourlyBookingsApi().then(res => { if (res.success && res.data) setHourlyBookings(res.data); });
+  };
+  const ksaToday = new Date(Date.now() + 3 * 3600_000).toISOString().slice(0, 10);
 
   const myBookings = bookings.filter(b => b.userId === currentUser.id || (currentUser.email && b.userId.toLowerCase() === currentUser.email.toLowerCase()));
 
@@ -277,7 +287,8 @@ function MyBookingsContent() {
                     onViewQr={() => {
                       const converted: Booking = {
                         id: hb.id,
-                        userId: hb.userId || currentUser?.id || 'guest',
+                        // A session the company booked for this person carries their own id, so their QR checks them in
+                        userId: (hb.attendeeIds?.includes(currentUser.id) ? currentUser.id : hb.userId) || currentUser?.id || 'guest',
                         spaceId: targetWorkspaceId || matchedSpace?.id || '',
                         spaceName: matchedSpace?.name || hb.workspace?.name || hb.section?.name || '',
                         spaceCity: matchedSpace?.city || hb.workspace?.city || '',
@@ -296,6 +307,20 @@ function MyBookingsContent() {
                       setSelectedBooking(converted);
                     }}
                     onCancel={() => { void cancelHourly(hb); }}
+                    bookedByCompany={!!hb.attendeeIds?.includes(currentUser.id) && hb.userId !== currentUser.id}
+                    onReschedule={
+                      hb.status === 'ACTIVE' && (hb.rescheduleCount ?? 0) < 1 && hb.startDate && new Date(hb.startDate).toISOString().slice(0, 10) >= ksaToday
+                        ? () => setRescheduleTarget({
+                            kind: 'hourly',
+                            bookingId: hb.id,
+                            space: matchedSpace,
+                            sectionId: hb.sectionId,
+                            sectionType: hb.section?.type,
+                            durationHours: hb.hoursUsed,
+                            currentLabel: `${formatDate(hb.startDate)} · ${new Date(hb.startDate).toISOString().slice(11, 16)}–${new Date(hb.endDate).toISOString().slice(11, 16)}`,
+                          })
+                        : undefined
+                    }
                   />
                 );
               })}
@@ -538,7 +563,29 @@ function MyBookingsContent() {
                   >
                     <Eye size={15} />
                   </button>
-                  {b.status === 'active' && (() => {
+                  {b.status === 'active' && !b.bookedByCompany && (b.rescheduleCount ?? 0) < 1 && b.plan !== 'hourly' && b.startDate >= ksaToday && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const sp = spaces.find(s => s.id === b.spaceId);
+                        setRescheduleTarget({
+                          kind: 'direct',
+                          bookingId: b.id,
+                          space: sp,
+                          sectionId: undefined,
+                          sectionType: undefined,
+                          currentLabel: b.startDate === b.endDate ? b.startDate : `${b.startDate} → ${b.endDate}`,
+                        });
+                      }}
+                      className="p-2 rounded-xl text-moss hover:text-soot hover:bg-plaster-surface border border-transparent hover:border-soot/10 transition-all cursor-pointer"
+                      title={t('reschedule.action')}
+                      aria-label={t('reschedule.action')}
+                    >
+                      <CalendarClock size={15} />
+                    </button>
+                  )}
+                  {b.status === 'active' && !b.bookedByCompany && (() => {
                     const { eligible, requiredHours } = isCancellationRefundEligible(b.startDate, b.startTime, currentUser?.role);
                     return (
                       <button
@@ -564,18 +611,6 @@ function MyBookingsContent() {
           </div>
         )}
       </div>
-
-      {/* Booking QR Code & Details Modal */}
-      {selectedBooking && (
-        <BookingQrModal
-          booking={selectedBooking}
-          onClose={() => setSelectedBooking(null)}
-          onCancelClick={(b) => {
-            setSelectedBooking(null);
-            setCancelModal(b);
-          }}
-        />
-      )}
 
       {/* Cancel Confirmation Modal */}
       {cancelModal && (() => {
@@ -672,6 +707,20 @@ function MyBookingsContent() {
       })()}
       </>
       )}
+
+      {/* Booking QR Code & Details Modal (opened from direct bookings and from hourly session cards) */}
+      {selectedBooking && (
+        <BookingQrModal
+          booking={selectedBooking}
+          onClose={() => setSelectedBooking(null)}
+          onCancelClick={(b) => {
+            setSelectedBooking(null);
+            setCancelModal(b);
+          }}
+        />
+      )}
+
+      <RescheduleModal target={rescheduleTarget} onClose={() => setRescheduleTarget(null)} onMoved={reloadAfterMove} />
     </div>
   );
 }
