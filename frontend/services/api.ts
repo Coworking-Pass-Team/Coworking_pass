@@ -12,7 +12,7 @@ function getAuthBaseUrl(): string {
   if (typeof window !== 'undefined' && window.location?.port === '3001') {
     return 'http://localhost:3001';
   }
-  return 'https://coworking-pass-k49w.onrender.com';
+  return 'https://coworking-pass-backend.vercel.app';
 }
 
 

@@ -133,7 +133,7 @@ cp frontend/.env.example frontend/.env
 | `JWT_SECRET` | backend | Secret used to sign login tokens |
 | `RESEND_API_KEY` | backend | Email delivery. Optional locally: without it, one-time codes are printed in the backend console |
 | `RESEND_FROM_EMAIL` | backend | Sender address, e.g. `Coworking Pass <no-reply@yourdomain.com>` (defaults to Resend's test sender) |
-| `NEXT_PUBLIC_API_URL` | frontend | Backend base URL: the backend's Vercel address in the deployed site, `http://localhost:3001` locally. Always set it; the built-in fallback still points to the old Render address |
+| `NEXT_PUBLIC_API_URL` | frontend | Backend base URL. When unset, the frontend uses the live QA API (`https://coworking-pass-backend.vercel.app`); set it to `http://localhost:3001` to use a local backend |
 
 ### 3. Install dependencies
 ```bash
@@ -162,12 +162,15 @@ cd frontend && npm run dev
 ```
 
 ## Deployment
-The live QA environment is hosted on **Vercel** with a **Neon PostgreSQL** database.
+The live QA environment is hosted on **Vercel** with a **Neon PostgreSQL** database:
+
+* Web app: <https://coworking-pass-sa.vercel.app>
+* API: <https://coworking-pass-backend.vercel.app> (interactive docs at `/api-doc`)
 
 | Part | Where | Notes |
 | :--- | :--- | :--- |
-| Web app | Vercel project with root directory `frontend/` | Set `NEXT_PUBLIC_API_URL` (the backend's Vercel URL) and `NEXT_PUBLIC_SITE_URL`. |
-| API | Vercel project with root directory `backend/` | Build command `npm run build` (runs `prisma generate`). Route handlers run as serverless functions. Set `DATABASE_URL`, `JWT_SECRET`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `NEXT_PUBLIC_SITE_URL` and the `SUPER_ADMIN_*` variables. |
+| Web app | Vercel project with root directory `frontend/` | Set `NEXT_PUBLIC_API_URL` (`https://coworking-pass-backend.vercel.app`) and `NEXT_PUBLIC_SITE_URL` (`https://coworking-pass-sa.vercel.app`). |
+| API | Vercel project with root directory `backend/` | Build command `npm run build` (runs `prisma generate`). Route handlers run as serverless functions. Set `DATABASE_URL`, `JWT_SECRET`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `NEXT_PUBLIC_SITE_URL` (`https://coworking-pass-sa.vercel.app`, used for links in emails) and the `SUPER_ADMIN_*` variables. |
 | Database | Neon | Use the **pooled** connection string (host containing `-pooler`) so many function instances share connections. Keep QA and production in separate databases. |
 
 Vercel builds a new deployment on every push to the connected branch and a preview for other branches. Schema
