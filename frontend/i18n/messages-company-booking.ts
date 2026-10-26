@@ -6,6 +6,10 @@ import { registerMessages } from './messages-registry';
  */
 registerMessages(
   {
+    // ---- Password policy
+    'Password must be at least 8 characters and include a lowercase letter, an uppercase letter, a number and a special character, with no sequential characters such as 123 or abc.':
+      'يجب أن تتكون كلمة المرور من 8 أحرف على الأقل وتتضمن حرفاً صغيراً وحرفاً كبيراً ورقماً ورمزاً خاصاً، دون أحرف أو أرقام متسلسلة مثل 123 أو abc.',
+
     // ---- Rescheduling
     'Booking not found.': 'الحجز غير موجود.',
     'You are not allowed to reschedule this booking.': 'غير مسموح لك بإعادة جدولة هذا الحجز.',

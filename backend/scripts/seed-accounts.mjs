@@ -1,47 +1,58 @@
 /**
- * Creates (or resets) one verified test account for every role, with a little data to click through.
+ * Creates (or resets) the team's accounts, one verified account per role, with a little data to click through.
  *
- *   npm run seed:test-accounts                                   # local database
- *   node scripts/seed-test-accounts.mjs --allow-remote           # QA database on Render / Neon
+ *   npm run seed:accounts                                   # local database
+ *   node scripts/seed-accounts.mjs --allow-remote           # the database on Render / Neon
  *
- * The accounts are listed in TEST_ACCOUNTS.md, which is public (the repository is public). Therefore:
- * - A database that is not on localhost is refused unless --allow-remote is passed.
- * - On a remote database the super admin test account is NOT created, unless --include-admin is passed
- *   together with a private TEST_ADMIN_PASSWORD (the published password is never used for an admin there).
- * - TEST_ACCOUNTS_PASSWORD sets a private password for the other accounts; without it the published one is used
- *   and a warning is printed.
- * Safe to run again: existing test accounts are updated, not duplicated. Remove them before the real launch
- * (see PRODUCTION_CHECKLIST.md).
+ * The real emails and the shared password are NOT in the repository (it is public). They are read from
+ * scripts/team-accounts.json, which is git-ignored; scripts/team-accounts.example.json shows the shape. Another
+ * file can be named with TEAM_ACCOUNTS_FILE. ACCOUNTS.md lists the roles and what each account holds.
+ *
+ * A database that is not on localhost is refused unless --allow-remote is passed. Sign-in needs a one-time code
+ * sent by email, so every email address in the file must be a mailbox the team can read.
+ * Safe to run again: existing accounts are updated, not duplicated.
  */
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 try { process.loadEnvFile('.env'); } catch { /* DATABASE_URL may already be in the environment */ }
 
 const args = process.argv.slice(2);
 const allowRemote = args.includes('--allow-remote');
-const includeAdmin = args.includes('--include-admin');
 
 const url = process.env.DATABASE_URL || '';
 const host = (() => { try { return new URL(url).hostname; } catch { return ''; } })();
 const isLocal = ['localhost', '127.0.0.1', '::1', '[::1]'].includes(host);
 if (!host) {
-  console.error('Refusing to seed test accounts: DATABASE_URL is not set.');
+  console.error('Refusing to seed accounts: DATABASE_URL is not set.');
   process.exit(1);
 }
 if (!isLocal && !allowRemote) {
-  console.error(`Refusing to seed test accounts: DATABASE_URL host is "${host}", not localhost. Pass --allow-remote to seed a QA database on purpose.`);
+  console.error(`Refusing to seed accounts: DATABASE_URL host is "${host}", not localhost. Pass --allow-remote to seed that database on purpose.`);
   process.exit(1);
 }
 
-export const TEST_PASSWORD = 'Test@12345';
-const accountsPassword = process.env.TEST_ACCOUNTS_PASSWORD || TEST_PASSWORD;
-if (!isLocal) {
-  console.warn(`Seeding test accounts into the REMOTE database at ${host}.`);
-  if (!process.env.TEST_ACCOUNTS_PASSWORD) {
-    console.warn('WARNING: using the password published in TEST_ACCOUNTS.md. Anyone who reads the public repository can sign in to these accounts. Set TEST_ACCOUNTS_PASSWORD to use a private one.');
-  }
+const here = path.dirname(fileURLToPath(import.meta.url));
+const realFile = process.env.TEAM_ACCOUNTS_FILE || path.join(here, 'team-accounts.json');
+const exampleFile = path.join(here, 'team-accounts.example.json');
+const usingExample = !fs.existsSync(realFile);
+if (usingExample && !isLocal) {
+  console.error(`Refusing to seed a remote database with the example accounts. Create ${realFile} (see team-accounts.example.json) first.`);
+  process.exit(1);
 }
+const config = JSON.parse(fs.readFileSync(usingExample ? exampleFile : realFile, 'utf8'));
+if (usingExample) console.warn('scripts/team-accounts.json not found: seeding the example accounts (local use only).');
+const A = config.accounts;
+const accountsPassword = config.password;
+if (!accountsPassword || !['superAdmin', 'partner', 'hr', 'employee1', 'employee2', 'individual'].every((k) => A?.[k]?.email)) {
+  console.error('The accounts file must have "password" and an "accounts" entry (with an email) for superAdmin, partner, hr, employee1, employee2 and individual.');
+  process.exit(1);
+}
+if (!isLocal) console.warn(`Seeding accounts into the REMOTE database at ${host}.`);
+
 const prisma = new PrismaClient();
 const passwordHash = await bcrypt.hash(accountsPassword, 10);
 
@@ -55,28 +66,27 @@ async function setWallet(userId, balance) {
 }
 
 // 1. Individual member, with wallet balance, loyalty points and a booking history
-const individual = await upsertUser({ email: 'individual@cwp-test.local', name: 'Test Individual', role: 'B2C' });
+const individual = await upsertUser({ email: A.individual.email, name: A.individual.name, role: 'B2C' });
 await setWallet(individual.id, 500);
 await prisma.loyaltyPoint.upsert({
   where: { userId: individual.id },
   update: { totalEarned: 300, totalRedeemed: 100, availableBalance: 200 },
   create: { userId: individual.id, totalEarned: 300, totalRedeemed: 100, availableBalance: 200 },
 });
-await upsertUser({ email: 'newmember@cwp-test.local', name: 'Test New Member', role: 'B2C' });
 
 // 2. HR admin with a company, a shared wallet and two employees
-const hr = await upsertUser({ email: 'hr@cwp-test.local', name: 'Test HR Admin', role: 'HR_ADMIN' });
+const hr = await upsertUser({ email: A.hr.email, name: A.hr.name, role: 'HR_ADMIN' });
 const company = await prisma.company.upsert({
   where: { hrAdminId: hr.id },
   update: { companyName: 'Test Company Ltd', balance: 5000, totalPassesAllocated: 10 },
   create: { companyName: 'Test Company Ltd', hrAdminId: hr.id, balance: 5000, totalPassesAllocated: 10 },
 });
 await prisma.user.update({ where: { id: hr.id }, data: { companyId: company.id } });
-await upsertUser({ email: 'employee1@cwp-test.local', name: 'Test Employee One', role: 'B2C', companyId: company.id });
-await upsertUser({ email: 'employee2@cwp-test.local', name: 'Test Employee Two', role: 'B2C', companyId: company.id });
+await upsertUser({ email: A.employee1.email, name: A.employee1.name, role: 'B2C', companyId: company.id });
+await upsertUser({ email: A.employee2.email, name: A.employee2.name, role: 'B2C', companyId: company.id });
 
 // 3. Approved venue partner with a workspace (a desk area and a meeting room with an hourly package)
-const partnerUser = await upsertUser({ email: 'partner@cwp-test.local', name: 'Test Venue Partner', role: 'PARTNER_ADMIN' });
+const partnerUser = await upsertUser({ email: A.partner.email, name: A.partner.name, role: 'PARTNER_ADMIN' });
 const partnerData = { brandName: 'Test Partner Venues', contactEmail: partnerUser.email, taxNumber: '300000000000003', revenueSharePercentage: 15, status: 'APPROVED' };
 const partner = (await prisma.partner.findFirst({ where: { contactEmail: partnerUser.email } }))
   ? await prisma.partner.update({ where: { id: (await prisma.partner.findFirst({ where: { contactEmail: partnerUser.email } })).id }, data: partnerData })
@@ -127,25 +137,8 @@ if (!pkg) {
   pkg = await prisma.hourlyPackage.create({ data: { sectionId: meetingRoom.id, packageName: 'Meeting Room - 2 Hours', hoursAmount: 2, periodType: 'PER_DAY', price: 150 } });
 }
 
-// 4. A venue partner still waiting for approval, to test the approval flow
-const pending = await upsertUser({ email: 'partner.pending@cwp-test.local', name: 'Test Pending Partner', role: 'PARTNER_ADMIN' });
-const pendingData = { brandName: 'Test Pending Venues', contactEmail: pending.email, taxNumber: '300000000000004', revenueSharePercentage: 15, status: 'PENDING_APPROVAL' };
-const existingPending = await prisma.partner.findFirst({ where: { contactEmail: pending.email } });
-if (existingPending) await prisma.partner.update({ where: { id: existingPending.id }, data: pendingData });
-else await prisma.partner.create({ data: pendingData });
-
-// 5. Super admin and a suspended account. On a remote database the admin needs --include-admin and a private
-//    TEST_ADMIN_PASSWORD: with the published password and the master code anyone could take over the site.
-if (isLocal) {
-  await upsertUser({ email: 'superadmin@cwp-test.local', name: 'Test Super Admin', role: 'SUPER_ADMIN' });
-} else if (includeAdmin && process.env.TEST_ADMIN_PASSWORD && process.env.TEST_ADMIN_PASSWORD !== TEST_PASSWORD) {
-  const adminHash = await bcrypt.hash(process.env.TEST_ADMIN_PASSWORD, 10);
-  await upsertUser({ email: 'superadmin@cwp-test.local', name: 'Test Super Admin', role: 'SUPER_ADMIN', hash: adminHash });
-  console.log('Super admin test account created with the private TEST_ADMIN_PASSWORD.');
-} else {
-  console.log('Skipped the super admin test account on the remote database (use --include-admin with a private TEST_ADMIN_PASSWORD).');
-}
-await upsertUser({ email: 'suspended@cwp-test.local', name: 'Test Suspended Member', role: 'B2C', isBanned: true });
+// 4. Super admin
+await upsertUser({ email: A.superAdmin.email, name: A.superAdmin.name, role: 'SUPER_ADMIN' });
 
 // 6. Booking history for the individual member and notifications (both rebuilt on every run, so the
 // "upcoming" and "past" bookings always sit at the same distance from today)
@@ -192,7 +185,5 @@ await prisma.notification.createMany({
   ],
 });
 
-console.log(process.env.TEST_ACCOUNTS_PASSWORD
-  ? 'Test accounts are ready with the private TEST_ACCOUNTS_PASSWORD (verification code 123456).'
-  : `Test accounts are ready. Password for all of them: ${TEST_PASSWORD} (verification code 123456)`);
+console.log(`Accounts are ready (${usingExample ? 'example file' : 'team-accounts.json'}). Sign-in codes are sent by email.`);
 await prisma.$disconnect();

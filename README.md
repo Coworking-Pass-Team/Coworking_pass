@@ -115,7 +115,6 @@ cp frontend/.env.example frontend/.env
 | `JWT_SECRET` | backend | Secret used to sign login tokens |
 | `RESEND_API_KEY` | backend | Email delivery. Optional locally: without it, one-time codes are printed in the backend console |
 | `RESEND_FROM_EMAIL` | backend | Sender address, e.g. `Coworking Pass <no-reply@yourdomain.com>` (defaults to Resend's test sender) |
-| `ALLOW_MASTER_OTP` | backend | `true` also accepts the shared test code `123456` (local and QA only; never in production) |
 | `NEXT_PUBLIC_API_URL` | frontend | Backend base URL. When unset, the frontend uses the live Render API (`https://coworking-pass-k49w.onrender.com`); set it to `http://localhost:3001` to use a local backend |
 
 ### 3. Install dependencies

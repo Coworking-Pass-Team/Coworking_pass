@@ -1,4 +1,4 @@
-import { api, db, makeUser, check, summary } from './lib.mjs';
+import { api, db, makeUser, check, summary, plantOtp } from './lib.mjs';
 await db.connect();
 const run = Date.now().toString(36);
 const mk = (n, role = 'B2C', x = {}) => makeUser('QA ' + n, `qa.${n}.${run}@test.local`, role, x);
@@ -8,11 +8,15 @@ const A = await mk('a'), Bu = await mk('b');
 console.log('\n## Security');
 {
   const email = `qa.nopw.${run}@test.local`;
-  await api('/auth/register', { method: 'POST', body: { name: 'NoPw', email, password: 'Xx#12345678', role: 'B2C' } });
+  await api('/auth/register', { method: 'POST', body: { name: 'NoPw', email, password: 'Xx#8040Zq', role: 'B2C' } });
   await db.query('update "User" set "emailVerified"=true where email=$1', [email]);
   const uid = (await db.query('select id from "User" where email=$1', [email])).rows[0].id;
+  // No password step happened, so no code was issued: the old shared test code must not work
   const v = await api('/auth/verify-login', { method: 'POST', body: { userId: uid, code: '123456' } });
-  console.log('KNOWN (dev master OTP 123456, must be disabled in production): verify-login without password -> status ' + v.status + ' token=' + !!v.body?.token);
+  check('verify-login without a password step and without a code is refused (no master code)', v.status >= 400 && !v.body?.token, 'status ' + v.status);
+  await plantOtp(uid, 'LOGIN', '482916');
+  const g = await api('/auth/verify-login', { method: 'POST', body: { userId: uid, code: '123456' } });
+  check('a wrong code is refused even while a real code is pending', g.status >= 400 && !g.body?.token, 'status ' + g.status);
 }
 {
   const r = await api('/wallet?userId=' + Bu.userId, { token: A.token });

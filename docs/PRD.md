@@ -81,7 +81,7 @@ Rooms and halls equipped with display screens, meeting equipment, presentation s
   - **Standard validation:** dynamic checks against international rules (for example `libphonenumber-js`, E.164 format) for the number of digits and the structure of each country's numbers.
 * **Email verification (OTP)**
   - **At sign-up:** a temporary one-time code is emailed (through Resend) to confirm ownership before the account is activated.
-  - **At password recovery and login:** sessions are protected and identity is confirmed with random one-time codes (six digits, valid 10 minutes, one use, five wrong guesses at most). Password recovery by email is built (forgot password, check code, new password). *Status:* the codes are printed in the server console until the Resend key and a verified domain are configured; the shared test code works only where `ALLOW_MASTER_OTP=true` (local and QA).
+  - **At password recovery and login:** sessions are protected and identity is confirmed with random one-time codes (six digits, valid 10 minutes, one use, five wrong guesses at most). Password recovery by email is built (forgot password, check code, new password). *Status:* the codes are printed in the server console until the Resend key and a verified domain are configured; there is no shared test code. Passwords must meet the policy (8+ characters, lower and upper case, a number, a special character, no sequences like `123` or `abc`), shown as a live checklist when the password is chosen.
 
 ## 8. Amenities Management
 A smart system for managing the services and facilities available in each workspace:

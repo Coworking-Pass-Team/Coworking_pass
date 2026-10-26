@@ -1,10 +1,12 @@
 import { test, expect, Page } from '@playwright/test';
+import { plantOtp } from './otp';
+import { TEAM, TEAM_PASSWORD } from './accounts';
 
 // The six verification-code boxes: the first one also accepts a pasted code (one-time-code, maxlength 6)
 const OTP_BOXES = 'input[autocomplete="one-time-code"], input[maxlength="1"]';
-// Seeded super admin from TEST_ACCOUNTS.md (override with QA_ADMIN_EMAIL / QA_ADMIN_PASSWORD)
-const ADMIN_EMAIL = process.env.QA_ADMIN_EMAIL || 'superadmin@cwp-test.local';
-const ADMIN_PASSWORD = process.env.QA_ADMIN_PASSWORD || 'Test@12345';
+// Seeded super admin from ACCOUNTS.md and backend/scripts/team-accounts.json (override with QA_ADMIN_EMAIL / QA_ADMIN_PASSWORD)
+const ADMIN_EMAIL = process.env.QA_ADMIN_EMAIL || TEAM.superAdmin.email;
+const ADMIN_PASSWORD = process.env.QA_ADMIN_PASSWORD || TEAM_PASSWORD;
 
 /**
  * Regression checks for the QA audit. Unlike the smoke tests in e2e.spec.ts these assert concrete
@@ -325,7 +327,8 @@ test.describe('Admin portal (local development account)', () => {
     await page.locator('button[type=submit]').click();
     const boxes = page.locator(OTP_BOXES);
     await expect(boxes).toHaveCount(6, { timeout: 15000 });
-    for (let i = 0; i < 6; i++) await boxes.nth(i).fill('123456'[i]);
+    const code = plantOtp(ADMIN_EMAIL, 'LOGIN');
+    for (let i = 0; i < 6; i++) await boxes.nth(i).fill(code[i]);
     await page.getByRole('button', { name: /verify|continue/i }).first().click();
     await expect(page.locator('body')).toContainText(/Total Users|Platform Overview|System Overview/i, { timeout: 20000 });
     // A refresh must keep the admin on the dashboard, not send them back to the home page
@@ -335,7 +338,7 @@ test.describe('Admin portal (local development account)', () => {
   });
 });
 
-// Needs the accounts from `npm run seed:test-accounts` in the backend (see TEST_ACCOUNTS.md)
+// Needs the accounts from `npm run seed:accounts` in the backend (see ACCOUNTS.md)
 test.describe('Member bookings and notifications (seeded test account)', () => {
   async function signInSeeded(page: Page, lang: 'ar' | 'en') {
     await open(page);
@@ -344,12 +347,13 @@ test.describe('Member bookings and notifications (seeded test account)', () => {
       const open = Array.from(document.querySelectorAll('button')).find((e) => /^(sign in|log in|login|تسجيل الدخول)$/i.test((e.textContent || '').trim()));
       (open as HTMLElement | undefined)?.click();
     });
-    await page.locator('input[type=email]').fill('individual@cwp-test.local');
-    await page.locator('input[type=password]').fill('Test@12345');
+    await page.locator('input[type=email]').fill(TEAM.individual.email);
+    await page.locator('input[type=password]').fill(TEAM_PASSWORD);
     await page.locator('button[type=submit]').click();
     const boxes = page.locator(OTP_BOXES);
     await expect(boxes).toHaveCount(6, { timeout: 15000 });
-    for (let i = 0; i < 6; i++) await boxes.nth(i).fill('123456'[i]);
+    const code = plantOtp(TEAM.individual.email, 'LOGIN');
+    for (let i = 0; i < 6; i++) await boxes.nth(i).fill(code[i]);
     await page.evaluate(() => {
       const b = Array.from(document.querySelectorAll('button')).find((x) => /verify|تحقق وتابع/i.test(x.textContent || ''));
       (b as HTMLElement | undefined)?.click();

@@ -3803,7 +3803,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       let user = otpSession.user;
       if (otpSession.userId) {
         const apiRes = await verifyLoginApi({ userId: otpSession.userId, code: cleanCode });
-        if (!apiRes.success && (!isDemo || cleanCode !== '123456')) {
+        if (!apiRes.success) {
           return { success: false, error: apiRes.error || 'Invalid verification code. Please try again.' };
         }
         if (apiRes.token && typeof window !== 'undefined') {
@@ -3877,7 +3877,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     if (otpSession.userId) {
       const apiRes = await verifyEmailApi({ userId: otpSession.userId, code: cleanCode });
-      if (!apiRes.success && (!isDemo || cleanCode !== '123456')) {
+      if (!apiRes.success) {
         return { success: false, error: apiRes.error || 'Invalid verification code. Please try again.' };
       }
     }

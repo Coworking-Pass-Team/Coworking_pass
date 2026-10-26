@@ -1,14 +1,13 @@
 // Bookings made for team members (attendees), the locked-down booking PUT, validated rescheduling with price
 // differences, amenity request routing and the customer side of the support conversation.
 // the customer side of the support conversation.
-import { api, db, makeUser, check, summary } from './lib.mjs';
+import { api, db, makeUser, check, summary, signIn, TEAM, TEAM_PASSWORD } from './lib.mjs';
 await db.connect();
 const run = Date.now().toString(36);
 const mk = (n, role = 'B2C', extra = {}) => makeUser('QA ' + n, `qa.${n}.${run}@test.local`.toLowerCase(), role, extra);
 const loginAs = async (email, pw) => {
-  const l = await api('/auth/login', { method: 'POST', body: { email, password: pw } });
-  const v = await api('/auth/verify-login', { method: 'POST', body: { userId: l.body.userId, code: '123456' } });
-  return { token: v.body?.token, userId: l.body.userId };
+  const r = await signIn(email, pw);
+  return { token: r.token, userId: r.userId };
 };
 const ksaNow = () => new Date(Date.now() + 3 * 3600_000);
 const ksaAt = (days, hour) => { const d = ksaNow(); return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + days, hour)); };
@@ -188,7 +187,7 @@ check('a booking starting within the notice window cannot be moved', (await api(
 check('an invalid date is refused', (await api(`/direct-bookings/${dDirect}/reschedule`, { method: 'POST', token: blocker.token, body: {} })).status === 400);
 
 console.log('\n## Amenity requests reach the Super Admins');
-const admin = await loginAs(process.env.QA_ADMIN_EMAIL || 'superadmin@cwp-test.local', process.env.QA_ADMIN_PASSWORD || 'Test@12345');
+const admin = await loginAs(process.env.QA_ADMIN_EMAIL || TEAM.superAdmin.email, process.env.QA_ADMIN_PASSWORD || TEAM_PASSWORD);
 const partner = await mk('stPartner', 'PARTNER_ADMIN', { businessName: 'QA Amenity Venue ' + run, crNumber: '1010333333' });
 const partnerId = (await db.query(`select id from "Partner" where lower("contactEmail")=lower($1)`, [partner.email])).rows[0]?.id;
 await api('/partners/' + partnerId, { method: 'PUT', token: admin.token, body: { status: 'APPROVED' } });

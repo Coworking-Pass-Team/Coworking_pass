@@ -28,6 +28,8 @@ import { useApp } from '@/app/store';
 import LogoImage from '@/components/layout/logo';
 import Badge from '@/components/ui/Badge';
 import { isValidSaudiCrNumber } from '@/types/types';
+import PasswordChecklist from '@/components/ui/PasswordChecklist';
+import { isPasswordValid } from '@/lib/passwordPolicy';
 import PhoneInput from 'react-phone-number-input';
 import { isValidPhoneNumber, getCountryCallingCode } from 'libphonenumber-js';
 import 'react-phone-number-input/style.css';
@@ -570,7 +572,7 @@ export function SignUpScreen() {
       e.phone = 'Please enter a valid international phone number.';
     }
     if (!password) e.password = t('auth.errPassword');
-    else if (password.length < 6) e.password = 'Password must be at least 6 characters.';
+    else if (!isPasswordValid(password)) e.password = t('auth.errWeakPassword');
     if (password !== confirm) e.confirm = 'Passwords do not match.';
     if (!agreedToTerms) e.agreedToTerms = 'You must agree to the Terms of Service and Privacy Policy.';
 
@@ -1016,6 +1018,7 @@ export function SignUpScreen() {
                     </button>
                   </div>
                   {errors.password && <p className="text-red-500 text-xs mt-0.5 font-medium">{translateMessage(errors.password)}</p>}
+                  <PasswordChecklist password={password} />
                 </div>
 
                 <div>
@@ -1032,6 +1035,11 @@ export function SignUpScreen() {
                       className="w-full ps-9 pe-3 py-2.5 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all"
                     />
                   </div>
+                  {confirm && (
+                    <p data-testid="confirm-match" className={`text-xs mt-1 font-medium ${confirm === password ? 'text-green-600' : 'text-red-500'}`}>
+                      {confirm === password ? t('auth.pwMatch') : t('auth.pwNoMatch')}
+                    </p>
+                  )}
                   {errors.confirm && <p className="text-red-500 text-xs mt-0.5 font-medium">{translateMessage(errors.confirm)}</p>}
                 </div>
               </div>
@@ -1895,8 +1903,8 @@ export function ResetPasswordScreen() {
       setError(t('auth.errNewPassword'));
       return;
     }
-    if (password.length < 8) {
-      setError(t('auth.errResetPasswordLength'));
+    if (!isPasswordValid(password)) {
+      setError(t('auth.errWeakPassword'));
       return;
     }
     if (password !== confirmPassword) {
@@ -1981,6 +1989,7 @@ export function ResetPasswordScreen() {
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
+              <PasswordChecklist password={password} />
             </div>
 
             <div>
@@ -2010,11 +2019,16 @@ export function ResetPasswordScreen() {
                   {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
+              {confirmPassword && (
+                <p data-testid="confirm-match" className={`text-xs mt-1 font-medium ${confirmPassword === password ? 'text-green-600' : 'text-red-500'}`}>
+                  {confirmPassword === password ? t('auth.pwMatch') : t('auth.pwNoMatch')}
+                </p>
+              )}
             </div>
 
             <button
               type="submit"
-              disabled={loading || !password || !confirmPassword}
+              disabled={loading || !isPasswordValid(password) || password !== confirmPassword}
               className="btn-primary w-full py-3.5 mt-2 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
               {loading ? (

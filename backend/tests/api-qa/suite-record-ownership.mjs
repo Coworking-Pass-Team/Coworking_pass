@@ -1,6 +1,6 @@
 // Single-record access: a booking or payment is only visible to (and changeable by) its customer,
 // a super admin, or the partner that owns the workspace. Other customers and unrelated partners are refused.
-import { api, db, makeUser, check, summary } from './lib.mjs';
+import { api, db, makeUser, check, summary, plantOtp } from './lib.mjs';
 await db.connect();
 const run = Date.now().toString(36);
 const mk = (n, role = 'B2C', extra = {}) => makeUser('QA ' + n, `qa.${n}.${run}@test.local`.toLowerCase(), role, extra);
@@ -14,7 +14,8 @@ const strangerReg = await mk('ownP', 'PARTNER_ADMIN', { businessName: 'QA Strang
 await db.query(`update "Partner" set status='APPROVED' where lower("contactEmail")=lower($1)`, [strangerReg.email]);
 const stranger = await (async () => {
   const login = await api('/auth/login', { method: 'POST', body: { email: strangerReg.email, password: strangerReg.pw } });
-  const v = await api('/auth/verify-login', { method: 'POST', body: { userId: login.body?.userId || strangerReg.userId, code: '123456' } });
+  const stId = login.body?.userId || strangerReg.userId;
+  const v = await api('/auth/verify-login', { method: 'POST', body: { userId: stId, code: await plantOtp(stId, 'LOGIN') } });
   return { ...strangerReg, token: v.body?.token };
 })();
 check('unrelated partner can sign in', !!stranger.token);

@@ -1,17 +1,16 @@
-import { api, db, makeUser, check, summary, removeWorkspaces } from './lib.mjs';
+import { api, db, makeUser, check, summary, removeWorkspaces, signIn, TEAM, TEAM_PASSWORD } from './lib.mjs';
 await db.connect();
 const run = Date.now().toString(36);
 const loginAs = async (email, pw) => {
-  const l = await api('/auth/login', { method: 'POST', body: { email, password: pw } });
-  if (!l.body?.userId) return { l };
-  const v = await api('/auth/verify-login', { method: 'POST', body: { userId: l.body.userId, code: '123456' } });
-  return { token: v.body?.token, userId: l.body.userId, l };
+  const r = await signIn(email, pw);
+  if (!r.userId) return { l: r.login };
+  return { token: r.token, userId: r.userId, l: r.login };
 };
 const mk = (n, role = 'B2C', x = {}) => makeUser('QA ' + n, `qa.${n}.${run}@test.local`.toLowerCase(), role, x);
 const day = () => new Date(Date.now() + (20 + Math.floor(Math.random() * 600)) * 864e5).toISOString().slice(0, 10);
 
-// Seeded super admin: TEST_ACCOUNTS.md (override with QA_ADMIN_EMAIL / QA_ADMIN_PASSWORD)
-const admin = await loginAs(process.env.QA_ADMIN_EMAIL || 'superadmin@cwp-test.local', process.env.QA_ADMIN_PASSWORD || 'Test@12345');
+// Seeded super admin: ACCOUNTS.md and scripts/team-accounts.json (override with QA_ADMIN_EMAIL / QA_ADMIN_PASSWORD)
+const admin = await loginAs(process.env.QA_ADMIN_EMAIL || TEAM.superAdmin.email, process.env.QA_ADMIN_PASSWORD || TEAM_PASSWORD);
 check('seeded super admin can sign in locally', !!admin.token);
 
 // ---------- Provider onboarding & moderation ----------

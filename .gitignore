@@ -34,3 +34,6 @@ docs/ar/
 
 # Local tool state
 .claude/
+
+# Real team accounts for the seed script (emails and shared password; never commit)
+backend/scripts/team-accounts.json
