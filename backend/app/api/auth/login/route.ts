@@ -2,7 +2,7 @@ import { suspendedResponse } from "@/lib/auth/verify-token";
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { sendOtpEmail } from "@/lib/mailer";
+import { deliverOtp, issueOtp } from "@/lib/otp";
 import { ensureDatabaseSchema } from "@/lib/db-schema-sync";
 import { isRateLimited, recordFailedAttempt, clearAttempts } from "@/lib/rate-limit/login-attempts";
 
@@ -89,22 +89,9 @@ export async function POST(request: Request) {
       }
     }
 
-    const otp = "123456";
-    
-    console.log(`🔑 [OTP] Code for ${cleanEmail}: ${otp}`);
-
-    const otpHash = await bcrypt.hash(otp, 10);
-
-    await prisma.otpCode.create({
-      data: {
-        userId: user.id,
-        codeHash: otpHash,
-        purpose: "LOGIN",
-        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
-      },
-    });
-
-    await sendOtpEmail(email, otp);
+    // A fresh random code (any earlier unused one is cancelled), stored hashed and valid for 10 minutes
+    const code = await issueOtp(user.id, "LOGIN");
+    await deliverOtp(user.email, code, "LOGIN");
 
     return NextResponse.json({
       message: "Verification code sent to your email address.",

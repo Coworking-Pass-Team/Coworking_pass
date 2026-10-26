@@ -1,5 +1,5 @@
-// Company wallet for team members (policy + monthly limit), bookings made for team members (attendees),
-// the locked-down booking PUT, validated rescheduling with price differences, amenity request routing and
+// Bookings made for team members (attendees), the locked-down booking PUT, validated rescheduling with price
+// differences, amenity request routing and the customer side of the support conversation.
 // the customer side of the support conversation.
 import { api, db, makeUser, check, summary } from './lib.mjs';
 await db.connect();
@@ -38,9 +38,9 @@ const roomQr = await mkRoom('Room QR', 80);
 const hb = async (ownerId, room, start, end, attendees = []) => (await db.query(
   `insert into "HourlyBooking" (id,"userId","workspaceId","sectionId","packageId","startDate","endDate","hoursUsed",seats,status,"attendeeIds") values (gen_random_uuid(),$1,$2,$3,$4,$5::timestamp,$6::timestamp,2,1,'ACTIVE',$7::text[]) returning id`,
   [ownerId, ws.id, room.sid, room.pid, start.toISOString(), end.toISOString(), attendees])).rows[0].id;
-const pay = async (ownerId, bookingId, amount, companyId = null, paymentFor = 'HOURLY_BOOKING') => (await db.query(
-  `insert into "Payment" (id,"userId","workspaceId",amount,method,"paymentFor","referenceId",status,"companyId") values (gen_random_uuid(),$1,$2,$3,'MADA',$4::"PaymentFor",$5,'SUCCESS',$6) returning id`,
-  [ownerId, ws.id, amount, paymentFor, bookingId, companyId])).rows[0].id;
+const pay = async (ownerId, bookingId, amount, paymentFor = 'HOURLY_BOOKING') => (await db.query(
+  `insert into "Payment" (id,"userId","workspaceId",amount,method,"paymentFor","referenceId",status) values (gen_random_uuid(),$1,$2,$3,'MADA',$4::"PaymentFor",$5,'SUCCESS') returning id`,
+  [ownerId, ws.id, amount, paymentFor, bookingId])).rows[0].id;
 const paidFor = (bookingId) => num(`select coalesce(sum(amount),0) v from "Payment" where "referenceId"=$1 and status='SUCCESS' and method<>'REFUND'`, [bookingId]);
 const walletOf = (userId) => num(`select balance v from "Wallet" where "userId"=$1`, [userId]);
 const companyBalance = (id) => num(`select balance v from "Company" where id=$1`, [id]);
@@ -59,57 +59,6 @@ const emp2 = await mk('stEmp2');
 const outsider = await mk('stOutsider');
 for (const m of [emp1, emp2]) await api(`/companies/${companyId}/employees`, { method: 'POST', token: hr.token, body: { email: m.email } });
 await api(`/companies/${companyId}/deposit`, { method: 'POST', token: hr.token, body: { amount: 1000 } });
-const spend = (u, amount, ref) => api(`/companies/${companyId}/spend`, { method: 'POST', token: u.token, body: { amount, referenceId: ref } });
-const setPolicy = (body) => api(`/companies/${companyId}`, { method: 'PUT', token: hr.token, body });
-
-console.log('\n## Company wallet for team members');
-check('company starts with the deposited balance', (await companyBalance(companyId)) === 1000);
-const off = await spend(emp1, 50, 'off-' + run);
-check('policy off: a member cannot pay from the company wallet', off.status === 403 && off.body?.code === 'POLICY_DISABLED', off.status + ' ' + off.body?.code);
-check('someone outside the company cannot pay from it', (await spend(outsider, 50, 'out-' + run)).status === 403);
-check('the HR admin does not use the member endpoint', (await spend(hr, 50, 'hr-' + run)).status === 403);
-check('switching spending on without a limit is refused', (await setPolicy({ employeeSpendingEnabled: true })).status === 400);
-check('a member cannot change the policy', (await api(`/companies/${companyId}`, { method: 'PUT', token: emp1.token, body: { employeeSpendingEnabled: true, employeeMonthlyLimit: 9999 } })).status === 403);
-check('the HR admin switches spending on with a monthly limit', (await setPolicy({ employeeSpendingEnabled: true, employeeMonthlyLimit: 300 })).status === 200);
-const co = await api(`/companies/${companyId}`, { token: emp1.token });
-check('a member sees the company wallet balance', co.status === 200 && co.body?.balance === 1000, co.status + ' ' + co.body?.balance);
-check('a member sees their own allowance', co.body?.memberAllowance?.enabled === true && co.body?.memberAllowance?.remaining === 300, JSON.stringify(co.body?.memberAllowance));
-check('a member does not see colleagues\' emails', Array.isArray(co.body?.employees) && co.body.employees.length >= 3 && co.body.employees.every((e) => !e.email && !e.name));
-const hrView = await api(`/companies/${companyId}`, { token: hr.token });
-check('the HR admin still sees the full team', hrView.body?.employees?.some((e) => e.email === emp1.email.toLowerCase() || e.email === emp1.email));
-const s1 = await spend(emp1, 100, 'r1-' + run);
-check('a member pays 100 from the company wallet', s1.status === 200 && (await companyBalance(companyId)) === 900, s1.status + ' ' + JSON.stringify(s1.body));
-const s1again = await spend(emp1, 100, 'r1-' + run);
-check('repeating the same payment key never takes the money twice', s1again.status === 200 && s1again.body?.duplicate === true && (await companyBalance(companyId)) === 900);
-const tooMuch = await spend(emp1, 250, 'big-' + run);
-check('more than the remaining monthly allowance is refused', tooMuch.status === 400 && tooMuch.body?.code === 'LIMIT_EXCEEDED' && tooMuch.body?.remaining === 200, tooMuch.status + ' ' + JSON.stringify(tooMuch.body));
-check('the allowance is per member: a colleague still has the full limit', (await spend(emp2, 300, 'e2-' + run)).status === 200);
-const back = await api(`/companies/${companyId}/spend/refund`, { method: 'POST', token: emp1.token, body: { referenceId: 'r1-' + run } });
-check('a payment that could not be completed is returned to the company wallet', back.status === 200 && (await companyBalance(companyId)) === 700, back.status + ' ' + JSON.stringify(back.body));
-const backAgain = await api(`/companies/${companyId}/spend/refund`, { method: 'POST', token: emp1.token, body: { referenceId: 'r1-' + run } });
-check('returning it twice is a no-op', backAgain.status === 200 && backAgain.body?.duplicate === true && (await companyBalance(companyId)) === 700);
-check('a colleague cannot return someone else\'s payment', (await api(`/companies/${companyId}/spend/refund`, { method: 'POST', token: emp2.token, body: { referenceId: 'r1-' + run } })).status === 404);
-const co2 = await api(`/companies/${companyId}`, { token: emp1.token });
-check('the returned amount is available again', co2.body?.memberAllowance?.remaining === 300, JSON.stringify(co2.body?.memberAllowance));
-await setPolicy({ employeeMonthlyLimit: 5000 });
-const broke = await spend(emp1, 4000, 'broke-' + run);
-check('an empty company wallet refuses the payment', broke.status === 400 && broke.body?.code === 'INSUFFICIENT_BALANCE', broke.status + ' ' + JSON.stringify(broke.body));
-await setPolicy({ employeeMonthlyLimit: 300 });
-
-console.log('\n## Refunds of company-funded payments go back to the company wallet');
-const fundedBooking = await hb(emp1.userId, roomA, ksaAt(6, 10), ksaAt(6, 12));
-const tagged = await api('/payments', { method: 'POST', token: emp1.token, body: { amount: 200, method: 'MADA', paymentFor: 'HOURLY_BOOKING', referenceId: fundedBooking, companyId } });
-check('a member\'s payment is tagged with their company', tagged.status === 201 && (await db.query('select "companyId" c from "Payment" where id=$1', [tagged.body?.id])).rows[0]?.c === companyId);
-const outsiderBooking = await hb(outsider.userId, roomA, ksaAt(30, 10), ksaAt(30, 12));
-const forged = await api('/payments', { method: 'POST', token: outsider.token, body: { amount: 50, method: 'MADA', paymentFor: 'HOURLY_BOOKING', referenceId: outsiderBooking, companyId } });
-check('an outsider cannot tag a payment with someone else\'s company', forged.status === 201 && (await db.query('select "companyId" c from "Payment" where id=$1', [forged.body?.id])).rows[0]?.c === null);
-await db.query('delete from "Payment" where id=$1', [forged.body?.id]);
-const walletBefore = await walletOf(emp1.userId);
-const balBefore = await companyBalance(companyId);
-const refund = await api('/refund', { method: 'POST', token: emp1.token, body: { bookingId: fundedBooking } });
-check('the member refunds the booking', refund.status === 200, refund.status + ' ' + JSON.stringify(refund.body));
-check('the money went to the company wallet', (await companyBalance(companyId)) === balBefore + 200, `before ${balBefore} after ${await companyBalance(companyId)}`);
-check('the member\'s own wallet did not change', (await walletOf(emp1.userId)) === walletBefore);
 
 console.log('\n## Bookings made for team members');
 const day = 8 + (Date.now() % 5);
@@ -168,10 +117,9 @@ const tooLate = await resched(outsider, soon, slotBody(6, '10:00 AM'));
 check('an individual cannot reschedule inside 6 hours of the start', tooLate.status === 400 && tooLate.body?.code === 'RESCHEDULE_WINDOW' && tooLate.body?.requiredHours === 6, tooLate.status + ' ' + JSON.stringify(tooLate.body));
 const eightHours = await hb(outsider.userId, roomA, new Date(ksaNow().getTime() + 8 * 3600_000), new Date(ksaNow().getTime() + 10 * 3600_000));
 check('8 hours ahead is enough for an individual', (await resched(outsider, eightHours, slotBody(7, '10:00 AM'))).status === 200);
-const compSoon = await hb(emp1.userId, roomA, new Date(ksaNow().getTime() + 10 * 3600_000), new Date(ksaNow().getTime() + 12 * 3600_000));
-await pay(emp1.userId, compSoon, 200, companyId);
-const compLate = await resched(emp1, compSoon, slotBody(7, '10:00 AM'));
-check('a company-funded booking needs 24 hours of notice', compLate.status === 400 && compLate.body?.requiredHours === 24, compLate.status + ' ' + JSON.stringify(compLate.body));
+const empSoon = await hb(emp1.userId, roomA, new Date(ksaNow().getTime() + 5 * 3600_000), new Date(ksaNow().getTime() + 7 * 3600_000));
+const empLate = await resched(emp1, empSoon, slotBody(7, '10:00 AM'));
+check('a company employee\'s own booking follows the 6-hour rule', empLate.status === 400 && empLate.body?.requiredHours === 6, empLate.status + ' ' + JSON.stringify(empLate.body));
 const hrSoon = await hb(hr.userId, roomA, new Date(ksaNow().getTime() + 12 * 3600_000), new Date(ksaNow().getTime() + 14 * 3600_000));
 check('an HR admin\'s own booking needs 24 hours of notice', (await resched(hr, hrSoon, slotBody(7, '10:00 AM'))).body?.requiredHours === 24);
 const started = await hb(outsider.userId, roomA, new Date(ksaNow().getTime() - 30 * 60_000), new Date(ksaNow().getTime() + 90 * 60_000));
@@ -212,30 +160,17 @@ const down = await resched(outsider, cheaper, slotBody(12, '10:00 AM', { section
 check('a cheaper room refunds the difference (300 x 60/150 = 120, so 180 back)', down.status === 200 && down.body?.priceDifference === -180, down.status + ' ' + JSON.stringify(down.body));
 check('the wallet got it back and the payment shows the new total', (await walletOf(outsider.userId)) === 190 && (await paidFor(cheaper)) === 120, `${await walletOf(outsider.userId)} / ${await paidFor(cheaper)}`);
 
-console.log('\n## Company-funded differences use the company wallet and the member\'s limit');
+console.log('\n## An HR admin\'s price difference uses the company wallet');
 await db.query(`update "Company" set balance=1000 where id=$1`, [companyId]);
 const hrBk = await hb(hr.userId, roomA, ksaAt(5, 8), ksaAt(5, 10));
-await pay(hr.userId, hrBk, 300, companyId);
+await pay(hr.userId, hrBk, 300);
 const hrUp = await resched(hr, hrBk, slotBody(13, '10:00 AM', { sectionId: roomB.sid }));
 check('the HR admin\'s dearer move is charged to the company wallet', hrUp.status === 200 && hrUp.body?.settledOn === 'COMPANY' && (await companyBalance(companyId)) === 850, hrUp.status + ' ' + JSON.stringify(hrUp.body) + ' balance ' + await companyBalance(companyId));
-const memberBk = await hb(emp2.userId, roomA, ksaAt(6, 8), ksaAt(6, 10));
-await pay(emp2.userId, memberBk, 300, companyId);
-const spentBefore = await num(`select coalesce(sum(case when type='WITHDRAW' then amount else -amount end),0) v from "CompanyWalletTransaction" where "companyId"=$1 and "userId"=$2 and type in ('WITHDRAW','REFUND')`, [companyId, emp2.userId]);
-const memberBlocked = await resched(emp2, memberBk, slotBody(13, '2:00 PM', { sectionId: roomB.sid }));
-check('a member who used up their monthly allowance cannot be charged more', memberBlocked.status === 400 && memberBlocked.body?.code === 'LIMIT_EXCEEDED', memberBlocked.status + ' ' + JSON.stringify(memberBlocked.body) + ' spent ' + spentBefore);
-await setPolicy({ employeeMonthlyLimit: 1000 });
-const memberUp = await resched(emp2, memberBk, slotBody(13, '2:00 PM', { sectionId: roomB.sid }));
-check('with room in their limit the difference is charged to the company wallet', memberUp.status === 200 && memberUp.body?.settledOn === 'COMPANY' && memberUp.body?.priceDifference === 150, memberUp.status + ' ' + JSON.stringify(memberUp.body));
-check('and recorded against the member in the company ledger', (await num(`select count(*)::int v from "CompanyWalletTransaction" where "companyId"=$1 and "userId"=$2 and type='WITHDRAW' and "referenceId" like 'reschedule:%'`, [companyId, emp2.userId])) === 1);
-const bigBk = await hb(emp1.userId, roomA, ksaAt(7, 8), ksaAt(7, 10));
-await pay(emp1.userId, bigBk, 3000, companyId);
-const bigUp = await resched(emp1, bigBk, slotBody(14, '10:00 AM', { sectionId: roomB.sid }));
-check('a difference above the member\'s monthly limit is refused', bigUp.status === 400 && bigUp.body?.code === 'LIMIT_EXCEEDED', bigUp.status + ' ' + JSON.stringify(bigUp.body));
-check('and the booking was not moved', (await db.query('select "sectionId" s from "HourlyBooking" where id=$1', [bigBk])).rows[0].s === roomA.sid);
-await setPolicy({ employeeSpendingEnabled: false });
-const offBk = await hb(emp1.userId, roomA, ksaAt(7, 8), ksaAt(7, 10));
-await pay(emp1.userId, offBk, 300, companyId);
-check('with the policy switched off a member cannot be charged to the company', (await resched(emp1, offBk, slotBody(14, '10:00 AM', { sectionId: roomB.sid }))).body?.code === 'POLICY_DISABLED');
+const hrBroke = await hb(hr.userId, roomA, ksaAt(5, 8), ksaAt(5, 10));
+await pay(hr.userId, hrBroke, 3000);
+await db.query(`update "Company" set balance=10 where id=$1`, [companyId]);
+const hrNoMoney = await resched(hr, hrBroke, slotBody(14, '10:00 AM', { sectionId: roomB.sid }));
+check('a company wallet that cannot cover the difference refuses the move', hrNoMoney.status === 400 && hrNoMoney.body?.code === 'INSUFFICIENT_BALANCE' && (await companyBalance(companyId)) === 10, hrNoMoney.status + ' ' + JSON.stringify(hrNoMoney.body));
 
 console.log('\n## Rescheduling a daily booking');
 const dDirect = (await db.query(

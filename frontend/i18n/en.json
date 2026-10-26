@@ -788,7 +788,8 @@
     "employeeSection": "Your company",
     "hrEmailLabel": "Your company HR admin's email *",
     "hrEmailHelp": "Ask your HR admin for the email they use on Coworking Pass. Once you verify your email, they receive your request and approve it. Until then you can use your account as an individual member.",
-    "oneSignInHint": "Members, company employees, HR admins and partners all sign in here with their own email. Your account opens the right dashboard."
+    "oneSignInHint": "Members, company employees, HR admins and partners all sign in here with their own email. Your account opens the right dashboard.",
+    "errResetPasswordLength": "Password must be at least 8 characters long."
   },
   "wallet": {
     "transactionsCount": "{count} transaction",
@@ -1254,13 +1255,7 @@
     "pointsBalance": "Balance: {points} points",
     "includedInPlanCount": "{count} included in plan",
     "payWallet": "Confirm & Pay from Wallet ({currency} {amount})",
-    "forDuration": "for {duration}",
-    "companyWallet": "Company wallet",
-    "companyAllowanceLeft": "You can pay up to {currency} {amount} from your company this month",
-    "companySpendingOff": "Your company has not allowed payments from the company wallet",
-    "useCompanyWallet": "Pay {currency} {amount} from the company wallet",
-    "companyNotEnough": "The company wallet or your remaining monthly allowance does not cover this booking in full.",
-    "companyApplied": "Paid from the company wallet"
+    "forDuration": "for {duration}"
   },
   "tb": {
     "stepType": "Type & Plan",
@@ -2776,7 +2771,7 @@
     "yourCompany": "Your company",
     "managedBy": "Team managed by {name}",
     "teamSize": "Team members: {count}",
-    "explainer": "Your company's HR admin manages the team, can book workspaces for you, and is the only one who can remove you from the team. Bookings made for you appear under your bookings, with your own check-in QR code.",
+    "explainer": "Your company's HR admin manages the team, can book workspaces for you, and is the only one who can remove you from the team. Bookings made for you appear under your bookings with your own check-in QR code, and your HR admin can add funds to your wallet, which you book with like any other balance.",
     "passesByCompany": "Passes are arranged by your company, so there is nothing for you to buy here."
   },
   "companyJoin": {
@@ -2797,24 +2792,6 @@
     "decline": "Decline",
     "approved": "{name} joined your team.",
     "declined": "{name}'s request was declined."
-  },
-  "companyWallet": {
-    "title": "Company wallet",
-    "balance": "Company balance",
-    "allowanceLeft": "You can still pay {currency} {remaining} of your {currency} {limit} monthly company allowance.",
-    "spentThisMonth": "Used this month: {currency} {amount}",
-    "spendingOff": "Your company has not switched on payments from the company wallet. Your HR admin books workspaces for the team; your own wallet works as usual.",
-    "badgeLabel": "Company wallet balance: {amount} SAR"
-  },
-  "spendingPolicy": {
-    "title": "Team spending policy",
-    "body": "Decide whether team members may pay their own bookings from the company wallet. The server stops a member once they reach their monthly limit.",
-    "enable": "Allow team members to pay from the company wallet",
-    "limitLabel": "Monthly limit per member ({currency})",
-    "limitRequired": "Enter a monthly limit above zero to switch this on.",
-    "saved": "Spending policy saved.",
-    "save": "Save policy",
-    "note": "Refunds for bookings paid this way go back to the company wallet. You can change or switch off the policy at any time."
   },
   "tickets": {
     "eyebrow": "Support",
@@ -2862,5 +2839,29 @@
     "done": "Booking rescheduled.",
     "doneCharged": "Booking rescheduled. {currency} {amount} was charged for the price difference.",
     "doneRefunded": "Booking rescheduled. {currency} {amount} was refunded for the price difference."
+  },
+  "allocation": {
+    "title": "Allocate funds to the team",
+    "body": "Move money from the company wallet into your team members' own wallets. Employees see only what lands in their wallet, never the company balance, and book with it like any other balance.",
+    "balance": "Company wallet balance",
+    "modeEqual": "Split equally",
+    "modeSpecific": "Choose employees",
+    "totalLabel": "Total amount to share ({currency})",
+    "perMember": "Each of the {count} members receives {currency} {amount}",
+    "sameAmount": "Same amount for the selected ({currency})",
+    "applyToSelected": "Apply to selected",
+    "amountFor": "Amount for {name}",
+    "totalToSend": "Total to {count} members: {currency} {amount}",
+    "balanceAfter": "Company balance after: {currency} {amount}",
+    "review": "Review allocation",
+    "confirmTitle": "Allocate these funds?",
+    "confirmBody": "{currency} {total} will move from the company wallet to the personal wallets of {count} members. This cannot be undone from here.",
+    "confirm": "Allocate funds",
+    "noMembers": "There are no team members yet. Add members first, then allocate funds to them.",
+    "errAmount": "Enter an amount greater than zero.",
+    "errNone": "Choose at least one team member and enter an amount.",
+    "errNotEnough": "The company wallet balance is not enough for this allocation.",
+    "done": "Funds allocated to {count} members: {currency} {total}.",
+    "historyTitle": "Recent allocations"
   }
 }

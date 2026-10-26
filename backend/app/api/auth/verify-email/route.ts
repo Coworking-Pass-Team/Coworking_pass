@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { notifyPendingJoinRequestsOf } from "@/lib/company-join";
+import { checkOtp } from "@/lib/otp";
 
 
 
@@ -34,34 +34,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "userId and verification code are required." }, { status: 400 });
     }
 
-    const isMasterCode = code === "123456";
-
-    const otpRecord = await prisma.otpCode.findFirst({
-      where: {
-        userId,
-        purpose: "EMAIL_VERIFICATION",
-        isUsed: false,
-        expiresAt: { gt: new Date() },
-      },
-      orderBy: { createdAt: "desc" },
-    });
-
-    if (!isMasterCode) {
-      if (!otpRecord) {
-        return NextResponse.json({ error: "Invalid or expired verification code." }, { status: 400 });
-      }
-
-      const isValid = await bcrypt.compare(code, otpRecord.codeHash);
-      if (!isValid) {
-        return NextResponse.json({ error: "Incorrect verification code." }, { status: 400 });
-      }
-    }
-
-    if (otpRecord) {
-      await prisma.otpCode.update({
-        where: { id: otpRecord.id },
-        data: { isUsed: true },
-      });
+    const check = await checkOtp(userId, "EMAIL_VERIFICATION", String(code));
+    if (!check.ok) {
+      return NextResponse.json({ error: check.error }, { status: 400 });
     }
 
     await prisma.user.update({

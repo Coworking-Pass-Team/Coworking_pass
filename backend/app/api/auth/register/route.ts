@@ -1,15 +1,11 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { sendOtpEmail } from "@/lib/mailer";
+import { deliverOtp, issueOtp } from "@/lib/otp";
 import type { Role } from "@prisma/client";
 import { createPendingJoinRequest, findCompanyByHrEmail } from "@/lib/company-join";
 
 const VALID_ROLES = ["GUEST", "B2C", "HR_ADMIN", "PARTNER_ADMIN"];
-
-function generateOtp() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
 
 /**
  * @swagger
@@ -90,17 +86,8 @@ if (existingUser && !existingUser.emailVerified) {
     await createPendingJoinRequest(existingUser.id, joinCompanyId);
   }
 
-  const otp = generateOtp();
-  const otpHash = await bcrypt.hash(otp, 10);
-  await prisma.otpCode.create({
-    data: {
-      userId: existingUser.id,
-      codeHash: otpHash,
-      purpose: "EMAIL_VERIFICATION",
-      expiresAt: new Date(Date.now() + 10 * 60 * 1000),
-    },
-  });
-  await sendOtpEmail(cleanEmail, otp).catch(() => {});
+  const otp = await issueOtp(existingUser.id, "EMAIL_VERIFICATION");
+  await deliverOtp(cleanEmail, otp, "EMAIL_VERIFICATION");
 
   return NextResponse.json(
     { message: "Account already exists but not verified. A new verification code has been sent.", userId: existingUser.id },
@@ -235,19 +222,8 @@ if (existingUser && !existingUser.emailVerified) {
       },
     }).catch(() => {});
 
-    const otp = generateOtp();
-    const otpHash = await bcrypt.hash(otp, 10);
-
-    await prisma.otpCode.create({
-      data: {
-        userId: user.id,
-        codeHash: otpHash,
-        purpose: "EMAIL_VERIFICATION",
-        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
-      },
-    });
-
-    await sendOtpEmail(cleanEmail, otp).catch(() => {});
+    const otp = await issueOtp(user.id, "EMAIL_VERIFICATION");
+    await deliverOtp(cleanEmail, otp, "EMAIL_VERIFICATION");
 
     return NextResponse.json(
       {

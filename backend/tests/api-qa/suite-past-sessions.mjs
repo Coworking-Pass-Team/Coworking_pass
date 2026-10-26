@@ -26,4 +26,7 @@ if (h >= 7 && h < 20) {
     check('refused refund leaves the booking untouched', stillActive === 'ACTIVE', stillActive);
   }
 }
+// Leave no booking behind: they would block the same random room and session for later runs
+await db.query('delete from "Payment" where "userId"=$1', [u.userId]);
+await db.query('delete from "HourlyBooking" where "userId"=$1', [u.userId]);
 summary(); await db.end();

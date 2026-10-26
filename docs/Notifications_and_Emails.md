@@ -42,10 +42,11 @@ Important facts:
 | S15 | The HR admin books a session or desk for named team members | **HR admin** (`POST /api/hourly-bookings`, `/api/direct-bookings` with `attendeeIds`) | Each named employee ("Booked for you by your company") | `BOOKING_CONFIRMED` | In-app | Working |
 | S16 | An employee asks to join a company (sent once their email is verified, or right away for an existing member) | The employee | The company's **HR admin** | `PASS_ASSIGNED` | In-app | Working |
 | S17 | The HR admin approves or declines a join request | **HR admin** (`PATCH /api/company-join-requests/{id}`) | The employee | `PASS_ASSIGNED` | In-app | Working |
-| S18 | A booking is rescheduled (`POST .../reschedule`) | The booking owner, a Super Admin, or the HR admin of the paying company | The owner, the people the booking was made for, the venue's partner and (company-funded) the HR admin ("Booking Rescheduled") | `BOOKING_CONFIRMED` | In-app | Working (no email) |
+| S18 | A booking is rescheduled (`POST .../reschedule`) | The booking owner or a Super Admin | The owner, the people the booking was made for and the venue's partner ("Booking Rescheduled") | `BOOKING_CONFIRMED` | In-app | Working (no email) |
 | S19 | A customer replies on their own support ticket | The ticket owner | Every **Super Admin** ("New reply on a support ticket") | `SUPPORT_TICKET` | In-app | Working |
 | S20 | A partner files a custom amenity request | The partner (`POST /api/amenities`) | Every **Super Admin** (not the partner) | `AMENITY_REQUEST_STATUS` | In-app | Working (was a defect, fixed: the server now routes it) |
 | S21 | A Super Admin approves or rejects an amenity request | **Super Admin** (`PUT /api/amenities/{id}`) | The partner who asked | `AMENITY_REQUEST_STATUS` | In-app | Working |
+| S22 | The HR admin allocates company funds to employees (`POST /api/companies/{id}/allocate`) | **HR admin** | Each employee who received money ("Funds added to your wallet") | `PAYMENT_SUCCESS` | In-app | Working |
 
 The team notifications (S13, S14, S16, S17) use the type `PASS_ASSIGNED` because the notification type list has no team-specific value. They do not mean a pass was assigned. A member can no longer leave the team on their own, so there is no "member left" notification.
 
@@ -63,23 +64,24 @@ These are created in `frontend/app/store.tsx` (`addNotification`) and saved thro
 
 ## 4. Emails (Resend)
 
-All four emails are sent from `Coworking Pass <onboarding@resend.dev>` through `lib/mailer.ts`.
+All five emails are sent through `lib/mailer.ts` from the address in `RESEND_FROM_EMAIL` (default `Coworking Pass <onboarding@resend.dev>`).
 
 | # | Email | Trigger | Sender (cause) | Recipient | Used by | Status |
 | :-: | :--- | :--- | :--- | :--- | :--- | :--- |
-| E1 | **Verification code** (sign-up) | A new account is created, or someone signs up again with an unverified email | The new user | The user's email | `POST /api/auth/register` | Sends a random 6-digit code valid for 10 minutes. Delivery depends on Resend (section 5) |
-| E2 | **Verification code** (sign-in) | Every successful password check | The user | The user's email | `POST /api/auth/login` | The code is the fixed value `123456` (section 6), so the email carries no real security |
+| E1 | **Verification code** (sign-up) | A new account is created, or someone signs up again with an unverified email | The new user | The user's email | `POST /api/auth/register` | Sends a random six-digit code valid for 10 minutes (hashed in the database, one use, five wrong guesses at most). Delivery depends on Resend (section 5) |
+| E2 | **Verification code** (sign-in) | Every successful password check | The user | The user's email | `POST /api/auth/login` | Same kind of random code as E1, purpose LOGIN. Delivery depends on Resend (section 5) |
 | E3 | **Partner approved** | A Super Admin approves a partner | **Super Admin** | The partner's contact email | `PUT /api/partners/{id}` | Sends. The "Sign In" button points to a fixed old address (section 6) |
 | E4 | **Partner rejected** (with the reason) | A Super Admin rejects a partner | **Super Admin** | The partner's contact email | `PUT /api/partners/{id}` | Sends. No in-app copy (the partner cannot sign in) |
+| E5 | **Password reset code** | The user asks to reset a forgotten password | The user | The account's email | `POST /api/auth/forgot-password` | Sends a random six-digit code valid for 10 minutes (the answer to the screen is the same whether or not the account exists; suspended or unverified accounts get no code) |
 
 ## 5. Are the emails actually working?
 
-**In the current QA deployment, treat all four emails as not reliably delivered.**
+**Until the Resend key and a verified domain are set up, treat all emails as not delivered to real people.**
 
-* The sender is `onboarding@resend.dev`, Resend's shared test address. Resend only delivers messages from it to the email address of the Resend account owner. No real customer or partner will receive them. A real, verified sending domain must be set up in Resend first.
-* `RESEND_API_KEY` must be set on the backend. If it is missing the code falls back to a placeholder key and every send fails. The failure is caught and written to the log, so the user sees no error.
-* Because the failure is swallowed, the interface tells the user "code sent" even when no email left the server.
-* In QA this does not block anyone, because the master code `123456` works at both verification steps. The master code is a known release blocker and is handled last.
+* While `RESEND_FROM_EMAIL` is not set the sender is `onboarding@resend.dev`, Resend's shared test address, which only delivers to the email address of the Resend account owner. Set `RESEND_FROM_EMAIL` to an address on a domain verified in Resend (for example `Coworking Pass <no-reply@yourdomain.com>`).
+* `RESEND_API_KEY` must be set on the backend. **Without a real key nothing is emailed: the one-time codes are printed in the backend console instead** (`[OTP] ... code for <email> is: ...`), so local and QA runs keep working. Once a key is configured, codes are never logged.
+* A refusal from Resend is now logged (`[Email] Resend refused ...`) and reported to the caller as "not sent". The screen still says the code was sent, because for sign-in and password reset the answer must not reveal whether the account exists.
+* The shared test code `123456` is accepted only when the backend runs with `ALLOW_MASTER_OTP=true` (local launch configuration and QA). Leave it unset in production.
 
 To confirm the current state on the live backend, open the Render backend log and look for `Error sending OTP email`, or send a test email from the Resend dashboard.
 
@@ -95,7 +97,7 @@ To confirm the current state on the live backend, open the Render backend log an
 | Payment **failure** notification | The type `PAYMENT_FAILED` exists but nothing creates it. |
 | Wallet deposit notification | No dedicated message. A deposit only produces S8 when the browser also records a payment. |
 | "New partner application under review" email to the partner | Not implemented. Only the Super Admin gets an in-app message (S1). |
-| Password recovery code | **No backend exists.** The "Forgot password" screen only looks in the browser's local user list. |
+| Password recovery code | **Built** (E5): `forgot-password`, `verify-reset-code`, `reset-password`. |
 | Support ticket reply by email | In-app only (S12). |
 | Subscription expiring in 7 days | The type `PASS_EXPIRING` exists but there is no job that sends it. The file `lib/cron/auto-booking.ts` is never loaded, so it does nothing. |
 | "Pass assigned by the company" to an employee | Not implemented. Passes are not assigned to individual employees on the server. |
@@ -107,12 +109,12 @@ To confirm the current state on the live backend, open the Render backend log an
 
 ### Defects found while auditing
 
-1. **Master code.** The sign-in code is the constant `123456` and is written to the server log. The same code is accepted at sign-up verification. Release blocker (see `PRODUCTION_CHECKLIST.md`).
-2. **Approval email link.** The "Sign In to Your Dashboard" button in E3 points to `https://coworking-pass.vercel.app/Auth`, an address that is not the deployed site. It should come from an environment variable.
+1. ~~Master code.~~ **Changed:** codes are random, stored hashed, expire after 10 minutes and are never logged once a Resend key exists. The shared test code `123456` remains only behind `ALLOW_MASTER_OTP=true`; it must be unset in production (see `PRODUCTION_CHECKLIST.md`).
+2. ~~Approval email link.~~ **Fixed:** the button now points to `NEXT_PUBLIC_SITE_URL` (or `FRONTEND_URL`).
 3. **Mislabelled type.** S1 ("New Space Partner Application") is stored with the type `PARTNER_APPROVED`, which makes the admin's icon and filtering treat it as an approval.
 4. ~~Amenity request to admin.~~ **Fixed:** the browser used to map the target `admin` to the signed-in user, so the notification landed on the partner's own account. The server now notifies every Super Admin (S20) and tells the partner the decision (S21); the browser no longer creates these messages.
 5. **Hourly cancellation.** Cancelling an hourly booking through `DELETE /api/hourly-bookings/{id}` creates no notification (the refund path S9 does).
-6. **Silent email failures.** Email errors are swallowed, so the interface cannot tell the user the code did not arrive.
+6. **Email failures are only logged.** A refusal from Resend is logged and returned as "not sent", but the interface cannot tell the user the code did not arrive.
 7. **English-only emails.** Arabic-speaking users receive English email text.
 8. **No delivery tracking.** There is no record of which emails were sent or failed, and no retry.
 

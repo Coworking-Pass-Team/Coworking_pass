@@ -1,7 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { creditWallet } from "@/lib/wallet";
-import { returnToCompanyWallet, spendFromCompanyWallet } from "@/lib/company-spending";
 
 type Tx = Prisma.TransactionClient;
 
@@ -11,11 +10,11 @@ export const FREE_RESCHEDULES = 1;
 export const MAX_RESCHEDULE_AHEAD_DAYS = 30;
 
 /**
- * Notice needed before the original start, the same as the cancellation window: 6 hours for an individual's own
- * booking, 24 hours for HR admins and for anything paid from the company wallet.
+ * Notice needed before the original start, the same as the cancellation window: 6 hours for a member's own
+ * booking (their wallet, including money the company allocated to it), 24 hours for HR admins.
  */
-export function rescheduleNoticeHours(ownerRole: string, companyFunded: boolean): number {
-  return ownerRole === "B2C" && !companyFunded ? 6 : 24;
+export function rescheduleNoticeHours(ownerRole: string): number {
+  return ownerRole === "B2C" ? 6 : 24;
 }
 
 interface Rates {
@@ -56,16 +55,16 @@ export type SettleOutcome =
   | { ok: false; status: number; code: string; error: string };
 
 /**
- * Settles the price difference of a rescheduled booking on the wallet that paid for it: the company wallet when
- * the payment was funded by the company (or the owner is the company's HR admin), otherwise the owner's wallet.
- * A positive delta charges, a negative one refunds. Runs inside the reschedule transaction.
+ * Settles the price difference of a rescheduled booking on the wallet that paid: the company wallet for the HR admin
+ * who owns the booking, the owner's own wallet for everyone else. A positive delta charges, a negative one refunds.
+ * Runs inside the reschedule transaction.
  */
 export async function settlePriceDifference(
   tx: Tx,
   params: {
     ownerId: string;
     ownerRole: string;
-    payment: { id: string; companyId: string | null } | null;
+    payment: { id: string } | null;
     delta: number;
     reference: string;
     label: string;
@@ -75,46 +74,27 @@ export async function settlePriceDifference(
   if (!payment || Math.abs(delta) < 0.005) return { ok: true, delta: 0, target: "NONE" };
 
   const referenceId = `reschedule:${reference}`;
-  const hrCompany = ownerRole === "HR_ADMIN" ? await tx.company.findUnique({ where: { hrAdminId: ownerId }, select: { id: true } }) : null;
-  const companyId = payment.companyId ?? hrCompany?.id ?? null;
 
   if (delta < 0) {
-    const amount = Math.abs(delta);
-    if (companyId) {
-      await returnToCompanyWallet(tx, { companyId, userId: ownerId, amount, referenceId, description: `Price difference refunded: ${label}` });
-    } else {
-      await creditWallet(tx, { userId: ownerId, amount, type: "REFUND", description: `Price difference refunded: ${label}`, referenceId });
-    }
+    // creditWallet sends an HR admin's refund to the company wallet and everyone else's to their own wallet
+    const credited = await creditWallet(tx, { userId: ownerId, amount: Math.abs(delta), type: "REFUND", description: `Price difference refunded: ${label}`, referenceId });
     await tx.payment.update({ where: { id: payment.id }, data: { amount: { increment: delta } } });
-    return { ok: true, delta, target: companyId ? "COMPANY" : "PERSONAL" };
+    return { ok: true, delta, target: credited.target };
   }
 
-  if (companyId) {
-    if (hrCompany && hrCompany.id === companyId) {
-      // The HR admin spends the company wallet directly (no member policy applies to them)
-      const deducted = await tx.company.updateMany({ where: { id: companyId, balance: { gte: delta } }, data: { balance: { decrement: delta } } });
-      if (deducted.count === 0) return { ok: false, status: 400, code: "INSUFFICIENT_BALANCE", error: "The company wallet does not have enough balance for the price difference." };
-      const updated = await tx.company.findUniqueOrThrow({ where: { id: companyId } });
-      await tx.companyWalletTransaction.create({
-        data: { companyId, userId: ownerId, amount: delta, type: "WITHDRAW", description: `Price difference: ${label}`, referenceId, balanceAfter: updated.balance },
-      });
-    } else {
-      const spent = await spendFromCompanyWallet(tx, { companyId, userId: ownerId, amount: delta, referenceId, description: `Price difference: ${label}` });
-      if (!spent.ok) {
-        const message =
-          spent.code === "INSUFFICIENT_BALANCE"
-            ? "The company wallet does not have enough balance for the price difference."
-            : spent.code === "LIMIT_EXCEEDED"
-              ? "The price difference is more than your remaining monthly company allowance."
-              : "Your company has not allowed team members to pay from the company wallet.";
-        return { ok: false, status: 400, code: spent.code, error: message };
-      }
-    }
+  const hrCompany = ownerRole === "HR_ADMIN" ? await tx.company.findUnique({ where: { hrAdminId: ownerId }, select: { id: true } }) : null;
+  if (hrCompany) {
+    const deducted = await tx.company.updateMany({ where: { id: hrCompany.id, balance: { gte: delta } }, data: { balance: { decrement: delta } } });
+    if (deducted.count === 0) return { ok: false, status: 400, code: "INSUFFICIENT_BALANCE", error: "The company wallet does not have enough balance for the price difference." };
+    const updated = await tx.company.findUniqueOrThrow({ where: { id: hrCompany.id } });
+    await tx.companyWalletTransaction.create({
+      data: { companyId: hrCompany.id, userId: ownerId, amount: delta, type: "WITHDRAW", description: `Price difference: ${label}`, referenceId, balanceAfter: updated.balance },
+    });
     await tx.payment.update({ where: { id: payment.id }, data: { amount: { increment: delta } } });
     return { ok: true, delta, target: "COMPANY" };
   }
 
-  // The owner's personal wallet: conditional decrement so it can never go negative
+  // The owner's own wallet: conditional decrement so it can never go negative
   const wallet = await tx.wallet.findUnique({ where: { userId: ownerId } });
   const deducted = wallet
     ? await tx.wallet.updateMany({ where: { id: wallet.id, balance: { gte: delta } }, data: { balance: { decrement: delta } } })
@@ -130,37 +110,23 @@ export async function settlePriceDifference(
   return { ok: true, delta, target: "PERSONAL" };
 }
 
-/**
- * Who may move a booking: the person who made it, a Super Admin, or the HR admin of the company whose wallet paid
- * for it. Team members it was made for can see it but not change it.
- */
-export async function mayReschedule(
-  caller: { userId: string; role: string },
-  booking: { userId: string },
-  paymentCompanyId: string | null
-): Promise<boolean> {
-  if (caller.role === "SUPER_ADMIN" || booking.userId === caller.userId) return true;
-  if (caller.role === "HR_ADMIN" && paymentCompanyId) {
-    const company = await prisma.company.findUnique({ where: { hrAdminId: caller.userId }, select: { id: true } });
-    return company?.id === paymentCompanyId;
-  }
-  return false;
+/** Who may move a booking: the person who made it or a Super Admin. People a booking was made for can only view it. */
+export function mayReschedule(caller: { userId: string; role: string }, booking: { userId: string }): boolean {
+  return caller.role === "SUPER_ADMIN" || booking.userId === caller.userId;
 }
 
-/** Tells the booking owner, the venue's partner and (for company-funded bookings) the HR admin about the move. */
+/** Tells the booking owner, the people it was made for and the venue's partner about the move. */
 export async function notifyRescheduled(params: {
   ownerId: string;
-  actorId: string;
   workspaceId: string | null;
   venueName: string;
   roomName: string | null | undefined;
   fromLabel: string;
   toLabel: string;
-  companyId: string | null;
   attendeeIds: string[];
 }) {
   try {
-    const { ownerId, actorId, workspaceId, venueName, roomName, fromLabel, toLabel, companyId, attendeeIds } = params;
+    const { ownerId, workspaceId, venueName, roomName, fromLabel, toLabel, attendeeIds } = params;
     const room = roomName ? ` (${roomName})` : "";
     const rows: Prisma.NotificationCreateManyInput[] = [];
     const push = (userId: string, title: string, message: string) =>
@@ -175,12 +141,6 @@ export async function notifyRescheduled(params: {
       if (email) {
         const partnerUser = await prisma.user.findFirst({ where: { email: { equals: email, mode: "insensitive" }, role: "PARTNER_ADMIN" }, select: { id: true } });
         if (partnerUser && partnerUser.id !== ownerId) push(partnerUser.id, "Booking Rescheduled", `A booking at ${venueName}${room} moved from ${fromLabel} to ${toLabel}.`);
-      }
-    }
-    if (companyId) {
-      const company = await prisma.company.findUnique({ where: { id: companyId }, select: { hrAdminId: true } });
-      if (company && company.hrAdminId !== ownerId && company.hrAdminId !== actorId) {
-        push(company.hrAdminId, "Booking Rescheduled", `A company booking at ${venueName}${room} moved from ${fromLabel} to ${toLabel}.`);
       }
     }
     if (rows.length > 0) await prisma.notification.createMany({ data: rows });

@@ -1351,40 +1351,6 @@ export async function withdrawCompanyWalletApi(companyId: string, amount: number
   }
 }
 
-/** A team member pays from the company wallet (needs the company's spending policy and monthly limit). */
-export async function spendCompanyWalletApi(companyId: string, amount: number, options?: { description?: string; referenceId?: string }) {
-  const url = `${getAuthBaseUrl()}/api/companies/${companyId}/spend`;
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ amount, description: options?.description, referenceId: options?.referenceId }),
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) return { success: false, error: data.error || 'Failed to pay from the company wallet', code: data.code as string | undefined };
-    return { success: true, data };
-  } catch (err: any) {
-    return { success: false, error: err.message || 'Network error' };
-  }
-}
-
-/** Undoes a member's company-wallet payment whose booking could not be confirmed (returns exactly what it took). */
-export async function refundCompanySpendApi(companyId: string, referenceId: string) {
-  const url = `${getAuthBaseUrl()}/api/companies/${companyId}/spend/refund`;
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ referenceId }),
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) return { success: false, error: data.error || 'Failed to return the payment to the company wallet' };
-    return { success: true, data };
-  } catch (err: any) {
-    return { success: false, error: err.message || 'Network error' };
-  }
-}
-
 export interface RescheduleResult {
   success: boolean;
   error?: string;
@@ -1416,6 +1382,58 @@ export function rescheduleHourlyBookingApi(bookingId: string, move: { startDate:
 export function rescheduleDirectBookingApi(bookingId: string, move: { bookingDate: string; sectionId?: string }) {
   return postReschedule(`${getAuthBaseUrl()}/api/direct-bookings/${bookingId}/reschedule`, move);
 }
+
+export interface AllocationLineApi { userId: string; name: string; amount: number }
+
+/** HR admin: move money from the company wallet into team members' own wallets (EQUAL split or SPECIFIC amounts). */
+export async function allocateCompanyFundsApi(
+  companyId: string,
+  payload: { requestId: string; mode: 'EQUAL' | 'SPECIFIC'; amount?: number; allocations?: { userId: string; amount: number }[] }
+): Promise<{ success: true; data: { total: number; recipients: number; balance: number; allocations: AllocationLineApi[] } } | { success: false; error: string; code?: string }> {
+  const url = `${getAuthBaseUrl()}/api/companies/${companyId}/allocate`;
+  try {
+    const response = await fetch(url, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(payload) });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) return { success: false, error: data.error || 'Failed to allocate funds', code: data.code };
+    return { success: true, data };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network error' };
+  }
+}
+
+/** Recent allocations from the company wallet (the audit trail shown to the HR admin). */
+export async function getCompanyAllocationsApi(companyId: string): Promise<{ success: boolean; data: { id: string; amount: number; employeeId: string | null; employeeName: string; createdAt: string }[] }> {
+  const url = `${getAuthBaseUrl()}/api/companies/${companyId}/allocate`;
+  try {
+    const response = await fetch(url, { headers: getAuthHeaders() });
+    const data = await response.json().catch(() => []);
+    return response.ok && Array.isArray(data) ? { success: true, data } : { success: false, data: [] };
+  } catch (_) {
+    return { success: false, data: [] };
+  }
+}
+
+async function postAuthJson(path: string, body: Record<string, unknown>): Promise<{ success: boolean; message?: string; error?: string }> {
+  try {
+    const response = await fetch(`${getAuthBaseUrl()}/api/auth/${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) return { success: false, error: data.error || 'Something went wrong. Please try again.' };
+    return { success: true, message: data.message };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Network connection issue. Please try again.' };
+  }
+}
+
+/** Sends a password-reset code to the account's email (the answer is the same whether or not the account exists). */
+export const forgotPasswordApi = (email: string) => postAuthJson('forgot-password', { email });
+/** Checks the reset code without using it up. */
+export const verifyResetCodeApi = (email: string, code: string) => postAuthJson('verify-reset-code', { email, code });
+/** Sets the new password with the emailed code. */
+export const resetPasswordApi = (email: string, code: string, newPassword: string) => postAuthJson('reset-password', { email, code, newPassword });
 
 export async function updateCompanyApi(id: string, data: any) {
   const url = `${getAuthBaseUrl()}/api/companies/${id}`;

@@ -7,6 +7,7 @@ import { useSpaceText } from '@/i18n/space-text';
 import SpaceCard from '@/components/spaces/spaceCard';
 import Badge from '@/components/ui/Badge';
 import App from '@/app/app';
+import { WithChrome } from '@/components/layout/Chrome';
 import { ALL_SPACE_TYPES, getSpaceCategory, normalizeSpaceType, SpaceCategory, calculateHaversineDistance, getSpaceCoordinates, SAUDI_CITIES } from '@/types/types';
 
 const CITIES = ['All Cities', ...SAUDI_CITIES];
@@ -42,7 +43,12 @@ export default function Browse() {
   if (screen && screen !== 'landing' && screen !== 'browse') {
     return <App />;
   }
-  return <BrowseView />;
+  // Opened as its own route (/spaces) it draws the header and footer itself; inside the app shell it does not
+  return (
+    <WithChrome>
+      <BrowseView />
+    </WithChrome>
+  );
 }
 
 function BrowseView() {
@@ -231,7 +237,7 @@ function BrowseView() {
   };
 
   return (
-    <div className="min-h-screen bg-plaster text-soot py-10 px-4 sm:px-6 lg:px-8">
+    <div className="bg-plaster text-soot py-10 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-soot/10">
           <div>

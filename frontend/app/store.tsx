@@ -58,6 +58,9 @@ import {
   verifyEmailApi,
   loginUserApi,
   verifyLoginApi,
+  forgotPasswordApi,
+  verifyResetCodeApi,
+  resetPasswordApi,
   mapRoleToFrontend,
   createCompanyApi,
   createPointsTransactionApi,
@@ -73,8 +76,6 @@ import {
   getCompanyApi,
   depositCompanyWalletApi,
   withdrawCompanyWalletApi,
-  spendCompanyWalletApi,
-  refundCompanySpendApi,
   mapRoleToBackend,
   updateCompanyApi,
   createTicketApi,
@@ -485,8 +486,8 @@ interface AppContextType {
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string; requireOtp?: boolean }>;
   signup: (name: string, email: string, password: string, phone: string, role?: UserRole) => User;
   requestSignupOtp: (newUser: User, role: UserRole, extraData?: Partial<User>, options?: { companyHrEmail?: string }) => Promise<{ success: boolean; error?: string; message?: string }>;
-  requestForgotPasswordOtp: (email: string) => { success: boolean; error?: string };
-  resetPassword: (newPassword: string) => { success: boolean; error?: string };
+  requestForgotPasswordOtp: (email: string) => Promise<{ success: boolean; error?: string }>;
+  resetPassword: (newPassword: string) => Promise<{ success: boolean; error?: string }>;
   completeSignup: (role: UserRole, extraData?: Partial<User>) => void;
   verifyOtp: (code: string) => Promise<{ success: boolean; error?: string; pendingApproval?: boolean }>;
   resendOtp: () => Promise<void>;
@@ -678,6 +679,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [isSuspended, setIsSuspended] = useState(false);
   const [pendingUser, setPendingUser] = useState<Partial<User> | null>(null);
   const [pendingResetUser, setPendingResetUser] = useState<User | null>(null);
+  // The emailed reset code, already checked on the server, kept until the new password is sent with it
+  const [pendingResetCode, setPendingResetCode] = useState('');
   const [otpSession, setOtpSession] = useState<OtpSession | null>(null);
   const [spaces, setSpaces] = useState<Space[]>(() => {
     let customSpaces: Space[] = [];
@@ -2172,10 +2175,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      // HR admins withdraw directly; team members pay through the policy-checked spend endpoint
-      const res = currentUser?.role === 'organization'
-        ? await withdrawCompanyWalletApi(targetCompId, amount, { description, referenceId: idempotencyKey })
-        : await spendCompanyWalletApi(targetCompId, amount, { description, referenceId: idempotencyKey });
+      const res = await withdrawCompanyWalletApi(targetCompId, amount, { description, referenceId: idempotencyKey });
       if (!res.success) {
         const msg = res.error || 'Insufficient corporate wallet balance or withdrawal failed';
         showToast(msg, 'error');
@@ -2188,8 +2188,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setCompanyData((prev: any) => prev ? { ...prev, balance: newBal } : { id: targetCompId, balance: newBal });
       }
       showToast(`SAR ${amount.toLocaleString()} debited from corporate shared wallet`, 'success');
-      // Team members' remaining monthly allowance changed too
-      if (currentUser?.role !== 'organization') fetchCompanyWallet(targetCompId).catch(() => { });
       return { success: true, message: 'Withdrawal successful', balance: newBal };
     } catch (err: any) {
       const msg = err.message || 'Failed to debit corporate wallet';
@@ -3628,7 +3626,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         role: user.role,
         userId: apiRes.userId,
         backendSynced: true,
-        devOtp: apiRes.devOtp || (isAdminAccount ? '123456' : undefined),
+        devOtp: apiRes.devOtp,
       };
       setOtpSession(session);
       navigate('otp-verify');
@@ -3764,28 +3762,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return { success: true, message: apiRes.message };
   };
 
-  const requestForgotPasswordOtp = (email: string) => {
+  const requestForgotPasswordOtp = async (email: string): Promise<{ success: boolean; error?: string }> => {
     const cleanEmail = email.trim().toLowerCase();
-    let user = users.find(u => u.email.toLowerCase() === cleanEmail || u.username?.toLowerCase() === cleanEmail);
-    if (!user) {
-      user = INITIAL_USERS.find(u => u.email.toLowerCase() === cleanEmail || u.username?.toLowerCase() === cleanEmail);
-    }
-    if (!user) {
-      return { success: false, error: 'No account found with this email address. Please check and try again.' };
-    }
-    if (user.isBlocked) {
-      return { success: false, error: 'This account has been suspended. Please contact support.' };
-    }
-
-    const session: OtpSession = {
-      user,
-      targetEmailOrPhone: user.email || email,
-      mode: 'forgot-password',
-      role: user.role,
+    // The server answers the same way whether or not the account exists, so this screen cannot reveal who is registered
+    const res = await forgotPasswordApi(cleanEmail);
+    if (!res.success) return { success: false, error: res.error };
+    const stub: User = {
+      id: '',
+      name: '',
+      email: cleanEmail,
+      password: '',
+      role: 'individual',
+      phone: '',
+      avatar: '',
+      isBlocked: false,
+      joinDate: new Date().toISOString().split('T')[0],
+      loyaltyPoints: 0,
     };
-    setOtpSession(session);
+    setOtpSession({ user: stub, targetEmailOrPhone: cleanEmail, mode: 'forgot-password', role: 'individual' });
     navigate('otp-verify');
-    showToast(`Verification code sent to ${user.email}`, 'info');
+    showToast(res.message || `If an account exists for ${cleanEmail}, a reset code has been sent to it.`, 'info');
     return { success: true };
   };
 
@@ -3867,7 +3863,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     if (otpSession.mode === 'forgot-password') {
       const user = otpSession.user;
+      const checked = await verifyResetCodeApi(user.email, cleanCode);
+      if (!checked.success) {
+        return { success: false, error: checked.error || 'Invalid or expired verification code.' };
+      }
       setPendingResetUser(user);
+      setPendingResetCode(cleanCode);
       setOtpSession(null);
       navigate('reset-password');
       showToast('Identity verified. Please set your new password.', 'success');
@@ -3979,30 +3980,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (apiRes.userId || apiRes.devOtp) {
         setOtpSession(prev => prev ? { ...prev, userId: apiRes.userId || prev.userId, devOtp: apiRes.devOtp } : null);
       }
+    } else if (otpSession.mode === 'forgot-password') {
+      await forgotPasswordApi(otpSession.user.email);
     }
     showToast(`New verification code sent to ${otpSession.targetEmailOrPhone}`, 'info');
   };
 
-  const resetPassword = (newPassword: string) => {
-    if (!pendingResetUser) {
+  const resetPassword = async (newPassword: string): Promise<{ success: boolean; error?: string }> => {
+    if (!pendingResetUser || !pendingResetCode) {
       return { success: false, error: 'No active password reset session. Please request a verification code again.' };
     }
-    if (!newPassword || newPassword.length < 6) {
-      return { success: false, error: 'Password must be at least 6 characters long.' };
+    if (!newPassword || newPassword.length < 8) {
+      return { success: false, error: 'Password must be at least 8 characters long.' };
     }
-    const updatedUser: User = {
-      ...pendingResetUser,
-      password: newPassword,
-    };
-    const updatedUsers = users.some(u => u.id === updatedUser.id)
-      ? users.map(u => u.id === updatedUser.id ? updatedUser : u)
-      : [...users, updatedUser];
-
-    setUsers(updatedUsers);
+    const res = await resetPasswordApi(pendingResetUser.email, pendingResetCode, newPassword);
+    if (!res.success) return { success: false, error: res.error };
     setPendingResetUser(null);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('cp_users', JSON.stringify(updatedUsers));
-    }
+    setPendingResetCode('');
     navigate('login');
     showToast('Password updated successfully! Please sign in with your new password.', 'success');
     return { success: true };
@@ -4208,19 +4202,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     (async () => {
       try {
-        let storedToken = getStoredToken();
-        if (!storedToken && currentUser?.email) {
-          try {
-            const lRes = await loginUserApi({ email: currentUser.email, password: currentUser.password || 'password' });
-            if (lRes.success && lRes.userId) {
-              const vRes = await verifyLoginApi({ userId: lRes.userId, code: '123456' });
-              if (vRes.token) {
-                storedToken = vRes.token;
-                if (typeof window !== 'undefined') localStorage.setItem('cp_token', vRes.token);
-              }
-            }
-          } catch (_) { }
-        }
+        const storedToken = getStoredToken();
 
         let currentPartners = partners;
         if (currentPartners.length === 0) {
@@ -4568,19 +4550,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     (async () => {
       try {
-        let storedToken = getStoredToken();
-        if (!storedToken && currentUser?.email) {
-          try {
-            const lRes = await loginUserApi({ email: currentUser.email, password: currentUser.password || 'password' });
-            if (lRes.success && lRes.userId) {
-              const vRes = await verifyLoginApi({ userId: lRes.userId, code: '123456' });
-              if (vRes.token) {
-                storedToken = vRes.token;
-                if (typeof window !== 'undefined') localStorage.setItem('cp_token', vRes.token);
-              }
-            }
-          } catch (_) { }
-        }
+        const storedToken = getStoredToken();
         if (storedToken) {
           // deleteWorkspace shows the success or the error message itself
           const res = await deleteWorkspace(id);
@@ -4751,11 +4721,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     // A wallet-paid booking that the server rejects must not keep the money: drop the local booking and credit the wallet back
     let persisted = false;
     let compensated = false;
-    // A booking fully paid from the company wallet is tagged with the company, so a refund goes back to that wallet
-    const paidByCompanyId: string | undefined =
-      charge && charge.target === 'company' && charge.amount >= (booking.totalPrice || 0) - 0.01
-        ? currentUser?.companyId || companyData?.id || undefined
-        : undefined;
     const compensate = async (reason: string) => {
       if (compensated || persisted) return;
       compensated = true;
@@ -4767,10 +4732,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (paid.target === 'company') {
           const companyId = currentUser?.companyId || companyData?.id;
           if (companyId) {
-            // Team members get back exactly what their own company-wallet payment took; HR admins re-deposit
-            const res = currentUser?.role === 'organization'
-              ? await depositCompanyWalletApi(companyId, paid.amount, { description: `Refund: ${booking.spaceName} booking could not be confirmed`, referenceId })
-              : await refundCompanySpendApi(companyId, paid.key);
+            const res = await depositCompanyWalletApi(companyId, paid.amount, { description: `Refund: ${booking.spaceName} booking could not be confirmed`, referenceId });
             refunded = res.success;
             if (refunded) fetchCompanyWallet(companyId);
           }
@@ -4954,7 +4916,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 method: 'MADA',
                 paymentFor: 'DIRECT_BOOKING',
                 referenceId: dbBooking.id || newBooking.id,
-                companyId: paidByCompanyId,
               }),
             }).catch(() => { });
           }
@@ -5077,7 +5038,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
                     method: 'MADA',
                     paymentFor: 'HOURLY_BOOKING',
                     referenceId: hbData.id || newBooking.id,
-                    companyId: paidByCompanyId,
                   }),
                 }).catch(() => { });
               }

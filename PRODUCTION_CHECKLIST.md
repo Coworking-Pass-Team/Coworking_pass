@@ -28,11 +28,7 @@ Repository note: this repository is **public**. Anything committed (including `T
 
 ## 2. Sign-in, verification codes and email
 
-- [ ] **blocker** Remove the master verification code `123456`:
-      - `backend/app/api/auth/verify-login/route.ts` and `verify-email/route.ts` (`isMasterCode`)
-      - `backend/app/api/auth/login/route.ts` sends the fixed code `"123456"` and logs it: use the random
-        `generateOtp()` (as `register` does) and stop logging codes.
-      - Frontend `devOtp` hints in `frontend/app/store.tsx`.
+- [ ] **blocker** The shared test code `123456` is accepted only when `ALLOW_MASTER_OTP=true`. Make sure the variable is **unset** on the production backend (it may stay on for the QA services). One-time codes are random, hashed, valid 10 minutes, single use and limited to 5 wrong guesses.
 - [ ] **blocker** Configure real email delivery: verify the sending domain in Resend and set `RESEND_API_KEY` on Render.
       Test sign-up, sign-in and resend-code emails end to end (inbox and spam folder).
 - [ ] **blocker** Implement password reset: there is no backend endpoint yet, and the frontend "Forgot password" only
@@ -75,8 +71,7 @@ Repository note: this repository is **public**. Anything committed (including `T
 - [ ] Company team details: department and team role labels are kept only in the HR admin's browser, and passes are not
       allocated per employee on the server. Store both on the server before companies rely on them. (Team bookings are now
       linked to the named employees, and members cannot leave a company by themselves.)
-- [ ] Team spending policy: members can pay from the company wallet only if the HR admin switches it on with a monthly limit.
-      Review the default (off) and the wording shown to employees before launch, and add spending reports for HR admins.
+- [ ] Company funds for employees: HR admins allocate money from the company wallet into employees' own wallets (equally or chosen amounts). Decide whether allocated money may be withdrawn or refunded to a bank like any other balance, and whether an HR admin needs a "take back" action when an employee leaves.
 - [ ] Rescheduling: the price difference is computed from the new room's rate over the old room's (scaling what was paid).
       Replace it with the real price calculation once pricing moves to the server together with the payment gateway.
 
