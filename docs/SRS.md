@@ -362,7 +362,7 @@ Super Admin  (everything, including other roles' data)
   * Verify a QR scan in under 500 milliseconds.
   * Deposit instant refund amounts into the digital wallet in under 1 second of processing time.
 * **Availability and reliability**
-  * The QA deployment runs the interfaces and servers on **Render** (free plan, deployed from the `develop` branch) with a cloud database on **Neon**. The free plan stops services when its monthly instance-hours run out, so production hosting must be on paid or serverless infrastructure (see `Production_Checklist.md`).
+  * The live QA environment runs the frontend and the backend on **Vercel** (deployed from GitHub; the API runs as serverless functions) with a cloud database on **Neon**. Production needs its own Neon database, a Vercel plan that allows commercial use, and shared storage for the security state now kept in memory (see `Production_Checklist.md`).
   * Availability of at least 99.5% per month.
   * Periodic database backups with the ability to restore in emergencies.
 * **Localization and UX**
@@ -404,4 +404,4 @@ Written after auditing the code on 2026-10-26. Everything above is implemented u
 | Company accounts | Department labels are stored only in the HR administrator's browser; passes are not allocated per employee on the server (team bookings are linked to the named employees, FR-COMP-05); an HR administrator can add a member without that person's consent (join requests exist as the consent-based path); the server accepts a company-plan purchase from an employee account; money allocated to an employee is theirs once credited (there is no "take back" action yet) (FR-COMP-01 to FR-COMP-05). |
 | Cancellation window | Based on the booking owner's role (6 hours for `B2C`, including company employees; 24 hours otherwise), not on who paid. |
 | Security | In-memory login lockout only; no rate limiting elsewhere; CORS is open to all origins; maintenance routes are protected by Super Admin only (`Production_Checklist.md`). |
-| Hosting | The QA deployment is on Render's free plan, which stops when its monthly hours run out. |
+| Hosting | The live QA environment is on Vercel with Neon. The logout token list and the sign-in lockout are kept in each serverless instance's memory, so they are not shared between instances. |

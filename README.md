@@ -11,7 +11,7 @@ A bilingual (Arabic / English) B2B2C platform that aggregates flexible workspace
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
 [![Prisma](https://img.shields.io/badge/Prisma-6-2D3748?logo=prisma&logoColor=white)](https://www.prisma.io)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon-4169E1?logo=postgresql&logoColor=white)](https://neon.tech)
-[![Render](https://img.shields.io/badge/Hosted_on-Render-46E3B7?logo=render&logoColor=black)](https://render.com)
+[![Vercel](https://img.shields.io/badge/Hosted_on-Vercel-000000?logo=vercel&logoColor=white)](https://vercel.com)
 
 </div>
 
@@ -25,8 +25,9 @@ A bilingual (Arabic / English) B2B2C platform that aggregates flexible workspace
 5. [Tech Stack](#tech-stack)
 6. [Project Structure](#project-structure)
 7. [Local Development](#local-development)
-8. [Quality Checks](#quality-checks)
-9. [Documentation](#documentation)
+8. [Deployment](#deployment)
+9. [Quality Checks](#quality-checks)
+10. [Documentation](#documentation)
 
 ---
 
@@ -70,7 +71,7 @@ Saudi Arabia's coworking market is fragmented: every brand sells its own subscri
 | **Authentication** | JWT (24 h) with a logout blacklist, bcrypt password hashing, email OTP, and a database session check (ban / approval status) on every request |
 | **Email** | Resend |
 | **Testing** | Vitest unit tests and 13 API integration suites (`backend/tests`), Playwright browser suites (`frontend/tests`) |
-| **Hosting** | Render (frontend and backend web services) |
+| **Hosting** | Vercel (frontend and backend as two projects; the API runs as serverless functions), database on Neon |
 
 ## Project Structure
 ```text
@@ -132,7 +133,7 @@ cp frontend/.env.example frontend/.env
 | `JWT_SECRET` | backend | Secret used to sign login tokens |
 | `RESEND_API_KEY` | backend | Email delivery. Optional locally: without it, one-time codes are printed in the backend console |
 | `RESEND_FROM_EMAIL` | backend | Sender address, e.g. `Coworking Pass <no-reply@yourdomain.com>` (defaults to Resend's test sender) |
-| `NEXT_PUBLIC_API_URL` | frontend | Backend base URL. When unset, the frontend uses the live Render API (`https://coworking-pass-k49w.onrender.com`); set it to `http://localhost:3001` to use a local backend |
+| `NEXT_PUBLIC_API_URL` | frontend | Backend base URL: the backend's Vercel address in the deployed site, `http://localhost:3001` locally. Always set it; the built-in fallback still points to the old Render address |
 
 ### 3. Install dependencies
 ```bash
@@ -159,6 +160,20 @@ cd backend && npm run dev
 # Terminal 2 - web app on http://localhost:3000
 cd frontend && npm run dev
 ```
+
+## Deployment
+The live QA environment is hosted on **Vercel** with a **Neon PostgreSQL** database.
+
+| Part | Where | Notes |
+| :--- | :--- | :--- |
+| Web app | Vercel project with root directory `frontend/` | Set `NEXT_PUBLIC_API_URL` (the backend's Vercel URL) and `NEXT_PUBLIC_SITE_URL`. |
+| API | Vercel project with root directory `backend/` | Build command `npm run build` (runs `prisma generate`). Route handlers run as serverless functions. Set `DATABASE_URL`, `JWT_SECRET`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `NEXT_PUBLIC_SITE_URL` and the `SUPER_ADMIN_*` variables. |
+| Database | Neon | Use the **pooled** connection string (host containing `-pooler`) so many function instances share connections. Keep QA and production in separate databases. |
+
+Vercel builds a new deployment on every push to the connected branch and a preview for other branches. Schema
+changes reach Neon through the idempotent schema sync that `instrumentation.ts` runs when an instance starts.
+Before the public launch, work through [docs/Production_Checklist.md](docs/Production_Checklist.md), in particular
+moving the in-memory logout list and sign-in lockout to shared storage (serverless instances do not share memory).
 
 ## Quality Checks
 Run these before opening a pull request:

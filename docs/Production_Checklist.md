@@ -1,7 +1,7 @@
 # Production checklist
 
-The site currently runs as a **QA / testing deployment** on Render (frontend `coworking-pass-client`, backend
-`coworking-pass-k49w`, database on Neon), deployed automatically from the `develop` branch. Everything below must be
+The site currently runs as a **QA / testing deployment** on **Vercel** (the frontend and the backend are two Vercel
+projects; the database is on Neon), deployed automatically from GitHub. Everything below must be
 done before the real public launch. Items marked **blocker** must not go live as they are today.
 
 Repository note: this repository is **public**. Anything committed can be read by anyone. The team accounts' emails and password are kept in the git-ignored
@@ -12,7 +12,7 @@ Repository note: this repository is **public**. Anything committed can be read b
 ## 1. Test accounts and test data
 
 - [ ] **blocker** Delete the old public test accounts (every `*@cwp-test.local` user, whose password was published)
-      from the Render/Neon database together with their bookings, wallets, points and notifications, and the partner
+      from the Neon database together with their bookings, wallets, points and notifications, and the partner
       *Test Pending Venues*. Use the admin "delete user" action (it cascades); the old `superadmin@cwp-test.local` cannot
       be deleted that way and needs a reviewed SQL script. Take a Neon backup first.
 - [ ] Decide whether the team accounts (`docs/Accounts.md`), the company *Test Company Ltd*, the partner
@@ -33,9 +33,9 @@ Repository note: this repository is **public**. Anything committed can be read b
 
 - [x] The shared test code `123456` has been removed completely (no switch brings it back). One-time codes are random, hashed, valid 10 minutes, single use and limited to 5 wrong guesses, and are sent by email.
 - [x] Password policy on sign-up and reset: at least 8 characters, a lowercase letter, an uppercase letter, a number and a special character, and no sequential characters (three letters or digits in a row going up or down, such as `123` or `abc`). Both screens show a live checklist and a confirm field.
-- [ ] Remove `ALLOW_MASTER_OTP` from the Render environment if it was set (it no longer does anything).
+- [ ] Do not carry `ALLOW_MASTER_OTP` over to Vercel (it no longer does anything).
 - [ ] **blocker** Configure real email delivery: verify the sending domain in Resend, set `RESEND_API_KEY` and
-      `RESEND_FROM_EMAIL` on Render. With the default sender `onboarding@resend.dev`, Resend delivers only to the Resend
+      `RESEND_FROM_EMAIL` in the Vercel backend project. With the default sender `onboarding@resend.dev`, Resend delivers only to the Resend
       account owner's own address, so the other team members receive no sign-in codes until the domain is verified.
       Test sign-up, sign-in and resend-code emails end to end (inbox and spam folder).
 - [x] Password reset by emailed code (`forgot-password`, `verify-reset-code`, `reset-password`), with expiry and one-time use.
@@ -90,16 +90,21 @@ Repository note: this repository is **public**. Anything committed can be read b
 - [ ] Personal data: privacy policy and terms reviewed for the Saudi Personal Data Protection Law (PDPL); data
       retention, account deletion and data export processes.
 
-## 6. Hosting (Render)
+## 6. Hosting (Vercel)
 
-- [ ] **blocker** The free plan sleeps after ~15 minutes without traffic; the first visitor then waits 30–60 seconds and
-      sign-ins can fail meanwhile. Use paid instances for the frontend and the backend.
-      (An UptimeRobot ping only helps partially: the free plan includes 750 instance hours per month for the whole
-      account, and two services kept awake all month need about 1,490 hours.)
-- [ ] Production services deploy from `main`; keep the QA services on `develop`.
-- [ ] Custom domain with HTTPS; set `NEXT_PUBLIC_SITE_URL` and `NEXT_PUBLIC_API_URL` on the frontend service.
-- [ ] Health check endpoint for the backend and uptime monitoring with alerts.
-- [ ] Error tracking (e.g. Sentry) and log retention.
+- [ ] **blocker** Move the logout token list (`backend/lib/auth/token-blacklist.ts`) and the sign-in lockout
+      (`backend/lib/auth/login-attempts.ts`) out of server memory, into the database or a shared store (for example
+      Upstash Redis). On Vercel every serverless instance has its own memory, so a token revoked at logout can still
+      work on another instance until it expires.
+- [ ] Use Neon's pooled connection string (host containing `-pooler`) for `DATABASE_URL`, and check the function time
+      limit for the heavier routes (`/api/seed`, reports).
+- [ ] Choose a Vercel plan that allows commercial use (the Hobby plan is for personal, non-commercial projects).
+- [ ] Production deploys from `main`; keep QA on a separate Vercel project or environment fed by `develop`, with its
+      own Neon database.
+- [ ] Custom domain with HTTPS; set `NEXT_PUBLIC_SITE_URL` and `NEXT_PUBLIC_API_URL` on the frontend project, and
+      replace the code fallbacks that still point to the old Render addresses (`frontend/services/api.ts`, `frontend/app/store.tsx`, `frontend/lib/spaces-server.ts` and `backend/lib/mailer.ts`).
+- [ ] Uptime monitoring with alerts (add a health check endpoint to the backend).
+- [ ] Error tracking (e.g. Sentry) and log retention (runtime logs are kept only briefly on the lower Vercel plans).
 
 ## 7. Content
 

@@ -26,13 +26,13 @@ import MyBookings from './individual/MyBookings';
 import LoyaltyPage from '@/app/loyalty/page';
 import LegalPage from '@/app/legal/page';
 import ProfileSettings from './individual/ProfileSettings';
-import WaitlistPage from '@/app/WaitlistPage';
+import WaitlistPage from '@/app/Waitlist';
 import MyTickets from './support/MyTickets';
 
 // Organization screens
 import OrgDashboard from './organization/Dashboard';
-import OrgProfile from './organization/OrgProfile';
-import TeamBooking from './organization/TeamBooking';
+import OrgProfile from './organization/ProfileSettings';
+import TeamBooking from './organization/TeamBookingFlow';
 import TeamBookings from './organization/TeamBookings';
 import CompanyTeam from './organization/CompanyTeam';
 
@@ -45,18 +45,18 @@ import ProviderProfileSettings from './provider/ProfileSettings';
 
 // Admin screens
 import AdminDashboard from './admin/Dashboard';
-import SpacesAdmin from './admin/SpacesAdmin';
-import UsersAdmin from './admin/UsersAdmin';
-import BookingsAdmin from './admin/BookingsAdmin';
-import HourlyBookingsAdmin from './admin/HourlyBookingsAdmin';
-import MembershipPlansAdmin from './admin/MembershipPlansAdmin';
-import SubscriptionsAdmin from './admin/SubscriptionsAdmin';
-import PaymentsAdmin from './admin/PaymentsAdmin';
-import PayoutsAdmin from './admin/PayoutsAdmin';
-import LoyaltyProposalsAdmin from './admin/LoyaltyProposalsAdmin';
-import SupportAdmin from './admin/SupportAdmin';
+import SpacesAdmin from './admin/Spaces';
+import UsersAdmin from './admin/Users';
+import BookingsAdmin from './admin/Bookings';
+import HourlyBookingsAdmin from './admin/HourlyBookings';
+import MembershipPlansAdmin from './admin/MembershipPlans';
+import SubscriptionsAdmin from './admin/Subscriptions';
+import PaymentsAdmin from './admin/Payments';
+import PayoutsAdmin from './admin/Payouts';
+import LoyaltyProposalsAdmin from './admin/LoyaltyProposals';
+import SupportAdmin from './admin/Support';
 import Reports from './admin/Reports';
-import AdminSettings from './admin/AdminSettings';
+import AdminSettings from './admin/Settings';
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
