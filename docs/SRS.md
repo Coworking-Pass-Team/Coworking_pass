@@ -26,7 +26,7 @@ A freelancer or student looking for a flexible work seat.
   * **Digital wallet:** prepay a balance, pay quickly with one click, and receive refunds instantly.
   * **Waitlist and auto-booking:** when a space is full, the user sees an availability timer and can enable "auto-booking" so the system books the seat as soon as the current occupant leaves.
   * **Universal Pass:** buy a comprehensive subscription (daily, monthly, yearly) that gives access to the whole partner network while holding one space at a time. Unlimited-booking plans* are subject to the fair-use policy of a maximum of **5 bookings per week**.
-  * **QR verification:** generate a temporary dynamic QR code (TOTP) on their device to be scanned on arrival.
+  * **QR verification:** show the QR code of a booking on their device to be scanned on arrival. The server accepts the check-in only when the person has a current booking at that venue.
   * **Cancellation and refund engine:** cancel a booking or pass within the regulated window and choose an instant wallet refund or a refund to the bank card.
   * **Ticketing and support:** open inquiry or complaint tickets and follow replies with the platform administration.
   * **Loyalty points:** earn points automatically and redeem them for free bookings.
@@ -37,11 +37,21 @@ Companies or teams looking for closed offices, meeting rooms, or remote-work ben
 * **Permissions:** manage company bookings, seats, the organization's shared wallet, and corporate support tickets.
 * **Features**
   * All individual-user features.
-  * **Corporate shared wallet:** top up a central company cash balance (`Company.balance`) that lets company employees use it for bookings directly.
+  * **Corporate shared wallet:** top up a central company cash balance (`Company.balance`). The balance is spent by the HR administrator when booking for the team; employee accounts do not draw on it directly (only `HR_ADMIN` and `SUPER_ADMIN` can use `POST /api/companies/{id}/withdraw`).
   * **B2B bulk Universal Passes:** buy and distribute pass quotas to registered employees (the plan appears as "Unlimited*" but is technically bound by the fair-use rule of a maximum of **5 bookings per week per employee**).
-  * **Employee management and tracking:** a dashboard to monitor employee consumption and their usage of the various branches.
+  * **Team management:** add existing member accounts to the team by email, approve or decline join requests from employees (FR-COMP-02), and remove members (FR-COMP-01). Department and team-role labels are kept only in the HR administrator's browser, and quotas are not yet recorded per employee on the server.
   * **Corporate support tickets:** raise and follow support tickets for the company's subscriptions.
   * **Interface scope:** the organization menu has no "Company Workspaces" page, and its plans are limited to Team Pass and Business Pass.
+
+### C-2. Company Employee (member of a company team)
+A person who works for a company that uses Coworking Pass. **This is not a separate role in the database**: the account is an ordinary Individual (`B2C`) account whose `User.companyId` points to the company (see section 2.1).
+* **Permissions:** everything an Individual can do with their own account, plus a link to their company.
+* **Features**
+  * Sign up under "Organization / B2B → Company employee", entering the HR administrator's email, or ask to join later from the profile page. The HR administrator must approve (FR-COMP-02).
+  * See the "Your company" card (company name, HR contact, team size) and the "Employee" badge, and leave the company at any time.
+  * Individual plans are refused by the server while the account belongs to a company, and the interface tells the employee that passes are arranged by the company. (Known gap: the server only checks for a company link, so it would still accept a company plan from an employee account; only the interface hides it.)
+  * Cannot spend the company wallet, add or remove team members, or see other employees' bookings.
+
 
 ### D. Workspace Partner
 The actual owners or managers of coworking spaces (for example Zamakan, Regus) who joined the Coworking Pass network.
@@ -64,8 +74,60 @@ The platform's top administration (the Coworking Pass team).
   * **User moderation:** suspend any suspicious or abusive account immediately (`isBanned = true`) or lift the suspension, which blocks sign-in and any booking.
   * **Support ticket management:** reply to customer and company tickets and move their status from `OPEN` to `IN_PROGRESS` and `CLOSED`.
   * **Wallet and refund oversight:** monitor deposited balances, execute financial refunds for passes and bookings, and record ledger entries.
-  * **Automated reports and settlements:** manage the monthly payout cycles for partners and transfer their dues.
+  * **Reports and settlements:** manage the monthly payout cycles for partners and transfer their dues (recorded manually; there is no automatic scheduler yet).
   * **Amenity and point-rule approval:** review and accept or reject partner proposals.
+
+### F. Role Model and Permission Hierarchy (RBAC)
+
+**How roles are stored.** The database enum `Role` has five values: `GUEST`, `B2C`, `HR_ADMIN`, `PARTNER_ADMIN`, `SUPER_ADMIN`. `GUEST` is a signed-out visitor and is never stored on an account. The JWT carries the role and every protected route checks it.
+
+**Where company employees fit.** There is **no dedicated employee role**. A company employee is a `B2C` user whose `User.companyId` is set. The company itself is the `Company` table; its HR administrator is the single `HR_ADMIN` user referenced by `Company.hrAdminId` (unique, so one company per HR administrator). The relationship is therefore *role + company link*, not a role of its own:
+
+| Persona | Stored as | Company link |
+| :--- | :--- | :--- |
+| Guest | not stored | none |
+| Individual member | `role = B2C` | `companyId = null` |
+| Company employee | `role = B2C` | `companyId = <company id>` |
+| HR administrator (company owner) | `role = HR_ADMIN` | referenced by `Company.hrAdminId` |
+| Workspace partner | `role = PARTNER_ADMIN` | linked to a `Partner` record by contact email |
+| Super Admin | `role = SUPER_ADMIN` | none |
+
+An employee joins a company in one of two ways: the HR administrator adds an existing member by email, or the employee sends a join request that the HR administrator approves (`CompanyJoinRequest`, FR-COMP-02). Leaving or removal clears `companyId`.
+
+**Hierarchy.** It is not a single ladder. The Super Admin sits above everyone. The Partner and the HR administrator are two separate branches that never see each other's data. The company employee is an Individual with one extra link.
+
+```
+Super Admin  (everything, including other roles' data)
+ ├── Partner (PARTNER_ADMIN)   own venues, rooms, bookings, QR scans, payouts
+ ├── HR administrator (HR_ADMIN)  own company: wallet, team, join requests, team bookings
+ │     └── Company employee (B2C + companyId)   own account + the company link
+ └── Individual member (B2C)  own account only
+       └── Guest  (browse only)
+```
+
+**Permission matrix** (✔ allowed, — not allowed, "own" = only their own records):
+
+| Capability | Guest | Individual | Company employee | HR admin | Partner | Super Admin |
+| :--- | :-: | :-: | :-: | :-: | :-: | :-: |
+| Browse venues and prices | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ |
+| Book rooms and desks, personal wallet, QR code, tickets | — | ✔ own | ✔ own | ✔ own | ✔ own | ✔ |
+| Buy individual (B2C) plans | — | ✔ | — (blocked by the server) | — (blocked: the HR administrator also belongs to the company) | — | ✔ |
+| Buy company plans (Team, Business) | — | — | — in the interface (the server only requires a company link) | ✔ own company | — | ✔ |
+| Top up and spend the company wallet | — | — | — | ✔ own company | — | ✔ |
+| Add or remove team members | — | — | — | ✔ own company | — | ✔ |
+| Approve or decline join requests | — | — | — | ✔ own company | — | ✔ |
+| Ask to join a company / leave it | — | ✔ ask | ✔ leave | — | — | — |
+| See the team's hourly bookings | — | — | own only | ✔ own team | — | ✔ |
+| Cancel or refund a booking | — | ✔ own, inside the window | ✔ own, inside the window | ✔ own, inside the window | — | ✔ any, no window |
+| Create venues, rooms and amenities | — | — | — | — | ✔ own | ✔ all |
+| Scan customers' QR codes | — | — | — | — | ✔ own venues | ✔ |
+| Approve partners, suspend users, reply to tickets, payouts, reports, settings | — | — | — | — | — | ✔ |
+
+**Cancellation window by role.** The server applies the window of the booking **owner's role**: 6 hours when the owner is `B2C` (this includes company employees, even when the company pays), 24 hours otherwise (HR administrators). A Super Admin is not bound by the window. *Open decision:* the business intent is 24 hours for company-funded bookings, which the code does not yet distinguish from an employee's personal booking.
+
+**Enforcement.** Ownership is checked on every booking, payment, wallet and record route (`FR-SEC-01`); suspended accounts (`isBanned`) are refused on every call (`FR-SEC-02`); pending or rejected partners cannot sign in (`FR-AUTH-04`).
+
+
 
 ---
 
@@ -83,13 +145,22 @@ The platform's top administration (the Coworking Pass team).
 * **As an individual,** I want to switch the platform language between Arabic and English with one click, with the direction (RTL/LTR) flipping correctly.
 * **As an individual,** I want to open a support ticket from my dashboard when I face any inquiry or problem, so that I get a documented response from the platform administration.
 * **As an individual (Universal Pass),** I want to buy a Universal Pass and use it to book a seat in a specific space each day so that I can move freely across the branch network.
-* **As an individual (QR entry),** I want to generate a dynamic QR code on my phone, to show to reception and have my entry verified in seconds.
+* **As an individual (QR entry),** I want to open my booking's QR code on my phone, to show to reception and have my entry verified in seconds.
 * **As a customer,** I want to choose the specific room (hall, theater or desk) and see its available sessions, capacity and price before booking.
 
 ### Organization (HR Admin) stories
 * **As an HR manager,** I want to top up the unified corporate wallet (`Company.balance`) so that the company's employees can book spaces without individual payments.
 * **As an HR manager,** I want to buy and assign Universal Passes to my company's employees, follow their consumption and usage statistics, and be able to cancel and refund any pass before its start date.
 * **As an HR manager,** I want to raise corporate support tickets to follow the team's needs directly with the platform officials.
+
+### Company employee stories
+* **As a company employee,** I want to sign up with my company's HR email and have my HR administrator approve me, so that my account is linked to the company without anyone being able to add themselves to it.
+* **As a company employee,** I want to see which company I belong to and leave it when I change jobs.
+* **As an HR manager,** I want to approve or decline employees who ask to join my company, and be told when someone asks or leaves.
+
+### Rescheduling stories (specified, not built)
+* **As an individual or employee,** I want to move a booking to another free slot, once and free of charge, as long as I ask early enough (6 hours before the start, 24 hours for company bookings), so that I do not lose the booking when my plans change.
+* **As an HR manager,** I want to reschedule a team booking paid from the company wallet, with any price difference settled on the company wallet.
 
 ### Workspace partner stories
 * **As a workspace partner,** I want to register my branch with my Saudi commercial registration (CR) and receive an email alert when the platform administration approves my account, so that I can begin offering my seats.
@@ -111,8 +182,8 @@ The platform's top administration (the Coworking Pass team).
 > Note: every requirement carries a unique identifier in the form `[FR-XXX-##]` to make it easy to link to development tasks and test cases.
 
 ### A. User Management and Authentication (Authentication & Moderation)
-* **[FR-AUTH-01]** Sign-in and account creation (individuals, companies, partners) with email verification (OTP), using Resend for transactional messages.
-* **[FR-AUTH-02]** Password recovery through OTP, invalidating previous sessions as soon as the password changes.
+* **[FR-AUTH-01]** Sign-in and account creation (individuals, companies, partners) with email verification (OTP), using Resend for transactional messages. Email delivery depends on the Resend configuration (see `Notifications_and_Emails.md`); the QA build also accepts a fixed test code that must be removed before launch.
+* **[FR-AUTH-02]** Password recovery through OTP, invalidating previous sessions as soon as the password changes. *Status: not implemented.* There is no reset endpoint; the "Forgot password" screen only searches the browser's local user list. Required before launch (`PRODUCTION_CHECKLIST.md`).
 * **[FR-AUTH-03]** Profile and permission management with a strict role-based access control (RBAC) system.
 * **[FR-AUTH-04] Partner commercial-registration approval cycle (Space Partner CR Verification):**
   * *Description:* when a new account is registered with the `PARTNER_ADMIN` role, the system requires the commercial registration (`taxNumber`). The account is created as `PENDING_APPROVAL`.
@@ -129,9 +200,9 @@ The platform's top administration (the Coworking Pass team).
 * **[FR-BOOK-02]** Unified hour packages for meeting rooms and theaters (one category in software and operations) with flexible hours (hours per day or hours per month), precise consumption accounting, the ability to cancel a booking and return unused hours to the package credit, and unified loyalty points earned from them.
 * **[FR-BOOK-03]** Universal Pass support:
   * The fair-use constraint (a seat in one workspace only per session, with free switching).
-  * **Unlimited-booking plans:** plans appear to users and companies as "Unlimited*" and are technically subject to the fair-use policy of a maximum of **5 bookings per week** per active user or employee, to prevent abuse and hoarding of resources.
+  * **Unlimited-booking plans:** plans appear to users and companies as "Unlimited*" and are technically subject to the fair-use policy of a maximum of **5 bookings per week** per active user or employee, to prevent abuse and hoarding of resources. *Status:* the 5-per-week limit is a policy only; neither the server nor the interface enforces it today.
   * A unified monthly hours credit for meeting rooms and theaters (for example 8 hours per month for the monthly plan, 20 hours for the yearly plan, and corporate plans from 10 hours up to unlimited-booking* plans limited to 5 bookings per week), deducted automatically when the QR code is scanned.
-* **[FR-BOOK-04]** A waitlist and auto-booking system, with a 15-minute window to confirm the booking when a seat becomes free.
+* **[FR-BOOK-04]** A waitlist and auto-booking system, with a 15-minute window to confirm the booking when a seat becomes free. *Status:* the 15-minute confirmation window is not implemented; a promoted waitlist entry is confirmed immediately. *Status:* joining the waitlist and promotion when a direct booking is cancelled work on the server; "auto-booking" is currently only a switch held in the browser and does not book automatically.
 * **[FR-BOOK-05] Fixed sessions and operating hours for halls and theaters:**
   * *Description:* halls and theaters are booked in fixed sessions of two hours, separated by a one-hour turnaround, inside the venue's operating hours `openingTime`–`closingTime` (or 24 hours when `is24Hours`), ending no later than 10:00 PM.
   * *Acceptance criteria:* the server rejects (HTTP 400) any hourly booking outside operating hours or with a duration other than two hours, and rejects hourly booking of individual desks. The interface shows only valid sessions.
@@ -146,13 +217,36 @@ The platform's top administration (the Coworking Pass team).
   * *Acceptance criteria:* the number of team seats does not exceed the selected room's capacity, and the booking carries the room's `sectionId` through `POST /api/hourly-bookings` and `POST /api/direct-bookings`, with capacity applied per room in a multi-room hub.
 * **[FR-HUB-03] Mixed cart and combined checkout:** a hall and a theater by the hour and a daily office can be booked in a single checkout. Each item is saved according to its own plan (hourly, or direct daily/monthly/yearly), and a daily booking is not subject to the operating-hours rules that apply to sessions.
 
+* **[FR-BOOK-07] Booking rescheduling (Reschedule):**
+  * *Current status:* **not supported.** There is no "reschedule" action in the interface and no endpoint for it. Today a user can only cancel (within the cancellation window, FR-REFUND-01) and book again. The generic `PUT /api/direct-bookings/{id}` still accepts `bookingDate`, `workspaceId` and `sectionId` from the booking owner without any window, capacity or price check; it must be restricted when this requirement is built (see the rules below).
+  * *Description:* let the booking owner move a not-yet-started booking to another free slot instead of cancelling it, under these business rules:
+    1. **Eligible bookings:** an active hourly session (meeting room or theater) or a confirmed direct booking (daily; monthly or yearly seat only before it starts). Not eligible: started, completed, cancelled, refunded or waitlisted bookings (a waitlist entry is cancelled and re-joined), and Universal Pass subscriptions themselves.
+    2. **Notice period (same as cancellation):** the request must be made at least **6 hours** before the original start for an individual account and **24 hours** for an HR administrator and for company-funded bookings. A Super Admin may override.
+    3. **New slot:** it must start at least the same notice period from now, fall inside the venue's operating hours and the fixed two-hour session grid (FR-BOOK-05), stay within 30 days after the original date, and pass the same capacity and overlap checks as a new booking (FR-BOOK-06). Same venue and same room type; another room of that venue is allowed.
+    4. **Limit:** one free reschedule per booking. Further changes are done by cancelling (if still inside the window) and booking again.
+    5. **Price:** same room and duration means no charge. If the new room or date costs more, the difference (with VAT) is charged to the wallet that paid; if it costs less, the difference is refunded to that wallet. If a pass covered the hours, the hours return to the original month's quota and are deducted from the new date's quota, and any excess is charged at the hourly rate.
+    6. **Approval:** none. The change is instant when the slot is free; the venue partner is told. A company employee does not need HR approval for a company-funded booking, but the HR administrator is notified. The HR administrator may reschedule any booking paid from the company wallet.
+    7. **Atomicity:** the old slot release, the new slot reservation, the booking update and any price difference run in one database transaction. The released slot is offered to the waitlist (FR-BOOK-04). The booking keeps its identifier, so its QR code stays valid, but only for the new slot.
+    8. **Refusals:** the server answers HTTP 400 with a reason code: `RESCHEDULE_WINDOW`, `SLOT_UNAVAILABLE`, `RESCHEDULE_LIMIT` or `NOT_ELIGIBLE`.
+    9. **Records and messages:** keep the original slot and a reschedule counter on the booking; send an in-app message and an email to the owner, an in-app message to the partner, and one to the HR administrator for company-funded bookings.
+  * *Acceptance criteria:* a booking inside the notice period cannot be moved; a booking outside it can be moved once to a free slot and the old slot becomes bookable at once; the price difference is settled exactly once even if the request is repeated; two users cannot take the same new slot; every refusal shows a clear Arabic or English reason.
+
+* **[FR-COMP-01] Company team stored on the server:**
+  * *Description:* the HR administrator adds an existing `B2C` account to the team by email (`POST /api/companies/{id}/employees`) and removes members (`DELETE /api/companies/{id}/employees/{userId}`). A member can also leave on their own. The HR administrator account cannot be removed.
+  * *Acceptance criteria:* only the company's HR administrator (or a Super Admin) manages the team; accounts that are not `B2C`, are suspended, or already belong to another company are refused; the affected person (and the HR administrator when a member leaves) gets an in-app notification.
+* **[FR-COMP-02] Company join requests:**
+  * *Description:* a person can sign up as a **Company employee** by entering the HR administrator's email, or an existing member can ask to join from the profile page. A `CompanyJoinRequest` (`PENDING`, `APPROVED`, `DECLINED`, `CANCELLED`) is created; for a new sign-up the HR administrator is notified only after the employee verifies their email. The HR administrator approves or declines from the team page or the dashboard (`GET/POST /api/company-join-requests`, `PATCH /api/company-join-requests/{id}`); the employee can withdraw a pending request (`DELETE`).
+  * *Acceptance criteria:* one pending request per person; approval sets `User.companyId` and cancels the person's other pending requests; the employee is notified of the decision and sees the company on the next load without signing in again. A sign-up never accepts a raw company identifier from the browser.
+* **[FR-COMP-03] Company membership display:** members see the company name, HR contact and team size on the dashboard and profile, an "Employee" badge in the header, and a notice that passes are arranged by the company.
+
+
 ### C. Booking Lifecycle
 * **[FR-LIFE-01]** Check-in by scanning the QR code, with the entry recorded in `QR_CHECK_INS`.
 * **[FR-LIFE-02]** Automatic check-out at the end of the workday, updating the booking to `COMPLETED` and notifying the waitlist.
 
 ### D. Financial Operations, Wallets and Refunds
 * **[FR-PAY-01]** Mock payment gateway simulation with support for Mada, Visa, MasterCard and Apple Pay cards.
-* **[FR-PAY-02]** Automated partner financial settlements (Payouts) on the first day of each month, based on confirmed visits.
+* **[FR-PAY-02]** Partner financial settlements (Payouts) based on confirmed visits. *Status:* the Super Admin records and marks payouts through `POST /api/payouts`; there is no scheduler that creates them automatically on the first day of each month yet.
 * **[FR-WALLET-01] Digital wallets and shared balance:**
   * *Description:* provide an independent digital wallet for each individual user (`Wallet`) and a unified corporate balance for each company (`Company.balance`).
   * *Acceptance criteria:* the user can top up their wallet and use its balance for bookings and packages. All operations are recorded in `WALLET_TRANSACTIONS` (and for companies in `COMPANY_WALLET_TRANSACTIONS`) and calculated accurately with the instant balance `balance_after` updated.
@@ -172,7 +266,7 @@ The platform's top administration (the Coworking Pass team).
   * *72-hour pass policy:* a pass refund is available only within 72 hours of purchase and only with `visitsUsed == 0`; the request is rejected afterwards with a message explaining why.
 
 ### E. Verification System (QR Code)
-* **[FR-QR-01]** Generate a time-varying dynamic QR code (TOTP) that renews every 30 seconds to prevent forgery.
+* **[FR-QR-01]** Generate a QR code for each booking. *Status:* the code is a fixed verification link carrying the booking, venue and user identifiers; it does **not** change every 30 seconds. Forgery is limited by the server check that the person has a current booking at that venue (`NO_ACTIVE_BOOKING` otherwise) and that only the owning partner or a Super Admin can record a check-in for someone else. A rotating one-time code (TOTP) is a planned hardening, not built, and no fraud-attempt log exists yet.
 * **[FR-QR-02]** A quick check interface for reception staff that confirms a booking's validity in under 500 milliseconds.
 
 ### F. Amenities, Tickets and Notifications
@@ -181,29 +275,25 @@ The platform's top administration (the Coworking Pass team).
   * *Description:* enable users and companies to create support tickets (`Ticket`) and follow replies (`TicketReply`).
   * *Acceptance criteria:* track the ticket lifecycle through its three states (`OPEN`, `IN_PROGRESS`, `CLOSED`). Replies are saved in `TicketReply` and shown as a conversation in the admin panel, and the admin can reply even to a closed ticket. A ticket carries `message`, `category` (general / complaint / refund / enterprise) and `priority`, and the company is resolved on the server from the requester's record.
   * *Enterprise inquiries:* the `enterprise` category is supported for tailored-offer requests; such a ticket reaches the administrators as an in-app notification (type `SUPPORT_TICKET`) and appears in a separate tab.
-* **[FR-NOTIF-01]** Send automatic notifications by email (Resend) and in-app for the various key events.
+* **[FR-NOTIF-01]** In-app notifications for the key events and four transactional emails through Resend. The complete matrix (trigger, sender, recipient, channel and working status of every message) is in **`Notifications_and_Emails.md`**. Summary of what exists today:
 
-**Notification table**
+| Event | Channel | Recipient | Status |
+| :--- | :--- | :--- | :--- |
+| Sign-up and sign-in verification code | Email | User | Sends; real delivery needs a verified Resend domain; the QA build also accepts a fixed test code |
+| New partner application | In-app | Super Admin | Working |
+| Partner approved | Email + in-app | Partner | Working (email depends on Resend) |
+| Partner rejected with the reason | Email | Partner | Working (email depends on Resend) |
+| Booking confirmed (desk, hall, theater) | In-app | Booking owner | Working (no email) |
+| Booking cancelled; refund to wallet; pass refunded | In-app | Booking or pass owner | Working (no email) |
+| Waitlist joined / promoted | In-app | User | Working |
+| Payment recorded | In-app | Payer | Working (payments are simulated until a real gateway is added) |
+| New support ticket (including enterprise) | In-app | Super Admin | Working |
+| Support reply | In-app | Ticket owner | Working (no email) |
+| Team: added, removed, left, join request, decision | In-app | Employee or HR administrator | Working |
+| Loyalty points earned; checkout finished; amenity decisions | In-app (created by the browser) | User / Partner | Working |
 
-| Event | Channel | Recipient |
-| :--- | :--- | :--- |
-| Account creation and email verification (OTP) | Email | User / Partner |
-| New partner application (under review) | Email | Partner |
-| Partner account approved and activated | Email | Partner |
-| Partner application rejected with the reason | Email | Partner |
-| Booking confirmation (desk / theater / hall) | Email + in-app | User |
-| Universal Pass or hour package purchase confirmation | Email + in-app | User |
-| Promotion from the waitlist | Email + in-app | User |
-| Booking or package cancellation and refund (Wallet/Card) | Email + in-app | User |
-| Digital wallet deposit | In-app | User |
-| Payment success / failure | Email + in-app | User |
-| New reply on a support ticket | In-app + email | User / Company |
-| New support ticket (including the enterprise category) | In-app | Super Admin |
-| Loyalty points earned / redeemed | In-app | User |
-| Subscription about to expire (7 days before) | Email + in-app | User |
-| Pass assigned by the company | Email + in-app | Employee |
-| Monthly financial settlement completed | Email | Partner |
-| Amenity or point rule accepted / rejected | In-app | Partner |
+*Not implemented yet:* booking and purchase confirmation emails, pass-expiry reminder (7 days), payment-failure notice, wallet-deposit notice, partner notice of new bookings, monthly settlement notice, pass-assigned notice, and password-recovery email.
+
 
 ### G. Internationalization
 * **[FR-I18N-01] Dual-language engine and direction:**
@@ -223,6 +313,9 @@ The platform's top administration (the Coworking Pass team).
 * **[FR-SEC-04] Hidden spaces:** a space with `isVisible = false` has neither its data returned nor its bookings accepted except for the Super Admin and its owning partner.
 * **[FR-SEC-05] Session lifetime:** a JWT is valid for 24 hours and is revoked on logout.
 
+* **[FR-SEC-06] Sign-in lockout:** after 5 failed password attempts for the same email within 15 minutes, further sign-in attempts for that email are refused until the window passes. The counter is kept in server memory, so it resets on every restart and is not shared between instances. Rate limiting for verification codes, wallet, booking and ticket routes does not exist yet.
+
+
 ### I. Open API Documentation (OpenAPI Documentation)
 * **[FR-API-01] Interactive documentation of the open API:**
   * *Description:* provide an interactive Swagger UI at `/api-doc`.
@@ -235,7 +328,7 @@ The platform's top administration (the Coworking Pass team).
   * Password hashing with `bcryptjs`.
   * API routes authenticated with `JWT` and role checks (RBAC) applied.
   * Check the `isBanned` status and the partner `ApprovalStatus` on every sign-in and API call.
-  * QR code security through encrypted dynamic time-based codes (TOTP).
+  * QR check-in security: accepted only for a current booking at that venue and recorded only by the person themselves, the owning partner or a Super Admin. Rotating time-based codes (TOTP) are planned, not built.
   * OTP protection and hashing, with a validity of at most 10 minutes.
   * **Financial operation integrity:** wallet deductions are atomic and conditional on balance inside database transactions, with idempotency keys and automatic payment rollback when a booking fails.
   * **Server-side validation:** operating hours, fixed sessions, capacity and time overlap are enforced on the server even if the interface bypasses its own restrictions.
@@ -244,7 +337,7 @@ The platform's top administration (the Coworking Pass team).
   * Verify a QR scan in under 500 milliseconds.
   * Deposit instant refund amounts into the digital wallet in under 1 second of processing time.
 * **Availability and reliability**
-  * Fully cloud hosting of the interfaces and servers on **Render**, and a cloud database on **Neon**.
+  * The QA deployment runs the interfaces and servers on **Render** (free plan, deployed from the `develop` branch) with a cloud database on **Neon**. The free plan stops services when its monthly instance-hours run out, so production hosting must be on paid or serverless infrastructure (see `PRODUCTION_CHECKLIST.md`).
   * Availability of at least 99.5% per month.
   * Periodic database backups with the ability to restore in emergencies.
 * **Localization and UX**
@@ -260,5 +353,27 @@ The platform's top administration (the Coworking Pass team).
 1. **Landing and exploration:** visit the platform and browse spaces and amenities through the application interfaces.
 2. **Booking:** choose the required section and room (a shared desk, a meeting room with flexible hours, or a theater).
 3. **Payment and wallet:** complete payment by bank card or from the prepaid digital wallet.
-4. **Field access:** show the dynamic QR code to reception and be verified within seconds.
+4. **Field access:** show the booking's QR code to reception and be verified within seconds.
 5. **Flexibility and cancellation:** cancel an eligible booking or package and get the money back instantly in the wallet, or raise a support ticket to follow any inquiry.
+
+---
+
+## 7. Known Gaps Between This Specification and the Current Build
+
+Written after auditing the code on 2026-10-26. Everything above is implemented unless a requirement carries a *Status* note. The items below are specified but missing, simulated or only partly built:
+
+| Area | Gap |
+| :--- | :--- |
+| Authentication | Password recovery has no backend (FR-AUTH-02). A fixed test code `123456` is accepted at sign-up and sign-in verification and is the only sign-in code the server sends. |
+| Email | Only four emails exist and real delivery needs a verified Resend domain (`Notifications_and_Emails.md`). Emails are English only. |
+| Notifications | Missing: booking and pass purchase confirmations, expiry reminder, payment failure, wallet deposit, partner "new booking", settlement notice (`Notifications_and_Emails.md`, section 6). |
+| Payments | No real gateway; payments and wallet top-ups are simulated and recorded from the browser (FR-PAY-01). |
+| Partner settlements | Payouts are recorded manually by the Super Admin; no monthly scheduler (FR-PAY-02). |
+| Fair use | The 5-bookings-per-week limit is not enforced (FR-BOOK-03). |
+| Waitlist | No 15-minute confirmation window; auto-booking is a browser-only switch (FR-BOOK-04). |
+| QR check-in | The QR code is static, not a rotating TOTP code; no fraud log (FR-QR-01). |
+| Rescheduling | Not supported (FR-BOOK-07). The open `PUT /api/direct-bookings/{id}` accepts date and room changes without validation. |
+| Company accounts | Department labels are stored only in the HR administrator's browser; passes and team bookings are not linked to individual employees on the server; an HR administrator can add a member without that person's consent (join requests exist as the consent-based path); the server accepts a company-plan purchase from an employee account (FR-COMP-01 to FR-COMP-03). |
+| Cancellation window | Based on the booking owner's role (6 hours for `B2C`, including company employees; 24 hours otherwise), not on who paid. |
+| Security | In-memory login lockout only; no rate limiting elsewhere; CORS is open to all origins; maintenance routes are protected by Super Admin only (`PRODUCTION_CHECKLIST.md`). |
+| Hosting | The QA deployment is on Render's free plan, which stops when its monthly hours run out. |

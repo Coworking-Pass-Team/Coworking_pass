@@ -34,7 +34,7 @@ stateDiagram-v2
 ### Scenario A: QR code scan fails at entry
 * **Problem:** the customer has an active booking, but the reception device does not read the code, or an "invalid code" message appears.
 * **Procedure (SOP)**
-  1. Ask the customer to refresh the page to make sure a new, unexpired code (TOTP) is generated.
+  1. Check that the booking is for this venue and for the current day and time: the check-in is refused with "No active booking for this space right now" otherwise.
   2. If the problem persists, reception staff search for the customer's name or email manually in the "partner dashboard" and confirm their attendance.
   3. Reception staff or the customer raise a support ticket to verify time synchronization (Time Sync) on the servers.
 

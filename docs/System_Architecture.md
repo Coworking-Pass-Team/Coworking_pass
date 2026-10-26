@@ -5,11 +5,11 @@ This document describes the platform's technical architecture, the data flow bet
 ## 1. Tech Stack
 - **Frontend:** a **Next.js 16** application (App Router, Turbopack) with **React 19**, **TypeScript**, **Tailwind CSS 4** and Lucide icons, using the **Tajawal** font through `next/font` for Arabic text.
 - **Backend API:** routes built with **Next.js Route Handlers** (`app/api/**/route.ts`) on Node.js with TypeScript, talking to the database through Prisma. (There is no separate Express server.)
-- **Hosting:** both the frontend and the backend are hosted on **Render** as cloud web services.
+- **Hosting:** the QA deployment runs both the frontend and the backend on **Render** (free plan, built from the `develop` branch). The free plan stops services when its monthly instance-hours are used up, so production hosting must be paid or serverless (see `PRODUCTION_CHECKLIST.md`).
 - **Database:** **Neon PostgreSQL** — a serverless cloud relational database suited to financial and booking systems.
 - **ORM:** Prisma ORM v6 for database access and programmatic migrations.
-- **Authentication and security:** JWT (JSON Web Tokens) valid for 24 hours with a revocation list on logout and a database ban check on every request, password hashing with bcryptjs, role-based access control (RBAC), one-time dynamic code verification (TOTP), and an international country-code picker with a standard phone-validation library (E.164 format) instead of a fixed Saudi regular expression.
-- **Transactional email:** the **Resend API** for one-time verification codes (OTP), booking confirmation notifications, and partner approval or rejection notices (CR verification).
+- **Authentication and security:** JWT (JSON Web Tokens) valid for 24 hours with a revocation list on logout and a database ban check on every request, password hashing with bcryptjs, role-based access control (RBAC), one-time email codes (OTP) for sign-up and sign-in, and an international country-code picker with a standard phone-validation library (E.164 format) instead of a fixed Saudi regular expression.
+- **Transactional email:** the **Resend API** sends four emails only: the sign-up and sign-in verification codes and the partner approval and rejection notices. Everything else is an in-app notification. The sender is still Resend's test address, so real delivery needs a verified domain. Full list in `Notifications_and_Emails.md`.
 - **Internationalization (i18n):** JSON translation dictionaries (`ar` / `en`) with a strict type, a language provider (`I18nProvider`) and a system-message layer; see section 5.
 - **Open API documentation:** full interactive OpenAPI 3.0 documentation through **Swagger UI** at `/api-doc`.
 
@@ -37,7 +37,7 @@ graph TD
         API_Loyalty["Loyalty & Amenities Catalog"]
         API_Hub["Hubs, Rooms/Sections & Slot Availability"]
         API_Guard["RBAC, Ownership & Suspension Guard"]
-        API_QR["QR Verification & TOTP"]
+        API_QR["QR Verification"]
         API_Docs["Live API docs (/api-doc Swagger UI)"]
     end
 
@@ -66,7 +66,7 @@ graph TD
 
     API_Billing -->|Process Transactions| Ext_Payment
     API_Auth -->|Send OTP & Approval Emails| Ext_Email
-    API_Tickets -->|Send Status Notifications| Ext_Email
+    API_Tickets -->|In-app notifications only| DB
 ```
 
 ---
@@ -106,6 +106,17 @@ graph TD
      - **Digital wallet:** the amount is added immediately to the user's wallet with no delay, and a movement is recorded in the wallet ledger.
      - **Bank card:** a refund request goes to the payment gateway and takes 5 to 14 business days.
 
+### B-2. Company Team, Join Requests and Roles
+A company employee is **not a separate role**: the account is `B2C` with `User.companyId` set, and the HR administrator is the `HR_ADMIN` user in `Company.hrAdminId` (one company per HR administrator). Full role model and permission matrix: `SRS.md`, section 2.F.
+
+1. **Employee sign-up:** under "Organization / B2B → Company employee" the person creates their own `B2C` account and enters the HR administrator's email. The browser never sends a company identifier.
+2. **Request:** the server finds the company by the HR email and records a `CompanyJoinRequest` (`PENDING`). After the employee verifies their email, the HR administrator receives an in-app notification (`lib/company-join.ts`).
+3. **Decision:** the HR administrator approves or declines (`PATCH /api/company-join-requests/{id}`). Approval sets `User.companyId` in one transaction and cancels the person's other pending requests; the employee is notified and sees the company on the next load.
+4. **Alternative:** the HR administrator adds an existing member by email (`POST /api/companies/{id}/employees`); this also settles that member's pending requests.
+5. **Leaving:** a member can leave, or the HR administrator removes them (`DELETE /api/companies/{id}/employees/{userId}`); the HR administrator account itself cannot be removed.
+6. **Money:** only the HR administrator (or Super Admin) can deposit to or spend the company wallet, through idempotent, ledgered calls.
+
+
 ### C. Support Ticketing Lifecycle
 1. A customer or HR administrator opens a new support ticket (`Ticket`) with a subject, description and category (general / complaint / refund / enterprise). The company is resolved on the server from the requester's record, not from a value sent by the browser.
 2. The ticket is recorded as `OPEN` and immediately appears in the Super Admin dashboard, and every administrator receives an in-app notification (`SUPPORT_TICKET`).
@@ -114,11 +125,11 @@ graph TD
 5. When the problem is solved and the customer is satisfied, the ticket status changes to `CLOSED`.
 
 ### D. QR Scanning and Security Verification (QR Check-in Flow)
-1. The system creates a temporary, protected dynamic QR code based on TOTP, tied to the booking number or Universal Pass.
+1. The booking shows a QR code that carries a verification link with the booking, venue and user identifiers. The code does not rotate (a time-based one-time code is a planned hardening).
 2. Reception staff scan the code with a tablet or phone.
 3. The request goes to the verification endpoint in the backend:
    - **Valid:** the entry is recorded in the `QR_CHECK_INS` table, and hours are deducted if the booking is for a meeting room or theater.
-   - **Invalid or expired:** entry is refused immediately and recorded as a `FRAUD_ATTEMPT` in the security logs.
+   - **No current booking at that venue:** entry is refused with `NO_ACTIVE_BOOKING` and nothing is recorded. Only the person themselves, the owning partner or a Super Admin can record a check-in. (A separate fraud-attempt log does not exist yet.)
 
 ### E. Account Suspension Flow
 1. The administrator enables the ban (`isBanned = true`); it is stored in the database and the temporary ban cache is invalidated immediately.
@@ -127,9 +138,16 @@ graph TD
 
 ---
 
+### F. Notifications and Email
+The server writes in-app notifications inside the route that performs the action (best effort, never blocking it); the browser creates a few more and saves them through `POST /api/notifications`. Email goes through `lib/mailer.ts` and covers verification codes and partner decisions only. The complete matrix of triggers, senders, recipients and working status, including what is promised but not yet built, is in `Notifications_and_Emails.md`.
+
+### G. Booking Rescheduling (specified, not built)
+Booking rescheduling is not supported today. Its rules (eligibility, notice period, one free change, price difference, atomic transaction, notifications) are defined in `SRS.md` FR-BOOK-07 and `PRD.md` section 14.1.
+
+
 ## 4. Hosting and Data Localization (Hosting & Deployment)
-* **Frontend and backend:** fully hosted on **Render** as unified cloud web services that combine the Next.js interfaces and the API servers for stable performance and easy management.
-* **Database:** hosted on **Neon Tech** (serverless PostgreSQL) with automated backups, high performance and instant scalability.
+* **Frontend and backend:** the QA deployment is on **Render** (free plan). Production hosting is still to be decided and must not use the free instance-hours plan.
+* **Database:** **Neon PostgreSQL**. Schema changes reach it through the idempotent startup sync in `backend/lib/db-schema-sync.ts` (not `prisma migrate deploy`). QA and production must use separate databases.
 * **Email API:** integrated with **Resend** to ensure immediate delivery of email without landing in the spam folder.
 * **Deployment management (CI/CD):** automatic linking of the GitHub repository so updates are deployed once reviewed and confirmed stable.
 
