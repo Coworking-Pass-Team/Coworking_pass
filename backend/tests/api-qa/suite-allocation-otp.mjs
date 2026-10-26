@@ -1,7 +1,7 @@
 // HR admin allocates company money into team members' own wallets (atomic, audited, idempotent, hidden from
 // employees), and the one-time-code / password-reset flows (random codes, expiry, attempt limit, single use).
-// The server under test is started with ALLOW_MASTER_OTP=true (see .claude/launch.json); the codes that are
-// checked below are written into the database with a known hash, so the master code is never needed for them.
+// There is no shared test code: the codes that are checked below are written into the database with a known hash.
+// The password policy (length, character kinds, no sequential characters) is checked on sign-up and reset too.
 import bcrypt from 'bcryptjs';
 import { api, db, makeUser, check, summary } from './lib.mjs';
 await db.connect();
@@ -140,9 +140,31 @@ check('an expired code is refused', (await verify(KNOWN)).status === 400);
 await plant(u.userId, 'LOGIN');
 check('a code with letters or the wrong length is refused', (await verify('12ab56')).status === 400 && (await verify('12345')).status === 400);
 
+console.log('\n## Password policy on sign-up');
+{
+  const weak = async (password) => api('/auth/register', { method: 'POST', body: { name: 'QA weak', email: `qa.weak.${run}.${Math.random().toString(36).slice(2, 7)}@test.local`, password, role: 'B2C' } });
+  const cases = {
+    'too short': 'Ab#4gT',
+    'no lowercase': 'ABCDEFG#9X',
+    'no uppercase': 'qwertyu#9x',
+    'no number': 'Qwerty#Pass',
+    'no special character': 'Qwerty9Pass',
+    'ascending digits (123)': 'Pass#Word123',
+    'descending digits (987)': 'Pass#Word987',
+    'ascending letters (abc)': 'Pass#Abc8040',
+    'descending letters (cba)': 'Pass#Cba8040',
+  };
+  for (const [label, pw] of Object.entries(cases)) {
+    const res = await weak(pw);
+    check(`sign-up refuses a password that is ${label}`, res.status === 400 && res.body?.code === 'WEAK_PASSWORD' && Array.isArray(res.body?.failed) && res.body.failed.length > 0, res.status + ' ' + JSON.stringify(res.body));
+  }
+  const good = await weak('Gd#8040Zq');
+  check('a password that meets every rule is accepted', good.status === 201, good.status + ' ' + JSON.stringify(good.body));
+}
+
 console.log('\n## Sign-up codes');
 const su = `qa.otpsignup.${run}@test.local`;
-const reg = await api('/auth/register', { method: 'POST', body: { name: 'QA otp signup', email: su, password: 'Test#Signup1A', role: 'B2C' } });
+const reg = await api('/auth/register', { method: 'POST', body: { name: 'QA otp signup', email: su, password: 'Test#Signup8A', role: 'B2C' } });
 check('signing up sends a code and leaves the account unverified', reg.status === 201 && (await num('select count(*)::int v from "User" where email=$1 and "emailVerified"=false', [su])) === 1, reg.status + ' ' + JSON.stringify(reg.body));
 const suId = reg.body?.userId;
 const suCode = await latest(suId, 'EMAIL_VERIFICATION');
@@ -170,13 +192,15 @@ check('checking a wrong code is refused and counted', (await api('/auth/verify-r
 const peek = await api('/auth/verify-reset-code', { method: 'POST', body: { email: r.email, code: KNOWN } });
 check('checking the right code accepts it without using it up', peek.status === 200 && (await latest(r.userId, 'PASSWORD_RESET')).isUsed === false);
 check('a short password is refused and the code survives', (await reset(KNOWN, 'short1')).status === 400 && (await latest(r.userId, 'PASSWORD_RESET')).isUsed === false);
-check('a wrong code cannot reset the password', (await reset('444444', 'Brand#New123')).status === 400);
-check('an unknown account cannot reset anything', (await reset(KNOWN, 'Brand#New123', `nobody.${run}@test.local`)).status === 400);
-const done = await reset(KNOWN, 'Brand#New123');
+const seq = await reset(KNOWN, 'Brand#New123');
+check('a password with sequential characters is refused with the failed rules, and the code survives', seq.status === 400 && seq.body?.failed?.includes('noSequence') && (await latest(r.userId, 'PASSWORD_RESET')).isUsed === false, JSON.stringify(seq.body));
+check('a wrong code cannot reset the password', (await reset('444444', 'Brand#New8040')).status === 400);
+check('an unknown account cannot reset anything', (await reset(KNOWN, 'Brand#New8040', `nobody.${run}@test.local`)).status === 400);
+const done = await reset(KNOWN, 'Brand#New8040');
 check('the right code sets the new password', done.status === 200, done.status + ' ' + JSON.stringify(done.body));
-check('the code cannot be used twice', (await reset(KNOWN, 'Another#Pass456')).status === 400);
+check('the code cannot be used twice', (await reset(KNOWN, 'Another#Pass8040')).status === 400);
 check('the old password no longer signs in', (await api('/auth/login', { method: 'POST', body: { email: r.email, password: r.pw } })).status === 401);
-const fresh = await api('/auth/login', { method: 'POST', body: { email: r.email, password: 'Brand#New123' } });
+const fresh = await api('/auth/login', { method: 'POST', body: { email: r.email, password: 'Brand#New8040' } });
 check('the new password does', fresh.status === 200 && !!fresh.body?.userId);
 check('sessions from before the reset were ended', (await api('/wallet', { token: old })).status === 401, String((await api('/wallet', { token: old })).status));
 check('every other unused code was cancelled', (await num(`select count(*)::int v from "OtpCode" where "userId"=$1 and "isUsed"=false and purpose='PASSWORD_RESET'`, [r.userId])) === 0);

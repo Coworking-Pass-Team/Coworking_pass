@@ -10,12 +10,6 @@ export const OTP_MAX_ATTEMPTS = 5;
 /** A new code cannot be requested for the same purpose more often than this (stops mail flooding). */
 export const OTP_RESEND_COOLDOWN_MS = 30 * 1000;
 
-/** The shared test code is accepted only when this is switched on explicitly (local and QA environments). */
-const MASTER_TEST_CODE = "123456";
-export function masterOtpEnabled(): boolean {
-  return process.env.ALLOW_MASTER_OTP === "true";
-}
-
 /** Six random digits from the operating system's secure generator. */
 export function generateOtp(): string {
   return crypto.randomInt(100_000, 1_000_000).toString();
@@ -64,11 +58,6 @@ export type OtpCheck = { ok: true } | { ok: false; error: string };
  */
 export async function checkOtp(userId: string, purpose: OtpPurpose, rawCode: string, consume = true): Promise<OtpCheck> {
   const code = String(rawCode ?? "").trim();
-
-  if (masterOtpEnabled() && code === MASTER_TEST_CODE) {
-    if (consume) await prisma.otpCode.updateMany({ where: { userId, purpose, isUsed: false }, data: { isUsed: true } });
-    return { ok: true };
-  }
 
   const record = await prisma.otpCode.findFirst({
     where: { userId, purpose, isUsed: false, expiresAt: { gt: new Date() } },

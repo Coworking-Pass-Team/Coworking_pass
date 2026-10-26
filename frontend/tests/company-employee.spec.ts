@@ -1,19 +1,22 @@
 import { test, expect, Page, APIRequestContext } from '@playwright/test';
+import { plantOtp } from './otp';
+import { TEAM, TEAM_PASSWORD } from './accounts';
 
 /**
  * Company employee experience (own wallet only, funds allocated by HR), "My tickets", the reschedule dialog,
  * the spaces page shell and the password-reset screens, against the local stack (frontend on 3000, backend on
- * 3001 started with ALLOW_MASTER_OTP=true, seeded test accounts from TEST_ACCOUNTS.md).
+ * 3001 with an empty RESEND_API_KEY), signed in as the seeded team accounts (ACCOUNTS.md). One-time codes are planted in
+ * the local QA database (set QA_DATABASE_URL), because real codes are random and emailed.
  */
 const BASE_URL = process.env.QA_BASE_URL || 'http://localhost:3000';
 const API = process.env.QA_API_URL || 'http://localhost:3001/api';
 const OTP_BOXES = 'input[autocomplete="one-time-code"], input[maxlength="1"]';
-const PASSWORD = 'Test@12345';
+const PASSWORD = TEAM_PASSWORD;
 
 async function apiLogin(request: APIRequestContext, email: string) {
   const login = await request.post(`${API}/auth/login`, { data: { email, password: PASSWORD } });
   const { userId } = await login.json();
-  const verified = await request.post(`${API}/auth/verify-login`, { data: { userId, code: '123456' } });
+  const verified = await request.post(`${API}/auth/verify-login`, { data: { userId, code: plantOtp(email, 'LOGIN') } });
   const body = await verified.json();
   return { token: body.token as string, userId: userId as string };
 }
@@ -48,7 +51,8 @@ async function signIn(page: Page, email: string, lang: 'ar' | 'en') {
   await page.locator('button[type=submit]').click();
   const boxes = page.locator(OTP_BOXES);
   await expect(boxes).toHaveCount(6, { timeout: 15000 });
-  for (let i = 0; i < 6; i++) await boxes.nth(i).fill('123456'[i]);
+  const code = plantOtp(email, 'LOGIN');
+  for (let i = 0; i < 6; i++) await boxes.nth(i).fill(code[i]);
   await page.evaluate(() => {
     const b = Array.from(document.querySelectorAll('button')).find((x) => /verify|تحقق وتابع/i.test(x.textContent || ''));
     (b as HTMLElement | undefined)?.click();
@@ -71,8 +75,8 @@ test.describe('Company employee', () => {
   let bookingVenue = '';
 
   test.beforeAll(async ({ request }) => {
-    const hr = await apiLogin(request, 'hr@cwp-test.local');
-    const employee = await apiLogin(request, 'employee1@cwp-test.local');
+    const hr = await apiLogin(request, TEAM.hr.email);
+    const employee = await apiLogin(request, TEAM.employee1.email);
     // The HR admin puts a little company money into the employee's own wallet
     const companies = await (await request.get(`${API}/companies`, { headers: authed(hr.token) })).json();
     const companyId = (Array.isArray(companies) ? companies : companies.companies || [])[0]?.id;
@@ -101,7 +105,7 @@ test.describe('Company employee', () => {
 
   for (const lang of ['en', 'ar'] as const) {
     test(`the Passes link is hidden and the passes page redirects an employee (${lang})`, async ({ page }) => {
-      await signIn(page, 'employee1@cwp-test.local', lang);
+      await signIn(page, TEAM.employee1.email, lang);
       const passes = lang === 'ar' ? /^الباقات$/ : /^Passes$/;
       const labels = await visibleButtonTexts(page);
       expect(labels.some((t) => passes.test(t))).toBe(false);
@@ -115,10 +119,10 @@ test.describe('Company employee', () => {
     });
 
     test(`the company card has no Leave button and the employee never sees the company balance (${lang})`, async ({ page, request }) => {
-      const hr = await apiLogin(request, 'hr@cwp-test.local');
+      const hr = await apiLogin(request, TEAM.hr.email);
       const companies = await (await request.get(`${API}/companies`, { headers: authed(hr.token) })).json();
       const companyBalance = Number((Array.isArray(companies) ? companies : companies.companies || [])[0]?.balance);
-      await signIn(page, 'employee1@cwp-test.local', lang);
+      await signIn(page, TEAM.employee1.email, lang);
       const text = await page.evaluate(() => document.body.innerText);
       expect(text).not.toMatch(/Leave company|مغادرة الشركة/);
       // Some labels are upper-cased by the page styles, so compare ignoring case
@@ -133,7 +137,7 @@ test.describe('Company employee', () => {
 
     test(`a booking made by the company shows in the employee's bookings with a QR code (${lang})`, async ({ page }) => {
       test.skip(!bookingVenue, 'The seeded Test Partner Hub was not available to book');
-      await signIn(page, 'employee1@cwp-test.local', lang);
+      await signIn(page, TEAM.employee1.email, lang);
       await clickNav(page, lang === 'ar' ? '^الحجوزات$' : '^Bookings$');
       await page.waitForTimeout(2000);
       await clickNav(page, lang === 'ar' ? 'الحجوزات بالساعة' : 'Hourly bookings');
@@ -149,15 +153,15 @@ test.describe('Company employee', () => {
 
 test.describe('My tickets and rescheduling', () => {
   test('a customer follows a ticket and answers support (en)', async ({ page, request }) => {
-    const member = await apiLogin(request, 'individual@cwp-test.local');
+    const member = await apiLogin(request, TEAM.individual.email);
     const subject = `QA ticket ${Date.now().toString(36)}`;
     const created = await request.post(`${API}/tickets`, { headers: authed(member.token), data: { subject, message: 'Please help me with my booking.', category: 'general' } });
     expect(created.status()).toBe(201);
     const ticketId = (await created.json()).ticket.id as string;
-    const admin = await apiLogin(request, 'superadmin@cwp-test.local');
+    const admin = await apiLogin(request, TEAM.superAdmin.email);
     await request.post(`${API}/ticket-replies`, { headers: authed(admin.token), data: { ticketId, message: 'We are looking into it.' } });
 
-    await signIn(page, 'individual@cwp-test.local', 'en');
+    await signIn(page, TEAM.individual.email, 'en');
     await page.evaluate(() => sessionStorage.setItem('cp_nav', JSON.stringify({ screen: 'my-tickets' })));
     await page.reload();
     await page.waitForLoadState('networkidle').catch(() => undefined);
@@ -171,7 +175,7 @@ test.describe('My tickets and rescheduling', () => {
   });
 
   test('the support notification opens My tickets from the bell (ar)', async ({ page }) => {
-    await signIn(page, 'individual@cwp-test.local', 'ar');
+    await signIn(page, TEAM.individual.email, 'ar');
     await page.evaluate(() => sessionStorage.setItem('cp_nav', JSON.stringify({ screen: 'my-tickets' })));
     await page.reload();
     await page.waitForLoadState('networkidle').catch(() => undefined);
@@ -179,7 +183,7 @@ test.describe('My tickets and rescheduling', () => {
   });
 
   test('an upcoming booking can be rescheduled from My bookings (dialog opens with the rules) (en)', async ({ page }) => {
-    await signIn(page, 'individual@cwp-test.local', 'en');
+    await signIn(page, TEAM.individual.email, 'en');
     await clickNav(page, '^Bookings$');
     await page.waitForTimeout(2500);
     const button = page.getByRole('button', { name: 'Reschedule' }).first();
@@ -192,11 +196,11 @@ test.describe('My tickets and rescheduling', () => {
 
 test.describe('Funds allocated by HR, spaces page shell and password reset', () => {
   test('HR splits money equally from the team page and employees get it in their wallets (en)', async ({ page, request }) => {
-    const employee = await apiLogin(request, 'employee2@cwp-test.local');
+    const employee = await apiLogin(request, TEAM.employee2.email);
     const walletOf = async () => Number((await (await request.get(`${API}/wallet?userId=${employee.userId}`, { headers: authed(employee.token) })).json()).balance ?? 0);
     const walletBefore = await walletOf();
 
-    await signIn(page, 'hr@cwp-test.local', 'en');
+    await signIn(page, TEAM.hr.email, 'en');
     await page.evaluate(() => sessionStorage.setItem('cp_nav', JSON.stringify({ screen: 'company-team' })));
     await page.reload();
     await page.waitForLoadState('networkidle').catch(() => undefined);
@@ -224,9 +228,9 @@ test.describe('Funds allocated by HR, spaces page shell and password reset', () 
 
   test('a forgotten password is reset through the code screens (en)', async ({ page, request }) => {
     const email = `pw.reset.${Date.now().toString(36)}@test.local`;
-    const registered = await request.post(`${API}/auth/register`, { data: { name: 'PW Reset', email, password: 'Old#Pass1234', role: 'B2C' } });
+    const registered = await request.post(`${API}/auth/register`, { data: { name: 'PW Reset', email, password: 'Old#Pass8040', role: 'B2C' } });
     const { userId } = await registered.json();
-    await request.post(`${API}/auth/verify-email`, { data: { userId, code: '123456' } });
+    await request.post(`${API}/auth/verify-email`, { data: { userId, code: plantOtp(email, 'EMAIL_VERIFICATION') } });
 
     await open(page);
     await setLanguage(page, 'en');
@@ -237,21 +241,36 @@ test.describe('Funds allocated by HR, spaces page shell and password reset', () 
     await page.locator('button[type=submit]').click();
     const boxes = page.locator(OTP_BOXES);
     await expect(boxes).toHaveCount(6, { timeout: 15000 });
-    for (let i = 0; i < 6; i++) await boxes.nth(i).fill('123456'[i]);
+    const resetCode = plantOtp(email, 'PASSWORD_RESET');
+    for (let i = 0; i < 6; i++) await boxes.nth(i).fill(resetCode[i]);
     await page.evaluate(() => {
       const b = Array.from(document.querySelectorAll('button')).find((x) => /verify/i.test(x.textContent || ''));
       (b as HTMLElement | undefined)?.click();
     });
     const fields = page.locator('input[type=password]');
     await expect(fields.first()).toBeVisible({ timeout: 15000 });
-    await fields.nth(0).fill('Brand#New5678');
-    await fields.nth(1).fill('Brand#New5678');
+    // The checklist starts red and turns green as each rule is met
+    const rule = (name: string) => page.locator(`[data-testid=password-checklist] [data-rule=${name}]`);
+    await fields.nth(0).fill('abc');
+    for (const name of ['length', 'uppercase', 'number', 'special', 'noSequence']) await expect(rule(name)).toHaveAttribute('data-met', 'false');
+    await expect(rule('lowercase')).toHaveAttribute('data-met', 'true');
+    await fields.nth(0).fill('Brand#New123');
+    await expect(rule('noSequence')).toHaveAttribute('data-met', 'false');
+    await expect(rule('length')).toHaveAttribute('data-met', 'true');
+    await fields.nth(0).fill('Brand#New8040');
+    for (const name of ['length', 'lowercase', 'uppercase', 'number', 'special', 'noSequence']) await expect(rule(name)).toHaveAttribute('data-met', 'true');
+    // The match line follows the second field, and the button waits until the passwords match
+    await fields.nth(1).fill('Brand#New804');
+    await expect(page.getByTestId('confirm-match')).toHaveAttribute('class', /text-red-500/);
+    await expect(page.locator('button[type=submit]')).toBeDisabled();
+    await fields.nth(1).fill('Brand#New8040');
+    await expect(page.getByTestId('confirm-match')).toHaveAttribute('class', /text-green-600/);
     await page.locator('button[type=submit]').click();
     await expect(page.locator('body')).toContainText('Password updated successfully', { timeout: 15000 });
 
-    const oldLogin = await request.post(`${API}/auth/login`, { data: { email, password: 'Old#Pass1234' } });
+    const oldLogin = await request.post(`${API}/auth/login`, { data: { email, password: 'Old#Pass8040' } });
     expect(oldLogin.status()).toBe(401);
-    const newLogin = await request.post(`${API}/auth/login`, { data: { email, password: 'Brand#New5678' } });
+    const newLogin = await request.post(`${API}/auth/login`, { data: { email, password: 'Brand#New8040' } });
     expect(newLogin.status()).toBe(200);
   });
 });

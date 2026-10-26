@@ -81,7 +81,7 @@ All five emails are sent through `lib/mailer.ts` from the address in `RESEND_FRO
 * While `RESEND_FROM_EMAIL` is not set the sender is `onboarding@resend.dev`, Resend's shared test address, which only delivers to the email address of the Resend account owner. Set `RESEND_FROM_EMAIL` to an address on a domain verified in Resend (for example `Coworking Pass <no-reply@yourdomain.com>`).
 * `RESEND_API_KEY` must be set on the backend. **Without a real key nothing is emailed: the one-time codes are printed in the backend console instead** (`[OTP] ... code for <email> is: ...`), so local and QA runs keep working. Once a key is configured, codes are never logged.
 * A refusal from Resend is now logged (`[Email] Resend refused ...`) and reported to the caller as "not sent". The screen still says the code was sent, because for sign-in and password reset the answer must not reveal whether the account exists.
-* The shared test code `123456` is accepted only when the backend runs with `ALLOW_MASTER_OTP=true` (local launch configuration and QA). Leave it unset in production.
+* There is no shared test code: every sign-in and sign-up gets its own random code by email. Automated tests write a known code into their local database instead (`backend/tests/api-qa/plant-otp.mjs`).
 
 To confirm the current state on the live backend, open the Render backend log and look for `Error sending OTP email`, or send a test email from the Resend dashboard.
 
@@ -109,7 +109,7 @@ To confirm the current state on the live backend, open the Render backend log an
 
 ### Defects found while auditing
 
-1. ~~Master code.~~ **Changed:** codes are random, stored hashed, expire after 10 minutes and are never logged once a Resend key exists. The shared test code `123456` remains only behind `ALLOW_MASTER_OTP=true`; it must be unset in production (see `PRODUCTION_CHECKLIST.md`).
+1. ~~Master code.~~ **Changed:** codes are random, stored hashed, expire after 10 minutes and are never logged once a Resend key exists. The shared test code `123456` has been removed entirely.
 2. ~~Approval email link.~~ **Fixed:** the button now points to `NEXT_PUBLIC_SITE_URL` (or `FRONTEND_URL`).
 3. **Mislabelled type.** S1 ("New Space Partner Application") is stored with the type `PARTNER_APPROVED`, which makes the admin's icon and filtering treat it as an approval.
 4. ~~Amenity request to admin.~~ **Fixed:** the browser used to map the target `admin` to the signed-in user, so the notification landed on the partner's own account. The server now notifies every Super Admin (S20) and tells the partner the decision (S21); the browser no longer creates these messages.

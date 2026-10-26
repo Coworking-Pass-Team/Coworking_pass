@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { deliverOtp, issueOtp } from "@/lib/otp";
 import type { Role } from "@prisma/client";
 import { createPendingJoinRequest, findCompanyByHrEmail } from "@/lib/company-join";
+import { passwordPolicyError } from "@/lib/password-policy";
 
 const VALID_ROLES = ["GUEST", "B2C", "HR_ADMIN", "PARTNER_ADMIN"];
 
@@ -46,6 +47,9 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+
+    const weak = passwordPolicyError(password);
+    if (weak) return NextResponse.json(weak, { status: 400 });
 
     const cleanEmail = email.trim().toLowerCase();
 

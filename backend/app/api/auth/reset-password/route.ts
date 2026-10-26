@@ -2,10 +2,9 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { checkOtp } from "@/lib/otp";
+import { passwordPolicyError } from "@/lib/password-policy";
 import { blacklistUser } from "@/lib/auth/token-blacklist";
 import { clearAttempts } from "@/lib/rate-limit/login-attempts";
-
-const MIN_PASSWORD_LENGTH = 8;
 
 /**
  * @swagger
@@ -34,12 +33,8 @@ export async function POST(request: Request) {
     const code = typeof body.code === "string" ? body.code : "";
     const newPassword = typeof body.newPassword === "string" ? body.newPassword : "";
 
-    if (newPassword.length < MIN_PASSWORD_LENGTH) {
-      return NextResponse.json({ error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters long.` }, { status: 400 });
-    }
-    if (newPassword.length > 128) {
-      return NextResponse.json({ error: "Password is too long." }, { status: 400 });
-    }
+    const weak = passwordPolicyError(newPassword);
+    if (weak) return NextResponse.json(weak, { status: 400 });
 
     const user = email ? await prisma.user.findUnique({ where: { email }, select: { id: true, isBanned: true } }) : null;
     if (!user || user.isBanned || !code) {

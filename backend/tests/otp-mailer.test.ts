@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { generateOtp, masterOtpEnabled, checkOtp } from "@/lib/otp";
+import { generateOtp } from "@/lib/otp";
 import { getFromAddress, isEmailConfigured } from "@/lib/mailer";
 
 const saved = { ...process.env };
 afterEach(() => {
-  for (const key of ["ALLOW_MASTER_OTP", "RESEND_API_KEY", "RESEND_FROM_EMAIL"]) {
+  for (const key of ["RESEND_API_KEY", "RESEND_FROM_EMAIL"]) {
     if (saved[key] === undefined) delete process.env[key];
     else process.env[key] = saved[key];
   }
@@ -20,22 +20,6 @@ describe("generateOtp", () => {
       codes.add(code);
     }
     expect(codes.size).toBeGreaterThan(150);
-  });
-});
-
-describe("master test code", () => {
-  it("is off unless ALLOW_MASTER_OTP is exactly 'true'", async () => {
-    delete process.env.ALLOW_MASTER_OTP;
-    expect(masterOtpEnabled()).toBe(false);
-    process.env.ALLOW_MASTER_OTP = "1";
-    expect(masterOtpEnabled()).toBe(false);
-    process.env.ALLOW_MASTER_OTP = "true";
-    expect(masterOtpEnabled()).toBe(true);
-  });
-
-  it("is accepted only when switched on (a check that does not consume needs no database)", async () => {
-    process.env.ALLOW_MASTER_OTP = "true";
-    expect(await checkOtp("any-user", "LOGIN", "123456", false)).toEqual({ ok: true });
   });
 });
 

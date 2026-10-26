@@ -1,6 +1,6 @@
 // Company employees ask to join a company (at sign-up or later) by the HR admin's email; only the HR admin approves.
 // Nobody joins a company directly from the sign-up form.
-import { api, db, makeUser, check, summary } from './lib.mjs';
+import { api, db, makeUser, check, summary, verifyEmailWithPlantedOtp } from './lib.mjs';
 await db.connect();
 const run = Date.now().toString(36);
 const mk = (n, role = 'B2C', extra = {}) => makeUser('QA ' + n, `qa.${n}.${run}@test.local`.toLowerCase(), role, extra);
@@ -13,17 +13,17 @@ const otherHr = await mk('joinOtherHr', 'HR_ADMIN', { companyName: 'QA Other Co 
 check('test companies exist', Boolean(companyId));
 
 console.log('\n## Sign-up as a company employee');
-const unknown = await api('/auth/register', { method: 'POST', body: { name: 'QA Emp', email: `qa.empx.${run}@test.local`, password: 'Test#12345a', role: 'B2C', companyHrEmail: `nobody.${run}@test.local` } });
+const unknown = await api('/auth/register', { method: 'POST', body: { name: 'QA Emp', email: `qa.empx.${run}@test.local`, password: 'Tq#8040Zx', role: 'B2C', companyHrEmail: `nobody.${run}@test.local` } });
 check('an unknown HR email is refused before the account is created', unknown.status === 404
   && (await db.query('select count(*)::int n from "User" where email=$1', [`qa.empx.${run}@test.local`])).rows[0].n === 0, 'status ' + unknown.status);
-const ownEmail = await api('/auth/register', { method: 'POST', body: { name: 'QA Emp', email: hr.email, password: 'Test#12345a', role: 'B2C', companyHrEmail: hr.email } });
+const ownEmail = await api('/auth/register', { method: 'POST', body: { name: 'QA Emp', email: hr.email, password: 'Tq#8040Zx', role: 'B2C', companyHrEmail: hr.email } });
 check('an employee cannot name their own email as the HR email', ownEmail.status === 400);
 
-const forged = await api('/auth/register', { method: 'POST', body: { name: 'QA Forged', email: `qa.forged.${run}@test.local`, password: 'Test#12345a', role: 'B2C', companyId } });
+const forged = await api('/auth/register', { method: 'POST', body: { name: 'QA Forged', email: `qa.forged.${run}@test.local`, password: 'Tq#8040Zx', role: 'B2C', companyId } });
 check('a companyId sent to sign-up is ignored', forged.status === 201 && (await companyOf(forged.body?.userId)) === null, 'status ' + forged.status);
 
 const empEmail = `qa.emp.${run}@test.local`;
-const reg = await api('/auth/register', { method: 'POST', body: { name: 'QA Employee', email: empEmail, password: 'Test#12345a', role: 'B2C', companyHrEmail: hr.email.toUpperCase() } });
+const reg = await api('/auth/register', { method: 'POST', body: { name: 'QA Employee', email: empEmail, password: 'Tq#8040Zx', role: 'B2C', companyHrEmail: hr.email.toUpperCase() } });
 const empId = reg.body?.userId;
 check('sign-up with the HR email succeeds (case-insensitive)', reg.status === 201 && Boolean(empId), 'status ' + reg.status);
 check('the account is not in the company yet', (await companyOf(empId)) === null);
@@ -31,7 +31,7 @@ check('the HR admin is not told before the email is verified', (await notes(hr.u
 let list = await api('/company-join-requests', { token: hr.token });
 check('unverified sign-ups are not listed for the HR admin', list.status === 200 && list.body.length === 0);
 
-await api('/auth/verify-email', { method: 'POST', body: { userId: empId, code: '123456' } });
+await verifyEmailWithPlantedOtp(empId);
 check('verifying the email tells the HR admin', (await notes(hr.userId, 'New team join request')) === 1);
 list = await api('/company-join-requests', { token: hr.token });
 const pending = list.body?.[0];

@@ -1,8 +1,9 @@
 # API integration QA suites
 
 Black-box tests that hit a **local** backend (`npm run dev`, port 3001) and its **local** Postgres.
-They create throw-away users directly in the database and use the dev-only master login code (the backend must be
-started with `ALLOW_MASTER_OTP=true`, as `.claude/launch.json` does), so never point them at a shared or production environment.
+They create throw-away users directly in the database and write one-time codes they know into it (`plantOtp` in
+`lib.mjs`), because real codes are random and emailed. Start the backend with an empty `RESEND_API_KEY` (as
+`.claude/launch.json` does) so no email is sent, and never point them at a shared or production environment.
 
 ```bash
 npm i -D pg                      # once
@@ -24,6 +25,7 @@ Suites: `suite-security-wallet-slots`, `suite-company-capacity-payments`, `suite
 `suite-company-team` (HR adds/removes existing member accounts by email, members cannot remove themselves, nobody else can change the team).
 `suite-team-bookings-reschedule` (bookings made for team members and their check-in, the locked booking PUT, validated rescheduling with price differences, amenity request routing, the customer side of support tickets).
 `suite-allocation-otp` (HR admin allocates company money into employees' wallets: validation, equal split, chosen amounts, atomicity, idempotency, hidden from employees; random one-time codes with expiry, attempt limit and single use; password reset).
-The suites sign in as the seeded super admin (`superadmin@cwp-test.local`, see `TEST_ACCOUNTS.md`); override with `QA_ADMIN_EMAIL` / `QA_ADMIN_PASSWORD`.
+The suites sign in as the seeded super admin from `scripts/team-accounts.json` (git-ignored; the example file is used when it is missing, see `ACCOUNTS.md`); override with `QA_ADMIN_EMAIL` / `QA_ADMIN_PASSWORD`.
+`plant-otp.mjs <email> <purpose>` prints a planted code for the browser tests.
 `suite-past-sessions` only runs its time-sensitive checks during Saudi daytime hours.
 Run them against a freshly migrated local database (`prisma migrate deploy`).

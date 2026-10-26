@@ -3,7 +3,7 @@
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { chromium } = require('@playwright/test');
-import { makeUser, db } from '../../../backend/tests/api-qa/lib.mjs';
+import { makeUser, db, plantOtp, TEAM, TEAM_PASSWORD } from '../../../backend/tests/api-qa/lib.mjs';
 import fs from 'node:fs';
 
 const BASE = 'http://localhost:3000';
@@ -14,9 +14,9 @@ const mkRole = async (n, role, extra) => { const u = await makeUser('Header ' + 
 const roles = {
   hr: await mkRole('hr', 'HR_ADMIN', { companyName: 'Header Corp ' + run }),
   b2c: await mkRole('b2c', 'B2C'),
-  admin: { email: 'admin@coworkingpass.sa', pw: 'password' },
+  admin: { email: TEAM.superAdmin.email, pw: TEAM_PASSWORD },
 };
-await db.end();
+
 
 async function login(page, lang, { email, pw }) {
   await page.goto(BASE);
@@ -29,7 +29,9 @@ async function login(page, lang, { email, pw }) {
   }
   await page.locator('input[type=email]').fill(email); await page.locator('input[type=password]').fill(pw); await page.locator('button[type=submit]').click();
   const boxes = page.locator('input[maxlength="1"]'); await boxes.first().waitFor({ timeout: 15000 });
-  for (let i = 0; i < 6; i++) await boxes.nth(i).fill('123456'[i]);
+  const uid = (await db.query('select id from "User" where lower(email)=lower($1)', [email])).rows[0].id;
+  const code = await plantOtp(uid, 'LOGIN');
+  for (let i = 0; i < 6; i++) await boxes.nth(i).fill(code[i]);
   await page.evaluate(() => { const b = Array.from(document.querySelectorAll('button')).find((x) => /تحقق وتابع|verify/i.test(x.textContent || '')); b && b.click(); });
   await sleep(6000);
 }

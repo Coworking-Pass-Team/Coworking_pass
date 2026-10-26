@@ -4,21 +4,24 @@ The site currently runs as a **QA / testing deployment** on Render (frontend `co
 `coworking-pass-k49w`, database on Neon), deployed automatically from the `develop` branch. Everything below must be
 done before the real public launch. Items marked **blocker** must not go live as they are today.
 
-Repository note: this repository is **public**. Anything committed (including `TEST_ACCOUNTS.md`) can be read by anyone.
+Repository note: this repository is **public**. Anything committed can be read by anyone. The team accounts' emails and password are kept in the git-ignored
+`backend/scripts/team-accounts.json`; `ACCOUNTS.md` lists only the roles.
 
 ---
 
 ## 1. Test accounts and test data
 
-- [ ] **blocker** Delete the QA test accounts from the production database (every `*@cwp-test.local` user from
-      `TEST_ACCOUNTS.md`) together with their bookings, wallets, points, notifications, the company *Test Company Ltd*,
-      the partners *Test Partner Venues* / *Test Pending Venues* and the workspace *Test Partner Hub*.
-      Prefer the admin "delete user" action (it cascades) or write a reviewed SQL script; take a Neon backup first.
+- [ ] **blocker** Delete the old public test accounts (every `*@cwp-test.local` user, whose password was published)
+      from the Render/Neon database together with their bookings, wallets, points and notifications, and the partner
+      *Test Pending Venues*. Use the admin "delete user" action (it cascades); the old `superadmin@cwp-test.local` cannot
+      be deleted that way and needs a reviewed SQL script. Take a Neon backup first.
+- [ ] Decide whether the team accounts (`ACCOUNTS.md`), the company *Test Company Ltd*, the partner
+      *Test Partner Venues* and the workspace *Test Partner Hub* stay after launch.
 - [ ] Delete leftover manual-test accounts and workspaces (e.g. `aaaa`, `fff@gmail.com`, `QA Test Hub …`,
       `The Hub Sky Lounge Test`, venues named like `JKGF`, `sdcv`).
 - [ ] Decide what to do with the 30 **standard demo venues** (The Hub Riyadh, WorkBay Jeddah, …). They are sample listings
       owned by a placeholder partner, not real venues: remove them or replace them with real partner venues.
-- [ ] Never run `scripts/seed-test-accounts.mjs --allow-remote` against the production database again.
+- [ ] Run `scripts/seed-accounts.mjs --allow-remote` against the production database only on purpose (it resets the team accounts' password and data).
 - [ ] Frontend fallback data (`frontend/data/data.ts`): the static venues shown when the API is unreachable are demo
       listings. Replace the fallback with an "unable to load venues, try again" state, and remove the unused demo users,
       bookings and support tickets.
@@ -28,11 +31,14 @@ Repository note: this repository is **public**. Anything committed (including `T
 
 ## 2. Sign-in, verification codes and email
 
-- [ ] **blocker** The shared test code `123456` is accepted only when `ALLOW_MASTER_OTP=true`. Make sure the variable is **unset** on the production backend (it may stay on for the QA services). One-time codes are random, hashed, valid 10 minutes, single use and limited to 5 wrong guesses.
-- [ ] **blocker** Configure real email delivery: verify the sending domain in Resend and set `RESEND_API_KEY` on Render.
+- [x] The shared test code `123456` has been removed completely (no switch brings it back). One-time codes are random, hashed, valid 10 minutes, single use and limited to 5 wrong guesses, and are sent by email.
+- [x] Password policy on sign-up and reset (at least 8 characters, a lowercase letter, an uppercase letter, a number and a special character, and no sequential characters (three letters or digits in a row going up or down, such as `123` or `abc`)), with a live checklist and a confirm field on both screens.
+- [ ] Remove `ALLOW_MASTER_OTP` from the Render environment if it was set (it no longer does anything).
+- [ ] **blocker** Configure real email delivery: verify the sending domain in Resend, set `RESEND_API_KEY` and
+      `RESEND_FROM_EMAIL` on Render. With the default sender `onboarding@resend.dev`, Resend delivers only to the Resend
+      account owner's own address, so the other team members receive no sign-in codes until the domain is verified.
       Test sign-up, sign-in and resend-code emails end to end (inbox and spam folder).
-- [ ] **blocker** Implement password reset: there is no backend endpoint yet, and the frontend "Forgot password" only
-      searches the browser's local user list. Needs a reset-code email, expiry and one-time use.
+- [x] Password reset by emailed code (`forgot-password`, `verify-reset-code`, `reset-password`), with expiry and one-time use.
 - [ ] Rate-limit sign-in, code verification and resend (per email and per IP) and lock after repeated failures.
 - [ ] Set a long random `JWT_SECRET` (not the QA one) and decide on token lifetime (currently 24 hours).
 - [ ] Make sure `DEV_SEED_ADMIN` is unset and `NODE_ENV=production`.

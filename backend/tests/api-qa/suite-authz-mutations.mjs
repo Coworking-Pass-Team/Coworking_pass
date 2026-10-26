@@ -1,14 +1,13 @@
-import { api, db, makeUser, check, summary } from './lib.mjs';
+import { api, db, makeUser, check, summary, signIn, TEAM, TEAM_PASSWORD } from './lib.mjs';
 await db.connect();
 const run = Date.now().toString(36);
 const loginAs = async (email, pw) => {
-  const l = await api('/auth/login', { method: 'POST', body: { email, password: pw } });
-  const v = await api('/auth/verify-login', { method: 'POST', body: { userId: l.body.userId, code: '123456' } });
-  return { token: v.body?.token, userId: l.body.userId };
+  const r = await signIn(email, pw);
+  return { token: r.token, userId: r.userId };
 };
 const mk = (n, role = 'B2C', x = {}) => makeUser('QA ' + n, `qa.${n}.${run}@test.local`.toLowerCase(), role, x);
-// Seeded super admin: TEST_ACCOUNTS.md (override with QA_ADMIN_EMAIL / QA_ADMIN_PASSWORD)
-const admin = await loginAs(process.env.QA_ADMIN_EMAIL || 'superadmin@cwp-test.local', process.env.QA_ADMIN_PASSWORD || 'Test@12345');
+// Seeded super admin: ACCOUNTS.md and scripts/team-accounts.json (override with QA_ADMIN_EMAIL / QA_ADMIN_PASSWORD)
+const admin = await loginAs(process.env.QA_ADMIN_EMAIL || TEAM.superAdmin.email, process.env.QA_ADMIN_PASSWORD || TEAM_PASSWORD);
 const c = await mk('cust'), c2 = await mk('cust2');
 const denied = (r) => r.status === 401 || r.status === 403;
 
