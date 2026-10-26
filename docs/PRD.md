@@ -27,7 +27,7 @@ By management direction, the platform supports two separate operating models:
 ## 5. User Personas
 1. **Guest:** browses the site to explore spaces, amenities and prices without creating an account.
 2. **Individual member (B2C):** a freelancer or remote worker who books spaces directly or buys the Universal Pass, manages a digital wallet and loyalty points, and opens support tickets when needed.
-   * **Company employee:** not a separate role. It is the same Individual account with a link to a company (`User.companyId`). The employee asks the HR administrator to approve the link, sees their company in the dashboard, and passes are arranged by the company.
+   * **Company employee:** not a separate role. It is the same Individual account with a link to a company (`User.companyId`). The employee asks the HR administrator to approve the link, sees their company, its shared wallet and their monthly allowance, sees the bookings the company makes for them (with a check-in QR code), and cannot leave the company on their own. Passes are arranged by the company, so the passes page is hidden from them.
 3. **HR administrator (B2B):** represents a company (one company per HR administrator). Has a dashboard to manage the shared company balance (`Company.balance`), book for the team, add members or approve their join requests, and monitor consumption.
 4. **Workspace partner:** the owner or manager of a workspace. Registration requires a Saudi commercial registration number (CR / `taxNumber`), and the account stays `PENDING_APPROVAL` until the administration approves it. Uses a dedicated portal to manage venues and rooms, track visitors, scan QR codes, and propose amenities and loyalty rules.
 5. **Super Admin:** the platform owner. Approves new partners and verifies their commercial registrations, resolves tickets and disputes, suspends and reinstates users (`isBanned`), and runs the monthly financial settlements (recorded by hand today; no scheduler yet).
@@ -101,7 +101,7 @@ A loyalty program that encourages customers to keep using the platform, managed 
 ## 10. Corporate Accounts (B2B — Team Pass)
 * **Shared corporate wallet:** a central, unified company balance (`Company.balance`) that the HR administrator tops up.
 * **Employee management:** the HR administrator adds existing member accounts by email or approves join requests that employees send themselves (an employee can sign up under "Organization / B2B → Company employee" with the HR administrator's email), and can remove members. Members can leave on their own.
-* **Who spends the company balance:** only the HR administrator (and the Super Admin) can spend the company wallet, for team bookings. An employee's own bookings are paid from their personal wallet. Per-employee pass allocation and department labels are not stored on the server yet.
+* **Who spends the company balance:** the HR administrator books for the team and pays from the company wallet. Optionally the HR administrator switches on a **team spending policy** with a **monthly limit per member**: members may then pay their own bookings from the company wallet up to that limit (the server enforces it), and refunds of such payments return to the company wallet. Without the policy, an employee's own bookings are paid from their personal wallet. Bookings made for named employees show in those employees' own bookings with their check-in QR code. Per-employee pass allocation and department labels are not stored on the server yet.
 * **Flexible consumption and fair use:** the HR administrator books spaces for the team and the amount is deducted from the company wallet with no per-person invoicing. Corporate plans that appear as "Unlimited*" are subject to the strict fair-use rule of **at most 5 bookings per week per employee**, to protect capacity and prevent exhausting partner resources.
 * **Corporate plan scope:** corporate plans are limited to the standard **Team Pass** and **Business Pass** to keep the purchase journey simple. The **"Custom Enterprise" card was removed** from the plans page. The organization navigation no longer includes a "Company Workspaces" page, which was removed because B2B accounts do not need it.
 
@@ -129,6 +129,7 @@ A loyalty program that encourages customers to keep using the platform, managed 
   - **Closed (`CLOSED`):** the problem was solved and the closure confirmed.
 * An interactive message thread (`TicketReply`) connects the customer and the administrators inside the context of the ticket. Replies saved in the database are shown as a conversation in the admin panel, and the customer receives a notification when support replies.
 * **Enterprise inquiries:** the ticket system supports an `enterprise` category for tailored-offer requests from large companies. These reach the administrators as a notification and have their own tab. (The dedicated Custom Enterprise plan card was removed from the plans page, so such requests now come through normal support channels.)
+* **My Tickets:** every signed-in user except the Super Admin has a "My tickets" page to follow their tickets, read the support team's answers, reply and close their own ticket. Customer replies notify the Super Admins.
 
 ## 14. Automated Cancellation and Refund Engine (Direct Bookings vs Packages)
 The refund engine supports precise policies that separate direct bookings tied to specific seats and dates from membership and hour packages. Refunds are processed in a single database transaction with an idempotency key, so a booking or pass can never be refunded twice, and an official `REFUND` entry is recorded in `PAYMENTS` and in the ledger of the relevant wallet (personal, or the shared wallet for corporate accounts).
@@ -150,7 +151,7 @@ The refund engine supports precise policies that separate direct bookings tied t
 
 ### 14.1 Booking Rescheduling
 
-**Status: not supported yet.** Users can cancel inside the cancellation window and book again, but cannot move a booking. The rules below are the agreed specification (full requirement text: `SRS.md`, FR-BOOK-07).
+**Status: built.** Users move a booking from My Bookings (and the HR administrator from the team bookings page) with a "Reschedule" action. The rules below are enforced by the server (full requirement text: `SRS.md`, FR-BOOK-07).
 
 | Rule | Decision |
 | :--- | :--- |
@@ -158,12 +159,12 @@ The refund engine supports precise policies that separate direct bookings tied t
 | Notice | Same as cancellation, measured from the original start: **6 hours** for individuals, **24 hours** for HR administrators and company-funded bookings. The Super Admin can override. |
 | New slot | At least the same notice from now, inside operating hours and the two-hour session grid, up to 30 days after the original date, and free (same capacity checks as a new booking). Same venue and room type; another room is allowed. |
 | How often | One free reschedule per booking. After that, cancel (if still allowed) and book again. |
-| Price | Same room and duration: no charge. A dearer slot charges the difference to the wallet that paid; a cheaper slot refunds the difference to it. Pass-covered hours return to the old month and are deducted from the new one; any excess is charged at the hourly rate. |
+| Price | Same room and duration: no charge. Another room is priced by scaling what was paid by the new room's rate over the old room's rate: a dearer room charges the difference to the wallet that paid (company wallet for company-funded bookings, within the member's limit), a cheaper room refunds the difference to it. A booking covered by a pass has no payment, so nothing is charged. |
 | Approval | None. Instant when the slot is free. The partner is notified; the HR administrator is notified when the company paid. The HR administrator may reschedule any booking paid from the company wallet. |
 | Individuals vs companies | Individuals and employees: own bookings, 6-hour notice (24 hours when company-funded). HR administrators: own and team bookings, 24 hours. |
 | Safety | One database transaction; the freed slot goes to the waitlist; the QR code stays valid only for the new slot; repeated requests never charge twice. |
 
-Until this is built, the open `PUT` on direct bookings must not be exposed to users as a way to change dates (it currently accepts date and room changes without any check).
+The booking `PUT` endpoints were locked at the same time: only a Super Admin can change a date, room or plan there; everyone else can only cancel, and a cancelled or refunded booking cannot be reactivated.
 
 ## 15. Open API Documentation (OpenAPI / Swagger)
 * An interactive documentation page for developers and technical partners at `/api-doc`.

@@ -23,10 +23,12 @@ import {
   AlertCircle,
   Zap,
   Wallet,
-  QrCode
+  QrCode,
+  CalendarClock
 } from 'lucide-react';
 import { useApp } from '@/app/store';
 import { Booking, BookingStatus, Employee, getHourlyPriceForDuration, getBookingPrice, isCancellationRefundEligible, calculateDailyDurationDays } from '@/types/types';
+import RescheduleModal, { type RescheduleTarget } from '@/components/bookings/RescheduleModal';
 import Modal from '@/components/ui/Modal';
 import BookingQrModal from '@/components/BookingQrModal';
 import BookingSortSelect from '@/components/bookings/BookingSortSelect';
@@ -45,7 +47,7 @@ function TeamBookingsContent() {
   const { t, translateMessage, localizeTime, formatDate } = useI18n();
   const sx = useSpaceText();
   const lb = useLabels();
-  const { bookings, spaces, currentUser: sessionUser, navigate, cancelBooking, showToast } = useApp();
+  const { bookings, spaces, currentUser: sessionUser, navigate, cancelBooking, showToast, fetchDirectBookings, fetchHourlyBookings } = useApp();
   const currentUser = sessionUser!;
   const [sortOrder, setSortOrder] = useState<BookingSortOrder>('newest');
   const [activeTab, setActiveTab] = useState<BookingStatus>('active');
@@ -59,6 +61,8 @@ function TeamBookingsContent() {
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [cancelModal, setCancelModal] = useState<Booking | null>(null);
   const [refundMethod, setRefundMethod] = useState<'wallet' | 'card'>('wallet');
+  const [rescheduleTarget, setRescheduleTarget] = useState<RescheduleTarget | null>(null);
+  const ksaToday = new Date(Date.now() + 3 * 3600_000).toISOString().slice(0, 10);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -369,6 +373,29 @@ function TeamBookingsContent() {
                   >
                     <Eye size={15} />
                   </button>
+                  {b.status === 'active' && (b.rescheduleCount ?? 0) < 1 && b.startDate >= ksaToday && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const isHourlyBooking = b.plan === 'hourly';
+                        setRescheduleTarget({
+                          kind: isHourlyBooking ? 'hourly' : 'direct',
+                          bookingId: b.id,
+                          space: spaces.find((s) => s.id === b.spaceId),
+                          sectionId: b.unitId,
+                          sectionType: undefined,
+                          durationHours: b.durationHours,
+                          currentLabel: isHourlyBooking ? `${b.startDate} · ${b.startTime ?? ''}–${b.endTime ?? ''}` : (b.startDate === b.endDate ? b.startDate : `${b.startDate} → ${b.endDate}`),
+                        });
+                      }}
+                      className="p-2 rounded-xl text-moss hover:text-soot hover:bg-plaster-surface border border-transparent hover:border-soot/10 transition-all cursor-pointer"
+                      title={t('reschedule.action')}
+                      aria-label={t('reschedule.action')}
+                    >
+                      <CalendarClock size={15} />
+                    </button>
+                  )}
                   {b.status === 'active' && (() => {
                     const { eligible, requiredHours } = isCancellationRefundEligible(b.startDate, b.startTime, 'organization');
                     return (
@@ -501,6 +528,12 @@ function TeamBookingsContent() {
           </Modal>
         );
       })()}
+
+      <RescheduleModal
+        target={rescheduleTarget}
+        onClose={() => setRescheduleTarget(null)}
+        onMoved={() => { fetchDirectBookings?.().catch(() => {}); fetchHourlyBookings?.().catch(() => {}); }}
+      />
     </div>
   );
 }

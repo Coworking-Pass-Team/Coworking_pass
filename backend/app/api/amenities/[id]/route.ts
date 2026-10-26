@@ -44,7 +44,7 @@ if (!user) return unauthorizedResponse(request);
     if (roleDenied) return roleDenied;
 
     const { id } = await params;
-    const { status } = await request.json();
+    const { status, reason } = await request.json();
 
     if (!["APPROVED", "REJECTED"].includes(status)) {
       return NextResponse.json(
@@ -53,10 +53,29 @@ if (!user) return unauthorizedResponse(request);
       );
     }
 
+    const before = await prisma.amenityCatalog.findUnique({ where: { id }, select: { status: true, requestedBy: true } });
     const amenity = await prisma.amenityCatalog.update({
       where: { id },
       data: { status },
     });
+
+    // Tell the partner who asked for it what the administration decided (best effort)
+    if (before && before.status !== status && before.requestedBy && before.requestedBy !== user.userId) {
+      const approved = status === "APPROVED";
+      const note = typeof reason === "string" && reason.trim() ? ` Reason: ${reason.trim().slice(0, 300)}` : "";
+      await prisma.notification.create({
+        data: {
+          userId: before.requestedBy,
+          type: "AMENITY_REQUEST_STATUS",
+          title: approved ? "Amenity Request Approved" : "Amenity Request Rejected",
+          message: approved
+            ? `Your custom amenity request "${amenity.name}" has been approved by the Admin and added to the platform catalog!`
+            : `Your custom amenity request "${amenity.name}" was rejected by the Admin.${note}`,
+          channel: "IN_APP",
+          sentAt: new Date(),
+        },
+      }).catch((err) => console.warn("Amenity decision notification failed:", err));
+    }
 
     return NextResponse.json({ message: "Amenity status updated successfully.", amenity });
   } catch (error) {

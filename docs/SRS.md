@@ -44,13 +44,15 @@ Companies or teams looking for closed offices, meeting rooms, or remote-work ben
   * **Interface scope:** the organization menu has no "Company Workspaces" page, and its plans are limited to Team Pass and Business Pass.
 
 ### C-2. Company Employee (member of a company team)
-A person who works for a company that uses Coworking Pass. **This is not a separate role in the database**: the account is an ordinary Individual (`B2C`) account whose `User.companyId` points to the company (see section 2.1).
+A person who works for a company that uses Coworking Pass. **This is not a separate role in the database**: the account is an ordinary Individual (`B2C`) account whose `User.companyId` points to the company (see section 2.F).
 * **Permissions:** everything an Individual can do with their own account, plus a link to their company.
 * **Features**
   * Sign up under "Organization / B2B → Company employee", entering the HR administrator's email, or ask to join later from the profile page. The HR administrator must approve (FR-COMP-02).
-  * See the "Your company" card (company name, HR contact, team size) and the "Employee" badge, and leave the company at any time.
-  * Individual plans are refused by the server while the account belongs to a company, and the interface tells the employee that passes are arranged by the company. (Known gap: the server only checks for a company link, so it would still accept a company plan from an employee account; only the interface hides it.)
-  * Cannot spend the company wallet, add or remove team members, or see other employees' bookings.
+  * See the "Your company" card (company name, HR contact, team size, company wallet balance and the personal monthly allowance) and the "Employee" badge. **An employee cannot leave the company**: only the HR administrator removes members, so seat allocation and HR records stay consistent.
+  * The "Passes" link is hidden and the passes page redirects an employee to their dashboard with an explanation: access comes from the company's corporate plan. (Known gap: the server only checks for a company link, so it would still accept a company plan from an employee account; only the interface hides it.)
+  * See the company wallet balance in the header and the wallet window, and, when the company switched the policy on (FR-COMP-04), pay a whole booking from the company wallet up to their monthly limit.
+  * See, under their own bookings, the sessions and desks the HR administrator booked for them, with the booking details and their own check-in QR code (FR-COMP-05). They can view and check in, but not cancel or reschedule them.
+  * Cannot add or remove team members or see other employees' bookings.
 
 
 ### D. Workspace Partner
@@ -113,17 +115,22 @@ Super Admin  (everything, including other roles' data)
 | Book rooms and desks, personal wallet, QR code, tickets | — | ✔ own | ✔ own | ✔ own | ✔ own | ✔ |
 | Buy individual (B2C) plans | — | ✔ | — (blocked by the server) | — (blocked: the HR administrator also belongs to the company) | — | ✔ |
 | Buy company plans (Team, Business) | — | — | — in the interface (the server only requires a company link) | ✔ own company | — | ✔ |
-| Top up and spend the company wallet | — | — | — | ✔ own company | — | ✔ |
+| Top up the company wallet | — | — | — | ✔ own company | — | ✔ |
+| Spend the company wallet | — | — | ✔ only if the company allows it, up to their monthly limit | ✔ own company | — | ✔ |
+| Set the team spending policy and monthly limit | — | — | — | ✔ own company | — | ✔ |
 | Add or remove team members | — | — | — | ✔ own company | — | ✔ |
 | Approve or decline join requests | — | — | — | ✔ own company | — | ✔ |
-| Ask to join a company / leave it | — | ✔ ask | ✔ leave | — | — | — |
-| See the team's hourly bookings | — | — | own only | ✔ own team | — | ✔ |
+| Ask to join a company | — | ✔ ask | — | — | — | — |
+| Leave a company | — | — | — (only the HR admin removes members) | — | — | ✔ remove anyone |
+| See the team's bookings | — | — | own, plus those made for them | ✔ own team | — | ✔ |
+| Reschedule a booking | — | ✔ own, once | ✔ own, once (not those made for them) | ✔ own and company-paid, once | — | ✔ any |
+| My tickets: read and answer own support tickets | — | ✔ | ✔ | ✔ | ✔ | — (uses the admin dashboard) |
 | Cancel or refund a booking | — | ✔ own, inside the window | ✔ own, inside the window | ✔ own, inside the window | — | ✔ any, no window |
 | Create venues, rooms and amenities | — | — | — | — | ✔ own | ✔ all |
 | Scan customers' QR codes | — | — | — | — | ✔ own venues | ✔ |
 | Approve partners, suspend users, reply to tickets, payouts, reports, settings | — | — | — | — | — | ✔ |
 
-**Cancellation window by role.** The server applies the window of the booking **owner's role**: 6 hours when the owner is `B2C` (this includes company employees, even when the company pays), 24 hours otherwise (HR administrators). A Super Admin is not bound by the window. *Open decision:* the business intent is 24 hours for company-funded bookings, which the code does not yet distinguish from an employee's personal booking.
+**Cancellation and rescheduling window by role.** The server applies the window of the booking **owner's role**: 6 hours when the owner is `B2C` (this includes company employees, even when the company pays), 24 hours otherwise (HR administrators). A Super Admin is not bound by the window. *Open decision:* the business intent is 24 hours for company-funded bookings, which the code does not yet distinguish from an employee's personal booking.
 
 **Enforcement.** Ownership is checked on every booking, payment, wallet and record route (`FR-SEC-01`); suspended accounts (`isBanned`) are refused on every call (`FR-SEC-02`); pending or rejected partners cannot sign in (`FR-AUTH-04`).
 
@@ -155,10 +162,11 @@ Super Admin  (everything, including other roles' data)
 
 ### Company employee stories
 * **As a company employee,** I want to sign up with my company's HR email and have my HR administrator approve me, so that my account is linked to the company without anyone being able to add themselves to it.
-* **As a company employee,** I want to see which company I belong to and leave it when I change jobs.
-* **As an HR manager,** I want to approve or decline employees who ask to join my company, and be told when someone asks or leaves.
+* **As a company employee,** I want to see which company I belong to, its shared wallet and my monthly allowance, so that I know what I can book with company funds.
+* **As a company employee,** I want the sessions and desks my HR manager booked for me to appear in my own bookings with my check-in QR code, so that I can walk in without asking anyone.
+* **As an HR manager,** I want to approve or decline employees who ask to join my company, set how much each member may pay from the company wallet, and be the only one who can remove people from the team.
 
-### Rescheduling stories (specified, not built)
+### Rescheduling stories
 * **As an individual or employee,** I want to move a booking to another free slot, once and free of charge, as long as I ask early enough (6 hours before the start, 24 hours for company bookings), so that I do not lose the booking when my plans change.
 * **As an HR manager,** I want to reschedule a team booking paid from the company wallet, with any price difference settled on the company wallet.
 
@@ -218,26 +226,32 @@ Super Admin  (everything, including other roles' data)
 * **[FR-HUB-03] Mixed cart and combined checkout:** a hall and a theater by the hour and a daily office can be booked in a single checkout. Each item is saved according to its own plan (hourly, or direct daily/monthly/yearly), and a daily booking is not subject to the operating-hours rules that apply to sessions.
 
 * **[FR-BOOK-07] Booking rescheduling (Reschedule):**
-  * *Current status:* **not supported.** There is no "reschedule" action in the interface and no endpoint for it. Today a user can only cancel (within the cancellation window, FR-REFUND-01) and book again. The generic `PUT /api/direct-bookings/{id}` still accepts `bookingDate`, `workspaceId` and `sectionId` from the booking owner without any window, capacity or price check; it must be restricted when this requirement is built (see the rules below).
+  * *Current status:* **implemented** (`POST /api/hourly-bookings/{id}/reschedule`, `POST /api/direct-bookings/{id}/reschedule`, and a "Reschedule" action on My Bookings and on the HR team bookings page). The generic booking `PUT` was locked at the same time: only a Super Admin can change a date, room or plan there; everyone else can only cancel, and a cancelled or refunded booking cannot be brought back (before, the owner could change the date and room with no window, capacity or price check).
   * *Description:* let the booking owner move a not-yet-started booking to another free slot instead of cancelling it, under these business rules:
     1. **Eligible bookings:** an active hourly session (meeting room or theater) or a confirmed direct booking (daily; monthly or yearly seat only before it starts). Not eligible: started, completed, cancelled, refunded or waitlisted bookings (a waitlist entry is cancelled and re-joined), and Universal Pass subscriptions themselves.
     2. **Notice period (same as cancellation):** the request must be made at least **6 hours** before the original start for an individual account and **24 hours** for an HR administrator and for company-funded bookings. A Super Admin may override.
     3. **New slot:** it must start at least the same notice period from now, fall inside the venue's operating hours and the fixed two-hour session grid (FR-BOOK-05), stay within 30 days after the original date, and pass the same capacity and overlap checks as a new booking (FR-BOOK-06). Same venue and same room type; another room of that venue is allowed.
     4. **Limit:** one free reschedule per booking. Further changes are done by cancelling (if still inside the window) and booking again.
-    5. **Price:** same room and duration means no charge. If the new room or date costs more, the difference (with VAT) is charged to the wallet that paid; if it costs less, the difference is refunded to that wallet. If a pass covered the hours, the hours return to the original month's quota and are deducted from the new date's quota, and any excess is charged at the hourly rate.
+    5. **Price:** same room and duration means no charge. A different room is priced by scaling what was paid (discounts, VAT and points included) by the new room's rate over the old room's rate. A difference upward is charged to the wallet that paid (the company wallet for company-funded bookings, within the member's monthly limit; otherwise the owner's wallet) and is refused when the balance does not cover it; a difference downward is refunded to that wallet. The recorded payment is updated to the new total, so a later cancellation refunds exactly what is now paid. A booking covered by a pass has no payment, so nothing is charged (the pass hours are tracked in the member's quota).
     6. **Approval:** none. The change is instant when the slot is free; the venue partner is told. A company employee does not need HR approval for a company-funded booking, but the HR administrator is notified. The HR administrator may reschedule any booking paid from the company wallet.
     7. **Atomicity:** the old slot release, the new slot reservation, the booking update and any price difference run in one database transaction. The released slot is offered to the waitlist (FR-BOOK-04). The booking keeps its identifier, so its QR code stays valid, but only for the new slot.
-    8. **Refusals:** the server answers HTTP 400 with a reason code: `RESCHEDULE_WINDOW`, `SLOT_UNAVAILABLE`, `RESCHEDULE_LIMIT` or `NOT_ELIGIBLE`.
-    9. **Records and messages:** keep the original slot and a reschedule counter on the booking; send an in-app message and an email to the owner, an in-app message to the partner, and one to the HR administrator for company-funded bookings.
+    8. **Refusals:** the server answers with a reason code: `RESCHEDULE_WINDOW`, `RESCHEDULE_LIMIT`, `NOT_ELIGIBLE`, `NOT_CHANGED`, `SLOT_TOO_FAR`, `ROOM_NOT_ALLOWED`, `INVALID_SLOT`, `SLOT_UNAVAILABLE` (409), `CHANGED` (409), `FORBIDDEN` (403), `INSUFFICIENT_BALANCE`, `LIMIT_EXCEEDED`, `POLICY_DISABLED`.
+    9. **Records and messages:** the booking keeps the original start (`rescheduledFrom`) and a counter (`rescheduleCount`); an in-app message (title "Booking Rescheduled") goes to the owner, the people the booking was made for, the venue's partner and, for company-funded bookings, the HR administrator. (No email yet.)
   * *Acceptance criteria:* a booking inside the notice period cannot be moved; a booking outside it can be moved once to a free slot and the old slot becomes bookable at once; the price difference is settled exactly once even if the request is repeated; two users cannot take the same new slot; every refusal shows a clear Arabic or English reason.
 
 * **[FR-COMP-01] Company team stored on the server:**
-  * *Description:* the HR administrator adds an existing `B2C` account to the team by email (`POST /api/companies/{id}/employees`) and removes members (`DELETE /api/companies/{id}/employees/{userId}`). A member can also leave on their own. The HR administrator account cannot be removed.
-  * *Acceptance criteria:* only the company's HR administrator (or a Super Admin) manages the team; accounts that are not `B2C`, are suspended, or already belong to another company are refused; the affected person (and the HR administrator when a member leaves) gets an in-app notification.
+  * *Description:* the HR administrator adds an existing `B2C` account to the team by email (`POST /api/companies/{id}/employees`) and removes members (`DELETE /api/companies/{id}/employees/{userId}`). **A member cannot remove themselves** (HTTP 403): the "Leave company" button was removed from the employee's interface and the server refuses it too. The HR administrator account cannot be removed.
+  * *Acceptance criteria:* only the company's HR administrator (or a Super Admin) manages the team; accounts that are not `B2C`, are suspended, or already belong to another company are refused; the affected person gets an in-app notification when added or removed.
 * **[FR-COMP-02] Company join requests:**
   * *Description:* a person can sign up as a **Company employee** by entering the HR administrator's email, or an existing member can ask to join from the profile page. A `CompanyJoinRequest` (`PENDING`, `APPROVED`, `DECLINED`, `CANCELLED`) is created; for a new sign-up the HR administrator is notified only after the employee verifies their email. The HR administrator approves or declines from the team page or the dashboard (`GET/POST /api/company-join-requests`, `PATCH /api/company-join-requests/{id}`); the employee can withdraw a pending request (`DELETE`).
   * *Acceptance criteria:* one pending request per person; approval sets `User.companyId` and cancels the person's other pending requests; the employee is notified of the decision and sees the company on the next load without signing in again. A sign-up never accepts a raw company identifier from the browser.
-* **[FR-COMP-03] Company membership display:** members see the company name, HR contact and team size on the dashboard and profile, an "Employee" badge in the header, and a notice that passes are arranged by the company.
+* **[FR-COMP-03] Company membership display:** members see the company name, HR contact and team size on the dashboard and profile (without the colleagues' names or emails), an "Employee" badge in the header, the company wallet, and a notice that passes are arranged by the company. The "Passes" link and the passes page are not available to employees.
+* **[FR-COMP-04] Team spending policy (company wallet for employees):**
+  * *Description:* the HR administrator decides, on the team page, whether members may pay their own bookings from the company wallet and sets a **monthly limit per member** (`Company.employeeSpendingEnabled`, `Company.employeeMonthlyLimit`). Switching it on without a limit above zero is refused. A member pays through `POST /api/companies/{id}/spend` (and undoes a failed payment through `.../spend/refund`); the HR administrator keeps using the withdraw endpoint.
+  * *Acceptance criteria:* the server refuses a member's payment when the policy is off (`POLICY_DISABLED`), when it exceeds what is left of their monthly limit (`LIMIT_EXCEEDED`, counted net of refunds in the Saudi calendar month) or when the wallet balance does not cover it (`INSUFFICIENT_BALANCE`); the same payment key never takes the money twice; each member has their own limit. The booking flow offers "Pay from the company wallet" only when the wallet and the remaining allowance cover the whole booking. A payment funded this way is tagged with the company (`Payment.companyId`), so its refund goes back to the **company wallet**, never to the employee's own wallet.
+* **[FR-COMP-05] Team bookings are linked to the named employees:**
+  * *Description:* when the HR administrator books for selected team members, the booking carries their identifiers (`attendeeIds` on `DirectBooking` and `HourlyBooking`). The server keeps only real, active members of that HR administrator's own company.
+  * *Acceptance criteria:* each named employee sees the booking in their own bookings, gets an in-app message ("Booked for you by your company"), can open its details and QR code, and the check-in is accepted for them; they cannot cancel, change or reschedule it. A person outside the company never appears as an attendee.
 
 
 ### C. Booking Lifecycle
@@ -275,6 +289,7 @@ Super Admin  (everything, including other roles' data)
   * *Description:* enable users and companies to create support tickets (`Ticket`) and follow replies (`TicketReply`).
   * *Acceptance criteria:* track the ticket lifecycle through its three states (`OPEN`, `IN_PROGRESS`, `CLOSED`). Replies are saved in `TicketReply` and shown as a conversation in the admin panel, and the admin can reply even to a closed ticket. A ticket carries `message`, `category` (general / complaint / refund / enterprise) and `priority`, and the company is resolved on the server from the requester's record.
   * *Enterprise inquiries:* the `enterprise` category is supported for tailored-offer requests; such a ticket reaches the administrators as an in-app notification (type `SUPPORT_TICKET`) and appears in a separate tab.
+* **[FR-SUPP-02] My Tickets (customer side):** every signed-in user except the Super Admin (individuals, company employees, HR administrators and venue partners) has a "My tickets" page (account menu, mobile menu, and the notification "Support replied to your ticket"). It lists the user's own tickets with their status (Pending, In progress, Closed), shows the whole conversation with the support team, lets the user reply, and lets them close their own ticket. A customer cannot reopen a closed ticket or move it along; when the customer replies, the Super Admins get an in-app notification so the conversation does not stall.
 * **[FR-NOTIF-01]** In-app notifications for the key events and four transactional emails through Resend. The complete matrix (trigger, sender, recipient, channel and working status of every message) is in **`Notifications_and_Emails.md`**. Summary of what exists today:
 
 | Event | Channel | Recipient | Status |
@@ -289,8 +304,12 @@ Super Admin  (everything, including other roles' data)
 | Payment recorded | In-app | Payer | Working (payments are simulated until a real gateway is added) |
 | New support ticket (including enterprise) | In-app | Super Admin | Working |
 | Support reply | In-app | Ticket owner | Working (no email) |
-| Team: added, removed, left, join request, decision | In-app | Employee or HR administrator | Working |
-| Loyalty points earned; checkout finished; amenity decisions | In-app (created by the browser) | User / Partner | Working |
+| Team: added, removed, join request, decision | In-app | Employee or HR administrator | Working |
+| Booked for you by your company | In-app | Employee | Working |
+| Booking rescheduled | In-app | Owner, attendees, partner, HR administrator | Working (no email) |
+| Customer replied on a ticket | In-app | Super Admin | Working |
+| New amenity request; amenity decision | In-app | Super Admin; requesting partner | Working (created by the server) |
+| Loyalty points earned; checkout finished | In-app (created by the browser) | User | Working |
 
 *Not implemented yet:* booking and purchase confirmation emails, pass-expiry reminder (7 days), payment-failure notice, wallet-deposit notice, partner notice of new bookings, monthly settlement notice, pass-assigned notice, and password-recovery email.
 
@@ -314,6 +333,8 @@ Super Admin  (everything, including other roles' data)
 * **[FR-SEC-05] Session lifetime:** a JWT is valid for 24 hours and is revoked on logout.
 
 * **[FR-SEC-06] Sign-in lockout:** after 5 failed password attempts for the same email within 15 minutes, further sign-in attempts for that email are refused until the window passes. The counter is kept in server memory, so it resets on every restart and is not shared between instances. Rate limiting for verification codes, wallet, booking and ticket routes does not exist yet.
+
+* **[FR-SEC-07] Booking changes only through validated routes:** `PUT /api/direct-bookings/{id}` and `PUT /api/hourly-bookings/{id}` accept a date, room or plan change only from a Super Admin. Everyone else can only cancel (`status: CANCELLED`); a cancelled or refunded booking cannot be reactivated, and an unknown status is rejected. Moving a booking is done with the reschedule endpoints (FR-BOOK-07).
 
 
 ### I. Open API Documentation (OpenAPI Documentation)
@@ -372,8 +393,8 @@ Written after auditing the code on 2026-10-26. Everything above is implemented u
 | Fair use | The 5-bookings-per-week limit is not enforced (FR-BOOK-03). |
 | Waitlist | No 15-minute confirmation window; auto-booking is a browser-only switch (FR-BOOK-04). |
 | QR check-in | The QR code is static, not a rotating TOTP code; no fraud log (FR-QR-01). |
-| Rescheduling | Not supported (FR-BOOK-07). The open `PUT /api/direct-bookings/{id}` accepts date and room changes without validation. |
-| Company accounts | Department labels are stored only in the HR administrator's browser; passes and team bookings are not linked to individual employees on the server; an HR administrator can add a member without that person's consent (join requests exist as the consent-based path); the server accepts a company-plan purchase from an employee account (FR-COMP-01 to FR-COMP-03). |
+| Rescheduling | Built (FR-BOOK-07). Not yet: an email to the owner; repricing a booking covered by a pass (nothing is charged). The interface offers the same room or another room of the venue and type. |
+| Company accounts | Department labels are stored only in the HR administrator's browser; passes are not allocated per employee on the server (team bookings are linked to the named employees, FR-COMP-05); an HR administrator can add a member without that person's consent (join requests exist as the consent-based path); the server accepts a company-plan purchase from an employee account; an employee who paid from the company wallet is bound only by the monthly limit the HR administrator set (FR-COMP-01 to FR-COMP-05). |
 | Cancellation window | Based on the booking owner's role (6 hours for `B2C`, including company employees; 24 hours otherwise), not on who paid. |
 | Security | In-memory login lockout only; no rate limiting elsewhere; CORS is open to all origins; maintenance routes are protected by Super Admin only (`PRODUCTION_CHECKLIST.md`). |
 | Hosting | The QA deployment is on Render's free plan, which stops when its monthly hours run out. |

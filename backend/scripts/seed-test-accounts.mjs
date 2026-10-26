@@ -147,9 +147,19 @@ if (isLocal) {
 }
 await upsertUser({ email: 'suspended@cwp-test.local', name: 'Test Suspended Member', role: 'B2C', isBanned: true });
 
-// 6. Booking history for the individual member (created once) and notifications (reset on every run)
-const hasHistory = await prisma.hourlyBooking.count({ where: { userId: individual.id, workspaceId: workspace.id } });
-if (!hasHistory) {
+// 6. Booking history for the individual member and notifications (both rebuilt on every run, so the
+// "upcoming" and "past" bookings always sit at the same distance from today)
+{
+  const oldHourly = await prisma.hourlyBooking.findMany({ where: { userId: individual.id, workspaceId: workspace.id }, select: { id: true } });
+  const oldDirect = await prisma.directBooking.findMany({ where: { userId: individual.id, workspaceId: workspace.id }, select: { id: true } });
+  const oldIds = [...oldHourly, ...oldDirect].map((b) => b.id);
+  if (oldIds.length > 0) {
+    await prisma.payment.deleteMany({ where: { referenceId: { in: oldIds } } });
+    await prisma.hourlyBooking.deleteMany({ where: { id: { in: oldHourly.map((b) => b.id) } } });
+    await prisma.directBooking.deleteMany({ where: { id: { in: oldDirect.map((b) => b.id) } } });
+  }
+}
+{
   const day = (offset, hour) => new Date(Date.UTC(...(() => { const d = new Date(Date.now() + 3 * 3600000 + offset * 86400000); return [d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), hour]; })()));
   const upcoming = await prisma.hourlyBooking.create({
     data: { userId: individual.id, workspaceId: workspace.id, sectionId: meetingRoom.id, packageId: pkg.id, startDate: day(3, 10), endDate: day(3, 12), hoursUsed: 2, seats: 4, status: 'ACTIVE' },
@@ -160,9 +170,8 @@ if (!hasHistory) {
   });
 }
 
-// Daily passes: one that already ended and one coming up, to check how past bookings are shown
-const hasDirect = await prisma.directBooking.count({ where: { userId: individual.id, workspaceId: workspace.id } });
-if (!hasDirect) {
+// Daily passes: one that already ended and one coming up, to check how past bookings are shown (rebuilt above)
+{
   const deskSection = workspace.sections.find((sec) => sec.type === 'DESK');
   const dayStart = (offset) => { const d = new Date(Date.now() + 3 * 3600000 + offset * 86400000); return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())); };
   await prisma.directBooking.createMany({

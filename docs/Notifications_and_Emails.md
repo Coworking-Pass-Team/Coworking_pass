@@ -1,6 +1,6 @@
 # Notifications and Transactional Emails
 
-**Project: Coworking Pass** · Audited against the code on branch `develop` (commit `f1c140c`, 2026-10-26).
+**Project: Coworking Pass** · Audited against the code on branch `develop` (commit `f1c140c`, 2026-10-26); updated the same day for the company wallet, team bookings, rescheduling, My Tickets and amenity-routing changes.
 
 This document is the single reference for every notification and email the platform can send: **who triggers it, who receives it, through which channel, and whether it works today.** It was written from the source code, not from the earlier plans, so where it differs from older documents this one is correct.
 
@@ -39,11 +39,15 @@ Important facts:
 | S12 | A Super Admin replies to a ticket | **Super Admin** | The ticket owner | `SUPPORT_TICKET` | In-app | Working |
 | S13 | An HR admin adds an existing member to the company team | **HR admin** (`POST /api/companies/{id}/employees`) | The added member | `PASS_ASSIGNED` | In-app | Working |
 | S14 | An HR admin removes a member from the team | **HR admin** | The removed member | `PASS_ASSIGNED` | In-app | Working |
-| S15 | A member leaves the team on their own | The member | The company's **HR admin** | `PASS_ASSIGNED` | In-app | Working |
+| S15 | The HR admin books a session or desk for named team members | **HR admin** (`POST /api/hourly-bookings`, `/api/direct-bookings` with `attendeeIds`) | Each named employee ("Booked for you by your company") | `BOOKING_CONFIRMED` | In-app | Working |
 | S16 | An employee asks to join a company (sent once their email is verified, or right away for an existing member) | The employee | The company's **HR admin** | `PASS_ASSIGNED` | In-app | Working |
 | S17 | The HR admin approves or declines a join request | **HR admin** (`PATCH /api/company-join-requests/{id}`) | The employee | `PASS_ASSIGNED` | In-app | Working |
+| S18 | A booking is rescheduled (`POST .../reschedule`) | The booking owner, a Super Admin, or the HR admin of the paying company | The owner, the people the booking was made for, the venue's partner and (company-funded) the HR admin ("Booking Rescheduled") | `BOOKING_CONFIRMED` | In-app | Working (no email) |
+| S19 | A customer replies on their own support ticket | The ticket owner | Every **Super Admin** ("New reply on a support ticket") | `SUPPORT_TICKET` | In-app | Working |
+| S20 | A partner files a custom amenity request | The partner (`POST /api/amenities`) | Every **Super Admin** (not the partner) | `AMENITY_REQUEST_STATUS` | In-app | Working (was a defect, fixed: the server now routes it) |
+| S21 | A Super Admin approves or rejects an amenity request | **Super Admin** (`PUT /api/amenities/{id}`) | The partner who asked | `AMENITY_REQUEST_STATUS` | In-app | Working |
 
-The company notifications (S13 to S17) all use the type `PASS_ASSIGNED` because the notification type list has no team-specific value. They do not mean a pass was assigned.
+The team notifications (S13, S14, S16, S17) use the type `PASS_ASSIGNED` because the notification type list has no team-specific value. They do not mean a pass was assigned. A member can no longer leave the team on their own, so there is no "member left" notification.
 
 ## 3. In-app notifications created by the browser
 
@@ -56,8 +60,6 @@ These are created in `frontend/app/store.tsx` (`addNotification`) and saved thro
 | B3 | A pass is cancelled without a refund because the policy does not allow it | The pass owner | Working |
 | B4 | Auto-booking is switched on for a space | The user | The message is sent, but auto-booking itself is only a switch held in the browser's memory: nothing books automatically and the setting is lost on reload |
 | B5 | A booking status is changed from the interface ("Booking cancelled", etc.) | The booking owner | Working |
-| B6 | A partner submits a custom amenity request | Meant for the **Super Admin** | **Defect:** the message is saved to the partner's own account, not the admin's (section 6) |
-| B7 | A Super Admin approves or rejects an amenity request | The requesting partner | Working (a Super Admin is allowed to notify any account) |
 
 ## 4. Emails (Resend)
 
@@ -99,7 +101,7 @@ To confirm the current state on the live backend, open the Render backend log an
 | "Pass assigned by the company" to an employee | Not implemented. Passes are not assigned to individual employees on the server. |
 | Monthly settlement notice to partners | The type `PAYOUT_PROCESSED` exists but nothing creates it. |
 | Loyalty points earned or redeemed (server side) | Only the browser message B1. The types `POINTS_EARNED` and `POINTS_REDEEMED` are unused by the server. |
-| Amenity or loyalty-rule decision | Amenity decisions only through B7. Loyalty-rule decisions send nothing. |
+| Loyalty-rule decision | Nothing is sent when a Super Admin approves or rejects a loyalty rule. (Amenity decisions are sent by the server, S21.) |
 | A venue partner told about a new booking at their venue | Not implemented. Partners only see bookings when they open their dashboard. |
 | `ACCOUNT_VERIFIED` after email verification | The type exists but is never created. |
 
@@ -108,7 +110,7 @@ To confirm the current state on the live backend, open the Render backend log an
 1. **Master code.** The sign-in code is the constant `123456` and is written to the server log. The same code is accepted at sign-up verification. Release blocker (see `PRODUCTION_CHECKLIST.md`).
 2. **Approval email link.** The "Sign In to Your Dashboard" button in E3 points to `https://coworking-pass.vercel.app/Auth`, an address that is not the deployed site. It should come from an environment variable.
 3. **Mislabelled type.** S1 ("New Space Partner Application") is stored with the type `PARTNER_APPROVED`, which makes the admin's icon and filtering treat it as an approval.
-4. **Amenity request to admin (B6).** The browser maps the target `admin` to the signed-in user, so the request notification lands on the partner's own account and no admin receives it.
+4. ~~Amenity request to admin.~~ **Fixed:** the browser used to map the target `admin` to the signed-in user, so the notification landed on the partner's own account. The server now notifies every Super Admin (S20) and tells the partner the decision (S21); the browser no longer creates these messages.
 5. **Hourly cancellation.** Cancelling an hourly booking through `DELETE /api/hourly-bookings/{id}` creates no notification (the refund path S9 does).
 6. **Silent email failures.** Email errors are swallowed, so the interface cannot tell the user the code did not arrive.
 7. **English-only emails.** Arabic-speaking users receive English email text.
@@ -127,4 +129,4 @@ To confirm the current state on the live backend, open the Render backend log an
 
 `BOOKING_CONFIRMED`, `BOOKING_CANCELLED`, `WAITLIST_PROMOTED`, `WAITLIST_JOINED`, `MEETING_BOOKED`, `PAYMENT_SUCCESS`, `PAYMENT_FAILED`, `PASS_ASSIGNED`, `PASS_EXPIRING`, `ACCOUNT_VERIFIED`, `POINTS_EARNED`, `POINTS_REDEEMED`, `PAYOUT_PROCESSED`, `PARTNER_APPROVED`, `AMENITY_REQUEST_STATUS`, `SUPPORT_TICKET`.
 
-Types never created by the server: `PAYMENT_FAILED`, `PASS_EXPIRING`, `ACCOUNT_VERIFIED`, `POINTS_EARNED`, `POINTS_REDEEMED`, `PAYOUT_PROCESSED`, `AMENITY_REQUEST_STATUS`.
+Types never created by the server: `PAYMENT_FAILED`, `PASS_EXPIRING`, `ACCOUNT_VERIFIED`, `POINTS_EARNED`, `POINTS_REDEEMED`, `PAYOUT_PROCESSED`.

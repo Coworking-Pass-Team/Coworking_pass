@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { resolveAttendeeIds, notifyAttendees } from '@/lib/company-team';
 import { prisma } from '@/lib/prisma';
 import { getTokenFromRequest, unauthorizedResponse, suspendedResponse } from '@/lib/auth/verify-token';
 import { seedStandardWorkspaces } from '@/lib/seed-data';
@@ -29,11 +30,12 @@ export async function GET(request: Request) {
     } else if (user.role === 'PARTNER_ADMIN') {
       // A partner sees bookings made at their own workspaces, plus any they made themselves as a customer
       const owned = await getOwnedWorkspaceIds(user.userId);
-      const and: Prisma.DirectBookingWhereInput[] = [{ OR: [{ workspaceId: { in: owned } }, { userId: user.userId }] }];
+      const and: Prisma.DirectBookingWhereInput[] = [{ OR: [{ workspaceId: { in: owned } }, { userId: user.userId }, { attendeeIds: { has: user.userId } }] }];
       if (userId) and.push({ userId });
       whereClause.AND = and;
     } else {
-      whereClause.userId = user.userId;
+      // Own bookings plus the company bookings made for this person
+      whereClause.OR = [{ userId: user.userId }, { attendeeIds: { has: user.userId } }];
     }
 
     if (workspaceId) whereClause.workspaceId = workspaceId;
@@ -309,6 +311,8 @@ export async function POST(request: NextRequest) {
 
     // Capacity check + insert run under a per-workspace advisory lock, so simultaneous requests for the
     // last seats cannot both pass the check (no overbooking). Shares its lock key with hourly bookings.
+    // Team members this company booking is for (only an HR admin's own team members are kept)
+    const attendeeIds = await resolveAttendeeIds(effectiveUserId, body.attendeeIds);
     const lockedWorkspaceId: string = targetWorkspaceId;
     const created = await prisma.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${'hourly-slot:' + lockedWorkspaceId}))`;
@@ -342,6 +346,7 @@ export async function POST(request: NextRequest) {
     return await tx.directBooking.create({
       data: {
         userId: effectiveUserId,
+        attendeeIds,
         seats: requestedSeats,
         workspaceId: targetWorkspaceId,
         sectionId: targetSectionId,
@@ -373,6 +378,13 @@ export async function POST(request: NextRequest) {
         sentAt: getKsaNow()
       }
     }).catch(() => {});
+
+    await notifyAttendees(
+      attendeeIds,
+      booking.workspace.name,
+      booking.section?.name,
+      `${booking.bookingDate.toISOString().slice(0, 10)}, ${booking.durationDetails || booking.durationType.toLowerCase()}`
+    );
 
     return NextResponse.json(booking, { status: 201 });
   } catch (error) {

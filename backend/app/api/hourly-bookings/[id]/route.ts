@@ -84,7 +84,7 @@ if (!user) return unauthorizedResponse(request);
     const { id } = await params
     const body = await request.json()
 
-    const existing = await prisma.hourlyBooking.findUnique({ where: { id }, select: { userId: true, sectionId: true } })
+    const existing = await prisma.hourlyBooking.findUnique({ where: { id }, select: { userId: true, sectionId: true, status: true } })
     if (!existing) {
       return NextResponse.json({ error: 'Booking not found.' }, { status: 404 })
     }
@@ -92,9 +92,20 @@ if (!user) return unauthorizedResponse(request);
       return NextResponse.json({ error: 'You are not allowed to modify this booking.' }, { status: 403 })
     }
 
-    // Only the lifecycle status may change after creation
+    // Only the lifecycle status may change after creation (moving a session goes through the reschedule action).
+    // Everyone but a Super Admin can only cancel, and a closed booking can never be brought back.
     const data: { status?: LifecycleStatus } = {}
-    if (body.status !== undefined) data.status = body.status
+    if (body.status !== undefined) {
+      const wanted = String(body.status).toUpperCase()
+      if (!['ACTIVE', 'EXPIRED', 'CANCELLED'].includes(wanted)) {
+        return NextResponse.json({ error: 'status must be ACTIVE, EXPIRED or CANCELLED.' }, { status: 400 })
+      }
+      if (user.role !== 'SUPER_ADMIN') {
+        if (wanted !== 'CANCELLED') return NextResponse.json({ error: 'Only cancelling is allowed here.' }, { status: 400 })
+        if (existing.status !== 'ACTIVE') return NextResponse.json({ error: 'This booking is already closed.' }, { status: 400 })
+      }
+      data.status = wanted as LifecycleStatus
+    }
 
     const booking = await prisma.hourlyBooking.update({
       where: { id },

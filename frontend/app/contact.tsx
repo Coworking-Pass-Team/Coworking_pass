@@ -22,7 +22,7 @@ type InquiryType = 'general' | 'complaint' | 'refund';
 
 export default function Contact() {
   const { t, translateMessage } = useI18n();
-  const { addSupportTicket, currentUser } = useApp();
+  const { addSupportTicket, currentUser, navigate } = useApp();
   const [submitted, setSubmitted] = useState(false);
   const [inquiryType, setInquiryType] = useState<InquiryType>('general');
   const [name, setName] = useState(currentUser?.name || '');
@@ -208,6 +208,11 @@ export default function Contact() {
                     <span className="text-moss text-[11px]">{t('contact.attachedScreenshot')}</span>
                   </div>
                 </div>
+              )}
+              {currentUser && currentUser.role !== 'admin' && (
+                <button type="button" onClick={() => navigate('my-tickets')} className="btn-primary px-5 py-2.5 text-xs me-2">
+                  {t('tickets.viewMine')}
+                </button>
               )}
               <button
                 type="button"

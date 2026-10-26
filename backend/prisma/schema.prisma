@@ -176,6 +176,10 @@ model Company {
   hrAdminId            String @unique
   totalPassesAllocated Int    @default(0)
   balance               Float  @default(0)  
+  /// Corporate policy: may team members pay their own bookings from the company wallet?
+  employeeSpendingEnabled Boolean @default(false)
+  /// Most one member may spend from the company wallet per calendar month (null = no cap)
+  employeeMonthlyLimit    Float?
 
   hrAdmin   User     @relation("CompanyHrAdmin", fields: [hrAdminId], references: [id])
   employees User[]   @relation("CompanyEmployees")
@@ -358,6 +362,11 @@ model DirectBooking {
   bookingDate     DateTime
   seats           Int                 @default(1)
   status       DirectBookingStatus
+  /// Team members a company booking was made for; they see it in their own bookings and can check in
+  attendeeIds     String[]            @default([])
+  /// How many times the booking was moved (one free reschedule is allowed) and where it started
+  rescheduleCount Int                 @default(0)
+  rescheduledFrom DateTime?
   createdAt    DateTime            @default(now())
 
   user      User             @relation(fields: [userId], references: [id])
@@ -377,6 +386,11 @@ model HourlyBooking {
   seats           Int             @default(1)
   durationDetails String?
   status          LifecycleStatus
+  /// Team members a company booking was made for; they see it in their own bookings and can check in
+  attendeeIds     String[]        @default([])
+  /// How many times the booking was moved (one free reschedule is allowed) and where it started
+  rescheduleCount Int             @default(0)
+  rescheduledFrom DateTime?
   createdAt       DateTime        @default(now())
 
   user      User             @relation(fields: [userId], references: [id])
@@ -397,6 +411,8 @@ model Payment {
   paymentFor           PaymentFor
   referenceId          String?
   status               PaymentStatus
+  /// Set when a team member paid from the company wallet, so refunds and reschedule differences go back to it
+  companyId            String?
   createdAt            DateTime      @default(now())
 
   user      User       @relation(fields: [userId], references: [id])

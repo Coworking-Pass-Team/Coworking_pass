@@ -45,7 +45,7 @@ if (!user) return unauthorizedResponse(request);
     const { id } = await params;
     const body = await request.json();
 
-    const existing = await prisma.ticket.findUnique({ where: { id }, select: { userId: true } });
+    const existing = await prisma.ticket.findUnique({ where: { id }, select: { userId: true, status: true } });
     if (!existing) {
       return NextResponse.json({ error: "Support ticket not found." }, { status: 404 });
     }
@@ -56,6 +56,13 @@ if (!user) return unauthorizedResponse(request);
     // Only the status can be changed after creation
     const data: { status?: TicketStatus } = {};
     if (body.status !== undefined) data.status = body.status;
+
+    // A customer can only close their own ticket; reopening or moving it along is up to the administrators
+    if (data.status && user.role !== "SUPER_ADMIN") {
+      if (data.status !== "CLOSED" || existing.status === "CLOSED") {
+        return NextResponse.json({ error: "You can only close your own open ticket." }, { status: 403 });
+      }
+    }
 
     if (data.status && !VALID_STATUSES.includes(data.status)) {
       return NextResponse.json(

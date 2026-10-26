@@ -111,6 +111,27 @@ export async function POST(request: Request) {
         .catch(() => undefined);
     }
 
+    // When the customer answers, tell every administrator so the conversation does not stall (best effort)
+    if (user.role !== "SUPER_ADMIN") {
+      try {
+        const admins = await prisma.user.findMany({ where: { role: "SUPER_ADMIN" }, select: { id: true } });
+        if (admins.length > 0) {
+          await prisma.notification.createMany({
+            data: admins.map((a) => ({
+              userId: a.id,
+              type: "SUPPORT_TICKET" as const,
+              title: "New reply on a support ticket",
+              message: ticketExists.subject.slice(0, 200),
+              channel: "IN_APP" as const,
+              sentAt: new Date(),
+            })),
+          });
+        }
+      } catch (notifyError) {
+        console.warn("Ticket reply notification failed:", notifyError);
+      }
+    }
+
     return NextResponse.json(
       { message: "Reply added successfully.", reply },
       { status: 201 }

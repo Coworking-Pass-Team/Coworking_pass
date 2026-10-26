@@ -18,14 +18,14 @@ async function findCurrentBooking(userId: string, workspaceId: string) {
   // Daily plans cover the whole booked day, whatever time of day the booking date was stored with
   const endOfToday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1))
   const direct = await prisma.directBooking.findMany({
-    where: { userId, workspaceId, status: 'CONFIRMED', bookingDate: { lt: endOfToday } },
+    where: { OR: [{ userId }, { attendeeIds: { has: userId } }], workspaceId, status: 'CONFIRMED', bookingDate: { lt: endOfToday } },
     orderBy: { bookingDate: 'desc' },
     take: 20,
   })
   const coveringDirect = direct.find((b) => directBookingEnd(b) > now)
   if (coveringDirect) return { id: coveringDirect.id, kind: coveringDirect.durationType as string }
   const hourly = await prisma.hourlyBooking.findFirst({
-    where: { userId, workspaceId, status: 'ACTIVE', startDate: { lte: new Date(now.getTime() + EARLY_ARRIVAL_MS) }, endDate: { gt: now } },
+    where: { OR: [{ userId }, { attendeeIds: { has: userId } }], workspaceId, status: 'ACTIVE', startDate: { lte: new Date(now.getTime() + EARLY_ARRIVAL_MS) }, endDate: { gt: now } },
   })
   return hourly ? { id: hourly.id, kind: 'HOURLY' } : null
 }

@@ -1,5 +1,5 @@
 // Company team membership is stored on the server: the HR admin adds existing member accounts by email
-// and removes them; members can leave; nobody else can change the team.
+// and removes them; members cannot remove themselves; nobody else can change the team.
 import { api, db, makeUser, check, summary } from './lib.mjs';
 await db.connect();
 const run = Date.now().toString(36);
@@ -31,8 +31,8 @@ check('another member cannot remove a colleague', (await remove(outsider, member
 check('the HR admin cannot be removed', (await remove(hr, hr.userId)).status === 400);
 check('the HR admin removes the member', (await remove(hr, member.userId)).status === 200 && (await companyOf(member.userId)) === null);
 check('removing someone not in the team is a 404', (await remove(hr, member.userId)).status === 404);
-check('a member can leave on their own', (await add(hr, member.email)).status === 201 && (await remove(member, member.userId)).status === 200 && (await companyOf(member.userId)) === null);
-check('the HR admin is told a member left', (await db.query(`select count(*)::int n from "Notification" where "userId"=$1 and title='A member left your team'`, [hr.userId])).rows[0].n === 1);
+check('a member cannot remove themselves from the company', (await add(hr, member.email)).status === 201 && (await remove(member, member.userId)).status === 403 && (await companyOf(member.userId)) === companyId);
+check('nobody is told a member left (leaving is not possible)', (await db.query(`select count(*)::int n from "Notification" where "userId"=$1 and title='A member left your team'`, [hr.userId])).rows[0].n === 0);
 
 await db.end();
 summary();

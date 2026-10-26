@@ -186,6 +186,23 @@ export async function ensureDatabaseSchema(force = false): Promise<{ success: bo
       END $$;
     `).catch((err) => console.warn("[Schema Sync] CompanyJoinRequest FK warning:", err));
 
+    // 4d. Corporate spending policy, company-funded payments, team-booking attendees and rescheduling
+    for (const [label, statement] of [
+      ['Company.employeeSpendingEnabled', 'ALTER TABLE "Company" ADD COLUMN IF NOT EXISTS "employeeSpendingEnabled" BOOLEAN NOT NULL DEFAULT false;'],
+      ['Company.employeeMonthlyLimit', 'ALTER TABLE "Company" ADD COLUMN IF NOT EXISTS "employeeMonthlyLimit" DOUBLE PRECISION;'],
+      ['Payment.companyId', 'ALTER TABLE "Payment" ADD COLUMN IF NOT EXISTS "companyId" TEXT;'],
+      ['DirectBooking.attendeeIds', 'ALTER TABLE "DirectBooking" ADD COLUMN IF NOT EXISTS "attendeeIds" TEXT[] DEFAULT ARRAY[]::TEXT[];'],
+      ['DirectBooking.rescheduleCount', 'ALTER TABLE "DirectBooking" ADD COLUMN IF NOT EXISTS "rescheduleCount" INTEGER NOT NULL DEFAULT 0;'],
+      ['DirectBooking.rescheduledFrom', 'ALTER TABLE "DirectBooking" ADD COLUMN IF NOT EXISTS "rescheduledFrom" TIMESTAMP(3);'],
+      ['HourlyBooking.attendeeIds', 'ALTER TABLE "HourlyBooking" ADD COLUMN IF NOT EXISTS "attendeeIds" TEXT[] DEFAULT ARRAY[]::TEXT[];'],
+      ['HourlyBooking.rescheduleCount', 'ALTER TABLE "HourlyBooking" ADD COLUMN IF NOT EXISTS "rescheduleCount" INTEGER NOT NULL DEFAULT 0;'],
+      ['HourlyBooking.rescheduledFrom', 'ALTER TABLE "HourlyBooking" ADD COLUMN IF NOT EXISTS "rescheduledFrom" TIMESTAMP(3);'],
+    ] as const) {
+      await prisma.$executeRawUnsafe(statement)
+        .then(() => executedStatements.push(label))
+        .catch((err) => console.warn(`[Schema Sync] ${label} warning:`, err));
+    }
+
     // 5. Super Admin provisioning comes from environment variables only (see lib/super-admin.ts);
     //    no credentials are hard-coded any more.
     executedStatements.push(...(await provisionSuperAdmin()));

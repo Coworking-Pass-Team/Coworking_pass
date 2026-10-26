@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Building2, Calendar, Clock, MapPin, QrCode, Users, Wallet } from 'lucide-react';
+import { Building2, Calendar, CalendarClock, Clock, MapPin, QrCode, Users, Wallet } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { durationLabel } from '@/i18n/duration';
 import { useSpaceText } from '@/i18n/space-text';
@@ -25,13 +25,17 @@ interface Props {
   space?: Space;
   onViewQr: () => void;
   onCancel: () => void;
+  /** Shown only when the booking can still be moved (owner, not started, free reschedule left) */
+  onReschedule?: () => void;
+  /** Booked for this person by their company: they can view it and check in, but not change or cancel it */
+  bookedByCompany?: boolean;
   /** When set, the card shows a selection checkbox for bulk actions */
   selected?: boolean;
   onToggleSelect?: () => void;
 }
 
 /** One hourly booking: where (venue, room, city), when (date, time range, hours), how much, and the actions. */
-export default function HourlyBookingCard({ booking: hb, space, onViewQr, onCancel, selected = false, onToggleSelect }: Props) {
+export default function HourlyBookingCard({ booking: hb, space, onViewQr, onCancel, onReschedule, bookedByCompany = false, selected = false, onToggleSelect }: Props) {
   const { t, formatDate, localizeTime } = useI18n();
   const st = useSpaceText();
 
@@ -126,7 +130,19 @@ export default function HourlyBookingCard({ booking: hb, space, onViewQr, onCanc
             <QrCode size={14} />
             <span>{t('myBookings.viewQr')}</span>
           </button>
-          {statusKey !== 'CANCELLED' && statusKey !== 'REFUNDED' && statusKey !== 'EXPIRED' && statusKey !== 'COMPLETED' && (
+          {onReschedule && !bookedByCompany && (
+            <button
+              type="button"
+              onClick={onReschedule}
+              title={t('reschedule.action')}
+              aria-label={t('reschedule.action')}
+              className="py-2.5 px-3 rounded-xl border border-soot/15 bg-white text-soot text-xs font-semibold hover:bg-soot/5 transition-colors cursor-pointer inline-flex items-center gap-1.5"
+            >
+              <CalendarClock size={14} />
+              <span className="hidden sm:inline">{t('reschedule.action')}</span>
+            </button>
+          )}
+          {!bookedByCompany && statusKey !== 'CANCELLED' && statusKey !== 'REFUNDED' && statusKey !== 'EXPIRED' && statusKey !== 'COMPLETED' && (
             <button
               type="button"
               onClick={onCancel}

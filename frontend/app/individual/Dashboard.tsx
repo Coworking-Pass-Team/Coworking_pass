@@ -212,13 +212,15 @@ export default function IndividualDashboard() {
                 <span className="text-[11px] font-semibold text-moss uppercase tracking-wider block">{t('dash.nextRenewal')}</span>
                 <span className="text-sm font-bold text-soot">{formatDate(cycleStartDate.getTime() + 30 * 24 * 60 * 60 * 1000)}</span>
               </div>
-              <button
-                type="button"
-                onClick={() => navigate('pricing')}
-                className="py-2.5 px-3.5 text-xs rounded-xl border border-soot/20 text-soot hover:bg-soot/5 font-semibold transition-colors cursor-pointer shadow-2xs"
-              >
-                {t('dash.managePass')}
-              </button>
+              {!currentUser.companyId && (
+                <button
+                  type="button"
+                  onClick={() => navigate('pricing')}
+                  className="py-2.5 px-3.5 text-xs rounded-xl border border-soot/20 text-soot hover:bg-soot/5 font-semibold transition-colors cursor-pointer shadow-2xs"
+                >
+                  {t('dash.managePass')}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => navigate('browse')}

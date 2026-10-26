@@ -1567,6 +1567,10 @@ export interface Booking {
   paidWithPass?: boolean;
   coveredHours?: number;
   payableHours?: number;
+  /** Made for this person by their company's HR admin: they can view it and check in, but not change or cancel it */
+  bookedByCompany?: boolean;
+  /** How many times the booking was already moved (one free reschedule per booking) */
+  rescheduleCount?: number;
 }
 
 export type AmenityRequestStatus = 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
@@ -1696,6 +1700,7 @@ export type Screen =
   | 'admin-settings'
   | 'admin-loyalty-proposals'
   | 'admin-support'
+  | 'my-tickets'
   | 'provider-dashboard'
   | 'provider-spaces'
   | 'provider-bookings'
@@ -1806,6 +1811,8 @@ export interface HourlyBookingApi {
   seats?: number;
   paidAmount?: number | null;
   status: string;
+  attendeeIds?: string[];
+  rescheduleCount?: number;
   createdAt?: string;
   updatedAt?: string;
   user?: { name: string; email: string };
@@ -1860,6 +1867,8 @@ export interface DirectBookingApi {
   durationDetails?: string;
   bookingDate: string;
   status: string;
+  attendeeIds?: string[];
+  rescheduleCount?: number;
   createdAt?: string;
   updatedAt?: string;
   user?: { name: string; email: string };

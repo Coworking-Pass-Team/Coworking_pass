@@ -85,7 +85,9 @@ if (!user) return unauthorizedResponse(request);
     const roleDenied = requireRoles(user, ['SUPER_ADMIN', 'PARTNER_ADMIN']);
     if (roleDenied) return roleDenied;
 
-    const { name, icon, isDefault, requestedBy } = await request.json();
+    const { name, icon, isDefault, requestedBy: sentRequester, spaceName } = await request.json();
+    // A partner's request is always filed under their own account, whatever the browser sends
+    const requestedBy = user.role === 'SUPER_ADMIN' ? sentRequester : user.userId;
 
     if (!name) {
       return NextResponse.json({ error: "Field 'name' is required." }, { status: 400 });
@@ -111,6 +113,32 @@ if (!user) return unauthorizedResponse(request);
         requestedBy: isDefault ? null : requestedBy,
       },
     });
+
+    // Tell every Super Admin about a custom request (best effort; never blocks the request)
+    if (!isDefault) {
+      try {
+        const [requester, admins] = await Promise.all([
+          prisma.user.findUnique({ where: { id: requestedBy }, select: { name: true } }),
+          prisma.user.findMany({ where: { role: "SUPER_ADMIN", NOT: { id: user.userId } }, select: { id: true } }),
+        ]);
+        const who = requester?.name || "A partner";
+        const where = typeof spaceName === "string" && spaceName.trim() ? ` for ${spaceName.trim().slice(0, 120)}` : "";
+        if (admins.length > 0) {
+          await prisma.notification.createMany({
+            data: admins.map((a) => ({
+              userId: a.id,
+              type: "AMENITY_REQUEST_STATUS" as const,
+              title: "New Custom Amenity Request",
+              message: `${who} requested custom amenity "${String(name).slice(0, 120)}"${where}.`,
+              channel: "IN_APP" as const,
+              sentAt: new Date(),
+            })),
+          });
+        }
+      } catch (notifyError) {
+        console.warn("Amenity request notification failed:", notifyError);
+      }
+    }
 
     return NextResponse.json(
       { message: "Amenity added successfully.", amenity },

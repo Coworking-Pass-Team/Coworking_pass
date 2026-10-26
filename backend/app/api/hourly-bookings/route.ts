@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { resolveAttendeeIds, notifyAttendees } from '@/lib/company-team';
 import { prisma } from '@/lib/prisma'
 import { getTokenFromRequest, unauthorizedResponse, suspendedResponse } from "@/lib/auth/verify-token";
 import { seedStandardWorkspaces } from '@/lib/seed-data';
@@ -19,18 +20,18 @@ export async function GET(request: Request) {
 
     // Scope the listing: super admins see everything, partners their own workspaces (plus their own bookings),
     // HR admins their team's bookings, everyone else only their own
-    let where: Prisma.HourlyBookingWhereInput = { userId: user.userId };
+    let where: Prisma.HourlyBookingWhereInput = { OR: [{ userId: user.userId }, { attendeeIds: { has: user.userId } }] };
     if (user.role === 'SUPER_ADMIN') {
       where = {};
     } else if (user.role === 'PARTNER_ADMIN') {
       const owned = await getOwnedWorkspaceIds(user.userId);
-      where = { OR: [{ workspaceId: { in: owned } }, { section: { workspaceId: { in: owned } } }, { userId: user.userId }] };
+      where = { OR: [{ workspaceId: { in: owned } }, { section: { workspaceId: { in: owned } } }, { userId: user.userId }, { attendeeIds: { has: user.userId } }] };
     } else if (user.role === 'HR_ADMIN') {
       const me = await prisma.user.findUnique({ where: { id: user.userId }, select: { companyId: true, hrAdminOf: { select: { id: true } } } });
       const companyId = me?.hrAdminOf?.id ?? me?.companyId;
       where = companyId
-        ? { OR: [{ userId: user.userId }, { user: { companyId } }] }
-        : { userId: user.userId };
+        ? { OR: [{ userId: user.userId }, { user: { companyId } }, { attendeeIds: { has: user.userId } }] }
+        : { OR: [{ userId: user.userId }, { attendeeIds: { has: user.userId } }] };
     }
 
     const bookings = await prisma.hourlyBooking.findMany({
@@ -430,6 +431,9 @@ const requestedType = (validSectionTypes.includes(sectionType) && sectionType !=
 
     targetPackageId = pkg.id;
 
+    // Team members this company booking is for (only an HR admin's own team members are kept)
+    const attendeeIds = await resolveAttendeeIds(effectiveUserId, body.attendeeIds);
+
     // Serialize bookings per workspace and re-check availability under the lock, so two simultaneous
     // requests for the same unit / session / last seats can never both succeed (no overbooking).
     const wsId = ws.id;
@@ -466,6 +470,7 @@ const requestedType = (validSectionTypes.includes(sectionType) && sectionType !=
         endDate: endObj,
         durationDetails: computedDetails,
         seats: requestedSeats,
+        attendeeIds,
         status: normalizedStatus as LifecycleStatus,
         hoursUsed: computedHours,
         createdAt: getKsaNow(),
@@ -500,6 +505,14 @@ const requestedType = (validSectionTypes.includes(sectionType) && sectionType !=
         sentAt: new Date(),
       },
     }).catch((err) => console.error('Hourly booking notification failed:', err));
+
+    const startIso = txResult.booking.startDate.toISOString();
+    await notifyAttendees(
+      attendeeIds,
+      txResult.booking.workspace?.name || ws.name,
+      secName,
+      `${startIso.slice(0, 10)} ${startIso.slice(11, 16)}-${txResult.booking.endDate.toISOString().slice(11, 16)}`
+    );
 
     return NextResponse.json(txResult.booking, { status: 201 });
   } catch (error) {

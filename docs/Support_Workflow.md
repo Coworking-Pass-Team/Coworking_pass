@@ -26,6 +26,7 @@ stateDiagram-v2
 * **First response SLA:** under **two hours (2h)** during working hours.
 * **Resolution SLA:** under **24 hours** for operational problems, and under **48 hours** for financial disputes.
 * **Notifications:** every administrator receives an in-app notification when a ticket is created (the `enterprise` category is highlighted), and the ticket owner is notified when support replies. The full conversation is visible in the admin panel, and an administrator can reply even after a ticket is closed.
+* **My Tickets (customer side):** every user (individual, company employee, HR administrator, venue partner) can open "My tickets" from the account menu or from the notification, follow the status (Pending, In progress, Closed), read the whole conversation, reply, and close their own ticket. When a customer replies, every administrator gets an in-app notification. A customer cannot reopen a closed ticket: they open a new one.
 
 ---
 

@@ -108,12 +108,31 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
 
-    const existing = await prisma.directBooking.findUnique({ where: { id }, select: { userId: true, workspaceId: true } });
+    const existing = await prisma.directBooking.findUnique({ where: { id }, select: { userId: true, workspaceId: true, status: true } });
     if (!existing) {
       return NextResponse.json({ error: 'Booking not found.' }, { status: 404 });
     }
     if (!(await mayAccessBooking(user, existing))) {
       return NextResponse.json({ error: 'You are not allowed to modify this booking.' }, { status: 403 });
+    }
+
+    // Only a Super Admin may edit a booking's date, room or plan directly. Everyone else can only cancel it here:
+    // moving a booking goes through POST /api/direct-bookings/{id}/reschedule (notice window, capacity, pricing)
+    // and a cancelled or refunded booking can never be brought back.
+    if (user.role !== 'SUPER_ADMIN') {
+      const wantsMove = body.bookingDate || body.workspaceId || body.sectionId || body.durationType || body.durationDetails;
+      if (wantsMove) {
+        return NextResponse.json(
+          { error: 'To change the date or room of a booking, use the reschedule action.', code: 'USE_RESCHEDULE' },
+          { status: 400 }
+        );
+      }
+      if (body.status && String(body.status).toUpperCase() !== 'CANCELLED') {
+        return NextResponse.json({ error: 'Only cancelling is allowed here.' }, { status: 400 });
+      }
+      if (body.status && (existing.status === 'CANCELLED' || existing.status === 'REFUNDED')) {
+        return NextResponse.json({ error: 'This booking is already closed.' }, { status: 400 });
+      }
     }
 
     const updateData: Prisma.DirectBookingUncheckedUpdateInput = {};

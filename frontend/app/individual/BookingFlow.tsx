@@ -20,7 +20,8 @@ import {
   Receipt,
   ShoppingBag,
   QrCode,
-  Wallet
+  Wallet,
+  Building2
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { useApp } from '@/app/store';
@@ -121,7 +122,7 @@ export default function BookingFlow() {
     !to || to === from
       ? `${dateText(from)} (${daysText(1)})`
       : `${dateText(from)} → ${dateText(to)} (${daysText(calculateDailyDurationDays(from, to))})`;
-  const { nav, navigate, goBack, spaces, bookings, currentUser, addBooking, showToast, addToCart, updateCurrentUser, withdrawFromWallet, checkSeatAvailability } = useApp();
+  const { nav, navigate, goBack, spaces, bookings, currentUser, addBooking, showToast, addToCart, updateCurrentUser, withdrawFromWallet, checkSeatAvailability, companyWalletBalance, companyData, withdrawFromCompanyWallet } = useApp();
   
   const urlId = typeof window !== 'undefined' ? window.location.pathname.split('/').pop() : '';
   const spaceId = nav?.params?.spaceId || (urlId && urlId !== 'page' && urlId !== 'booking-flow' ? urlId : '') || 'space-1';
@@ -241,6 +242,7 @@ export default function BookingFlow() {
   const submittingRef = useRef(false);
   const [useLoyaltyPoints, setUseLoyaltyPoints] = useState(false);
   const [useWalletBalance, setUseWalletBalance] = useState(false);
+  const [useCompanyWallet, setUseCompanyWallet] = useState(false);
 
   const handleStartDateChange = (newStart: string) => {
     setStartDate(newStart);
@@ -355,7 +357,15 @@ export default function BookingFlow() {
   const pointsDiscount = Math.min(rawTotalPrice, rawPointsDiscount);
   const totalPrice = Math.max(0, rawTotalPrice - pointsDiscount);
   const userWalletBalance = currentUser?.walletBalance || 0;
-  const walletDeduction = useWalletBalance ? Math.min(userWalletBalance, totalPrice) : 0;
+  // A company employee may pay a whole booking from the company wallet when the company allows it and both the
+  // wallet and the employee's remaining monthly allowance cover the full amount
+  const isCompanyEmployee = !!currentUser?.companyId && currentUser.role === 'individual';
+  const memberAllowance = isCompanyEmployee && companyData?.id === currentUser?.companyId ? companyData?.memberAllowance : null;
+  const companyAvailable = memberAllowance?.enabled ? Math.min(memberAllowance.remaining ?? 0, companyWalletBalance || 0) : 0;
+  const canPayWithCompany = isCompanyEmployee && totalPrice > 0 && companyAvailable >= totalPrice;
+  const companyDeduction = useCompanyWallet && canPayWithCompany ? totalPrice : 0;
+  const personalDeduction = useWalletBalance && companyDeduction === 0 ? Math.min(userWalletBalance, totalPrice) : 0;
+  const walletDeduction = personalDeduction + companyDeduction;
   const finalPayablePrice = Math.max(0, totalPrice - walletDeduction);
 
   const priceLabel = isHourly
@@ -455,8 +465,16 @@ export default function BookingFlow() {
       }
 
       // Charge the wallet first; only create the booking if the debit succeeded
-      if (useWalletBalance && walletDeduction > 0 && withdrawFromWallet) {
-        const payment = await withdrawFromWallet(walletDeduction, `Booking payment for ${space.name}`, checkoutKeyRef.current);
+      if (personalDeduction > 0 && withdrawFromWallet) {
+        const payment = await withdrawFromWallet(personalDeduction, `Booking payment for ${space.name}`, checkoutKeyRef.current);
+        if (!payment.success) {
+          submittingRef.current = false;
+          setLoading(false);
+          return;
+        }
+      }
+      if (companyDeduction > 0 && withdrawFromCompanyWallet) {
+        const payment = await withdrawFromCompanyWallet(companyDeduction, currentUser?.companyId, `Team member booking payment for ${space.name}`, checkoutKeyRef.current);
         if (!payment.success) {
           submittingRef.current = false;
           setLoading(false);
@@ -538,7 +556,9 @@ export default function BookingFlow() {
         paidWithPass: isPassBooking,
         coveredHours: planInfo.coveredHours,
         payableHours: planInfo.payableHours,
-      }, useWalletBalance && walletDeduction > 0 ? { amount: walletDeduction, key: checkoutKeyRef.current, target: 'personal' } : undefined);
+      }, companyDeduction > 0
+        ? { amount: companyDeduction, key: checkoutKeyRef.current, target: 'company' }
+        : personalDeduction > 0 ? { amount: personalDeduction, key: checkoutKeyRef.current, target: 'personal' } : undefined);
 
       setConfirmedBooking(booking);
       setStep(3);
@@ -1460,21 +1480,60 @@ export default function BookingFlow() {
                       <label className="flex items-center gap-2 text-xs font-semibold text-soot cursor-pointer bg-white/80 px-3 py-1.5 rounded-xl border border-emerald-500/30 hover:bg-white transition-colors">
                         <input
                           type="checkbox"
-                          checked={useWalletBalance}
-                          onChange={(e) => setUseWalletBalance(e.target.checked)}
+                          checked={useWalletBalance && companyDeduction === 0}
+                          onChange={(e) => { setUseWalletBalance(e.target.checked); if (e.target.checked) setUseCompanyWallet(false); }}
                           className="rounded border-soot/20 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
                         />
                         <span>{t('bf.useWallet', { currency: t('common.sar'), amount: Math.min(userWalletBalance, totalPrice).toLocaleString() })}</span>
                       </label>
                     )}
                   </div>
-                  {useWalletBalance && walletDeduction > 0 && (
+                  {personalDeduction > 0 && (
                     <div className="text-[11px] font-medium text-emerald-950 bg-emerald-500/15 px-3 py-1.5 rounded-xl border border-emerald-500/30 flex items-center justify-between">
                       <span>{t('bf.walletApplied')}</span>
-                      <span className="font-bold text-emerald-700">- {t('common.sar')} {walletDeduction.toLocaleString()}</span>
+                      <span className="font-bold text-emerald-700">- {t('common.sar')} {personalDeduction.toLocaleString()}</span>
                     </div>
                   )}
                 </div>
+
+                {/* Company wallet (company employees, when the company allows it) */}
+                {isCompanyEmployee && memberAllowance && (
+                  <div className="p-4 rounded-2xl bg-soot/5 border border-soot/15 space-y-2">
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                      <div className="flex items-center gap-2">
+                        <Building2 size={16} className="text-moss shrink-0" />
+                        <div>
+                          <div className="text-xs font-semibold text-soot">{t('bf.companyWallet')}</div>
+                          <div className="text-[11px] text-moss">
+                            {memberAllowance.enabled
+                              ? t('bf.companyAllowanceLeft', { currency: t('common.sar'), amount: Math.round(companyAvailable).toLocaleString() })
+                              : t('bf.companySpendingOff')}
+                          </div>
+                        </div>
+                      </div>
+                      {canPayWithCompany && (
+                        <label className="flex items-center gap-2 text-xs font-semibold text-soot cursor-pointer bg-white/80 px-3 py-1.5 rounded-xl border border-soot/20 hover:bg-white transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={useCompanyWallet}
+                            onChange={(e) => { setUseCompanyWallet(e.target.checked); if (e.target.checked) setUseWalletBalance(false); }}
+                            className="rounded border-soot/20 text-soot focus:ring-soot cursor-pointer"
+                          />
+                          <span>{t('bf.useCompanyWallet', { currency: t('common.sar'), amount: totalPrice.toLocaleString() })}</span>
+                        </label>
+                      )}
+                    </div>
+                    {memberAllowance.enabled && totalPrice > 0 && !canPayWithCompany && (
+                      <div className="text-[11px] text-moss">{t('bf.companyNotEnough')}</div>
+                    )}
+                    {companyDeduction > 0 && (
+                      <div className="text-[11px] font-medium text-soot bg-soot/8 px-3 py-1.5 rounded-xl border border-soot/15 flex items-center justify-between">
+                        <span>{t('bf.companyApplied')}</span>
+                        <span className="font-bold">- {t('common.sar')} {companyDeduction.toLocaleString()}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Clear Itemized Price Breakdown */}
                 <div className="p-5 rounded-2xl bg-white border-2 border-soot/10 space-y-3">
