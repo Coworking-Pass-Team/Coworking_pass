@@ -15,7 +15,7 @@ erDiagram
         string email
         string password_hash
         enum role "GUEST, B2C, HR_ADMIN, PARTNER_ADMIN, SUPER_ADMIN"
-        uuid company_id FK "Nullable - links to COMPANIES if B2B employee"
+        uuid company_id FK "Nullable - set for a company employee (role stays B2C) and for the HR admin of the company"
         boolean email_verified "default false"
         boolean is_banned "default false - moderation status"
     }
@@ -23,7 +23,7 @@ erDiagram
     COMPANIES {
         uuid id PK
         string company_name
-        uuid hr_admin_id FK
+        uuid hr_admin_id FK "Unique - one company per HR admin"
         int total_passes_allocated "Legacy: passes"
         float balance "Corporate shared wallet balance - default 0, only changed through atomic conditional updates"
     }
@@ -38,6 +38,15 @@ erDiagram
         string reference_id "Nullable - idempotency key or booking id; unique per company and type in practice"
         float balance_after "Balance right after this movement"
         datetime created_at "Indexed together with company_id"
+    }
+
+    COMPANY_JOIN_REQUESTS {
+        uuid id PK
+        uuid company_id FK "ON DELETE CASCADE - the company asked to join"
+        uuid user_id FK "ON DELETE CASCADE - the member asking to join"
+        string status "PENDING, APPROVED, DECLINED, CANCELLED - default PENDING"
+        datetime created_at
+        datetime decided_at "Nullable - set when answered or withdrawn"
     }
 
     PARTNERS {
@@ -84,6 +93,7 @@ erDiagram
         enum type "DESK, MEETING_ROOM, THEATER - booking category"
         string sub_type "Nullable - finer room kind, e.g. private-office, training-hall"
         string name "e.g. Meeting Hall A, VIP Theater, Dedicated Desks"
+        string name_ar "Nullable - Arabic room name; filled for the standard venues at startup"
         int capacity "Seats of this room"
         float hourly_rate "Nullable - halls and theaters; falls back to hub rate"
         float daily_rate "Nullable - falls back to hub rate"
@@ -219,7 +229,7 @@ erDiagram
     NOTIFICATIONS {
         uuid id PK
         uuid user_id FK
-        enum type "BOOKING_CONFIRMED, BOOKING_CANCELLED, WAITLIST_PROMOTED, MEETING_BOOKED, PAYMENT_SUCCESS, PAYMENT_FAILED, PASS_ASSIGNED, PASS_EXPIRING, ACCOUNT_VERIFIED, POINTS_EARNED, POINTS_REDEEMED, PAYOUT_PROCESSED, PARTNER_APPROVED, AMENITY_REQUEST_STATUS, SUPPORT_TICKET"
+        enum type "BOOKING_CONFIRMED, BOOKING_CANCELLED, WAITLIST_PROMOTED, WAITLIST_JOINED, MEETING_BOOKED, PAYMENT_SUCCESS, PAYMENT_FAILED, PASS_ASSIGNED, PASS_EXPIRING, ACCOUNT_VERIFIED, POINTS_EARNED, POINTS_REDEEMED, PAYOUT_PROCESSED, PARTNER_APPROVED, AMENITY_REQUEST_STATUS, SUPPORT_TICKET"
         string title
         string message
         enum channel "EMAIL, IN_APP, BOTH"
@@ -310,6 +320,8 @@ erDiagram
 
     USERS ||--o{ SUBSCRIPTIONS : "buys packages"
     USERS }o--o| COMPANIES : "is employee of"
+    USERS ||--o{ COMPANY_JOIN_REQUESTS : "asks to join"
+    COMPANIES ||--o{ COMPANY_JOIN_REQUESTS : "receives requests"
     USERS ||--o{ DIRECT_BOOKINGS : "books duration"
     USERS ||--o{ HOURLY_BOOKINGS : "books hourly section"
     USERS ||--o{ PAYMENTS : "makes payments"
@@ -358,7 +370,8 @@ The database is organized into **9 main sections**:
 
 ### 1. Core Entities
 - **`USERS`**: all users (guests, individuals, administrators, partners), their roles, email verification, and the administrative suspension status `is_banned`.
-- **`COMPANIES`**: joined B2B companies and the number of memberships allocated to their employees, plus the organization's shared wallet balance `balance`. The balance changes only through atomic conditional updates, and every movement is recorded in `COMPANY_WALLET_TRANSACTIONS`.
+- **`COMPANIES`**: joined B2B companies and the number of memberships allocated to their employees, plus the organization's shared wallet balance `balance`. The balance changes only through atomic conditional updates, and every movement is recorded in `COMPANY_WALLET_TRANSACTIONS`. A company employee has **no role of their own**: they are a `B2C` user with `company_id` set (see the role model in `SRS.md`, section 2.F).
+- **`COMPANY_JOIN_REQUESTS`**: a member asking to join a company team. One pending request per person; the company's HR admin approves or declines it and the member can withdraw it. Approving sets `USERS.company_id`.
 - **`PARTNERS`**: workspace partners, their tax data and Saudi commercial registration (CR / `tax_number`), and the partner approval status set by the Super Admin (`APPROVED`, `PENDING_APPROVAL`, `REJECTED`).
 
 ### 2. Workspaces and Rooms (Workspace & Sections)
@@ -384,7 +397,7 @@ The database is organized into **9 main sections**:
 - **`OTP_CODES`**: stores temporary verification codes for account registration, sign-in and password recovery, to ensure they are hashed and time-limited.
 
 ### 7. Notifications and Loyalty
-- **`NOTIFICATIONS`**: all outgoing notifications (email or in-app) for each user, with read tracking and the different occasions.
+- **`NOTIFICATIONS`**: all outgoing notifications (email or in-app) for each user, with read tracking and the different occasions. The `channel` value is only a label; email is sent directly by the mailer and is not recorded. See `Notifications_and_Emails.md` for which events create rows.
 - **`LOYALTY_RULES`**: partner proposals for point rules, which the Super Admin reviews for approval and activation.
 - **`LOYALTY_POINTS` & `POINTS_TRANSACTIONS`**: each user's points balance and the log of earning and redemption.
 

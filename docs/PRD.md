@@ -26,10 +26,11 @@ By management direction, the platform supports two separate operating models:
 
 ## 5. User Personas
 1. **Guest:** browses the site to explore spaces, amenities and prices without creating an account.
-2. **Individual member (B2C):** a freelancer or remote employee who books spaces directly or buys the Universal Pass, manages a digital wallet and loyalty points, and opens support tickets when needed.
-3. **HR administrator (B2B):** represents a company. Has a dashboard to manage the shared company balance (`Company.balance`), distribute memberships to employees and monitor consumption.
+2. **Individual member (B2C):** a freelancer or remote worker who books spaces directly or buys the Universal Pass, manages a digital wallet and loyalty points, and opens support tickets when needed.
+   * **Company employee:** not a separate role. It is the same Individual account with a link to a company (`User.companyId`). The employee asks the HR administrator to approve the link, sees their company in the dashboard, and passes are arranged by the company.
+3. **HR administrator (B2B):** represents a company (one company per HR administrator). Has a dashboard to manage the shared company balance (`Company.balance`), book for the team, add members or approve their join requests, and monitor consumption.
 4. **Workspace partner:** the owner or manager of a workspace. Registration requires a Saudi commercial registration number (CR / `taxNumber`), and the account stays `PENDING_APPROVAL` until the administration approves it. Uses a dedicated portal to manage venues and rooms, track visitors, scan QR codes, and propose amenities and loyalty rules.
-5. **Super Admin:** the platform owner. Approves new partners and verifies their commercial registrations, resolves tickets and disputes, suspends and reinstates users (`isBanned`), and runs the automated monthly financial settlements.
+5. **Super Admin:** the platform owner. Approves new partners and verifies their commercial registrations, resolves tickets and disputes, suspends and reinstates users (`isBanned`), and runs the monthly financial settlements (recorded by hand today; no scheduler yet).
 
 ## 6. Key Performance Indicators (KPIs)
 * Onboard 50 partner brands in 10 cities in the first quarter, each with a verified commercial registration.
@@ -80,7 +81,7 @@ Rooms and halls equipped with display screens, meeting equipment, presentation s
   - **Standard validation:** dynamic checks against international rules (for example `libphonenumber-js`, E.164 format) for the number of digits and the structure of each country's numbers.
 * **Email verification (OTP)**
   - **At sign-up:** a temporary one-time code is emailed (through Resend) to confirm ownership before the account is activated.
-  - **At password recovery and login:** sessions are protected and identity is confirmed with time-limited encrypted codes.
+  - **At password recovery and login:** sessions are protected and identity is confirmed with time-limited encrypted codes. *Status:* password recovery by email is not built yet (no reset endpoint); the QA build also accepts a fixed test code that must be removed before launch.
 
 ## 8. Amenities Management
 A smart system for managing the services and facilities available in each workspace:
@@ -99,8 +100,9 @@ A loyalty program that encourages customers to keep using the platform, managed 
 
 ## 10. Corporate Accounts (B2B — Team Pass)
 * **Shared corporate wallet:** a central, unified company balance (`Company.balance`) that the HR administrator tops up.
-* **Employee management:** add employees and assign visit packages, or let them draw on the company balance directly.
-* **Flexible consumption and fair use:** an employee books the space closest to them and the booking is deducted automatically from the company wallet with no per-person invoicing. Corporate plans that appear as "Unlimited*" are subject to the strict fair-use rule of **at most 5 bookings per week per employee**, to protect capacity and prevent exhausting partner resources.
+* **Employee management:** the HR administrator adds existing member accounts by email or approves join requests that employees send themselves (an employee can sign up under "Organization / B2B → Company employee" with the HR administrator's email), and can remove members. Members can leave on their own.
+* **Who spends the company balance:** only the HR administrator (and the Super Admin) can spend the company wallet, for team bookings. An employee's own bookings are paid from their personal wallet. Per-employee pass allocation and department labels are not stored on the server yet.
+* **Flexible consumption and fair use:** the HR administrator books spaces for the team and the amount is deducted from the company wallet with no per-person invoicing. Corporate plans that appear as "Unlimited*" are subject to the strict fair-use rule of **at most 5 bookings per week per employee**, to protect capacity and prevent exhausting partner resources.
 * **Corporate plan scope:** corporate plans are limited to the standard **Team Pass** and **Business Pass** to keep the purchase journey simple. The **"Custom Enterprise" card was removed** from the plans page. The organization navigation no longer includes a "Company Workspaces" page, which was removed because B2B accounts do not need it.
 
 ## 11. Advanced UX and Filtering
@@ -134,7 +136,7 @@ The refund engine supports precise policies that separate direct bookings tied t
 * **1. Direct bookings and meeting rooms**
   - They are tied to specific seats and times and affect the waitlist and branch availability:
     - **Individual (B2C) shared-desk bookings:** free cancellation with a full refund at least **6 hours** before the booking start time.
-    - **Corporate (B2B) bookings and meeting-room and theater bookings:** free cancellation at least **24 hours** in advance, so the partner can release the seat or hall to others.
+    - **Corporate (B2B) bookings:** free cancellation at least **24 hours** in advance, so the partner can release the seat or hall to others. The server applies the window of the booking owner's role: 6 hours for a `B2C` owner (meeting rooms and theaters included, and company employees too), 24 hours for an HR administrator. Applying 24 hours to every company-funded booking is an open decision.
 * **2. Universal Pass subscriptions**
   - They are not tied to a specific seat but grant an access credit across the partner network:
     - **Grace period (3 days):** the user or company can get a full refund of the pass within **3 days (72 hours)** of purchase, provided **no visit has been used (`visitsUsed == 0`)** and there is no active seat booking.
@@ -145,6 +147,23 @@ The refund engine supports precise policies that separate direct bookings tied t
 * **4. Refund payout options**
   - **Instant wallet refund:** the refund amount is added to the digital wallet immediately (0 minutes, no fees).
   - **Refund to the bank card:** processed through the payment gateway to the original card (5–14 business days).
+
+### 14.1 Booking Rescheduling
+
+**Status: not supported yet.** Users can cancel inside the cancellation window and book again, but cannot move a booking. The rules below are the agreed specification (full requirement text: `SRS.md`, FR-BOOK-07).
+
+| Rule | Decision |
+| :--- | :--- |
+| Which bookings | Active hourly sessions and confirmed direct bookings that have not started. Not waitlist entries, not Universal Pass subscriptions, not cancelled or refunded bookings. |
+| Notice | Same as cancellation, measured from the original start: **6 hours** for individuals, **24 hours** for HR administrators and company-funded bookings. The Super Admin can override. |
+| New slot | At least the same notice from now, inside operating hours and the two-hour session grid, up to 30 days after the original date, and free (same capacity checks as a new booking). Same venue and room type; another room is allowed. |
+| How often | One free reschedule per booking. After that, cancel (if still allowed) and book again. |
+| Price | Same room and duration: no charge. A dearer slot charges the difference to the wallet that paid; a cheaper slot refunds the difference to it. Pass-covered hours return to the old month and are deducted from the new one; any excess is charged at the hourly rate. |
+| Approval | None. Instant when the slot is free. The partner is notified; the HR administrator is notified when the company paid. The HR administrator may reschedule any booking paid from the company wallet. |
+| Individuals vs companies | Individuals and employees: own bookings, 6-hour notice (24 hours when company-funded). HR administrators: own and team bookings, 24 hours. |
+| Safety | One database transaction; the freed slot goes to the waitlist; the QR code stays valid only for the new slot; repeated requests never charge twice. |
+
+Until this is built, the open `PUT` on direct bookings must not be exposed to users as a way to change dates (it currently accepts date and room changes without any check).
 
 ## 15. Open API Documentation (OpenAPI / Swagger)
 * An interactive documentation page for developers and technical partners at `/api-doc`.
