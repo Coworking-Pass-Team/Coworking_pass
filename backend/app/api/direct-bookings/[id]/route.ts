@@ -1,0 +1,295 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { getTokenFromRequest, unauthorizedResponse } from '@/lib/auth/verify-token';
+import { canManageWorkspace } from '@/lib/ownership';
+
+/** The customer who booked, a super admin, or the partner owning the workspace may act on a booking. */
+async function mayAccessBooking(caller: { userId: string; role: string }, booking: { userId: string; workspaceId: string | null }) {
+  if (caller.role === 'SUPER_ADMIN' || booking.userId === caller.userId) return true;
+  return caller.role === 'PARTNER_ADMIN' && !!booking.workspaceId && canManageWorkspace(caller, booking.workspaceId);
+}
+import type { Prisma } from "@prisma/client";
+
+/**
+ * @swagger
+ * /api/direct-bookings/{id}:
+ *   get:
+ *     summary: عرض تفاصيل حجز مباشر معيّن
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: تفاصيل الحجز
+ *       404:
+ *         description: الحجز غير موجود
+ */
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const user = await getTokenFromRequest(request);
+    if (!user) {
+      return unauthorizedResponse(request);
+    }
+    const { id } = await params;
+    const booking = await prisma.directBooking.findUnique({
+      where: { id },
+      include: {
+        user: { select: { id: true, name: true, email: true, role: true } },
+        workspace: true,
+        section: true,
+      },
+    });
+
+    if (!booking) {
+      return NextResponse.json(
+        { error: 'Booking not found.' },
+        { status: 404 }
+      );
+    }
+
+    if (!(await mayAccessBooking(user, booking))) {
+      return NextResponse.json({ error: 'You are not allowed to view this booking.' }, { status: 403 });
+    }
+
+    return NextResponse.json(booking);
+  } catch (error) {
+    console.error(' Error fetching direct booking:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch booking details.' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * @swagger
+ * /api/direct-bookings/{id}:
+ *   put:
+ *     summary: تعديل حجز مباشر
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [CONFIRMED, WAITLISTED, CANCELLED]
+ *     responses:
+ *       200:
+ *         description: تم تعديل الحجز
+ */
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const user = await getTokenFromRequest(request);
+    if (!user) {
+      return unauthorizedResponse(request);
+    }
+    const { id } = await params;
+    const body = await request.json();
+
+    const existing = await prisma.directBooking.findUnique({ where: { id }, select: { userId: true, workspaceId: true, status: true } });
+    if (!existing) {
+      return NextResponse.json({ error: 'Booking not found.' }, { status: 404 });
+    }
+    if (!(await mayAccessBooking(user, existing))) {
+      return NextResponse.json({ error: 'You are not allowed to modify this booking.' }, { status: 403 });
+    }
+
+    // Only a Super Admin may edit a booking's date, room or plan directly. Everyone else can only cancel it here:
+    // moving a booking goes through POST /api/direct-bookings/{id}/reschedule (notice window, capacity, pricing)
+    // and a cancelled or refunded booking can never be brought back.
+    if (user.role !== 'SUPER_ADMIN') {
+      const wantsMove = body.bookingDate || body.workspaceId || body.sectionId || body.durationType || body.durationDetails;
+      if (wantsMove) {
+        return NextResponse.json(
+          { error: 'To change the date or room of a booking, use the reschedule action.', code: 'USE_RESCHEDULE' },
+          { status: 400 }
+        );
+      }
+      if (body.status && String(body.status).toUpperCase() !== 'CANCELLED') {
+        return NextResponse.json({ error: 'Only cancelling is allowed here.' }, { status: 400 });
+      }
+      if (body.status && (existing.status === 'CANCELLED' || existing.status === 'REFUNDED')) {
+        return NextResponse.json({ error: 'This booking is already closed.' }, { status: 400 });
+      }
+    }
+
+    const updateData: Prisma.DirectBookingUncheckedUpdateInput = {};
+    if (body.durationType) updateData.durationType = body.durationType.toUpperCase();
+    if (body.durationDetails) updateData.durationDetails = body.durationDetails;
+    if (body.bookingDate) updateData.bookingDate = new Date(body.bookingDate);
+    if (body.status) updateData.status = body.status;
+    if (body.workspaceId) updateData.workspaceId = body.workspaceId;
+    if (body.sectionId) updateData.sectionId = body.sectionId;
+
+    const booking = await prisma.directBooking.update({
+      where: { id },
+      data: updateData,
+      include: {
+        user: { select: { id: true, name: true, email: true, role: true } },
+        workspace: true,
+        section: true,
+      },
+    });
+
+    return NextResponse.json(booking);
+  } catch (error) {
+    console.error(' Error updating direct booking:', error);
+    return NextResponse.json(
+      { error: 'Failed to update booking.' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * @swagger
+ * /api/direct-bookings/{id}:
+ *   delete:
+ *     summary: إلغاء حجز مباشر (بسياسة زمنية + ترقية تلقائية للطابور + إشعارات)
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: تم إلغاء الحجز بنجاح (وتُرقّى أول حالة WAITLISTED تلقائياً لنفس المساحة/القسم إن وُجدت)
+ *       400:
+ *         description: تجاوز مهلة الإلغاء (6 ساعات للأفراد، 24 للمؤسسات)
+ *       404:
+ *         description: الحجز غير موجود
+ */
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const user = await getTokenFromRequest(request);
+    if (!user) {
+      return unauthorizedResponse(request);
+    }
+    const { id } = await params;
+
+    const booking = await prisma.directBooking.findUnique({
+      where: { id },
+      include: { user: true },
+    });
+
+    if (!booking) {
+      return NextResponse.json(
+        { error: 'Booking not found.' },
+        { status: 404 }
+      );
+    }
+
+    if (!(await mayAccessBooking(user, booking))) {
+      return NextResponse.json({ error: 'You are not allowed to cancel this booking.' }, { status: 403 });
+    }
+
+    // Cancellation policy (super admins bypass)
+    if (user.role !== 'SUPER_ADMIN') {
+      const now = new Date();
+      const bookingTime = new Date(booking.bookingDate);
+      const hoursDiff = (bookingTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+      const requiredHours = booking.user?.role === 'B2C' ? 6 : 24;
+
+      if (hoursDiff < requiredHours) {
+        return NextResponse.json(
+          {
+            error: `Cancellation not allowed. Must cancel at least ${requiredHours} hours before booking time.`,
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    const updated = await prisma.directBooking.update({
+      where: { id },
+      data: { status: 'CANCELLED' },
+      include: {
+        user: { select: { id: true, name: true, email: true, role: true } },
+        workspace: true,
+        section: true,
+      },
+    });
+
+    //  إرسال إشعار
+    await prisma.notification.create({
+      data: {
+        userId: booking.userId,
+        type: 'BOOKING_CANCELLED',
+        title: 'Booking Cancelled',
+        message: `Booking #${booking.id.slice(0, 8)} cancelled successfully.`,
+        channel: 'IN_APP',
+        sentAt: new Date()
+      }
+    });
+
+    //  Seat Release — ترقية فورية لأول شخص بقائمة الانتظار
+    const nextInWaitlist = await prisma.directBooking.findFirst({
+      where: {
+        workspaceId: booking.workspaceId,
+        sectionId: booking.sectionId,
+        status: 'WAITLISTED'
+      },
+      orderBy: { createdAt: 'asc' }
+    });
+
+    let promotedMessage = '';
+    if (nextInWaitlist) {
+      await prisma.directBooking.update({
+        where: { id: nextInWaitlist.id },
+        data: { status: 'CONFIRMED', bookingDate: new Date() }
+      });
+
+      await prisma.notification.create({
+        data: {
+          userId: nextInWaitlist.userId,
+          type: 'WAITLIST_PROMOTED',
+          title: 'Booking Confirmed from Waitlist',
+          message: 'A spot became available and your booking was automatically confirmed.',
+          channel: 'IN_APP',
+          sentAt: new Date()
+        }
+      });
+
+      promotedMessage = ' and first waitlisted user was automatically promoted.';
+    }
+
+    return NextResponse.json(
+      { message: `Booking cancelled successfully.${promotedMessage}`, booking: updated },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error(' Error cancelling direct booking:', error);
+    return NextResponse.json(
+      { error: 'Failed to cancel.' },
+      { status: 500 }
+    );
+  }
+}

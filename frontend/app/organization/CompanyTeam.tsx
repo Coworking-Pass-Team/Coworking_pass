@@ -1,0 +1,603 @@
+'use client';
+
+import { useI18n } from '@/i18n';
+import { useState, useRef, useEffect } from 'react';
+import {
+  Users,
+  Plus,
+  Search,
+  Trash2,
+  Edit2,
+  Mail,
+  Phone,
+  Shield,
+  Check,
+  ChevronDown,
+  UserCheck,
+  UserPlus,
+  Building,
+  MoreVertical,
+  Pencil,
+} from 'lucide-react';
+import { useApp } from '@/app/store';
+import { addCompanyEmployeeApi, removeCompanyEmployeeApi } from '@/services/authApi';
+import { Employee } from '@/types/types';
+import Modal from '@/components/ui/Modal';
+import CompanyJoinRequestsPanel from '@/components/company/CompanyJoinRequestsPanel';
+import CompanyFundsAllocationCard from '@/components/company/CompanyFundsAllocationCard';
+
+type CompanyRole = 'Company Owner' | 'Company Manager' | 'Booking Manager' | 'Team Member';
+
+interface TeamMemberExt extends Employee {
+  role: CompanyRole;
+  status: 'active' | 'invited';
+  lastActive: string;
+}
+
+const COMPANY_ROLES: CompanyRole[] = ['Company Owner', 'Company Manager', 'Booking Manager', 'Team Member'];
+
+const ROLE_BADGE: Record<CompanyRole, string> = {
+  'Company Owner': 'bg-soot text-plaster border border-soot/20',
+  'Company Manager': 'bg-emerald-500/15 text-emerald-800 border border-emerald-500/30',
+  'Booking Manager': 'bg-blue-500/15 text-blue-800 border border-blue-500/30',
+  'Team Member': 'bg-soot/10 text-soot border border-soot/15',
+};
+
+export default function CompanyTeam() {
+  const { t, translateMessage } = useI18n();
+  const { currentUser, updateCurrentUser, showToast, companyData, fetchCompanyWallet } = useApp();
+  const companyId = currentUser?.companyId || companyData?.id;
+  const [saving, setSaving] = useState(false);
+
+  const rawEmployees = currentUser?.employees || [];
+
+  const [members, setMembers] = useState<TeamMemberExt[]>([
+    { id: 'owner', name: currentUser?.name || '', email: currentUser?.email || '', department: 'Leadership', role: 'Company Owner', status: 'active', lastActive: '-' },
+    ...rawEmployees.map((e: Employee) => ({
+      ...e,
+      role: 'Team Member' as CompanyRole,
+      status: 'invited' as const,
+      lastActive: '-',
+    })),
+  ]);
+
+  // Employees registered to the company on the server are real members; entries kept only in this browser stay invitations
+  useEffect(() => {
+    const serverEmployees: Array<{ id: string; name?: string; email?: string }> = Array.isArray(companyData?.employees) ? companyData.employees : [];
+    if (serverEmployees.length === 0) return;
+    setMembers((prev) => {
+      const known = new Set(prev.map((m) => m.email.toLowerCase()));
+      const promoted = prev.map((m) =>
+        serverEmployees.some((e) => (e.email || '').toLowerCase() === m.email.toLowerCase()) ? { ...m, status: 'active' as const } : m
+      );
+      const added = serverEmployees
+        .filter((e) => e.email && e.email.toLowerCase() !== (currentUser?.email || '').toLowerCase() && !known.has(e.email.toLowerCase()))
+        .map((e) => ({ id: e.id, name: e.name || e.email || '', email: e.email || '', department: '', role: 'Team Member' as CompanyRole, status: 'active' as const, lastActive: '-' }));
+      return [...promoted, ...added];
+    });
+  }, [companyData?.employees, currentUser?.email]);
+
+  const [query, setQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState<string>('All');
+  const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
+  const roleDropdownRef = useRef<HTMLDivElement>(null);
+
+  const [addModal, setAddModal] = useState(false);
+  const [editModal, setEditModal] = useState<TeamMemberExt | null>(null);
+  const [deleteModal, setDeleteModal] = useState<TeamMemberExt | null>(null);
+  const [newMember, setNewMember] = useState({ name: '', email: '', department: '', role: 'Team Member' as CompanyRole });
+
+  const [addRoleOpen, setAddRoleOpen] = useState(false);
+  const [editRoleOpen, setEditRoleOpen] = useState(false);
+  const addRoleRef = useRef<HTMLDivElement>(null);
+  const editRoleRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (roleDropdownRef.current && !roleDropdownRef.current.contains(event.target as Node)) {
+        setRoleDropdownOpen(false);
+      }
+      if (addRoleRef.current && !addRoleRef.current.contains(event.target as Node)) {
+        setAddRoleOpen(false);
+      }
+      if (editRoleRef.current && !editRoleRef.current.contains(event.target as Node)) {
+        setEditRoleOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  if (!currentUser) return null;
+
+  const filtered = members.filter(m => {
+    const q = query.trim().toLowerCase();
+    const matchSearch = !q || m.name.toLowerCase().includes(q) || m.email.toLowerCase().includes(q) || m.department.toLowerCase().includes(q);
+    const matchRole = roleFilter === 'All' || m.role === roleFilter;
+    return matchSearch && matchRole;
+  });
+
+  // Department and team role are not stored on the server yet: they stay as labels kept with the HR admin's account
+  const saveLabels = (list: TeamMemberExt[]) => {
+    const employees = list.filter(m => m.id !== 'owner').map(m => ({ id: m.id, name: m.name, email: m.email, department: m.department }));
+    updateCurrentUser({ employees }, { silent: true });
+  };
+
+  // Membership is saved on the server: the colleague's own account (by email) joins the company
+  const handleAdd = async () => {
+    const email = newMember.email.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToast('Please enter a valid email address.', 'error'); return; }
+    if (!companyId) { showToast('Your company could not be found. Please sign in again.', 'error'); return; }
+    setSaving(true);
+    const res = await addCompanyEmployeeApi(companyId, email);
+    setSaving(false);
+    if (!res.success) { showToast(res.error, 'error'); return; }
+    const member: TeamMemberExt = {
+      id: res.data.id,
+      name: res.data.name || newMember.name || res.data.email,
+      email: res.data.email,
+      department: newMember.department,
+      role: newMember.role,
+      status: 'active',
+      lastActive: '-',
+    };
+    const updated = [...members.filter(m => m.email.toLowerCase() !== email), member];
+    setMembers(updated);
+    saveLabels(updated);
+    setNewMember({ name: '', email: '', department: '', role: 'Team Member' });
+    setAddModal(false);
+    showToast(`${member.name} added to the team.`, 'success');
+    fetchCompanyWallet(companyId).catch(() => {});
+  };
+
+  const handleDelete = async (member: TeamMemberExt) => {
+    // Entries kept only in this browser (older invitations) have no server membership to remove
+    const onServer = member.status === 'active' && !member.id.startsWith('team-');
+    if (onServer) {
+      if (!companyId) { showToast('Your company could not be found. Please sign in again.', 'error'); return; }
+      setSaving(true);
+      const res = await removeCompanyEmployeeApi(companyId, member.id);
+      setSaving(false);
+      if (!res.success) { showToast(res.error, 'error'); return; }
+    }
+    const updated = members.filter(m => m.id !== member.id);
+    setMembers(updated);
+    saveLabels(updated);
+    setDeleteModal(null);
+    showToast(`${member.name} removed from team.`, 'success');
+    if (onServer && companyId) fetchCompanyWallet(companyId).catch(() => {});
+  };
+
+  const handleEditSave = () => {
+    if (!editModal) return;
+    setMembers(prev => prev.map(m => m.id === editModal.id ? editModal : m));
+    setEditModal(null);
+    showToast('Team member updated.', 'success');
+  };
+
+  const activeCount = members.filter(m => m.status === 'active').length;
+  const invitedCount = members.filter(m => m.status === 'invited').length;
+  const departmentCount = new Set(members.map(m => m.department).filter(Boolean)).size;
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <span className="text-xs font-semibold tracking-wider uppercase text-moss block mb-1">
+            {t('org.ct.corporateTeamAccessManagement')}
+          </span>
+          <h1 className="text-3xl sm:text-4xl text-soot font-normal font-serif-display">
+            {t('org.ct.teamMembers')}
+          </h1>
+          <p className="text-moss text-sm mt-1">{t('org.ct.manageTeamRolesPassAccess')}</p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setAddModal(true)}
+          className="btn-primary"
+        >
+          <Plus size={16} />
+          <span>{t('org.ct.addMember')}</span>
+        </button>
+      </div>
+
+      {/* Employees asking to join the team */}
+      <CompanyJoinRequestsPanel />
+      <CompanyFundsAllocationCard />
+
+      {/* Admin-Matching Elevated Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          {
+            label: 'Total Members',
+            count: members.length,
+            badge: 'bg-soot/10 text-soot border border-soot/15',
+            icon: Users,
+            iconBg: 'bg-soot text-plaster border-soot/20',
+          },
+          {
+            label: 'Active Users',
+            count: activeCount,
+            badge: 'bg-emerald-500/15 text-emerald-800 border border-emerald-500/30',
+            icon: UserCheck,
+            iconBg: 'bg-emerald-500/15 text-emerald-800 border-emerald-500/30',
+          },
+          {
+            label: 'Pending Invited',
+            count: invitedCount,
+            badge: 'bg-amber-500/15 text-amber-800 border border-amber-500/30',
+            icon: UserPlus,
+            iconBg: 'bg-amber-500/15 text-amber-800 border-amber-500/30',
+          },
+          {
+            label: 'Departments',
+            count: departmentCount || 1,
+            badge: 'bg-blue-500/15 text-blue-800 border border-blue-500/30',
+            icon: Building,
+            iconBg: 'bg-blue-500/15 text-blue-800 border-blue-500/30',
+          },
+        ].map((stat) => (
+          <div
+            key={stat.label}
+            className="bg-plaster-surface rounded-3xl border border-soot/12 p-5 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between group"
+          >
+            <div className="flex items-center gap-3.5">
+              <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs ${stat.iconBg}`}>
+                <stat.icon size={20} />
+              </div>
+              <div>
+                <div className="text-3xl font-normal text-soot tracking-tight font-serif-display">{stat.count}</div>
+                <div className="text-xs font-medium text-moss mt-0.5">{translateMessage(stat.label)}</div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Admin-Matching Search & Custom Dropdown Filter Bar */}
+      <div className="flex flex-col sm:flex-row gap-3 bg-plaster-surface p-3 rounded-2xl border border-soot/10 shadow-2xs relative z-30">
+        <div className="relative flex-1">
+          <Search size={16} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-moss" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={t('org.ct.searchTeamMemberByName')}
+            className="w-full ps-10 pe-4 py-2.5 rounded-xl border border-soot/12 bg-plaster-dark/30 text-soot text-sm placeholder:text-moss/70 outline-none focus:border-eucalyptus focus:bg-plaster-surface transition-all"
+          />
+        </div>
+
+        {/* Custom Role Dropdown */}
+        <div className="relative min-w-48" ref={roleDropdownRef}>
+          <button
+            type="button"
+            onClick={() => setRoleDropdownOpen(!roleDropdownOpen)}
+            className="w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/50 border border-soot/12 transition-all duration-200 text-start cursor-pointer focus:outline-none"
+          >
+            <span className="text-sm font-medium text-soot truncate">
+              {roleFilter === 'All' ? t('org.ct.allRoles') : translateMessage(roleFilter)}
+            </span>
+            <ChevronDown
+              size={15}
+              className={`text-moss transition-transform duration-200 shrink-0 ${
+                roleDropdownOpen ? 'rotate-180 text-soot' : ''
+              }`}
+            />
+          </button>
+
+          {roleDropdownOpen && (
+            <div className="absolute top-full start-0 end-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
+              <div className="space-y-0.5">
+                {['All', ...COMPANY_ROLES].map((role) => {
+                  const isSelected = roleFilter === role;
+                  return (
+                    <button
+                      key={role}
+                      type="button"
+                      onClick={() => {
+                        setRoleFilter(role);
+                        setRoleDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors text-start cursor-pointer ${
+                        isSelected
+                          ? 'bg-soot text-plaster font-semibold'
+                          : 'text-soot hover:bg-plaster-dark/60'
+                      }`}
+                    >
+                      <span>{translateMessage(role === 'All' ? 'All Roles' : role)}</span>
+                      {isSelected && <Check size={14} className="text-eucalyptus" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Admin-Matching 12-Column Table Layout */}
+      <div className="bg-plaster-surface rounded-3xl border border-soot/10 overflow-hidden shadow-2xs relative z-10">
+        <div className="hidden lg:grid grid-cols-12 gap-6 px-6 py-4 border-b border-soot/10 text-xs font-semibold uppercase tracking-wider text-moss bg-plaster-dark/40 items-center">
+          <div className="col-span-4">{t('org.ct.teamMemberEmail')}</div>
+          <div className="col-span-3">{t('org.ct.department')}</div>
+          <div className="col-span-3">{t('org.ct.companyRole')}</div>
+          <div className="col-span-1">{t('org.ct.status')}</div>
+          <div className="col-span-1 text-end">{t('org.ct.actions')}</div>
+        </div>
+
+        {filtered.length === 0 ? (
+          <div className="py-16 text-center text-moss">
+            <Users size={32} className="mx-auto mb-3 opacity-50" />
+            <p className="text-sm">{t('org.ct.noTeamMembersMatchYour')}</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-soot/8">
+            {filtered.map((m) => (
+              <div
+                key={m.id}
+                className="px-6 py-4 hover:bg-plaster-dark/30 transition-colors flex flex-col lg:grid lg:grid-cols-12 lg:gap-6 lg:items-center group"
+              >
+                {/* User Avatar & Name */}
+                <div className="col-span-4 flex items-center gap-3.5 min-w-0">
+                  <div className="w-10 h-10 rounded-2xl bg-soot text-plaster font-semibold flex items-center justify-center text-sm shrink-0 shadow-2xs">
+                    {m.name.charAt(0)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-semibold text-soot truncate">{m.name}</div>
+                    <div className="text-xs text-moss truncate">{m.email}</div>
+                  </div>
+                </div>
+
+                {/* Department */}
+                <div className="col-span-3 mt-2 lg:mt-0 text-sm font-medium text-soot truncate">
+                  {m.department ? translateMessage(m.department) : translateMessage('General Team')}
+                </div>
+
+                {/* Role Badge */}
+                <div className="col-span-3 mt-2 lg:mt-0">
+                  <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider ${ROLE_BADGE[m.role]}`}>
+                    {translateMessage(m.role)}
+                  </span>
+                </div>
+
+                {/* Status */}
+                <div className="col-span-1 mt-2 lg:mt-0">
+                  <span
+                    className={`text-[10px] px-2 py-0.5 rounded-full font-bold capitalize ${
+                      m.status === 'active'
+                        ? 'bg-emerald-500/15 text-emerald-800'
+                        : 'bg-amber-500/15 text-amber-800'
+                    }`}
+                  >
+                    {translateMessage(m.status)}
+                  </span>
+                </div>
+
+                {/* Actions */}
+                <div className="col-span-1 mt-4 lg:mt-0 flex items-center justify-end gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setEditModal(m)}
+                    className="p-2 rounded-xl text-moss hover:text-soot hover:bg-plaster-surface border border-transparent hover:border-soot/10 transition-all cursor-pointer"
+                    title={t('org.ct.editMember')}
+                  >
+                    <Pencil size={15} />
+                  </button>
+                  {m.id !== 'owner' && (
+                    <button
+                      type="button"
+                      onClick={() => setDeleteModal(m)}
+                      className="p-2 rounded-xl text-moss hover:text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-all cursor-pointer"
+                      title={t('org.ct.removeMember')}
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Add Team Member Modal */}
+      <Modal
+        open={addModal}
+        onClose={() => setAddModal(false)}
+        title={t('org.ct.addTeamMember')}
+        subtitle={translateMessage('Invite a new colleague to your corporate pass account.')}
+        size="md"
+        footer={
+          <>
+            <button type="button" onClick={() => setAddModal(false)} className="btn-secondary">
+              {t('org.ct.cancel')}
+            </button>
+            <button type="button" onClick={handleAdd} disabled={saving} className="btn-primary disabled:opacity-50">
+              {t('org.ct.addToTeam')}
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-4 text-sm text-soot">
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">{t('org.ct.corporateEmail')}</label>
+            <input
+              type="email"
+              dir="ltr"
+              value={newMember.email}
+              onChange={e => setNewMember(p => ({ ...p, email: e.target.value }))}
+              placeholder={t('org.ct.nameCompanyCom')}
+              className="w-full px-3.5 py-2.5 rounded-xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-eucalyptus"
+            />
+            <p className="text-[11px] text-moss mt-1">{t('org.ct.accountHint')}</p>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">{t('org.ct.department')}</label>
+            <input
+              value={newMember.department}
+              onChange={e => setNewMember(p => ({ ...p, department: e.target.value }))}
+              placeholder={t('org.ct.eGEngineeringProductSales')}
+              className="w-full px-3.5 py-2.5 rounded-xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-eucalyptus"
+            />
+          </div>
+          <div className="relative" ref={addRoleRef}>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">{t('org.ct.companyAccessRole')}</label>
+            <button
+              type="button"
+              onClick={() => setAddRoleOpen(!addRoleOpen)}
+              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white border border-soot/12 text-soot text-sm font-medium text-start transition-all duration-200 cursor-pointer focus:outline-none"
+            >
+              <span className="truncate">{translateMessage(newMember.role)}</span>
+              <ChevronDown
+                size={15}
+                className={`text-moss shrink-0 transition-transform duration-200 ${
+                  addRoleOpen ? 'rotate-180 text-soot' : ''
+                }`}
+              />
+            </button>
+
+            {addRoleOpen && (
+              <div className="absolute top-full start-0 end-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100 max-h-52 overflow-y-auto">
+                <div className="space-y-0.5">
+                  {COMPANY_ROLES.map((r) => {
+                    const isSelected = newMember.role === r;
+                    return (
+                      <button
+                        key={r}
+                        type="button"
+                        onClick={() => {
+                          setNewMember((p) => ({ ...p, role: r }));
+                          setAddRoleOpen(false);
+                        }}
+                        className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-sm font-medium transition-colors text-start cursor-pointer ${
+                          isSelected
+                            ? 'bg-soot text-plaster font-semibold'
+                            : 'text-soot hover:bg-plaster-dark/60'
+                        }`}
+                      >
+                        <span>{translateMessage(r)}</span>
+                        {isSelected && <Check size={14} className="text-eucalyptus" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </Modal>
+
+      {/* Edit Modal */}
+      {editModal && (
+        <Modal
+          open={!!editModal}
+          onClose={() => setEditModal(null)}
+          title={t('org.ct.editTeamMember')}
+          size="md"
+          footer={
+            <>
+              <button type="button" onClick={() => setEditModal(null)} className="btn-secondary">
+                {t('org.ct.cancel')}
+              </button>
+              <button type="button" onClick={handleEditSave} className="btn-primary">
+                {t('org.ct.saveChanges')}
+              </button>
+            </>
+          }
+        >
+          <div className="space-y-4 text-sm text-soot">
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">{t('org.ct.fullName2')}</label>
+              <input
+                value={editModal.name}
+                onChange={e => setEditModal(p => p ? { ...p, name: e.target.value } : null)}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-eucalyptus"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">{t('org.ct.department')}</label>
+              <input
+                value={editModal.department}
+                onChange={e => setEditModal(p => p ? { ...p, department: e.target.value } : null)}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-soot/12 bg-white text-soot text-sm outline-none focus:border-eucalyptus"
+              />
+            </div>
+            <div className="relative" ref={editRoleRef}>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-moss mb-1">{t('org.ct.companyRole')}</label>
+              <button
+                type="button"
+                onClick={() => setEditRoleOpen(!editRoleOpen)}
+                className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white border border-soot/12 text-soot text-sm font-medium text-start transition-all duration-200 cursor-pointer focus:outline-none"
+              >
+                <span className="truncate">{editModal.role}</span>
+                <ChevronDown
+                  size={15}
+                  className={`text-moss shrink-0 transition-transform duration-200 ${
+                    editRoleOpen ? 'rotate-180 text-soot' : ''
+                  }`}
+                />
+              </button>
+
+              {editRoleOpen && (
+                <div className="absolute top-full start-0 end-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100 max-h-52 overflow-y-auto">
+                  <div className="space-y-0.5">
+                    {COMPANY_ROLES.map((r) => {
+                      const isSelected = editModal.role === r;
+                      return (
+                        <button
+                          key={r}
+                          type="button"
+                          onClick={() => {
+                            setEditModal((p) => (p ? { ...p, role: r } : null));
+                            setEditRoleOpen(false);
+                          }}
+                          className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-sm font-medium transition-colors text-start cursor-pointer ${
+                            isSelected
+                              ? 'bg-soot text-plaster font-semibold'
+                              : 'text-soot hover:bg-plaster-dark/60'
+                          }`}
+                        >
+                          <span>{translateMessage(r)}</span>
+                          {isSelected && <Check size={14} className="text-eucalyptus" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteModal && (
+        <Modal
+          open={!!deleteModal}
+          onClose={() => setDeleteModal(null)}
+          title={t('org.ct.removeTeamMember')}
+          size="sm"
+          footer={
+            <>
+              <button type="button" onClick={() => setDeleteModal(null)} className="btn-secondary">
+                {t('org.ct.cancel')}
+              </button>
+              <button type="button" onClick={() => handleDelete(deleteModal)} disabled={saving} className="btn-danger disabled:opacity-50">
+                {t('org.ct.removeMember')}
+              </button>
+            </>
+          }
+        >
+          <div className="text-sm text-soot space-y-2 py-2">
+            <p>
+              {translateMessage('Are you sure you want to remove')} <span className="font-semibold">{deleteModal.name}</span> {t('org.ct.fromYourTeam')}
+            </p>
+            <p className="text-xs text-moss">{t('org.ct.theyWillNoLongerHave')}</p>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}

@@ -1,26 +1,354 @@
 @import "tailwindcss";
 
+@theme {
+  --color-plaster: #F2EFE2;
+  --color-plaster-dark: #E4DFCC;
+  --color-plaster-surface: #FAF8F3;
+  --color-soot: #2D3536;
+  --color-soot-light: #4A5657;
+  --color-eucalyptus: #98AA9D;
+  --color-eucalyptus-dark: #7A9481;
+  --color-moss: #697C70;
+  --color-mist: #B3C9D6;
+  --color-mist-light: #D9E8F0;
+
+  --font-display: 'DM Serif Display', serif;
+  --font-sans: 'Outfit', sans-serif;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Semantic Theme Tokens */
+  --bg-main: var(--color-plaster);
+  --bg-card: var(--color-plaster-surface);
+  --text-main: var(--color-soot);
+  --text-muted: var(--color-soot-light);
+  --border-subtle: rgba(45, 53, 54, 0.12);
+  --ring-focus: rgba(152, 170, 157, 0.4);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+html {
+  scroll-behavior: smooth;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body,
+#root {
+  height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  background-color: var(--color-plaster);
+  color: var(--color-soot);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+.font-serif-display {
+  font-family: var(--font-display);
+}
+
+/* Force pointer on clickable elements */
+button,
+a,
+select,
+input[type="button"],
+input[type="submit"],
+[role="button"] {
+  cursor: pointer !important;
+}
+
+/* Global Micro-Interactions */
+button,
+a,
+.ui-hover-card {
+  transition: background-color 200ms ease-in-out,
+              color 200ms ease-in-out,
+              border-color 200ms ease-in-out,
+              transform 200ms ease-in-out;
+}
+
+button:active,
+a:active,
+.ui-hover-card:active {
+  transform: scale(0.98) !important;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-plaster);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-moss);
+  border-radius: 9999px;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-moss) var(--color-plaster);
+}
+
+/* Card Interactivity */
+.ui-hover-card {
+  background-color: var(--color-plaster-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 1.25rem;
+  transition: background-color 200ms ease-in-out, transform 200ms ease-in-out;
+}
+
+.ui-hover-card:hover {
+  background-color: var(--color-plaster-dark);
+}
+
+/* Form Inputs & Selects */
+.ui-input,
+.ui-select {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border-subtle);
+  background-color: rgba(228, 223, 204, 0.4);
+  color: var(--color-soot);
+  font-size: 0.875rem;
+  outline: none;
+  transition: all 200ms ease-in-out;
+}
+
+.ui-input::placeholder {
+  color: var(--color-soot-light);
+  opacity: 0.7;
+}
+
+.ui-input:focus,
+.ui-select:focus {
+  background-color: var(--color-plaster-surface);
+  border-color: var(--color-eucalyptus);
+  box-shadow: 0 0 0 3px var(--ring-focus);
+}
+
+/* Global Button Design System Matching SpacesAdmin Design Tokens */
+
+/* Primary Button: bg-[#374142] text-[#FAF8F5] with subtle ring & hover */
+.btn-primary,
+.ui-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: 1rem; /* rounded-2xl */
+  background-color: #374142;
+  color: #FAF8F5 !important;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  cursor: pointer !important;
+  transition: all 200ms ease-in-out;
+}
+
+.btn-primary:hover,
+.ui-btn-primary:hover {
+  background-color: #2D3536;
+  color: #FAF8F5 !important;
+}
+
+.btn-primary:active,
+.ui-btn-primary:active {
+  transform: scale(0.98);
+}
+
+/* Secondary Button: border border-soot/20 text-soot */
+.btn-secondary,
+.ui-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.75rem; /* rounded-xl */
+  background-color: transparent;
+  color: var(--color-soot) !important;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: 1px solid rgba(45, 53, 54, 0.2);
+  cursor: pointer !important;
+  transition: all 200ms ease-in-out;
+}
+
+.btn-secondary:hover,
+.ui-btn-secondary:hover {
+  background-color: rgba(45, 53, 54, 0.08);
+  color: var(--color-soot) !important;
+}
+
+.btn-secondary:active,
+.ui-btn-secondary:active {
+  transform: scale(0.98);
+}
+
+/* Danger Button: bg-red-600 text-white */
+.btn-danger,
+.ui-btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.5rem;
+  border-radius: 0.75rem; /* rounded-xl */
+  background-color: #DC2626;
+  color: #FFFFFF !important;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: 1px solid rgba(220, 38, 38, 0.2);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  cursor: pointer !important;
+  transition: all 200ms ease-in-out;
+}
+
+.btn-danger:hover,
+.ui-btn-danger:hover {
+  background-color: #B91C1C;
+  color: #FFFFFF !important;
+}
+
+.btn-danger:active,
+.ui-btn-danger:active {
+  transform: scale(0.98);
+}
+
+/* Custom Phone Input Styles (FE-16) */
+.custom-phone-input.PhoneInput {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.custom-phone-input .PhoneInputCountry {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding-right: 0.5rem;
+  margin-right: 0.5rem;
+  border-right: 1px solid rgba(45, 53, 54, 0.15);
+  cursor: pointer;
+}
+
+.custom-phone-input .PhoneInputCountryIcon {
+  width: 1.5rem;
+  height: 1rem;
+  border-radius: 2px;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.custom-phone-input .PhoneInputCountryIconImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.custom-phone-input .PhoneInputCountrySelectArrow {
+  margin-left: 0.25rem;
+  width: 0.35rem;
+  height: 0.35rem;
+  border-color: #697C70;
+  opacity: 0.8;
+}
+
+.custom-phone-input .PhoneInputCountrySelect {
+  cursor: pointer;
+}
+
+.custom-phone-input .PhoneInputInput {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #2D3536;
+  font-size: 0.875rem;
+  width: 100%;
+  font-family: inherit;
+}
+
+.custom-phone-input .PhoneInputInput::placeholder {
+  color: rgba(105, 124, 112, 0.5);
+}
+
+
+/* ------------------------------------------------------------------
+   RTL / Arabic support
+   ------------------------------------------------------------------ */
+html[dir="rtl"] body,
+html[dir="rtl"] button,
+html[dir="rtl"] input,
+html[dir="rtl"] select,
+html[dir="rtl"] textarea {
+  font-family: var(--font-arabic), 'Outfit', system-ui, sans-serif;
+}
+
+/* The Latin serif display font has no Arabic glyphs */
+html[dir="rtl"] h1,
+html[dir="rtl"] h2,
+html[dir="rtl"] h3,
+html[dir="rtl"] .font-serif-display,
+html[dir="rtl"] .font-display {
+  font-family: var(--font-arabic), system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+/* Arabic script must not be letter-spaced or force-uppercased */
+html[dir="rtl"] * {
+  letter-spacing: 0 !important;
+}
+html[dir="rtl"] .uppercase {
+  text-transform: none;
+}
+
+/* Directional icons mirror in RTL (back arrows, forward chevrons, external-link arrows) */
+html[dir="rtl"] svg.lucide-arrow-left,
+html[dir="rtl"] svg.lucide-arrow-right,
+html[dir="rtl"] svg.lucide-arrow-up-right,
+html[dir="rtl"] svg.lucide-arrow-down-right,
+html[dir="rtl"] svg.lucide-chevron-left,
+html[dir="rtl"] svg.lucide-chevron-right,
+html[dir="rtl"] svg.lucide-chevrons-left,
+html[dir="rtl"] svg.lucide-chevrons-right,
+html[dir="rtl"] svg.lucide-log-out,
+html[dir="rtl"] svg.lucide-log-in,
+html[dir="rtl"] svg.lucide-corner-down-right {
+  transform: scaleX(-1);
+}
+
+/* Phone numbers, emails, ids and prices stay left-to-right inside RTL text */
+html[dir="rtl"] input[type="email"],
+html[dir="rtl"] input[type="tel"],
+html[dir="rtl"] input[type="url"],
+html[dir="rtl"] input[type="number"],
+html[dir="rtl"] input[type="password"] {
+  direction: ltr;
+  text-align: right;
+}
+
+/* Flag emoji fallback: Windows browsers do not render regional-indicator flags */
+@font-face {
+  font-family: "Twemoji Country Flags";
+  unicode-range: U+1F1E6-1F1FF, U+1F3F4, U+E0062-E007F;
+  src: url("https://cdn.jsdelivr.net/npm/country-flag-emoji-polyfill@0.1/dist/TwemojiCountryFlags.woff2") format("woff2");
+  font-display: swap;
+}
+.flag-emoji {
+  font-family: "Twemoji Country Flags", "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
 }

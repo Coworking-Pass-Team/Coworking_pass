@@ -1,0 +1,125 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { directBookingEnd, effectiveCapacity, getOccupiedSeats, getOccupiedSeatsForSection } from "@/lib/capacity";
+import { getOperatingRange, isFixedSlotSection, FIXED_SLOT_MINUTES, LATEST_SESSION_END_MINUTES } from "@/lib/operating-hours";
+import { getKsaNow, parseDateAndTimeToKsaDate } from "@/lib/time-utils";
+import { getTokenFromRequest } from "@/lib/auth/verify-token";
+
+/**
+ * GET /api/workspaces/{id}/availability
+ * Pre-checks whether a booking would be accepted (capacity + operating hours) before the customer is charged.
+ * Query: plan (hourly|daily|monthly|yearly), date, startTime, endTime, days, months, seats
+ */
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const { searchParams } = new URL(request.url);
+    const plan = (searchParams.get("plan") || "daily").toLowerCase();
+    const date = searchParams.get("date");
+    const seats = Math.max(1, Math.floor(Number(searchParams.get("seats")) || 1));
+
+    const workspace = await prisma.workspace.findUnique({
+      where: { id },
+      select: { id: true, isVisible: true, totalCapacity: true, openingTime: true, closingTime: true, is24Hours: true, sections: { select: { type: true, capacity: true } } },
+    });
+    if (!workspace) {
+      return NextResponse.json({ error: "Workspace not found." }, { status: 404 });
+    }
+
+    if (workspace.isVisible === false) {
+      return NextResponse.json({ available: false, reason: "This workspace is currently unavailable." });
+    }
+
+    let from: Date;
+    let to: Date;
+
+    if (plan === "hourly") {
+      const startTime = searchParams.get("startTime");
+      const endTime = searchParams.get("endTime");
+      from = parseDateAndTimeToKsaDate(date, startTime, 9);
+      to = parseDateAndTimeToKsaDate(date, endTime, 10);
+
+      const startMin = from.getUTCHours() * 60 + from.getUTCMinutes();
+      const endMin = to.getUTCHours() * 60 + to.getUTCMinutes();
+      const { openMinutes, closeMinutes } = getOperatingRange(workspace);
+      if (endMin <= startMin) {
+        return NextResponse.json({ available: false, reason: "Session end time must be after the start time." });
+      }
+      if (startMin < openMinutes || endMin > closeMinutes) {
+        return NextResponse.json({ available: false, reason: "The selected time is outside the venue's operating hours." });
+      }
+      const fixedSlot = workspace.sections.some((s) => isFixedSlotSection(s.type));
+      if (fixedSlot && (endMin - startMin !== FIXED_SLOT_MINUTES || endMin > LATEST_SESSION_END_MINUTES)) {
+        return NextResponse.json({ available: false, reason: "Halls and theaters can only be booked in fixed 2-hour sessions ending by 10:00 PM." });
+      }
+    } else {
+      // Signed-in customers hold one active daily / monthly / yearly booking at a time (same rule as POST /direct-bookings)
+      const caller = await getTokenFromRequest(request).catch(() => null);
+      if (caller && caller.role !== "SUPER_ADMIN") {
+        const active = await prisma.directBooking.findFirst({
+          where: { userId: caller.userId, status: "CONFIRMED", bookingDate: { gte: getKsaNow() } },
+          select: { id: true },
+        });
+        if (active) {
+          return NextResponse.json({ available: false, reason: "You already have an active booking. Cancel it before booking another space." });
+        }
+      }
+      const durationType = plan === "monthly" ? "MONTHLY" : plan === "yearly" ? "YEARLY" : "DAILY";
+      const details = durationType === "MONTHLY"
+        ? `${Number(searchParams.get("months")) || 1} Months`
+        : durationType === "DAILY"
+        ? `${Number(searchParams.get("days")) || 1} Days`
+        : "1 Year";
+      from = parseDateAndTimeToKsaDate(date, null, 9);
+      to = directBookingEnd({ bookingDate: from, durationType, durationDetails: details });
+    }
+
+    // A specific hall / theater is available when nobody else holds it for the window and it seats the group
+    const sectionId = searchParams.get("sectionId");
+    if (plan === "hourly" && sectionId) {
+      const section = await prisma.workspaceSection.findFirst({ where: { id: sectionId, workspaceId: id }, select: { capacity: true, name: true } });
+      if (!section) return NextResponse.json({ available: false, reason: "The selected hall was not found." });
+      if (seats > section.capacity) {
+        return NextResponse.json({ available: false, remaining: section.capacity, reason: `${section.name} seats at most ${section.capacity}.` });
+      }
+      const clash = await prisma.hourlyBooking.findFirst({
+        where: { sectionId, status: "ACTIVE", startDate: { lt: to }, endDate: { gt: from } },
+        select: { id: true },
+      });
+      return clash
+        ? NextResponse.json({ available: false, remaining: 0, reason: `${section.name} is already booked for the selected time.` })
+        : NextResponse.json({ available: true, remaining: section.capacity });
+    }
+
+    // A specific room of a multi-room hub seats only its own capacity for daily / monthly / yearly plans
+    if (plan !== "hourly" && sectionId) {
+      const room = await prisma.workspaceSection.findFirst({ where: { id: sectionId, workspaceId: id }, select: { capacity: true, name: true } });
+      if (room && room.capacity > 0) {
+        const held = await getOccupiedSeatsForSection(sectionId, from, to);
+        const left = Math.max(0, room.capacity - held);
+        return held + seats > room.capacity
+          ? NextResponse.json({ available: false, remaining: left, reason: `${room.name} has only ${left} seat(s) left for the selected period.` })
+          : NextResponse.json({ available: true, remaining: left });
+      }
+    }
+
+    const occupied = (await getOccupiedSeats([id], from, to)).get(id) || 0;
+    const total = effectiveCapacity(workspace);
+    const remaining = Math.max(0, total - occupied);
+
+    if (occupied + seats > total) {
+      return NextResponse.json({
+        available: false,
+        remaining,
+        reason: total === 0 ? "This workspace has no seats available." : `Not enough availability. Only ${remaining} seat(s) left for the selected period.`,
+      });
+    }
+    return NextResponse.json({ available: true, remaining });
+  } catch (error) {
+    console.error("Error checking availability:", error);
+    return NextResponse.json({ error: "Failed to check availability." }, { status: 500 });
+  }
+}

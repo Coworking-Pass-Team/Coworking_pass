@@ -1,0 +1,607 @@
+'use client';
+
+import { useI18n } from '@/i18n';
+import { useState, useRef, useEffect } from 'react';
+import {
+  Search,
+  ChevronDown,
+  MapPin,
+  Calendar,
+  Check,
+  CalendarDays,
+  Clock,
+  Ban,
+  DollarSign,
+  Eye,
+  X,
+  Building2,
+} from 'lucide-react';
+import { useApp } from '@/app/store';
+import { useSpaceText } from '@/i18n/space-text';
+import { useLabels } from '@/i18n/labels';
+import { Booking, BookingStatus, getBookingPrice, calculateDailyDurationDays } from '@/types/types';
+import BookingSortSelect from '@/components/bookings/BookingSortSelect';
+import BulkActionBar from '@/components/bookings/BulkActionBar';
+import { useBookingSelection } from '@/components/bookings/useBookingSelection';
+import { sortBookings, type BookingSortOrder } from '@/lib/bookingLifecycle';
+
+export default function ProviderSpaceBookings() {
+  const { currentUser } = useApp();
+  if (!currentUser) return null;
+  return <ProviderSpaceBookingsContent />;
+}
+
+/** All hooks live here, so the session check above can return early without changing the hook order. */
+function ProviderSpaceBookingsContent() {
+  const { t, translateMessage, localizeTime } = useI18n();
+  const sx = useSpaceText();
+  const lb = useLabels();
+  const { currentUser: sessionUser, spaces, partners, bookings, users, updateBookingStatus, showToast } = useApp();
+  const currentUser = sessionUser!;
+  const [sortOrder, setSortOrder] = useState<BookingSortOrder>('newest');
+  const [query, setQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [filterSpace, setFilterSpace] = useState('');
+
+  // Dropdown states for filters
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+  const [spaceDropdownOpen, setSpaceDropdownOpen] = useState(false);
+  const statusDropdownRef = useRef<HTMLDivElement>(null);
+  const spaceDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Detail Modal State
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target as Node)) {
+        setStatusDropdownOpen(false);
+      }
+      if (spaceDropdownRef.current && !spaceDropdownRef.current.contains(event.target as Node)) {
+        setSpaceDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const userPartner = partners.find(p => p.contactEmail?.toLowerCase() === currentUser.email?.toLowerCase());
+  const mySpaces = spaces.filter((s) =>
+    s.ownerId === currentUser.id ||
+    (userPartner && s.ownerId === userPartner.id) ||
+    (s.email && s.email.toLowerCase() === currentUser.email?.toLowerCase()) ||
+    (currentUser.email && s.email && s.email.toLowerCase() === currentUser.email.toLowerCase())
+  );
+  const mySpaceIds = mySpaces.map((s) => s.id);
+  const myBookings = bookings.filter((b) =>
+    mySpaceIds.includes(b.spaceId) ||
+    mySpaces.some((s) => s.name.toLowerCase() === b.spaceName?.toLowerCase())
+  );
+
+  const getUserName = (userId: string) => {
+    const u = users.find((user) => user.id === userId);
+    if (!u) return userId;
+    return u.role === 'organization' ? (u.orgName || u.name) : u.name;
+  };
+
+  const filtered = sortBookings(myBookings
+    .filter((b) => {
+      const q = query.trim().toLowerCase();
+      if (
+        q &&
+        !b.spaceName.toLowerCase().includes(q) &&
+        !b.spaceCity.toLowerCase().includes(q) &&
+        !getUserName(b.userId).toLowerCase().includes(q)
+      ) {
+        return false;
+      }
+      if (filterStatus && b.status !== filterStatus) return false;
+      if (filterSpace && b.spaceId !== filterSpace) return false;
+      return true;
+    }), sortOrder);
+
+  const selection = useBookingSelection(filtered.map((b) => b.id));
+  const bulkCancel = () => {
+    const targets = filtered.filter((b) => selection.isSelected(b.id) && b.status === 'active');
+    if (targets.length === 0) {
+      showToast(t('bookingsList.nothingToCancel'), 'info');
+    } else {
+      targets.forEach((b) => updateBookingStatus(b.id, 'cancelled'));
+      showToast(t('bookingsList.doneCancelled', { count: targets.length }), 'info');
+    }
+    selection.clear();
+  };
+
+  const activeCount = myBookings.filter((b) => b.status === 'active').length;
+  const previousCount = myBookings.filter((b) => b.status === 'previous').length;
+  const cancelledCount = myBookings.filter((b) => b.status === 'cancelled').length;
+
+  const totalRevenue = myBookings
+    .filter((b) => b.status !== 'cancelled')
+    .reduce((sum, b) => sum + getBookingPrice(b, spaces), 0);
+
+  const handleUpdateStatus = (bookingId: string, status: BookingStatus) => {
+    updateBookingStatus(bookingId, status);
+    if (selectedBooking && selectedBooking.id === bookingId) {
+      setSelectedBooking((prev) => (prev ? { ...prev, status } : null));
+    }
+    showToast(t('prov.bk.statusUpdated', { status: lb.status(status) }));
+  };
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <span className="text-xs font-semibold tracking-wider uppercase text-moss block mb-1">
+            {t('prov.bk.eyebrow')}
+          </span>
+          <h1 className="text-3xl sm:text-4xl text-soot font-normal font-serif-display">
+            {t('prov.bk.title')}
+          </h1>
+          <p className="text-moss text-sm mt-1">
+            {t('prov.bk.subtitle', { count: myBookings.length })}
+          </p>
+        </div>
+      </div>
+
+      {/* Elevated Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          {
+            label: t('prov.bk.totalRevenueLbl'),
+            count: `${t('common.sar')} ${totalRevenue.toLocaleString()}`,
+            badge: 'bg-emerald-500/15 text-emerald-800 border border-emerald-500/30',
+            icon: DollarSign,
+            iconBg: 'bg-emerald-500/15 text-emerald-800 border-emerald-500/30',
+          },
+          {
+            label: t('prov.bk.activeBookingsLbl'),
+            count: activeCount,
+            badge: 'bg-soot/10 text-soot border border-soot/15',
+            icon: CalendarDays,
+            iconBg: 'bg-soot text-plaster border-soot/20',
+          },
+          {
+            label: t('admin.bk.completedVisits'),
+            count: previousCount,
+            badge: 'bg-[#40534C]/15 text-[#40534C] border border-[#40534C]/30',
+            icon: Clock,
+            iconBg: 'bg-[#40534C]/15 text-[#40534C] border border-[#40534C]/30',
+          },
+          {
+            label: t('admin.bk.cancelled'),
+            count: cancelledCount,
+            badge: 'bg-red-500/15 text-red-700 border border-red-500/30',
+            icon: Ban,
+            iconBg: 'bg-red-500/15 text-red-700 border border-red-500/30',
+          },
+        ].map((stat) => (
+          <div
+            key={stat.label}
+            className="bg-plaster-surface rounded-3xl border border-soot/12 p-5 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between group"
+          >
+            <div className="flex items-center gap-3.5">
+              <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs ${stat.iconBg}`}>
+                <stat.icon size={20} />
+              </div>
+              <div>
+                <div className="text-2xl sm:text-3xl font-normal text-soot tracking-tight font-serif-display">{stat.count}</div>
+                <div className="text-xs font-medium text-moss mt-0.5">{stat.label}</div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Search & Filter Bar */}
+      <div className="flex flex-col sm:flex-row gap-3 bg-plaster-surface p-3 rounded-2xl border border-soot/10 shadow-2xs relative z-30">
+        <div className="relative flex-1">
+          <Search size={16} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-moss" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={t('prov.bk.search')}
+            className="w-full ps-10 pe-4 py-2.5 rounded-xl border border-soot/12 bg-plaster-dark/30 text-soot text-sm placeholder:text-moss/70 outline-none focus:border-eucalyptus focus:bg-plaster-surface transition-all"
+          />
+        </div>
+
+        {/* Space Filter Dropdown */}
+        <div className="relative min-w-44" ref={spaceDropdownRef}>
+          <button
+            type="button"
+            onClick={() => setSpaceDropdownOpen(!spaceDropdownOpen)}
+            className="w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/50 border border-soot/12 transition-all duration-200 text-start cursor-pointer focus:outline-none"
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <Building2 size={15} className="text-moss shrink-0" />
+              <span className="text-sm font-medium text-soot truncate">
+                {filterSpace ? mySpaces.find((s) => s.id === filterSpace)?.name || t('prov.bk.allSpaces') : t('prov.bk.allSpaces')}
+              </span>
+            </div>
+            <ChevronDown
+              size={15}
+              className={`text-moss transition-transform duration-200 shrink-0 ${
+                spaceDropdownOpen ? 'rotate-180 text-soot' : ''
+              }`}
+            />
+          </button>
+
+          {spaceDropdownOpen && (
+            <div className="absolute top-full start-0 end-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
+              <div className="max-h-52 overflow-y-auto space-y-0.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilterSpace('');
+                    setSpaceDropdownOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors text-start cursor-pointer ${
+                    !filterSpace ? 'bg-soot text-plaster font-semibold' : 'text-soot hover:bg-plaster-dark/60'
+                  }`}
+                >
+                  <span>{t('prov.bk.allSpaces')}</span>
+                  {!filterSpace && <Check size={14} className="text-eucalyptus" />}
+                </button>
+                {mySpaces.map((s) => {
+                  const isSelected = filterSpace === s.id;
+                  return (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => {
+                        setFilterSpace(s.id);
+                        setSpaceDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors text-start cursor-pointer ${
+                        isSelected ? 'bg-soot text-plaster font-semibold' : 'text-soot hover:bg-plaster-dark/60'
+                      }`}
+                    >
+                      <span className="truncate">{s.name}</span>
+                      {isSelected && <Check size={14} className="text-eucalyptus" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Status Dropdown */}
+        <div className="relative min-w-44" ref={statusDropdownRef}>
+          <button
+            type="button"
+            onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
+            className="w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/50 border border-soot/12 transition-all duration-200 text-start cursor-pointer focus:outline-none"
+          >
+            <span className="text-sm font-medium text-soot truncate capitalize">
+              {filterStatus ? t('prov.bk.spaceFilter', { status: lb.status(filterStatus) }) : t('admin.bk.allStatus')}
+            </span>
+            <ChevronDown
+              size={15}
+              className={`text-moss transition-transform duration-200 shrink-0 ${
+                statusDropdownOpen ? 'rotate-180 text-soot' : ''
+              }`}
+            />
+          </button>
+
+          {statusDropdownOpen && (
+            <div className="absolute top-full start-0 end-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
+              <div className="space-y-0.5">
+                {[
+                  { value: '', label: t('admin.bk.allStatus') },
+                  { value: 'active', label: t('admin.bk.active') },
+                  { value: 'previous', label: t('prov.bk.previous') },
+                  { value: 'cancelled', label: t('admin.bk.cancelled') },
+                ].map((st) => {
+                  const isSelected = filterStatus === st.value;
+                  return (
+                    <button
+                      key={st.label}
+                      type="button"
+                      onClick={() => {
+                        setFilterStatus(st.value);
+                        setStatusDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors text-start cursor-pointer ${
+                        isSelected ? 'bg-soot text-plaster font-semibold' : 'text-soot hover:bg-plaster-dark/60'
+                      }`}
+                    >
+                      <span>{st.label}</span>
+                      {isSelected && <Check size={14} className="text-eucalyptus" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <BookingSortSelect value={sortOrder} onChange={setSortOrder} />
+      </div>
+
+      <BulkActionBar
+        count={selection.count}
+        onClear={selection.clear}
+        actions={[{ key: 'cancel', kind: 'cancel', label: t('bookingsList.cancelSelected'), run: bulkCancel }]}
+      />
+
+      {/* Table Layout */}
+      <div className="bg-plaster-surface rounded-3xl border border-soot/10 overflow-hidden shadow-2xs relative z-10">
+        <div className="hidden lg:grid grid-cols-12 gap-6 px-6 py-4 border-b border-soot/10 text-xs font-semibold uppercase tracking-wider text-moss bg-plaster-dark/40 items-center">
+          <div className="col-span-4 flex items-center gap-3">
+            <input
+              type="checkbox"
+              aria-label={t('bookingsList.selectAll')}
+              checked={selection.allSelected}
+              ref={(el) => { if (el) el.indeterminate = selection.someSelected; }}
+              onChange={selection.toggleAll}
+              className="w-4 h-4 rounded border-soot/30 accent-soot cursor-pointer"
+            />
+            <span>{t('myBookings.colWorkspace')}</span>
+          </div>
+          <div className="col-span-2">{t('prov.bk.colCustomer')}</div>
+          <div className="col-span-2">{t('myBookings.colPeriod')}</div>
+          <div className="col-span-1">{t('myBookings.colPlan')}</div>
+          <div className="col-span-1">{t('myBookings.colAmount')}</div>
+          <div className="col-span-2 text-end">{t('admin.bk.colStatus')}</div>
+        </div>
+
+        {filtered.length === 0 ? (
+          <div className="py-16 text-center text-moss">
+            <CalendarDays size={32} className="mx-auto mb-3 opacity-50" />
+            <p className="text-sm">{t('prov.bk.none')}</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-soot/8">
+            {filtered.map((b) => (
+              <div
+                key={b.id}
+                onClick={() => setSelectedBooking(b)}
+                className="px-6 py-4 hover:bg-plaster-dark/30 transition-colors flex flex-col lg:grid lg:grid-cols-12 lg:gap-6 lg:items-center cursor-pointer group"
+              >
+                {/* Workspace Name & Image */}
+                <div className="col-span-4 flex items-center gap-3.5 min-w-0">
+                  <input
+                    type="checkbox"
+                    aria-label={t('bookingsList.selectRow')}
+                    checked={selection.isSelected(b.id)}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={() => selection.toggle(b.id)}
+                    className="w-4 h-4 rounded border-soot/30 accent-soot cursor-pointer shrink-0"
+                  />
+                  <img
+                    src={b.spaceImage}
+                    alt={sx.bookingName(b)}
+                    className="w-11 h-11 rounded-xl object-cover border border-soot/10 shrink-0 shadow-2xs group-hover:scale-105 transition-transform"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-semibold text-soot group-hover:text-emerald-900 transition-colors truncate">
+                      {sx.bookingName(b)}
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs text-moss mt-0.5 font-medium">
+                      <MapPin size={12} className="text-moss shrink-0" />
+                      <span className="truncate">{sx.bookingCity(b)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Customer / User */}
+                <div className="col-span-2 mt-2 lg:mt-0 text-sm font-medium text-soot truncate">
+                  {getUserName(b.userId)}
+                </div>
+
+                {/* Booking Period */}
+                <div className="col-span-2 mt-2 lg:mt-0 text-xs text-soot font-medium">
+                  <div className="flex items-center gap-1">
+                    <Calendar size={12} className="text-moss shrink-0" />
+                    <span>{b.startDate}</span>
+                  </div>
+                  {b.startDate !== b.endDate && (
+                    <div className="text-moss text-[11px] mt-0.5 ps-4">to {b.endDate}</div>
+                  )}
+                  {b.startTime && (
+                    <div className="text-[11px] text-emerald-800 font-medium mt-0.5 ps-4">{localizeTime(b.startTime)} – {localizeTime(b.endTime)}</div>
+                  )}
+                </div>
+
+                {/* Plan & Seats */}
+                <div className="col-span-1 mt-2 lg:mt-0 text-xs font-semibold text-soot capitalize">
+                  {b.plan === 'hourly'
+                    ? t(b.durationHours === 1 ? 'booking.hourlyHrs' : 'booking.hourlyHrsMany', { count: b.durationHours || 1 })
+                    : b.plan === 'daily'
+                    ? t((b.durationDays || 1) === 1 ? 'myBookings.dailyPassDays' : 'myBookings.dailyPassDaysMany', { count: b.durationDays || (b.startDate && b.endDate ? calculateDailyDurationDays(b.startDate, b.endDate) : 1) })
+                    : b.plan === 'monthly'
+                    ? t('myBookings.monthlyMo', { count: b.durationMonths || 1 })
+                    : t(('booking.planPass.' + b.plan) as never)}
+                  <span className="block text-[11px] font-normal text-moss">
+                    {t(b.seats > 1 ? 'booking.seatMany' : 'booking.seatOne', { count: b.seats })}
+                  </span>
+                </div>
+
+                {/* Revenue Amount */}
+                <div className="col-span-1 mt-2 lg:mt-0 text-sm font-semibold text-soot">
+                  {t('common.sar')} {getBookingPrice(b, spaces).toLocaleString()}
+                </div>
+
+                {/* Status & Actions */}
+                <div className="col-span-2 mt-4 lg:mt-0 flex items-center justify-end gap-3">
+                  <span
+                    className={`text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider ${
+                      b.status === 'active'
+                        ? 'bg-emerald-500/15 text-emerald-800 border border-emerald-500/30'
+                        : b.status === 'previous'
+                        ? 'bg-soot/10 text-soot border border-soot/15'
+                        : 'bg-red-500/15 text-red-700 border border-red-500/30'
+                    }`}
+                  >
+                    {lb.status(b.status)}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedBooking(b);
+                    }}
+                    className="p-2 rounded-xl text-moss hover:text-soot hover:bg-plaster-surface border border-transparent hover:border-soot/10 transition-all cursor-pointer"
+                    title={t('prov.bk.viewDetails')}
+                  >
+                    <Eye size={15} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Booking Detail Modal */}
+      {selectedBooking && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-soot/40 backdrop-blur-xs animate-in fade-in-50 duration-200">
+          <div className="relative w-full max-w-xl bg-plaster-surface rounded-3xl border border-soot/15 shadow-2xl overflow-hidden divide-y divide-soot/10 animate-in zoom-in-95 duration-150">
+            {/* Header */}
+            <div className="p-6 bg-plaster-dark/30 flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <img
+                  src={selectedBooking.spaceImage}
+                  alt={sx.bookingName(selectedBooking)}
+                  className="w-14 h-14 rounded-2xl object-cover border border-soot/12 shadow-2xs"
+                />
+                <div>
+                  <h3 className="text-xl font-normal text-soot font-serif-display">
+                    {sx.bookingName(selectedBooking)}
+                  </h3>
+                  <div className="flex items-center gap-2 text-xs text-moss mt-0.5 font-medium">
+                    <MapPin size={13} />
+                    <span>{sx.bookingCity(selectedBooking)}</span>
+                    <span>·</span>
+                    <span className="capitalize">{selectedBooking.type.replace('-', ' ')}</span>
+                  </div>
+                </div>
+              </div>
+
+              <button aria-label={t('common.close')}
+                type="button"
+                onClick={() => setSelectedBooking(null)}
+                className="p-2 rounded-full hover:bg-soot/10 text-moss hover:text-soot transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Details Content */}
+            <div className="p-6 space-y-6 text-sm text-soot">
+              <div className="grid grid-cols-2 gap-4 bg-white/60 p-4 rounded-2xl border border-soot/8">
+                <div>
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-moss block mb-0.5">
+                    {t('prov.bk.colCustomer')}
+                  </span>
+                  <span className="font-semibold text-soot text-base">{getUserName(selectedBooking.userId)}</span>
+                </div>
+                <div>
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-moss block mb-0.5">
+                    {t('prov.bk.bookingId')}
+                  </span>
+                  <span className="font-mono text-xs text-soot">{selectedBooking.id}</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4 text-xs">
+                <div className="p-3 bg-white/60 rounded-xl border border-soot/8">
+                  <span className="text-moss block mb-1">{selectedBooking.plan === 'hourly' ? t('qr.bookingDate') : t('spaceDetails.startDate')}</span>
+                  <span className="font-semibold text-soot text-sm">{selectedBooking.startDate}</span>
+                </div>
+                <div className="p-3 bg-white/60 rounded-xl border border-soot/8">
+                  <span className="text-moss block mb-1">{selectedBooking.plan === 'hourly' ? t('prov.bk.duration') : t('spaceDetails.endDate')}</span>
+                  <span className="font-semibold text-soot text-sm">
+                    {selectedBooking.plan === 'hourly' ? t(selectedBooking.durationHours === 1 ? 'prov.bk.hour' : 'prov.bk.hours', { count: selectedBooking.durationHours || 1 }) : selectedBooking.endDate}
+                  </span>
+                </div>
+                <div className="p-3 bg-white/60 rounded-xl border border-soot/8">
+                  <span className="text-moss block mb-1">{t('prov.bk.seatsReserved')}</span>
+                  <span className="font-semibold text-soot text-sm">{t('booking.seatMany', { count: selectedBooking.seats })}</span>
+                </div>
+              </div>
+
+              {selectedBooking.plan === 'hourly' ? (
+                <div className="p-3 bg-white/60 rounded-xl border border-soot/8 text-xs">
+                  <span className="text-moss block mb-1">{t('prov.bk.timeWindowDuration')}</span>
+                  <span className="font-semibold text-soot text-sm">
+                    {localizeTime(selectedBooking.startTime || '09:00 AM')} – {localizeTime(selectedBooking.endTime || '05:00 PM')} ({t(selectedBooking.durationHours === 1 ? 'prov.bk.hour' : 'prov.bk.hours', { count: selectedBooking.durationHours || 1 })})
+                  </span>
+                </div>
+              ) : selectedBooking.startTime ? (
+                <div className="p-3 bg-white/60 rounded-xl border border-soot/8 text-xs">
+                  <span className="text-moss block mb-1">{t('prov.bk.dailyOpHours')}</span>
+                  <span className="font-semibold text-soot text-sm">
+                    {localizeTime(selectedBooking.startTime)} – {localizeTime(selectedBooking.endTime)}
+                  </span>
+                </div>
+              ) : null}
+
+              <div className="flex items-center justify-between p-4 bg-soot text-plaster rounded-2xl">
+                <div>
+                  <span className="text-xs text-plaster/70 block">{t('prov.bk.totalRevenue')}</span>
+                  <span className="text-2xl font-serif-display font-normal">
+                    {t('common.sar')} {getBookingPrice(selectedBooking, spaces).toLocaleString()}
+                  </span>
+                </div>
+                <span
+                  className={`text-xs px-3 py-1 rounded-full font-bold uppercase tracking-wider ${
+                    selectedBooking.status === 'active'
+                      ? 'bg-emerald-500 text-slate-950'
+                      : selectedBooking.status === 'previous'
+                      ? 'bg-plaster-dark text-soot'
+                      : 'bg-red-500 text-white'
+                  }`}
+                >
+                  {lb.status(selectedBooking.status)}
+                </span>
+              </div>
+
+              {/* Status Action Buttons */}
+              <div className="pt-2">
+                <span className="text-xs font-semibold uppercase tracking-wider text-moss block mb-2">
+                  {t('prov.bk.updateStatus')}
+                </span>
+                <div className="grid grid-cols-3 gap-2">
+                  {(['active', 'previous', 'cancelled'] as BookingStatus[]).map((status) => {
+                    const isCurrent = selectedBooking.status === status;
+                    return (
+                      <button
+                        key={status}
+                        type="button"
+                        onClick={() => handleUpdateStatus(selectedBooking.id, status)}
+                        className={`py-2 px-3 rounded-xl text-xs font-semibold capitalize border transition-all cursor-pointer ${
+                          isCurrent
+                            ? 'bg-soot text-plaster border-soot shadow-2xs'
+                            : 'bg-white text-soot border-soot/12 hover:bg-soot/5'
+                        }`}
+                      >
+                        {lb.status(status)}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 bg-plaster-dark/20 text-end">
+              <button
+                type="button"
+                onClick={() => setSelectedBooking(null)}
+                className="px-5 py-2 rounded-xl bg-soot text-plaster text-xs font-semibold cursor-pointer"
+              >
+                {t('common.close')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

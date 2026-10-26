@@ -1,0 +1,1201 @@
+'use client';
+
+import { useI18n } from '@/i18n';
+import UserAvatar from '@/components/ui/UserAvatar';
+import { useLabels } from '@/i18n/labels';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import {
+  Search,
+  Plus,
+  Shield,
+  ShieldOff,
+  ChevronDown,
+  AlertCircle,
+  Check,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  ShieldAlert,
+  Users as UsersIcon,
+  UserCheck,
+  UserX,
+  Building2,
+  X,
+  Phone,
+  Calendar,
+  Eye,
+  Pencil,
+  Trash2,
+} from 'lucide-react';
+import { useApp } from '@/app/store';
+import { User, UserRole } from '@/types/types';
+import { createCompanyApi } from '@/services/authApi';
+import Badge from '@/components/ui/Badge';
+
+const FORM_ROLES: { value: UserRole; label: string }[] = [
+  { value: 'individual', label: 'role.individual' },
+  { value: 'organization', label: 'role.organization' },
+  { value: 'provider', label: 'role.provider' },
+];
+
+const ROW_ROLES: { value: UserRole; label: string }[] = [
+  { value: 'individual', label: 'role.individual' },
+  { value: 'organization', label: 'role.organization' },
+  { value: 'provider', label: 'role.provider' },
+];
+
+export default function UsersAdmin() {
+  const { t, translateMessage, lang } = useI18n();
+  const lb = useLabels();
+  const {
+    nav,
+    users,
+    fetchUsers,
+    blockUser,
+    unblockUser,
+    changeUserRole,
+    updateUserProfile,
+    showToast,
+    deleteUser,
+    deletePartner,
+    partners,
+    fetchPartners,
+    approvePartner,
+    rejectPartner,
+  } = useApp();
+  const [query, setQuery] = useState('');
+  const [filterRole, setFilterRole] = useState<string>(() => {
+    return nav?.params?.filter === 'pending' ? 'pending' : '';
+  });
+  const [filterStatus, setFilterStatus] = useState<string>('');
+
+  useEffect(() => {
+    if (nav?.params?.filter === 'pending') {
+      setFilterRole('pending');
+    }
+  }, [nav?.params]);
+
+  // Dropdown States for Filters
+  const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+  const roleDropdownRef = useRef<HTMLDivElement>(null);
+  const statusDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Table Row Role Dropdowns
+  const [activeRowRoleDropdown, setActiveRowRoleDropdown] = useState<string | null>(null);
+
+  // Modals
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [blockModal, setBlockModal] = useState(false);
+  const [detailsModal, setDetailsModal] = useState(false);
+  const [addEditModal, setAddEditModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+
+  // Add/Edit Form state
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [role, setRole] = useState<UserRole>('individual');
+  const [orgName, setOrgName] = useState('');
+  const [orgSize, setOrgSize] = useState('10');
+  const [industry, setIndustry] = useState('');
+  const [modalRoleDropdownOpen, setModalRoleDropdownOpen] = useState(false);
+  const modalRoleRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (roleDropdownRef.current && !roleDropdownRef.current.contains(event.target as Node)) {
+        setRoleDropdownOpen(false);
+      }
+      if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target as Node)) {
+        setStatusDropdownOpen(false);
+      }
+      if (modalRoleRef.current && !modalRoleRef.current.contains(event.target as Node)) {
+        setModalRoleDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    fetchPartners().catch(() => {});
+    if (fetchUsers) fetchUsers().catch(() => {});
+  }, []);
+
+  // Safely merge database partners with users directory
+  const displayUsers = useMemo(() => {
+    const list = [...users];
+    partners.forEach((p) => {
+      const pEmail = (p.contactEmail || '').trim().toLowerCase();
+      const existingIdx = pEmail ? list.findIndex((u) => (u.email || '').trim().toLowerCase() === pEmail) : -1;
+      if (existingIdx === -1) {
+        list.push({
+          id: p.id ? `partner-${p.id}` : `partner-${Date.now()}`,
+          name: p.brandName || 'Space Partner',
+          email: p.contactEmail || '',
+          password: '',
+          role: 'provider',
+          phone: '+966 50 000 0000',
+          avatar: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=120&h=120&fit=crop&crop=faces',
+          isBlocked: false,
+          joinDate: p.createdAt ? new Date(p.createdAt).toISOString().split('T')[0] : '',
+          businessName: p.brandName,
+          crNumber: p.taxNumber,
+          partnerStatus: p.status,
+        });
+      } else {
+        list[existingIdx] = {
+          ...list[existingIdx],
+          role: list[existingIdx].role === 'admin' ? 'admin' : (list[existingIdx].role || 'provider'),
+          businessName: p.brandName || list[existingIdx].businessName,
+          crNumber: p.taxNumber || list[existingIdx].crNumber,
+          partnerStatus: p.status || list[existingIdx].partnerStatus,
+        };
+      }
+    });
+    return list;
+  }, [users, partners]);
+
+  const getPartnerForUser = (user: User) => {
+    const uEmail = (user.email || '').trim().toLowerCase();
+    if (!uEmail) return undefined;
+    return partners.find((p) => (p.contactEmail || '').trim().toLowerCase() === uEmail);
+  };
+
+  const getPartnerEffectiveStatus = (user: User) => {
+    const p = getPartnerForUser(user);
+    return p?.status || user.partnerStatus || 'APPROVED';
+  };
+
+  const pendingPartners = useMemo(() => {
+    return partners.filter((p) => p.status === 'PENDING_APPROVAL');
+  }, [partners]);
+
+  const pendingPartnersCount = pendingPartners.length;
+
+  const nonAdmins = displayUsers.filter((u) => u.role !== 'admin');
+
+  const filtered = nonAdmins.filter((u) => {
+    const isProvider = u.role === 'provider' || u.role === 'PARTNER_ADMIN';
+    const partner = isProvider ? getPartnerForUser(u) : null;
+    const status = getPartnerEffectiveStatus(u);
+
+    if (filterRole === 'pending') {
+      if (!isProvider || status !== 'PENDING_APPROVAL') return false;
+    } else if (filterRole && u.role !== filterRole) {
+      return false;
+    }
+
+    const displayName = u.role === 'organization' ? u.orgName || u.name : (partner?.brandName || u.businessName || u.name || '');
+    const q = query.trim().toLowerCase();
+    if (
+      q &&
+      !displayName.toLowerCase().includes(q) &&
+      !(u.email || '').toLowerCase().includes(q) &&
+      !(u.crNumber || partner?.taxNumber || '').toLowerCase().includes(q)
+    ) {
+      return false;
+    }
+    if (filterStatus === 'active' && u.isBlocked) return false;
+    if (filterStatus === 'blocked' && !u.isBlocked) return false;
+    return true;
+  });
+
+  const openAddModal = () => {
+    setEditingUser(null);
+    setName('');
+    setEmail('');
+    setPhone('+966 50 123 4567');
+    setRole('individual');
+    setOrgName('');
+    setOrgSize('10');
+    setIndustry('Technology');
+    setAddEditModal(true);
+  };
+
+  const openEditModal = (e: React.MouseEvent, user: User) => {
+    e.stopPropagation();
+    setEditingUser(user);
+    setName(user.name);
+    setEmail(user.email);
+    setPhone(user.phone || '');
+    setRole(user.role);
+    setOrgName(user.orgName || '');
+    setOrgSize(String(user.orgSize || 10));
+    setIndustry(user.industry || '');
+    setAddEditModal(true);
+  };
+
+  const handleSaveUser = () => {
+    if (!name.trim() || !email.trim()) {
+      showToast('Please provide a name and email address', 'error');
+      return;
+    }
+
+    if (editingUser) {
+      // Persist to the API; the modal stays open if the update is rejected
+      updateUserProfile(editingUser.id, {
+        name: name.trim(),
+        email: email.trim(),
+        phone,
+        role,
+        ...(role === 'organization' ? { orgName, orgSize: parseInt(orgSize) || 10, industry } : {}),
+      }).then((res) => {
+        if (res.success) {
+          showToast('User profile updated successfully!', 'success');
+          setAddEditModal(false);
+        }
+      });
+      return;
+    } else {
+      const newUser: User = {
+        id: `user-${Date.now()}`,
+        name,
+        email,
+        password: 'password123',
+        role,
+        phone,
+        avatar: `https://images.unsplash.com/photo-${1534528741775 + Math.floor(Math.random() * 1000)}?w=100&h=100&fit=crop&auto=format`,
+        isBlocked: false,
+        joinDate: new Date().toISOString().split('T')[0],
+        ...(role === 'organization' ? { orgName, orgSize: parseInt(orgSize) || 10, industry } : {}),
+      };
+      users.unshift(newUser);
+      if (role === 'organization') {
+        createCompanyApi({
+          companyName: orgName || name || 'New Organization',
+          hrAdminId: newUser.id,
+        }).catch((err) => console.warn('Failed to create company from UsersAdmin:', err));
+      }
+      showToast('New user account created!', 'success');
+    }
+
+    setAddEditModal(false);
+  };
+
+  const handleBlockAction = () => {
+    if (!selectedUser) return;
+    if (selectedUser.isBlocked) {
+      unblockUser(selectedUser.id);
+      showToast(`${selectedUser.name} unblocked successfully`);
+    } else {
+      blockUser(selectedUser.id);
+      showToast(`${selectedUser.name} account blocked`, 'info');
+    }
+    setBlockModal(false);
+    setSelectedUser(null);
+  };
+
+  const handleRoleChange = async (userId: string, newRole: UserRole) => {
+    setActiveRowRoleDropdown(null);
+    await changeUserRole(userId, newRole);
+  };
+
+  const activeCount = nonAdmins.filter((u) => !u.isBlocked).length;
+  const blockedCount = nonAdmins.filter((u) => u.isBlocked).length;
+  const orgCount = nonAdmins.filter((u) => u.role === 'organization').length;
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <span className="text-xs font-semibold tracking-wider uppercase text-moss block mb-1">
+            {t('admin.users.eyebrow')}
+          </span>
+          <h1 className="text-3xl sm:text-4xl text-soot font-normal font-serif-display">
+            {t('footer.manageUsers')}
+          </h1>
+        </div>
+
+        <button
+          type="button"
+          onClick={openAddModal}
+          className="btn-primary"
+        >
+          <Plus size={17} className="text-[#FAF8F5]/80" />
+          <span>{t('admin.users.addUser')}</span>
+        </button>
+      </div>
+
+      {/* Dedicated Pending Space Partner Applications Alert & Action Section */}
+      {pendingPartnersCount > 0 && (
+        <div className="bg-amber-500/10 border-2 border-amber-500/35 rounded-3xl p-6 shadow-xs space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-3.5">
+              <div className="w-11 h-11 rounded-2xl bg-amber-500/20 text-amber-900 flex items-center justify-center shrink-0 border border-amber-500/30">
+                <ShieldAlert size={22} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base font-bold text-soot">
+                    {t('admin.users.pendingApps')}
+                  </h2>
+                  <span className="px-2.5 py-0.5 rounded-full bg-amber-500 text-white text-xs font-bold shadow-2xs">
+                    {t('admin.users.actionRequired', { count: pendingPartnersCount })}
+                  </span>
+                </div>
+                <p className="text-xs text-moss mt-0.5">
+                  {t('admin.users.pendingAppsBody')}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-1">
+            {pendingPartners.map((partner) => (
+              <div
+                key={partner.id}
+                className="bg-white rounded-2xl p-5 border border-amber-500/25 shadow-xs flex flex-col justify-between space-y-3"
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-2 mb-1.5">
+                    <span className="font-bold text-base text-soot font-serif-display">
+                      {partner.brandName}
+                    </span>
+                    <span className="text-[10px] font-semibold bg-amber-500/15 text-amber-900 border border-amber-500/30 px-2 py-0.5 rounded-full shrink-0">
+                      {t('admin.users.pendingReview')}
+                    </span>
+                  </div>
+                  <div className="text-xs text-moss font-mono mb-2 truncate" title={partner.contactEmail}>
+                    {partner.contactEmail}
+                  </div>
+                  <div className="text-xs text-moss/90 flex items-center gap-1.5 bg-plaster-dark/40 px-3 py-1.5 rounded-xl border border-soot/5">
+                    <span className="font-medium">{t('admin.users.crTax')}</span>
+                    <span className="font-mono font-bold text-soot">{partner.taxNumber || 'Not provided'}</span>
+                  </div>
+                  {partner.createdAt && (
+                    <div className="text-[11px] text-moss/70 mt-2">
+                      {t('admin.users.submittedOn', { date: new Date(partner.createdAt).toLocaleDateString(lang === 'ar' ? 'ar-SA-u-ca-gregory-nu-latn' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric' }) })}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 pt-3 border-t border-soot/5">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await approvePartner(partner.id);
+                    }}
+                    className="flex-1 py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                  >
+                    <Check size={15} />
+                    <span>{t('admin.users.approvePartner')}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const reason = prompt(t('admin.users.rejectPrompt'));
+                      if (reason !== null) {
+                        await rejectPartner(partner.id, reason);
+                      }
+                    }}
+                    className="py-2.5 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                  >
+                    <X size={15} />
+                    <span>{t('admin.spaces.reject')}</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Premium Elevated Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        {[
+          {
+            label: t('admin.users.totalUsers'),
+            count: nonAdmins.length,
+            badge: 'bg-soot/10 text-soot border border-soot/15',
+            icon: UsersIcon,
+            iconBg: 'bg-soot text-plaster border-soot/20',
+            active: !filterRole && !filterStatus,
+            onClick: () => { setFilterRole(''); setFilterStatus(''); },
+          },
+          {
+            label: t('auth.pendingApproval'),
+            count: pendingPartnersCount,
+            badge: pendingPartnersCount > 0
+              ? 'bg-amber-500/20 text-amber-900 border border-amber-500/35 font-bold'
+              : 'bg-soot/10 text-soot border border-soot/15',
+            icon: ShieldAlert,
+            iconBg: pendingPartnersCount > 0
+              ? 'bg-amber-500/20 text-amber-900 border border-amber-500/35'
+              : 'bg-soot/10 text-soot border border-soot/20',
+            active: filterRole === 'pending',
+            onClick: () => { setFilterRole(filterRole === 'pending' ? '' : 'pending'); setFilterStatus(''); },
+          },
+          {
+            label: t('admin.users.activeMembers'),
+            count: activeCount,
+            badge: 'bg-emerald-500/15 text-emerald-800 border border-emerald-500/30',
+            icon: UserCheck,
+            iconBg: 'bg-emerald-500/15 text-emerald-800 border border-emerald-500/30',
+            active: filterStatus === 'active',
+            onClick: () => { setFilterStatus(filterStatus === 'active' ? '' : 'active'); setFilterRole(''); },
+          },
+          {
+            label: t('admin.users.blockedAccounts'),
+            count: blockedCount,
+            badge: 'bg-red-500/15 text-red-700 border border-red-500/30',
+            icon: UserX,
+            iconBg: 'bg-red-500/15 text-red-700 border border-red-500/30',
+            active: filterStatus === 'blocked',
+            onClick: () => { setFilterStatus(filterStatus === 'blocked' ? '' : 'blocked'); setFilterRole(''); },
+          },
+          {
+            label: translateMessage('Organizations (B2B)'),
+            count: orgCount,
+            badge: 'bg-eucalyptus/25 text-soot border border-eucalyptus/35',
+            icon: Building2,
+            iconBg: 'bg-eucalyptus/25 text-soot border-eucalyptus/35',
+            active: filterRole === 'organization',
+            onClick: () => { setFilterRole(filterRole === 'organization' ? '' : 'organization'); setFilterStatus(''); },
+          },
+        ].map((stat) => (
+          <div
+            key={stat.label}
+            onClick={stat.onClick}
+            className={`bg-plaster-surface rounded-3xl border p-5 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between group cursor-pointer ${
+              stat.active ? 'border-soot ring-1 ring-soot bg-plaster-dark/40' : 'border-soot/12'
+            }`}
+          >
+            <div className="flex items-center gap-3.5">
+              <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs ${stat.iconBg}`}>
+                <stat.icon size={20} />
+              </div>
+              <div>
+                <div className="text-3xl font-normal text-soot tracking-tight font-serif-display">{stat.count}</div>
+                <div className="text-xs font-medium text-moss mt-0.5">{stat.label}</div>
+              </div>
+            </div>
+            <span className={`text-xs px-2.5 py-1 rounded-full font-bold shadow-2xs ${stat.badge}`}>
+              {Math.round((stat.count / (nonAdmins.length || 1)) * 100)}%
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* Search & Custom Styled Dropdowns */}
+      <div className="flex flex-col sm:flex-row gap-3 bg-plaster-surface p-3 rounded-2xl border border-soot/10 shadow-2xs relative z-30">
+        <div className="relative flex-1">
+          <Search size={16} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-moss" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={t('admin.users.searchPlaceholder')}
+            className="w-full ps-10 pe-4 py-2.5 rounded-xl border border-soot/12 bg-plaster-dark/30 text-soot text-sm placeholder:text-moss/70 outline-none focus:border-eucalyptus focus:bg-plaster-surface transition-all"
+          />
+        </div>
+
+        {/* Custom Role Dropdown */}
+        <div className="relative min-w-44" ref={roleDropdownRef}>
+          <button
+            type="button"
+            onClick={() => setRoleDropdownOpen(!roleDropdownOpen)}
+            className="w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/50 border border-soot/12 transition-all duration-200 text-start cursor-pointer focus:outline-none relative z-1000"
+          >
+            <span className="text-sm font-medium text-soot truncate">
+              {filterRole ? (filterRole === 'individual' ? t('admin.users.roleShortIndividual') : filterRole === 'organization' ? t('admin.users.roleShortOrg') : filterRole === 'provider' ? t('admin.users.roleShortProvider') : t('admin.users.pendingApprovals')) : t('admin.users.allRoles')}
+            </span>
+            <ChevronDown
+              size={15}
+              className={`text-moss transition-transform duration-200 shrink-0 ${
+                roleDropdownOpen ? 'rotate-180 text-soot' : ''
+              }`}
+            />
+          </button>
+
+          {roleDropdownOpen && (
+            <div className="absolute top-full start-0 end-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
+              <div className="space-y-0.5">
+                {[
+                  { value: '', label: 'admin.users.allRoles' },
+                  { value: 'pending', label: 'admin.users.pendingApprovals' },
+                  { value: 'individual', label: 'role.individual' },
+                  { value: 'organization', label: 'role.organization' },
+                  { value: 'provider', label: 'role.provider' },
+                ].map((item) => {
+                  const isSelected = filterRole === item.value;
+                  return (
+                    <button
+                      key={item.label}
+                      type="button"
+                      onClick={() => {
+                        setFilterRole(item.value);
+                        setRoleDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors text-start cursor-pointer ${
+                        isSelected
+                          ? 'bg-soot text-plaster font-semibold'
+                          : 'text-soot hover:bg-plaster-dark/60'
+                      }`}
+                    >
+                      <span>{t(item.label as never)}</span>
+                      {isSelected && <Check size={14} className="text-eucalyptus" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Custom Status Dropdown */}
+        <div className="relative min-w-40" ref={statusDropdownRef}>
+          <button
+            type="button"
+            onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
+            className="w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-plaster-dark/30 hover:bg-plaster-dark/50 border border-soot/12 transition-all duration-200 text-start cursor-pointer focus:outline-none"
+          >
+            <span className="text-sm font-medium text-soot truncate">
+              {filterStatus ? (filterStatus === 'active' ? t('admin.users.active') : t('admin.users.blocked')) : t('admin.users.allStatus')}
+            </span>
+            <ChevronDown
+              size={15}
+              className={`text-moss transition-transform duration-200 shrink-0 ${
+                statusDropdownOpen ? 'rotate-180 text-soot' : ''
+              }`}
+            />
+          </button>
+
+          {statusDropdownOpen && (
+            <div className="absolute top-full start-0 end-0 mt-1.5 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
+              <div className="space-y-0.5">
+                {[
+                  { value: '', label: 'admin.users.allStatus' },
+                  { value: 'active', label: 'admin.users.active' },
+                  { value: 'blocked', label: 'admin.users.blocked' },
+                ].map((item) => {
+                  const isSelected = filterStatus === item.value;
+                  return (
+                    <button
+                      key={item.label}
+                      type="button"
+                      onClick={() => {
+                        setFilterStatus(item.value);
+                        setStatusDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors text-start cursor-pointer ${
+                        isSelected
+                          ? 'bg-soot text-plaster font-semibold'
+                          : 'text-soot hover:bg-plaster-dark/60'
+                      }`}
+                    >
+                      <span>{t(item.label as never)}</span>
+                      {isSelected && <Check size={14} className="text-eucalyptus" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Clean Table Layout Matching SpacesAdmin */}
+      <div className="bg-plaster-surface rounded-3xl border border-soot/10 overflow-hidden shadow-2xs relative z-10">
+        <div className="hidden md:grid grid-cols-12 gap-6 px-6 py-4 border-b border-soot/10 text-xs font-semibold uppercase tracking-wider text-moss bg-plaster-dark/40 items-center">
+          <div className="col-span-5">{t('admin.users.colUser')}</div>
+          <div className="col-span-2">{t('admin.users.colRole')}</div>
+          <div className="col-span-2">{t('admin.users.colStatus')}</div>
+          <div className="col-span-2">{t('admin.users.colJoined')}</div>
+          <div className="col-span-1 text-end">{t('mySpaces.colActions')}</div>
+        </div>
+
+        <div className="divide-y divide-soot/8">
+          {filtered.map((u) => {
+            const isProvider = u.role === 'provider' || u.role === 'PARTNER_ADMIN';
+            const partner = isProvider ? getPartnerForUser(u) : null;
+            const effectiveStatus = getPartnerEffectiveStatus(u);
+            const partnerCr = u.crNumber || partner?.taxNumber;
+            const isPending = isProvider && effectiveStatus === 'PENDING_APPROVAL';
+            const displayName = u.role === 'organization' ? u.orgName || u.name : (partner?.brandName || u.businessName || u.name);
+            const isDropdownActive = activeRowRoleDropdown === u.id;
+
+            return (
+              <div
+                key={u.id}
+                onClick={() => {
+                  setSelectedUser(u);
+                  setDetailsModal(true);
+                }}
+                className={`px-6 py-4 hover:bg-plaster-dark/30 transition-colors flex flex-col md:grid md:grid-cols-12 md:gap-6 md:items-center cursor-pointer group ${
+                  isPending ? 'bg-amber-500/5' : ''
+                }`}
+              >
+                {/* User Info & Avatar */}
+                <div className="col-span-5 flex items-center gap-3.5 min-w-0">
+                  <UserAvatar src={u.avatar} name={displayName} size="md" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-semibold text-soot group-hover:text-emerald-900 transition-colors truncate">
+                        {displayName}
+                      </span>
+                      {partnerCr && (
+                        <span className="text-[10px] font-mono font-medium text-moss bg-soot/5 border border-soot/10 px-1.5 py-0.5 rounded">
+                          {t('admin.users.crLine', { cr: partnerCr })}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-moss truncate mt-0.5 font-medium">{u.email}</div>
+                  </div>
+                </div>
+
+                {/* Role Custom Dropdown Pill */}
+                <div className="col-span-2 mt-2 md:mt-0 relative" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    type="button"
+                    onClick={() => setActiveRowRoleDropdown(isDropdownActive ? null : u.id)}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-plaster-dark/40 hover:bg-plaster-dark/70 border border-soot/12 text-xs font-semibold text-soot transition-all cursor-pointer"
+                  >
+                    <span className="capitalize">{lb.role(u.role)}</span>
+                    <ChevronDown size={13} className={`text-moss transition-transform ${isDropdownActive ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {isDropdownActive && (
+                    <div className="absolute top-full start-0 mt-1 w-44 p-1 bg-plaster-surface border border-soot/15 rounded-xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100 relative z-50">
+                      {ROW_ROLES.map((r) => (
+                        <button
+                          key={r.value}
+                          type="button"
+                          onClick={() => handleRoleChange(u.id, r.value)}
+                          className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors text-start cursor-pointer ${
+                            u.role === r.value ? 'bg-soot text-plaster font-semibold' : 'text-soot hover:bg-plaster-dark/60'
+                          }`}
+                        >
+                          <span>{t(r.label as never)}</span>
+                          {u.role === r.value && <Check size={12} className="text-eucalyptus" />}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Status Badge */}
+                <div className="col-span-2 mt-2 md:mt-0">
+                  {isProvider ? (
+                    effectiveStatus === 'PENDING_APPROVAL' ? (
+                      <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-xl font-semibold bg-amber-500/15 text-amber-900 border border-amber-500/30 shadow-2xs animate-pulse">
+                        <Clock size={12} className="text-amber-700" />
+                        <span>{t('auth.pendingApproval')}</span>
+                      </span>
+                    ) : effectiveStatus === 'REJECTED' ? (
+                      <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-xl font-semibold bg-rose-500/15 text-rose-800 border border-rose-500/30">
+                        <XCircle size={12} className="text-rose-600" />
+                        <span>{t('admin.users.rejected')}</span>
+                      </span>
+                    ) : (
+                      <span
+                        className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-xl font-semibold ${
+                          u.isBlocked
+                            ? 'bg-red-500/10 text-red-700 border border-red-500/20'
+                            : 'bg-emerald-500/10 text-emerald-800 border border-emerald-500/20'
+                        }`}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full ${u.isBlocked ? 'bg-red-500' : 'bg-emerald-500'}`} />
+                        <span>{u.isBlocked ? t('admin.users.blocked') : t('admin.users.approvedPartner')}</span>
+                      </span>
+                    )
+                  ) : (
+                    <span
+                      className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-xl font-semibold ${
+                        u.isBlocked
+                          ? 'bg-red-500/10 text-red-700 border border-red-500/20'
+                          : 'bg-emerald-500/10 text-emerald-800 border border-emerald-500/20'
+                      }`}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full ${u.isBlocked ? 'bg-red-500' : 'bg-emerald-500'}`} />
+                      <span>{u.isBlocked ? t('admin.users.blocked') : t('admin.users.active')}</span>
+                    </span>
+                  )}
+                </div>
+
+                {/* Joined Date */}
+                <div className="col-span-2 mt-2 md:mt-0 text-xs font-medium text-moss">
+                  {u.joinDate || '—'}
+                </div>
+
+                {/* Actions */}
+                <div className="col-span-1 mt-4 md:mt-0 flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                  {isPending && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          const pId = partner?.id || u.id.replace('partner-', '');
+                          await approvePartner(pId);
+                        }}
+                        className="p-2 rounded-xl bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border border-emerald-300 transition-all cursor-pointer font-medium"
+                        title={t('admin.users.approveTitle')}
+                      >
+                        <Check size={15} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          const reason = prompt(t('admin.users.rejectPrompt'));
+                          if (reason !== null) {
+                            const pId = partner?.id || u.id.replace('partner-', '');
+                            await rejectPartner(pId, reason);
+                          }
+                        }}
+                        className="p-2 rounded-xl bg-rose-100 text-rose-800 hover:bg-rose-200 border border-rose-300 transition-all cursor-pointer font-medium"
+                        title={translateMessage('Reject Application')}
+                      >
+                        <X size={15} />
+                      </button>
+                    </>
+                  )}
+                  <button
+                    type="button"
+                    onClick={(e) => openEditModal(e, u)}
+                    className="p-2 rounded-xl text-moss hover:text-soot hover:bg-plaster-surface border border-transparent hover:border-soot/10 transition-all cursor-pointer"
+                    title={t('admin.users.editTitle')}
+                  >
+                    <Pencil size={15} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedUser(u);
+                      setDetailsModal(true);
+                    }}
+                    className="p-2 rounded-xl text-moss hover:text-soot hover:bg-plaster-surface border border-transparent hover:border-soot/10 transition-all cursor-pointer"
+                    title={t('admin.users.viewTitle')}
+                  >
+                    <Eye size={15} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedUser(u);
+                      setBlockModal(true);
+                    }}
+                    className={`p-2 rounded-xl transition-all cursor-pointer border border-transparent ${
+                      u.isBlocked
+                        ? 'text-emerald-700 hover:bg-emerald-50 hover:border-emerald-200'
+                        : 'text-moss hover:text-red-600 hover:bg-red-50 hover:border-red-100'
+                    }`}
+                    title={u.isBlocked ? t('admin.users.unblockUser') : t('admin.users.blockUser')}
+                  >
+                    {u.isBlocked ? <Shield size={15} /> : <ShieldOff size={15} />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (confirm(t('admin.users.confirmDelete', { name: u.name }))) {
+                        if (isProvider && partner?.id) {
+                          // For provider users, delete via partner API (which cascades)
+                          deletePartner(partner.id);
+                        } else {
+                          // For individual/organization users, delete via users API
+                          deleteUser(u.id);
+                        }
+                      }
+                    }}
+                    className="p-2 rounded-xl text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-all cursor-pointer"
+                    title={t('admin.users.deleteTitle')}
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {filtered.length === 0 && (
+          <div className="py-20 text-center text-moss">
+            <UsersIcon size={40} className="mx-auto mb-3 text-moss/50" />
+            <div className="text-base font-medium text-soot">{t('admin.users.noMatch')}</div>
+            <p className="text-xs text-moss mt-1">{t('admin.users.tryUpdating')}</p>
+          </div>
+        )}
+      </div>
+
+      {/* Modern Add / Edit User Modal with Correct Internal Scroll */}
+      {addEditModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
+          <div
+            className="fixed inset-0 bg-soot/70 backdrop-blur-sm transition-opacity"
+            onClick={() => setAddEditModal(false)}
+          />
+
+          <div className="relative w-full max-w-lg bg-plaster-surface rounded-3xl shadow-2xl border border-soot/15 z-10 flex flex-col max-h-[90vh]">
+            {/* Modal Header (Fixed) */}
+            <div className="px-6 sm:px-8 py-5 border-b border-soot/10 flex items-center justify-between bg-plaster-dark/30 shrink-0 rounded-t-3xl">
+              <div>
+                <h3 className="text-xl font-serif-display font-medium text-soot">
+                  {editingUser ? t('admin.users.editProfile') : t('admin.users.addNew')}
+                </h3>
+                <p className="text-xs text-moss mt-0.5">{t('admin.users.formSubtitle')}</p>
+              </div>
+              <button aria-label={t('common.close')}
+                type="button"
+                onClick={() => setAddEditModal(false)}
+                className="p-2 rounded-full text-moss hover:text-soot hover:bg-soot/8 transition-colors cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Body (Scrollable container so form fields & organization details don't cut off buttons) */}
+            <div className="p-6 sm:px-8 overflow-y-auto space-y-4 flex-1">
+              <div>
+                <label className="block text-xs font-semibold text-soot mb-1.5">{t('admin.users.fullName')}</label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder={t('admin.users.namePlaceholder')}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-soot/15 bg-white text-soot text-sm placeholder:text-moss/60 outline-none focus:border-soot transition-all shadow-2xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-soot mb-1.5">{t('admin.users.emailReq')}</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder={t('admin.users.emailPlaceholder')}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-soot/15 bg-white text-soot text-sm placeholder:text-moss/60 outline-none focus:border-soot transition-all shadow-2xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-soot mb-1.5">{t('admin.users.phone')}</label>
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder={t('admin.users.phonePlaceholder')}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-soot/15 bg-white text-soot text-sm placeholder:text-moss/60 outline-none focus:border-soot transition-all shadow-2xs"
+                />
+              </div>
+
+              {/* Custom Role Selector Dropdown List */}
+              <div className="relative">
+                <label className="block text-xs font-semibold text-soot mb-1.5">{t('admin.users.roleReq')}</label>
+                <button
+                  type="button"
+                  onClick={() => setModalRoleDropdownOpen(!modalRoleDropdownOpen)}
+                  className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border border-soot/15 bg-white hover:bg-plaster-dark/30 text-soot text-sm text-start transition-all cursor-pointer focus:outline-none shadow-2xs"
+                >
+                  <span className="font-medium truncate">
+                    {FORM_ROLES.find((r) => r.value === role)?.label ? t(FORM_ROLES.find((r) => r.value === role)!.label as never) : t('admin.users.selectRole')}
+                  </span>
+                  <ChevronDown size={15} className={`text-moss transition-transform duration-200 ${modalRoleDropdownOpen ? 'rotate-180 text-soot' : ''}`} />
+                </button>
+
+                {modalRoleDropdownOpen && (
+                  <div className="mt-1.5 p-1.5 bg-white border border-soot/15 rounded-xl shadow-lg space-y-0.5 animate-in fade-in-50 zoom-in-95 duration-100">
+                    {FORM_ROLES.map((r) => {
+                      const isSelected = role === r.value;
+                      return (
+                        <button
+                          key={r.value}
+                          type="button"
+                          onClick={() => {
+                            setRole(r.value);
+                            setModalRoleDropdownOpen(false);
+                          }}
+                          className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg text-xs font-medium text-start transition-colors cursor-pointer ${
+                            isSelected
+                              ? 'bg-soot text-plaster font-semibold'
+                              : 'text-soot hover:bg-plaster-dark/50'
+                          }`}
+                        >
+                          <span>{t(r.label as never)}</span>
+                          {isSelected && <Check size={14} className="text-eucalyptus" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {role === 'organization' && (
+                <div className="p-4 rounded-2xl bg-plaster-dark/30 border border-soot/12 space-y-3.5 mt-3">
+                  <span className="text-[11px] font-bold text-soot uppercase tracking-wider block">
+                    {translateMessage('Organization Details (B2B)')}
+                  </span>
+                  <div>
+                    <label className="block text-xs font-semibold text-soot mb-1">{t('admin.users.companyName')}</label>
+                    <input
+                      type="text"
+                      value={orgName}
+                      onChange={(e) => setOrgName(e.target.value)}
+                      placeholder={t('admin.users.companyPlaceholder')}
+                      className="w-full px-3 py-2 rounded-xl border border-soot/15 bg-white text-soot text-sm shadow-2xs"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-soot mb-1">{t('auth.teamSize')}</label>
+                      <input
+                        type="number"
+                        value={orgSize}
+                        onChange={(e) => setOrgSize(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl border border-soot/15 bg-white text-soot text-sm shadow-2xs"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-soot mb-1">{t('admin.users.industry')}</label>
+                      <input
+                        type="text"
+                        value={industry}
+                        onChange={(e) => setIndustry(e.target.value)}
+                        placeholder={t('auth.industryPlaceholder')}
+                        className="w-full px-3 py-2 rounded-xl border border-soot/15 bg-white text-soot text-sm shadow-2xs"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer (Fixed at bottom) */}
+            <div className="px-6 sm:px-8 py-4 border-t border-soot/10 bg-plaster-dark/30 flex items-center justify-end gap-3 shrink-0 rounded-b-3xl">
+              <button
+                type="button"
+                onClick={() => setAddEditModal(false)}
+                className="btn-secondary"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveUser}
+                className="btn-primary"
+              >
+                {editingUser ? t('admin.users.saveChanges') : t('admin.users.createUser')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Full User Details Modal */}
+      {detailsModal && selectedUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-150">
+          <div
+            className="fixed inset-0 bg-soot/70 backdrop-blur-sm"
+            onClick={() => {
+              setDetailsModal(false);
+              setSelectedUser(null);
+            }}
+          />
+
+          <div className="relative w-full max-w-lg bg-plaster-surface rounded-3xl shadow-2xl border border-soot/15 overflow-hidden z-10">
+            <div className="px-6 sm:px-8 py-5 border-b border-soot/10 flex items-center justify-between bg-plaster-dark/30">
+              <div>
+                <h3 className="text-xl font-serif-display font-medium text-soot">
+                  {t('admin.users.overview')}
+                </h3>
+                <p className="text-xs text-moss mt-0.5">{t('admin.users.profileDetails')}</p>
+              </div>
+              <button aria-label={t('common.close')}
+                type="button"
+                onClick={() => {
+                  setDetailsModal(false);
+                  setSelectedUser(null);
+                }}
+                className="p-2 rounded-full text-moss hover:text-soot hover:bg-soot/8 transition-colors cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-6 sm:p-8 space-y-6">
+              <div className="flex items-center gap-4 pb-5 border-b border-soot/10">
+                <UserAvatar src={selectedUser.avatar} name={selectedUser.name} size="lg" />
+                <div>
+                  <h4 className="font-semibold text-soot text-lg leading-tight">
+                    {selectedUser.role === 'organization' ? selectedUser.orgName || selectedUser.name : selectedUser.name}
+                  </h4>
+                  <div className="text-xs text-moss mt-0.5">{selectedUser.email}</div>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Badge variant="soot" className="capitalize text-[10px] px-2.5 py-0.5">
+                      {selectedUser.role}
+                    </Badge>
+                    <span
+                      className={`text-[10px] px-2.5 py-0.5 rounded-full font-semibold ${
+                        selectedUser.isBlocked ? 'bg-red-500/10 text-red-700' : 'bg-emerald-500/10 text-emerald-800'
+                      }`}
+                    >
+                      {selectedUser.isBlocked ? t('admin.users.blocked') : t('admin.users.activeAccount')}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3 text-sm">
+                {[
+                  { label: t('admin.users.phone'), value: selectedUser.phone || t('admin.users.na'), icon: Phone },
+                  { label: t('admin.users.memberSince'), value: selectedUser.joinDate || t('admin.users.na'), icon: Calendar },
+                  ...(selectedUser.role === 'organization'
+                    ? [
+                        { label: t('admin.users.companyName'), value: selectedUser.orgName || t('admin.users.na'), icon: Building2 },
+                        { label: t('admin.users.teamMembers'), value: String(selectedUser.orgSize || '10'), icon: UsersIcon },
+                        { label: t('admin.users.industry'), value: selectedUser.industry || t('auth.industryPlaceholder'), icon: Building2 },
+                      ]
+                    : []),
+                  ...(selectedUser.role === 'provider'
+                    ? [
+                        {
+                          label: t('admin.users.brandName'),
+                          value: selectedUser.businessName || getPartnerForUser(selectedUser)?.brandName || selectedUser.name,
+                          icon: Building2,
+                        },
+                        {
+                          label: t('admin.users.crReg'),
+                          value: selectedUser.crNumber || getPartnerForUser(selectedUser)?.taxNumber || 'N/A',
+                          icon: ShieldAlert,
+                        },
+                        {
+                          label: t('admin.users.verificationStatus'),
+                          value:
+                            getPartnerEffectiveStatus(selectedUser) === 'PENDING_APPROVAL'
+                              ? t('admin.users.pendingVerification')
+                              : getPartnerEffectiveStatus(selectedUser) === 'REJECTED'
+                              ? t('admin.users.rejected')
+                              : t('admin.users.approvedPartner'),
+                          icon: CheckCircle2,
+                        },
+                      ]
+                    : []),
+                ].map((row) => (
+                  <div key={row.label} className="flex items-center justify-between py-1.5 border-b border-soot/6 last:border-0">
+                    <span className="text-moss text-xs flex items-center gap-2">
+                      <row.icon size={14} className="text-moss/70" />
+                      <span>{row.label}</span>
+                    </span>
+                    <span className="text-soot font-semibold text-xs sm:text-sm">{row.value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="px-6 sm:px-8 py-4 border-t border-soot/10 bg-plaster-dark/30 flex items-center justify-end gap-3 flex-wrap">
+              <button
+                type="button"
+                onClick={() => {
+                  setDetailsModal(false);
+                  setSelectedUser(null);
+                }}
+                className="px-5 py-2.5 rounded-xl border border-soot/20 text-soot text-sm font-semibold hover:bg-soot/8 transition-colors cursor-pointer"
+              >
+                {t('common.close')}
+              </button>
+
+              {selectedUser.role === 'provider' && getPartnerEffectiveStatus(selectedUser) === 'PENDING_APPROVAL' && (
+                <>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const pId = getPartnerForUser(selectedUser)?.id || selectedUser.id.replace('partner-', '');
+                      await approvePartner(pId);
+                      setDetailsModal(false);
+                      setSelectedUser(null);
+                    }}
+                    className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Check size={16} />
+                    <span>{t('admin.users.approvePartner')}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const reason = prompt(t('admin.users.rejectPrompt'));
+                      if (reason !== null) {
+                        const pId = getPartnerForUser(selectedUser)?.id || selectedUser.id.replace('partner-', '');
+                        await rejectPartner(pId, reason);
+                        setDetailsModal(false);
+                        setSelectedUser(null);
+                      }
+                    }}
+                    className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-rose-600 text-white hover:bg-rose-700 shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
+                  >
+                    <X size={16} />
+                    <span>{t('admin.users.rejectApp')}</span>
+                  </button>
+                </>
+              )}
+
+              <button
+                type="button"
+                onClick={() => {
+                  setDetailsModal(false);
+                  setBlockModal(true);
+                }}
+                className={`px-5 py-2.5 rounded-xl text-sm font-semibold shadow-xs transition-all cursor-pointer ${
+                  selectedUser.isBlocked
+                    ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                    : 'bg-red-600 text-white hover:bg-red-700'
+                }`}
+              >
+                {selectedUser.isBlocked ? t('admin.users.unblockAccount') : t('admin.users.blockAccount')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete / Block Confirmation Modal */}
+      {blockModal && selectedUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="fixed inset-0 bg-soot/70 backdrop-blur-sm" onClick={() => setBlockModal(false)} />
+          <div className="relative w-full max-w-md bg-plaster-surface rounded-3xl shadow-2xl border border-soot/15 p-6 z-10">
+            <div className="flex items-start gap-4 mb-6">
+              <div
+                className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border ${
+                  selectedUser.isBlocked
+                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-800'
+                    : 'bg-red-500/10 border-red-500/20 text-red-600'
+                }`}
+              >
+                <AlertCircle size={20} />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-soot mb-1 font-serif-display">
+                  {selectedUser.isBlocked ? translateMessage('Unblock User Account?') : translateMessage('Block User Account?')}
+                </h3>
+                <p className="text-xs text-moss leading-relaxed">
+                  {selectedUser.isBlocked
+                    ? t('admin.users.confirmUnblock', { name: selectedUser.name })
+                    : t('admin.users.confirmBlock', { name: selectedUser.name })}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setBlockModal(false)}
+                className="btn-secondary flex-1"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                type="button"
+                onClick={handleBlockAction}
+                className={`flex-1 ${selectedUser.isBlocked ? 'btn-primary' : 'btn-danger'}`}
+              >
+                {selectedUser.isBlocked ? translateMessage('Yes, Unblock') : translateMessage('Yes, Block')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

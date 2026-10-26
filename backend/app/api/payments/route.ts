@@ -1,0 +1,214 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { getTokenFromRequest, unauthorizedResponse, suspendedResponse } from '@/lib/auth/verify-token';
+import { getKsaNow } from '@/lib/time-utils';
+import { getOwnedWorkspaceIds } from '@/lib/ownership';
+import type { Prisma, PaymentMethod, PaymentFor, PaymentStatus } from '@prisma/client';
+
+export async function GET(request: Request) {
+  try {
+    const user = await getTokenFromRequest(request);
+    if (!user) return unauthorizedResponse(request);
+
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
+    const status = searchParams.get('status');
+    const paymentFor = searchParams.get('paymentFor');
+    const method = searchParams.get('method');
+
+    const whereClause: Prisma.PaymentWhereInput = {};
+    const canViewOthers = user.role === 'SUPER_ADMIN' || user.role === 'PARTNER_ADMIN';
+    if (userId && (canViewOthers || userId === user.userId)) {
+      whereClause.userId = userId;
+    } else if (!canViewOthers) {
+      whereClause.userId = user.userId;
+    }
+    // Partners only see payments made at their own workspaces (other payments carry other customers' details)
+    if (user.role === 'PARTNER_ADMIN') {
+      const owned = await getOwnedWorkspaceIds(user.userId);
+      whereClause.workspaceId = { in: owned };
+    }
+
+    if (status) whereClause.status = status as PaymentStatus;
+    if (paymentFor) whereClause.paymentFor = paymentFor as PaymentFor;
+    if (method) whereClause.method = method as PaymentMethod;
+
+    const payments = await prisma.payment.findMany({
+      where: whereClause,
+      include: {
+        user: { select: { id: true, name: true, email: true, role: true } },
+        workspace: { select: { id: true, name: true, city: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return NextResponse.json(payments);
+  } catch (error) {
+    console.error(' Error fetching payments:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch payments.' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * @swagger
+ * /api/payments:
+ *   post:
+ *     summary: تسجيل دفعة
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [userId, amount, method, paymentFor]
+ *             properties:
+ *               userId:
+ *                 type: string
+ *               amount:
+ *                 type: number
+ *               method:
+ *                 type: string
+ *                 enum: [MADA, VISA, APPLE_PAY, SAMSUNG_PAY]
+ *               paymentFor:
+ *                 type: string
+ *                 enum: [DIRECT_BOOKING, HOURLY_BOOKING, SUBSCRIPTION, POINTS_REDEMPTION]
+ *               referenceId:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: تم تسجيل الدفعة
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const user = await getTokenFromRequest(request);
+
+    const body = await request.json();
+    const {
+      userId,
+      workspaceId,
+      amount,
+      method,
+      paymentFor,
+      referenceId,
+      status = 'SUCCESS',
+      gatewayTransactionId,
+    } = body;
+
+    const effectiveUserId = (user && user.role === 'SUPER_ADMIN' && userId) ? userId : (user ? user.userId : null);
+    if (!effectiveUserId) {
+      return unauthorizedResponse(request);
+    }
+    const existingUser = await prisma.user.findUnique({ where: { id: effectiveUserId }, select: { id: true, isBanned: true } });
+    if (!existingUser) {
+      return NextResponse.json({ error: 'User not found.' }, { status: 404 });
+    }
+    if (existingUser.isBanned) {
+      return suspendedResponse();
+    }
+
+    if (!effectiveUserId || amount === undefined || !method || !paymentFor) {
+      return NextResponse.json(
+        { error: 'All fields are required: userId (or token), amount, method, paymentFor' },
+        { status: 400 }
+      );
+    }
+
+    // Amounts must be real, non-negative numbers; a zero amount only makes sense for a points redemption
+    const numericAmount = typeof amount === 'number' ? amount : Number.NaN;
+    if (!Number.isFinite(numericAmount) || numericAmount < 0 || (numericAmount === 0 && String(paymentFor).toUpperCase() !== 'POINTS_REDEMPTION')) {
+      return NextResponse.json({ error: 'amount must be a positive number.' }, { status: 400 });
+    }
+
+    const validMethods = ['MADA', 'VISA', 'APPLE_PAY', 'SAMSUNG_PAY'];
+    const normalizedMethod = (method || '').toUpperCase();
+    if (!validMethods.includes(normalizedMethod)) {
+      return NextResponse.json(
+        { error: `method must be one of: ${validMethods.join(', ')}` },
+        { status: 400 }
+      );
+    }
+
+    const validPaymentFor = ['DIRECT_BOOKING', 'HOURLY_BOOKING', 'SUBSCRIPTION', 'POINTS_REDEMPTION'];
+    const normalizedPaymentFor = (paymentFor || '').toUpperCase();
+    if (!validPaymentFor.includes(normalizedPaymentFor)) {
+      return NextResponse.json(
+        { error: `paymentFor must be one of: ${validPaymentFor.join(', ')}` },
+        { status: 400 }
+      );
+    }
+
+    // Auto-resolve workspaceId from referenceId if not explicitly provided
+    let resolvedWorkspaceId = workspaceId || null;
+    if (!resolvedWorkspaceId && referenceId) {
+      if (normalizedPaymentFor === 'DIRECT_BOOKING') {
+        const db = await prisma.directBooking.findUnique({
+          where: { id: referenceId },
+          select: { workspaceId: true },
+        }).catch(() => null);
+        if (db?.workspaceId) resolvedWorkspaceId = db.workspaceId;
+      } else if (normalizedPaymentFor === 'HOURLY_BOOKING') {
+        const hb = await prisma.hourlyBooking.findUnique({
+          where: { id: referenceId },
+          select: { workspaceId: true },
+        }).catch(() => null);
+        if (hb?.workspaceId) resolvedWorkspaceId = hb.workspaceId;
+      }
+    }
+
+    // Verify workspace exists in DB to prevent foreign key errors
+    if (resolvedWorkspaceId) {
+      const wsExists = await prisma.workspace.findUnique({
+        where: { id: resolvedWorkspaceId },
+        select: { id: true },
+      }).catch(() => null);
+      if (!wsExists) resolvedWorkspaceId = null;
+    }
+
+    const ksaCurrentTime = getKsaNow();
+
+    const payment = await prisma.payment.create({
+      data: {
+        userId: effectiveUserId,
+        workspaceId: resolvedWorkspaceId,
+        amount: Number(amount),
+        method: normalizedMethod as PaymentMethod,
+        paymentFor: normalizedPaymentFor as PaymentFor,
+        referenceId: referenceId || null,
+        status: status === 'FAILED' ? 'FAILED' : 'SUCCESS',
+        gatewayTransactionId: gatewayTransactionId || `TX-${Date.now()}`,
+        createdAt: ksaCurrentTime,
+      },
+      include: {
+        user: { select: { id: true, name: true, email: true, role: true } },
+        workspace: { select: { id: true, name: true, city: true } },
+      },
+    });
+
+    // إرسال إشعار للمستخدم عند نجاح الدفع
+    if (payment.status === 'SUCCESS') {
+      await prisma.notification.create({
+        data: {
+          userId: effectiveUserId,
+          type: 'PAYMENT_SUCCESS',
+          title: 'Payment Successful',
+          message: `Payment of SAR ${amount} received successfully.`,
+          channel: 'IN_APP',
+          sentAt: ksaCurrentTime,
+        },
+      });
+    }
+
+    return NextResponse.json(payment, { status: 201 });
+  } catch (error) {
+    console.error(' Error creating payment:', error);
+    return NextResponse.json(
+      { error: 'Failed to create payment.' },
+      { status: 500 }
+    );
+  }
+}

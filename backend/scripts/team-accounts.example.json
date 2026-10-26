@@ -1,0 +1,12 @@
+{
+  "_note": "Copy to team-accounts.json (git-ignored) and put the team's real mailboxes and shared password there. The password must meet the password policy.",
+  "password": "Example#4829Kp",
+  "accounts": {
+    "superAdmin": { "email": "super.admin@example.test", "name": "Super Admin" },
+    "partner": { "email": "venue.partner@example.test", "name": "Venue Partner" },
+    "hr": { "email": "hr.admin@example.test", "name": "HR Admin" },
+    "employee1": { "email": "employee.one@example.test", "name": "Employee One" },
+    "employee2": { "email": "employee.two@example.test", "name": "Employee Two" },
+    "individual": { "email": "individual@example.test", "name": "Individual Member" }
+  }
+}

@@ -1,0 +1,188 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
+import type { LifecycleStatus } from "@prisma/client";
+import { canManageSection, forbiddenResponse } from "@/lib/ownership";
+
+/** The customer who booked, a super admin, or the partner managing the booked hall may act on a booking. */
+async function mayAccessBooking(caller: { userId: string; role: string }, booking: { userId: string; sectionId: string }) {
+  if (caller.role === 'SUPER_ADMIN' || booking.userId === caller.userId) return true;
+  return caller.role === 'PARTNER_ADMIN' && canManageSection(caller, booking.sectionId);
+}
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const user = await getTokenFromRequest(request);
+if (!user) return unauthorizedResponse(request);
+    const { id } = await params
+    const booking = await prisma.hourlyBooking.findUnique({
+      where: { id },
+      include: {
+        user: { select: { name: true, email: true } },
+        section: true,
+        package: true
+      }
+    })
+
+    if (!booking) {
+      return NextResponse.json(
+        { error: 'Booking not found.' },
+        { status: 404 }
+      )
+    }
+    if (!(await mayAccessBooking(user, booking))) {
+      return NextResponse.json({ error: 'Booking not found.' }, { status: 404 })
+    }
+
+    return NextResponse.json(booking)
+  } catch (error) {
+    console.error('❌ Error fetching booking:', error)
+    return NextResponse.json(
+      { error: 'An error occurred.' },
+      { status: 500 }
+    )
+  }
+}
+
+/**
+ * @swagger
+ * /api/hourly-bookings/{id}:
+ *   put:
+ *     summary: تعديل حجز ساعي
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [ACTIVE, EXPIRED, CANCELLED]
+ *     responses:
+ *       200:
+ *         description: تم تعديل الحجز
+ */
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const user = await getTokenFromRequest(request);
+if (!user) return unauthorizedResponse(request);
+    const { id } = await params
+    const body = await request.json()
+
+    const existing = await prisma.hourlyBooking.findUnique({ where: { id }, select: { userId: true, sectionId: true, status: true } })
+    if (!existing) {
+      return NextResponse.json({ error: 'Booking not found.' }, { status: 404 })
+    }
+    if (!(await mayAccessBooking(user, existing))) {
+      return NextResponse.json({ error: 'You are not allowed to modify this booking.' }, { status: 403 })
+    }
+
+    // Only the lifecycle status may change after creation (moving a session goes through the reschedule action).
+    // Everyone but a Super Admin can only cancel, and a closed booking can never be brought back.
+    const data: { status?: LifecycleStatus } = {}
+    if (body.status !== undefined) {
+      const wanted = String(body.status).toUpperCase()
+      if (!['ACTIVE', 'EXPIRED', 'CANCELLED'].includes(wanted)) {
+        return NextResponse.json({ error: 'status must be ACTIVE, EXPIRED or CANCELLED.' }, { status: 400 })
+      }
+      if (user.role !== 'SUPER_ADMIN') {
+        if (wanted !== 'CANCELLED') return NextResponse.json({ error: 'Only cancelling is allowed here.' }, { status: 400 })
+        if (existing.status !== 'ACTIVE') return NextResponse.json({ error: 'This booking is already closed.' }, { status: 400 })
+      }
+      data.status = wanted as LifecycleStatus
+    }
+
+    const booking = await prisma.hourlyBooking.update({
+      where: { id },
+      data,
+      include: {
+        user: { select: { name: true, email: true } },
+        section: true,
+        package: true
+      }
+    })
+    return NextResponse.json(booking)
+  } catch (error) {
+    console.error('❌ Error updating booking:', error)
+    return NextResponse.json(
+      { error: 'Failed to update.' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const user = await getTokenFromRequest(request);
+if (!user) return unauthorizedResponse(request);
+
+    const { id } = await params
+
+    // 1. جلب الحجز مع بيانات المستخدم
+    const booking = await prisma.hourlyBooking.findUnique({
+      where: { id },
+      include: { user: true }
+    })
+
+    if (!booking) {
+      return NextResponse.json(
+        { error: 'Booking not found.' },
+        { status: 404 }
+      )
+    }
+    if (!(await mayAccessBooking(user, booking))) {
+      return forbiddenResponse('You are not allowed to cancel this booking.')
+    }
+
+    // 2. التحقق من سياسة الإلغاء بناءً على دور المستخدم
+    const now = new Date()
+    const bookingTime = new Date(booking.startDate)  // ← الفرق: startDate
+    const hoursDiff = (bookingTime.getTime() - now.getTime()) / (1000 * 60 * 60)
+
+    // 6 ساعات للأفراد، 24 ساعة للمؤسسات
+    const requiredHours = booking.user.role === 'B2C' ? 6 : 24
+
+    if (hoursDiff < requiredHours) {
+      return NextResponse.json(
+        { 
+          error: `Cancellation not allowed. Must cancel at least ${requiredHours} hours before booking time.` 
+        },
+        { status: 400 }
+      )
+    }
+
+    // 3. إلغاء الحجز
+    await prisma.hourlyBooking.delete({
+      where: { id }
+    })
+
+    return NextResponse.json(
+      { message: 'Booking cancelled successfully.' },
+      { status: 200 }
+    )
+  } catch (error) {
+    console.error('❌ Error:', error)
+    return NextResponse.json(
+      { error: 'Failed to cancel.' },
+      { status: 500 }
+    )
+  }
+}

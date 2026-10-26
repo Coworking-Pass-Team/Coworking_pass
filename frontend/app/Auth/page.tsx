@@ -1,0 +1,2082 @@
+'use client';
+import { useI18n } from '@/i18n';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import {
+  Eye,
+  EyeOff,
+  Building2,
+  User as UserIcon,
+  ArrowRight,
+  ArrowLeft,
+  Warehouse,
+  Check,
+  Sparkles,
+  CheckCircle2,
+  Lock,
+  Mail,
+  Phone,
+  Briefcase,
+  FileText,
+  Users,
+  ShieldCheck,
+  Clock,
+  AlertTriangle,
+  ChevronDown,
+  Search
+} from 'lucide-react';
+import { useApp } from '@/app/store';
+import LogoImage from '@/components/layout/logo';
+import Badge from '@/components/ui/Badge';
+import { isValidSaudiCrNumber } from '@/types/types';
+import PasswordChecklist from '@/components/ui/PasswordChecklist';
+import { isPasswordValid } from '@/lib/passwordPolicy';
+import PhoneInput from 'react-phone-number-input';
+import { isValidPhoneNumber, getCountryCallingCode } from 'libphonenumber-js';
+import 'react-phone-number-input/style.css';
+
+function Logo({ onClick }: { onClick: () => void }) {
+  const { t } = useI18n();
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex items-center gap-3 group focus:outline-none cursor-pointer"
+    >
+      <LogoImage className="h-10 sm:h-11 w-auto" />
+      <span className="font-semibold text-soot text-lg sm:text-xl group-hover:text-moss transition-colors duration-200">
+        {t('common.appName')}
+      </span>
+    </button>
+  );
+}
+
+function AuthVisualBanner({
+  quote,
+  author,
+  role,
+  tag = 'Verified Saudi Workspace Network'
+}: {
+  quote: string;
+  author: string;
+  role: string;
+  tag?: string;
+}) {
+  const { t, translateMessage } = useI18n();
+  return (
+    <div className="hidden lg:block lg:w-1/2 p-4 lg:p-6 h-[100dvh]">
+      <div className="relative h-full w-full rounded-3xl overflow-hidden border border-soot/12 shadow-2xl bg-soot">
+        <img
+          src="https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=1200&auto=format&fit=crop&q=80"
+          alt={t('auth.interiorAlt')}
+          className="w-full h-full object-cover saturate-110"
+          loading="lazy"
+          decoding="async"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-soot/95 via-soot/40 to-transparent pointer-events-none" />
+
+        <div className="absolute bottom-6 start-6 end-6 bg-plaster-surface/95 backdrop-blur-md rounded-2xl p-5 border border-soot/12 shadow-xl">
+          <div className="flex items-center gap-2 text-moss text-xs font-bold uppercase tracking-wider mb-2">
+            <CheckCircle2 size={15} className="text-eucalyptus shrink-0" />
+            <span className="text-soot">{translateMessage(tag)}</span>
+          </div>
+          <p className="text-sm font-serif-display leading-relaxed italic text-soot mb-2.5">
+            &ldquo;{translateMessage(quote)}&rdquo;
+          </p>
+          <div className="text-xs text-moss">
+            <span className="font-semibold text-soot">{translateMessage(author)}</span> &bull; {translateMessage(role)}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function LoginScreen() {
+  const { t, translateMessage } = useI18n();
+  const { login, navigate } = useApp();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    const errs: Record<string, string> = {};
+    if (!email || !email.trim()) errs.email = t('auth.errEmail');
+    if (!password) errs.password = t('auth.errPassword');
+
+    if (Object.keys(errs).length > 0) {
+      setFieldErrors(errs);
+      setError(t('auth.errRequired'));
+      return;
+    }
+    setFieldErrors({});
+
+    setLoading(true);
+    const result = await login(email, password);
+    if (!result.success) {
+      setError(result.error || 'Login failed.');
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen w-full flex bg-plaster text-soot">
+      {/* Left Form Column */}
+      <div className="w-full lg:w-1/2 flex flex-col justify-between p-6 sm:p-10 lg:p-14 min-h-screen">
+        {/* Top Bar */}
+        <div className="flex items-center justify-between w-full max-w-md mx-auto">
+          <Logo onClick={() => navigate('landing')} />
+          <button
+            type="button"
+            onClick={() => navigate('landing')}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-soot/5 hover:bg-soot/10 border border-soot/10 text-xs font-semibold text-soot transition-all duration-200 cursor-pointer group"
+          >
+            <ArrowLeft size={14} className="group-hover:-translate-x-0.5 rtl:group-hover:translate-x-0.5 transition-transform" />
+            <span>{t('auth.backHome')}</span>
+          </button>
+        </div>
+
+        {/* Centered Form */}
+        <div className="w-full max-w-md mx-auto my-auto py-8">
+          <div className="mb-7">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-soot/5 border border-soot/10 text-moss text-xs font-semibold mb-3.5">
+              <Sparkles size={13} className="text-eucalyptus shrink-0" />
+              <span>{t('auth.memberPortal')}</span>
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-normal font-serif-display text-soot tracking-tight mb-2">
+              {t('auth.welcomeBack')}
+            </h1>
+            <p className="text-moss text-xs sm:text-sm leading-relaxed">
+              {t('auth.signInSubtitle')}
+            </p>
+            <div className="mt-4 flex items-start gap-2.5 p-3 rounded-2xl bg-plaster-surface border border-soot/10 text-xs text-moss leading-relaxed">
+              <Building2 size={15} className="text-soot shrink-0 mt-0.5" />
+              <span>{t('auth.oneSignInHint')}</span>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              error.includes('قيد المراجعة') || error.toLowerCase().includes('pending') || error.toLowerCase().includes('review') ? (
+                <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-950 shadow-xs">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-700 flex items-center justify-center shrink-0 mt-0.5">
+                      <Clock size={18} />
+                    </div>
+                    <div className="flex-1 text-xs sm:text-sm">
+                      <div className="font-bold text-amber-950 mb-1 flex items-center gap-1.5">
+                        <span>{t('auth.partnerUnderReview')}</span>
+                        <Badge variant="mist" className="text-[10px] bg-amber-200/70 text-amber-800 border-amber-300">
+                          {t('auth.pendingApproval')}
+                        </Badge>
+                      </div>
+                      <p className="text-amber-900/90 leading-relaxed font-normal">
+                        {translateMessage(error)}
+                      </p>
+                      <p className="text-amber-800/80 text-[11px] mt-2 font-medium">
+                        {t('auth.pendingBody')}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : error.includes('رفض') || error.toLowerCase().includes('rejected') ? (
+                <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-950 shadow-xs">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-rose-500/20 text-rose-700 flex items-center justify-center shrink-0 mt-0.5">
+                      <AlertTriangle size={18} />
+                    </div>
+                    <div className="flex-1 text-xs sm:text-sm">
+                      <div className="font-bold text-rose-950 mb-1">{t('auth.notApproved')}</div>
+                      <p className="text-rose-900/90 leading-relaxed font-normal">
+                        {translateMessage(error)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-red-500/10 border border-red-500/20 text-red-700 text-xs sm:text-sm font-medium rounded-xl px-4 py-3">
+                  {translateMessage(error)}
+                </div>
+              )
+            )}
+
+            {/* Email */}
+            <div>
+              <label className="block text-xs font-semibold text-soot mb-1.5 uppercase tracking-wider">
+                {t('auth.emailAddress')} <span className="text-rose-600">*</span>
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 start-0 ps-3.5 flex items-center pointer-events-none text-moss">
+                  <Mail size={16} />
+                </div>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (fieldErrors.email) setFieldErrors((errs) => ({ ...errs, email: '' }));
+                  }}
+                  placeholder="name@company.com"
+                  className={`w-full ps-10 pe-4 py-3 rounded-xl bg-plaster-surface border ${
+                    fieldErrors.email ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-soot/15 focus-visible:ring-2 focus-visible:ring-eucalyptus'
+                  } text-soot placeholder:text-moss/50 text-sm shadow-xs transition-all`}
+                />
+              </div>
+              {fieldErrors.email && <p className="text-xs text-rose-600 font-medium mt-1">* {translateMessage(fieldErrors.email)}</p>}
+            </div>
+
+            {/* Password */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-semibold text-soot uppercase tracking-wider">
+                  {t('auth.password')} <span className="text-rose-600">*</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => navigate('forgot-password')}
+                  className="text-xs font-medium text-moss hover:text-soot hover:underline transition-colors cursor-pointer"
+                >
+                  {t('auth.forgotPassword')}
+                </button>
+              </div>
+              <div className="relative">
+                <div className="absolute inset-y-0 start-0 ps-3.5 flex items-center pointer-events-none text-moss">
+                  <Lock size={16} />
+                </div>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (fieldErrors.password) setFieldErrors((errs) => ({ ...errs, password: '' }));
+                  }}
+                  placeholder="••••••••"
+                  className={`w-full ps-10 pe-11 py-3 rounded-xl bg-plaster-surface border ${
+                    fieldErrors.password ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-soot/15 focus-visible:ring-2 focus-visible:ring-eucalyptus'
+                  } text-soot placeholder:text-moss/50 text-sm shadow-xs transition-all`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 end-0 pe-3.5 flex items-center text-moss hover:text-soot cursor-pointer"
+                  aria-label={t('auth.togglePassword')}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+              {fieldErrors.password && <p className="text-xs text-rose-600 font-medium mt-1">* {translateMessage(fieldErrors.password)}</p>}
+            </div>
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn-primary w-full py-3.5 mt-3 disabled:opacity-70"
+            >
+              {loading ? (
+                <span>{t('auth.signingIn')}</span>
+              ) : (
+                <>
+                  <span>{t('auth.signInDashboard')}</span>
+                  <ArrowRight size={16} />
+                </>
+              )}
+            </button>
+          </form>
+
+          <p className="text-center text-xs sm:text-sm text-moss mt-6 pt-4 border-t border-soot/10">
+            {t('auth.noAccount')}{' '}
+            <button
+              type="button"
+              onClick={() => navigate('signup')}
+              className="text-soot font-bold hover:underline cursor-pointer"
+            >
+              {t('auth.createAccount')}
+            </button>
+          </p>
+        </div>
+
+        {/* Bottom Micro Footer */}
+        <div className="w-full max-w-md mx-auto text-center text-[11px] text-moss">
+          {t('footer.rights', { year: 2026 })}
+        </div>
+      </div>
+
+      {/* Right Visual Image */}
+      <AuthVisualBanner
+        quote="One single pass gave our distributed team instant access to Riyadh and Jeddah's top workspaces."
+        author="Sarah Al-Qahtani"
+        role="Head of People & Culture at TechFlow"
+      />
+    </div>
+  );
+}
+
+interface CountryOption {
+  value?: string;
+  label: string;
+  divider?: boolean;
+}
+
+interface CustomCountrySelectProps {
+  value?: string;
+  onChange: (value?: string) => void;
+  options: CountryOption[];
+  disabled?: boolean;
+  readOnly?: boolean;
+  iconComponent: React.ComponentType<{ country: string; label: string; aspectRatio?: number }>;
+  [key: string]: any;
+}
+
+function getCallingCodeSafe(country?: string): string {
+  if (!country || country === 'ZZ') return '';
+  try {
+    return getCountryCallingCode(country as any);
+  } catch {
+    return '';
+  }
+}
+
+const PRIORITY_COUNTRIES = ['SA', 'AE', 'KW', 'QA', 'BH', 'OM', 'EG', 'JO', 'GB', 'US'];
+
+function CustomCountrySelect({
+  value,
+  onChange,
+  options,
+  disabled,
+  readOnly,
+  iconComponent: Icon
+}: CustomCountrySelectProps) {
+  const { t, translateMessage } = useI18n();
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Close when clicking outside or pressing Escape
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+        setSearch('');
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsOpen(false);
+        setSearch('');
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen]);
+
+  // Focus search input when opened
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 50);
+    }
+  }, [isOpen]);
+
+  const selectedOption = options.find((opt) => opt.value === value && !opt.divider);
+
+  const filteredOptions = useMemo(() => {
+    const valid = options.filter((opt) => !opt.divider && opt.value);
+    if (!search.trim()) {
+      const priority = valid.filter((opt) => opt.value && PRIORITY_COUNTRIES.includes(opt.value));
+      const rest = valid.filter((opt) => opt.value && !PRIORITY_COUNTRIES.includes(opt.value));
+      priority.sort((a, b) => {
+        const idxA = PRIORITY_COUNTRIES.indexOf(a.value!);
+        const idxB = PRIORITY_COUNTRIES.indexOf(b.value!);
+        return idxA - idxB;
+      });
+      return [...priority, ...rest];
+    }
+    const q = search.trim().toLowerCase();
+    return valid.filter((opt) => {
+      if (!opt.value) return false;
+      const nameMatch = opt.label.toLowerCase().includes(q);
+      const code = getCallingCodeSafe(opt.value);
+      const codeMatch = code.includes(q.replace(/^\+/, ''));
+      return nameMatch || codeMatch;
+    });
+  }, [options, search]);
+
+  return (
+    <div ref={dropdownRef} className="relative flex items-center">
+      <button
+        type="button"
+        disabled={disabled || readOnly}
+        onClick={() => setIsOpen((prev) => !prev)}
+        className="flex items-center gap-1.5 pe-2.5 me-2.5 border-e border-soot/15 text-soot hover:text-soot-light transition-colors cursor-pointer select-none focus:outline-none shrink-0"
+        aria-expanded={isOpen}
+        aria-label={t('auth.selectCountry')}
+      >
+        <div className="w-5 h-3.5 rounded-[2px] overflow-hidden shadow-xs border border-soot/10 flex items-center justify-center shrink-0">
+          {value && Icon ? (
+            <Icon country={value} label={selectedOption?.label || value} />
+          ) : (
+            <span className="text-[10px]">🌐</span>
+          )}
+        </div>
+        <ChevronDown
+          size={13}
+          className={`text-moss transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+        />
+      </button>
+
+      {isOpen && (
+        <div
+          className="absolute start-0 top-full mt-2 w-72 sm:w-80 bg-plaster-surface rounded-2xl border border-soot/15 shadow-xl py-2 z-50 animate-in fade-in zoom-in-95 duration-150"
+          style={{ boxShadow: '0 12px 30px -4px rgba(45, 53, 54, 0.18)' }}
+        >
+          {/* Search Header */}
+          <div className="px-2.5 pb-2 mb-1 border-b border-soot/8">
+            <div className="relative">
+              <Search size={13} className="absolute start-2.5 top-1/2 -translate-y-1/2 text-moss pointer-events-none" />
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={t('auth.searchCountry')}
+                className="w-full ps-8 pe-7 py-1.5 rounded-lg bg-plaster-dark/30 border border-soot/10 text-xs text-soot placeholder:text-moss/60 focus:outline-none focus:ring-1 focus:ring-eucalyptus"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  className="absolute end-2 top-1/2 -translate-y-1/2 text-moss hover:text-soot text-xs cursor-pointer"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Country List (compact, limited height, scrollable) */}
+          <div className="max-h-56 overflow-y-auto px-1 space-y-0.5" style={{ scrollbarWidth: 'thin' }}>
+            {filteredOptions.length === 0 ? (
+              <div className="py-4 text-center text-xs text-moss">{t('auth.noCountries')}</div>
+            ) : (
+              filteredOptions.map((opt) => {
+                const isSelected = opt.value === value;
+                const callingCode = getCallingCodeSafe(opt.value);
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => {
+                      onChange(opt.value);
+                      setIsOpen(false);
+                      setSearch('');
+                    }}
+                    className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-start transition-colors cursor-pointer text-xs ${
+                      isSelected
+                        ? 'bg-eucalyptus/25 text-soot font-semibold'
+                        : 'hover:bg-soot/5 text-soot'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0 pe-2">
+                      <div className="w-5 h-3.5 rounded-[2px] overflow-hidden shadow-xs border border-soot/10 shrink-0 flex items-center justify-center">
+                        {opt.value && Icon ? (
+                          <Icon country={opt.value} label={opt.label} />
+                        ) : (
+                          <span>🌐</span>
+                        )}
+                      </div>
+                      <span className="truncate">{opt.label}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {callingCode && (
+                        <span className="text-[11px] font-mono text-moss">+{callingCode}</span>
+                      )}
+                      {isSelected && <Check size={13} className="text-emerald-700 shrink-0" />}
+                    </div>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function SignUpScreen() {
+  const { t, translateMessage } = useI18n();
+  const { signup, requestSignupOtp, setPendingUser, navigate } = useApp();
+
+  const [step, setStep] = useState<1 | 'org' | 2>(1);
+  const [role, setRole] = useState<'individual' | 'organization' | 'provider'>('individual');
+  // Under "Organization": the company owner / HR admin creates the company, an employee asks to join one
+  const [orgKind, setOrgKind] = useState<'admin' | 'employee'>('admin');
+  const isEmployee = role === 'organization' && orgKind === 'employee';
+
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+
+  const [orgName, setOrgName] = useState('');
+  const [orgSize, setOrgSize] = useState('');
+  const [industry, setIndustry] = useState('');
+  const [businessName, setBusinessName] = useState('');
+  const [crNumber, setCrNumber] = useState('');
+  const [hrEmail, setHrEmail] = useState('');
+
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(false);
+
+  const handleSelectRoleAndNext = (selectedRole: 'individual' | 'organization' | 'provider') => {
+    setRole(selectedRole);
+    setErrors({});
+    setStep(selectedRole === 'organization' ? 'org' : 2);
+  };
+
+  const handleSelectOrgKind = (kind: 'admin' | 'employee') => {
+    setOrgKind(kind);
+    setErrors({});
+    setStep(2);
+  };
+
+  const goBack = () => {
+    if (step === 2 && role === 'organization') setStep('org');
+    else if (step === 2 || step === 'org') setStep(1);
+    else navigate('landing');
+  };
+
+  const validateStep2 = () => {
+    const e: Record<string, string> = {};
+    if (!name.trim()) e.name = 'Full name is required.';
+    if (!email.trim()) e.email = t('auth.errEmail');
+    else if (!/\S+@\S+\.\S+/.test(email)) e.email = 'Enter a valid email address.';
+    if (!phone || !phone.trim()) {
+      e.phone = 'Phone number is required.';
+    } else if (!isValidPhoneNumber(phone)) {
+      e.phone = 'Please enter a valid international phone number.';
+    }
+    if (!password) e.password = t('auth.errPassword');
+    else if (!isPasswordValid(password)) e.password = t('auth.errWeakPassword');
+    if (password !== confirm) e.confirm = 'Passwords do not match.';
+    if (!agreedToTerms) e.agreedToTerms = 'You must agree to the Terms of Service and Privacy Policy.';
+
+    if (isEmployee) {
+      if (!hrEmail.trim()) e.hrEmail = "Please enter your company HR admin's email address.";
+      else if (!/\S+@\S+\.\S+/.test(hrEmail)) e.hrEmail = 'Enter a valid email address.';
+      else if (hrEmail.trim().toLowerCase() === email.trim().toLowerCase()) e.hrEmail = "Please enter your HR admin's email, not your own.";
+    } else if (role === 'organization') {
+      if (!orgName.trim()) e.orgName = 'Organization name is required.';
+    } else if (role === 'provider') {
+      if (!businessName.trim()) e.businessName = 'Partner business name is required.';
+      if (!crNumber.trim()) {
+        e.crNumber = 'Commercial Registration (CR) Number is required.';
+      } else if (!isValidSaudiCrNumber(crNumber)) {
+        e.crNumber = 'CR Number must be 10 digits starting with 1010 (e.g., 1010xxxxxx).';
+      }
+    }
+    return e;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const errs = validateStep2();
+    setErrors(errs);
+    if (Object.keys(errs).length > 0) return;
+
+    setLoading(true);
+    // Employees get a member account of their own; the company link waits for the HR admin's approval
+    const newUser = signup(name, email, password, phone, isEmployee ? 'individual' : role);
+    setPendingUser(newUser);
+
+    let res;
+    if (isEmployee) {
+      res = await requestSignupOtp(newUser, 'individual', undefined, { companyHrEmail: hrEmail });
+    } else if (role === 'organization') {
+      res = await requestSignupOtp(newUser, role, { orgName, orgSize: parseInt(orgSize, 10) || 10, industry });
+    } else if (role === 'provider') {
+      res = await requestSignupOtp(newUser, role, { businessName, crNumber });
+    } else {
+      res = await requestSignupOtp(newUser, role);
+    }
+
+    setLoading(false);
+    if (res && !res.success && res.error) {
+      setErrors(isEmployee && /HR (admin|email)/i.test(res.error) ? { hrEmail: res.error } : { global: res.error });
+    }
+  };
+
+  const erdBadge = isEmployee
+    ? { label: 'Company Employee', code: 'B2C' }
+    : {
+        individual: { label: 'Individual Member', code: 'B2C' },
+        organization: { label: 'Organization HR Admin', code: 'HR_ADMIN' },
+        provider: { label: 'Space Venue Partner', code: 'PARTNER_ADMIN' },
+      }[role];
+
+  return (
+    <div className="min-h-screen w-full flex bg-plaster text-soot">
+      {/* Left Form Column */}
+      <div className="w-full lg:w-1/2 flex flex-col justify-between p-6 sm:p-10 lg:p-12 min-h-screen overflow-y-auto">
+        {/* Top Header */}
+        <div className="flex items-center justify-between w-full max-w-md mx-auto mb-3">
+          <Logo onClick={() => navigate('landing')} />
+          <button
+            type="button"
+            onClick={goBack}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-soot/5 hover:bg-soot/10 border border-soot/10 text-xs font-semibold text-soot transition-all duration-200 cursor-pointer group"
+          >
+            <ArrowLeft size={14} className="group-hover:-translate-x-0.5 rtl:group-hover:translate-x-0.5 transition-transform" />
+            <span>{step === 1 ? t('nav.home') : translateMessage('Change Role')}</span>
+          </button>
+        </div>
+
+        {/* Center Form */}
+        <div className="w-full max-w-md mx-auto my-auto py-2">
+          <div className="mb-4">
+            <h1 className="text-2xl sm:text-3xl font-normal font-serif-display text-soot tracking-tight mb-1">
+              {step === 1 ? translateMessage('Choose Account Type') : step === 'org' ? t('auth.orgChoiceTitle') : translateMessage('Create Account')}
+            </h1>
+            <p className="text-moss text-xs sm:text-sm leading-relaxed">
+              {step === 1
+                ? translateMessage('Select how you plan to use Coworking Pass')
+                : step === 'org'
+                ? t('auth.orgChoiceSubtitle')
+                : translateMessage(`Step 2 of 2: Registering as ${translateMessage(erdBadge.label)}`)}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 mb-4">
+            <div className="h-1.5 flex-1 rounded-full bg-moss" />
+            <div className={`h-1.5 flex-1 rounded-full ${step === 2 ? 'bg-moss' : 'bg-soot/10'}`} />
+          </div>
+
+          {step === 1 ? (
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={() => handleSelectRoleAndNext('individual')}
+                className="w-full p-4 rounded-2xl border border-soot/12 bg-plaster-surface hover:bg-plaster-dark/40 text-start transition-all duration-200 group shadow-xs hover:shadow-md cursor-pointer active:scale-[0.99]"
+              >
+                <div className="flex items-start gap-3.5">
+                  <div className="w-11 h-11 rounded-xl bg-eucalyptus/25 text-soot flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <UserIcon size={20} />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-soot text-sm sm:text-base flex items-center justify-between">
+                      <span>{t('nav.roleIndividual')}</span>
+                      <Badge variant="eucalyptus">B2C</Badge>
+                    </div>
+                    <p className="text-xs text-moss mt-1 leading-relaxed">
+                      {t('auth.roleIndividualDesc')}
+                    </p>
+                  </div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleSelectRoleAndNext('organization')}
+                className="w-full p-4 rounded-2xl border border-soot/12 bg-plaster-surface hover:bg-plaster-dark/40 text-start transition-all duration-200 group shadow-xs hover:shadow-md cursor-pointer active:scale-[0.99]"
+              >
+                <div className="flex items-start gap-3.5">
+                  <div className="w-11 h-11 rounded-xl bg-soot text-plaster flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <Building2 size={20} />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-soot text-sm sm:text-base flex items-center justify-between">
+                      <span>{t('auth.roleOrg')}</span>
+                      <Badge variant="soot">B2B</Badge>
+                    </div>
+                    <p className="text-xs text-moss mt-1 leading-relaxed">
+                      {t('auth.roleOrgDesc')}
+                    </p>
+                  </div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleSelectRoleAndNext('provider')}
+                className="w-full p-4 rounded-2xl border border-soot/12 bg-plaster-surface hover:bg-plaster-dark/40 text-start transition-all duration-200 group shadow-xs hover:shadow-md cursor-pointer active:scale-[0.99]"
+              >
+                <div className="flex items-start gap-3.5">
+                  <div className="w-11 h-11 rounded-xl bg-mist-light text-soot flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <Warehouse size={20} />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-soot text-sm sm:text-base flex items-center justify-between">
+                      <span>{t('auth.roleProvider')}</span>
+                      <Badge variant="mist">PARTNER_ADMIN</Badge>
+                    </div>
+                    <p className="text-xs text-moss mt-1 leading-relaxed">
+                      {t('auth.roleProviderDesc')}
+                    </p>
+                  </div>
+                </div>
+              </button>
+            </div>
+          ) : step === 'org' ? (
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={() => handleSelectOrgKind('admin')}
+                className="w-full p-4 rounded-2xl border border-soot/12 bg-plaster-surface hover:bg-plaster-dark/40 text-start transition-all duration-200 group shadow-xs hover:shadow-md cursor-pointer active:scale-[0.99]"
+              >
+                <div className="flex items-start gap-3.5">
+                  <div className="w-11 h-11 rounded-xl bg-soot text-plaster flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <Building2 size={20} />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-soot text-sm sm:text-base flex items-center justify-between gap-2">
+                      <span>{t('auth.orgOwner')}</span>
+                      <Badge variant="soot">HR_ADMIN</Badge>
+                    </div>
+                    <p className="text-xs text-moss mt-1 leading-relaxed">{t('auth.orgOwnerDesc')}</p>
+                  </div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleSelectOrgKind('employee')}
+                className="w-full p-4 rounded-2xl border border-soot/12 bg-plaster-surface hover:bg-plaster-dark/40 text-start transition-all duration-200 group shadow-xs hover:shadow-md cursor-pointer active:scale-[0.99]"
+              >
+                <div className="flex items-start gap-3.5">
+                  <div className="w-11 h-11 rounded-xl bg-eucalyptus/25 text-soot flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <Users size={20} />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-soot text-sm sm:text-base flex items-center justify-between gap-2">
+                      <span>{t('auth.orgEmployee')}</span>
+                      <Badge variant="eucalyptus">B2C</Badge>
+                    </div>
+                    <p className="text-xs text-moss mt-1 leading-relaxed">{t('auth.orgEmployeeDesc')}</p>
+                  </div>
+                </div>
+              </button>
+
+              <p className="text-xs text-moss leading-relaxed px-1">{t('auth.orgEmployeeSignInHint')}</p>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-3.5">
+              {/* Row 1: Name & Phone */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">
+                    {t('auth.fullName')} <span className="text-rose-600">*</span>
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 start-0 ps-3.5 flex items-center pointer-events-none text-moss">
+                      <UserIcon size={15} />
+                    </div>
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder={t('auth.namePlaceholder')}
+                      className={`w-full ps-9 pe-3 py-2.5 rounded-xl bg-plaster-surface border ${
+                        errors.name ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-soot/15 focus-visible:ring-2 focus-visible:ring-eucalyptus'
+                      } text-soot placeholder:text-moss/50 text-sm shadow-xs transition-all`}
+                    />
+                  </div>
+                  {errors.name && <p className="text-rose-600 text-xs mt-0.5 font-medium">* {translateMessage(errors.name)}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">
+                    {t('auth.phoneNumber')} <span className="text-rose-600">*</span>
+                  </label>
+                  <div
+                    className={`relative z-20 w-full h-[42px] px-3 flex items-center rounded-xl bg-plaster-surface border transition-all ${
+                      errors.phone
+                        ? 'border-rose-500 ring-2 ring-rose-500/20'
+                        : 'border-soot/15 focus-within:ring-2 focus-within:ring-eucalyptus'
+                    } shadow-xs`}
+                  >
+                    <PhoneInput
+                      international
+                      defaultCountry="SA"
+                      value={phone}
+                      onChange={(val) => {
+                        setPhone(val || '');
+                        if (errors.phone) {
+                          setErrors((prev) => {
+                            const updated = { ...prev };
+                            delete updated.phone;
+                            return updated;
+                          });
+                        }
+                      }}
+                      placeholder="+966 55 123 4567"
+                      className="custom-phone-input"
+                      countrySelectComponent={CustomCountrySelect}
+                      numberInputProps={{
+                        className:
+                          'w-full bg-transparent border-none outline-none text-soot placeholder:text-moss/50 text-sm font-sans focus:outline-none focus:ring-0 ps-1',
+                      }}
+                    />
+                  </div>
+                  {errors.phone && <p className="text-rose-600 text-xs mt-0.5 font-medium">* {translateMessage(errors.phone)}</p>}
+                </div>
+              </div>
+
+              {/* Email */}
+              <div>
+                <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">
+                  {t('auth.emailAddress')} <span className="text-rose-600">*</span>
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 start-0 ps-3.5 flex items-center pointer-events-none text-moss">
+                    <Mail size={15} />
+                  </div>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    className={`w-full ps-9 pe-3 py-2.5 rounded-xl bg-plaster-surface border ${
+                      errors.email ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-soot/15 focus-visible:ring-2 focus-visible:ring-eucalyptus'
+                    } text-soot placeholder:text-moss/50 text-sm shadow-xs transition-all`}
+                  />
+                </div>
+                {errors.email && <p className="text-rose-600 text-xs mt-0.5 font-medium">* {translateMessage(errors.email)}</p>}
+              </div>
+
+              {/* Company employee: names the company by the HR admin's email */}
+              {isEmployee && (
+                <div className="p-3.5 rounded-2xl bg-plaster-surface border border-soot/12 space-y-2.5 shadow-xs">
+                  <div className="text-xs font-semibold text-soot uppercase tracking-wider flex items-center justify-between">
+                    <span>{t('auth.employeeSection')}</span>
+                    <Badge variant="eucalyptus">B2C</Badge>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-soot mb-1">{t('auth.hrEmailLabel')}</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 start-0 ps-3.5 flex items-center pointer-events-none text-moss">
+                        <Building2 size={15} />
+                      </div>
+                      <input
+                        type="email"
+                        value={hrEmail}
+                        onChange={(e) => {
+                          setHrEmail(e.target.value);
+                          if (errors.hrEmail) setErrors((prev) => { const n = { ...prev }; delete n.hrEmail; return n; });
+                        }}
+                        placeholder="hr@company.com"
+                        className={`w-full ps-9 pe-3 py-2.5 rounded-xl bg-plaster-dark/20 border ${errors.hrEmail ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-soot/15'} text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs`}
+                      />
+                    </div>
+                    {errors.hrEmail && <p className="text-rose-600 text-xs mt-0.5 font-medium">* {translateMessage(errors.hrEmail)}</p>}
+                  </div>
+                  <p className="text-[11px] text-moss leading-relaxed">{t('auth.hrEmailHelp')}</p>
+                </div>
+              )}
+
+              {/* Organization Fields */}
+              {role === 'organization' && !isEmployee && (
+                <div className="p-3.5 rounded-2xl bg-plaster-surface border border-soot/12 space-y-3 shadow-xs">
+                  <div className="text-xs font-semibold text-soot uppercase tracking-wider flex items-center justify-between">
+                    <span>{t('auth.companyDetails')}</span>
+                    <Badge variant="soot">HR_ADMIN</Badge>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-soot mb-1">{t('auth.companyName')}</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 start-0 ps-3.5 flex items-center pointer-events-none text-moss">
+                        <Building2 size={15} />
+                      </div>
+                      <input
+                        type="text"
+                        value={orgName}
+                        onChange={(e) => setOrgName(e.target.value)}
+                        placeholder={t('auth.companyPlaceholder')}
+                        className="w-full ps-9 pe-3 py-2.5 rounded-xl bg-plaster-dark/20 border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs"
+                      />
+                    </div>
+                    {errors.orgName && <p className="text-red-500 text-xs mt-0.5 font-medium">{translateMessage(errors.orgName)}</p>}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="block text-xs font-medium text-soot mb-1">{t('auth.teamSize')}</label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 start-0 ps-3 flex items-center pointer-events-none text-moss">
+                          <Users size={14} />
+                        </div>
+                        <input
+                          type="number"
+                          min="1"
+                          value={orgSize}
+                          onChange={(e) => setOrgSize(e.target.value)}
+                          placeholder="15"
+                          className="w-full ps-8 pe-2 py-2 rounded-xl bg-plaster-dark/20 border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-soot mb-1">{t('auth.industry')}</label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 start-0 ps-3 flex items-center pointer-events-none text-moss">
+                          <Briefcase size={14} />
+                        </div>
+                        <input
+                          type="text"
+                          value={industry}
+                          onChange={(e) => setIndustry(e.target.value)}
+                          placeholder={t('auth.industryPlaceholder')}
+                          className="w-full ps-8 pe-2 py-2 rounded-xl bg-plaster-dark/20 border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Provider Fields */}
+              {role === 'provider' && (
+                <div className="p-3.5 rounded-2xl bg-plaster-surface border border-soot/12 space-y-3 shadow-xs">
+                  <div className="text-xs font-semibold text-soot uppercase tracking-wider flex items-center justify-between">
+                    <span>{t('auth.partnerInfo')}</span>
+                    <Badge variant="mist">PARTNER_ADMIN</Badge>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-soot mb-1">{t('auth.brandName')}</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 start-0 ps-3.5 flex items-center pointer-events-none text-moss">
+                        <Warehouse size={15} />
+                      </div>
+                      <input
+                        type="text"
+                        value={businessName}
+                        onChange={(e) => setBusinessName(e.target.value)}
+                        placeholder={t('auth.brandPlaceholder')}
+                        className="w-full ps-9 pe-3 py-2.5 rounded-xl bg-plaster-dark/20 border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs"
+                      />
+                    </div>
+                    {errors.businessName && <p className="text-red-500 text-xs mt-0.5 font-medium">{translateMessage(errors.businessName)}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-soot mb-1">{t('auth.crNumber')}</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 start-0 ps-3.5 flex items-center pointer-events-none text-moss">
+                        <FileText size={15} />
+                      </div>
+                      <input
+                        type="text"
+                        value={crNumber}
+                        onChange={(e) => {
+                          setCrNumber(e.target.value.replace(/\D/g, '').slice(0, 10));
+                          if (errors.crNumber) setErrors(prev => { const n = { ...prev }; delete n.crNumber; return n; });
+                        }}
+                        maxLength={10}
+                        placeholder="1010xxxxxx"
+                        className={`w-full ps-9 pe-3 py-2.5 rounded-xl bg-plaster-dark/20 border ${errors.crNumber ? 'border-red-500' : 'border-soot/15'} text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs`}
+                      />
+                    </div>
+                    {errors.crNumber && <p className="text-red-500 text-xs mt-0.5 font-medium">{translateMessage(errors.crNumber)}</p>}
+                  </div>
+                </div>
+              )}
+
+              {/* Password & Confirm Row */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">{t('auth.passwordRequired')}</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 start-0 ps-3.5 flex items-center pointer-events-none text-moss">
+                      <Lock size={15} />
+                    </div>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder={t('auth.minChars')}
+                      className="w-full ps-9 pe-9 py-2.5 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 end-0 pe-2.5 flex items-center text-moss hover:text-soot cursor-pointer"
+                      aria-label={t('auth.togglePassword')}
+                    >
+                      {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                    </button>
+                  </div>
+                  {errors.password && <p className="text-red-500 text-xs mt-0.5 font-medium">{translateMessage(errors.password)}</p>}
+                  <PasswordChecklist password={password} />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">{t('auth.confirmPasswordRequired')}</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 start-0 ps-3.5 flex items-center pointer-events-none text-moss">
+                      <Lock size={15} />
+                    </div>
+                    <input
+                      type="password"
+                      value={confirm}
+                      onChange={(e) => setConfirm(e.target.value)}
+                      placeholder={t('auth.repeatPassword')}
+                      className="w-full ps-9 pe-3 py-2.5 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all"
+                    />
+                  </div>
+                  {confirm && (
+                    <p data-testid="confirm-match" className={`text-xs mt-1 font-medium ${confirm === password ? 'text-green-600' : 'text-red-500'}`}>
+                      {confirm === password ? t('auth.pwMatch') : t('auth.pwNoMatch')}
+                    </p>
+                  )}
+                  {errors.confirm && <p className="text-red-500 text-xs mt-0.5 font-medium">{translateMessage(errors.confirm)}</p>}
+                </div>
+              </div>
+
+              {/* Terms and Policies Agreement Checkbox */}
+              <div className="pt-2">
+                <label className="flex items-start gap-2.5 cursor-pointer text-xs text-moss select-none">
+                  <input
+                    type="checkbox"
+                    checked={agreedToTerms}
+                    onChange={(e) => {
+                      setAgreedToTerms(e.target.checked);
+                      if (errors.agreedToTerms) {
+                        setErrors((prev) => {
+                          const copy = { ...prev };
+                          delete copy.agreedToTerms;
+                          return copy;
+                        });
+                      }
+                    }}
+                    className="mt-0.5 h-4 w-4 rounded border-soot/20 text-soot focus:ring-eucalyptus accent-soot cursor-pointer shrink-0"
+                  />
+                  <span className="leading-relaxed">
+                    {t('auth.agreePrefix')}{' '}
+                    <button
+                      type="button"
+                      onClick={(evt) => {
+                        evt.preventDefault();
+                        navigate('terms-of-service');
+                      }}
+                      className="text-soot font-bold underline hover:text-emerald-800 cursor-pointer"
+                    >
+                      {t('auth.terms')}
+                    </button>{' '}
+                    {t('auth.and')}{' '}
+                    <button
+                      type="button"
+                      onClick={(evt) => {
+                        evt.preventDefault();
+                        navigate('privacy-policy');
+                      }}
+                      className="text-soot font-bold underline hover:text-emerald-800 cursor-pointer"
+                    >
+                      {t('auth.privacy')}
+                    </button>{' '}
+                    <span className="text-rose-600">*</span>
+                  </span>
+                </label>
+                {errors.agreedToTerms && (
+                  <p className="text-rose-600 text-xs mt-1 font-medium">* {translateMessage(errors.agreedToTerms)}</p>
+                )}
+              </div>
+
+              {errors.global && (
+                <div className="bg-red-500/10 border border-red-500/20 text-red-700 text-xs sm:text-sm font-medium rounded-xl px-4 py-3 mt-2">
+                  {translateMessage(errors.global ?? '')}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="btn-primary w-full py-3.5 mt-3 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? (
+                  <span>{t('auth.registering')}</span>
+                ) : (
+                  <>
+                    <span>{t('auth.completeRegistration')}</span>
+                    <ArrowRight size={16} />
+                  </>
+                )}
+              </button>
+            </form>
+          )}
+
+          <p className="text-center text-xs sm:text-sm text-moss mt-4 pt-3 border-t border-soot/10">
+            {t('auth.haveAccount')}{' '}
+            <button
+              type="button"
+              onClick={() => navigate('login')}
+              className="text-soot font-bold hover:underline cursor-pointer"
+            >
+              {t('nav.logIn')}
+            </button>
+          </p>
+        </div>
+
+        {/* Bottom Micro Footer */}
+        <div className="w-full max-w-md mx-auto text-center text-[11px] text-moss mt-2">
+          {t('footer.rights', { year: 2026 })}
+        </div>
+      </div>
+
+      {/* Right Image Column */}
+      <AuthVisualBanner
+        quote="Empowering companies and individuals to work with ultimate flexibility anywhere in Saudi Arabia."
+        author="Fahad Al-Husseini"
+        role="Operations Director at Nexus Hub"
+      />
+    </div>
+  );
+}
+
+export function ChooseAccountType() {
+  const { t, translateMessage } = useI18n();
+  const { navigate, requestSignupOtp, pendingUser } = useApp();
+  const [selected, setSelected] = useState<'individual' | 'organization' | 'provider' | null>(null);
+  const [orgName, setOrgName] = useState('');
+  const [orgSize, setOrgSize] = useState('');
+  const [industry, setIndustry] = useState('');
+  const [businessName, setBusinessName] = useState('');
+  const [crNumber, setCrNumber] = useState('');
+  const [crError, setCrError] = useState('');
+
+  const handleContinue = async () => {
+    if (!selected) return;
+    if (selected === 'organization' && !orgName.trim()) return;
+    if (selected === 'provider') {
+      if (!businessName.trim()) return;
+      if (!crNumber.trim()) {
+        setCrError('Commercial Registration (CR) Number is required.');
+        return;
+      }
+      if (!isValidSaudiCrNumber(crNumber)) {
+        setCrError('CR Number must be 10 digits starting with 1010 (e.g., 1010xxxxxx).');
+        return;
+      }
+      setCrError('');
+    }
+
+    if (!pendingUser) {
+      navigate('signup');
+      return;
+    }
+    const targetUser = pendingUser;
+
+    if (selected === 'organization') {
+      await requestSignupOtp(targetUser as any, selected, { orgName, orgSize: parseInt(orgSize, 10) || 10, industry: industry || 'Technology' });
+    } else if (selected === 'provider') {
+      await requestSignupOtp(targetUser as any, selected, { businessName, crNumber });
+    } else {
+      await requestSignupOtp(targetUser as any, selected);
+    }
+  };
+
+  return (
+    <div className="min-h-[100dvh] w-full flex bg-plaster text-soot">
+      <div className="w-full lg:w-1/2 flex flex-col justify-between p-6 sm:p-10 lg:p-12 min-h-[100dvh] overflow-y-auto">
+        <div className="flex items-center justify-between w-full max-w-lg mx-auto mb-4">
+          <Logo onClick={() => navigate('landing')} />
+          <button
+            type="button"
+            onClick={() => navigate('landing')}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-soot/5 hover:bg-soot/10 border border-soot/10 text-xs font-semibold text-soot transition-all duration-200 cursor-pointer group"
+          >
+            <ArrowLeft size={14} className="group-hover:-translate-x-0.5 rtl:group-hover:translate-x-0.5 transition-transform" />
+            <span>{t('nav.home')}</span>
+          </button>
+        </div>
+
+        <div className="w-full max-w-lg mx-auto my-auto py-6">
+          <div className="mb-6">
+            <h1 className="text-3xl sm:text-4xl font-normal font-serif-display text-soot tracking-tight mb-2">
+              {t('auth.finishSetup')}
+            </h1>
+            <p className="text-moss text-xs sm:text-sm leading-relaxed">
+              {t('auth.selectUsage')}
+            </p>
+          </div>
+
+          <div className="space-y-3 mb-6">
+            <button
+              type="button"
+              onClick={() => setSelected('individual')}
+              className={`w-full p-4 rounded-2xl border text-start transition-all duration-200 cursor-pointer active:scale-[0.99] ${
+                selected === 'individual'
+                  ? 'border-eucalyptus-dark bg-eucalyptus/25 shadow-sm'
+                  : 'border-soot/12 bg-plaster-surface hover:bg-plaster-dark/40'
+              }`}
+            >
+              <div className="flex items-start gap-3.5">
+                <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-colors ${selected === 'individual' ? 'bg-eucalyptus text-soot' : 'bg-soot/10 text-soot'}`}>
+                  <UserIcon size={20} />
+                </div>
+                <div>
+                  <div className="font-semibold text-soot text-sm sm:text-base">{t('nav.roleIndividual')}</div>
+                  <div className="text-xs text-moss mt-0.5 leading-relaxed">
+                    {t('auth.chooseIndividualDesc')}
+                  </div>
+                </div>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSelected('organization')}
+              className={`w-full p-4 rounded-2xl border text-start transition-all duration-200 cursor-pointer active:scale-[0.99] ${
+                selected === 'organization'
+                  ? 'border-soot bg-soot text-plaster shadow-sm'
+                  : 'border-soot/12 bg-plaster-surface hover:bg-plaster-dark/40'
+              }`}
+            >
+              <div className="flex items-start gap-3.5">
+                <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-colors ${selected === 'organization' ? 'bg-plaster text-soot' : 'bg-soot/10 text-soot'}`}>
+                  <Building2 size={20} />
+                </div>
+                <div>
+                  <div className={`font-semibold text-sm sm:text-base ${selected === 'organization' ? 'text-plaster' : 'text-soot'}`}>{t('auth.roleOrg')}</div>
+                  <div className={`text-xs mt-0.5 leading-relaxed ${selected === 'organization' ? 'text-plaster/80' : 'text-moss'}`}>
+                    {t('auth.chooseOrgDesc')}
+                  </div>
+                </div>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSelected('provider')}
+              className={`w-full p-4 rounded-2xl border text-start transition-all duration-200 cursor-pointer active:scale-[0.99] ${
+                selected === 'provider'
+                  ? 'border-mist-dark bg-mist-light/70 shadow-sm'
+                  : 'border-soot/12 bg-plaster-surface hover:bg-plaster-dark/40'
+              }`}
+            >
+              <div className="flex items-start gap-3.5">
+                <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-colors ${selected === 'provider' ? 'bg-mist text-soot' : 'bg-soot/10 text-soot'}`}>
+                  <Warehouse size={20} />
+                </div>
+                <div>
+                  <div className="font-semibold text-soot text-sm sm:text-base">{t('auth.roleProvider')}</div>
+                  <div className="text-xs text-moss mt-0.5 leading-relaxed">
+                    {t('auth.chooseProviderDesc')}
+                  </div>
+                </div>
+              </div>
+            </button>
+          </div>
+
+          {selected === 'provider' && (
+            <div className="bg-plaster-dark/35 rounded-2xl border border-soot/12 p-4 mb-5 space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">{t('auth.businessName')}</label>
+                <input
+                  type="text"
+                  value={businessName}
+                  onChange={(e) => setBusinessName(e.target.value)}
+                  placeholder={t('auth.brandPlaceholder')}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/60 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">{t('auth.crNumber')}</label>
+                <input
+                  type="text"
+                  value={crNumber}
+                  onChange={(e) => {
+                    setCrNumber(e.target.value.replace(/\D/g, '').slice(0, 10));
+                    if (crError) setCrError('');
+                  }}
+                  maxLength={10}
+                  placeholder="1010xxxxxx"
+                  className={`w-full px-3.5 py-2.5 rounded-xl bg-plaster-surface border ${crError ? 'border-red-500' : 'border-soot/15'} text-soot placeholder:text-moss/60 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs`}
+                />
+                {crError && <p className="text-red-500 text-xs mt-1 font-medium">{crError}</p>}
+              </div>
+            </div>
+          )}
+
+          {selected === 'organization' && (
+            <div className="bg-plaster-dark/35 rounded-2xl border border-soot/12 p-4 mb-5 space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">{t('auth.orgName')}</label>
+                <input
+                  type="text"
+                  value={orgName}
+                  onChange={(e) => setOrgName(e.target.value)}
+                  placeholder={t('auth.orgPlaceholder')}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/60 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">{t('auth.teamSize')}</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={orgSize}
+                    onChange={(e) => setOrgSize(e.target.value)}
+                    placeholder="15"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/60 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-soot mb-1 uppercase tracking-wider">{t('auth.industry')}</label>
+                  <input
+                    type="text"
+                    value={industry}
+                    onChange={(e) => setIndustry(e.target.value)}
+                    placeholder={t('auth.industryPlaceholder')}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/60 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={handleContinue}
+            disabled={!selected || (selected === 'organization' && !orgName.trim()) || (selected === 'provider' && !businessName.trim())}
+            className="btn-primary w-full py-3.5 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <Check size={17} className="text-eucalyptus" />
+            <span>{t('auth.completeSetup')}</span>
+            <ArrowRight size={16} />
+          </button>
+        </div>
+
+        <div className="w-full max-w-lg mx-auto text-center text-[11px] text-moss">
+          {t('footer.rights', { year: 2026 })}
+        </div>
+      </div>
+
+      <AuthVisualBanner
+        quote="Choose the membership model that suits your exact workflow requirements."
+        author="Rayan Al-Ghamdi"
+        role="Community Lead"
+      />
+    </div>
+  );
+}
+
+export function ForgotPasswordScreen() {
+  const { t, translateMessage } = useI18n();
+  const { navigate, requestForgotPasswordOtp } = useApp();
+  const [email, setEmail] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) {
+      setError(t('auth.errEnterEmail'));
+      return;
+    }
+    if (!/\S+@\S+\.\S+/.test(email.trim())) {
+      setError(t('auth.errValidEmail'));
+      return;
+    }
+    setError('');
+    setLoading(true);
+    const res = await requestForgotPasswordOtp(email.trim());
+    if (!res.success) {
+      setError(translateMessage(res.error || 'Something went wrong. Please try again.'));
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="min-h-screen w-full flex bg-plaster text-soot">
+      {/* Left Form Column */}
+      <div className="w-full lg:w-1/2 flex flex-col justify-between p-6 sm:p-10 lg:p-14 min-h-screen">
+        {/* Top Header */}
+        <div className="flex items-center justify-between w-full max-w-md mx-auto">
+          <Logo onClick={() => navigate('landing')} />
+          <button
+            type="button"
+            onClick={() => navigate('login')}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-soot/5 hover:bg-soot/10 border border-soot/10 text-xs font-semibold text-soot transition-all duration-200 cursor-pointer group"
+          >
+            <ArrowLeft size={14} className="group-hover:-translate-x-0.5 rtl:group-hover:translate-x-0.5 transition-transform" />
+            <span>{t('auth.backToSignIn')}</span>
+          </button>
+        </div>
+
+        {/* Center Form */}
+        <div className="w-full max-w-md mx-auto my-auto py-8">
+          <div className="mb-7">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-eucalyptus/20 border border-eucalyptus/40 text-soot text-xs font-semibold mb-3.5">
+              <ShieldCheck size={14} className="text-emerald-800 shrink-0" />
+              <span>{t('auth.passwordRecovery')}</span>
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-normal font-serif-display text-soot tracking-tight mb-2">
+              {t('auth.forgotYourPassword')}
+            </h1>
+            <p className="text-moss text-xs sm:text-sm leading-relaxed">
+              {translateMessage('Enter your registered account email and we\'ll send a 6-digit one-time verification code to reset your password.')}
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/20 text-red-700 text-xs sm:text-sm font-medium rounded-xl px-4 py-3">
+                {translateMessage(error)}
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs font-semibold text-soot mb-1.5 uppercase tracking-wider">
+                {t('auth.emailAddress')}
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 start-0 ps-3.5 flex items-center pointer-events-none text-moss">
+                  <Mail size={16} />
+                </div>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (error) setError('');
+                  }}
+                  placeholder="you@example.com"
+                  className="w-full ps-10 pe-4 py-3 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all"
+                  required
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn-primary w-full py-3.5 mt-2 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            >
+              {loading ? (
+                <span>{t('auth.sendingCode')}</span>
+              ) : (
+                <>
+                  <span>{t('auth.sendCode')}</span>
+                  <ArrowRight size={16} />
+                </>
+              )}
+            </button>
+          </form>
+
+          <p className="text-center text-xs sm:text-sm text-moss mt-6 pt-4 border-t border-soot/10">
+            {t('auth.rememberedPassword')}{' '}
+            <button
+              type="button"
+              onClick={() => navigate('login')}
+              className="text-soot font-bold hover:underline cursor-pointer"
+            >
+              {t('auth.signInLower')}
+            </button>
+          </p>
+        </div>
+
+        {/* Micro Footer */}
+        <div className="w-full max-w-md mx-auto text-center text-[11px] text-moss">
+          {t('footer.rights', { year: 2026 })}
+        </div>
+      </div>
+
+      {/* Right Visual Image */}
+      <AuthVisualBanner
+        quote="Account recovery is seamless and protected by two-factor verification across the network."
+        author="Security Operations"
+        role="Coworking Pass Platform"
+      />
+    </div>
+  );
+}
+
+export function OtpVerificationScreen() {
+  const { t, translateMessage } = useI18n();
+  const { otpSession, verifyOtp, resendOtp, cancelOtp, navigate } = useApp();
+  const [digits, setDigits] = useState<string[]>(['', '', '', '', '', '']);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [countdown, setCountdown] = useState(60);
+  const [canResend, setCanResend] = useState(false);
+  const [isPendingApproval, setIsPendingApproval] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState('');
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Focus first input & reset form on OTP session change
+  useEffect(() => {
+    setLoading(false);
+    setDigits(['', '', '', '', '', '']);
+    setError('');
+    inputRefs.current[0]?.focus();
+  }, [otpSession?.targetEmailOrPhone, otpSession?.mode, otpSession?.userId]);
+
+  // Timer countdown
+  useEffect(() => {
+    if (countdown <= 0) {
+      setCanResend(true);
+      return;
+    }
+    const timer = setInterval(() => {
+      setCountdown((prev) => prev - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [countdown]);
+
+  const handleDigitChange = (index: number, value: string) => {
+    const cleaned = value.replace(/\D/g, '');
+    if (!cleaned) {
+      const nextDigits = [...digits];
+      nextDigits[index] = '';
+      setDigits(nextDigits);
+      return;
+    }
+
+    // Several characters at once (fast typing, SMS/email autofill): spread them over the following boxes.
+    // The functional update keeps rapid keystrokes from overwriting each other with a stale copy.
+    const chars = cleaned.length > 1 ? cleaned.slice(0, 6 - index).split('') : [cleaned];
+    setDigits((prev) => {
+      const next = [...prev];
+      chars.forEach((c, i) => { next[index + i] = c; });
+      return next;
+    });
+    setError('');
+
+    const focusIndex = Math.min(index + chars.length, 5);
+    inputRefs.current[focusIndex]?.focus();
+  };
+
+  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace') {
+      if (!digits[index] && index > 0) {
+        const nextDigits = [...digits];
+        nextDigits[index - 1] = '';
+        setDigits(nextDigits);
+        inputRefs.current[index - 1]?.focus();
+      }
+    } else if (e.key === 'ArrowLeft' && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    } else if (e.key === 'ArrowRight' && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pasteData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (!pasteData) return;
+
+    const nextDigits = [...digits];
+    for (let i = 0; i < 6; i++) {
+      nextDigits[i] = pasteData[i] || '';
+    }
+    setDigits(nextDigits);
+    setError('');
+
+    const focusIndex = Math.min(pasteData.length, 5);
+    inputRefs.current[focusIndex]?.focus();
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const code = digits.join('');
+    if (code.length < 6) {
+      setError(t('auth.errCode'));
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const currentTargetEmail = otpSession?.targetEmailOrPhone || recipient;
+      const res = await verifyOtp(code);
+      if (res.pendingApproval) {
+        setPendingEmail(currentTargetEmail);
+        setIsPendingApproval(true);
+        return;
+      }
+      if (!res.success) {
+        setError(res.error || 'Invalid verification code. Please try again.');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Verification failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResend = () => {
+    if (!canResend) return;
+    resendOtp();
+    setCountdown(60);
+    setCanResend(false);
+    setError('');
+  };
+
+  const recipient = otpSession?.targetEmailOrPhone || translateMessage('your registered contact');
+  const isSignup = otpSession?.mode === 'signup';
+  const isForgotPassword = otpSession?.mode === 'forgot-password';
+  const isProviderSignup = isSignup && (otpSession?.role === 'provider' || otpSession?.role === 'PARTNER_ADMIN');
+
+  if (isPendingApproval) {
+    return (
+      <div className="min-h-screen w-full flex bg-plaster text-soot">
+        {/* Left Form Column */}
+        <div className="w-full lg:w-1/2 flex flex-col justify-between p-6 sm:p-10 lg:p-14 min-h-screen">
+          {/* Top Header */}
+          <div className="flex items-center justify-between w-full max-w-md mx-auto">
+            <Logo onClick={() => navigate('landing')} />
+            <button
+              type="button"
+              onClick={() => navigate('login')}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-soot/5 hover:bg-soot/10 border border-soot/10 text-xs font-semibold text-soot transition-all duration-200 cursor-pointer group"
+            >
+              <ArrowLeft size={14} className="group-hover:-translate-x-0.5 rtl:group-hover:translate-x-0.5 transition-transform" />
+              <span>{t('auth.signInButton')}</span>
+            </button>
+          </div>
+
+          {/* Center Content */}
+          <div className="w-full max-w-md mx-auto my-auto py-8">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-700 flex items-center justify-center mx-auto mb-4 shadow-sm">
+                <Clock size={32} className="text-amber-600 animate-pulse" />
+              </div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-800 text-xs font-semibold mb-3">
+                <Sparkles size={13} className="text-amber-600 shrink-0" />
+                <span>{t('auth.partnerPending')}</span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-normal font-serif-display text-soot tracking-tight mb-2">
+                {t('auth.emailVerifiedTitle')}
+              </h1>
+              <p className="text-moss text-xs sm:text-sm leading-relaxed">
+                {t('auth.emailVerifiedBody')}
+              </p>
+            </div>
+
+            {/* Steps Tracker Card */}
+            <div className="bg-plaster-surface rounded-2xl p-5 border border-soot/10 shadow-xs mb-6 space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="w-7 h-7 rounded-full bg-emerald-500/15 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5">
+                  <CheckCircle2 size={16} />
+                </div>
+                <div className="flex-1 text-xs">
+                  <span className="font-semibold text-soot block">{t('auth.emailVerification')}</span>
+                  <span className="text-moss">{t('auth.accountVerified')} <strong className="text-soot">{pendingEmail || recipient}</strong></span>
+                </div>
+              </div>
+
+              <div className="border-t border-soot/8 pt-3 flex items-start gap-3">
+                <div className="w-7 h-7 rounded-full bg-amber-500/15 text-amber-700 flex items-center justify-center shrink-0 mt-0.5">
+                  <Clock size={16} className="text-amber-600" />
+                </div>
+                <div className="flex-1 text-xs">
+                  <span className="font-semibold text-amber-900 block">{t('auth.crReview')}</span>
+                  <span className="text-amber-800/80">{t('auth.crReviewBody')}</span>
+                </div>
+              </div>
+
+              <div className="border-t border-soot/8 pt-3 flex items-start gap-3">
+                <div className="w-7 h-7 rounded-full bg-soot/5 text-moss flex items-center justify-center shrink-0 mt-0.5">
+                  <Mail size={16} />
+                </div>
+                <div className="flex-1 text-xs">
+                  <span className="font-semibold text-soot block">{t('auth.approvalNotice')}</span>
+                  <span className="text-moss">{t('auth.approvalNoticeBody')}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={() => navigate('login')}
+                className="btn-primary w-full py-3.5 flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span>{t('auth.proceedSignIn')}</span>
+                <ArrowRight size={16} />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => navigate('landing')}
+                className="w-full py-2.5 text-xs font-semibold text-moss hover:text-soot transition-colors text-center cursor-pointer"
+              >
+                {t('auth.returnHome')}
+              </button>
+            </div>
+          </div>
+
+          {/* Micro Footer */}
+          <div className="w-full max-w-md mx-auto text-center text-[11px] text-moss">
+            {t('footer.rights', { year: 2026 })}
+          </div>
+        </div>
+
+        {/* Right Visual Image */}
+        <AuthVisualBanner
+          quote="Empowering coworking space providers across Saudi Arabia to expand their reach and welcome verified professionals and teams."
+          author="Space Partner Team"
+          role="Coworking Pass Partner Network"
+          tag="Partner Quality & Trust"
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen w-full flex bg-plaster text-soot">
+      {/* Left Form Column */}
+      <div className="w-full lg:w-1/2 flex flex-col justify-between p-6 sm:p-10 lg:p-14 min-h-screen">
+        {/* Top Header */}
+        <div className="flex items-center justify-between w-full max-w-md mx-auto">
+          <Logo onClick={() => navigate('landing')} />
+          <button
+            type="button"
+            onClick={cancelOtp}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-soot/5 hover:bg-soot/10 border border-soot/10 text-xs font-semibold text-soot transition-all duration-200 cursor-pointer group"
+          >
+            <ArrowLeft size={14} className="group-hover:-translate-x-0.5 rtl:group-hover:translate-x-0.5 transition-transform" />
+            <span>{isSignup ? translateMessage('Back to Sign Up') : isForgotPassword ? translateMessage('Back to Forgot Password') : translateMessage('Back to Sign In')}</span>
+          </button>
+        </div>
+
+        {/* Center Content */}
+        <div className="w-full max-w-md mx-auto my-auto py-8">
+          <div className="mb-7">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-eucalyptus/20 border border-eucalyptus/40 text-soot text-xs font-semibold mb-3.5">
+              <ShieldCheck size={14} className="text-emerald-800 shrink-0" />
+              <span>{isForgotPassword ? translateMessage('Password Recovery Verification') : translateMessage('Two-Factor Security Verification')}</span>
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-normal font-serif-display text-soot tracking-tight mb-2">
+              {t('auth.enterCode')}
+            </h1>
+            <p className="text-moss text-xs sm:text-sm leading-relaxed">
+              {t('auth.otpSentTo')}{' '}
+              <span className="font-semibold text-soot">{recipient}</span>. {t('auth.otpEnterBelow', { action: isSignup ? t('auth.otpActionSignup') : isForgotPassword ? t('auth.otpActionForgot') : t('auth.otpActionLogin') })}
+            </p>
+            {isProviderSignup && (
+              <div className="mt-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-900 text-xs flex items-start gap-2">
+                <Clock size={15} className="text-amber-600 shrink-0 mt-0.5" />
+                <span>
+                  {t('auth.partnerNotice')}
+                </span>
+              </div>
+            )}
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/20 text-red-700 text-xs sm:text-sm font-medium rounded-xl px-4 py-3">
+                {translateMessage(error)}
+              </div>
+            )}
+
+
+
+
+            {/* 6 Digit Input Boxes */}
+            <div>
+              <label className="block text-xs font-semibold text-soot mb-2.5 uppercase tracking-wider text-center">
+                {translateMessage('6-Digit Security Code')}
+              </label>
+              {/* Codes are read left to right in both languages */}
+              <div dir="ltr" className="flex items-center justify-center gap-2 sm:gap-3">
+                {digits.map((digit, idx) => (
+                  <input
+                    key={idx}
+                    ref={(el) => { inputRefs.current[idx] = el; }}
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    autoComplete={idx === 0 ? 'one-time-code' : 'off'}
+                    aria-label={`${translateMessage('6-Digit Security Code')} ${idx + 1}`}
+                    maxLength={idx === 0 ? 6 : 1}
+                    value={digit}
+                    onChange={(e) => handleDigitChange(idx, e.target.value)}
+                    onKeyDown={(e) => handleKeyDown(idx, e)}
+                    onPaste={handlePaste}
+                    className={`w-11 h-14 sm:w-13 sm:h-16 text-center text-xl sm:text-2xl font-bold font-mono rounded-2xl bg-plaster-surface border ${
+                      digit
+                        ? 'border-eucalyptus bg-white ring-2 ring-eucalyptus/20 text-soot'
+                        : 'border-soot/15 text-soot focus:border-eucalyptus focus:ring-2 focus:ring-eucalyptus'
+                    } shadow-xs transition-all outline-none`}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading || digits.join('').length < 6}
+              className="btn-primary w-full py-3.5 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            >
+              {loading ? (
+                <span>{t('auth.verifyingCode')}</span>
+              ) : (
+                <>
+                  <span>{t('auth.verifyContinue')}</span>
+                  <CheckCircle2 size={16} />
+                </>
+              )}
+            </button>
+          </form>
+
+          {/* Resend & Timer */}
+          <div className="mt-6 text-center text-xs text-moss space-y-2">
+            <div>
+              {!canResend ? (
+                <span className="flex items-center justify-center gap-1.5 font-medium">
+                  <Clock size={13} className="text-moss" />
+                  <span>{t('auth.resendIn', { time: `${Math.floor(countdown / 60)}:${countdown % 60 < 10 ? `0${countdown % 60}` : countdown % 60}` })}</span>
+                </span>
+              ) : (
+                <span>
+                  {t('auth.noCode')}{' '}
+                  <button
+                    type="button"
+                    onClick={handleResend}
+                    className="text-soot font-bold hover:underline cursor-pointer"
+                  >
+                    {t('auth.resendCode')}
+                  </button>
+                </span>
+              )}
+            </div>
+
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={cancelOtp}
+                className="text-moss hover:text-soot underline transition-colors cursor-pointer text-[11px]"
+              >
+                {t('auth.differentAccount')}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Micro Footer */}
+        <div className="w-full max-w-md mx-auto text-center text-[11px] text-moss">
+          {t('footer.rights', { year: 2026 })}
+        </div>
+      </div>
+
+      {/* Right Visual Image */}
+      <AuthVisualBanner
+        quote="Multi-factor authentication guarantees trusted and authenticated identity verification across all spaces in Saudi Arabia."
+        author="Security Operations"
+        role="Coworking Pass Platform"
+        tag="Two-Factor Verified Access"
+      />
+    </div>
+  );
+}
+
+export function ResetPasswordScreen() {
+  const { t, translateMessage } = useI18n();
+  const { navigate, resetPassword, pendingResetUser } = useApp();
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!password) {
+      setError(t('auth.errNewPassword'));
+      return;
+    }
+    if (!isPasswordValid(password)) {
+      setError(t('auth.errWeakPassword'));
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError(t('auth.errMismatch'));
+      return;
+    }
+
+    setError('');
+    setLoading(true);
+    const res = await resetPassword(password);
+    if (!res.success) {
+      setError(translateMessage(res.error || 'Failed to update password.'));
+    }
+    setLoading(false);
+  };
+
+  const userEmail = pendingResetUser?.email || pendingResetUser?.username || translateMessage('your account');
+
+  return (
+    <div className="min-h-screen w-full flex bg-plaster text-soot">
+      {/* Left Form Column */}
+      <div className="w-full lg:w-1/2 flex flex-col justify-between p-6 sm:p-10 lg:p-14 min-h-screen">
+        {/* Top Header */}
+        <div className="flex items-center justify-between w-full max-w-md mx-auto">
+          <Logo onClick={() => navigate('landing')} />
+          <button
+            type="button"
+            onClick={() => navigate('login')}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-soot/5 hover:bg-soot/10 border border-soot/10 text-xs font-semibold text-soot transition-all duration-200 cursor-pointer group"
+          >
+            <ArrowLeft size={14} className="group-hover:-translate-x-0.5 rtl:group-hover:translate-x-0.5 transition-transform" />
+            <span>{t('auth.backToSignIn')}</span>
+          </button>
+        </div>
+
+        {/* Center Form */}
+        <div className="w-full max-w-md mx-auto my-auto py-8">
+          <div className="mb-7">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-eucalyptus/20 border border-eucalyptus/40 text-soot text-xs font-semibold mb-3.5">
+              <Lock size={14} className="text-emerald-800 shrink-0" />
+              <span>{t('auth.identityVerified')}</span>
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-normal font-serif-display text-soot tracking-tight mb-2">
+              {t('auth.setNewPassword')}
+            </h1>
+            <p className="text-moss text-xs sm:text-sm leading-relaxed">
+              {t('auth.createSecurePasswordFor')} <span className="font-semibold text-soot">{userEmail}</span>.
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/20 text-red-700 text-xs sm:text-sm font-medium rounded-xl px-4 py-3">
+                {translateMessage(error)}
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs font-semibold text-soot mb-1.5 uppercase tracking-wider">
+                {t('auth.newPassword')}
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 start-0 ps-3.5 flex items-center pointer-events-none text-moss">
+                  <Lock size={16} />
+                </div>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (error) setError('');
+                  }}
+                  placeholder={t('auth.atLeast6')}
+                  className="w-full ps-10 pe-11 py-3 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 end-0 pe-3.5 flex items-center text-moss hover:text-soot cursor-pointer"
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+              <PasswordChecklist password={password} />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-soot mb-1.5 uppercase tracking-wider">
+                {t('auth.confirmNewPassword')}
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 start-0 ps-3.5 flex items-center pointer-events-none text-moss">
+                  <Lock size={16} />
+                </div>
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={(e) => {
+                    setConfirmPassword(e.target.value);
+                    if (error) setError('');
+                  }}
+                  placeholder={t('auth.repeatNewPassword')}
+                  className="w-full ps-10 pe-11 py-3 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute inset-y-0 end-0 pe-3.5 flex items-center text-moss hover:text-soot cursor-pointer"
+                >
+                  {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+              {confirmPassword && (
+                <p data-testid="confirm-match" className={`text-xs mt-1 font-medium ${confirmPassword === password ? 'text-green-600' : 'text-red-500'}`}>
+                  {confirmPassword === password ? t('auth.pwMatch') : t('auth.pwNoMatch')}
+                </p>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading || !isPasswordValid(password) || password !== confirmPassword}
+              className="btn-primary w-full py-3.5 mt-2 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            >
+              {loading ? (
+                <span>{t('auth.savingPassword')}</span>
+              ) : (
+                <>
+                  <span>{t('auth.savePassword')}</span>
+                  <CheckCircle2 size={16} />
+                </>
+              )}
+            </button>
+          </form>
+
+          <p className="text-center text-xs sm:text-sm text-moss mt-6 pt-4 border-t border-soot/10">
+            {t('auth.cancelReturn')}{' '}
+            <button
+              type="button"
+              onClick={() => navigate('login')}
+              className="text-soot font-bold hover:underline cursor-pointer"
+            >
+              {t('auth.signInLower')}
+            </button>
+          </p>
+        </div>
+
+        {/* Micro Footer */}
+        <div className="w-full max-w-md mx-auto text-center text-[11px] text-moss">
+          {t('footer.rights', { year: 2026 })}
+        </div>
+      </div>
+
+      {/* Right Visual Image */}
+      <AuthVisualBanner
+        quote="A strong and updated password keeps your workspaces, teams, and billing secure across Saudi Arabia."
+        author="Account Security"
+        role="Coworking Pass Platform"
+        tag="Secure Password Reset"
+      />
+    </div>
+  );
+}
+
+export default function AuthPage() {
+  const { nav } = useApp();
+  if (nav.screen === 'signup') return <SignUpScreen />;
+  if (nav.screen === 'choose-type') return <ChooseAccountType />;
+  if (nav.screen === 'forgot-password') return <ForgotPasswordScreen />;
+  if (nav.screen === 'otp-verify') return <OtpVerificationScreen />;
+  if (nav.screen === 'reset-password') return <ResetPasswordScreen />;
+  return <LoginScreen />;
+}
