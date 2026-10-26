@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { resolveAttendeeIds, notifyAttendees } from '@/lib/company-team';
+import { resolveAttendeeIds, notifyAttendees } from '@/lib/company/team';
 import { prisma } from '@/lib/prisma';
 import { getTokenFromRequest, unauthorizedResponse, suspendedResponse } from '@/lib/auth/verify-token';
-import { seedStandardWorkspaces } from '@/lib/seed-data';
+import { seedStandardWorkspaces } from '@/lib/db/seed-data';
 import { getOwnedWorkspaceIds } from '@/lib/ownership';
-import { directBookingEffectiveStatus } from '@/lib/booking-lifecycle';
-import { directBookingEnd, effectiveCapacity, getOccupiedSeats, getOccupiedSeatsForSection } from '@/lib/capacity';
-import { hiddenWorkspaceError } from '@/lib/workspace-visibility';
+import { directBookingEffectiveStatus } from '@/lib/booking/lifecycle';
+import { directBookingEnd, effectiveCapacity, getOccupiedSeats, getOccupiedSeatsForSection } from '@/lib/booking/capacity';
+import { hiddenWorkspaceError } from '@/lib/workspaces/visibility';
 import { getKsaNow, parseDateAndTimeToKsaDate } from '@/lib/time-utils';
 import type { Prisma, DurationType, DirectBookingStatus } from "@prisma/client";
 import { errorMessage } from '@/lib/errors';

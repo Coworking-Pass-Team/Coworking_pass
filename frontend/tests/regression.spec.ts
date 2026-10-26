@@ -1,10 +1,10 @@
 import { test, expect, Page } from '@playwright/test';
-import { plantOtp } from './otp';
-import { TEAM, TEAM_PASSWORD } from './accounts';
+import { plantOtp } from './helpers/otp';
+import { TEAM, TEAM_PASSWORD } from './helpers/accounts';
 
 // The six verification-code boxes: the first one also accepts a pasted code (one-time-code, maxlength 6)
 const OTP_BOXES = 'input[autocomplete="one-time-code"], input[maxlength="1"]';
-// Seeded super admin from ACCOUNTS.md and backend/scripts/team-accounts.json (override with QA_ADMIN_EMAIL / QA_ADMIN_PASSWORD)
+// Seeded super admin from docs/Accounts.md and backend/scripts/team-accounts.json (override with QA_ADMIN_EMAIL / QA_ADMIN_PASSWORD)
 const ADMIN_EMAIL = process.env.QA_ADMIN_EMAIL || TEAM.superAdmin.email;
 const ADMIN_PASSWORD = process.env.QA_ADMIN_PASSWORD || TEAM_PASSWORD;
 
@@ -338,7 +338,7 @@ test.describe('Admin portal (local development account)', () => {
   });
 });
 
-// Needs the accounts from `npm run seed:accounts` in the backend (see ACCOUNTS.md)
+// Needs the accounts from `npm run seed:accounts` in the backend (see docs/Accounts.md)
 test.describe('Member bookings and notifications (seeded test account)', () => {
   async function signInSeeded(page: Page, lang: 'ar' | 'en') {
     await open(page);

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { ensureDatabaseSchema } from "@/lib/db-schema-sync";
+import { ensureDatabaseSchema } from "@/lib/db/schema-sync";
 import { prisma } from "@/lib/prisma";
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 

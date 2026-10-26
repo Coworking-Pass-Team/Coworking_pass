@@ -192,7 +192,7 @@ Super Admin  (everything, including other roles' data)
 ### A. User Management and Authentication (Authentication & Moderation)
 * **[FR-AUTH-01]** Sign-in and account creation (individuals, companies, partners) with email verification by one-time code (OTP), using Resend for transactional messages (FR-SEC-08). Real delivery needs a verified Resend domain (see `Notifications_and_Emails.md`); until a Resend key is configured the code is printed in the server console instead.
 * **[FR-AUTH-02]** Password recovery through a one-time code: `POST /api/auth/forgot-password` emails a code (the answer is the same whether or not the account exists, and a new code cannot be requested for 30 seconds), `POST /api/auth/verify-reset-code` checks it without using it up, and `POST /api/auth/reset-password` sets the new password (checked against the password policy, FR-AUTH-03, and stored with bcrypt) and ends the account's other sessions and waiting codes. The "Forgot password" screens use these endpoints. *Status:* implemented; email delivery needs the Resend setup.
-* **[FR-AUTH-03] Password policy:** `POST /api/auth/register` and `POST /api/auth/reset-password` refuse a password that breaks the password policy: at least 8 characters, a lowercase letter, an uppercase letter, a number and a special character, and no sequential characters (three letters or digits in a row going up or down, such as `123` or `abc`). The answer is `400 { error, code: "WEAK_PASSWORD", failed: [rules] }`. The sign-up and reset screens show the same rules as a live checklist (each rule red until met, then green) and a confirm-password field that says whether the two match; the save button stays disabled until both are satisfied. *Status:* implemented (`backend/lib/password-policy.ts`, `frontend/lib/passwordPolicy.ts`).
+* **[FR-AUTH-03] Password policy:** `POST /api/auth/register` and `POST /api/auth/reset-password` refuse a password that breaks the password policy: at least 8 characters, a lowercase letter, an uppercase letter, a number and a special character, and no sequential characters (three letters or digits in a row going up or down, such as `123` or `abc`). The answer is `400 { error, code: "WEAK_PASSWORD", failed: [rules] }`. The sign-up and reset screens show the same rules as a live checklist (each rule red until met, then green) and a confirm-password field that says whether the two match; the save button stays disabled until both are satisfied. *Status:* implemented (`backend/lib/auth/password-policy.ts`, `frontend/lib/password-policy.ts`).
 * **[FR-AUTH-03]** Profile and permission management with a strict role-based access control (RBAC) system.
 * **[FR-AUTH-04] Partner commercial-registration approval cycle (Space Partner CR Verification):**
   * *Description:* when a new account is registered with the `PARTNER_ADMIN` role, the system requires the commercial registration (`taxNumber`). The account is created as `PENDING_APPROVAL`.
@@ -291,7 +291,7 @@ Super Admin  (everything, including other roles' data)
   * *Acceptance criteria:* track the ticket lifecycle through its three states (`OPEN`, `IN_PROGRESS`, `CLOSED`). Replies are saved in `TicketReply` and shown as a conversation in the admin panel, and the admin can reply even to a closed ticket. A ticket carries `message`, `category` (general / complaint / refund / enterprise) and `priority`, and the company is resolved on the server from the requester's record.
   * *Enterprise inquiries:* the `enterprise` category is supported for tailored-offer requests; such a ticket reaches the administrators as an in-app notification (type `SUPPORT_TICKET`) and appears in a separate tab.
 * **[FR-SUPP-02] My Tickets (customer side):** every signed-in user except the Super Admin (individuals, company employees, HR administrators and venue partners) has a "My tickets" page (account menu, mobile menu, and the notification "Support replied to your ticket"). It lists the user's own tickets with their status (Pending, In progress, Closed), shows the whole conversation with the support team, lets the user reply, and lets them close their own ticket. A customer cannot reopen a closed ticket or move it along; when the customer replies, the Super Admins get an in-app notification so the conversation does not stall.
-* **[FR-NOTIF-01]** In-app notifications for the key events and four transactional emails through Resend. The complete matrix (trigger, sender, recipient, channel and working status of every message) is in **`Notifications_and_Emails.md`**. Summary of what exists today:
+* **[FR-NOTIF-01]** In-app notifications for the key events and five transactional emails through Resend. The complete matrix (trigger, sender, recipient, channel and working status of every message) is in **`Notifications_and_Emails.md`**. Summary of what exists today:
 
 | Event | Channel | Recipient | Status |
 | :--- | :--- | :--- | :--- |
@@ -353,7 +353,8 @@ Super Admin  (everything, including other roles' data)
   * API routes authenticated with `JWT` and role checks (RBAC) applied.
   * Check the `isBanned` status and the partner `ApprovalStatus` on every sign-in and API call.
   * QR check-in security: accepted only for a current booking at that venue and recorded only by the person themselves, the owning partner or a Super Admin. Rotating time-based codes (TOTP) are planned, not built.
-  * OTP protection and hashing, with a validity of at most 10 minutes.
+  * OTP protection and hashing, with a validity of at most 10 minutes, single use and five attempts; codes are random and emailed, with no shared test code.
+  * Password policy enforced on the server (FR-AUTH-03).
   * **Financial operation integrity:** wallet deductions are atomic and conditional on balance inside database transactions, with idempotency keys and automatic payment rollback when a booking fails.
   * **Server-side validation:** operating hours, fixed sessions, capacity and time overlap are enforced on the server even if the interface bypasses its own restrictions.
 * **Performance and responsiveness**
@@ -361,12 +362,15 @@ Super Admin  (everything, including other roles' data)
   * Verify a QR scan in under 500 milliseconds.
   * Deposit instant refund amounts into the digital wallet in under 1 second of processing time.
 * **Availability and reliability**
-  * The QA deployment runs the interfaces and servers on **Render** (free plan, deployed from the `develop` branch) with a cloud database on **Neon**. The free plan stops services when its monthly instance-hours run out, so production hosting must be on paid or serverless infrastructure (see `PRODUCTION_CHECKLIST.md`).
+  * The QA deployment runs the interfaces and servers on **Render** (free plan, deployed from the `develop` branch) with a cloud database on **Neon**. The free plan stops services when its monthly instance-hours run out, so production hosting must be on paid or serverless infrastructure (see `Production_Checklist.md`).
   * Availability of at least 99.5% per month.
   * Periodic database backups with the ability to restore in emergencies.
 * **Localization and UX**
   * The interface works in two languages with full RTL, without horizontal overflow on the main screens on desktop and mobile.
   * Currency, dates and times are displayed according to the language.
+* **Quality and maintainability**
+  * Every change passes `tsc --noEmit` and `npm run build` in both apps, the Vitest unit tests, the 13 API integration suites and the Playwright suites (`Testing.md`).
+  * Integration and browser tests run only against a local database; they never touch shared or production data.
 * **Compliance and privacy**
   * Compliance with the Saudi Personal Data Protection Law (PDPL).
   * Documenting and matching the commercial registrations of Saudi partners before enabling any commercial activity on the platform.
@@ -389,7 +393,7 @@ Written after auditing the code on 2026-10-26. Everything above is implemented u
 | Area | Gap |
 | :--- | :--- |
 | Authentication | Until a sending domain is verified in Resend, codes reach only the Resend account owner's mailbox (with no key at all they are printed in the server console). |
-| Email | Only four emails exist and real delivery needs a verified Resend domain (`Notifications_and_Emails.md`). Emails are English only. |
+| Email | Only five emails exist and real delivery needs a verified Resend domain (`Notifications_and_Emails.md`). Emails are English only. |
 | Notifications | Missing: booking and pass purchase confirmations, expiry reminder, payment failure, wallet deposit, partner "new booking", settlement notice (`Notifications_and_Emails.md`, section 6). |
 | Payments | No real gateway; payments and wallet top-ups are simulated and recorded from the browser (FR-PAY-01). |
 | Partner settlements | Payouts are recorded manually by the Super Admin; no monthly scheduler (FR-PAY-02). |
@@ -399,5 +403,5 @@ Written after auditing the code on 2026-10-26. Everything above is implemented u
 | Rescheduling | Built (FR-BOOK-07). Not yet: an email to the owner; repricing a booking covered by a pass (nothing is charged). The interface offers the same room or another room of the venue and type. |
 | Company accounts | Department labels are stored only in the HR administrator's browser; passes are not allocated per employee on the server (team bookings are linked to the named employees, FR-COMP-05); an HR administrator can add a member without that person's consent (join requests exist as the consent-based path); the server accepts a company-plan purchase from an employee account; money allocated to an employee is theirs once credited (there is no "take back" action yet) (FR-COMP-01 to FR-COMP-05). |
 | Cancellation window | Based on the booking owner's role (6 hours for `B2C`, including company employees; 24 hours otherwise), not on who paid. |
-| Security | In-memory login lockout only; no rate limiting elsewhere; CORS is open to all origins; maintenance routes are protected by Super Admin only (`PRODUCTION_CHECKLIST.md`). |
+| Security | In-memory login lockout only; no rate limiting elsewhere; CORS is open to all origins; maintenance routes are protected by Super Admin only (`Production_Checklist.md`). |
 | Hosting | The QA deployment is on Render's free plan, which stops when its monthly hours run out. |

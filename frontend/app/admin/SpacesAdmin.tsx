@@ -28,7 +28,7 @@ import UnitsEditor from '@/components/spaces/UnitsEditor';
 import { useApp } from '@/app/store';
 import { useSpaceText } from '@/i18n/space-text';
 import { durationLabel } from '@/i18n/duration';
-import { Space, SpaceBookingPackage, SpaceCategory, ALL_SPACE_TYPES, isHourlyOnlySpace, isOfficeSpace, isHourlyAllowed, getSpaceCategory, AmenityRequest, SAUDI_CITIES, SAUDI_CITIES_DATA, hhmmTo12h } from '@/types/types';
+import { Space, SpaceBookingPackage, SpaceCategory, ALL_SPACE_TYPES, isHourlyOnlySpace, isOfficeSpace, isHourlyAllowed, getSpaceCategory, AmenityRequest, SAUDI_CITIES, SAUDI_CITIES_DATA, hhmmTo12h } from '@/types';
 
 const AMENITY_OPTIONS = [
   'WiFi',

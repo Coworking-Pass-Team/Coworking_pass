@@ -2,9 +2,9 @@ import { suspendedResponse } from "@/lib/auth/verify-token";
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { deliverOtp, issueOtp } from "@/lib/otp";
-import { ensureDatabaseSchema } from "@/lib/db-schema-sync";
-import { isRateLimited, recordFailedAttempt, clearAttempts } from "@/lib/rate-limit/login-attempts";
+import { deliverOtp, issueOtp } from "@/lib/auth/otp";
+import { ensureDatabaseSchema } from "@/lib/db/schema-sync";
+import { isRateLimited, recordFailedAttempt, clearAttempts } from "@/lib/auth/login-attempts";
 
 /**
  * @swagger

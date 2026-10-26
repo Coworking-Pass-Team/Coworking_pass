@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { deletePartnerCascade } from "@/lib/cascade-delete";
+import { deletePartnerCascade } from "@/lib/db/cascade-delete";
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 import { sendPartnerApprovalEmail, sendPartnerRejectionEmail } from "@/lib/mailer";
 

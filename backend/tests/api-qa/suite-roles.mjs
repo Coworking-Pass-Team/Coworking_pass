@@ -9,7 +9,7 @@ const loginAs = async (email, pw) => {
 const mk = (n, role = 'B2C', x = {}) => makeUser('QA ' + n, `qa.${n}.${run}@test.local`.toLowerCase(), role, x);
 const day = () => new Date(Date.now() + (20 + Math.floor(Math.random() * 600)) * 864e5).toISOString().slice(0, 10);
 
-// Seeded super admin: ACCOUNTS.md and scripts/team-accounts.json (override with QA_ADMIN_EMAIL / QA_ADMIN_PASSWORD)
+// Seeded super admin: docs/Accounts.md and scripts/team-accounts.json (override with QA_ADMIN_EMAIL / QA_ADMIN_PASSWORD)
 const admin = await loginAs(process.env.QA_ADMIN_EMAIL || TEAM.superAdmin.email, process.env.QA_ADMIN_PASSWORD || TEAM_PASSWORD);
 check('seeded super admin can sign in locally', !!admin.token);
 

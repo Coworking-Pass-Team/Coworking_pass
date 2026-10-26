@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { CheckCircle2, ShieldCheck, MapPin, Loader2, Database, ArrowRight } from 'lucide-react';
 import { useApp } from '@/app/store';
 import { useI18n } from '@/i18n';
-import { createQrCheckInApi } from '@/services/authApi';
+import { createQrCheckInApi } from '@/services/api';
 
 function PassVerificationContent() {
   const searchParams = useSearchParams();

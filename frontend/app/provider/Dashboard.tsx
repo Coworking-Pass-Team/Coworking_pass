@@ -6,7 +6,7 @@ import { useApp } from '@/app/store';
 import { useSpaceText } from '@/i18n/space-text';
 import { useLabels } from '@/i18n/labels';
 import { durationLabel } from '@/i18n/duration';
-import { getBookingPrice, getSpaceCategory, isHourlyAllowed } from '@/types/types';
+import { getBookingPrice, getSpaceCategory, isHourlyAllowed } from '@/types';
 
 const FALLBACK_SPACE_IMAGE = 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80';
 

@@ -205,7 +205,7 @@ model CompanyWalletTransaction {
   companyId    String
   userId       String?
   amount       Float
-  type         String   // DEPOSIT, WITHDRAW, REFUND
+  type         String   // DEPOSIT, WITHDRAW, REFUND, ALLOCATION
   description  String?
   referenceId  String?
   balanceAfter Float

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 import { forbiddenResponse } from "@/lib/ownership";
-import { applyAllocation, notifyRecipients, planAllocation } from "@/lib/company-allocation";
+import { applyAllocation, notifyRecipients, planAllocation } from "@/lib/company/allocation";
 
 /** The company's HR admin (or a Super Admin) is the only one who may move the company's money. */
 async function loadManagedCompany(request: Request, id: string) {

@@ -6,7 +6,7 @@ const loginAs = async (email, pw) => {
   return { token: r.token, userId: r.userId };
 };
 const mk = (n, role = 'B2C', x = {}) => makeUser('QA ' + n, `qa.${n}.${run}@test.local`.toLowerCase(), role, x);
-// Seeded super admin: ACCOUNTS.md and scripts/team-accounts.json (override with QA_ADMIN_EMAIL / QA_ADMIN_PASSWORD)
+// Seeded super admin: docs/Accounts.md and scripts/team-accounts.json (override with QA_ADMIN_EMAIL / QA_ADMIN_PASSWORD)
 const admin = await loginAs(process.env.QA_ADMIN_EMAIL || TEAM.superAdmin.email, process.env.QA_ADMIN_PASSWORD || TEAM_PASSWORD);
 const c = await mk('cust'), c2 = await mk('cust2');
 const denied = (r) => r.status === 401 || r.status === 403;

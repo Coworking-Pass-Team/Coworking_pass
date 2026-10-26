@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { isValidHhmm } from "@/lib/operating-hours";
+import { isValidHhmm } from "@/lib/workspaces/operating-hours";
 import { pickBilingualFields } from "@/lib/bilingual";
-import { canViewHiddenWorkspace } from "@/lib/workspace-visibility";
+import { canViewHiddenWorkspace } from "@/lib/workspaces/visibility";
 import { prisma } from "@/lib/prisma";
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 import { canManageWorkspace } from "@/lib/ownership";

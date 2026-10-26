@@ -8,10 +8,11 @@ cp .env.example .env
 npm run dev              # http://localhost:3000
 ```
 
-Useful scripts: `npm run build`, `npm run lint`, `npx playwright test` (end-to-end tests in `tests/`).
+Useful scripts: `npm run build`, `npm run lint`, `npm run typecheck`, `npm run test:e2e` (Playwright, in `tests/`).
 
-- Screens live in `app/` (`individual/`, `organization/`, `provider/`, `admin/`, `spaces/`).
+- Screens live in `app/` (`individual/`, `organization/`, `provider/`, `admin/`, `support/`, `Auth/`, `spaces/`); `app/app.tsx` switches between them and `app/store.tsx` holds the app state.
+- Shared components are grouped by feature in `components/` (`auth/`, `bookings/`, `company/`, `landing/`, `layout/`, `spaces/`, `wallet/`), with primitives in `components/ui/`; hooks in `hooks/`; pure helpers in `lib/`.
 - Translations live in `i18n/` (`ar.json`, `en.json`); add every new string to both files.
-- API client: `services/authApi.ts`; domain types and booking helpers: `types/types.tsx`.
+- API client: `services/api.ts`; domain types and booking helpers: `types/index.ts`.
 
 See the [root README](../README.md) for the full project overview and the [documentation](../docs/).

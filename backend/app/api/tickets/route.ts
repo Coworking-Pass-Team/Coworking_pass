@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
-import { ensureDatabaseSchema } from "@/lib/db-schema-sync";
+import { ensureDatabaseSchema } from "@/lib/db/schema-sync";
 
 // GET /api/tickets — عرض كل التذاكر
 export async function GET(request: Request) {

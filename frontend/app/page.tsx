@@ -8,7 +8,7 @@ import LandingSpaceCard from '@/components/landing/LandingSpaceCard';
 import LandingCtaButtons from '@/components/landing/LandingCtaButtons';
 import LandingViewAllButton from '@/components/landing/LandingViewAllButton';
 import LandingClientWrapper from '@/components/landing/LandingClientWrapper';
-import { getSpacesServer } from '@/lib/getSpacesServer';
+import { getSpacesServer } from '@/lib/spaces-server';
 import { T } from '@/i18n';
 import { LANG_COOKIE_NAME, resolveLang, translateServer } from '@/i18n/server';
 import { cookies } from 'next/headers';

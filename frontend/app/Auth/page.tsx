@@ -25,11 +25,11 @@ import {
   Search
 } from 'lucide-react';
 import { useApp } from '@/app/store';
-import LogoImage from '@/components/layout/logo';
+import LogoImage from '@/components/layout/Logo';
 import Badge from '@/components/ui/Badge';
-import { isValidSaudiCrNumber } from '@/types/types';
-import PasswordChecklist from '@/components/ui/PasswordChecklist';
-import { isPasswordValid } from '@/lib/passwordPolicy';
+import { isValidSaudiCrNumber } from '@/types';
+import PasswordChecklist from '@/components/auth/PasswordChecklist';
+import { isPasswordValid } from '@/lib/password-policy';
 import PhoneInput from 'react-phone-number-input';
 import { isValidPhoneNumber, getCountryCallingCode } from 'libphonenumber-js';
 import 'react-phone-number-input/style.css';

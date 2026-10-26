@@ -13,6 +13,7 @@
     "db:studio": "prisma studio",
     "seed:accounts": "node scripts/seed-accounts.mjs",
     "test": "vitest run",
+    "test:api": "node tests/api-qa/run-all.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -29,7 +30,6 @@
     "next": "16.3.3",
     "next-swagger-doc": "^0.5.0",
     "nextjs-auto-swagger": "^1.0.1",
-    "node-cron": "^4.6.0",
     "nodemailer": "^9.1.1",
     "prisma": "^6.19.3",
     "react": "19.2.8",

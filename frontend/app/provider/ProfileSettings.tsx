@@ -27,7 +27,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { useApp } from '@/app/store';
-import { Space, isValidSaudiCrNumber } from '@/types/types';
+import { Space, isValidSaudiCrNumber } from '@/types';
 import Modal from '@/components/ui/Modal';
 import UserAvatar from '@/components/ui/UserAvatar';
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { withLifecycleStatus } from '@/lib/bookingLifecycle';
+import { withLifecycleStatus } from '@/lib/booking-lifecycle';
 import React, { createContext, useContext, useState, useEffect, useMemo, useRef, ReactNode } from 'react';
 import {
   User,
@@ -49,10 +49,10 @@ import {
   CITY_COORDINATES,
   isHourlyAllowed,
   hhmmTo12h,
-} from '@/types/types';
+} from '@/types';
 import { useI18n } from '@/i18n';
-import AccountSuspendedModal from '@/components/AccountSuspendedModal';
-import { INITIAL_SPACES, INITIAL_USERS, INITIAL_BOOKINGS, INITIAL_SUPPORT_TICKETS } from '@/data/data';
+import AccountSuspendedModal from '@/components/auth/AccountSuspendedModal';
+import { INITIAL_SPACES, INITIAL_USERS, INITIAL_BOOKINGS, INITIAL_SUPPORT_TICKETS } from '@/data/demo-data';
 import {
   registerUserApi,
   verifyEmailApi,
@@ -82,7 +82,7 @@ import {
   createTicketReplyApi,
   getTicketsApi,
   updateTicketStatusApi
-} from '@/services/authApi';
+} from '@/services/api';
 
 export function getApiBaseUrl(): string {
   const envUrl = process.env.NEXT_PUBLIC_API_URL;

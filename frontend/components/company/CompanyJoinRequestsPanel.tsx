@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Check, UserPlus, X } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { useApp } from '@/app/store';
-import { answerJoinRequestApi, listCompanyJoinRequestsApi, type CompanyJoinRequestItem } from '@/services/authApi';
+import { answerJoinRequestApi, listCompanyJoinRequestsApi, type CompanyJoinRequestItem } from '@/services/api';
 import UserAvatar from '@/components/ui/UserAvatar';
 
 /** For the HR admin: employees who signed up (or asked from their profile) to join the company team. */

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { getOccupiedSeatsToday } from "@/lib/capacity";
-import { redactHiddenWorkspace } from "@/lib/workspace-visibility";
-import { isValidHhmm } from "@/lib/operating-hours";
+import { getOccupiedSeatsToday } from "@/lib/booking/capacity";
+import { redactHiddenWorkspace } from "@/lib/workspaces/visibility";
+import { isValidHhmm } from "@/lib/workspaces/operating-hours";
 import { pickBilingualFields } from "@/lib/bilingual";
 import { prisma } from "@/lib/prisma";
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
@@ -62,9 +62,9 @@ async function syncWorkspaceAmenities(workspaceId: string, amenities: string[]) 
   }
 }
 
-import { seedStandardWorkspaces } from "@/lib/seed-data";
+import { seedStandardWorkspaces } from "@/lib/db/seed-data";
 import { errorMessage } from "@/lib/errors";
-import { effectiveCapacity } from "@/lib/capacity";
+import { effectiveCapacity } from "@/lib/booking/capacity";
 
 export async function GET(request: Request) {
   try {

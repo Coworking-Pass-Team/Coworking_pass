@@ -32,7 +32,7 @@ import CompanyMembershipCard from '@/components/company/CompanyMembershipCard';
 import CompanyJoinRequestCard from '@/components/company/CompanyJoinRequestCard';
 import UserAvatar from '@/components/ui/UserAvatar';
 import Modal from '@/components/ui/Modal';
-import { PaymentCard } from '@/types/types';
+import { PaymentCard } from '@/types';
 
 export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile' | 'settings' }) {
   const { t, translateMessage, formatDate, localizeTime } = useI18n();

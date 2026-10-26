@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { deliverOtp, issueOtp } from "@/lib/otp";
+import { deliverOtp, issueOtp } from "@/lib/auth/otp";
 import type { Role } from "@prisma/client";
-import { createPendingJoinRequest, findCompanyByHrEmail } from "@/lib/company-join";
-import { passwordPolicyError } from "@/lib/password-policy";
+import { createPendingJoinRequest, findCompanyByHrEmail } from "@/lib/company/join";
+import { passwordPolicyError } from "@/lib/auth/password-policy";
 
 const VALID_ROLES = ["GUEST", "B2C", "HR_ADMIN", "PARTNER_ADMIN"];
 

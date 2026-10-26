@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { generateOtp } from "@/lib/otp";
+import { generateOtp } from "@/lib/auth/otp";
 import { getFromAddress, isEmailConfigured } from "@/lib/mailer";
 
 const saved = { ...process.env };

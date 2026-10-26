@@ -20,8 +20,8 @@ import {
   Pencil,
 } from 'lucide-react';
 import { useApp } from '@/app/store';
-import { addCompanyEmployeeApi, removeCompanyEmployeeApi } from '@/services/authApi';
-import { Employee } from '@/types/types';
+import { addCompanyEmployeeApi, removeCompanyEmployeeApi } from '@/services/api';
+import { Employee } from '@/types';
 import Modal from '@/components/ui/Modal';
 import CompanyJoinRequestsPanel from '@/components/company/CompanyJoinRequestsPanel';
 import CompanyFundsAllocationCard from '@/components/company/CompanyFundsAllocationCard';

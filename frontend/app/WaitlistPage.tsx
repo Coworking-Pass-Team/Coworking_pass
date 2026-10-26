@@ -22,7 +22,7 @@ import {
   Star,
 } from 'lucide-react';
 import { useApp } from '@/app/store';
-import { Space, WaitlistEntry } from '@/types/types';
+import { Space, WaitlistEntry } from '@/types';
 import Modal from '@/components/ui/Modal';
 
 const FALLBACK_SPACE_IMAGE =

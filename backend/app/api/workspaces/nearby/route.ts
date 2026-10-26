@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { calculateDistance } from "@/lib/haversine";
+import { calculateDistance } from "@/lib/workspaces/haversine";
 
 /**
  * @swagger

@@ -9,7 +9,7 @@ This document is the single reference for every notification and email the platf
 | Channel | What it is | Where it lives |
 | :--- | :--- | :--- |
 | **In-app** | A row in the `Notification` table, shown in the bell menu and on the notifications page of the recipient. Read/unread state is stored per row. | `backend/prisma/schema.prisma` (`Notification`), `GET/POST/PUT/DELETE /api/notifications` |
-| **Email** | A message sent through the **Resend** API. Only four emails exist (section 4). | `backend/lib/mailer.ts` |
+| **Email** | A message sent through the **Resend** API. Only five emails exist (section 4). | `backend/lib/mailer.ts` |
 
 Important facts:
 
@@ -99,7 +99,7 @@ To confirm the current state on the live backend, open the Render backend log an
 | "New partner application under review" email to the partner | Not implemented. Only the Super Admin gets an in-app message (S1). |
 | Password recovery code | **Built** (E5): `forgot-password`, `verify-reset-code`, `reset-password`. |
 | Support ticket reply by email | In-app only (S12). |
-| Subscription expiring in 7 days | The type `PASS_EXPIRING` exists but there is no job that sends it. The file `lib/cron/auto-booking.ts` is never loaded, so it does nothing. |
+| Subscription expiring in 7 days | The type `PASS_EXPIRING` exists but there is no job that sends it. There is no scheduled job of any kind (an unused cron file was removed in the Version 2 cleanup). |
 | "Pass assigned by the company" to an employee | Not implemented. Passes are not assigned to individual employees on the server. |
 | Monthly settlement notice to partners | The type `PAYOUT_PROCESSED` exists but nothing creates it. |
 | Loyalty points earned or redeemed (server side) | Only the browser message B1. The types `POINTS_EARNED` and `POINTS_REDEEMED` are unused by the server. |
@@ -121,7 +121,7 @@ To confirm the current state on the live backend, open the Render backend log an
 ### Recommended work to close the gaps (not done yet)
 
 1. Verify a sending domain in Resend, set `RESEND_API_KEY` and a real `from` address, and move the link in E3 to an environment variable.
-2. Add Arabic versions of the four emails, chosen by the user's saved language.
+2. Add Arabic versions of the five emails, chosen by the user's saved language.
 3. Add emails and in-app messages for booking confirmation, cancellation, refund and pass purchase.
 4. Build the password reset flow (code email, expiry, single use).
 5. Add the partner "new booking" message and the pass-expiry reminder job.

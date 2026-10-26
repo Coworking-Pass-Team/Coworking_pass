@@ -21,7 +21,7 @@ import {
 import { useApp } from '@/app/store';
 import { useSpaceText } from '@/i18n/space-text';
 import { useLabels } from '@/i18n/labels';
-import { getBookingPrice } from '@/types/types';
+import { getBookingPrice } from '@/types';
 
 export interface GrowthRateResult {
   value: number | null;

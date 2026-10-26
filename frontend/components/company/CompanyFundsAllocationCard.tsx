@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Send, Users, Wallet } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { useApp } from '@/app/store';
-import { allocateCompanyFundsApi, getCompanyAllocationsApi } from '@/services/authApi';
+import { allocateCompanyFundsApi, getCompanyAllocationsApi } from '@/services/api';
 import Modal from '@/components/ui/Modal';
 
 type Mode = 'EQUAL' | 'SPECIFIC';
@@ -33,12 +33,14 @@ export default function CompanyFundsAllocationCard() {
   // One id per confirmation, so pressing the button twice or retrying after a dropped connection pays once
   const requestIdRef = useRef<string>('');
 
+  const employees = companyData?.employees;
+  const currentUserId = currentUser?.id;
   const members: Member[] = useMemo(
     () =>
-      (Array.isArray(companyData?.employees) ? companyData.employees : [])
-        .filter((e: any) => e.role === 'B2C' && e.id !== currentUser?.id)
+      (Array.isArray(employees) ? employees : [])
+        .filter((e: any) => e.role === 'B2C' && e.id !== currentUserId)
         .map((e: any) => ({ id: e.id, name: e.name || e.email || '', email: e.email || '' })),
-    [companyData?.employees, currentUser?.id]
+    [employees, currentUserId]
   );
 
   const loadHistory = useCallback(async () => {

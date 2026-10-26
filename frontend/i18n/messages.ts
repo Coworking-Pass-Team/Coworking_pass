@@ -5,4 +5,5 @@ import './messages-plans';
 import './messages-labels';
 import './messages-screens';
 import './messages-ui';
+import './messages-company-booking';
 export { translateMessageToArabic, registerMessages } from './messages-registry';

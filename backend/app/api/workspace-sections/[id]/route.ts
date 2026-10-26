@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { normalizeSpaceType } from "@/lib/space-types";
+import { normalizeSpaceType } from "@/lib/workspaces/space-types";
 import { prisma } from "@/lib/prisma";
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 import { canManageWorkspace, forbiddenResponse } from "@/lib/ownership";

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { notifyPendingJoinRequestsOf } from "@/lib/company-join";
-import { checkOtp } from "@/lib/otp";
+import { notifyPendingJoinRequestsOf } from "@/lib/company/join";
+import { checkOtp } from "@/lib/auth/otp";
 
 
 

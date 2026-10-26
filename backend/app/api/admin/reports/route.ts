@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 import { getKsaNow } from "@/lib/time-utils";
-import { directBookingEnd, getOccupiedSeatsToday, startOfDay } from "@/lib/capacity";
+import { directBookingEnd, getOccupiedSeatsToday, startOfDay } from "@/lib/booking/capacity";
 
 const PERIODS = ["today", "week", "month", "year"] as const;
 type Period = (typeof PERIODS)[number];

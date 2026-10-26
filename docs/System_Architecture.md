@@ -5,11 +5,11 @@ This document describes the platform's technical architecture, the data flow bet
 ## 1. Tech Stack
 - **Frontend:** a **Next.js 16** application (App Router, Turbopack) with **React 19**, **TypeScript**, **Tailwind CSS 4** and Lucide icons, using the **Tajawal** font through `next/font` for Arabic text.
 - **Backend API:** routes built with **Next.js Route Handlers** (`app/api/**/route.ts`) on Node.js with TypeScript, talking to the database through Prisma. (There is no separate Express server.)
-- **Hosting:** the QA deployment runs both the frontend and the backend on **Render** (free plan, built from the `develop` branch). The free plan stops services when its monthly instance-hours are used up, so production hosting must be paid or serverless (see `PRODUCTION_CHECKLIST.md`).
+- **Hosting:** the QA deployment runs both the frontend and the backend on **Render** (free plan, built from the `develop` branch). The free plan stops services when its monthly instance-hours are used up, so production hosting must be paid or serverless (see `Production_Checklist.md`).
 - **Database:** **Neon PostgreSQL** — a serverless cloud relational database suited to financial and booking systems.
 - **ORM:** Prisma ORM v6 for database access and programmatic migrations.
 - **Authentication and security:** JWT (JSON Web Tokens) valid for 24 hours with a revocation list on logout and a database ban check on every request, password hashing with bcryptjs, role-based access control (RBAC), one-time email codes (OTP) for sign-up and sign-in, and an international country-code picker with a standard phone-validation library (E.164 format) instead of a fixed Saudi regular expression.
-- **Transactional email:** the **Resend API** sends four emails only: the sign-up and sign-in verification codes and the partner approval and rejection notices. Everything else is an in-app notification. The sender is still Resend's test address, so real delivery needs a verified domain. Full list in `Notifications_and_Emails.md`.
+- **Transactional email:** the **Resend API** sends five emails only: the sign-up and sign-in verification codes, the password-reset code, and the partner approval and rejection notices. Everything else is an in-app notification. Until `RESEND_FROM_EMAIL` is set to an address on a domain verified in Resend, the sender is Resend's test address, which only delivers to the Resend account owner. Full list in `Notifications_and_Emails.md`.
 - **Internationalization (i18n):** JSON translation dictionaries (`ar` / `en`) with a strict type, a language provider (`I18nProvider`) and a system-message layer; see section 5.
 - **Open API documentation:** full interactive OpenAPI 3.0 documentation through **Swagger UI** at `/api-doc`.
 
@@ -110,7 +110,7 @@ graph TD
 A company employee is **not a separate role**: the account is `B2C` with `User.companyId` set, and the HR administrator is the `HR_ADMIN` user in `Company.hrAdminId` (one company per HR administrator). Full role model and permission matrix: `SRS.md`, section 2.F.
 
 1. **Employee sign-up:** under "Organization / B2B → Company employee" the person creates their own `B2C` account and enters the HR administrator's email. The browser never sends a company identifier.
-2. **Request:** the server finds the company by the HR email and records a `CompanyJoinRequest` (`PENDING`). After the employee verifies their email, the HR administrator receives an in-app notification (`lib/company-join.ts`).
+2. **Request:** the server finds the company by the HR email and records a `CompanyJoinRequest` (`PENDING`). After the employee verifies their email, the HR administrator receives an in-app notification (`lib/company/join.ts`).
 3. **Decision:** the HR administrator approves or declines (`PATCH /api/company-join-requests/{id}`). Approval sets `User.companyId` in one transaction and cancels the person's other pending requests; the employee is notified and sees the company on the next load.
 4. **Alternative:** the HR administrator adds an existing member by email (`POST /api/companies/{id}/employees`); this also settles that member's pending requests.
 5. **Leaving:** only the HR administrator removes a member (`DELETE /api/companies/{id}/employees/{userId}`; a member's own attempt is refused with 403); the HR administrator account itself cannot be removed.
@@ -140,22 +140,21 @@ A company employee is **not a separate role**: the account is `B2C` with `User.c
 ---
 
 ### F. Notifications and Email
-The server writes in-app notifications inside the route that performs the action (best effort, never blocking it); the browser creates a few more and saves them through `POST /api/notifications`. Email goes through `lib/mailer.ts` and covers verification codes and partner decisions only. The complete matrix of triggers, senders, recipients and working status, including what is promised but not yet built, is in `Notifications_and_Emails.md`.
+The server writes in-app notifications inside the route that performs the action (best effort, never blocking it); the browser creates a few more and saves them through `POST /api/notifications`. Email goes through `lib/mailer.ts` and covers verification codes, the password-reset code and partner decisions only. The complete matrix of triggers, senders, recipients and working status, including what is promised but not yet built, is in `Notifications_and_Emails.md`.
 
 ### G. Booking Rescheduling
-`POST /api/hourly-bookings/{id}/reschedule` and `POST /api/direct-bookings/{id}/reschedule` move a booking once, for free. Under the per-venue advisory lock used by new bookings, the server re-checks status and count, applies the notice window (6 hours individual, 24 hours HR administrator or company-funded), the operating hours and the fixed two-hour session grid, the 30-day horizon and the capacity or clash check (not counting the booking's own seats), settles any price difference on the wallet that paid (`lib/reschedule.ts`: the recorded payment is updated so a later refund returns the right amount), updates the booking and, for daily bookings, offers the freed seat to the waitlist. Rules: `SRS.md` FR-BOOK-07 and `PRD.md` section 14.1.
-
-### I. One-time codes and password recovery
-`lib/otp.ts` issues a random six-digit code from the secure generator (`crypto.randomInt`), stores only its bcrypt hash in `OtpCode` with a 10-minute expiry and an attempts counter, and cancels the user's earlier unused codes of that purpose. Checking a code counts wrong guesses (cancelled after five) and uses a right one up in one conditional update, so it works once even when two requests race. `deliverOtp` sends the email through `lib/mailer.ts`; with no real `RESEND_API_KEY` it prints the code in the server console and never logs it once a key exists. The sender is `RESEND_FROM_EMAIL` (default `onboarding@resend.dev`). Password recovery: `forgot-password` (same answer for any address, 30-second cooldown), `verify-reset-code` (checks without using up) and `reset-password` (bcrypt, ends other sessions and waiting codes). There is no shared test code. New passwords go through `lib/password-policy.ts` (length, character kinds, no sequential characters).
+`POST /api/hourly-bookings/{id}/reschedule` and `POST /api/direct-bookings/{id}/reschedule` move a booking once, for free. Under the per-venue advisory lock used by new bookings, the server re-checks status and count, applies the notice window (6 hours individual, 24 hours HR administrator or company-funded), the operating hours and the fixed two-hour session grid, the 30-day horizon and the capacity or clash check (not counting the booking's own seats), settles any price difference on the wallet that paid (`lib/booking/reschedule.ts`: the recorded payment is updated so a later refund returns the right amount), updates the booking and, for daily bookings, offers the freed seat to the waitlist. Rules: `SRS.md` FR-BOOK-07 and `PRD.md` section 14.1.
 
 ### H. My Tickets
 The ticket owner reads their tickets (`GET /api/tickets` returns only their own, with the replies), answers (`POST /api/ticket-replies`, which notifies the Super Admins) and can close their own ticket; reopening or moving a ticket along is limited to the Super Admin.
 
+### I. One-time codes and password recovery
+`lib/auth/otp.ts` issues a random six-digit code from the secure generator (`crypto.randomInt`), stores only its bcrypt hash in `OtpCode` with a 10-minute expiry and an attempts counter, and cancels the user's earlier unused codes of that purpose. Checking a code counts wrong guesses (cancelled after five) and uses a right one up in one conditional update, so it works once even when two requests race. `deliverOtp` sends the email through `lib/mailer.ts`; with no real `RESEND_API_KEY` it prints the code in the server console and never logs it once a key exists. The sender is `RESEND_FROM_EMAIL` (default `onboarding@resend.dev`). Password recovery: `forgot-password` (same answer for any address, 30-second cooldown), `verify-reset-code` (checks without using up) and `reset-password` (bcrypt, ends other sessions and waiting codes). There is no shared test code. New passwords go through `lib/auth/password-policy.ts` (length, character kinds, no sequential characters).
 
 ## 4. Hosting and Data Localization (Hosting & Deployment)
 * **Frontend and backend:** the QA deployment is on **Render** (free plan). Production hosting is still to be decided and must not use the free instance-hours plan.
-* **Database:** **Neon PostgreSQL**. Schema changes reach it through the idempotent startup sync in `backend/lib/db-schema-sync.ts` (not `prisma migrate deploy`). QA and production must use separate databases.
-* **Email API:** integrated with **Resend** to ensure immediate delivery of email without landing in the spam folder.
+* **Database:** **Neon PostgreSQL**. Schema changes reach it through the idempotent startup sync in `backend/lib/db/schema-sync.ts` (not `prisma migrate deploy`). QA and production must use separate databases.
+* **Email API:** **Resend**, sending from `RESEND_FROM_EMAIL`. Reliable delivery (and staying out of spam folders) needs a domain verified in Resend with its SPF and DKIM records.
 * **Deployment management (CI/CD):** automatic linking of the GitHub repository so updates are deployed once reviewed and confirmed stable.
 
 ---
@@ -177,7 +176,7 @@ The ticket owner reads their tickets (`GET /api/tickets` returns only their own,
 1. **Authentication:** a 24-hour JWT, a revocation list, and a database check of the ban (`isBanned`) and approval (`ApprovalStatus`) status.
 2. **Authorization:** role checks on every route, and an ownership helper (`lib/ownership.ts`) that resolves a partner's spaces and scopes queries (payouts, rooms, booking lists).
 3. **Hiding:** hidden spaces are withheld on the server from everyone except the Super Admin and the owner.
-4. **Data integrity:** database transactions, advisory locks for idempotency keys, and organized cascading deletion (`lib/cascade-delete.ts`).
+4. **Data integrity:** database transactions, advisory locks for idempotency keys, and organized cascading deletion (`lib/db/cascade-delete.ts`).
 5. **Schema synchronization:** Prisma migration files plus `ensureDatabaseSchema` (safely adding columns with `IF NOT EXISTS`), called on sign-in; calling `/api/db-sync` after every deployment that adds columns is recommended.
 
 ---
@@ -198,10 +197,45 @@ The ticket owner reads their tickets (`GET /api/tickets` returns only their own,
 4. **Migrations:** adopt `prisma migrate deploy` as an official CI/CD step and reduce reliance on runtime synchronization.
 5. **Events and notifications:** move notifications to a job queue to avoid slowing the booking path at scale.
 6. **Monitoring and tracing:** add structured logs, error tracking (for example Sentry) and booking and payment metrics.
-7. **Automated tests:** verification is currently manual and through TypeScript; add unit tests for the sensitive logic (capacity, operating hours, wallets, refunds) and integration tests for the critical routes.
+7. **Automated tests:** Vitest unit tests, 13 API integration suites and Playwright browser suites now exist (`Testing.md`). Next: run them in CI on every pull request against a disposable database.
 
 ### C. Documentation improvements
 1. **Bring Swagger up to date:** add the `units` and `availability` routes and the scoped payouts to the OpenAPI description.
 2. **Sequence diagram:** draw the payment flow with the compensating rollback for the investor presentation.
 3. **Arabic screenshots:** attach RTL screenshots for the marketing presentation.
 4. **Success metrics:** connect the KPIs in the PRD to the live reports dashboard to present real figures.
+
+---
+
+## 8. Code Organization
+
+```text
+frontend/
+  app/            Next.js routes (page.tsx, layout.tsx) and the screens of the single-page app:
+                  individual/, organization/, provider/, admin/, support/, Auth/, spaces/, plus app.tsx
+                  (screen switcher) and store.tsx (app state and every API call)
+  components/     shared components grouped by feature: auth/, bookings/, company/, landing/, layout/,
+                  spaces/, wallet/; primitives in ui/
+  hooks/          reusable React hooks
+  lib/            pure helpers (booking lifecycle, plan coverage, password policy, server-side space loading)
+  services/api.ts typed client for the backend API
+  types/          domain types and booking / pricing helpers
+  i18n/           dictionaries, provider and the server-message registry
+  data/           demo venues used only when the API is unreachable
+backend/
+  app/api/        route handlers, one folder per resource
+  lib/auth/       token checks, logout blacklist, one-time codes, password policy, super admin, login lockout
+  lib/booking/    capacity, booking lifecycle, rescheduling
+  lib/company/    fund allocation, join requests, team helpers
+  lib/workspaces/ space types, operating hours, visibility, distance
+  lib/db/         schema sync, seed data, Arabic backfill, cascading deletes
+  lib/            prisma client, mailer, wallet, ownership, errors, bilingual and time helpers; swagger/ (OpenAPI config)
+  prisma/         schema and SQL migrations
+  scripts/        seed-accounts.mjs and local PostgreSQL helpers
+  tests/          Vitest unit tests and the api-qa/ integration suites
+```
+
+Naming: React components and screens use PascalCase file names; hooks start with `use`; helper modules, routes and
+folders use kebab-case. The password policy and the booking lifecycle exist on both sides with the same file name
+(`lib/password-policy.ts`, `lib/booking-lifecycle.ts` in the frontend; `lib/auth/password-policy.ts`,
+`lib/booking/lifecycle.ts` in the backend) and must be kept in step.

@@ -4,11 +4,11 @@ import { useState, useRef, useEffect } from 'react';
 import { Menu, X, User as UserIcon, LogOut, ChevronDown, Calendar, Building2, Users, Settings, CreditCard, HelpCircle, LifeBuoy, Wallet, Bell, CheckCheck, ChevronRight, Sparkles, ShoppingBag, Clock } from 'lucide-react';
 import { formatRelativeTime } from '@/i18n/relative-time';
 import { useApp } from '@/app/store';
-import Logo from './logo';
+import Logo from './Logo';
 import UserAvatar from '@/components/ui/UserAvatar';
 import LanguageSwitcher from './LanguageSwitcher';
-import WalletModal from '@/components/ui/WalletModal';
-import SharedWalletModal from '@/components/ui/SharedWalletModal';
+import WalletModal from '@/components/wallet/WalletModal';
+import SharedWalletModal from '@/components/wallet/SharedWalletModal';
 
 export function WalletButton({ onClick, className = '' }: { onClick?: () => void; className?: string }) {
   const { t } = useI18n();

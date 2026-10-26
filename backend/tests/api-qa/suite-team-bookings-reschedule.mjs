@@ -79,7 +79,8 @@ check('the member sees the desk booking, an outsider does not',
   ((await api('/direct-bookings', { token: emp2.token })).body || []).some((b) => b.id === teamDirect.body?.id) &&
   !((await api('/direct-bookings', { token: outsider.token })).body || []).some((b) => b.id === teamDirect.body?.id));
 const now = ksaNow();
-const liveBk = await hb(hr.userId, roomQr, new Date(now.getTime() - 10 * 60_000), new Date(now.getTime() + 110 * 60_000), [emp1.userId]);
+// A session that is running right now, booked by HR for the employee
+await hb(hr.userId, roomQr, new Date(now.getTime() - 10 * 60_000), new Date(now.getTime() + 110 * 60_000), [emp1.userId]);
 const scan = await api('/qr-check-ins', { method: 'POST', token: emp1.token, body: { workspaceId: ws.id, sectionId: roomQr.sid } });
 check('the employee checks in with their own QR code for a booking made for them', scan.status === 201 || scan.status === 200, scan.status + ' ' + JSON.stringify(scan.body));
 check('an outsider cannot check in to it', (await api('/qr-check-ins', { method: 'POST', token: outsider.token, body: { workspaceId: ws.id, sectionId: roomQr.sid } })).status === 403);

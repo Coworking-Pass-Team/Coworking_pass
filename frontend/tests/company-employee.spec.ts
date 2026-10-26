@@ -1,11 +1,11 @@
 import { test, expect, Page, APIRequestContext } from '@playwright/test';
-import { plantOtp } from './otp';
-import { TEAM, TEAM_PASSWORD } from './accounts';
+import { plantOtp } from './helpers/otp';
+import { TEAM, TEAM_PASSWORD } from './helpers/accounts';
 
 /**
  * Company employee experience (own wallet only, funds allocated by HR), "My tickets", the reschedule dialog,
  * the spaces page shell and the password-reset screens, against the local stack (frontend on 3000, backend on
- * 3001 with an empty RESEND_API_KEY), signed in as the seeded team accounts (ACCOUNTS.md). One-time codes are planted in
+ * 3001 with an empty RESEND_API_KEY), signed in as the seeded team accounts (docs/Accounts.md). One-time codes are planted in
  * the local QA database (set QA_DATABASE_URL), because real codes are random and emailed.
  */
 const BASE_URL = process.env.QA_BASE_URL || 'http://localhost:3000';

@@ -25,15 +25,15 @@ import {
 } from 'lucide-react';
 import { useApp } from '@/app/store';
 import { useSpaceText } from '@/i18n/space-text';
-import { Booking, BookingStatus, getHourlyPriceForDuration, getBookingPrice, isCancellationRefundEligible, calculateDailyDurationDays } from '@/types/types';
+import { Booking, BookingStatus, getHourlyPriceForDuration, getBookingPrice, isCancellationRefundEligible, calculateDailyDurationDays } from '@/types';
 import Modal from '@/components/ui/Modal';
-import BookingQrModal from '@/components/BookingQrModal';
+import BookingQrModal from '@/components/bookings/BookingQrModal';
 import HourlyBookingCard from '@/components/bookings/HourlyBookingCard';
 import BookingSortSelect from '@/components/bookings/BookingSortSelect';
 import BulkActionBar from '@/components/bookings/BulkActionBar';
-import { useBookingSelection } from '@/components/bookings/useBookingSelection';
-import { hourlyEffectiveStatus, sortBookings, type BookingSortOrder } from '@/lib/bookingLifecycle';
-import { deleteDirectBookingApi, getHourlyBookingsApi, updateHourlyBookingApi, HourlyBookingItemApi } from '@/services/authApi';
+import { useBookingSelection } from '@/hooks/useBookingSelection';
+import { hourlyEffectiveStatus, sortBookings, type BookingSortOrder } from '@/lib/booking-lifecycle';
+import { deleteDirectBookingApi, getHourlyBookingsApi, updateHourlyBookingApi, HourlyBookingItemApi } from '@/services/api';
 import RescheduleModal, { type RescheduleTarget } from '@/components/bookings/RescheduleModal';
 
 const FALLBACK_SPACE_IMAGE = 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80';

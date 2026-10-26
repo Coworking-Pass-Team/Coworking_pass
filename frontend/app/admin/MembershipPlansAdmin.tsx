@@ -24,7 +24,7 @@ import {
   updateMembershipPlanApi,
   deleteMembershipPlanApi,
   MembershipPlan 
-} from '@/services/authApi';
+} from '@/services/api';
 import Modal from '@/components/ui/Modal';
 
 export default function MembershipPlansAdmin() {
