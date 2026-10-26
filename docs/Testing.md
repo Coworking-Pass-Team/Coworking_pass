@@ -14,7 +14,7 @@ How Coworking Pass is tested in Version 2.0, how to run each layer, and where th
 
 All integration and browser tests run against the **local** stack only: the backend on port 3001, the frontend on
 port 3000, and a local PostgreSQL database (the team uses a Docker container). They create throwaway accounts and
-write known one-time codes straight into that database, so never point them at Render, Neon or production.
+write known one-time codes straight into that database, so never point them at Vercel, Neon or production.
 
 ```bash
 # backend

@@ -23,7 +23,7 @@ import { useSpaceText } from '@/i18n/space-text';
 import { useLabels } from '@/i18n/labels';
 import { Booking, BookingStatus, getBookingPrice, calculateDailyDurationDays } from '@/types';
 import { updateDirectBookingApi } from '@/services/api';
-import HourlyBookingsAdmin from './HourlyBookingsAdmin';
+import HourlyBookingsAdmin from './HourlyBookings';
 import BookingSortSelect from '@/components/bookings/BookingSortSelect';
 import BulkActionBar from '@/components/bookings/BulkActionBar';
 import { useBookingSelection } from '@/hooks/useBookingSelection';

@@ -83,7 +83,7 @@ All five emails are sent through `lib/mailer.ts` from the address in `RESEND_FRO
 * A refusal from Resend is now logged (`[Email] Resend refused ...`) and reported to the caller as "not sent". The screen still says the code was sent, because for sign-in and password reset the answer must not reveal whether the account exists.
 * There is no shared test code: every sign-in and sign-up gets its own random code by email. Automated tests write a known code into their local database instead (`backend/tests/api-qa/plant-otp.mjs`).
 
-To confirm the current state on the live backend, open the Render backend log and look for `Error sending OTP email`, or send a test email from the Resend dashboard.
+To confirm the current state on the live backend, open the backend project's runtime logs in Vercel and look for `Error sending OTP email`, or send a test email from the Resend dashboard.
 
 ## 6. Gaps, defects and things the plan promised but the code does not do
 

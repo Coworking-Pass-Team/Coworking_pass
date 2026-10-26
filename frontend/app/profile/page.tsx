@@ -5,9 +5,9 @@ import { useApp } from '@/app/store';
 import { useI18n } from '@/i18n';
 import { DashboardLayout } from '@/app/app';
 import ProfileSettings from '@/app/individual/ProfileSettings';
-import OrgProfile from '@/app/organization/OrgProfile';
+import OrgProfile from '@/app/organization/ProfileSettings';
 import ProviderProfileSettings from '@/app/provider/ProfileSettings';
-import AdminSettings from '@/app/admin/AdminSettings';
+import AdminSettings from '@/app/admin/Settings';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 

@@ -1,6 +1,6 @@
 # Team accounts
 
-One verified account per role, owned by the team, for development and the QA stage on Render.
+One verified account per role, owned by the team, for development and the live QA environment on Vercel.
 
 **This repository is public, so the emails and the shared password are not written here.** They live in
 `backend/scripts/team-accounts.json`, which is git-ignored. Ask a teammate for that file.
@@ -12,7 +12,7 @@ valid for 10 minutes. There is no shared test code any more, so every address in
 ```bash
 cd backend
 npm run seed:accounts                                  # local database: creates the accounts, or resets them
-node scripts/seed-accounts.mjs --allow-remote          # the Render/Neon database (asked for on purpose)
+node scripts/seed-accounts.mjs --allow-remote          # the Neon database behind the live QA site (on purpose)
 ```
 
 - Without `--allow-remote` the script refuses any database that is not on `localhost`.
