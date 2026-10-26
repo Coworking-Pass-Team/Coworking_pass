@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { validateHourlyWindow, hhmmToMinutes, isValidHhmm, getOperatingRange } from "@/lib/operating-hours";
+import { validateHourlyWindow, hhmmToMinutes, isValidHhmm, getOperatingRange } from "@/lib/workspaces/operating-hours";
 
 // Booking timestamps hold KSA wall-clock time in their UTC fields
 const at = (h: number, m = 0, day = 15) => new Date(Date.UTC(2026, 5, day, h, m));

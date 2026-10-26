@@ -18,7 +18,7 @@ import {
   Calendar
 } from 'lucide-react';
 import { useApp } from '@/app/store';
-import { getPaymentsApi, PaymentItemApi } from '@/services/authApi';
+import { getPaymentsApi, PaymentItemApi } from '@/services/api';
 
 export default function PaymentsAdmin() {
   const { t, translateMessage, lang, formatDate } = useI18n();

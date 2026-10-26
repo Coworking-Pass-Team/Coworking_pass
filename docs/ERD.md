@@ -31,9 +31,9 @@ erDiagram
     COMPANY_WALLET_TRANSACTIONS {
         uuid id PK
         uuid company_id FK "ON DELETE CASCADE"
-        uuid user_id "Nullable - who triggered the movement"
+        uuid user_id "Nullable - who triggered the movement (for ALLOCATION: the employee who received it)"
         float amount
-        string type "DEPOSIT, WITHDRAW, REFUND"
+        string type "DEPOSIT, WITHDRAW, REFUND, ALLOCATION"
         string description
         string reference_id "Nullable - idempotency key or booking id; unique per company and type in practice"
         float balance_after "Balance right after this movement"
@@ -377,7 +377,7 @@ The database is organized into **9 main sections**:
 
 ### 1. Core Entities
 - **`USERS`**: all users (guests, individuals, administrators, partners), their roles, email verification, and the administrative suspension status `is_banned`.
-- **`COMPANIES`**: joined B2B companies and the number of memberships allocated to their employees, plus the organization's shared wallet balance `balance`. The balance changes only through atomic conditional updates, and every movement is recorded in `COMPANY_WALLET_TRANSACTIONS`. A company employee has **no role of their own**: they are a `B2C` user with `company_id` set (see the role model in `SRS.md`, section 2.F).
+- **`COMPANIES`**: joined B2B companies and the number of memberships allocated to their employees, plus the organization's shared wallet balance `balance`. The balance changes only through atomic conditional updates, and every movement is recorded in `COMPANY_WALLET_TRANSACTIONS`. Employees never see this balance: the HR administrator spends it on team bookings or allocates it into employees' own wallets (`ALLOCATION`). A company employee has **no role of their own**: they are a `B2C` user with `company_id` set (see the role model in `SRS.md`, section 2.F).
 - **`COMPANY_JOIN_REQUESTS`**: a member asking to join a company team. One pending request per person; the company's HR admin approves or declines it and the member can withdraw it. Approving sets `USERS.company_id`.
 - **`PARTNERS`**: workspace partners, their tax data and Saudi commercial registration (CR / `tax_number`), and the partner approval status set by the Super Admin (`APPROVED`, `PENDING_APPROVAL`, `REJECTED`).
 
@@ -401,7 +401,7 @@ The database is organized into **9 main sections**:
 
 ### 6. Verification and Security
 - **`QR_CHECK_INS`**: the live log of QR scans at the workspace doors to verify entry.
-- **`OTP_CODES`**: stores temporary verification codes for account registration, sign-in and password recovery, to ensure they are hashed and time-limited.
+- **`OTP_CODES`**: stores temporary verification codes for account registration, sign-in and password recovery, to ensure they are hashed and time-limited: valid 10 minutes, single use, and cancelled after five wrong guesses (`attempts`).
 
 ### 7. Notifications and Loyalty
 - **`NOTIFICATIONS`**: all outgoing notifications (email or in-app) for each user, with read tracking and the different occasions. The `channel` value is only a label; email is sent directly by the mailer and is not recorded. See `Notifications_and_Emails.md` for which events create rows.
@@ -411,7 +411,7 @@ The database is organized into **9 main sections**:
 ### 8. Digital Wallets and Ledger
 - **`WALLETS`**: each user's digital wallet, which allows prepaid top-ups, instant payment, and receiving refund amounts instantly without waiting for bank schedules.
 - **`WALLET_TRANSACTIONS`**: the log of deposit, withdrawal and refund movements (`DEPOSIT`, `WITHDRAW`, `REFUND`) that tracks the balance after each transaction `balance_after`. `reference_id` works as an idempotency key.
-- **`COMPANY_WALLET_TRANSACTIONS`**: the ledger of the corporate shared wallet with the same structure (`DEPOSIT`, `WITHDRAW`, `REFUND`) and `balance_after`; deleted automatically with the company (`ON DELETE CASCADE`).
+- **`COMPANY_WALLET_TRANSACTIONS`**: the ledger of the corporate shared wallet with the same structure (`DEPOSIT`, `WITHDRAW`, `REFUND`, plus `ALLOCATION` when the HR administrator moves money into an employee's wallet) and `balance_after`; deleted automatically with the company (`ON DELETE CASCADE`).
 
 ### 9. Tickets and Support
 - **`TICKETS`**: support tickets raised by users and companies (with an `enterprise` category available for tailored-offer requests), with the text `message`, the `category`, the `priority`, and status tracking (`OPEN`, `IN_PROGRESS`, `CLOSED`). The company is optional and is resolved on the server from the requester's record.
@@ -428,5 +428,7 @@ The database is organized into **9 main sections**:
 | **Hall and theater sessions** | A fixed two-hour session between `opening_time` and `closing_time` that ends by 10:00 PM at the latest; a room is booked for one session at a time (no time overlap on the same `section_id`), and the rest of the day is not locked. |
 | **Balances** | Deducted with an atomic conditional update inside a database transaction (`balance >= amount`); a balance can never become negative. |
 | **Idempotency** | A `reference_id` key for the same wallet and the same type is applied only once, to prevent double deduction or double refund. |
-| **Cascading deletion** | Deleting a user or partner removes their dependent data in the correct order through `cascade-delete` without breaking foreign keys. |
+| **Fund allocation** | One transaction under an advisory lock: the company balance is decreased conditionally, each employee's wallet is credited with a `DEPOSIT`, and the company ledger gets one `ALLOCATION` row per employee. The `requestId` makes a repeated request a no-op. |
+| **Rescheduling** | `reschedule_count` allows one free move per booking; `rescheduled_from` keeps the original start; capacity is re-checked under the same lock as new bookings. |
+| **Cascading deletion** | Deleting a user or partner removes their dependent data in the correct order through `lib/db/cascade-delete.ts` without breaking foreign keys. |
 | **Hidden spaces** | A hub with `is_visible = false` is neither shown nor bookable for anyone except the administrator and the hub's owner, enforced on the server. |

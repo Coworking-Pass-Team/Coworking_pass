@@ -14,10 +14,10 @@ import Landing from './Landing';
 import Browse from './spaces/page';
 import SpaceDetails from './spaces/[id]/page';
 import Pricing from './Pricing';
-import Contact from './contact';
+import Contact from './Contact';
 import { LoginScreen, SignUpScreen, ChooseAccountType, ForgotPasswordScreen, OtpVerificationScreen, ResetPasswordScreen } from '@/app/Auth/page';
 import AccountSuspendedScreen from './Auth/AccountSuspendedScreen';
-import Notifications from '@/Notifications';
+import Notifications from '@/app/Notifications';
 
 // Individual screens
 import IndividualDashboard from './individual/Dashboard';

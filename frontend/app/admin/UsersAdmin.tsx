@@ -28,8 +28,8 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useApp } from '@/app/store';
-import { User, UserRole } from '@/types/types';
-import { createCompanyApi } from '@/services/authApi';
+import { User, UserRole } from '@/types';
+import { createCompanyApi } from '@/services/api';
 import Badge from '@/components/ui/Badge';
 
 const FORM_ROLES: { value: UserRole; label: string }[] = [

@@ -6,7 +6,7 @@ import { useApp } from '@/app/store';
 import { useI18n } from '@/i18n';
 import { durationLabel } from '@/i18n/duration';
 import { useSpaceText } from '@/i18n/space-text';
-import { timeStringToMinutes, type Space, type SpaceUnitAvailability } from '@/types/types';
+import { timeStringToMinutes, type Space, type SpaceUnitAvailability } from '@/types';
 
 const hhmmToMinutes = (value: string) => {
   const [h, m] = value.split(':').map((n) => parseInt(n, 10) || 0);

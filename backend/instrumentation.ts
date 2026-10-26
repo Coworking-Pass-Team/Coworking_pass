@@ -7,11 +7,11 @@ export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
 
   try {
-    const { ensureDatabaseSchema } = await import("./lib/db-schema-sync");
+    const { ensureDatabaseSchema } = await import("./lib/db/schema-sync");
     const result = await ensureDatabaseSchema();
     console.log("[Startup] Database schema sync:", result.message);
     // Arabic names, descriptions and cities of the standard venues and their rooms (fills empty fields only)
-    const { backfillStandardArabic } = await import("./lib/arabic-backfill");
+    const { backfillStandardArabic } = await import("./lib/db/arabic-backfill");
     const filled = await backfillStandardArabic();
     console.log("[Startup] Arabic backfill:", filled);
   } catch (error) {

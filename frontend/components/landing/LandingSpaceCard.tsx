@@ -3,7 +3,7 @@
 import { useI18n } from '@/i18n';
 import Link from 'next/link';
 import { MapPin, Star, Check } from 'lucide-react';
-import { Space, getEffectiveSpacePrice } from '@/types/types';
+import { Space, getEffectiveSpacePrice } from '@/types';
 import { useApp } from '@/app/store';
 import { useSpaceText } from '@/i18n/space-text';
 import Badge from '@/components/ui/Badge';

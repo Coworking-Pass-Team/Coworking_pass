@@ -23,7 +23,7 @@ import {
 import UnitPicker, { useUnitAvailability, isUnitSlotBooked } from '@/components/spaces/UnitPicker';
 import { useApp } from '@/app/store';
 import { useSpaceText } from '@/i18n/space-text';
-import { createPointsTransactionApi, getLoyaltyPointsApi } from '@/services/authApi';
+import { createPointsTransactionApi, getLoyaltyPointsApi } from '@/services/api';
 import {
   BookingPlan,
   BookingType,
@@ -55,7 +55,7 @@ import {
   getFilteredEndTimes,
   formatHourlyTimeRange,
   timeStringToMinutes
-} from '@/types/types';
+} from '@/types';
 
 const STEP_KEYS = ['tb.stepType', 'tb.stepTeam', 'tb.stepSchedule', 'tb.stepReview'] as const;
 const STEPS = STEP_KEYS;

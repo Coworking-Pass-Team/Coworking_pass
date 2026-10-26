@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import { prisma } from "@/lib/prisma";
 import { removeFromBlacklist } from "@/lib/auth/token-blacklist";
-import { checkOtp } from "@/lib/otp";
+import { checkOtp } from "@/lib/auth/otp";
 
 /**
  * @swagger

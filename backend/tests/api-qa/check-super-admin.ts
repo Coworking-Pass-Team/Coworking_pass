@@ -1,7 +1,7 @@
 // Run with a scratch database:  DATABASE_URL=... npx tsx tests/api-qa/check-super-admin.ts
 import bcrypt from "bcryptjs";
 import { prisma } from "../../lib/prisma";
-import { provisionSuperAdmin, planSuperAdmin, LEGACY_ADMIN_EMAIL } from "../../lib/super-admin";
+import { provisionSuperAdmin, planSuperAdmin, LEGACY_ADMIN_EMAIL } from "../../lib/auth/super-admin";
 
 let failed = 0;
 const check = (name: string, ok: boolean, detail = "") => { if (!ok) failed++; console.log((ok ? "PASS " : "FAIL ") + name + (detail ? "  -> " + detail : "")); };

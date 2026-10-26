@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { resolveAttendeeIds, notifyAttendees } from '@/lib/company-team';
+import { resolveAttendeeIds, notifyAttendees } from '@/lib/company/team';
 import { prisma } from '@/lib/prisma'
 import { getTokenFromRequest, unauthorizedResponse, suspendedResponse } from "@/lib/auth/verify-token";
-import { seedStandardWorkspaces } from '@/lib/seed-data';
+import { seedStandardWorkspaces } from '@/lib/db/seed-data';
 import { getKsaNow, parseDateAndTimeToKsaDate } from '@/lib/time-utils';
-import { hourlyBookingEffectiveStatus } from '@/lib/booking-lifecycle';
-import { effectiveCapacity, getOccupiedSeats } from '@/lib/capacity';
-import { hiddenWorkspaceError } from '@/lib/workspace-visibility';
+import { hourlyBookingEffectiveStatus } from '@/lib/booking/lifecycle';
+import { effectiveCapacity, getOccupiedSeats } from '@/lib/booking/capacity';
+import { hiddenWorkspaceError } from '@/lib/workspaces/visibility';
 import { getOwnedWorkspaceIds } from '@/lib/ownership';
-import { validateHourlyWindow, isFixedSlotSection } from '@/lib/operating-hours';
+import { validateHourlyWindow, isFixedSlotSection } from '@/lib/workspaces/operating-hours';
 import type { Prisma, SectionType, LifecycleStatus } from "@prisma/client";
 import { errorMessage } from '@/lib/errors';
 

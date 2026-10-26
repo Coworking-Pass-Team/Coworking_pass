@@ -21,13 +21,13 @@ import {
 import { useApp } from '@/app/store';
 import { useSpaceText } from '@/i18n/space-text';
 import { useLabels } from '@/i18n/labels';
-import { Booking, BookingStatus, getBookingPrice, calculateDailyDurationDays } from '@/types/types';
-import { updateDirectBookingApi } from '@/services/authApi';
+import { Booking, BookingStatus, getBookingPrice, calculateDailyDurationDays } from '@/types';
+import { updateDirectBookingApi } from '@/services/api';
 import HourlyBookingsAdmin from './HourlyBookingsAdmin';
 import BookingSortSelect from '@/components/bookings/BookingSortSelect';
 import BulkActionBar from '@/components/bookings/BulkActionBar';
-import { useBookingSelection } from '@/components/bookings/useBookingSelection';
-import { sortBookings, type BookingSortOrder } from '@/lib/bookingLifecycle';
+import { useBookingSelection } from '@/hooks/useBookingSelection';
+import { sortBookings, type BookingSortOrder } from '@/lib/booking-lifecycle';
 
 export default function BookingsAdmin() {
   const { t, localizeTime, translateMessage } = useI18n();

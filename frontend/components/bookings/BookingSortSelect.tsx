@@ -2,7 +2,7 @@
 
 import { ArrowDownWideNarrow, ChevronDown } from 'lucide-react';
 import { useI18n } from '@/i18n';
-import type { BookingSortOrder } from '@/lib/bookingLifecycle';
+import type { BookingSortOrder } from '@/lib/booking-lifecycle';
 
 /** "Newest first / Oldest first" control shown above every bookings list. */
 export default function BookingSortSelect({ value, onChange }: { value: BookingSortOrder; onChange: (order: BookingSortOrder) => void }) {

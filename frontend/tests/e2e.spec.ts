@@ -1,27 +1,11 @@
 import { test, expect, Page } from '@playwright/test';
 
 // ─── Configuration ────────────────────────────────────────────────────────────
-const BASE_URL = 'http://localhost:3000';
-const ADMIN_EMAIL = 'admin@coworkingpass.sa';
-const ADMIN_PASSWORD = 'password';
-const ADMIN_OTP = '123456';
-
-// Generate a unique test user email per run to avoid conflicts
-const TEST_EMAIL = `e2e_test_${Date.now()}@test.com`;
-const TEST_PASSWORD = 'TestPass123!';
-const TEST_NAME = 'E2E Test User';
-const TEST_PHONE = '+966501234567';
+// Smoke checks of the public pages. Signed-in journeys (with planted one-time codes) are in regression.spec.ts
+// and company-employee.spec.ts.
+const BASE_URL = process.env.QA_BASE_URL || 'http://localhost:3000';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-/** Navigate to a screen by clicking a nav element or directly via URL fallback. */
-async function navigateTo(page: Page, screenName: string) {
-  // The site is SPA-based; try clicking the nav link matching the screen
-  const navLink = page.locator(`[data-screen="${screenName}"], a[href*="${screenName}"]`).first();
-  if (await navLink.isVisible({ timeout: 2000 }).catch(() => false)) {
-    await navLink.click();
-  }
-}
 
 /** Wait for the page to stabilize (no loading spinners). */
 async function waitForStable(page: Page, ms = 1500) {
@@ -131,52 +115,6 @@ test.describe('02 - Authentication Flow', () => {
       }
     }
   });
-
-  test('Admin login flow — full 2FA journey', async ({ page }) => {
-    await page.goto(`${BASE_URL}/Auth`);
-    await waitForStable(page);
-    await snap(page, '02_admin_login_start');
-
-    // Fill credentials
-    const emailInput = page.locator('input[type="email"], input[name="email"], input[placeholder*="mail" i]').first();
-    const passInput = page.locator('input[type="password"]').first();
-    
-    await expect(emailInput).toBeVisible({ timeout: 5000 });
-    await emailInput.fill(ADMIN_EMAIL);
-    await passInput.fill(ADMIN_PASSWORD);
-    
-    await snap(page, '02_admin_creds_filled');
-
-    const submitBtn = page.locator('button[type="submit"], button:has-text("Login"), button:has-text("Sign in"), button:has-text("Continue")').first();
-    await submitBtn.click();
-    await waitForStable(page, 2500);
-    await snap(page, '02_admin_after_submit');
-
-    // OTP step — look for OTP input
-    const otpInput = page.locator(
-      'input[name="otp"], input[name="code"], input[placeholder*="otp" i], input[placeholder*="code" i], input[maxlength="6"]'
-    ).first();
-
-    const otpVisible = await otpInput.isVisible({ timeout: 5000 }).catch(() => false);
-    if (otpVisible) {
-      console.log('  OTP input found — filling with 123456');
-      await otpInput.fill(ADMIN_OTP);
-      await snap(page, '02_admin_otp_filled');
-
-      const otpSubmit = page.locator('button[type="submit"], button:has-text("Verify"), button:has-text("Confirm"), button:has-text("Continue")').first();
-      await otpSubmit.click();
-      await waitForStable(page, 2500);
-      await snap(page, '02_admin_logged_in');
-      console.log('  OTP submitted — checking if logged in');
-    } else {
-      console.log('  OTP input not found — checking if auto-navigated after login');
-      await snap(page, '02_after_login_no_otp');
-    }
-
-    // Check if we navigated away from Auth page (i.e., logged in)
-    const currentUrl = page.url();
-    console.log(`  Current URL after login: ${currentUrl}`);
-  });
 });
 
 // ─── Test Suite: 03 — Workspaces Page ────────────────────────────────────────
@@ -268,78 +206,6 @@ test.describe('06 - Profile Page', () => {
     await expect(body).not.toContainText('Application error');
     await expect(body).not.toContainText('Internal Server Error');
     console.log(`  /profile page URL: ${page.url()}`);
-  });
-});
-
-// ─── Test Suite: 07 — Full User Journey (as Admin) ───────────────────────────
-test.describe('07 - Full Admin User Journey', () => {
-  test.beforeEach(async ({ page }) => {
-    // Login as admin before each test in this suite
-    await page.goto(`${BASE_URL}/Auth`);
-    await waitForStable(page);
-
-    const emailInput = page.locator('input[type="email"], input[name="email"], input[placeholder*="mail" i]').first();
-    const passInput = page.locator('input[type="password"]').first();
-    
-    if (await emailInput.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await emailInput.fill(ADMIN_EMAIL);
-      await passInput.fill(ADMIN_PASSWORD);
-      
-      const submitBtn = page.locator('button[type="submit"], button:has-text("Login"), button:has-text("Sign in")').first();
-      await submitBtn.click();
-      await waitForStable(page, 2500);
-
-      // Handle OTP if shown
-      const otpInput = page.locator('input[maxlength="6"], input[name="otp"], input[name="code"]').first();
-      if (await otpInput.isVisible({ timeout: 3000 }).catch(() => false)) {
-        await otpInput.fill(ADMIN_OTP);
-        const otpSubmit = page.locator('button[type="submit"], button:has-text("Verify"), button:has-text("Confirm")').first();
-        await otpSubmit.click();
-        await waitForStable(page, 2500);
-      }
-    }
-  });
-
-  test('After login — can navigate to spaces page', async ({ page }) => {
-    await page.goto(`${BASE_URL}/spaces`);
-    await waitForStable(page, 2000);
-    await snap(page, '07_admin_spaces_after_login');
-
-    const url = page.url();
-    console.log(`  Spaces page after login: ${url}`);
-    const body = page.locator('body');
-    await expect(body).not.toContainText('Application error');
-  });
-
-  test('After login — profile page is accessible', async ({ page }) => {
-    await page.goto(`${BASE_URL}/profile`);
-    await waitForStable(page, 2500);
-    await snap(page, '07_admin_profile');
-
-    const body = page.locator('body');
-    await expect(body).not.toContainText('Application error');
-    // Should see user info
-    const bodyText = await body.textContent();
-    const hasAdminInfo = bodyText?.includes('admin') || bodyText?.includes('Admin') || bodyText?.includes('SUPER');
-    console.log(`  Profile shows admin info: ${hasAdminInfo}`);
-  });
-
-  test('Workspace detail — can click on a space card to see details', async ({ page }) => {
-    await page.goto(`${BASE_URL}/spaces`);
-    await waitForStable(page, 3000);
-
-    // Try to click first workspace card
-    const spaceCard = page.locator('[class*="card"], [class*="workspace"], article').first();
-    const cardVisible = await spaceCard.isVisible({ timeout: 3000 }).catch(() => false);
-    
-    if (cardVisible) {
-      await spaceCard.click();
-      await waitForStable(page, 2000);
-      await snap(page, '07_workspace_detail');
-      console.log('  Clicked on workspace card — captured detail view');
-    } else {
-      console.log('  No clickable workspace card found');
-    }
   });
 });
 

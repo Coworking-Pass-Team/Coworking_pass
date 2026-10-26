@@ -25,9 +25,9 @@ import {
 import QRCode from 'qrcode';
 import { useApp } from '@/app/store';
 import { useSpaceText } from '@/i18n/space-text';
-import BookingQrModal from '@/components/BookingQrModal';
+import BookingQrModal from '@/components/bookings/BookingQrModal';
 import UnitPicker, { useUnitAvailability, isUnitSlotBooked } from '@/components/spaces/UnitPicker';
-import { createDirectBookingApi, createHourlyBookingApi, createPaymentApi, createPointsTransactionApi, getLoyaltyPointsApi } from '@/services/authApi';
+import { createDirectBookingApi, createHourlyBookingApi, createPaymentApi, createPointsTransactionApi, getLoyaltyPointsApi } from '@/services/api';
 import {
   BookingPlan,
   BookingType,
@@ -59,7 +59,7 @@ import {
   formatHourlyTimeRange,
   timeStringToMinutes,
   todayKsa
-} from '@/types/types';
+} from '@/types';
 
 const FALLBACK_SPACE_IMAGE = 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80';
 

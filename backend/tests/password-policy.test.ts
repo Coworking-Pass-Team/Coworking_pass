@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { failedPasswordRules, hasSequentialRun, passwordPolicyError } from "@/lib/password-policy";
+import { failedPasswordRules, hasSequentialRun, passwordPolicyError } from "@/lib/auth/password-policy";
 
 describe("hasSequentialRun", () => {
   it.each(["123", "987", "abc", "cba", "xAbCx", "a789b", "Zyx"])("finds a run in %s", (text) => {

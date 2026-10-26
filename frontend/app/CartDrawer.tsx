@@ -25,7 +25,7 @@ import {
 import { useApp } from '@/app/store';
 import { useSpaceText } from '@/i18n/space-text';
 import { durationLabel } from '@/i18n/duration';
-import { formatHourlyTimeRange } from '@/types/types';
+import { formatHourlyTimeRange } from '@/types';
 
 interface CartDrawerProps {
   isOpen: boolean;

@@ -6,7 +6,7 @@
  *
  * The real emails and the shared password are NOT in the repository (it is public). They are read from
  * scripts/team-accounts.json, which is git-ignored; scripts/team-accounts.example.json shows the shape. Another
- * file can be named with TEAM_ACCOUNTS_FILE. ACCOUNTS.md lists the roles and what each account holds.
+ * file can be named with TEAM_ACCOUNTS_FILE. docs/Accounts.md lists the roles and what each account holds.
  *
  * A database that is not on localhost is refused unless --allow-remote is passed. Sign-in needs a one-time code
  * sent by email, so every email address in the file must be a mailbox the team can read.

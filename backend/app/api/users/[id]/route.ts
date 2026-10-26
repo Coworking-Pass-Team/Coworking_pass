@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getTokenFromRequest, unauthorizedResponse, invalidateBanCache } from "@/lib/auth/verify-token";
 import { Role } from "@prisma/client";
-import { deleteUserCascade } from "@/lib/cascade-delete";
+import { deleteUserCascade } from "@/lib/db/cascade-delete";
 import { blacklistUser, removeFromBlacklist } from "@/lib/auth/token-blacklist";
 /**
  * @swagger

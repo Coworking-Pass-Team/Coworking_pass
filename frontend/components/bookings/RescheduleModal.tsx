@@ -6,9 +6,9 @@ import { useI18n } from '@/i18n';
 import { useApp } from '@/app/store';
 import { useSpaceText } from '@/i18n/space-text';
 import Modal from '@/components/ui/Modal';
-import { getFixedSessionSlots } from '@/types/types';
-import type { Space } from '@/types/types';
-import { rescheduleDirectBookingApi, rescheduleHourlyBookingApi } from '@/services/authApi';
+import { getFixedSessionSlots } from '@/types';
+import type { Space } from '@/types';
+import { rescheduleDirectBookingApi, rescheduleHourlyBookingApi } from '@/services/api';
 
 export interface RescheduleTarget {
   kind: 'hourly' | 'direct';

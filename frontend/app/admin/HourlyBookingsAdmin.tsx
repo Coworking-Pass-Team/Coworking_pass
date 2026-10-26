@@ -33,12 +33,12 @@ import {
   getWorkspaceSectionsApi,
   getHourlyPackagesApi,
   HourlyBookingItemApi 
-} from '@/services/authApi';
+} from '@/services/api';
 import Modal from '@/components/ui/Modal';
 import BookingSortSelect from '@/components/bookings/BookingSortSelect';
 import BulkActionBar from '@/components/bookings/BulkActionBar';
-import { useBookingSelection } from '@/components/bookings/useBookingSelection';
-import { hourlyEffectiveStatus, sortBookings, type BookingSortOrder } from '@/lib/bookingLifecycle';
+import { useBookingSelection } from '@/hooks/useBookingSelection';
+import { hourlyEffectiveStatus, sortBookings, type BookingSortOrder } from '@/lib/booking-lifecycle';
 
 export default function HourlyBookingsAdmin() {
   const { t, translateMessage, lang } = useI18n();

@@ -6,10 +6,12 @@ They create throw-away users directly in the database and write one-time codes t
 `.claude/launch.json` does) so no email is sent, and never point them at a shared or production environment.
 
 ```bash
-npm i -D pg                      # once
-node tests/api-qa/suite-security-wallet-slots.mjs
-node tests/api-qa/suite-company-capacity-payments.mjs
+npm run test:api                                   # every suite, one line each (run-all.mjs)
+node tests/api-qa/suite-security-wallet-slots.mjs  # a single suite, with every check printed
 ```
+
+`check-super-admin.ts` is a separate manual check of super admin provisioning against a scratch database
+(`DATABASE_URL=... npx tsx tests/api-qa/check-super-admin.ts`). More context in `docs/Testing.md`.
 
 Env: `QA_API_URL` (default `http://localhost:3001/api`), `QA_DATABASE_URL` (default local `coworking` DB).
 Covers: IDOR/RBAC, wallet idempotency and overdraft races, hall/theater slot and operating-hour
@@ -25,7 +27,7 @@ Suites: `suite-security-wallet-slots`, `suite-company-capacity-payments`, `suite
 `suite-company-team` (HR adds/removes existing member accounts by email, members cannot remove themselves, nobody else can change the team).
 `suite-team-bookings-reschedule` (bookings made for team members and their check-in, the locked booking PUT, validated rescheduling with price differences, amenity request routing, the customer side of support tickets).
 `suite-allocation-otp` (HR admin allocates company money into employees' wallets: validation, equal split, chosen amounts, atomicity, idempotency, hidden from employees; random one-time codes with expiry, attempt limit and single use; password reset).
-The suites sign in as the seeded super admin from `scripts/team-accounts.json` (git-ignored; the example file is used when it is missing, see `ACCOUNTS.md`); override with `QA_ADMIN_EMAIL` / `QA_ADMIN_PASSWORD`.
+The suites sign in as the seeded super admin from `scripts/team-accounts.json` (git-ignored; the example file is used when it is missing, see `docs/Accounts.md`); override with `QA_ADMIN_EMAIL` / `QA_ADMIN_PASSWORD`.
 `plant-otp.mjs <email> <purpose>` prints a planted code for the browser tests.
 `suite-past-sessions` only runs its time-sensitive checks during Saudi daytime hours.
 Run them against a freshly migrated local database (`prisma migrate deploy`).

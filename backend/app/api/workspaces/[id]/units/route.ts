@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
-import { startOfDay } from "@/lib/capacity";
-import { normalizeSpaceType } from "@/lib/space-types";
+import { startOfDay } from "@/lib/booking/capacity";
+import { normalizeSpaceType } from "@/lib/workspaces/space-types";
 import { parseDateAndTimeToKsaDate } from "@/lib/time-utils";
 
 const ALL_TYPES = ["DESK", "MEETING_ROOM", "THEATER"] as const;

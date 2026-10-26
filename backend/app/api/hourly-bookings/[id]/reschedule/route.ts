@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 import { getKsaNow, parseDateAndTimeToKsaDate } from "@/lib/time-utils";
-import { getOccupiedSeats } from "@/lib/capacity";
-import { effectiveCapacity } from "@/lib/capacity";
-import { isFixedSlotSection, validateHourlyWindow } from "@/lib/operating-hours";
+import { getOccupiedSeats } from "@/lib/booking/capacity";
+import { effectiveCapacity } from "@/lib/booking/capacity";
+import { isFixedSlotSection, validateHourlyWindow } from "@/lib/workspaces/operating-hours";
 import {
   FREE_RESCHEDULES,
   MAX_RESCHEDULE_AHEAD_DAYS,
@@ -14,7 +14,7 @@ import {
   repricedAmount,
   rescheduleNoticeHours,
   settlePriceDifference,
-} from "@/lib/reschedule";
+} from "@/lib/booking/reschedule";
 
 const HOUR_MS = 3_600_000;
 

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { LifeBuoy, MessageSquarePlus, RefreshCw, Send, CheckCircle2, Clock, Loader2, Lock } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { useApp } from '@/app/store';
-import type { SupportTicket, TicketStatus } from '@/types/types';
+import type { SupportTicket, TicketStatus } from '@/types';
 
 const STATUS_STYLE: Record<TicketStatus, string> = {
   open: 'bg-amber-500/15 text-amber-800 border-amber-500/30',

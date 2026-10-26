@@ -9,7 +9,7 @@ const mk = (n, role, x = {}) => makeUser('QA ' + n, `qa.${n}.${run}@test.local`.
 const denied = (r) => r.status === 401 || r.status === 403;
 const day = (n) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
 
-// Seeded super admin: ACCOUNTS.md and scripts/team-accounts.json (override with QA_ADMIN_EMAIL / QA_ADMIN_PASSWORD)
+// Seeded super admin: docs/Accounts.md and scripts/team-accounts.json (override with QA_ADMIN_EMAIL / QA_ADMIN_PASSWORD)
 const admin = await loginAs(process.env.QA_ADMIN_EMAIL || TEAM.superAdmin.email, process.env.QA_ADMIN_PASSWORD || TEAM_PASSWORD);
 const pA = await mk('pwsA', 'PARTNER_ADMIN', { businessName: 'QA WS A ' + run, crNumber: '1010111111' });
 const pB = await mk('pwsB', 'PARTNER_ADMIN', { businessName: 'QA WS B ' + run, crNumber: '1010222222' });

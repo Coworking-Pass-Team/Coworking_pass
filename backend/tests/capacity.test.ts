@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { directBookingEnd, startOfDay } from "@/lib/capacity";
+import { directBookingEnd, startOfDay } from "@/lib/booking/capacity";
 
 const d = (y: number, m: number, day: number) => new Date(Date.UTC(y, m - 1, day, 9));
 const iso = (x: Date) => x.toISOString().slice(0, 10);

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { TrendingUp, CalendarDays, Users, Building2, BarChart3 } from 'lucide-react';
 import { useApp } from '@/app/store';
 import { useSpaceText } from '@/i18n/space-text';
-import { getAdminReportApi, ReportPeriod } from '@/services/authApi';
+import { getAdminReportApi, ReportPeriod } from '@/services/api';
 
 const PERIODS = ['Today', 'This week', 'This month', 'This year'];
 

@@ -23,11 +23,11 @@ import {
   ArrowUpRight
 } from 'lucide-react';
 import { useApp } from '@/app/store';
-import { useCompanyTeam } from '@/app/organization/useCompanyTeam';
+import { useCompanyTeam } from '@/hooks/useCompanyTeam';
 import CompanyJoinRequestsPanel from '@/components/company/CompanyJoinRequestsPanel';
 import { useSpaceText } from '@/i18n/space-text';
-import BookingQrModal from '@/components/BookingQrModal';
-import SharedWalletModal from '@/components/ui/SharedWalletModal';
+import BookingQrModal from '@/components/bookings/BookingQrModal';
+import SharedWalletModal from '@/components/wallet/SharedWalletModal';
 import {
   Space,
   getEffectiveSpacePrice,
@@ -39,7 +39,7 @@ import {
   isHourlyAllowed,
   SpaceCategory,
   calculateDailyDurationDays
-} from '@/types/types';
+} from '@/types';
 
 const FALLBACK_SPACE_IMAGE = 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80';
 
