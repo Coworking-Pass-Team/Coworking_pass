@@ -13,7 +13,7 @@ import {
   Calendar
 } from 'lucide-react';
 import { useApp } from '@/app/store';
-import { getPayoutsApi, PayoutItemApi } from '@/services/authApi';
+import { getPayoutsApi, PayoutItemApi } from '@/services/api';
 
 export default function PayoutsAdmin() {
   const { t, translateMessage } = useI18n();

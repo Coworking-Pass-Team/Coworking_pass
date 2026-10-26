@@ -19,7 +19,7 @@ import { useApp } from '@/app/store';
 import CompanyMembershipCard from '@/components/company/CompanyMembershipCard';
 import CompanyJoinRequestCard from '@/components/company/CompanyJoinRequestCard';
 import { useSpaceText } from '@/i18n/space-text';
-import BookingQrModal from '@/components/BookingQrModal';
+import BookingQrModal from '@/components/bookings/BookingQrModal';
 import {
   Space,
   Booking,
@@ -30,7 +30,7 @@ import {
   getSpaceCategory,
   isHourlyAllowed,
   calculateDailyDurationDays
-} from '@/types/types';
+} from '@/types';
 
 export default function IndividualDashboard() {
   const { t, localizeTime, translateMessage, formatDate } = useI18n();

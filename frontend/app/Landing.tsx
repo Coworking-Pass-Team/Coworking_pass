@@ -5,7 +5,7 @@ import { useSpaceText } from '@/i18n/space-text';
 import { useState, useRef, useEffect } from 'react';
 import { ArrowRight, MapPin, Star, Zap, Headphones, Shield, ChevronDown, Check, Building2, Presentation, Clapperboard } from 'lucide-react';
 import { useApp } from '@/app/store';
-import { getEffectiveSpacePrice, getSpaceCategory, SAUDI_CITIES } from '@/types/types';
+import { getEffectiveSpacePrice, getSpaceCategory, SAUDI_CITIES } from '@/types';
 import GuestNav from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import Button from '@/components/ui/Button';

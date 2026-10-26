@@ -3,7 +3,7 @@
 import React from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { useI18n } from '@/i18n';
-import { isHourlyAllowed, type SpaceUnit } from '@/types/types';
+import { isHourlyAllowed, type SpaceUnit } from '@/types';
 
 interface UnitsEditorProps {
   units: SpaceUnit[];

@@ -1,6 +1,7 @@
 import { test, expect, Page } from '@playwright/test';
 
-const LIVE_URL = 'https://coworking-pass-client.onrender.com';
+// The local stack by default; set QA_BASE_URL to audit another deployment (public pages only, no sign-in)
+const BASE_URL = process.env.QA_BASE_URL || 'http://localhost:3000';
 
 // Define the devices and viewports to test
 const DEVICES = [
@@ -57,7 +58,7 @@ test.describe('Multi-Device Visual & Responsive Audit', () => {
           const page = await context.newPage();
 
           console.log(`\nTesting ${p.name} on ${device.name} [${device.viewport.width}x${device.viewport.height}]...`);
-          const res = await page.goto(`${LIVE_URL}${p.path}`, {
+          const res = await page.goto(`${BASE_URL}${p.path}`, {
             waitUntil: 'domcontentloaded',
             timeout: 35000,
           });

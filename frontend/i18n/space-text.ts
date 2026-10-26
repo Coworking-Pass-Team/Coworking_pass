@@ -2,7 +2,7 @@
 
 import { useApp } from '@/app/store';
 import { useI18n, pickLocalized } from '@/i18n';
-import { SAUDI_CITIES_DATA, normalizeSpaceType, type Space } from '@/types/types';
+import { SAUDI_CITIES_DATA, normalizeSpaceType, type Space } from '@/types';
 
 /**
  * Localized text of workspaces (dynamic content). Providers/admins author both languages; in Arabic mode the

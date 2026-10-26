@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Building2, Clock, Send, X } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { useApp } from '@/app/store';
-import { cancelJoinRequestApi, createJoinRequestApi, getMyJoinRequestApi, type MyJoinRequest } from '@/services/authApi';
+import { cancelJoinRequestApi, createJoinRequestApi, getMyJoinRequestApi, type MyJoinRequest } from '@/services/api';
 
 /**
  * For member accounts outside a company team: shows a pending request to join a company (with a way to withdraw it),

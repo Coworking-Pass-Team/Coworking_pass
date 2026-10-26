@@ -4,7 +4,7 @@ import { requireRoles } from '@/lib/ownership';
 import { prisma } from '@/lib/prisma'
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
-import { seedLoyaltyRules } from '@/lib/seed-data';
+import { seedLoyaltyRules } from '@/lib/db/seed-data';
 
 export async function GET() {
   try {

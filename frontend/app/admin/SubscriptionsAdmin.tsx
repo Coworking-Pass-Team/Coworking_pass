@@ -28,7 +28,7 @@ import {
   getMembershipPlansApi,
   SubscriptionItemApi, 
   MembershipPlan 
-} from '@/services/authApi';
+} from '@/services/api';
 import Modal from '@/components/ui/Modal';
 
 export default function SubscriptionsAdmin() {

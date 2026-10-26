@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 import { useEffect } from 'react';
 import { useApp } from '@/app/store';
-import { LoyaltyRule, LoyaltyRuleType, ApprovalStatus } from '@/types/types';
+import { LoyaltyRule, LoyaltyRuleType, ApprovalStatus } from '@/types';
 import Modal from '@/components/ui/Modal';
 
 export default function LoyaltyProposalsAdmin() {

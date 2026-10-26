@@ -4,11 +4,11 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Search, SlidersHorizontal, X, MapPin, ChevronDown, Check, ArrowUpDown, Sparkles, Building2, Presentation, Clapperboard, LayoutGrid, Navigation, Loader2, MapPinOff, Info } from 'lucide-react';
 import { useApp } from '@/app/store';
 import { useSpaceText } from '@/i18n/space-text';
-import SpaceCard from '@/components/spaces/spaceCard';
+import SpaceCard from '@/components/spaces/SpaceCard';
 import Badge from '@/components/ui/Badge';
 import App from '@/app/app';
 import { WithChrome } from '@/components/layout/Chrome';
-import { ALL_SPACE_TYPES, getSpaceCategory, normalizeSpaceType, SpaceCategory, calculateHaversineDistance, getSpaceCoordinates, SAUDI_CITIES } from '@/types/types';
+import { ALL_SPACE_TYPES, getSpaceCategory, normalizeSpaceType, SpaceCategory, calculateHaversineDistance, getSpaceCoordinates, SAUDI_CITIES } from '@/types';
 
 const CITIES = ['All Cities', ...SAUDI_CITIES];
 const CATEGORY_TABS: { id: 'all' | SpaceCategory; label: string; icon: any }[] = [

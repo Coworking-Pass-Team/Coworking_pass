@@ -28,7 +28,7 @@ import {
   ArrowUpRight
 } from 'lucide-react';
 import { useApp } from '@/app/store';
-import { Employee, isValidSaudiCrNumber } from '@/types/types';
+import { Employee, isValidSaudiCrNumber } from '@/types';
 import Modal from '@/components/ui/Modal';
 import UserAvatar from '@/components/ui/UserAvatar';
 

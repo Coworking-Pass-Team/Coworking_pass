@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
-import { ALL_SPACE_TYPES, SPACE_TYPE_VALUES, getEffectiveSpacePrice, getSpaceCategory, normalizeSpaceType } from '../types/types';
-import { evaluateReservationCoverage, PLAN_COVERAGE_RULES } from '../lib/planCoverage';
-import { INITIAL_SPACES } from '../data/data';
+import { ALL_SPACE_TYPES, SPACE_TYPE_VALUES, getEffectiveSpacePrice, getSpaceCategory, normalizeSpaceType } from '../types';
+import { evaluateReservationCoverage, PLAN_COVERAGE_RULES } from '../lib/plan-coverage';
+import { INITIAL_SPACES } from '../data/demo-data';
 
 /**
  * The platform has three workspace types and one pass rule: meeting rooms and theaters are covered by the pass

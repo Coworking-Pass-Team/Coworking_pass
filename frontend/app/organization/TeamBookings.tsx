@@ -27,14 +27,14 @@ import {
   CalendarClock
 } from 'lucide-react';
 import { useApp } from '@/app/store';
-import { Booking, BookingStatus, Employee, getHourlyPriceForDuration, getBookingPrice, isCancellationRefundEligible, calculateDailyDurationDays } from '@/types/types';
+import { Booking, BookingStatus, Employee, getHourlyPriceForDuration, getBookingPrice, isCancellationRefundEligible, calculateDailyDurationDays } from '@/types';
 import RescheduleModal, { type RescheduleTarget } from '@/components/bookings/RescheduleModal';
 import Modal from '@/components/ui/Modal';
-import BookingQrModal from '@/components/BookingQrModal';
+import BookingQrModal from '@/components/bookings/BookingQrModal';
 import BookingSortSelect from '@/components/bookings/BookingSortSelect';
 import BulkActionBar from '@/components/bookings/BulkActionBar';
-import { useBookingSelection } from '@/components/bookings/useBookingSelection';
-import { sortBookings, type BookingSortOrder } from '@/lib/bookingLifecycle';
+import { useBookingSelection } from '@/hooks/useBookingSelection';
+import { sortBookings, type BookingSortOrder } from '@/lib/booking-lifecycle';
 
 export default function TeamBookings() {
   const { currentUser } = useApp();

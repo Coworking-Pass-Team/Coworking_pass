@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { seedStandardWorkspaces } from '@/lib/seed-data';
-import { ensureDatabaseSchema } from '@/lib/db-schema-sync';
+import { seedStandardWorkspaces } from '@/lib/db/seed-data';
+import { ensureDatabaseSchema } from '@/lib/db/schema-sync';
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
 export async function DELETE(request: Request) {

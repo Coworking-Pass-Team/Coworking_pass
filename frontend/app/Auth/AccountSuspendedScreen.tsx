@@ -4,7 +4,7 @@ import { useI18n } from '@/i18n';
 import React from 'react';
 import { ShieldAlert, Mail, ArrowLeft, Phone, AlertCircle, Headphones } from 'lucide-react';
 import { useApp } from '@/app/store';
-import LogoImage from '@/components/layout/logo';
+import LogoImage from '@/components/layout/Logo';
 
 export default function AccountSuspendedScreen() {
   const { t } = useI18n();

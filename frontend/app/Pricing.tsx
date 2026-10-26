@@ -7,7 +7,7 @@ import {
   CreditCard, ShieldCheck, CheckCircle2, AlertCircle, ArrowUpRight, Zap, RefreshCw, X, Wallet
 } from 'lucide-react';
 import { useApp } from '@/app/store';
-import { createSubscriptionApi, createPaymentApi, getSubscriptionsApi, updateSubscriptionApi } from '@/services/authApi';
+import { createSubscriptionApi, createPaymentApi, getSubscriptionsApi, updateSubscriptionApi } from '@/services/api';
 import Modal from '@/components/ui/Modal';
 
 interface PlanItem {

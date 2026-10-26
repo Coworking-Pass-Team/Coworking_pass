@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 import { getKsaNow, parseDateAndTimeToKsaDate } from "@/lib/time-utils";
-import { directBookingEnd, effectiveCapacity, getOccupiedSeats, getOccupiedSeatsForSection, startOfDay } from "@/lib/capacity";
+import { directBookingEnd, effectiveCapacity, getOccupiedSeats, getOccupiedSeatsForSection, startOfDay } from "@/lib/booking/capacity";
 import {
   FREE_RESCHEDULES,
   MAX_RESCHEDULE_AHEAD_DAYS,
@@ -12,7 +12,7 @@ import {
   repricedAmount,
   rescheduleNoticeHours,
   settlePriceDifference,
-} from "@/lib/reschedule";
+} from "@/lib/booking/reschedule";
 
 const HOUR_MS = 3_600_000;
 

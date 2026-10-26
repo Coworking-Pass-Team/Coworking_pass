@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 import { forbiddenResponse } from "@/lib/ownership";
-import { createPendingJoinRequest, findCompanyByHrEmail, notifyHrOfJoinRequest } from "@/lib/company-join";
+import { createPendingJoinRequest, findCompanyByHrEmail, notifyHrOfJoinRequest } from "@/lib/company/join";
 
 /**
  * @swagger

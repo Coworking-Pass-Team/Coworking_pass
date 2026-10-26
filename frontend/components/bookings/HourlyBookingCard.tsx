@@ -5,8 +5,8 @@ import { Building2, Calendar, CalendarClock, Clock, MapPin, QrCode, Users, Walle
 import { useI18n } from '@/i18n';
 import { durationLabel } from '@/i18n/duration';
 import { useSpaceText } from '@/i18n/space-text';
-import type { Space } from '@/types/types';
-import type { HourlyBookingItemApi } from '@/services/authApi';
+import type { Space } from '@/types';
+import type { HourlyBookingItemApi } from '@/services/api';
 
 const FALLBACK_SPACE_IMAGE = 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80';
 

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { deliverOtp, issueOtp, recentlyIssued } from "@/lib/otp";
+import { deliverOtp, issueOtp, recentlyIssued } from "@/lib/auth/otp";
 
 /** Same answer whether or not the address has an account, so the form cannot be used to find out who is registered. */
 const GENERIC = { message: "If an account exists for this email, a reset code has been sent to it." };

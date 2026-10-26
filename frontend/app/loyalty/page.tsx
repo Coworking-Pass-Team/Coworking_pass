@@ -20,7 +20,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { useApp } from '@/app/store';
-import { getLoyaltyPointsApi, getPointsTransactionsApi } from '@/services/authApi';
+import { getLoyaltyPointsApi, getPointsTransactionsApi } from '@/services/api';
 
 export default function LoyaltyPage() {
   const { t, translateMessage, formatDate } = useI18n();

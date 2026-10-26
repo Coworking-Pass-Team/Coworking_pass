@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
-import { ensureDatabaseSchema } from "@/lib/db-schema-sync";
+import { ensureDatabaseSchema } from "@/lib/db/schema-sync";
 import { creditWallet } from "@/lib/wallet";
 import { getKsaNow } from "@/lib/time-utils";
 

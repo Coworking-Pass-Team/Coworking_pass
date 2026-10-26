@@ -4,7 +4,7 @@ import { useI18n } from '@/i18n';
 import Link from 'next/link';
 import { ArrowRight, Building2, Presentation, Clapperboard } from 'lucide-react';
 import { useApp } from '@/app/store';
-import { SpaceCategory } from '@/types/types';
+import { SpaceCategory } from '@/types';
 
 interface LandingCategoryCardProps {
   category: SpaceCategory;

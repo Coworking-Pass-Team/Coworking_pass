@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { checkOtp } from "@/lib/otp";
-import { passwordPolicyError } from "@/lib/password-policy";
+import { checkOtp } from "@/lib/auth/otp";
+import { passwordPolicyError } from "@/lib/auth/password-policy";
 import { blacklistUser } from "@/lib/auth/token-blacklist";
-import { clearAttempts } from "@/lib/rate-limit/login-attempts";
+import { clearAttempts } from "@/lib/auth/login-attempts";
 
 /**
  * @swagger

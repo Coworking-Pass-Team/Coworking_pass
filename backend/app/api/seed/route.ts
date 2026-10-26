@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { seedStandardWorkspaces, deduplicateWorkspaces } from '@/lib/seed-data';
+import { seedStandardWorkspaces, deduplicateWorkspaces } from '@/lib/db/seed-data';
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
 export async function GET(request: Request) {

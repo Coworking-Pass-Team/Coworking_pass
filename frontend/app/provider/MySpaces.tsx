@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import UnitsEditor from '@/components/spaces/UnitsEditor';
 import { useApp } from '@/app/store';
-import { Space, SpaceType, SpaceCategory, ALL_SPACE_TYPES, isHourlyOnlySpace, isOfficeSpace, isHourlyAllowed, getSpaceCategory, SAUDI_CITIES, SAUDI_CITIES_DATA, AmenityRequest, hhmmTo12h } from '@/types/types';
+import { Space, SpaceType, SpaceCategory, ALL_SPACE_TYPES, isHourlyOnlySpace, isOfficeSpace, isHourlyAllowed, getSpaceCategory, SAUDI_CITIES, SAUDI_CITIES_DATA, AmenityRequest, hhmmTo12h } from '@/types';
 import Modal from '@/components/ui/Modal';
 
 const FALLBACK_SPACE_IMAGE = 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80';

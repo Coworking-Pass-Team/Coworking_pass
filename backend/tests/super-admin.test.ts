@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { planSuperAdmin } from "@/lib/super-admin";
+import { planSuperAdmin } from "@/lib/auth/super-admin";
 
 describe("planSuperAdmin", () => {
   it("uses the configured account when both variables are set", () => {

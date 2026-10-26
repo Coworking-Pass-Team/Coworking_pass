@@ -43,7 +43,7 @@ import {
   calculateEndDate,
   calculateDailyDurationDays,
   formatDateRange
-} from '@/types/types';
+} from '@/types';
 import UnitPicker, { useUnitAvailability, isUnitSlotBooked } from '@/components/spaces/UnitPicker';
 import Modal from '@/components/ui/Modal';
 import { WithChrome } from '@/components/layout/Chrome';

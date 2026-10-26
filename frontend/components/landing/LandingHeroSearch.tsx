@@ -7,7 +7,7 @@ import { MapPin, ChevronDown, Check, ArrowRight } from 'lucide-react';
 import { useApp } from '@/app/store';
 import { useSpaceText } from '@/i18n/space-text';
 import Button from '@/components/ui/Button';
-import { SAUDI_CITIES } from '@/types/types';
+import { SAUDI_CITIES } from '@/types';
 
 const CITIES = ['All Cities', ...SAUDI_CITIES];
 

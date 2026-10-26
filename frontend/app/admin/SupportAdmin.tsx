@@ -24,7 +24,7 @@ import {
   X
 } from 'lucide-react';
 import { useApp } from '@/app/store';
-import { SupportTicket, TicketCategory, TicketStatus, TicketPriority } from '@/types/types';
+import { SupportTicket, TicketCategory, TicketStatus, TicketPriority } from '@/types';
 import Modal from '@/components/ui/Modal';
 
 export default function SupportAdmin() {

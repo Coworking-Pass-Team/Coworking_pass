@@ -1,7 +1,7 @@
 'use client';
 
 import { useI18n } from '@/i18n';
-import LogoImage from './logo';
+import LogoImage from './Logo';
 import { useApp } from '@/app/store';
 import { useSpaceText } from '@/i18n/space-text';
 

@@ -4,7 +4,7 @@ import crypto from 'crypto'
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 import { getOwnedWorkspaceIds, canManageWorkspace } from '@/lib/ownership'
 import { getKsaNow } from '@/lib/time-utils'
-import { directBookingEnd } from '@/lib/capacity'
+import { directBookingEnd } from '@/lib/booking/capacity'
 
 /** Arrival up to this long before an hourly session still counts as checking in for it. */
 const EARLY_ARRIVAL_MS = 60 * 60 * 1000
