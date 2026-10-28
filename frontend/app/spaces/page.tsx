@@ -54,7 +54,7 @@ export default function Browse() {
 function BrowseView() {
   const { t, translateMessage } = useI18n();
   const st = useSpaceText();
-  const { spaces, navigate, currentUser, nav, userLocation, locationStatus, locationErrorMessage, requestUserLocation } = useApp();
+  const { spaces, spacesLoaded, navigate, currentUser, nav, userLocation, locationStatus, locationErrorMessage, requestUserLocation } = useApp();
   const initialCity = nav?.params?.city || (typeof window !== 'undefined' ? (window as any).__browseCity || '' : '');
   const initialCategory = (nav?.params?.category as ('all' | SpaceCategory)) || 'all';
 
@@ -239,16 +239,16 @@ function BrowseView() {
   return (
     <div className="bg-plaster text-soot py-10 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-soot/10">
+        <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-soot/5 border border-soot/10 text-moss text-xs font-semibold mb-3">
-              <Sparkles size={13} className="text-eucalyptus shrink-0" />
+            <div className="inline-flex items-center gap-1.5 h-7 px-3 rounded-full bg-white border border-zinc-200/80 shadow-sm text-soot-light text-xs font-medium mb-4">
+              <Sparkles size={13} className="text-accent shrink-0" />
               <span>{t('browse.verified')}</span>
             </div>
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-normal font-serif-display text-soot tracking-tight">
               {t('browse.title')}
             </h1>
-            <p className="text-moss text-xs sm:text-sm mt-1.5 max-w-2xl leading-relaxed">
+            <p className="text-soot-light text-sm sm:text-base mt-2 max-w-2xl leading-relaxed">
               {t('browse.subtitle')}
             </p>
           </div>
@@ -261,7 +261,7 @@ function BrowseView() {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2.5 mb-6">
+        <div className="flex flex-wrap gap-2 mb-5">
           {CATEGORY_TABS.map(tab => {
             const Icon = tab.icon;
             const isSelected = categoryFilter === tab.id;
@@ -274,16 +274,17 @@ function BrowseView() {
                   setCategoryFilter(tab.id);
                   setSpaceType('all');
                 }}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                aria-pressed={isSelected}
+                className={`flex items-center gap-2 h-11 ps-4 pe-2 rounded-full border text-sm font-medium transition-all duration-200 cursor-pointer active:scale-[0.98] ${
                   isSelected
-                    ? 'bg-soot text-plaster shadow-xs'
-                    : 'bg-white border border-soot/10 text-moss hover:text-soot hover:border-soot/30'
+                    ? 'bg-soot border-soot text-white shadow-sm'
+                    : 'bg-white border-zinc-200/90 text-soot-light hover:text-soot hover:border-zinc-300'
                 }`}
               >
                 <Icon size={15} />
                 <span>{t(('categories.' + tab.id) as never)}</span>
-                <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${
-                  isSelected ? 'bg-plaster/20 text-plaster' : 'bg-plaster-dark/60 text-soot'
+                <span className={`min-w-7 h-7 px-2 inline-flex items-center justify-center rounded-full text-xs font-semibold ${
+                  isSelected ? 'bg-white/15 text-white' : 'bg-zinc-100 text-soot-light'
                 }`}>
                   {count}
                 </span>
@@ -300,7 +301,7 @@ function BrowseView() {
               placeholder={t('browse.searchPlaceholder')}
               value={query}
               onChange={e => setQuery(e.target.value)}
-              className="w-full ps-11 pe-10 py-3 rounded-2xl border border-soot/15 bg-plaster-surface text-soot text-sm placeholder:text-moss/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all"
+              className="w-full ps-11 pe-10 h-12 rounded-full border border-zinc-200/90 bg-white text-soot text-sm placeholder:text-moss/60 focus:outline-none focus-visible:ring-4 focus-visible:ring-accent/15 focus-visible:border-accent shadow-xs transition-all"
             />
             {query && (
               <button
@@ -317,7 +318,7 @@ function BrowseView() {
             <button
               type="button"
               onClick={() => setCityDropdownOpen(!cityDropdownOpen)}
-              className="w-full flex items-center justify-between gap-2.5 px-4 py-3 rounded-2xl border border-soot/15 bg-plaster-surface text-soot text-sm font-medium hover:bg-plaster-dark/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all cursor-pointer"
+              className="w-full flex items-center justify-between gap-2.5 px-4 h-12 rounded-full border border-zinc-200/90 bg-white text-soot text-sm font-medium hover:bg-plaster-dark/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all cursor-pointer"
             >
               <div className="flex items-center gap-2 truncate">
                 <MapPin size={15} className="text-moss shrink-0" />
@@ -361,10 +362,11 @@ function BrowseView() {
           <button
             type="button"
             onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border text-sm font-semibold transition-all cursor-pointer shadow-xs ${
+            aria-expanded={showFilters}
+            className={`flex items-center justify-center gap-2 px-5 h-12 rounded-full border text-sm font-semibold transition-all cursor-pointer shadow-xs active:scale-[0.98] ${
               showFilters || hasActiveFilters
-                ? 'bg-soot text-plaster border-soot'
-                : 'bg-plaster-surface text-soot border-soot/15 hover:bg-plaster-dark/30'
+                ? 'bg-soot text-white border-soot'
+                : 'bg-white text-soot border-zinc-200/90 hover:border-zinc-300'
             }`}
           >
             <SlidersHorizontal size={15} />
@@ -378,7 +380,7 @@ function BrowseView() {
             <button
               type="button"
               onClick={() => setSortDropdownOpen(!sortDropdownOpen)}
-              className="w-full flex items-center justify-between gap-2 px-4 py-3 rounded-2xl border border-soot/15 bg-plaster-surface text-soot text-sm font-medium hover:bg-plaster-dark/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all cursor-pointer"
+              className="w-full flex items-center justify-between gap-2 px-4 h-12 rounded-full border border-zinc-200/90 bg-white text-soot text-sm font-medium hover:bg-plaster-dark/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all cursor-pointer"
             >
               <div className="flex items-center gap-2 truncate">
                 <ArrowUpDown size={14} className="text-moss shrink-0" />
@@ -528,7 +530,7 @@ function BrowseView() {
         )}
 
         {showFilters && (
-          <div className="bg-plaster-surface rounded-3xl border border-soot/12 p-6 sm:p-8 mb-8 shadow-sm animate-in fade-in-50 duration-200">
+          <div className="bg-white rounded-[28px] border border-zinc-200/70 p-6 sm:p-8 mb-8 shadow-ambient animate-reveal">
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-soot/10">
               <div className="flex items-center gap-2">
                 <SlidersHorizontal size={16} className="text-moss" />
@@ -585,7 +587,7 @@ function BrowseView() {
                   step={50}
                   value={maxPrice}
                   onChange={e => setMaxPrice(+e.target.value)}
-                  className="w-full accent-soot cursor-pointer"
+                  className="ui-range cursor-pointer"
                 />
                 <div className="flex justify-between text-[11px] text-moss mt-2 font-medium">
                   <span>{t('common.sar')} 50</span>
@@ -605,10 +607,11 @@ function BrowseView() {
                         key={a}
                         type="button"
                         onClick={() => toggleAmenity(a)}
-                        className={`text-xs px-3 py-1.5 rounded-full border transition-all font-medium cursor-pointer active:scale-[0.98] ${
+                        aria-pressed={isChecked}
+                        className={`text-xs h-9 px-3.5 rounded-full border transition-all font-medium cursor-pointer active:scale-[0.98] ${
                           isChecked
-                            ? 'bg-soot text-plaster border-soot shadow-xs font-semibold'
-                            : 'border-soot/15 text-moss hover:text-soot hover:bg-plaster-dark/40 bg-plaster-dark/15'
+                            ? 'bg-soot text-white border-soot shadow-xs'
+                            : 'border-zinc-200 text-soot-light hover:text-soot hover:border-zinc-300 bg-white'
                         }`}
                       >
                         {st.amenity(a)}
@@ -649,8 +652,19 @@ function BrowseView() {
           </div>
         )}
 
-        {filtered.length === 0 ? (
-          <div className="bg-plaster-surface rounded-3xl border border-soot/12 p-16 text-center shadow-xs max-w-xl mx-auto my-12">
+        {!spacesLoaded ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" aria-busy="true" aria-label={t('common.loading')}>
+            {Array.from({ length: 6 }, (_, i) => (
+              <div key={i} className="bg-white rounded-[28px] border border-zinc-200/70 p-2.5 pb-5 flex flex-col gap-3.5">
+                <div className="ui-skeleton aspect-[4/3] rounded-[20px]" />
+                <div className="ui-skeleton h-4 w-3/5 rounded-lg mx-2.5" />
+                <div className="ui-skeleton h-3.5 w-2/5 rounded-lg mx-2.5" />
+                <div className="ui-skeleton h-7 w-4/5 rounded-full mx-2.5 mt-1" />
+              </div>
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="bg-white rounded-[28px] border border-dashed border-zinc-300 p-16 text-center shadow-xs max-w-xl mx-auto my-12">
             <div className="w-14 h-14 rounded-2xl bg-soot/5 flex items-center justify-center mx-auto mb-4">
               <Search size={24} className="text-moss" />
             </div>

@@ -666,7 +666,41 @@
     "altSpace": "Choose your plan",
     "perDay": "/ day",
     "reviewsCount": "{count} reviews",
-    "allCities": "All Cities"
+    "allCities": "All Cities",
+    "newBadge": "New",
+    "search": {
+      "where": "Where",
+      "space": "Space",
+      "access": "Booking",
+      "hourly": "By the hour",
+      "pass": "Daily & Pass",
+      "hintHourly": "Halls and theaters are booked by the hour.",
+      "hintPass": "Offices are booked by the day, month or year, or covered by your pass."
+    },
+    "bento": {
+      "eyebrow": "The platform",
+      "title": "Built for how the Kingdom works now.",
+      "body": "One account for freelancers and whole teams: access, billing and check-in in one place.",
+      "passBadge": "Universal Pass",
+      "passTitle": "One pass for the whole partner network.",
+      "passBody": "Day, month or year passes that cover your bookings across partner spaces.",
+      "passCta": "Compare passes",
+      "passCardPlan": "Monthly · All cities",
+      "walletBadge": "For teams",
+      "walletTitle": "Corporate pooled wallet",
+      "walletBody": "Fund one balance for your team and track every booking against it.",
+      "walletBalance": "Team balance",
+      "walletCta": "Set up a team account",
+      "qrBadge": "Instant",
+      "qrTitle": "QR check-in at the door",
+      "qrBody": "Show your code on arrival and your booking or pass is verified on the spot.",
+      "networkTitle": "A curated partner network",
+      "networkBody": "Every space is reviewed before it goes live."
+    },
+    "tag": {
+      "qr": "QR check-in",
+      "allDay": "24/7 access"
+    }
   },
   "auth": {
     "backHome": "Back to Home",

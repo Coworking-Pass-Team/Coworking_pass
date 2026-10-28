@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
-import { Tajawal } from 'next/font/google';
+import { Geist, Tajawal } from 'next/font/google';
 import '@/app/globals.css';
 import { AppProvider } from '@/app/store';
 import { I18nProvider } from '@/i18n';
@@ -11,6 +11,13 @@ const arabicFont = Tajawal({
   subsets: ['arabic', 'latin'],
   weight: ['300', '400', '500', '700', '800'],
   variable: '--font-arabic',
+  display: 'swap',
+});
+
+// Latin UI and display font
+const latinFont = Geist({
+  subsets: ['latin'],
+  variable: '--font-geist',
   display: 'swap',
 });
 
@@ -32,7 +39,7 @@ export default async function RootLayout({
   const lang = resolveLang(stored);
 
   return (
-    <html lang={lang} dir={lang === 'ar' ? 'rtl' : 'ltr'} className={`h-full ${arabicFont.variable}`} suppressHydrationWarning>
+    <html lang={lang} dir={lang === 'ar' ? 'rtl' : 'ltr'} className={`h-full ${latinFont.variable} ${arabicFont.variable}`} suppressHydrationWarning>
       <body className="h-full bg-plaster text-soot antialiased">
         <I18nProvider initialLang={lang}>
           <AppProvider>

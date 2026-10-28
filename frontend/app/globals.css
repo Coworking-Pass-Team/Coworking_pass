@@ -1,19 +1,38 @@
 @import "tailwindcss";
 
 @theme {
-  --color-plaster: #F2EFE2;
-  --color-plaster-dark: #E4DFCC;
-  --color-plaster-surface: #FAF8F3;
-  --color-soot: #2D3536;
-  --color-soot-light: #4A5657;
-  --color-eucalyptus: #98AA9D;
-  --color-eucalyptus-dark: #7A9481;
-  --color-moss: #697C70;
+  /* Quiet luxury palette: warm canvas, zinc ink, emerald for high-intent actions */
+  --color-plaster: #F7F5F0;
+  --color-plaster-dark: #ECE8DF;
+  --color-plaster-surface: #FDFCFA;
+  --color-soot: #18181B;
+  --color-soot-light: #52525B;
+  --color-eucalyptus: #8FB5A0;
+  --color-eucalyptus-dark: #5E8F75;
+  --color-moss: #56615A;
   --color-mist: #B3C9D6;
-  --color-mist-light: #D9E8F0;
+  --color-mist-light: #E3EDF3;
+  --color-accent: #047857;
+  --color-accent-soft: #E7F3EE;
 
-  --font-display: 'DM Serif Display', serif;
-  --font-sans: 'Outfit', sans-serif;
+  --font-display: var(--font-geist), 'Geist', system-ui, sans-serif;
+  --font-sans: var(--font-geist), 'Geist', system-ui, sans-serif;
+
+  --shadow-ambient: 0 1px 2px rgba(24, 24, 27, 0.04), 0 12px 32px -16px rgba(24, 24, 27, 0.16);
+  --shadow-float: 0 2px 6px rgba(24, 24, 27, 0.05), 0 30px 60px -28px rgba(24, 24, 27, 0.35);
+  --shadow-glow: 0 12px 30px -12px rgba(4, 120, 87, 0.55);
+
+  --animate-shimmer: shimmer 1.4s linear infinite;
+  --animate-reveal: reveal 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+
+  @keyframes shimmer {
+    from { background-position: 200% 0; }
+    to { background-position: -200% 0; }
+  }
+  @keyframes reveal {
+    from { opacity: 0; transform: translateY(12px) scale(0.985); }
+    to { opacity: 1; transform: none; }
+  }
 }
 
 :root {
@@ -22,8 +41,8 @@
   --bg-card: var(--color-plaster-surface);
   --text-main: var(--color-soot);
   --text-muted: var(--color-soot-light);
-  --border-subtle: rgba(45, 53, 54, 0.12);
-  --ring-focus: rgba(152, 170, 157, 0.4);
+  --border-subtle: rgba(228, 228, 231, 0.9);
+  --ring-focus: rgba(4, 120, 87, 0.25);
 }
 
 html {
@@ -49,6 +68,71 @@ h2,
 h3,
 .font-serif-display {
   font-family: var(--font-display);
+  letter-spacing: -0.025em;
+}
+
+/* Headings read as confident sans; the old serif styling used light weights and italics */
+h1,
+h2 {
+  font-weight: 600;
+}
+h1 .italic,
+h2 .italic {
+  font-style: normal;
+}
+
+/* Skeleton shimmer for loading content */
+.ui-skeleton {
+  background: linear-gradient(90deg, #ECEAE5 0%, #F6F5F2 40%, #ECEAE5 80%);
+  background-size: 200% 100%;
+  animation: var(--animate-shimmer);
+}
+
+/* Floating frosted-glass surface */
+.ui-glass {
+  background-color: rgba(255, 255, 255, 0.78);
+  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(228, 228, 231, 0.7);
+  box-shadow: var(--shadow-float);
+}
+
+/* Range slider used for booking durations */
+.ui-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 9999px;
+  background: #E4E4E7;
+  outline: none;
+}
+.ui-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  background: #FFFFFF;
+  border: 1px solid #D4D4D8;
+  box-shadow: 0 2px 8px rgba(24, 24, 27, 0.18);
+}
+.ui-range::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  background: #FFFFFF;
+  border: 1px solid #D4D4D8;
+  box-shadow: 0 2px 8px rgba(24, 24, 27, 0.18);
+}
+.ui-range:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 4px var(--ring-focus);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-skeleton,
+  .animate-reveal {
+    animation: none;
+  }
 }
 
 /* Force pointer on clickable elements */
@@ -101,12 +185,13 @@ a:active,
 .ui-hover-card {
   background-color: var(--color-plaster-surface);
   border: 1px solid var(--border-subtle);
-  border-radius: 1.25rem;
-  transition: background-color 200ms ease-in-out, transform 200ms ease-in-out;
+  border-radius: 1.5rem;
+  transition: background-color 200ms ease-in-out, transform 300ms ease, box-shadow 300ms ease;
 }
 
 .ui-hover-card:hover {
-  background-color: var(--color-plaster-dark);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-ambient);
 }
 
 /* Form Inputs & Selects */
@@ -116,7 +201,7 @@ a:active,
   padding: 0.75rem 1rem;
   border-radius: 0.75rem;
   border: 1px solid var(--border-subtle);
-  background-color: rgba(228, 223, 204, 0.4);
+  background-color: #FFFFFF;
   color: var(--color-soot);
   font-size: 0.875rem;
   outline: none;
@@ -131,13 +216,13 @@ a:active,
 .ui-input:focus,
 .ui-select:focus {
   background-color: var(--color-plaster-surface);
-  border-color: var(--color-eucalyptus);
+  border-color: var(--color-accent);
   box-shadow: 0 0 0 3px var(--ring-focus);
 }
 
 /* Global Button Design System Matching SpacesAdmin Design Tokens */
 
-/* Primary Button: bg-[#374142] text-[#FAF8F5] with subtle ring & hover */
+/* Primary Button: zinc ink pill with subtle ring & hover */
 .btn-primary,
 .ui-btn-primary {
   display: inline-flex;
@@ -145,8 +230,8 @@ a:active,
   justify-content: center;
   gap: 0.625rem;
   padding: 0.625rem 1.25rem;
-  border-radius: 1rem; /* rounded-2xl */
-  background-color: #374142;
+  border-radius: 9999px;
+  background-color: #18181B;
   color: #FAF8F5 !important;
   font-size: 0.875rem;
   font-weight: 500;
@@ -158,7 +243,7 @@ a:active,
 
 .btn-primary:hover,
 .ui-btn-primary:hover {
-  background-color: #2D3536;
+  background-color: #27272A;
   color: #FAF8F5 !important;
 }
 
@@ -175,19 +260,19 @@ a:active,
   justify-content: center;
   gap: 0.5rem;
   padding: 0.625rem 1.25rem;
-  border-radius: 0.75rem; /* rounded-xl */
+  border-radius: 9999px;
   background-color: transparent;
   color: var(--color-soot) !important;
   font-size: 0.875rem;
   font-weight: 600;
-  border: 1px solid rgba(45, 53, 54, 0.2);
+  border: 1px solid rgba(212, 212, 216, 0.9);
   cursor: pointer !important;
   transition: all 200ms ease-in-out;
 }
 
 .btn-secondary:hover,
 .ui-btn-secondary:hover {
-  background-color: rgba(45, 53, 54, 0.08);
+  background-color: rgba(24, 24, 27, 0.04);
   color: var(--color-soot) !important;
 }
 
@@ -295,7 +380,7 @@ html[dir="rtl"] button,
 html[dir="rtl"] input,
 html[dir="rtl"] select,
 html[dir="rtl"] textarea {
-  font-family: var(--font-arabic), 'Outfit', system-ui, sans-serif;
+  font-family: var(--font-arabic), system-ui, sans-serif;
 }
 
 /* The Latin serif display font has no Arabic glyphs */

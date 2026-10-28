@@ -50,7 +50,7 @@ export default function SpaceCard({ space, distance, onSelect }: SpaceCardProps)
     ? { label: t('space.limited'), badgeClass: 'bg-soot/80 text-white border-white/10 backdrop-blur-md font-semibold' }
     : isAlmostFull
     ? { label: t('space.limited'), badgeClass: 'bg-amber-100/90 text-amber-900 border-amber-200/90 backdrop-blur-md font-semibold' }
-    : { label: t('space.available'), badgeClass: 'bg-white/90 text-soot border-soot/10 backdrop-blur-md font-semibold' };
+    : { label: t('space.available'), badgeClass: 'bg-white/85 text-soot border-white/40 backdrop-blur-xl font-medium' };
 
   const formattedDist = distance !== undefined && distance !== null && !isNaN(distance)
     ? formatDistance(distance)
@@ -60,21 +60,21 @@ export default function SpaceCard({ space, distance, onSelect }: SpaceCardProps)
 
   return (
     <div
-      className="bg-white rounded-3xl overflow-hidden shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer group border border-soot/10 flex flex-col justify-between active:scale-[0.99] w-full"
+      className="bg-white rounded-[28px] p-2.5 shadow-xs hover:shadow-float hover:-translate-y-1.5 transition-all duration-300 cursor-pointer group border border-zinc-200/70 flex flex-col justify-between active:scale-[0.99] w-full"
       onClick={() => onSelect(space)}
     >
       {/* Image Thumbnail */}
-      <div className="relative overflow-hidden h-48 sm:h-52 bg-soot/5">
+      <div className="relative overflow-hidden aspect-[4/3] rounded-[20px] bg-plaster-dark">
         <img
           src={space.images?.[0] ? space.images[0] : 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80'}
           alt={st.name(space) || 'Workspace'}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-soot/60 via-transparent to-black/10" />
+        <div className="absolute inset-0 bg-gradient-to-t from-soot/50 via-transparent to-transparent" />
 
         {/* Top-left Status Badge */}
         <div className="absolute top-3.5 start-3.5 flex items-center gap-1.5 flex-wrap max-w-[85%]">
-          <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs border shadow-xs backdrop-blur-md ${availability.badgeClass}`}>
+          <span className={`inline-flex items-center gap-1 h-7 px-2.5 rounded-full text-xs border shadow-xs backdrop-blur-xl ${availability.badgeClass}`}>
             {availability.label}
           </span>
         </div>
@@ -85,7 +85,7 @@ export default function SpaceCard({ space, distance, onSelect }: SpaceCardProps)
             type="button"
             aria-label={t('spaceDetails.saveSpace')}
             aria-pressed={isFav}
-            className="absolute top-3.5 end-3.5 w-8 h-8 rounded-full bg-white/90 hover:bg-white backdrop-blur-sm flex items-center justify-center shadow-xs transition-transform active:scale-90 cursor-pointer"
+            className="absolute top-3 end-3 w-9 h-9 rounded-full bg-white/90 hover:bg-white backdrop-blur-sm flex items-center justify-center shadow-xs transition-transform active:scale-90 cursor-pointer"
             onClick={e => {
               e.stopPropagation();
               toggleFavorite(space.id);
@@ -93,8 +93,8 @@ export default function SpaceCard({ space, distance, onSelect }: SpaceCardProps)
           >
             <Heart
               size={15}
-              fill={isFav ? '#98AA9D' : 'none'}
-              stroke={isFav ? '#98AA9D' : '#2D3536'}
+              fill={isFav ? '#047857' : 'none'}
+              stroke={isFav ? '#047857' : '#18181B'}
               className="transition-colors"
             />
           </button>
@@ -102,7 +102,7 @@ export default function SpaceCard({ space, distance, onSelect }: SpaceCardProps)
 
         {/* Bottom-left Rating Overlay */}
         {(space.reviewCount ?? 0) > 0 && (
-          <div className="absolute bottom-3 start-3.5 flex items-center gap-1.5 text-white text-xs font-medium drop-shadow-sm">
+          <div className="absolute bottom-3 start-3 inline-flex items-center gap-1 h-7 px-2.5 rounded-full bg-soot text-white text-xs font-semibold">
             <Star size={12} fill="#FDB813" stroke="#FDB813" />
             <span>{space.rating}</span>
             <span className="opacity-80">({space.reviewCount})</span>
@@ -111,17 +111,17 @@ export default function SpaceCard({ space, distance, onSelect }: SpaceCardProps)
       </div>
 
       {/* Card Details */}
-      <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between">
+      <div className="px-2.5 pt-4 pb-2 flex-1 flex flex-col justify-between">
         <div>
           {/* Title and Price */}
           <div className="flex items-start justify-between gap-2.5 mb-1.5">
-            <h3 className="font-semibold text-soot text-sm sm:text-base leading-snug group-hover:text-emerald-950 transition-colors line-clamp-1 flex-1 min-w-0">
+            <h3 className="font-semibold text-soot text-base sm:text-[17px] leading-snug group-hover:text-accent transition-colors line-clamp-1 flex-1 min-w-0">
               {st.name(space)}
             </h3>
             <div className="text-end shrink-0">
               {planInfo.isCovered ? (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-eucalyptus/30 text-soot font-semibold text-[11px] border border-eucalyptus/40 shadow-2xs whitespace-nowrap">
-                  <Check size={11} className="text-moss shrink-0" />
+                <span className="inline-flex items-center gap-1 h-7 px-2.5 rounded-full bg-accent-soft text-accent font-semibold text-xs whitespace-nowrap">
+                  <Check size={12} strokeWidth={2.4} className="shrink-0" />
                   <span>{t('space.included')}</span>
                 </span>
               ) : planInfo.hasDiscount ? (
@@ -163,13 +163,13 @@ export default function SpaceCard({ space, distance, onSelect }: SpaceCardProps)
             {amenitiesList.slice(0, 3).map(a => (
               <span
                 key={typeof a === 'string' ? a : (a as any)?.name}
-                className="text-[11px] px-2.5 py-1 rounded-lg bg-[#F5F3ED] text-soot/80 font-medium border border-soot/5"
+                className="text-[11px] px-2.5 py-1 rounded-full bg-zinc-100 text-soot-light font-medium"
               >
                 {st.amenity(typeof a === 'string' ? a : (a as any)?.name)}
               </span>
             ))}
             {amenitiesList.length > 3 && (
-              <span className="text-[11px] px-2 py-1 rounded-lg bg-[#F5F3ED] text-moss font-medium border border-soot/5">
+              <span className="text-[11px] px-2 py-1 rounded-full bg-zinc-100 text-moss font-medium">
                 +{amenitiesList.length - 3}
               </span>
             )}
@@ -183,14 +183,14 @@ export default function SpaceCard({ space, distance, onSelect }: SpaceCardProps)
         </div>
 
         {/* Crowding Indicator Progress Bar Matching Screenshot */}
-        <div className="space-y-1.5 pt-3 border-t border-soot/6">
+        <div className="space-y-1.5 pt-3 border-t border-zinc-200/70">
           <div className="flex items-center justify-between text-xs">
             <span className="text-moss font-normal">{t('space.capacity')}</span>
             <span className={`font-semibold text-xs ${crowding.textColor}`}>
               {t(('crowding.' + crowding.level) as never)}
             </span>
           </div>
-          <div className="w-full h-1.5 rounded-full bg-[#E5EBE7] overflow-hidden">
+          <div className="w-full h-1.5 rounded-full bg-zinc-200 overflow-hidden">
             <div
               className={`h-full rounded-full transition-all duration-500 ${crowding.barColor}`}
               style={{

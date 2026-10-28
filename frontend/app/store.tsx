@@ -517,6 +517,8 @@ interface AppContextType {
   requestUserLocation: (force?: boolean) => Promise<{ lat: number; lng: number } | null>;
 
   spaces: Space[];
+  /** False until the first workspaces fetch has settled (drives loading skeletons). */
+  spacesLoaded: boolean;
   favorites: string[];
   toggleFavorite: (spaceId: string) => void;
   addSpace: (space: Omit<Space, 'id'>) => void;
@@ -693,6 +695,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // The emailed reset code, already checked on the server, kept until the new password is sent with it
   const [pendingResetCode, setPendingResetCode] = useState('');
   const [otpSession, setOtpSession] = useState<OtpSession | null>(null);
+  const [spacesLoaded, setSpacesLoaded] = useState(false);
   const [spaces, setSpaces] = useState<Space[]>(() => {
     let customSpaces: Space[] = [];
     if (typeof window !== 'undefined') {
@@ -3200,7 +3203,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    fetchWorkspaces().catch(() => { });
+    fetchWorkspaces().catch(() => { }).finally(() => setSpacesLoaded(true));
     fetchMembershipPlans().catch(() => { });
     fetchLoyaltyRules().catch(() => { });
 
@@ -6516,7 +6519,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       paymentsApi, fetchPayments, createPayment, updatePayment, deletePayment,
       currentUser, login, signup, logout, setPendingUser, pendingUser,
       userLocation, locationStatus, locationErrorMessage, requestUserLocation,
-      spaces, favorites, toggleFavorite, addSpace, updateSpace, toggleSpaceVisibility, deleteSpace,
+      spaces, spacesLoaded, favorites, toggleFavorite, addSpace, updateSpace, toggleSpaceVisibility, deleteSpace,
       bookings: bookingsWithLifecycle, addBooking, cancelBooking, requestRefund, updateBookingStatus, deleteBooking,
       amenityRequests, approvedCustomAmenities, requestCustomAmenity, approveAmenityRequest, rejectAmenityRequest, deleteAmenityRequest, getApprovedAmenities, fetchAmenities,
       supportTickets, fetchTickets, addSupportTicket, updateTicketStatus, replyToTicket, sendTicketMessage, closeMyTicket,
