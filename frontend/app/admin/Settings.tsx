@@ -34,11 +34,11 @@ import {
 import { useApp } from '@/app/store';
 import UserAvatar from '@/components/ui/UserAvatar';
 import Modal from '@/components/ui/Modal';
-import MembershipPlansAdmin from './MembershipPlansAdmin';
-import SubscriptionsAdmin from './SubscriptionsAdmin';
-import HourlyBookingsAdmin from './HourlyBookingsAdmin';
-import PaymentsAdmin from './PaymentsAdmin';
-import PayoutsAdmin from './PayoutsAdmin';
+import MembershipPlansAdmin from './MembershipPlans';
+import SubscriptionsAdmin from './Subscriptions';
+import HourlyBookingsAdmin from './HourlyBookings';
+import PaymentsAdmin from './Payments';
+import PayoutsAdmin from './Payouts';
 
 export default function AdminSettings() {
   const { t, translateMessage, lang } = useI18n();

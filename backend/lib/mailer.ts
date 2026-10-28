@@ -16,7 +16,7 @@ export function isEmailConfigured(): boolean {
 
 /** Public address of the site, used for links inside emails. */
 function siteUrl(): string {
-  return (process.env.NEXT_PUBLIC_SITE_URL || process.env.FRONTEND_URL || "https://coworking-pass-client.onrender.com").replace(/\/+$/, "");
+  return (process.env.NEXT_PUBLIC_SITE_URL || process.env.FRONTEND_URL || "https://coworking-pass-sa.vercel.app").replace(/\/+$/, "");
 }
 
 let client: Resend | null = null;

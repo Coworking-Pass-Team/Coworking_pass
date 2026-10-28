@@ -5,7 +5,7 @@ This document describes the platform's technical architecture, the data flow bet
 ## 1. Tech Stack
 - **Frontend:** a **Next.js 16** application (App Router, Turbopack) with **React 19**, **TypeScript**, **Tailwind CSS 4** and Lucide icons, using the **Tajawal** font through `next/font` for Arabic text.
 - **Backend API:** routes built with **Next.js Route Handlers** (`app/api/**/route.ts`) on Node.js with TypeScript, talking to the database through Prisma. (There is no separate Express server.)
-- **Hosting:** the QA deployment runs both the frontend and the backend on **Render** (free plan, built from the `develop` branch). The free plan stops services when its monthly instance-hours are used up, so production hosting must be paid or serverless (see `Production_Checklist.md`).
+- **Hosting:** the live QA environment runs on **Vercel**: the frontend and the backend are two Vercel projects deployed from GitHub, and the backend's route handlers run as serverless functions. The database is **Neon PostgreSQL**. Serverless instances start on demand and do not share memory (section 4).
 - **Database:** **Neon PostgreSQL** — a serverless cloud relational database suited to financial and booking systems.
 - **ORM:** Prisma ORM v6 for database access and programmatic migrations.
 - **Authentication and security:** JWT (JSON Web Tokens) valid for 24 hours with a revocation list on logout and a database ban check on every request, password hashing with bcryptjs, role-based access control (RBAC), one-time email codes (OTP) for sign-up and sign-in, and an international country-code picker with a standard phone-validation library (E.164 format) instead of a fixed Saudi regular expression.
@@ -20,7 +20,7 @@ This document describes the platform's technical architecture, the data flow bet
 ```mermaid
 graph TD
     %% User Interfaces
-    subgraph Frontend [Frontend - Render]
+    subgraph Frontend [Frontend - Vercel]
         UI_User["Individuals & Organizations Web (B2C & B2B)"]
         UI_Partner["Partner Portal"]
         UI_Admin["Super Admin Portal"]
@@ -28,7 +28,7 @@ graph TD
     end
 
     %% Backend Services
-    subgraph Backend [Backend API - Render]
+    subgraph Backend [Backend API - Vercel serverless functions]
         API_Auth["Auth, OTP & Partner CR Status"]
         API_Booking["Bookings & Waitlist"]
         API_Wallet["Wallets & Corporate Balance"]
@@ -152,10 +152,11 @@ The ticket owner reads their tickets (`GET /api/tickets` returns only their own,
 `lib/auth/otp.ts` issues a random six-digit code from the secure generator (`crypto.randomInt`), stores only its bcrypt hash in `OtpCode` with a 10-minute expiry and an attempts counter, and cancels the user's earlier unused codes of that purpose. Checking a code counts wrong guesses (cancelled after five) and uses a right one up in one conditional update, so it works once even when two requests race. `deliverOtp` sends the email through `lib/mailer.ts`; with no real `RESEND_API_KEY` it prints the code in the server console and never logs it once a key exists. The sender is `RESEND_FROM_EMAIL` (default `onboarding@resend.dev`). Password recovery: `forgot-password` (same answer for any address, 30-second cooldown), `verify-reset-code` (checks without using up) and `reset-password` (bcrypt, ends other sessions and waiting codes). There is no shared test code. New passwords go through `lib/auth/password-policy.ts` (length, character kinds, no sequential characters).
 
 ## 4. Hosting and Data Localization (Hosting & Deployment)
-* **Frontend and backend:** the QA deployment is on **Render** (free plan). Production hosting is still to be decided and must not use the free instance-hours plan.
+* **Frontend and backend:** two **Vercel** projects (root directories `frontend/` and `backend/`). Every push to the connected branch builds a new deployment, other branches get preview deployments, and environment variables are set per project and per environment.
+* **Serverless consequences:** the API runs as short-lived function instances. (1) The logout token list (`lib/auth/token-blacklist.ts`) and the sign-in lockout counter (`lib/auth/login-attempts.ts`) live in one instance's memory, so a token revoked at logout can still be accepted by another instance until it expires, and lockout counts are per instance; both must move to the database or a shared store before launch. (2) `instrumentation.ts` runs the schema sync whenever an instance starts. (3) `DATABASE_URL` should be Neon's pooled connection string so many instances do not exhaust database connections.
 * **Database:** **Neon PostgreSQL**. Schema changes reach it through the idempotent startup sync in `backend/lib/db/schema-sync.ts` (not `prisma migrate deploy`). QA and production must use separate databases.
 * **Email API:** **Resend**, sending from `RESEND_FROM_EMAIL`. Reliable delivery (and staying out of spam folders) needs a domain verified in Resend with its SPF and DKIM records.
-* **Deployment management (CI/CD):** automatic linking of the GitHub repository so updates are deployed once reviewed and confirmed stable.
+* **Deployment management (CI/CD):** Vercel's Git integration builds and deploys automatically. The automated tests (`Testing.md`) are not yet run in CI; they run locally before each push.
 
 ---
 
