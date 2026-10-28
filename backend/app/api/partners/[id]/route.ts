@@ -2,7 +2,13 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { deletePartnerCascade } from "@/lib/db/cascade-delete";
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
-import { sendPartnerApprovalEmail, sendPartnerRejectionEmail } from "@/lib/mailer";
+import { sendPartnerApprovalEmail, sendPartnerRejectionEmail, toEmailLocale } from "@/lib/mailer";
+
+/** Saved email language of the partner's account (Arabic when no account matches the contact email). */
+async function partnerLocale(contactEmail: string) {
+  const account = await prisma.user.findFirst({ where: { email: { equals: contactEmail, mode: "insensitive" } }, select: { locale: true } });
+  return toEmailLocale(account?.locale);
+}
 
 export async function PUT(
   request: Request,
@@ -33,8 +39,8 @@ export async function PUT(
 
     // If status changed to APPROVED
     if (data.status === "APPROVED" && existingPartner.status !== "APPROVED") {
-      // Send official email
-      await sendPartnerApprovalEmail(partner.contactEmail, partner.brandName);
+      // Send official email, in the language the partner signed up in
+      await sendPartnerApprovalEmail(partner.contactEmail, partner.brandName, await partnerLocale(partner.contactEmail));
 
       // Create in-app notification
       const partnerUser = await prisma.user.findFirst({
@@ -55,7 +61,7 @@ export async function PUT(
 
     // If status changed to REJECTED
     if (data.status === "REJECTED" && existingPartner.status !== "REJECTED") {
-      await sendPartnerRejectionEmail(partner.contactEmail, partner.brandName, rejectionReason);
+      await sendPartnerRejectionEmail(partner.contactEmail, partner.brandName, rejectionReason, await partnerLocale(partner.contactEmail));
     }
 
     return NextResponse.json({ message: "Partner updated successfully.", partner });

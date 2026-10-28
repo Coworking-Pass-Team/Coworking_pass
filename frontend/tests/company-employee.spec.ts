@@ -215,6 +215,28 @@ test.describe('Funds allocated by HR, spaces page shell and password reset', () 
     expect(await walletOf()).toBeGreaterThan(walletBefore);
   });
 
+  test('HR sees the company funds each member holds and sets a monthly limit (en)', async ({ page }) => {
+    await signIn(page, TEAM.hr.email, 'en');
+    await page.evaluate(() => sessionStorage.setItem('cp_nav', JSON.stringify({ screen: 'company-team' })));
+    await page.reload();
+    await page.waitForLoadState('networkidle').catch(() => undefined);
+    const card = page.getByTestId('member-funds-card');
+    await expect(card.getByRole('heading', { name: 'Company funds held by members' })).toBeVisible({ timeout: 20000 });
+    await expect(card).toContainText('Unspent: SAR');
+
+    await card.getByRole('button', { name: 'Monthly limit' }).first().click();
+    await page.locator('#member-limit').fill('500');
+    await page.getByTestId('member-limit-save').click();
+    await expect(page.locator('body')).toContainText('Monthly limit saved.', { timeout: 15000 });
+    await expect(card).toContainText('of 500');
+
+    // Leave the shared team account as it was
+    await card.getByRole('button', { name: 'Monthly limit' }).first().click();
+    await page.getByTestId('member-limit-remove').click();
+    await expect(page.locator('body')).toContainText('Monthly limit removed.', { timeout: 15000 });
+    await expect(card).not.toContainText('of 500');
+  });
+
   test('the spaces page keeps the header and footer (en and ar)', async ({ page }) => {
     for (const lang of ['en', 'ar'] as const) {
       await open(page, '/spaces');

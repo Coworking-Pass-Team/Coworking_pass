@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import { reclaimCompanyCredit } from "@/lib/company/credit";
 
 type Tx = Prisma.TransactionClient;
 
@@ -43,14 +44,16 @@ export async function deletePartnerCascade(tx: Tx, partnerId: string): Promise<v
 export async function deleteUserCascade(tx: Tx, userId: string): Promise<void> {
   const user = await tx.user.findUnique({
     where: { id: userId },
-    select: { email: true, role: true, hrAdminOf: { select: { id: true } } },
+    select: { name: true, email: true, role: true, companyId: true, hrAdminOf: { select: { id: true } } },
   });
   if (!user) throw new Error("USER_NOT_FOUND");
 
   // Company owned by this HR admin
   if (user.hrAdminOf) {
     const companyId = user.hrAdminOf.id;
-    await tx.user.updateMany({ where: { companyId }, data: { companyId: null } });
+    await tx.user.updateMany({ where: { companyId }, data: { companyId: null, companySpendLimit: null } });
+    // The company is gone, so the money it gave its members stays with them as their own
+    await tx.wallet.updateMany({ where: { companyCreditCompanyId: companyId }, data: { companyCredit: 0, companyCreditCompanyId: null } });
     await tx.ticketReply.deleteMany({ where: { ticket: { companyId } } });
     await tx.ticket.deleteMany({ where: { companyId } });
     await tx.company.delete({ where: { id: companyId } }); // ledger rows cascade with the company
@@ -69,6 +72,8 @@ export async function deleteUserCascade(tx: Tx, userId: string): Promise<void> {
   await tx.otpCode.deleteMany({ where: { userId } });
   await tx.pointsTransaction.deleteMany({ where: { userId } });
   await tx.loyaltyPoint.deleteMany({ where: { userId } });
+  // A deleted member's unspent company money goes back to their company first
+  if (user.companyId && !user.hrAdminOf) await reclaimCompanyCredit(tx, { userId, companyId: user.companyId, memberName: user.name });
   await tx.walletTransaction.deleteMany({ where: { userId } });
   await tx.wallet.deleteMany({ where: { userId } });
   await tx.payment.deleteMany({ where: { userId } });

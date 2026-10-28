@@ -27,7 +27,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { useApp } from '@/app/store';
-import { Space, isValidSaudiCrNumber } from '@/types';
+import { CR_NUMBER_ERROR, Space, isValidSaudiCrNumber, normalizeCrNumber } from '@/types';
 import Modal from '@/components/ui/Modal';
 import UserAvatar from '@/components/ui/UserAvatar';
 
@@ -152,7 +152,7 @@ function ProviderProfileSettingsContent() {
     if (!editCrNumber.trim()) {
       newErrors.crNumber = 'Commercial Registration (CR) Number is required';
     } else if (!isValidSaudiCrNumber(editCrNumber)) {
-      newErrors.crNumber = 'CR Number must be 10 digits starting with 1010 (e.g. 1010xxxxxx)';
+      newErrors.crNumber = CR_NUMBER_ERROR;
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -734,11 +734,11 @@ function ProviderProfileSettingsContent() {
                   type="text"
                   value={editCrNumber}
                   onChange={e => {
-                    setEditCrNumber(e.target.value.replace(/\D/g, '').slice(0, 10));
+                    setEditCrNumber(normalizeCrNumber(e.target.value).replace(/\D/g, '').slice(0, 10));
                     if (errors.crNumber) setErrors(prev => { const n = { ...prev }; delete n.crNumber; return n; });
                   }}
                   maxLength={10}
-                  placeholder="1010456789"
+                  placeholder="7001234567"
                   className={`w-full px-4 py-3 rounded-2xl border ${errors.crNumber ? 'border-red-500' : 'border-soot/12'} bg-white text-sm text-soot outline-none focus:border-eucalyptus font-normal`}
                 />
                 {errors.crNumber && <p className="text-red-500 text-xs mt-1 font-medium">{translateMessage(errors.crNumber)}</p>}

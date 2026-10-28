@@ -25,6 +25,7 @@ Suites: `suite-security-wallet-slots`, `suite-company-capacity-payments`, `suite
 `suite-booking-lifecycle` (past bookings reported as completed, newest-first lists).
 `suite-record-ownership` (a booking or payment is only readable/changeable by its customer, a super admin or the owning partner).
 `suite-company-team` (HR adds/removes existing member accounts by email, members cannot remove themselves, nobody else can change the team).
+`suite-sessions-funds-fair-use` (unified 700 and regional CR numbers, email language, sign-out and ended sessions stored in the database, the shared sign-in lockout, company money in members' wallets: spent first, monthly limit, no cash-out, returned on removal and on late refunds, and the five-sessions-a-week fair-use limit of the Unlimited plans).
 `suite-team-bookings-reschedule` (bookings made for team members and their check-in, the locked booking PUT, validated rescheduling with price differences, amenity request routing, the customer side of support tickets).
 `suite-allocation-otp` (HR admin allocates company money into employees' wallets: validation, equal split, chosen amounts, atomicity, idempotency, hidden from employees; random one-time codes with expiry, attempt limit and single use; password reset).
 The suites sign in as the seeded super admin from `scripts/team-accounts.json` (git-ignored; the example file is used when it is missing, see `docs/Accounts.md`); override with `QA_ADMIN_EMAIL` / `QA_ADMIN_PASSWORD`.

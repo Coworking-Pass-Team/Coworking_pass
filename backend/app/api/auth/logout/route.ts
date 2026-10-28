@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
-import { blacklistToken, blacklistUser } from "@/lib/auth/token-blacklist";
+import { unauthorizedResponse } from "@/lib/auth/verify-token";
+import { revokeToken } from "@/lib/auth/sessions";
 
 /**
  * @swagger
  * /api/auth/logout:
  *   post:
- *     summary: Sign out and invalidate current token
+ *     summary: Sign out and invalidate the current token (other devices stay signed in)
  *     security:
  *       - BearerAuth: []
  *     responses:
@@ -19,13 +19,8 @@ export async function POST(request: Request) {
     return unauthorizedResponse(request);
   }
 
-  const token = authHeader.split(" ")[1];
-  blacklistToken(token);
-
-  const user = await getTokenFromRequest(request);
-  if (user) {
-    blacklistUser(user.userId);
-  }
+  // Also works for a suspended account's token, so signing out never fails
+  await revokeToken(authHeader.split(" ")[1]);
 
   return NextResponse.json({ message: "Signed out successfully." });
 }

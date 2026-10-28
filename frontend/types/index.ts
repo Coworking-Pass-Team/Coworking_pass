@@ -1943,15 +1943,28 @@ export interface WaitlistEntry {
   autoBookingEnabled?: boolean;
 }
 
+/** Western digits only: Arabic-Indic and Persian digits are converted, spaces and dashes removed. */
+export function normalizeCrNumber(cr: string): string {
+  return (cr || '')
+    // U+0660..U+0669 and U+06F0..U+06F9 end in their digit value
+    .replace(/[٠-٩۰-۹]/g, (d) => String(d.charCodeAt(0) & 0xf))
+    .replace(/[\s-]/g, '');
+}
+
 /**
- * Validates a Saudi Commercial Registration (CR) number.
- * Must be exactly 10 digits starting with standard Saudi chamber/city codes (e.g., 1010 for Riyadh, 4030 for Jeddah, etc.).
+ * Validates a Saudi commercial registration number, the same rule as the backend (lib/partners/cr-number.ts):
+ * the 10-digit unified national number starting with 7 used since 3 April 2025, or a 10-digit registration issued
+ * before it, whose first four digits are the issuing office (1010 Riyadh, 4030 Jeddah, 2050 Dammam, ...).
  */
 export function isValidSaudiCrNumber(cr: string): boolean {
-  if (!cr) return false;
-  const clean = cr.trim();
-  return /^1010\d{6}$/.test(clean);
+  return /^(7\d{9}|[1-5]\d{9})$/.test(normalizeCrNumber(cr));
 }
+
+/** "Unlimited*" plans (Business Pass, Custom Enterprise) allow this many meeting room or theater bookings per person each week. */
+export const FAIR_USE_WEEKLY_LIMIT = 5;
+
+export const CR_NUMBER_ERROR =
+  'Enter the 10-digit unified number starting with 7 (e.g. 7001234567) or a 10-digit commercial registration number.';
 
 
 /** Space type that describes a room, used to drive plans, sessions and pricing for the selected room. */

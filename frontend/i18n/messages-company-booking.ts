@@ -63,6 +63,14 @@ registerMessages(
     'Your message could not be sent.': 'تعذّر إرسال رسالتك.',
     'Please write a message first.': 'يرجى كتابة رسالة أولًا.',
     'The ticket could not be closed.': 'تعذّر إغلاق التذكرة.',
+    // ---- Company money in members' wallets
+    'Monthly limit saved.': 'تم حفظ الحد الشهري.',
+    'Monthly limit removed.': 'تمت إزالة الحد الشهري.',
+    'Enter a monthly limit of zero or more, or remove the limit.': 'أدخل حدًا شهريًا يساوي صفرًا أو أكثر، أو أزل الحد.',
+    'Failed to save the monthly limit.': 'تعذّر حفظ الحد الشهري.',
+    "Only the company's HR admin can manage team members' company funds.": 'يدير أموال الشركة لدى الأعضاء مسؤول الموارد البشرية في الشركة فقط.',
+    'Unspent company funds returned to the company': 'أموال شركة غير مصروفة أُعيدت إلى الشركة',
+    'type must be DEPOSIT, WITHDRAW or REFUND.': 'نوع العملية يجب أن يكون إيداعًا أو سحبًا أو استردادًا.',
     // ---- Notification titles
     'Booked for you by your company': 'حجزته لك شركتك',
     'Booking Rescheduled': 'تمت إعادة جدولة الحجز',
@@ -94,5 +102,14 @@ registerMessages(
     [/^Price difference: (.+)$/, 'فرق السعر: $1'],
     [/^Price difference refunded: (.+)$/, 'استرداد فرق السعر: $1'],
     [/^Team member booking payment for (.+)$/, 'دفع عضو الفريق لحجز في $1'],
+    // ---- Company money in members' wallets
+    [/^Your company's monthly spending limit is reached: SAR ([\d.,]+) of company funds is left this month\. Top up your own wallet to pay the rest\.$/, 'تم بلوغ حد الصرف الشهري الذي حددته شركتك: المتبقي من أموال الشركة هذا الشهر $1 ر.س. اشحن محفظتك الخاصة لدفع الباقي.'],
+    [/^You are no longer part of the (.+) team\. SAR ([\d.,]+) of unspent company funds went back to the company\.$/, 'لم تعد جزءاً من فريق $1، وعاد $2 ر.س من أموال الشركة غير المصروفة إلى الشركة.'],
+    [/^Refund of SAR ([\d.,]+) has been credited to your wallet\. SAR ([\d.,]+) of company funds went back to the company\.$/, 'تمت إضافة مبلغ $1 ر.س المسترد إلى محفظتك، وعاد $2 ر.س من أموال الشركة إلى الشركة.'],
+    [/^Unspent funds returned by (.+)$/, 'أموال غير مصروفة أعادها $1'],
+    [/^Refund of company funds spent by (.+)$/, 'استرداد أموال شركة صرفها $1'],
+    // ---- Fair use of the "Unlimited*" plans
+    [/^Fair use limit reached: you already have (\d+) bookings in the week starting (\d{4}-\d{2}-\d{2})\. Unlimited plans include up to (\d+) meeting room or theater bookings per person each week\.$/, 'تم بلوغ حد الاستخدام العادل: لديك بالفعل $1 حجوزات في الأسبوع الذي يبدأ في $2. تشمل الباقات غير المحدودة حتى $3 حجوزات لقاعات الاجتماعات أو المسارح لكل شخص أسبوعيًا.'],
+    [/^Fair use limit reached: (.+) already has (\d+) bookings in the week starting (\d{4}-\d{2}-\d{2})\. Unlimited plans include up to (\d+) meeting room or theater bookings per person each week\.$/, 'تم بلوغ حد الاستخدام العادل: لدى $1 بالفعل $2 حجوزات في الأسبوع الذي يبدأ في $3. تشمل الباقات غير المحدودة حتى $4 حجوزات لقاعات الاجتماعات أو المسارح لكل شخص أسبوعيًا.'],
   ]
 );

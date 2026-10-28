@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '@/app/store';
 import { useCompanyTeam } from '@/hooks/useCompanyTeam';
+import { FAIR_USE_WEEKLY_LIMIT } from '@/types';
 import CompanyJoinRequestsPanel from '@/components/company/CompanyJoinRequestsPanel';
 import { useSpaceText } from '@/i18n/space-text';
 import BookingQrModal from '@/components/bookings/BookingQrModal';
@@ -180,7 +181,10 @@ export default function OrgDashboard() {
             <div>
               <div className="text-[11px] font-semibold uppercase tracking-wider text-moss mb-1.5">{t('dash.org.hours')}</div>
               {isUnlimitedHours ? (
-                <div className="text-lg font-semibold text-soot">{t('dash.org.unlimited')}</div>
+                <>
+                  <div className="text-lg font-semibold text-soot">{t('dash.org.unlimited')}</div>
+                  <div className="text-[11px] text-moss mt-1">{t('dash.org.fairUse', { count: FAIR_USE_WEEKLY_LIMIT })}</div>
+                </>
               ) : (
                 <>
                   <div className="text-lg font-semibold text-soot">

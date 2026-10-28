@@ -6,6 +6,7 @@ import { seedStandardWorkspaces } from '@/lib/db/seed-data';
 import { getKsaNow, parseDateAndTimeToKsaDate } from '@/lib/time-utils';
 import { hourlyBookingEffectiveStatus } from '@/lib/booking/lifecycle';
 import { effectiveCapacity, getOccupiedSeats } from '@/lib/booking/capacity';
+import { checkFairUse, sessionParticipants } from '@/lib/booking/fair-use';
 import { hiddenWorkspaceError } from '@/lib/workspaces/visibility';
 import { getOwnedWorkspaceIds } from '@/lib/ownership';
 import { validateHourlyWindow, isFixedSlotSection } from '@/lib/workspaces/operating-hours';
@@ -459,6 +460,16 @@ const requestedType = (validSectionTypes.includes(sectionType) && sectionType !=
         }
       }
 
+      // "Unlimited*" plans: at most five sessions per person per week
+      if (normalizedStatus === 'ACTIVE') {
+        const fairUse = await checkFairUse(tx, {
+          bookerId: effectiveUserId,
+          participantIds: sessionParticipants({ userId: effectiveUserId, attendeeIds }),
+          start: startObj,
+        });
+        if (!fairUse.ok) return { error: fairUse.error, code: fairUse.code };
+      }
+
       // إنشاء الحجز
       const created = await tx.hourlyBooking.create({
       data: {
@@ -490,7 +501,7 @@ const requestedType = (validSectionTypes.includes(sectionType) && sectionType !=
     });
 
     if ('error' in txResult) {
-      return NextResponse.json({ error: txResult.error }, { status: 409 });
+      return NextResponse.json({ error: txResult.error, ...('code' in txResult ? { code: txResult.code } : {}) }, { status: 409 });
     }
 
     // Tell the guest their session is confirmed (a failure here must never undo the booking)

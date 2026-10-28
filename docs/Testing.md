@@ -7,7 +7,7 @@ How Coworking Pass is tested in Version 2.0, how to run each layer, and where th
 | Layer | Location | Tool | What it covers |
 | :--- | :--- | :--- | :--- |
 | Unit | `backend/tests/*.test.ts` | Vitest | Pure server rules: room capacity, operating hours, one-time code generation and email configuration, password policy, super admin provisioning plan. |
-| API integration | `backend/tests/api-qa/suite-*.mjs` (13 suites) | Node + `pg` | Black-box calls to the running API plus checks in the database: authorization and ownership, wallets and idempotency, capacity races, slots and operating hours, refunds, company team and join requests, fund allocation, team bookings and rescheduling, notifications, one-time codes, password reset and the password policy. |
+| API integration | `backend/tests/api-qa/suite-*.mjs` (14 suites) | Node + `pg` | Black-box calls to the running API plus checks in the database: authorization and ownership, wallets and idempotency, capacity races, slots and operating hours, refunds, company team and join requests, fund allocation, company money in members' wallets (spent first, monthly limit, returned on removal), the fair-use limit, team bookings and rescheduling, notifications, one-time codes, password reset and the password policy, shared sign-out and sign-in lockout, partner registration numbers and the email language. |
 | Browser | `frontend/tests/*.spec.ts` | Playwright | Public pages (smoke and responsive checks), the admin and member journeys, company employee screens, "My tickets", the reschedule dialog, HR fund allocation, the spaces page shell, the password-reset screens and the live password checklist, in Arabic and English. |
 
 ## 2. Running the tests

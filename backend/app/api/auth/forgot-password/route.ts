@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { deliverOtp, issueOtp, recentlyIssued } from "@/lib/auth/otp";
+import { parseLocale, toEmailLocale } from "@/lib/mailer";
 
 /** Same answer whether or not the address has an account, so the form cannot be used to find out who is registered. */
 const GENERIC = { message: "If an account exists for this email, a reset code has been sent to it." };
@@ -32,11 +33,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "A valid email address is required." }, { status: 400 });
     }
 
-    const user = await prisma.user.findUnique({ where: { email }, select: { id: true, email: true, isBanned: true, emailVerified: true } });
+    const user = await prisma.user.findUnique({ where: { email }, select: { id: true, email: true, isBanned: true, emailVerified: true, locale: true } });
     // Suspended and unverified accounts get no code (an unverified one finishes sign-up instead)
     if (user && !user.isBanned && user.emailVerified && !(await recentlyIssued(user.id, "PASSWORD_RESET"))) {
+      const requested = parseLocale(body.locale);
+      if (requested && requested !== user.locale) {
+        await prisma.user.update({ where: { id: user.id }, data: { locale: requested } });
+      }
       const code = await issueOtp(user.id, "PASSWORD_RESET");
-      await deliverOtp(user.email, code, "PASSWORD_RESET");
+      await deliverOtp(user.email, code, "PASSWORD_RESET", requested ?? toEmailLocale(user.locale));
     }
     return NextResponse.json(GENERIC);
   } catch (error) {

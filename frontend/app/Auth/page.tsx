@@ -27,7 +27,7 @@ import {
 import { useApp } from '@/app/store';
 import LogoImage from '@/components/layout/Logo';
 import Badge from '@/components/ui/Badge';
-import { isValidSaudiCrNumber } from '@/types';
+import { CR_NUMBER_ERROR, isValidSaudiCrNumber, normalizeCrNumber } from '@/types';
 import PasswordChecklist from '@/components/auth/PasswordChecklist';
 import { isPasswordValid } from '@/lib/password-policy';
 import PhoneInput from 'react-phone-number-input';
@@ -587,7 +587,7 @@ export function SignUpScreen() {
       if (!crNumber.trim()) {
         e.crNumber = 'Commercial Registration (CR) Number is required.';
       } else if (!isValidSaudiCrNumber(crNumber)) {
-        e.crNumber = 'CR Number must be 10 digits starting with 1010 (e.g., 1010xxxxxx).';
+        e.crNumber = CR_NUMBER_ERROR;
       }
     }
     return e;
@@ -980,11 +980,11 @@ export function SignUpScreen() {
                         type="text"
                         value={crNumber}
                         onChange={(e) => {
-                          setCrNumber(e.target.value.replace(/\D/g, '').slice(0, 10));
+                          setCrNumber(normalizeCrNumber(e.target.value).replace(/\D/g, '').slice(0, 10));
                           if (errors.crNumber) setErrors(prev => { const n = { ...prev }; delete n.crNumber; return n; });
                         }}
                         maxLength={10}
-                        placeholder="1010xxxxxx"
+                        placeholder="7xxxxxxxxx"
                         className={`w-full ps-9 pe-3 py-2.5 rounded-xl bg-plaster-dark/20 border ${errors.crNumber ? 'border-red-500' : 'border-soot/15'} text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs`}
                       />
                     </div>
@@ -1165,7 +1165,7 @@ export function ChooseAccountType() {
         return;
       }
       if (!isValidSaudiCrNumber(crNumber)) {
-        setCrError('CR Number must be 10 digits starting with 1010 (e.g., 1010xxxxxx).');
+        setCrError(CR_NUMBER_ERROR);
         return;
       }
       setCrError('');
@@ -1297,11 +1297,11 @@ export function ChooseAccountType() {
                   type="text"
                   value={crNumber}
                   onChange={(e) => {
-                    setCrNumber(e.target.value.replace(/\D/g, '').slice(0, 10));
+                    setCrNumber(normalizeCrNumber(e.target.value).replace(/\D/g, '').slice(0, 10));
                     if (crError) setCrError('');
                   }}
                   maxLength={10}
-                  placeholder="1010xxxxxx"
+                  placeholder="7xxxxxxxxx"
                   className={`w-full px-3.5 py-2.5 rounded-xl bg-plaster-surface border ${crError ? 'border-red-500' : 'border-soot/15'} text-soot placeholder:text-moss/60 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs`}
                 />
                 {crError && <p className="text-red-500 text-xs mt-1 font-medium">{crError}</p>}

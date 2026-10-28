@@ -5,6 +5,7 @@ import { getKsaNow, parseDateAndTimeToKsaDate } from "@/lib/time-utils";
 import { getOccupiedSeats } from "@/lib/booking/capacity";
 import { effectiveCapacity } from "@/lib/booking/capacity";
 import { isFixedSlotSection, validateHourlyWindow } from "@/lib/workspaces/operating-hours";
+import { checkFairUse, fairUseWeek, sessionParticipants } from "@/lib/booking/fair-use";
 import {
   FREE_RESCHEDULES,
   MAX_RESCHEDULE_AHEAD_DAYS,
@@ -146,6 +147,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         if (others + booking.seats > limit) {
           return { error: refuse(409, "SLOT_UNAVAILABLE", `Not enough availability. Only ${Math.max(0, limit - others)} seat(s) left for the selected time.`) };
         }
+      }
+
+      // Moving a session into another week must respect that week's fair-use limit of the "Unlimited*" plans
+      if (fairUseWeek(newStart).from.getTime() !== fairUseWeek(booking.startDate).from.getTime()) {
+        const fairUse = await checkFairUse(tx, {
+          bookerId: booking.userId,
+          participantIds: sessionParticipants(booking),
+          start: newStart,
+          excludeBookingId: id,
+        });
+        if (!fairUse.ok) return { error: refuse(fairUse.status, fairUse.code, fairUse.error) };
       }
 
       const settled = await settlePriceDifference(tx, {

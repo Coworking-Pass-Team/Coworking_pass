@@ -1,18 +1,16 @@
 import jwt from "jsonwebtoken";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { isBlacklisted, isTokenBlacklisted } from "./token-blacklist";
+import { isTokenRevoked, issuedBeforeRevocation, type SessionClaims } from "./sessions";
 
-interface TokenPayload {
-  userId: string;
-  role: string;
-}
+type TokenPayload = SessionClaims;
 
-// Short-lived cache so the ban check does not hit the database on every request
+// Short-lived cache so the ban and session checks do not hit the database on every request
 const BAN_CACHE_TTL_MS = 10_000;
-const banCache = new Map<string, { banned: boolean; exists: boolean; expires: number }>();
+type UserState = { banned: boolean; exists: boolean; sessionsRevokedAt: Date | null };
+const banCache = new Map<string, UserState & { expires: number }>();
 
-/** Drop the cached ban state for a user so a block/unblock takes effect immediately. */
+/** Drop the cached account state (ban, ended sessions) so a change takes effect immediately on this instance. */
 export function invalidateBanCache(userId: string): void {
   banCache.delete(userId);
 }
@@ -20,7 +18,7 @@ export function invalidateBanCache(userId: string): void {
 // Requests rejected because the account is suspended, so the 401/403 response can carry the right code
 const suspendedRequests = new WeakSet<Request>();
 
-async function getUserState(userId: string): Promise<{ banned: boolean; exists: boolean }> {
+async function getUserState(userId: string): Promise<UserState> {
   const cached = banCache.get(userId);
   if (cached && cached.expires > Date.now()) {
     return cached;
@@ -28,16 +26,17 @@ async function getUserState(userId: string): Promise<{ banned: boolean; exists: 
 
   const row = await prisma.user.findUnique({
     where: { id: userId },
-    select: { isBanned: true },
+    select: { isBanned: true, sessionsRevokedAt: true },
   });
-  const state = { banned: !!row?.isBanned, exists: !!row, expires: Date.now() + BAN_CACHE_TTL_MS };
+  const state = { banned: !!row?.isBanned, exists: !!row, sessionsRevokedAt: row?.sessionsRevokedAt ?? null, expires: Date.now() + BAN_CACHE_TTL_MS };
   banCache.set(userId, state);
   return state;
 }
 
 /**
- * Verifies the bearer token and confirms against the database that the account
- * still exists and is not blocked, so suspensions survive server restarts.
+ * Verifies the bearer token and confirms against the database that it was not signed out, that the account
+ * still exists and is not blocked, and that its sessions were not ended after the token was issued. All of this
+ * lives in the database, so it holds on every server instance and survives restarts.
  */
 export async function getTokenFromRequest(request: Request): Promise<TokenPayload | null> {
   const authHeader = request.headers.get("authorization");
@@ -48,22 +47,18 @@ export async function getTokenFromRequest(request: Request): Promise<TokenPayloa
 
   const token = authHeader.split(" ")[1];
 
-  if (isTokenBlacklisted(token)) {
-    return null;
-  }
-
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as TokenPayload;
 
-    const state = await getUserState(decoded.userId);
+    const [state, revoked] = await Promise.all([getUserState(decoded.userId), isTokenRevoked(token)]);
     // A suspended account is reported as such (403 ACCOUNT_SUSPENDED) even if its sessions were also revoked
     if (state.exists && state.banned) {
       suspendedRequests.add(request);
       return null;
     }
 
-    // Reject token if user is explicitly blacklisted (e.g. logged out)
-    if (isBlacklisted(decoded.userId)) {
+    // Signed out, or issued before a password reset or suspension ended every session
+    if (revoked || issuedBeforeRevocation(decoded, state.sessionsRevokedAt)) {
       return null;
     }
 

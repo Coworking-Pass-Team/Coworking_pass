@@ -147,7 +147,12 @@ model User {
   companyId     String?
   emailVerified Boolean @default(false)
   isBanned Boolean @default(false)
-  
+  /// Sessions (tokens) issued before this moment no longer work: set by a password reset or a suspension
+  sessionsRevokedAt DateTime?
+  /// Language of the emails sent to this person ("ar" or "en"), taken from the site language at sign-up and sign-in
+  locale        String  @default("ar")
+  /// Most company money (SAR) this member may spend per month; null means no limit. Set by the HR admin
+  companySpendLimit Float?
 
   company            Company?            @relation("CompanyEmployees", fields: [companyId], references: [id])
   hrAdminOf          Company?            @relation("CompanyHrAdmin")
@@ -205,7 +210,7 @@ model CompanyWalletTransaction {
   companyId    String
   userId       String?
   amount       Float
-  type         String   // DEPOSIT, WITHDRAW, REFUND, ALLOCATION
+  type         String   // DEPOSIT, WITHDRAW, REFUND, ALLOCATION, RECLAIM
   description  String?
   referenceId  String?
   balanceAfter Float
@@ -440,6 +445,22 @@ model QrCheckIn {
   section   WorkspaceSection @relation(fields: [sectionId], references: [id])
 }
 
+/// A signed-out session: the token's SHA-256 hash, kept until the token would have expired anyway
+model RevokedToken {
+  tokenHash String   @id
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
+}
+
+/// Failed password attempts per email in the current lockout window (shared by every server instance)
+model LoginAttempt {
+  email       String   @id
+  failures    Int      @default(0)
+  windowStart DateTime
+}
+
 model OtpCode {
   id        String     @id @default(uuid())
   userId    String
@@ -515,6 +536,9 @@ model Wallet {
   id        String   @id @default(uuid())
   userId    String   @unique
   balance   Float    @default(0)
+  /// The part of `balance` that is unspent company money; it is spent first and returns to the company when the member leaves
+  companyCredit          Float   @default(0)
+  companyCreditCompanyId String?
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
 
@@ -528,10 +552,12 @@ model WalletTransaction {
   walletId     String   
   userId       String
   amount       Float
-  type         String   // DEPOSIT, WITHDRAW, REFUND
+  type         String   // DEPOSIT, WITHDRAW, REFUND, RECLAIM
   description  String?
   referenceId  String?
   balanceAfter Float
+  /// How much of `amount` was company money (allocated, spent, refunded back or reclaimed)
+  companyAmount Float   @default(0)
   createdAt    DateTime @default(now())
 
   wallet Wallet @relation(fields: [walletId], references: [id])
