@@ -28,7 +28,7 @@ import {
   ArrowUpRight
 } from 'lucide-react';
 import { useApp } from '@/app/store';
-import { Employee, isValidSaudiCrNumber } from '@/types';
+import { CR_NUMBER_ERROR, Employee, isValidSaudiCrNumber, normalizeCrNumber } from '@/types';
 import Modal from '@/components/ui/Modal';
 import UserAvatar from '@/components/ui/UserAvatar';
 
@@ -129,7 +129,7 @@ export default function OrgProfile() {
     if (!editOrgName.trim()) newErrors.orgName = 'Organization name is required';
     if (!editOwnerName.trim()) newErrors.ownerName = 'Owner / Representative name is required';
     if (editCrNumber.trim() && !isValidSaudiCrNumber(editCrNumber)) {
-      newErrors.crNumber = 'CR Number must be 10 digits starting with a valid region code (e.g. 1010xxxxxx)';
+      newErrors.crNumber = CR_NUMBER_ERROR;
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -570,7 +570,7 @@ export default function OrgProfile() {
             <div className="space-y-4 divide-y divide-soot/6">
               {[
                 { key: 'teamBookings', label: 'Team booking notifications', desc: 'Get notified when an employee reserves desks or meeting rooms' },
-                { key: 'monthlyInvoices', label: 'Monthly billing & VAT invoices', desc: 'Consolidated corporate invoice delivered at the end of each billing cycle' },
+                { key: 'monthlyInvoices', label: 'Billing & wallet alerts', desc: 'Notices about company wallet top-ups, allocations and team booking charges' },
                 { key: 'spaceAlerts', label: 'Corporate workspace announcements', desc: 'Alerts regarding new corporate pass venues and enterprise amenities' },
                 { key: 'passUsage', label: 'Individual employee check-in alerts', desc: 'Real-time notifications for every desk badge scan' },
               ].map(item => (
@@ -907,11 +907,11 @@ export default function OrgProfile() {
                 type="text"
                 value={editCrNumber}
                 onChange={e => {
-                  setEditCrNumber(e.target.value.replace(/\D/g, '').slice(0, 10));
+                  setEditCrNumber(normalizeCrNumber(e.target.value).replace(/\D/g, '').slice(0, 10));
                   if (errors.crNumber) setErrors(prev => { const n = { ...prev }; delete n.crNumber; return n; });
                 }}
                 maxLength={10}
-                placeholder="1010874921"
+                placeholder="7001234567"
                 className={`w-full px-4 py-3 rounded-2xl border ${errors.crNumber ? 'border-red-500' : 'border-soot/12'} bg-white text-soot text-sm outline-none focus:border-soot transition-all shadow-2xs font-normal`}
               />
               {errors.crNumber && <p className="text-red-500 text-xs mt-1 font-medium">{translateMessage(errors.crNumber)}</p>}

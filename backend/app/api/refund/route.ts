@@ -209,7 +209,10 @@ export async function POST(request: NextRequest) {
           userId: booking.userId,
           type: 'PAYMENT_SUCCESS',
           title: 'Amount Refunded',
-          message: `Refund of SAR ${refundAmount} has been credited to your wallet.`,
+          // A former team member's company-funded part goes back to that company
+          message: credit.returnedToCompany > 0
+            ? `Refund of SAR ${Math.round((refundAmount - credit.returnedToCompany) * 100) / 100} has been credited to your wallet. SAR ${credit.returnedToCompany} of company funds went back to the company.`
+            : `Refund of SAR ${refundAmount} has been credited to your wallet.`,
           channel: 'IN_APP',
           sentAt: new Date(),
         },
@@ -223,6 +226,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       message: 'Booking refunded successfully',
       refundAmount,
+      returnedToCompany: result.returnedToCompany,
       walletTarget: result.target,
       companyId: result.companyId,
       walletBalance: result.balance,

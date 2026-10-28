@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import { refundPersonalWallet } from "@/lib/company/credit";
 
 export type WalletTx = Prisma.TransactionClient;
 
@@ -14,6 +15,8 @@ export interface WalletMovementResult {
   target: "COMPANY" | "PERSONAL";
   companyId: string | null;
   balance: number;
+  /** Company money a former team member spent, sent back to that company instead of the member (refunds only) */
+  returnedToCompany: number;
 }
 
 /**
@@ -51,7 +54,18 @@ export async function creditWallet(tx: WalletTx, move: WalletMovement): Promise<
         balanceAfter: company.balance,
       },
     });
-    return { target: "COMPANY", companyId, balance: company.balance };
+    return { target: "COMPANY", companyId, balance: company.balance, returnedToCompany: 0 };
+  }
+
+  // A refund to a team member returns the company-funded part as company money (see lib/company/credit.ts)
+  if (move.type === "REFUND") {
+    const refunded = await refundPersonalWallet(tx, {
+      userId: move.userId,
+      amount: move.amount,
+      description: move.description ?? "Refund",
+      referenceId: move.referenceId ?? null,
+    });
+    return { target: "PERSONAL", companyId: null, balance: refunded.balance, returnedToCompany: refunded.returnedToCompany };
   }
 
   const wallet = await tx.wallet.upsert({
@@ -74,5 +88,5 @@ export async function creditWallet(tx: WalletTx, move: WalletMovement): Promise<
       balanceAfter: updated.balance,
     },
   });
-  return { target: "PERSONAL", companyId: null, balance: updated.balance };
+  return { target: "PERSONAL", companyId: null, balance: updated.balance, returnedToCompany: 0 };
 }

@@ -5,6 +5,8 @@ import { deliverOtp, issueOtp } from "@/lib/auth/otp";
 import type { Role } from "@prisma/client";
 import { createPendingJoinRequest, findCompanyByHrEmail } from "@/lib/company/join";
 import { passwordPolicyError } from "@/lib/auth/password-policy";
+import { CR_NUMBER_ERROR, isValidCrNumber, normalizeCrNumber } from "@/lib/partners/cr-number";
+import { toEmailLocale } from "@/lib/mailer";
 
 const VALID_ROLES = ["GUEST", "B2C", "HR_ADMIN", "PARTNER_ADMIN"];
 
@@ -39,7 +41,9 @@ const VALID_ROLES = ["GUEST", "B2C", "HR_ADMIN", "PARTNER_ADMIN"];
  */
 export async function POST(request: Request) {
   try {
-    const { name, email, password, role, companyName, orgName, businessName, crNumber, companyHrEmail } = await request.json();
+    const { name, email, password, role, companyName, orgName, businessName, crNumber, companyHrEmail, locale } = await request.json();
+    // Language of the emails this person receives (the site language at sign-up, Arabic by default)
+    const emailLocale = toEmailLocale(locale);
 
     if (!name || !email || !password) {
       return NextResponse.json(
@@ -84,14 +88,14 @@ if (existingUser && !existingUser.emailVerified) {
   const passwordHash = await bcrypt.hash(password, 10);
   await prisma.user.update({
     where: { id: existingUser.id },
-    data: { name: name.trim(), passwordHash },
+    data: { name: name.trim(), passwordHash, locale: emailLocale },
   });
   if (joinCompanyId && existingUser.role === "B2C" && !existingUser.companyId) {
     await createPendingJoinRequest(existingUser.id, joinCompanyId);
   }
 
   const otp = await issueOtp(existingUser.id, "EMAIL_VERIFICATION");
-  await deliverOtp(cleanEmail, otp, "EMAIL_VERIFICATION");
+  await deliverOtp(cleanEmail, otp, "EMAIL_VERIFICATION", emailLocale);
 
   return NextResponse.json(
     { message: "Account already exists but not verified. A new verification code has been sent.", userId: existingUser.id },
@@ -102,20 +106,15 @@ if (existingUser && !existingUser.emailVerified) {
     const passwordHash = await bcrypt.hash(password, 10);
     const assignedRole = (role && VALID_ROLES.includes(role)) ? role : "B2C";
 
-    if (assignedRole === "PARTNER_ADMIN" || (crNumber && String(crNumber).trim())) {
-      const cleanCr = crNumber ? String(crNumber).trim() : '';
-      if (assignedRole === "PARTNER_ADMIN" && !cleanCr) {
-        return NextResponse.json(
-          { error: "Commercial Registration (CR) Number is required for space venue partners." },
-          { status: 400 }
-        );
-      }
-      if (cleanCr && !/^1010\d{6}$/.test(cleanCr)) {
-        return NextResponse.json(
-          { error: "CR Number must be 10 digits starting with 1010 (e.g., 1010xxxxxx)." },
-          { status: 400 }
-        );
-      }
+    const cleanCr = normalizeCrNumber(crNumber);
+    if (assignedRole === "PARTNER_ADMIN" && !cleanCr) {
+      return NextResponse.json(
+        { error: "Commercial Registration (CR) Number is required for space venue partners." },
+        { status: 400 }
+      );
+    }
+    if (cleanCr && !isValidCrNumber(cleanCr)) {
+      return NextResponse.json({ error: CR_NUMBER_ERROR }, { status: 400 });
     }
 
     const user = await prisma.user.create({
@@ -125,6 +124,7 @@ if (existingUser && !existingUser.emailVerified) {
         passwordHash,
         role: assignedRole as Role,
         emailVerified: false,
+        locale: emailLocale,
       },
     });
 
@@ -161,7 +161,6 @@ if (existingUser && !existingUser.emailVerified) {
     // إنشاء سجل الشريك لمزود المساحات بحالة بانتظار الاعتماد (PENDING_APPROVAL)
     if (assignedRole === "PARTNER_ADMIN") {
       const finalBrandName = (businessName || name || 'New Partner').trim();
-      const cleanCr = crNumber ? String(crNumber).trim() : '';
       try {
         const existingPartner = await prisma.partner.findFirst({
           where: { contactEmail: cleanEmail },
@@ -227,7 +226,7 @@ if (existingUser && !existingUser.emailVerified) {
     }).catch(() => {});
 
     const otp = await issueOtp(user.id, "EMAIL_VERIFICATION");
-    await deliverOtp(cleanEmail, otp, "EMAIL_VERIFICATION");
+    await deliverOtp(cleanEmail, otp, "EMAIL_VERIFICATION", emailLocale);
 
     return NextResponse.json(
       {

@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { creditWallet } from "@/lib/wallet";
+import { debitPersonalWallet } from "@/lib/company/credit";
 
 type Tx = Prisma.TransactionClient;
 
@@ -94,18 +95,13 @@ export async function settlePriceDifference(
     return { ok: true, delta, target: "COMPANY" };
   }
 
-  // The owner's own wallet: conditional decrement so it can never go negative
-  const wallet = await tx.wallet.findUnique({ where: { userId: ownerId } });
-  const deducted = wallet
-    ? await tx.wallet.updateMany({ where: { id: wallet.id, balance: { gte: delta } }, data: { balance: { decrement: delta } } })
-    : { count: 0 };
-  if (!wallet || deducted.count === 0) {
-    return { ok: false, status: 400, code: "INSUFFICIENT_BALANCE", error: "Your wallet does not have enough balance for the price difference. Top it up and try again." };
+  // The owner's own wallet (company money first for team members); never goes negative
+  const debited = await debitPersonalWallet(tx, { userId: ownerId, amount: delta, purpose: "PAYMENT", description: `Price difference: ${label}`, referenceId });
+  if (!debited.ok) {
+    return debited.code === "COMPANY_SPEND_LIMIT"
+      ? { ok: false, status: 400, code: debited.code, error: debited.error }
+      : { ok: false, status: 400, code: "INSUFFICIENT_BALANCE", error: "Your wallet does not have enough balance for the price difference. Top it up and try again." };
   }
-  const after = await tx.wallet.findUniqueOrThrow({ where: { id: wallet.id } });
-  await tx.walletTransaction.create({
-    data: { walletId: wallet.id, userId: ownerId, amount: delta, type: "WITHDRAW", description: `Price difference: ${label}`, referenceId, balanceAfter: after.balance },
-  });
   await tx.payment.update({ where: { id: payment.id }, data: { amount: { increment: delta } } });
   return { ok: true, delta, target: "PERSONAL" };
 }

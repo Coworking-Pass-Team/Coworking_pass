@@ -1,8 +1,7 @@
 import { suspendedResponse } from "@/lib/auth/verify-token";
 import { NextResponse } from "next/server";
-import jwt from "jsonwebtoken";
 import { prisma } from "@/lib/prisma";
-import { removeFromBlacklist } from "@/lib/auth/token-blacklist";
+import { signSessionToken } from "@/lib/auth/sessions";
 import { checkOtp } from "@/lib/auth/otp";
 
 /**
@@ -79,14 +78,8 @@ export async function POST(request: Request) {
       }
     }
 
-    const token = jwt.sign(
-      { userId: user.id, role: user.role },
-      process.env.JWT_SECRET!,
-      { expiresIn: "1d" }
-    );
-
-    // Unblacklist user on fresh login to allow new sessions
-    removeFromBlacklist(user.id);
+    // Unique per sign-in, so signing out one device never signs out another
+    const token = signSessionToken(user);
 
     const associatedCompany = user.hrAdminOf || user.company;
 

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { creditCompanyFunds } from "@/lib/company/credit";
 
 const MAX_RECIPIENTS = 500;
 const MAX_AMOUNT = 1_000_000;
@@ -116,21 +117,18 @@ export async function applyAllocation(params: {
       for (const line of lines) {
         running = fromCents(cents(running) - cents(line.amount));
 
-        const wallet = await tx.wallet.upsert({
-          where: { userId: line.userId },
-          create: { userId: line.userId, balance: 0 },
-          update: {},
-        });
-        const credited = await tx.wallet.update({ where: { id: wallet.id }, data: { balance: { increment: line.amount } } });
+        // Kept apart as company money: spent first, returned to the company if the member leaves
+        const credited = await creditCompanyFunds(tx, { userId: line.userId, companyId, amount: line.amount });
         await tx.walletTransaction.create({
           data: {
-            walletId: wallet.id,
+            walletId: credited.walletId,
             userId: line.userId,
             amount: line.amount,
             type: "DEPOSIT",
             description: `Allocated by ${companyName}`,
             referenceId: `${batch}:${line.userId}`,
             balanceAfter: credited.balance,
+            companyAmount: line.amount,
           },
         });
         await tx.companyWalletTransaction.create({

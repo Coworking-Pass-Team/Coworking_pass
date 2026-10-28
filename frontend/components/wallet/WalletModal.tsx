@@ -7,7 +7,7 @@ import {
   Wallet, ArrowDownLeft, ArrowUpRight, PlusCircle, MinusCircle, 
   X, ShieldCheck, RefreshCw, CheckCircle2, History 
 } from 'lucide-react';
-import { useApp } from '@/app/store';
+import { useApp, type WalletSnapshot } from '@/app/store';
 
 interface WalletModalProps {
   isOpen: boolean;
@@ -23,6 +23,7 @@ export default function WalletModal({ isOpen, onClose }: WalletModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingWallet, setIsLoadingWallet] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [companyFunds, setCompanyFunds] = useState<Pick<WalletSnapshot, 'companyCredit' | 'companySpendLimit' | 'companySpentThisMonth'> | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -31,7 +32,7 @@ export default function WalletModal({ isOpen, onClose }: WalletModalProps) {
   useEffect(() => {
     if (isOpen && currentUser?.id) {
       setIsLoadingWallet(true);
-      fetchWallet(currentUser.id).finally(() => setIsLoadingWallet(false));
+      fetchWallet(currentUser.id).then((w) => w && setCompanyFunds(w)).finally(() => setIsLoadingWallet(false));
     }
   }, [isOpen, currentUser?.id]);
 
@@ -112,12 +113,20 @@ export default function WalletModal({ isOpen, onClose }: WalletModalProps) {
                   <span className="text-sm font-semibold text-emerald-300">{t('common.sar')}</span>
                   <span>{currentBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
+                {companyFunds && (companyFunds.companyCredit > 0 || companyFunds.companySpendLimit !== null) && (
+                  <div className="text-[11px] text-emerald-100/80 mt-1.5 space-y-0.5" data-testid="wallet-company-funds">
+                    <div>{t('wallet.companyFunds', { currency: t('common.sar'), amount: companyFunds.companyCredit.toLocaleString('en-US', { maximumFractionDigits: 2 }) })}</div>
+                    {companyFunds.companySpendLimit !== null && (
+                      <div>{t('wallet.companyLimit', { currency: t('common.sar'), left: Math.max(0, companyFunds.companySpendLimit - companyFunds.companySpentThisMonth).toLocaleString('en-US', { maximumFractionDigits: 2 }), limit: companyFunds.companySpendLimit.toLocaleString('en-US', { maximumFractionDigits: 2 }) })}</div>
+                    )}
+                  </div>
+                )}
               </div>
               <button
                 onClick={() => {
                   if (currentUser?.id) {
                     setIsLoadingWallet(true);
-                    fetchWallet(currentUser.id).finally(() => setIsLoadingWallet(false));
+                    fetchWallet(currentUser.id).then((w) => w && setCompanyFunds(w)).finally(() => setIsLoadingWallet(false));
                   }
                 }}
                 disabled={isLoadingWallet}

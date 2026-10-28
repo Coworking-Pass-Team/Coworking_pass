@@ -2,12 +2,14 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 import { forbiddenResponse } from "@/lib/ownership";
+import { reclaimCompanyCredit } from "@/lib/company/credit";
 
 /**
  * @swagger
  * /api/companies/{id}/employees/{userId}:
  *   delete:
  *     summary: Remove a member from the company team (HR admin or super admin only; members cannot remove themselves)
+ *     description: The member's unspent company funds return to the company wallet and their monthly limit is cleared.
  */
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string; userId: string }> }) {
   try {
@@ -30,18 +32,25 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
       return NextResponse.json({ error: "This person is not in the team." }, { status: 404 });
     }
 
-    await prisma.user.update({ where: { id: userId }, data: { companyId: null } });
+    // Unspent company money goes back to the company in the same step as the unlink
+    const reclaimed = await prisma.$transaction(async (tx) => {
+      const amount = await reclaimCompanyCredit(tx, { userId, companyId: id, memberName: member.name });
+      await tx.user.update({ where: { id: userId }, data: { companyId: null, companySpendLimit: null } });
+      return amount;
+    });
     await prisma.notification.create({
       data: {
         userId,
         type: "PASS_ASSIGNED",
         title: "Removed from a company team",
-        message: `You are no longer part of the ${company.companyName} team.`,
+        message: reclaimed > 0
+          ? `You are no longer part of the ${company.companyName} team. SAR ${reclaimed} of unspent company funds went back to the company.`
+          : `You are no longer part of the ${company.companyName} team.`,
         channel: "IN_APP",
         sentAt: new Date(),
       },
     }).catch((err) => console.error("Team notification failed:", err));
-    return NextResponse.json({ message: "Team member removed." });
+    return NextResponse.json({ message: "Team member removed.", reclaimed });
   } catch (error) {
     console.error("Error removing a company employee:", error);
     return NextResponse.json({ error: "Failed to remove the team member." }, { status: 500 });

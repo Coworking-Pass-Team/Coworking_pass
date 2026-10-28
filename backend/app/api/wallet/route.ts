@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
+import { companySpentThisMonth, debitPersonalWallet, refundPersonalWallet } from '@/lib/company/credit';
 
 
 /**
@@ -56,10 +57,17 @@ export async function GET(request: NextRequest) {
       })
     }
 
+    // Company money held in this wallet and the member's monthly limit on spending it
+    const owner = await prisma.user.findUnique({ where: { id: userId }, select: { companyId: true, companySpendLimit: true } })
+    const companyCredit = owner?.companyId && owner.companyId === wallet.companyCreditCompanyId ? wallet.companyCredit : 0
+
     return NextResponse.json({
       userId,
       balance: wallet.balance,
       currency: 'SAR',
+      companyCredit,
+      companySpendLimit: owner?.companyId ? owner.companySpendLimit : null,
+      companySpentThisMonth: companyCredit > 0 || owner?.companySpendLimit != null ? await companySpentThisMonth(prisma, wallet.id) : 0,
       transactions: wallet.transactions || []
     })
 
@@ -100,6 +108,9 @@ export async function POST(request: NextRequest) {
     }
 
     const typeUpper = (type || '').toString().toUpperCase();
+    if (!['DEPOSIT', 'WITHDRAW', 'REFUND'].includes(typeUpper)) {
+      return NextResponse.json({ error: 'type must be DEPOSIT, WITHDRAW or REFUND.' }, { status: 400 })
+    }
     const isCredit = typeUpper === 'DEPOSIT' || typeUpper === 'REFUND';
 
     const safeReference: string | null = typeof referenceId === 'string' && referenceId ? referenceId.slice(0, 200) : null;
@@ -107,11 +118,11 @@ export async function POST(request: NextRequest) {
     // A customer can only be refunded for one of their own wallet charges: the reference is "<charge reference>:<detail>",
     // the amount cannot exceed that charge, and each charge is refunded at most once.
     // Cancellation and subscription refunds are calculated by the server in /api/refund.
+    const chargeReference = typeUpper === 'REFUND' && safeReference ? safeReference.split(':')[0] : '';
+    const charge = chargeReference
+      ? await prisma.walletTransaction.findFirst({ where: { userId, type: 'WITHDRAW', referenceId: chargeReference } })
+      : null;
     if (typeUpper === 'REFUND' && user.role !== 'SUPER_ADMIN') {
-      const chargeReference = safeReference ? safeReference.split(':')[0] : '';
-      const charge = chargeReference
-        ? await prisma.walletTransaction.findFirst({ where: { userId, type: 'WITHDRAW', referenceId: chargeReference } })
-        : null;
       if (!charge) {
         return NextResponse.json({ error: 'A refund must refer to one of your wallet payments.' }, { status: 403 });
       }
@@ -138,19 +149,34 @@ export async function POST(request: NextRequest) {
         if (existing) return { duplicate: true as const, balance: existing.balanceAfter, transaction: existing };
       }
 
+      // A payment spends company money first (within the member's monthly limit); a cash withdrawal (no reference)
+      // uses the member's own money only. Debits never overdraw: they are refused as a whole.
+      if (typeUpper === 'WITHDRAW') {
+        const debited = await debitPersonalWallet(tx, {
+          userId,
+          amount,
+          purpose: safeReference ? 'PAYMENT' : 'CASH_OUT',
+          description: description || 'Withdrawal',
+          referenceId: safeReference,
+        });
+        if (!debited.ok) return { refused: debited };
+        return { duplicate: false as const, balance: debited.balance, transaction: debited.transaction };
+      }
+      // A refund of a company-funded charge returns that part as company money
+      if (typeUpper === 'REFUND') {
+        const refunded = await refundPersonalWallet(tx, {
+          userId,
+          amount,
+          description: description || 'Refund',
+          referenceId: safeReference,
+          companyShareCap: charge ? charge.companyAmount : undefined,
+        });
+        return { duplicate: false as const, balance: refunded.balance, transaction: refunded.transaction };
+      }
+
       let wallet = await tx.wallet.findUnique({ where: { userId } });
       if (!wallet) wallet = await tx.wallet.create({ data: { userId, balance: 0 } });
-
-      // Atomic update: debits are conditional on sufficient balance so concurrent requests cannot overdraw
-      if (!isCredit) {
-        const debited = await tx.wallet.updateMany({
-          where: { userId, balance: { gte: amount } },
-          data: { balance: { decrement: amount } },
-        });
-        if (debited.count === 0) return { insufficient: true as const };
-      } else {
-        await tx.wallet.update({ where: { userId }, data: { balance: { increment: amount } } });
-      }
+      await tx.wallet.update({ where: { userId }, data: { balance: { increment: amount } } });
 
       const updatedWallet = await tx.wallet.findUniqueOrThrow({ where: { userId } });
       const transaction = await tx.walletTransaction.create({
@@ -159,7 +185,7 @@ export async function POST(request: NextRequest) {
           userId,
           amount,
           type: typeUpper,
-          description: description || (typeUpper === 'DEPOSIT' ? 'Deposit' : typeUpper === 'REFUND' ? 'Refund' : 'Withdrawal'),
+          description: description || 'Deposit',
           referenceId: safeReference,
           balanceAfter: updatedWallet.balance,
         },
@@ -167,8 +193,8 @@ export async function POST(request: NextRequest) {
       return { duplicate: false as const, balance: updatedWallet.balance, transaction };
     });
 
-    if ('insufficient' in outcome) {
-      return NextResponse.json({ error: 'Insufficient balance.' }, { status: 400 });
+    if ('refused' in outcome && outcome.refused) {
+      return NextResponse.json({ error: outcome.refused.error, code: outcome.refused.code }, { status: outcome.refused.status });
     }
 
     const updatedWallet = { balance: outcome.balance };

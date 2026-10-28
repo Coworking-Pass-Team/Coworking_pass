@@ -25,6 +25,7 @@ import { Employee } from '@/types';
 import Modal from '@/components/ui/Modal';
 import CompanyJoinRequestsPanel from '@/components/company/CompanyJoinRequestsPanel';
 import CompanyFundsAllocationCard from '@/components/company/CompanyFundsAllocationCard';
+import CompanyMemberFundsCard from '@/components/company/CompanyMemberFundsCard';
 
 type CompanyRole = 'Company Owner' | 'Company Manager' | 'Booking Manager' | 'Team Member';
 
@@ -153,18 +154,25 @@ export default function CompanyTeam() {
   const handleDelete = async (member: TeamMemberExt) => {
     // Entries kept only in this browser (older invitations) have no server membership to remove
     const onServer = member.status === 'active' && !member.id.startsWith('team-');
+    let reclaimed = 0;
     if (onServer) {
       if (!companyId) { showToast('Your company could not be found. Please sign in again.', 'error'); return; }
       setSaving(true);
       const res = await removeCompanyEmployeeApi(companyId, member.id);
       setSaving(false);
       if (!res.success) { showToast(res.error, 'error'); return; }
+      reclaimed = res.reclaimed;
     }
     const updated = members.filter(m => m.id !== member.id);
     setMembers(updated);
     saveLabels(updated);
     setDeleteModal(null);
-    showToast(`${member.name} removed from team.`, 'success');
+    showToast(
+      reclaimed > 0
+        ? t('org.ct.removedWithReclaim', { name: member.name, currency: t('common.sar'), amount: reclaimed.toLocaleString(undefined, { maximumFractionDigits: 2 }) })
+        : `${member.name} removed from team.`,
+      'success'
+    );
     if (onServer && companyId) fetchCompanyWallet(companyId).catch(() => {});
   };
 
@@ -206,6 +214,7 @@ export default function CompanyTeam() {
       {/* Employees asking to join the team */}
       <CompanyJoinRequestsPanel />
       <CompanyFundsAllocationCard />
+      <CompanyMemberFundsCard />
 
       {/* Admin-Matching Elevated Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">

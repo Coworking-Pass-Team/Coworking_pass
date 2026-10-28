@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getTokenFromRequest, unauthorizedResponse, invalidateBanCache } from "@/lib/auth/verify-token";
 import { Role } from "@prisma/client";
 import { deleteUserCascade } from "@/lib/db/cascade-delete";
-import { blacklistUser, removeFromBlacklist } from "@/lib/auth/token-blacklist";
+import { endAllSessions } from "@/lib/auth/sessions";
 /**
  * @swagger
  * /api/users/{id}:
@@ -108,7 +108,7 @@ export async function PUT(
     }
 
     // Whitelist updatable fields to prevent mass assignment (role, emailVerified, etc.)
-    const data: { name?: string; email?: string; isBanned?: boolean; role?: Role } = {};
+    const data: { name?: string; email?: string; isBanned?: boolean; role?: Role; sessionsRevokedAt?: Date } = {};
     if (typeof body.name === "string" && body.name.trim()) data.name = body.name.trim();
 
     // Email is the login identity, so only admins may change it (and it must stay unique)
@@ -139,6 +139,8 @@ export async function PUT(
           return NextResponse.json({ error: "You cannot block your own account." }, { status: 400 });
         }
         data.isBanned = body.isBanned;
+        // A suspension also ends every open session; after a reinstatement the person signs in again
+        if (body.isBanned) data.sessionsRevokedAt = endAllSessions().sessionsRevokedAt;
       }
       if (body.role !== undefined) {
         if (!Object.values(Role).includes(body.role)) {
@@ -172,12 +174,6 @@ export async function PUT(
       }
     }
 
-    // Apply session changes only after the database write succeeded
-    if (data.isBanned === true) {
-      blacklistUser(id);
-    } else if (data.isBanned === false) {
-      removeFromBlacklist(id);
-    }
     invalidateBanCache(id);
 
     return NextResponse.json({ message: "User profile updated successfully.", user: updated });
@@ -235,8 +231,7 @@ export async function DELETE(
     // Remove the account together with everything it owns in one transaction
     await prisma.$transaction((tx) => deleteUserCascade(tx, id), { timeout: 30000 });
 
-    // Make sure any active session of the deleted account stops working immediately
-    blacklistUser(id);
+    // Tokens of the deleted account stop working: the account no longer exists
     invalidateBanCache(id);
 
     return NextResponse.json({ message: "Account and associated data deleted successfully." });

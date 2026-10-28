@@ -16,6 +16,18 @@ function getAuthBaseUrl(): string {
 }
 
 
+/** Same key as LANG_STORAGE_KEY in i18n/index.tsx (not imported: that module is client-only). */
+const LANG_STORAGE_KEY = 'cp_lang';
+
+/** The language the site is shown in, sent with sign-up, sign-in and reset requests so emails arrive in it. */
+function siteLocale(): 'ar' | 'en' {
+  try {
+    return typeof window !== 'undefined' && window.localStorage.getItem(LANG_STORAGE_KEY) === 'en' ? 'en' : 'ar';
+  } catch (_) {
+    return 'ar';
+  }
+}
+
 export interface RegisterPayload {
   name: string;
   email: string;
@@ -129,6 +141,7 @@ export async function registerUserApi(payload: RegisterPayload): Promise<Registe
         businessName: payload.businessName?.trim(),
         crNumber: payload.crNumber?.trim(),
         companyHrEmail: payload.companyHrEmail?.trim().toLowerCase() || undefined,
+        locale: siteLocale(),
       }),
     });
 
@@ -213,6 +226,7 @@ export async function loginUserApi(payload: LoginPayload): Promise<LoginResponse
       body: JSON.stringify({
         email: payload.email.trim().toLowerCase(),
         password: payload.password,
+        locale: siteLocale(),
       }),
     });
 
@@ -1262,14 +1276,14 @@ export async function addCompanyEmployeeApi(companyId: string, email: string) {
   }
 }
 
-/** Removes a member from the company team (HR admin, super admin, or the member leaving). */
+/** Removes a member from the company team (HR admin or super admin); their unspent company funds return to the company. */
 export async function removeCompanyEmployeeApi(companyId: string, userId: string) {
   const url = `${getAuthBaseUrl()}/api/companies/${companyId}/employees/${userId}`;
   try {
     const response = await fetch(url, { method: 'DELETE', headers: getAuthHeaders() });
     const data = await response.json().catch(() => null);
     if (!response.ok) return { success: false as const, error: (data?.error as string) || 'Failed to remove the team member.' };
-    return { success: true as const };
+    return { success: true as const, reclaimed: typeof data?.reclaimed === 'number' ? (data.reclaimed as number) : 0 };
   } catch (err: any) {
     return { success: false as const, error: err.message || 'Network error' };
   }
@@ -1401,6 +1415,43 @@ export async function allocateCompanyFundsApi(
   }
 }
 
+export interface MemberFundsRow {
+  userId: string;
+  name: string;
+  email: string;
+  /** Unspent company money in the member's wallet */
+  companyCredit: number;
+  spentThisMonth: number;
+  monthlyLimit: number | null;
+}
+
+/** HR admin: company money held by each team member and their monthly spending limits. */
+export async function getCompanyMemberFundsApi(companyId: string): Promise<{ success: boolean; data: MemberFundsRow[] }> {
+  try {
+    const response = await fetch(`${getAuthBaseUrl()}/api/companies/${companyId}/funds`, { headers: getAuthHeaders() });
+    const data = await response.json().catch(() => []);
+    return response.ok && Array.isArray(data) ? { success: true, data } : { success: false, data: [] };
+  } catch (_) {
+    return { success: false, data: [] };
+  }
+}
+
+/** HR admin: set (SAR per month) or clear (null) how much company money a member may spend. */
+export async function setCompanyMemberLimitApi(companyId: string, userId: string, monthlyLimit: number | null) {
+  try {
+    const response = await fetch(`${getAuthBaseUrl()}/api/companies/${companyId}/funds`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ userId, monthlyLimit }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) return { success: false as const, error: (data.error as string) || 'Failed to save the monthly limit.' };
+    return { success: true as const, message: data.message as string };
+  } catch (err: any) {
+    return { success: false as const, error: err.message || 'Network error' };
+  }
+}
+
 /** Recent allocations from the company wallet (the audit trail shown to the HR admin). */
 export async function getCompanyAllocationsApi(companyId: string): Promise<{ success: boolean; data: { id: string; amount: number; employeeId: string | null; employeeName: string; createdAt: string }[] }> {
   const url = `${getAuthBaseUrl()}/api/companies/${companyId}/allocate`;
@@ -1428,8 +1479,17 @@ async function postAuthJson(path: string, body: Record<string, unknown>): Promis
   }
 }
 
+/** Signs this device's token out on the server (best effort: the browser forgets the token either way). */
+export async function logoutApi(token: string): Promise<void> {
+  try {
+    await fetch(`${getAuthBaseUrl()}/api/auth/logout`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, keepalive: true });
+  } catch (_) {
+    // Offline: the token still expires on its own
+  }
+}
+
 /** Sends a password-reset code to the account's email (the answer is the same whether or not the account exists). */
-export const forgotPasswordApi = (email: string) => postAuthJson('forgot-password', { email });
+export const forgotPasswordApi = (email: string) => postAuthJson('forgot-password', { email, locale: siteLocale() });
 /** Checks the reset code without using it up. */
 export const verifyResetCodeApi = (email: string, code: string) => postAuthJson('verify-reset-code', { email, code });
 /** Sets the new password with the emailed code. */

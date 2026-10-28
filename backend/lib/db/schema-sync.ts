@@ -201,6 +201,33 @@ export async function ensureDatabaseSchema(force = false): Promise<{ success: bo
         .catch((err) => console.warn(`[Schema Sync] ${label} warning:`, err));
     }
 
+    // 4e. Shared sessions and sign-in lockout, email language, company money in members' wallets
+    for (const [label, statement] of [
+      ['User.sessionsRevokedAt', 'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "sessionsRevokedAt" TIMESTAMP(3);'],
+      ['RevokedToken', `CREATE TABLE IF NOT EXISTS "RevokedToken" (
+        "tokenHash" TEXT NOT NULL,
+        "expiresAt" TIMESTAMP(3) NOT NULL,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "RevokedToken_pkey" PRIMARY KEY ("tokenHash")
+      );`],
+      ['RevokedToken index', 'CREATE INDEX IF NOT EXISTS "RevokedToken_expiresAt_idx" ON "RevokedToken"("expiresAt");'],
+      ['LoginAttempt', `CREATE TABLE IF NOT EXISTS "LoginAttempt" (
+        "email" TEXT NOT NULL,
+        "failures" INTEGER NOT NULL DEFAULT 0,
+        "windowStart" TIMESTAMP(3) NOT NULL,
+        CONSTRAINT "LoginAttempt_pkey" PRIMARY KEY ("email")
+      );`],
+      ['User.locale', `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "locale" TEXT NOT NULL DEFAULT 'ar';`],
+      ['User.companySpendLimit', 'ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "companySpendLimit" DOUBLE PRECISION;'],
+      ['Wallet.companyCredit', 'ALTER TABLE "Wallet" ADD COLUMN IF NOT EXISTS "companyCredit" DOUBLE PRECISION NOT NULL DEFAULT 0;'],
+      ['Wallet.companyCreditCompanyId', 'ALTER TABLE "Wallet" ADD COLUMN IF NOT EXISTS "companyCreditCompanyId" TEXT;'],
+      ['WalletTransaction.companyAmount', 'ALTER TABLE "WalletTransaction" ADD COLUMN IF NOT EXISTS "companyAmount" DOUBLE PRECISION NOT NULL DEFAULT 0;'],
+    ] as const) {
+      await prisma.$executeRawUnsafe(statement)
+        .then(() => executedStatements.push(label))
+        .catch((err) => console.warn(`[Schema Sync] ${label} warning:`, err));
+    }
+
     // 5. Super Admin provisioning comes from environment variables only (see lib/auth/super-admin.ts);
     //    no credentials are hard-coded any more.
     executedStatements.push(...(await provisionSuperAdmin()));

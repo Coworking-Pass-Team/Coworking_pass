@@ -39,7 +39,10 @@ Repository note: this repository is **public**. Anything committed can be read b
       account owner's own address, so the other team members receive no sign-in codes until the domain is verified.
       Test sign-up, sign-in and resend-code emails end to end (inbox and spam folder).
 - [x] Password reset by emailed code (`forgot-password`, `verify-reset-code`, `reset-password`), with expiry and one-time use.
-- [ ] Rate-limit sign-in, code verification and resend (per email and per IP) and lock after repeated failures.
+- [x] Sign-in lockout: five wrong passwords within 15 minutes lock the email for the rest of the window. The counter is stored in the database (`LoginAttempt`), so it holds on every Vercel instance.
+- [x] Sign-out ends only that device's token (stored as a SHA-256 hash in `RevokedToken` until it expires); a password reset or a suspension ends every session of the account (`User.sessionsRevokedAt`). After a suspension is lifted the person signs in again.
+- [x] Emails (sign-up and sign-in codes, password reset, partner approval and rejection) are sent in the recipient's saved language, Arabic or English.
+- [ ] Rate-limit code verification, code resend and sign-in per IP as well (Vercel firewall rules or a shared store such as Upstash Redis).
 - [ ] Set a long random `JWT_SECRET` (not the QA one) and decide on token lifetime (currently 24 hours).
 - [ ] Make sure `DEV_SEED_ADMIN` is unset and `NODE_ENV=production`.
 - [ ] Create the real super admin through `SUPER_ADMIN_EMAIL` / `SUPER_ADMIN_PASSWORD` (strong password, real mailbox);
@@ -49,6 +52,11 @@ Repository note: this repository is **public**. Anything committed can be read b
 
 - [ ] **blocker** Integrate a real payment gateway (e.g. **Moyasar** or **HyperPay**) for mada, Visa/Mastercard and
       Apple Pay, with server-side payment verification (gateway callback/webhook with signature check).
+      *Needs from the business:* a merchant agreement with the gateway (commercial registration or unified number, VAT
+      certificate, bank account), Apple Pay merchant verification for the production domain, and the live API keys and
+      webhook secret. These are set as backend environment variables on Vercel, never committed.
+      *Then in code:* create payments on the server from the gateway result, credit wallet top-ups only after a verified
+      callback, make refunds go back through the gateway, and remove the simulated routes listed below.
 - [ ] **blocker** Until then the money flows are simulated:
       - `POST /api/wallet` lets a signed-in user credit their own wallet (`type: DEPOSIT`); top-ups must only be
         credited after a verified gateway payment.
@@ -58,7 +66,16 @@ Repository note: this repository is **public**. Anything committed can be read b
       - `/api/mock-payment` and `/api/payment-gateway/*` are simulations: remove or disable them in production.
 - [ ] Compute loyalty points earned server-side (the browser currently sends the amount, within a limit).
 - [ ] Remove the checkout text "256-bit SSL … SAMA compliant" until it is true for the chosen gateway.
-- [ ] Invoices: VAT number, ZATCA (Fatoora) e-invoicing requirements, and refund policy wording reviewed.
+- [ ] **blocker** Tax invoices: the platform issues no invoices yet. Before launch it needs ZATCA (Fatoora) e-invoicing
+      Phase 2: VAT registration, onboarding the solution with ZATCA (compliance and production CSID certificates),
+      simplified tax invoices for individuals and standard tax invoices for companies, each with the QR code and
+      cryptographic stamp, and reporting or clearance through the ZATCA API (or an accredited e-invoicing provider).
+      Until then the site promises no invoices: the pricing page says prices include 15% VAT and every payment is
+      recorded in the wallet history; the "consolidated monthly VAT invoice", "ZATCA compliant" and "30-day net" claims
+      were removed. Restore them only when invoicing is live.
+- [ ] The "Corporate Invoice" checkout option (net 30) is simulated like the other payment methods: it needs real
+      invoicing and credit terms in the company contract, or it should be hidden at launch.
+- [ ] Refund policy wording reviewed.
 - [ ] Partner payouts: define the real settlement process (bank transfer, schedule, reconciliation).
 
 ## 4. Security
@@ -77,7 +94,9 @@ Repository note: this repository is **public**. Anything committed can be read b
 - [ ] Company team details: department and team role labels are kept only in the HR admin's browser, and passes are not
       allocated per employee on the server. Store both on the server before companies rely on them. (Team bookings are now
       linked to the named employees, and members cannot leave a company by themselves.)
-- [ ] Company funds for employees: HR admins allocate money from the company wallet into employees' own wallets (equally or chosen amounts). Decide whether allocated money may be withdrawn or refunded to a bank like any other balance, and whether an HR admin needs a "take back" action when an employee leaves.
+- [x] Company funds for employees: money the HR admin allocates is kept apart in the member's wallet (`Wallet.companyCredit`). It is spent first on bookings, cannot be cashed out, can be capped per member per month by the HR admin (team page, "Company funds held by members"), returns as company money when a company-funded payment is refunded, and whatever is unspent goes back to the company wallet when the member is removed or their account is deleted (a `RECLAIM` row on both ledgers). A refund that arrives after the member left goes to the company wallet.
+- [ ] Company funds allocated **before** this change were recorded as the member's own money and are not reclaimed on removal. If that matters for QA companies, review those wallets by hand.
+- [ ] Company funds refunds: refunds through `POST /api/refund` and rescheduling are not linked to the original wallet charge, so they return company money first, up to the company-funded spending not yet refunded. Link each booking to its wallet charge when payments move to the server with the gateway.
 - [ ] Rescheduling: the price difference is computed from the new room's rate over the old room's (scaling what was paid).
       Replace it with the real price calculation once pricing moves to the server together with the payment gateway.
 
@@ -92,10 +111,9 @@ Repository note: this repository is **public**. Anything committed can be read b
 
 ## 6. Hosting (Vercel)
 
-- [ ] **blocker** Move the logout token list (`backend/lib/auth/token-blacklist.ts`) and the sign-in lockout
-      (`backend/lib/auth/login-attempts.ts`) out of server memory, into the database or a shared store (for example
-      Upstash Redis). On Vercel every serverless instance has its own memory, so a token revoked at logout can still
-      work on another instance until it expires.
+- [x] Signed-out tokens, ended sessions and the sign-in lockout are stored in PostgreSQL (`RevokedToken`,
+      `User.sessionsRevokedAt`, `LoginAttempt`), so they hold on every serverless instance. The ban and session state is
+      cached for at most 10 seconds per instance.
 - [ ] Use Neon's pooled connection string (host containing `-pooler`) for `DATABASE_URL`, and check the function time
       limit for the heavier routes (`/api/seed`, reports).
 - [ ] Choose a Vercel plan that allows commercial use (the Hobby plan is for personal, non-commercial projects).
@@ -120,7 +138,7 @@ Repository note: this repository is **public**. Anything committed can be read b
 
 - [ ] All automated tests pass on `develop`:
       - `cd backend && npm test` (Vitest)
-      - `cd backend && npm run test:api` (all 13 API suites against the local stack, see `docs/Testing.md`)
+      - `cd backend && npm run test:api` (all 14 API suites against the local stack, see `docs/Testing.md`)
       - `cd frontend && npm run test:e2e` (Playwright against the local stack)
 - [ ] `npx tsc --noEmit` and `npm run build` pass in both `frontend/` and `backend/`.
 - [ ] Merge `develop` into `main` through a reviewed pull request, tag the release, then smoke-test the production site

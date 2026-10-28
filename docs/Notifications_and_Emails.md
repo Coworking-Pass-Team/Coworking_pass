@@ -19,7 +19,7 @@ Important facts:
   2. **By the browser** (section 3), which posts a message to `POST /api/notifications`. The server only accepts it when the caller targets their own account, the caller is a Super Admin, or the target is a partner account.
 * Server-side notifications are *best effort*: a failure is logged and never undoes the booking, payment or approval that caused it.
 * Notification titles and messages are written in English and translated to Arabic when displayed (`translateMessage()` in the frontend `i18n/messages-*.ts` registries). Every new notification text needs an Arabic entry there.
-* Email text is **English only** today.
+* Emails are written in the recipient's saved language (`User.locale`, Arabic or English, Arabic right to left). The language is taken from the site language at sign-up, sign-in and password reset; partner approval and rejection emails use the partner account's saved language.
 
 ## 2. In-app notifications created by the server
 
@@ -115,13 +115,13 @@ To confirm the current state on the live backend, open the backend project's run
 4. ~~Amenity request to admin.~~ **Fixed:** the browser used to map the target `admin` to the signed-in user, so the notification landed on the partner's own account. The server now notifies every Super Admin (S20) and tells the partner the decision (S21); the browser no longer creates these messages.
 5. **Hourly cancellation.** Cancelling an hourly booking through `DELETE /api/hourly-bookings/{id}` creates no notification (the refund path S9 does).
 6. **Email failures are only logged.** A refusal from Resend is logged and returned as "not sent", but the interface cannot tell the user the code did not arrive.
-7. **English-only emails.** Arabic-speaking users receive English email text.
+7. ~~English-only emails.~~ **Fixed:** every email has an Arabic and an English version, chosen by the recipient's saved language.
 8. **No delivery tracking.** There is no record of which emails were sent or failed, and no retry.
 
 ### Recommended work to close the gaps (not done yet)
 
 1. Verify a sending domain in Resend, set `RESEND_API_KEY` and a real `from` address, and move the link in E3 to an environment variable.
-2. Add Arabic versions of the five emails, chosen by the user's saved language.
+2. ~~Add Arabic versions of the five emails, chosen by the user's saved language.~~ Done.
 3. Add emails and in-app messages for booking confirmation, cancellation, refund and pass purchase.
 4. Build the password reset flow (code email, expiry, single use).
 5. Add the partner "new booking" message and the pass-expiry reminder job.

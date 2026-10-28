@@ -94,7 +94,7 @@ const corporatePlans: PlanItem[] = [
       'Shared team access across the network',
       '10 hours a month for meeting rooms & theaters, shared by the team',
       'Centralized HR admin dashboard',
-      'Single consolidated monthly VAT invoice',
+      'Every team booking paid from one company wallet',
       'Instant seat addition or downgrade',
     ],
     featured: false,
@@ -109,10 +109,10 @@ const corporatePlans: PlanItem[] = [
     period: '/month',
     desc: 'Complete Kingdom coverage for regional enterprises and branches.',
     features: [
-      'Private offices billed directly on your corporate invoice',
-      'Unlimited meeting room & theater reservations',
+      'Private offices paid directly from the company wallet',
+      'Unlimited* meeting room & theater bookings (*fair use: up to 5 per member each week)',
       'Dedicated enterprise account manager',
-      'Custom corporate billing terms (30-day net)',
+      'Custom corporate billing terms on request',
       'Multi-city onboarding & badge access',
       'On-site technical support SLA',
     ],
@@ -142,7 +142,7 @@ const faqs = [
   },
   {
     q: 'Are all listed prices inclusive of VAT?',
-    a: 'Yes, all listed prices are transparent and fully inclusive of 15% Saudi VAT, with official ZATCA-compliant e-invoices issued instantly.',
+    a: 'Yes. All listed prices include 15% Saudi VAT, and every payment is recorded in your wallet history.',
   },
 ];
 

@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import bcrypt from "bcryptjs";
 import type { OtpPurpose } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { isEmailConfigured, sendOtpEmail, sendPasswordResetEmail } from "@/lib/mailer";
+import { isEmailConfigured, sendOtpEmail, sendPasswordResetEmail, type EmailLocale } from "@/lib/mailer";
 
 /** A code is valid for ten minutes and for five wrong guesses, whichever comes first. */
 export const OTP_TTL_MS = 10 * 60 * 1000;
@@ -36,15 +36,15 @@ export async function recentlyIssued(userId: string, purpose: OtpPurpose): Promi
 }
 
 /**
- * Sends the code by email. While no Resend key is configured the code is written to the server console
+ * Sends the code by email, in the recipient's language. While no Resend key is configured the code is written to the server console
  * instead, so local and QA runs keep working; once a key is configured it is never logged.
  */
-export async function deliverOtp(email: string, code: string, purpose: OtpPurpose): Promise<"email" | "console"> {
+export async function deliverOtp(email: string, code: string, purpose: OtpPurpose, locale: EmailLocale = "ar"): Promise<"email" | "console"> {
   if (!isEmailConfigured()) {
     console.log(`[OTP] Resend is not configured, so the ${purpose} code for ${email} is: ${code} (valid 10 minutes)`);
     return "console";
   }
-  const sent = purpose === "PASSWORD_RESET" ? await sendPasswordResetEmail(email, code) : await sendOtpEmail(email, code);
+  const sent = purpose === "PASSWORD_RESET" ? await sendPasswordResetEmail(email, code, locale) : await sendOtpEmail(email, code, locale);
   if (!sent) console.warn(`[OTP] The ${purpose} email to ${email} could not be sent; check the Resend key and sender domain.`);
   return "email";
 }

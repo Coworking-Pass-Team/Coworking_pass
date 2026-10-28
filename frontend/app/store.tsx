@@ -61,6 +61,7 @@ import {
   forgotPasswordApi,
   verifyResetCodeApi,
   resetPasswordApi,
+  logoutApi,
   mapRoleToFrontend,
   createCompanyApi,
   createPointsTransactionApi,
@@ -102,6 +103,16 @@ export interface WalletCharge {
   /** Idempotency key of the debit; the refund reference is derived from it */
   key: string;
   target: 'personal' | 'company';
+}
+
+/** A wallet as the server reports it; team members also see the company money it holds (spent first). */
+export interface WalletSnapshot {
+  balance: number;
+  transactions: WalletTransaction[];
+  companyCredit: number;
+  /** Monthly limit on spending company money, set by the HR admin; null means no limit */
+  companySpendLimit: number | null;
+  companySpentThisMonth: number;
 }
 
 export function mapSectionToUnit(sec: any): SpaceUnit {
@@ -572,7 +583,7 @@ interface AppContextType {
   applyLoyaltyDiscount: (pointsToUse: number) => { discount: number; safePoints: number };
 
   walletTransactions: WalletTransaction[];
-  fetchWallet: (userId?: string) => Promise<{ balance: number; transactions: WalletTransaction[] } | null>;
+  fetchWallet: (userId?: string) => Promise<WalletSnapshot | null>;
   depositToWallet: (amount: number, description?: string) => Promise<{ success: boolean; message: string; balance?: number }>;
   withdrawFromWallet: (amount: number, description?: string, referenceId?: string) => Promise<{ success: boolean; message: string; balance?: number }>;
   refundToWallet: (amount: number, description: string, referenceId: string) => Promise<{ success: boolean; message: string; balance?: number }>;
@@ -1877,7 +1888,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const fetchWallet = async (targetUserId?: string): Promise<{ balance: number; transactions: WalletTransaction[] } | null> => {
+  const fetchWallet = async (targetUserId?: string): Promise<WalletSnapshot | null> => {
     const uid = targetUserId || currentUser?.id;
     if (!uid) return null;
     try {
@@ -1897,7 +1908,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
         setWalletTransactions(txs);
         setCurrentUser((prev) => (prev && prev.id === uid ? { ...prev, walletBalance: balance } : prev));
-        return { balance, transactions: txs };
+        return {
+          balance,
+          transactions: txs,
+          companyCredit: typeof data.companyCredit === 'number' ? data.companyCredit : 0,
+          companySpendLimit: typeof data.companySpendLimit === 'number' ? data.companySpendLimit : null,
+          companySpentThisMonth: typeof data.companySpentThisMonth === 'number' ? data.companySpentThisMonth : 0,
+        };
       }
     } catch (err) {
       console.warn('Failed to fetch wallet:', err);
@@ -4047,6 +4064,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
+    // The server stops accepting this token on every instance; other devices stay signed in
+    const token = getStoredToken();
+    if (token) void logoutApi(token);
     setCurrentUser(null);
     setPendingUser(null);
     setFavorites([]);

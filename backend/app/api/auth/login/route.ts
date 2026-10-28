@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { deliverOtp, issueOtp } from "@/lib/auth/otp";
+import { parseLocale, toEmailLocale } from "@/lib/mailer";
 import { ensureDatabaseSchema } from "@/lib/db/schema-sync";
 import { isRateLimited, recordFailedAttempt, clearAttempts } from "@/lib/auth/login-attempts";
 
@@ -31,7 +32,7 @@ export async function POST(request: Request) {
   try {
     await ensureDatabaseSchema().catch((e) => console.warn("[Login DB Schema Sync Warning]:", e));
 
-    const { email, password } = await request.json();
+    const { email, password, locale } = await request.json();
 
     if (!email || !password) {
       return NextResponse.json({ error: "Email and password are required." }, { status: 400 });
@@ -39,7 +40,7 @@ export async function POST(request: Request) {
 
     const cleanEmail = email.trim().toLowerCase();
 
-    if (isRateLimited(cleanEmail)) {
+    if (await isRateLimited(cleanEmail)) {
       return NextResponse.json(
         { error: "Too many failed login attempts. Please try again in 15 minutes." },
         { status: 429 }
@@ -55,10 +56,10 @@ export async function POST(request: Request) {
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
 
     if (!isPasswordValid) {
-      recordFailedAttempt(cleanEmail);
+      await recordFailedAttempt(cleanEmail);
       return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
     }
-    clearAttempts(cleanEmail);
+    await clearAttempts(cleanEmail);
 
     if (user.isBanned) {
       return suspendedResponse();
@@ -89,9 +90,15 @@ export async function POST(request: Request) {
       }
     }
 
+    // Emails follow the language the person is using the site in; it is remembered for later emails
+    const requested = parseLocale(locale);
+    if (requested && requested !== user.locale) {
+      await prisma.user.update({ where: { id: user.id }, data: { locale: requested } });
+    }
+
     // A fresh random code (any earlier unused one is cancelled), stored hashed and valid for 10 minutes
     const code = await issueOtp(user.id, "LOGIN");
-    await deliverOtp(user.email, code, "LOGIN");
+    await deliverOtp(user.email, code, "LOGIN", requested ?? toEmailLocale(user.locale));
 
     return NextResponse.json({
       message: "Verification code sent to your email address.",

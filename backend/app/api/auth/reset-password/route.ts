@@ -3,8 +3,9 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { checkOtp } from "@/lib/auth/otp";
 import { passwordPolicyError } from "@/lib/auth/password-policy";
-import { blacklistUser } from "@/lib/auth/token-blacklist";
+import { endAllSessions } from "@/lib/auth/sessions";
 import { clearAttempts } from "@/lib/auth/login-attempts";
+import { invalidateBanCache } from "@/lib/auth/verify-token";
 
 /**
  * @swagger
@@ -46,11 +47,11 @@ export async function POST(request: Request) {
     if (!check.ok) return NextResponse.json({ error: check.error }, { status: 400 });
 
     const passwordHash = await bcrypt.hash(newPassword, 10);
-    await prisma.user.update({ where: { id: user.id }, data: { passwordHash } });
+    await prisma.user.update({ where: { id: user.id }, data: { passwordHash, ...endAllSessions() } });
     // Any other reset or sign-in code still waiting is cancelled, the sign-in lockout is lifted and old sessions end
     await prisma.otpCode.updateMany({ where: { userId: user.id, isUsed: false }, data: { isUsed: true } });
-    clearAttempts(email);
-    blacklistUser(user.id);
+    await clearAttempts(email);
+    invalidateBanCache(user.id);
 
     return NextResponse.json({ message: "Password updated. Please sign in with your new password." });
   } catch (error) {

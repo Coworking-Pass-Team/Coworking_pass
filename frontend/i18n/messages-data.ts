@@ -19,7 +19,7 @@ registerMessages({
   'Organization name is required.': 'اسم المؤسسة مطلوب.',
   'Partner business name is required.': 'اسم النشاط التجاري للشريك مطلوب.',
   'Commercial Registration (CR) Number is required.': 'رقم السجل التجاري مطلوب.',
-  'CR Number must be 10 digits starting with 1010 (e.g., 1010xxxxxx).': 'يجب أن يتكون رقم السجل التجاري من 10 أرقام تبدأ بـ 1010 (مثال: 1010xxxxxx).',
+  'Enter the 10-digit unified number starting with 7 (e.g. 7001234567) or a 10-digit commercial registration number.': 'أدخل الرقم الموحد المكوّن من 10 أرقام ويبدأ بالرقم 7 (مثال: 7001234567) أو رقم سجل تجاري من 10 أرقام.',
   'Invalid credentials.': 'بيانات الدخول غير صحيحة.',
   'Invalid email or password.': 'البريد الإلكتروني أو كلمة المرور غير صحيحة.',
   'Invalid or expired verification code.': 'رمز التحقق غير صحيح أو منتهي الصلاحية.',
