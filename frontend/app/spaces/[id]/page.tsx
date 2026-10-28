@@ -49,6 +49,11 @@ import Modal from '@/components/ui/Modal';
 import { WithChrome } from '@/components/layout/Chrome';
 import App from '@/app/app';
 
+// Flexible hourly durations offered for offices (halls and theaters use fixed sessions)
+const HOUR_OPTIONS = [1, 2, 3, 4, 6, 8];
+// Monthly plan durations
+const MONTH_OPTIONS = [1, 2, 3, 6, 12];
+
 /**
  * Route entry for /spaces/[id]. This page is rendered by Next directly (outside the SPA router in app.tsx),
  * so once the user navigates to another screen (booking flow, login, ...) the SPA router must take over,
@@ -587,7 +592,7 @@ function SpaceDetailsView() {
           </div>
 
           <div className="w-full">
-            <div className="bg-plaster-surface rounded-3xl border border-soot/12 p-6 sm:p-7 shadow-xl">
+            <div className="bg-white rounded-[32px] border border-zinc-200/70 p-6 sm:p-7 shadow-float animate-reveal">
               <div className="mb-6 pb-5 border-b border-soot/10">
                 <span className="text-xs font-semibold uppercase tracking-wider text-moss block mb-1.5">
                   {currentPlanInfo.effectivePrice === 0 ? t('spaceDetails.passCoverage') : currentPlanInfo.isCovered ? t('spaceDetails.workspaceRate') : currentPlanInfo.hasDiscount ? t('spaceDetails.planUpgradeRate') : t('spaceDetails.membershipRate')}
@@ -654,10 +659,11 @@ function SpaceDetailsView() {
                           key={plan}
                           type="button"
                           onClick={() => setSelectedPlan(plan)}
-                          className={`py-3 px-2 rounded-xl text-center border transition-all cursor-pointer ${
+                          aria-pressed={isSelected}
+                          className={`py-3 px-2 rounded-2xl text-center border transition-all duration-200 cursor-pointer active:scale-[0.98] ${
                             isSelected
-                              ? 'bg-soot text-plaster border-soot shadow-2xs font-semibold'
-                              : 'bg-plaster-dark/30 border-soot/10 text-moss hover:text-soot hover:bg-plaster-dark/60'
+                              ? 'bg-soot text-white border-soot shadow-sm font-semibold'
+                              : 'bg-white border-zinc-200/90 text-soot-light hover:text-soot hover:border-zinc-300'
                           }`}
                         >
                           <div className="capitalize text-xs font-semibold">{t(('spaceDetails.plan.' + plan) as never)}</div>
@@ -671,7 +677,7 @@ function SpaceDetailsView() {
                 </div>
 
                 {selectedPlan === 'monthly' && (
-                  <div className="p-4 rounded-2xl bg-plaster-dark/40 border border-soot/10 space-y-3">
+                  <div className="p-4 rounded-2xl bg-plaster-surface border border-zinc-200/70 space-y-3">
                     <div className="flex items-center justify-between flex-wrap gap-2">
                       <label className="text-[11px] font-semibold uppercase tracking-wider text-moss flex items-center gap-1.5">
                         <Calendar size={13} />
@@ -681,8 +687,19 @@ function SpaceDetailsView() {
                         {t(durationMonths > 1 ? 'spaceDetails.monthsCountMany' : 'spaceDetails.monthsCount', { count: durationMonths })} {hasActiveSubscription ? `· ${t('spaceDetails.includedInPass')}` : `(${currentPlanInfo.isCovered ? t('spaceDetails.includedInPlanPay') : `${t('common.sar')} ${currentPlanInfo.effectivePrice.toLocaleString()}`})`}
                       </span>
                     </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={MONTH_OPTIONS.length - 1}
+                      step={1}
+                      value={Math.max(0, MONTH_OPTIONS.indexOf(durationMonths))}
+                      onChange={e => setDurationMonths(MONTH_OPTIONS[Number(e.target.value)])}
+                      aria-label={t('spaceDetails.selectMonths')}
+                      aria-valuetext={t(durationMonths > 1 ? 'spaceDetails.monthsCountMany' : 'spaceDetails.monthsCount', { count: durationMonths })}
+                      className="ui-range cursor-pointer"
+                    />
                     <div className="grid grid-cols-5 gap-2">
-                      {[1, 2, 3, 6, 12].map(m => {
+                      {MONTH_OPTIONS.map(m => {
                         const tierPrice = getMonthlyPriceForDuration(space, m);
                         const isSelected = durationMonths === m;
                         const isTierCovered = currentPlanInfo.isCovered && m === 1;
@@ -709,7 +726,7 @@ function SpaceDetailsView() {
                 )}
 
                 {selectedPlan === 'daily' && !isHourlySpace && (
-                  <div className="p-4 rounded-2xl bg-plaster-dark/40 border border-soot/10 space-y-3.5">
+                  <div className="p-4 rounded-2xl bg-plaster-surface border border-zinc-200/70 space-y-3.5">
                     <div className="flex items-center justify-between gap-2">
                       <label className="text-[11px] font-semibold uppercase tracking-wider text-moss flex items-center gap-1.5 whitespace-nowrap">
                         <Calendar size={12} className="shrink-0" />
@@ -772,7 +789,7 @@ function SpaceDetailsView() {
                 )}
 
                 {(selectedPlan === 'monthly' || selectedPlan === 'yearly') && (
-                  <div className="p-4 rounded-2xl bg-plaster-dark/40 border border-soot/10 space-y-2">
+                  <div className="p-4 rounded-2xl bg-plaster-surface border border-zinc-200/70 space-y-2">
                     <label className="block text-[11px] font-semibold text-moss mb-1 flex items-center gap-1">
                       <Calendar size={11} />
                       <span>{t('spaceDetails.startDate')}</span>
@@ -794,7 +811,7 @@ function SpaceDetailsView() {
                 )}
 
                 {(isHourlyAllowed(space) || selectedPlan === 'hourly') && (
-                  <div className="p-4 rounded-2xl bg-plaster-dark/40 border border-soot/10 space-y-3.5">
+                  <div className="p-4 rounded-2xl bg-plaster-surface border border-zinc-200/70 space-y-3.5">
                     <div className="flex items-center justify-between gap-2">
                       <label className="text-[11px] font-semibold uppercase tracking-wider text-moss flex items-center gap-1.5 whitespace-nowrap">
                         <Clock size={12} className="shrink-0" />
@@ -807,12 +824,23 @@ function SpaceDetailsView() {
 
                     {/* Flexible durations are only offered outside halls and theaters (those use fixed 2-hour sessions) */}
                     {!isHourlySpace && (
-                    <div className="space-y-1.5">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-moss block">
+                    <div className="space-y-3">
+                      <label htmlFor="duration-hours" className="text-[10px] font-semibold uppercase tracking-wider text-moss block">
                         {translateMessage('Duration (Hours)')}
-                      </span>
+                      </label>
+                      <input
+                        id="duration-hours"
+                        type="range"
+                        min={0}
+                        max={HOUR_OPTIONS.length - 1}
+                        step={1}
+                        value={Math.max(0, HOUR_OPTIONS.indexOf(selectedHours))}
+                        onChange={e => handleHoursChange(HOUR_OPTIONS[Number(e.target.value)])}
+                        aria-valuetext={t(selectedHours === 1 ? 'spaceDetails.hourOne' : 'spaceDetails.hourMany', { count: selectedHours })}
+                        className="ui-range cursor-pointer"
+                      />
                       <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
-                        {[1, 2, 3, 4, 6, 8].map((h) => {
+                        {HOUR_OPTIONS.map((h) => {
                           const isSelected = selectedHours === h;
                           const hourlyP = getEffectiveSpacePrice(currentUser, space, 'hourly', undefined, h);
                           return (
@@ -820,7 +848,8 @@ function SpaceDetailsView() {
                               key={h}
                               type="button"
                               onClick={() => handleHoursChange(h)}
-                              className={`py-2 px-1.5 rounded-xl text-center border transition-all cursor-pointer ${
+                              aria-pressed={isSelected}
+                              className={`py-2 px-1.5 rounded-xl text-center border transition-all cursor-pointer active:scale-[0.98] ${
                                 isSelected
                                   ? 'bg-soot text-plaster border-soot shadow-2xs font-semibold'
                                   : 'bg-white border-soot/10 text-moss hover:text-soot hover:border-soot/30'
@@ -956,7 +985,7 @@ function SpaceDetailsView() {
 
               {/* Seat Quantity Selector - visible only for organization accounts */}
               {isOrganization && (!isHourlySpace || unitList.length > 0) && (
-                <div className="mb-4 p-4 rounded-2xl bg-plaster-dark/40 border border-soot/10 space-y-3">
+                <div className="mb-4 p-4 rounded-2xl bg-plaster-surface border border-zinc-200/70 space-y-3">
                   <div className="flex items-center justify-between">
                     <div>
                       <label className="text-[11px] font-semibold uppercase tracking-wider text-moss flex items-center gap-1.5">
@@ -1038,14 +1067,14 @@ function SpaceDetailsView() {
                 </div>
               )}
 
-              <div className="mb-6 p-4 rounded-2xl bg-[#FAF7F2] border border-soot/10 space-y-2">
+              <div className="mb-6 p-4 rounded-2xl bg-plaster-surface border border-zinc-200/70 space-y-2">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-moss font-normal">{t('space.capacity')}</span>
                   <span className={`font-semibold ${isFullyBooked ? 'text-rose-700' : crowding.textColor}`}>
                     {isFullyBooked ? t('spaceDetails.busyFull') : t(('crowding.' + crowding.level) as never)}
                   </span>
                 </div>
-                <div className="w-full h-2 rounded-full bg-[#E5EBE7] overflow-hidden">
+                <div className="w-full h-2 rounded-full bg-zinc-200 overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all duration-500 ${isFullyBooked ? 'bg-rose-600' : crowding.barColor}`}
                     style={{
@@ -1109,7 +1138,7 @@ function SpaceDetailsView() {
                   <button
                     type="button"
                     onClick={handleBook}
-                    className="w-full py-3.5 px-4 rounded-xl font-semibold text-sm bg-soot text-plaster hover:bg-moss active:scale-[0.99] transition-all duration-200 shadow-md flex items-center justify-center gap-2 cursor-pointer focus-visible:ring-2 focus-visible:ring-eucalyptus"
+                    className="w-full h-14 px-4 rounded-2xl font-semibold text-[15px] bg-accent text-white hover:bg-emerald-800 active:scale-[0.98] transition-all duration-200 shadow-glow flex items-center justify-center gap-2 cursor-pointer focus:outline-none focus-visible:ring-4 focus-visible:ring-accent/30"
                   >
                     <span>{currentUser
                       ? (currentPlanInfo.effectivePrice === 0

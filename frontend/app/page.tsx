@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Zap, MapPin, ChevronDown, Shield, Headphones } from 'lucide-react';
+import { Zap, MapPin, Shield } from 'lucide-react';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import LandingHeroSearch from '@/components/landing/LandingHeroSearch';
@@ -8,6 +8,7 @@ import LandingSpaceCard from '@/components/landing/LandingSpaceCard';
 import LandingCtaButtons from '@/components/landing/LandingCtaButtons';
 import LandingViewAllButton from '@/components/landing/LandingViewAllButton';
 import LandingClientWrapper from '@/components/landing/LandingClientWrapper';
+import LandingBento from '@/components/landing/LandingBento';
 import { getSpacesServer } from '@/lib/spaces-server';
 import { T } from '@/i18n';
 import { LANG_COOKIE_NAME, resolveLang, translateServer } from '@/i18n/server';
@@ -111,47 +112,45 @@ export default async function Page() {
 
         <main className="flex-1">
           {/* Hero Section */}
-          <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden pb-16">
-            <div className="absolute inset-0">
-              <img
-                src="/landing-hero.jpg"
-                alt={translateServer(lang, 'landing.alt.hero')}
-                className="w-full h-full object-cover object-center saturate-110"
-                fetchPriority="high"
-              />
-              <div className="absolute inset-0 bg-gradient-to-b from-soot/45 via-soot/60 to-soot/85 pointer-events-none" />
-            </div>
+          <section className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-14 sm:pt-20 w-full">
+            <div className="flex flex-col items-center text-center gap-5 max-w-5xl mx-auto">
+              <span className="inline-flex items-center gap-2 h-8 ps-1.5 pe-3.5 rounded-full bg-white border border-zinc-200/80 shadow-sm text-xs sm:text-[13px] text-soot-light">
+                <span className="inline-flex items-center gap-1 h-5 px-2 rounded-full bg-accent-soft text-accent font-semibold text-[11px]">
+                  <Zap size={11} fill="currentColor" />
+                  <T k="landing.newBadge" />
+                </span>
+                <T k="landing.heroBadge" />
+              </span>
 
-            <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-28 pb-14 w-full flex flex-col items-center justify-center text-center z-10">
-              {/* Top Badge */}
-              <div className="mb-6 inline-flex items-center gap-2 bg-soot/80 backdrop-blur-md text-plaster border border-plaster/25 shadow-md px-4 py-2 rounded-full text-xs sm:text-sm font-semibold">
-                <Zap size={14} className="text-plaster shrink-0" />
-                <span><T k="landing.heroBadge" /></span>
-              </div>
-
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-normal text-plaster leading-[1.15] mb-6 tracking-tight drop-shadow-md text-center font-serif-display">
+              <h1 className="text-[42px] sm:text-6xl lg:text-[72px] leading-[1.04] text-soot text-balance">
                 <T k="landing.heroLine1" /><br />
-                <span className="text-eucalyptus italic font-serif"><T k="landing.heroLine2" /></span>
+                <span className="text-soot-light"><T k="landing.heroLine2" /></span>
               </h1>
 
-              <p className="text-plaster/95 text-base sm:text-lg leading-relaxed mb-8 max-w-2xl font-normal text-center mx-auto drop-shadow-sm">
+              <p className="text-soot-light text-base sm:text-lg leading-relaxed max-w-2xl text-pretty">
                 <T k="landing.heroBody" />
               </p>
-
-              {/* Clean Integrated Search Bar (Client Island) */}
-              <LandingHeroSearch />
-
-              {/* Trust Pills */}
-              <div className="relative z-10 flex flex-wrap items-center justify-center gap-3 sm:gap-4 mt-10">
-                <div className="bg-soot/80 backdrop-blur-md border border-plaster/20 px-5 py-2.5 rounded-full text-plaster text-xs sm:text-sm font-semibold flex items-center gap-2.5 shadow-lg">
-                  <MapPin size={16} className="text-eucalyptus" />
-                  <span><T k="landing.verifiedWorkspaces" /></span>
-                </div>
-              </div>
             </div>
 
-            <div className="absolute bottom-5 left-1/2 -translate-x-1/2 text-plaster/70 animate-bounce pointer-events-none">
-              <ChevronDown size={24} />
+            {/* Hero photograph with the floating search capsule */}
+            <div className="relative mt-10 sm:mt-12 pb-6 lg:pb-14">
+              <div className="relative h-64 sm:h-96 lg:h-[500px] rounded-[32px] overflow-hidden bg-soot">
+                <img
+                  src="/landing-hero.jpg"
+                  alt={translateServer(lang, 'landing.alt.hero')}
+                  className="w-full h-full object-cover object-center"
+                  fetchPriority="high"
+                />
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-soot/45 pointer-events-none" />
+                <div className="absolute top-5 start-5 inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-white/15 backdrop-blur-xl border border-white/25 text-white text-xs sm:text-[13px] font-medium">
+                  <MapPin size={14} />
+                  <T k="landing.verifiedWorkspaces" />
+                </div>
+              </div>
+
+              <div className="relative -mt-10 sm:-mt-14 lg:absolute lg:inset-x-0 lg:bottom-0 lg:mt-0 px-3 sm:px-8 lg:px-12">
+                <LandingHeroSearch />
+              </div>
             </div>
           </section>
 
@@ -329,79 +328,22 @@ export default async function Page() {
             </div>
           </section>
 
-          {/* Why Coworking Pass (Enterprise Grade) Section */}
-          <section className="py-24 max-w-6xl mx-auto px-4 sm:px-6">
-            <div className="max-w-3xl mb-12">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-soot/5 border border-soot/10 text-moss text-xs font-semibold mb-4 shadow-xs">
-                <Shield size={13} className="text-moss shrink-0" />
-                <span><T k="landing.whyBadge" /></span>
+          {/* Platform Bento Grid */}
+          <section className="py-24 max-w-6xl mx-auto px-4 sm:px-6 w-full">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+              <div className="flex flex-col gap-3 max-w-2xl">
+                <p className="text-accent text-xs font-semibold uppercase tracking-wider"><T k="landing.bento.eyebrow" /></p>
+                <h2 className="text-4xl sm:text-5xl text-soot leading-[1.08]">
+                  <T k="landing.bento.title" />
+                </h2>
               </div>
-              <h2 className="text-4xl sm:text-5xl text-soot font-normal font-serif-display tracking-tight leading-[1.15] mb-4">
-                <T k="landing.whyTitle1" /> <span className="text-moss italic font-serif"><T k="landing.whyTitle2" /></span>
-              </h2>
-              <p className="text-moss text-sm sm:text-base leading-relaxed">
-                <T k="landing.whyBody" />
+              <p className="text-soot-light text-base leading-relaxed max-w-sm">
+                <T k="landing.bento.body" />
               </p>
             </div>
 
-            <div className="grid lg:grid-cols-2 gap-8 items-stretch">
-              <div className="flex flex-col justify-between gap-4">
-                {[
-                  {
-                    icon: Zap,
-                    titleKey: 'landing.feature.instant.title' as const,
-                    descKey: 'landing.feature.instant.desc' as const,
-                    bg: 'bg-eucalyptus/25',
-                    iconColor: 'text-soot',
-                  },
-                  {
-                    icon: Shield,
-                    titleKey: 'landing.feature.secure.title' as const,
-                    descKey: 'landing.feature.secure.desc' as const,
-                    bg: 'bg-mist-light',
-                    iconColor: 'text-moss',
-                  },
-                  {
-                    icon: Headphones,
-                    titleKey: 'landing.feature.support.title' as const,
-                    descKey: 'landing.feature.support.desc' as const,
-                    bg: 'bg-eucalyptus/25',
-                    iconColor: 'text-soot',
-                  },
-                ].map(f => (
-                  <div
-                    key={f.titleKey}
-                    className="flex-1 flex items-start gap-4 p-5 rounded-3xl bg-plaster-surface border border-soot/10 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
-                  >
-                    <div className={`w-11 h-11 rounded-2xl ${f.bg} flex items-center justify-center shrink-0 shadow-xs mt-0.5`}>
-                      <f.icon size={19} className={f.iconColor} />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-soot text-base mb-1 font-serif-display">
-                        <T k={f.titleKey} />
-                      </h3>
-                      <p className="text-moss text-xs sm:text-sm leading-relaxed">
-                        <T k={f.descKey} />
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="relative rounded-3xl overflow-hidden border border-soot/12 shadow-sm min-h-[360px] h-full flex flex-col justify-end">
-                <img
-                  src="https://images.unsplash.com/photo-1556761175-b413da4baf72?w=1000&auto=format&fit=crop&q=80"
-                  alt={translateServer(lang, 'landing.alt.team')}
-                  loading="lazy"
-                  decoding="async"
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-soot/60 via-soot/10 to-transparent pointer-events-none" />
-
-              </div>
-            </div>
+            <LandingBento />
           </section>
-
 
           {/* CTA Section */}
           <section className="py-20 max-w-6xl mx-auto px-4 sm:px-6 w-full">

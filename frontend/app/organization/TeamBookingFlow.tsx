@@ -492,7 +492,7 @@ export default function TeamBooking() {
           <div className="w-16 h-16 rounded-3xl bg-eucalyptus/20 border border-eucalyptus/30 flex items-center justify-center mx-auto mb-5 shadow-sm">
             <Check size={28} className="text-moss" />
           </div>
-          <h1 className="text-2xl sm:text-3xl text-soot mb-2 font-normal" style={{ fontFamily: 'DM Serif Display, serif' }}>
+          <h1 className="text-2xl sm:text-3xl text-soot mb-2 font-normal" style={{ fontFamily: 'var(--font-display)' }}>
             {t('tb.confirmedTitle')}
           </h1>
           <p className="text-moss text-xs sm:text-sm mb-8 font-normal">
@@ -685,7 +685,7 @@ export default function TeamBooking() {
       {step === 0 && (
         <div className="space-y-6">
           <div className="bg-white rounded-3xl border border-soot/8 p-6 shadow-sm space-y-5">
-            <h2 className="text-xl font-normal text-soot" style={{ fontFamily: 'DM Serif Display, serif' }}>
+            <h2 className="text-xl font-normal text-soot" style={{ fontFamily: 'var(--font-display)' }}>
               {isHourlySpace ? t('tb.configHourly') : isOffice ? t('tb.selectOfficePlan') : t('tb.selectTypePlan')}
             </h2>
 
@@ -772,7 +772,7 @@ export default function TeamBooking() {
         <div className="bg-white rounded-3xl border border-soot/8 p-6 shadow-sm space-y-5">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div>
-              <h2 className="text-xl font-normal text-soot" style={{ fontFamily: 'DM Serif Display, serif' }}>
+              <h2 className="text-xl font-normal text-soot" style={{ fontFamily: 'var(--font-display)' }}>
                 {t('tb.assignMembers')}
               </h2>
               <p className="text-moss text-xs mt-0.5">{t('tb.selectMembersHint')}</p>
@@ -869,7 +869,7 @@ export default function TeamBooking() {
       {step === 2 && (
         <div className="bg-white rounded-3xl border border-soot/8 p-6 shadow-sm space-y-5">
           <div>
-            <h2 className="text-xl font-normal text-soot" style={{ fontFamily: 'DM Serif Display, serif' }}>
+            <h2 className="text-xl font-normal text-soot" style={{ fontFamily: 'var(--font-display)' }}>
               {t('tb.scheduleCapacity')}
             </h2>
             <p className="text-moss text-xs">{t('tb.setDatesSeats')}</p>
@@ -1194,7 +1194,7 @@ export default function TeamBooking() {
       {step === 3 && (
         <div className="bg-white rounded-3xl border border-soot/8 p-6 shadow-sm space-y-6">
           <div>
-            <h2 className="text-xl font-normal text-soot" style={{ fontFamily: 'DM Serif Display, serif' }}>
+            <h2 className="text-xl font-normal text-soot" style={{ fontFamily: 'var(--font-display)' }}>
               {hasActiveSubscription ? t('tb.reviewTeam') : t('tb.reviewTeamPay')}
             </h2>
             <p className="text-moss text-xs">

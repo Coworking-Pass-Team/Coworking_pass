@@ -216,7 +216,7 @@ export default function OrgProfile() {
       {/* Top Header Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl sm:text-4xl text-soot font-normal" style={{ fontFamily: 'DM Serif Display, serif' }}>
+          <h1 className="text-3xl sm:text-4xl text-soot font-normal" style={{ fontFamily: 'var(--font-display)' }}>
             {translateMessage(activeTab === 'profile' ? 'Organization Profile' : 'Organization Settings')}
           </h1>
           <p className="text-moss text-xs sm:text-sm mt-1 font-normal">
@@ -303,7 +303,7 @@ export default function OrgProfile() {
                 <div className="flex flex-wrap items-center gap-3">
                   <h2
                     className="text-2xl sm:text-3xl font-normal text-soot tracking-tight"
-                    style={{ fontFamily: 'DM Serif Display, serif' }}
+                    style={{ fontFamily: 'var(--font-display)' }}
                   >
                     {currentUser.orgName || translateMessage('Organization')}
                   </h2>
@@ -361,7 +361,7 @@ export default function OrgProfile() {
           <div className="bg-white rounded-3xl border border-soot/8 p-6 sm:p-8 shadow-sm">
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-soot/8 gap-4 flex-wrap">
               <div>
-                <h3 className="text-xl font-normal text-soot" style={{ fontFamily: 'DM Serif Display, serif' }}>
+                <h3 className="text-xl font-normal text-soot" style={{ fontFamily: 'var(--font-display)' }}>
                   {t('org.op.organizationInformation')}
                 </h3>
                 <p className="text-moss text-xs mt-0.5 font-normal">{t('org.op.officialCorporateEntityCredentialsAnd')}</p>
@@ -508,7 +508,7 @@ export default function OrgProfile() {
           <div className="bg-white rounded-3xl border border-soot/8 p-6 sm:p-8 shadow-sm">
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-soot/8 gap-4 flex-wrap">
               <div>
-                <h3 className="text-xl font-normal text-soot" style={{ fontFamily: 'DM Serif Display, serif' }}>
+                <h3 className="text-xl font-normal text-soot" style={{ fontFamily: 'var(--font-display)' }}>
                   {translateMessage(`Team Members Roster (${employees.length})`)}
                 </h3>
                 <p className="text-moss text-xs mt-0.5 font-normal">{t('org.op.colleaguesAndTeamMembersAuthorized')}</p>
@@ -562,7 +562,7 @@ export default function OrgProfile() {
         <div className="space-y-6">
           {/* Notification Preferences */}
           <div className="bg-white rounded-3xl border border-soot/8 p-6 sm:p-8 shadow-sm">
-            <h3 className="text-xl font-normal text-soot mb-1" style={{ fontFamily: 'DM Serif Display, serif' }}>
+            <h3 className="text-xl font-normal text-soot mb-1" style={{ fontFamily: 'var(--font-display)' }}>
               {t('org.op.corporateNotificationPreferences')}
             </h3>
             <p className="text-moss text-xs mb-6 font-normal">{t('org.op.configureAlertsForTeamReservations')}</p>
@@ -604,7 +604,7 @@ export default function OrgProfile() {
 
           {/* Security & Password */}
           <div className="bg-white rounded-3xl border border-soot/8 p-6 sm:p-8 shadow-sm">
-            <h3 className="text-xl font-normal text-soot mb-1" style={{ fontFamily: 'DM Serif Display, serif' }}>
+            <h3 className="text-xl font-normal text-soot mb-1" style={{ fontFamily: 'var(--font-display)' }}>
               {t('org.op.corporateSecurityPassword')}
             </h3>
             <p className="text-moss text-xs mb-6 font-normal">{t('org.op.updateTheAdministrativePasswordFor')}</p>
@@ -693,7 +693,7 @@ export default function OrgProfile() {
 
           {/* Corporate Workspace Access & Billing Policies */}
           <div className="bg-white rounded-3xl border border-soot/8 p-6 sm:p-8 shadow-sm">
-            <h3 className="text-xl font-normal text-soot mb-1" style={{ fontFamily: 'DM Serif Display, serif' }}>
+            <h3 className="text-xl font-normal text-soot mb-1" style={{ fontFamily: 'var(--font-display)' }}>
               {t('org.op.corporateWorkspacePolicies')}
             </h3>
             <p className="text-moss text-xs mb-6 font-normal">{t('org.op.managePermissionsForTeamReservations')}</p>
@@ -743,7 +743,7 @@ export default function OrgProfile() {
 
           {/* Danger Zone */}
           <div className="bg-white rounded-3xl border border-red-200 p-6 sm:p-8 shadow-sm">
-            <h3 className="text-xl font-normal text-red-600 mb-1" style={{ fontFamily: 'DM Serif Display, serif' }}>
+            <h3 className="text-xl font-normal text-red-600 mb-1" style={{ fontFamily: 'var(--font-display)' }}>
               {t('org.op.dangerZone')}
             </h3>
             <p className="text-moss text-xs mb-6 font-normal">

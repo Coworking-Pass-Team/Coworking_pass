@@ -214,7 +214,7 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
       {/* Top Header Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl sm:text-4xl text-soot font-normal" style={{ fontFamily: 'DM Serif Display, serif' }}>
+          <h1 className="text-3xl sm:text-4xl text-soot font-normal" style={{ fontFamily: 'var(--font-display)' }}>
             {activeTab === 'profile' ? t('ind.ps.memberProfile') : translateMessage('Account Settings')}
           </h1>
           <p className="text-moss text-xs sm:text-sm mt-1 font-normal">
@@ -292,7 +292,7 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
                 <div className="flex flex-wrap items-center gap-3">
                   <h2
                     className="text-2xl sm:text-3xl font-normal text-soot tracking-tight"
-                    style={{ fontFamily: 'DM Serif Display, serif' }}
+                    style={{ fontFamily: 'var(--font-display)' }}
                   >
                     {currentUser.name}
                   </h2>
@@ -343,7 +343,7 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
           <div className="bg-white rounded-3xl border border-soot/8 p-6 sm:p-8 shadow-sm">
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-soot/8 gap-4 flex-wrap">
               <div>
-                <h3 className="text-xl font-normal text-soot" style={{ fontFamily: 'DM Serif Display, serif' }}>
+                <h3 className="text-xl font-normal text-soot" style={{ fontFamily: 'var(--font-display)' }}>
                   {t('ind.ps.personalInformation')}
                 </h3>
                 <p className="text-moss text-xs mt-0.5 font-normal">{t('ind.ps.officialPersonalProfileDetailsAnd')}</p>
@@ -457,7 +457,7 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
           <div className="bg-white rounded-3xl border border-soot/8 p-6 sm:p-8 shadow-sm">
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-soot/8 gap-4 flex-wrap">
               <div>
-                <h3 className="text-xl font-normal text-soot" style={{ fontFamily: 'DM Serif Display, serif' }}>
+                <h3 className="text-xl font-normal text-soot" style={{ fontFamily: 'var(--font-display)' }}>
                   {translateMessage(`My Workspace Activity (${userBookings.length})`)}
                 </h3>
                 <p className="text-moss text-xs mt-0.5 font-normal">{t('ind.ps.recentReservationsAndPassCheck')}</p>
@@ -510,7 +510,7 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
         <div className="space-y-6">
           {/* Notification Preferences */}
           <div className="bg-white rounded-3xl border border-soot/8 p-6 sm:p-8 shadow-sm">
-            <h3 className="text-xl font-normal text-soot mb-1" style={{ fontFamily: 'DM Serif Display, serif' }}>
+            <h3 className="text-xl font-normal text-soot mb-1" style={{ fontFamily: 'var(--font-display)' }}>
               {t('ind.ps.notificationPreferences')}
             </h3>
             <p className="text-moss text-xs mb-6 font-normal">{t('ind.ps.manageSmsAndEmailAlerts')}</p>
@@ -552,7 +552,7 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
 
           {/* Security & Password */}
           <div className="bg-white rounded-3xl border border-soot/8 p-6 sm:p-8 shadow-sm">
-            <h3 className="text-xl font-normal text-soot mb-1" style={{ fontFamily: 'DM Serif Display, serif' }}>
+            <h3 className="text-xl font-normal text-soot mb-1" style={{ fontFamily: 'var(--font-display)' }}>
               {t('ind.ps.securityPassword')}
             </h3>
             <p className="text-moss text-xs mb-6 font-normal">{t('ind.ps.updateYourLoginCredentialsAnd')}</p>
@@ -643,7 +643,7 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
           <div className="bg-white rounded-3xl border border-soot/8 p-6 sm:p-8 shadow-sm">
             <div className="flex items-center justify-between mb-4 pb-3 border-b border-soot/8 gap-4 flex-wrap">
               <div>
-                <h3 className="text-xl font-normal text-soot" style={{ fontFamily: 'DM Serif Display, serif' }}>
+                <h3 className="text-xl font-normal text-soot" style={{ fontFamily: 'var(--font-display)' }}>
                   {t('ind.ps.savedPaymentCards')}
                 </h3>
                 <p className="text-moss text-xs mt-0.5 font-normal">{t('ind.ps.creditMadaCardsSavedFor')}</p>
@@ -678,7 +678,7 @@ export default function ProfileSettings({ mode = 'profile' }: { mode?: 'profile'
 
           {/* Danger Zone */}
           <div className="bg-white rounded-3xl border border-red-200 p-6 sm:p-8 shadow-sm">
-            <h3 className="text-xl font-normal text-red-600 mb-1" style={{ fontFamily: 'DM Serif Display, serif' }}>
+            <h3 className="text-xl font-normal text-red-600 mb-1" style={{ fontFamily: 'var(--font-display)' }}>
               {t('ind.ps.dangerZone')}
             </h3>
             <p className="text-moss text-xs mb-6 font-normal">

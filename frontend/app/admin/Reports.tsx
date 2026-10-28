@@ -129,7 +129,7 @@ export default function Reports() {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
       <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
-        <h1 className="text-4xl text-soot" style={{ fontFamily: 'DM Serif Display, serif' }}>{t('reports.title')}</h1>
+        <h1 className="text-4xl text-soot" style={{ fontFamily: 'var(--font-display)' }}>{t('reports.title')}</h1>
         <div className="flex gap-1 bg-white border border-soot/8 rounded-xl p-1 shadow-xs">
           {PERIODS.map(p => (
             <button

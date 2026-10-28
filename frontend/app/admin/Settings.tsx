@@ -158,7 +158,7 @@ export default function AdminSettings() {
       {/* Top Header Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl sm:text-4xl text-soot font-normal" style={{ fontFamily: 'DM Serif Display, serif' }}>
+          <h1 className="text-3xl sm:text-4xl text-soot font-normal" style={{ fontFamily: 'var(--font-display)' }}>
             {activeTab === 'profile' ? translateMessage('Admin Profile & Security') : activeTab === 'plans' ? 'Membership Plans Management' : 'Platform Settings'}
           </h1>
           <p className="text-moss text-xs sm:text-sm mt-1 font-normal">
@@ -440,7 +440,7 @@ export default function AdminSettings() {
                 <div className="flex flex-wrap items-center gap-3">
                   <h2
                     className="text-2xl sm:text-3xl font-normal text-soot tracking-tight"
-                    style={{ fontFamily: 'DM Serif Display, serif' }}
+                    style={{ fontFamily: 'var(--font-display)' }}
                   >
                     {currentUser.name}
                   </h2>
@@ -470,7 +470,7 @@ export default function AdminSettings() {
           <div className="bg-white rounded-3xl border border-soot/8 p-6 sm:p-8 shadow-sm">
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-soot/8 gap-4 flex-wrap">
               <div>
-                <h3 className="text-xl font-normal text-soot" style={{ fontFamily: 'DM Serif Display, serif' }}>
+                <h3 className="text-xl font-normal text-soot" style={{ fontFamily: 'var(--font-display)' }}>
                   {t('admin.set.administratorInformation')}
                 </h3>
                 <p className="text-moss text-xs mt-0.5 font-normal">{t('admin.set.systemCredentialsAndPlatformContact')}</p>
@@ -543,7 +543,7 @@ export default function AdminSettings() {
           <div className="bg-white rounded-3xl border border-soot/8 p-6 sm:p-8 shadow-sm">
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-soot/8">
               <div>
-                <h3 className="text-xl font-normal text-soot" style={{ fontFamily: 'DM Serif Display, serif' }}>
+                <h3 className="text-xl font-normal text-soot" style={{ fontFamily: 'var(--font-display)' }}>
                   {t('admin.set.systemSecurityPassword')}
                 </h3>
                 <p className="text-moss text-xs mt-0.5 font-normal">{t('admin.set.updateSuperAdministratorAuthenticationCredentials')}</p>
@@ -636,7 +636,7 @@ export default function AdminSettings() {
         <div className="space-y-6">
           {/* Platform Operating Controls */}
           <div className="bg-white rounded-3xl border border-soot/8 p-6 sm:p-8 shadow-sm">
-            <h3 className="text-xl font-normal text-soot mb-1" style={{ fontFamily: 'DM Serif Display, serif' }}>
+            <h3 className="text-xl font-normal text-soot mb-1" style={{ fontFamily: 'var(--font-display)' }}>
               {t('admin.set.platformSystemSettings')}
             </h3>
             <p className="text-moss text-xs mb-6 font-normal">{t('admin.set.globalSystemSwitchesAndAdministrative')}</p>
@@ -706,7 +706,7 @@ export default function AdminSettings() {
 
           {/* Danger Zone */}
           <div className="bg-white rounded-3xl border border-red-200 p-6 sm:p-8 shadow-sm">
-            <h3 className="text-xl font-normal text-red-600 mb-1" style={{ fontFamily: 'DM Serif Display, serif' }}>
+            <h3 className="text-xl font-normal text-red-600 mb-1" style={{ fontFamily: 'var(--font-display)' }}>
               {t('admin.set.superAdminSession')}
             </h3>
             <p className="text-moss text-xs mb-6 font-normal">

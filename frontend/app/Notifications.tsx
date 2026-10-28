@@ -91,7 +91,7 @@ export default function Notifications() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl text-soot font-semibold" style={{ fontFamily: 'DM Serif Display, serif' }}>
+            <h1 className="text-3xl text-soot font-semibold" style={{ fontFamily: 'var(--font-display)' }}>
               {t('nav.notifications')}
             </h1>
             {unreadCount > 0 && (
