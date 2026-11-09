@@ -1,8 +1,10 @@
+import { settleCheckout } from "@/lib/security/checkout";
+import { idempotent } from "@/lib/security/idempotency";
+import { money, positiveInteger, inputResponse, InputError } from "@/lib/security/input";
 import { NextRequest, NextResponse } from 'next/server'
 import { resolveAttendeeIds, notifyAttendees } from '@/lib/company/team';
 import { prisma } from '@/lib/prisma'
 import { getTokenFromRequest, unauthorizedResponse, suspendedResponse } from "@/lib/auth/verify-token";
-import { seedStandardWorkspaces } from '@/lib/db/seed-data';
 import { getKsaNow, parseDateAndTimeToKsaDate } from '@/lib/time-utils';
 import { hourlyBookingEffectiveStatus } from '@/lib/booking/lifecycle';
 import { effectiveCapacity, getOccupiedSeats } from '@/lib/booking/capacity';
@@ -10,7 +12,7 @@ import { checkFairUse, sessionParticipants } from '@/lib/booking/fair-use';
 import { hiddenWorkspaceError } from '@/lib/workspaces/visibility';
 import { getOwnedWorkspaceIds } from '@/lib/ownership';
 import { validateHourlyWindow, isFixedSlotSection } from '@/lib/workspaces/operating-hours';
-import type { Prisma, SectionType, LifecycleStatus } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import { errorMessage } from '@/lib/errors';
 
 
@@ -103,7 +105,7 @@ export async function GET(request: Request) {
  *       201:
  *         description: تم إنشاء الحجز الساعي
  */
-export async function POST(request: NextRequest) {
+export const POST = idempotent("hourly-bookings", async (request, db) => {
   try {
     const user = await getTokenFromRequest(request);
 
@@ -115,19 +117,15 @@ export async function POST(request: NextRequest) {
       packageId,
       startDate,
       endDate,
-      status,
-      sectionType,
-      spaceName,
-      city,
+
       durationHours,
-      durationDetails,
       startTime,
       endTime
     } = body;
 
     //  BE-05: منع الحجز الساعي للمكاتب الفردية
     if (sectionId) {
-      const requestedSection = await prisma.workspaceSection.findUnique({
+      const requestedSection = await db.workspaceSection.findUnique({
         where: { id: sectionId },
         select: { type: true }
       });
@@ -141,30 +139,14 @@ export async function POST(request: NextRequest) {
     }
 
     // تطبيع status
-    const validStatuses = ['ACTIVE', 'EXPIRED', 'CANCELLED'];
-    const normalizedStatus = validStatuses.includes((status || '').toUpperCase())
-      ? (status || '').toUpperCase()
-      : 'ACTIVE';
-
-    // تطبيع المدينة
-    const resolveCity = (name?: string, sentCity?: string): string => {
-      if (sentCity && sentCity.trim()) return sentCity.trim();
-      const n = (name || '').toLowerCase();
-      if (n.includes('jeddah') || n.includes('جدة')) return 'Jeddah';
-      if (n.includes('dammam') || n.includes('الدمام')) return 'Dammam';
-      if (n.includes('riyadh') || n.includes('الرياض')) return 'Riyadh';
-      if (n.includes('khobar') || n.includes('الخبر')) return 'Al Khobar';
-      if (n.includes('mecca') || n.includes('مكة')) return 'Mecca';
-      if (n.includes('medina') || n.includes('المدينة')) return 'Medina';
-      return 'Riyadh';
-    };
+    const normalizedStatus = 'ACTIVE';
 
     const effectiveUserId = (user && user.role === 'SUPER_ADMIN' && userId) ? userId : (user ? user.userId : null);
 
     if (!effectiveUserId) {
       return unauthorizedResponse(request);
     }
-    const existingUser = await prisma.user.findUnique({ where: { id: effectiveUserId }, select: { id: true, isBanned: true } });
+    const existingUser = await db.user.findUnique({ where: { id: effectiveUserId }, select: { id: true, isBanned: true } });
     if (!existingUser) {
       return NextResponse.json({ error: 'User not found.' }, { status: 404 });
     }
@@ -180,124 +162,9 @@ export async function POST(request: NextRequest) {
     }
 
     // تحديد نوع القسم المطلوب
-    const validSectionTypes = ['DESK', 'MEETING_ROOM', 'THEATER'];
-const requestedType = (validSectionTypes.includes(sectionType) && sectionType !== 'DESK')
-  ? sectionType
-  : 'MEETING_ROOM';
-  
-    const resolvedCity = resolveCity(spaceName, city);
-    const cleanCity = resolvedCity.replace(/al\s+/i, '').trim();
+    const ws = await db.workspace.findUnique({ where: { id: workspaceId || "" }, include: { sections: true } });
+    if (!ws) throw new InputError("Select an existing workspace.");
 
-    // البحث عن مساحة العمل
-    let ws = workspaceId ? await prisma.workspace.findUnique({
-      where: { id: workspaceId },
-      include: { sections: true }
-    }) : null;
-
-    if (!ws && spaceName) {
-      const trimmedName = spaceName.trim();
-
-      ws = await prisma.workspace.findFirst({
-        where: {
-          name: { equals: trimmedName, mode: 'insensitive' },
-          city: { contains: cleanCity, mode: 'insensitive' }
-        },
-        include: { sections: true }
-      });
-
-      if (!ws) {
-        ws = await prisma.workspace.findFirst({
-          where: {
-            name: { contains: trimmedName, mode: 'insensitive' },
-            city: { contains: cleanCity, mode: 'insensitive' }
-          },
-          include: { sections: true }
-        });
-      }
-
-      if (!ws) {
-        const firstWord = trimmedName.split(/\s+/)[0];
-        if (firstWord && firstWord.length > 2) {
-          ws = await prisma.workspace.findFirst({
-            where: {
-              name: { contains: firstWord, mode: 'insensitive' },
-              city: { contains: cleanCity, mode: 'insensitive' }
-            },
-            include: { sections: true }
-          });
-        }
-      }
-
-      if (!ws) {
-        ws = await prisma.workspace.findFirst({
-          where: { name: { equals: trimmedName, mode: 'insensitive' } },
-          include: { sections: true }
-        });
-      }
-
-      if (!ws) {
-        ws = await prisma.workspace.findFirst({
-          where: { name: { contains: trimmedName, mode: 'insensitive' } },
-          include: { sections: true }
-        });
-      }
-    }
-
-    if (!ws && cleanCity) {
-      ws = await prisma.workspace.findFirst({
-        where: { city: { contains: cleanCity, mode: 'insensitive' } },
-        include: { sections: true }
-      });
-    }
-
-    if (!ws) {
-      await seedStandardWorkspaces();
-      if (spaceName) {
-        ws = await prisma.workspace.findFirst({
-          where: { name: { contains: spaceName.trim(), mode: 'insensitive' } },
-          include: { sections: true },
-        });
-      }
-    }
-
-    if (!ws && (spaceName || workspaceId)) {
-      let partner = await prisma.partner.findFirst();
-      if (!partner) {
-        partner = await prisma.partner.create({
-          data: {
-            brandName: 'Coworking Partner Network',
-            contactEmail: 'partner@coworkingpass.sa',
-            taxNumber: '310000000000003',
-            revenueSharePercentage: 15,
-          },
-        });
-      }
-
-      const wsName = spaceName ? spaceName.trim() : 'Coworking Space';
-      const wsCity = resolveCity(spaceName, city);
-      ws = await prisma.workspace.create({
-        data: {
-          partnerId: partner.id,
-          name: wsName,
-          city: wsCity,
-          dailyRate: 60,
-          monthlyRate: 750,
-          passVisitValue: 60,
-          totalCapacity: 30,
-        },
-        include: { sections: true },
-      });
-    }
-
-    if (!ws) {
-      ws = await prisma.workspace.findFirst({ include: { sections: true } });
-    }
-
-    if (!ws) {
-      return NextResponse.json({ error: 'Workspace not found.' }, { status: 404 });
-    }
-
-    // حساب الساعات
     let computedHours = durationHours ? Number(durationHours) : 0;
     if (computedHours > 4) computedHours = 4;
     if (computedHours < 1) computedHours = 1;
@@ -326,42 +193,18 @@ const requestedType = (validSectionTypes.includes(sectionType) && sectionType !=
       computedHours = 1;
     }
 
-    const computedDetails = durationDetails || `${computedHours} ${computedHours === 1 ? 'Hour' : 'Hours'}`;
+
 
     // التحقق من وجود القسم
     let targetSectionId = sectionId;
     let targetPackageId = packageId;
 
-    let sec = targetSectionId ? await prisma.workspaceSection.findUnique({
+    const sec = targetSectionId ? await db.workspaceSection.findUnique({
       where: { id: targetSectionId },
       include: { hourlyPackages: true, workspace: true }
     }) : null;
 
-    if (!sec || sec.workspaceId !== ws.id || (sectionType && sec.type !== requestedType)) {
-      sec = await prisma.workspaceSection.findFirst({
-        where: { workspaceId: ws.id, type: requestedType },
-        include: { hourlyPackages: true, workspace: true }
-      });
-    }
-
-    if (!sec) {
-      const sectionName = requestedType === 'THEATER' 
-        ? `${ws.name} - Theater`
-        : requestedType === 'MEETING_ROOM'
-        ? `${ws.name} - Meeting Room`
-        : `${ws.name} - Desk Area`;
-
-      sec = await prisma.workspaceSection.create({
-        data: {
-          workspaceId: ws.id,
-          type: requestedType as SectionType,
-          name: sectionName,
-          capacity: requestedType === 'THEATER' ? 100 : 20,
-          dailyRate: requestedType === 'THEATER' ? 1500 : 200,
-        },
-        include: { hourlyPackages: true, workspace: true }
-      });
-    }
+    if (!sec || sec.workspaceId !== ws.id) throw new InputError("Section does not belong to the selected workspace.");
 
     targetSectionId = sec.id;
 
@@ -383,7 +226,7 @@ const requestedType = (validSectionTypes.includes(sectionType) && sectionType !=
     }
 
     // Capacity check for the requested time window
-    const requestedSeats = Math.max(1, Math.floor(Number(body.seats) || 1));
+    const requestedSeats = positiveInteger(body.seats, 1, 1000);
     if (isFixedSlotSection(sec.type)) {
       // Halls and theaters are booked one session at a time: the selected unit must be free and seat the group
       if (requestedSeats > sec.capacity) {
@@ -392,7 +235,7 @@ const requestedType = (validSectionTypes.includes(sectionType) && sectionType !=
           { status: 400 }
         );
       }
-      const clash = await prisma.hourlyBooking.findFirst({
+      const clash = await db.hourlyBooking.findFirst({
         where: { sectionId: sec.id, status: 'ACTIVE', startDate: { lt: endObj }, endDate: { gt: startObj } },
         select: { id: true },
       });
@@ -414,22 +257,14 @@ const requestedType = (validSectionTypes.includes(sectionType) && sectionType !=
     }
 
     // التأكد من وجود باقة
-    let pkg = sec.hourlyPackages && sec.hourlyPackages.length > 0
-      ? sec.hourlyPackages.find((p) => p.id === targetPackageId) || sec.hourlyPackages[0]
-      : await prisma.hourlyPackage.findFirst({ where: { sectionId: sec.id } });
-
-    if (!pkg) {
-      pkg = await prisma.hourlyPackage.create({
-        data: {
-          sectionId: sec.id,
-          packageName: requestedType === 'THEATER' ? `${computedHours} Hour Theater Package` : `${computedHours} Hour Package`,
-          hoursAmount: Math.min(4, computedHours),
-          periodType: 'PER_DAY',
-          price: Math.max(35, Math.round((sec.dailyRate || 100) / 4 * computedHours)),
-        }
-      });
-    }
-
+    const actualHours = (endObj.getTime() - startObj.getTime()) / 3_600_000;
+    if (!Number.isFinite(actualHours) || actualHours <= 0 || actualHours > 4) throw new InputError("Invalid booking duration.");
+    computedHours = actualHours;
+    const computedDetails = `${actualHours} Hours`;
+    const pkg = sec.hourlyPackages.find(p => p.id === packageId);
+    if (!pkg) throw new InputError("Select an existing package for this section.");
+    if (sec.hourlyRate == null && actualHours !== pkg.hoursAmount) throw new InputError("Booking duration must match the package.");
+    const payableAmount = money(sec.hourlyRate != null ? money(sec.hourlyRate) * actualHours : pkg.price);
     targetPackageId = pkg.id;
 
     // Team members this company booking is for (only an HR admin's own team members are kept)
@@ -442,7 +277,7 @@ const requestedType = (validSectionTypes.includes(sectionType) && sectionType !=
     const secName = sec.name;
     const isFixedSlot = isFixedSlotSection(sec.type);
     const totalCapacity = effectiveCapacity(ws);
-    const txResult = await prisma.$transaction(async (tx) => {
+    const txResult = await (async (tx: typeof db) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${'hourly-slot:' + wsId}))`;
 
       if (isFixedSlot) {
@@ -477,12 +312,13 @@ const requestedType = (validSectionTypes.includes(sectionType) && sectionType !=
         workspaceId: ws.id,
         sectionId: targetSectionId,
         packageId: targetPackageId,
+        payableAmount,
         startDate: startObj,
         endDate: endObj,
         durationDetails: computedDetails,
         seats: requestedSeats,
         attendeeIds,
-        status: normalizedStatus as LifecycleStatus,
+        status: 'ACTIVE',
         hoursUsed: computedHours,
         createdAt: getKsaNow(),
       },
@@ -497,15 +333,16 @@ const requestedType = (validSectionTypes.includes(sectionType) && sectionType !=
         package: true,
       }
       });
+      await settleCheckout(tx, effectiveUserId, created.id, "HOURLY_BOOKING", payableAmount, ws.id);
       return { booking: created };
-    });
+    })(db);
 
     if ('error' in txResult) {
       return NextResponse.json({ error: txResult.error, ...('code' in txResult ? { code: txResult.code } : {}) }, { status: 409 });
     }
 
     // Tell the guest their session is confirmed (a failure here must never undo the booking)
-    await prisma.notification.create({
+    await db.notification.create({
       data: {
         userId: txResult.booking.userId,
         type: 'MEETING_BOOKED',
@@ -527,10 +364,12 @@ const requestedType = (validSectionTypes.includes(sectionType) && sectionType !=
 
     return NextResponse.json(txResult.booking, { status: 201 });
   } catch (error) {
+    const invalid = inputResponse(error);
+    if (invalid) return invalid;
     console.error('❌ Error creating hourly booking:', error);
     return NextResponse.json(
       { error: errorMessage(error, 'Failed to create hourly booking.') },
       { status: 500 }
     );
   }
-}
+});

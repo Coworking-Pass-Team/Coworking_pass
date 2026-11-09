@@ -20,6 +20,8 @@ import { fileURLToPath } from 'node:url';
 
 try { process.loadEnvFile('.env'); } catch { /* DATABASE_URL may already be in the environment */ }
 
+if (process.env.NODE_ENV === 'production') throw new Error('Demo account seeding is disabled in production.');
+
 const args = process.argv.slice(2);
 const allowRemote = args.includes('--allow-remote');
 

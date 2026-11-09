@@ -17,7 +17,7 @@ export async function findCompanyByHrEmail(rawEmail: unknown): Promise<JoinTarge
     select: { id: true, companyName: true, hrAdminId: true },
   });
   if (!company) {
-    return { ok: false, status: 404, error: "No company on Coworking Pass uses this HR email. Please check it with your HR admin." };
+    return { ok: false, status: 404, error: "No company on Muttaka uses this HR email. Please check it with your HR admin." };
   }
   return { ok: true, company };
 }

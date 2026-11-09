@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
+import { adminPasswordError } from "@/lib/auth/admin-password";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { checkOtp } from "@/lib/auth/otp";
+import { checkOtp, otpCheckResponse } from "@/lib/auth/otp";
 import { passwordPolicyError } from "@/lib/auth/password-policy";
 import { endAllSessions } from "@/lib/auth/sessions";
 import { clearAttempts } from "@/lib/auth/login-attempts";
@@ -37,14 +38,18 @@ export async function POST(request: Request) {
     const weak = passwordPolicyError(newPassword);
     if (weak) return NextResponse.json(weak, { status: 400 });
 
-    const user = email ? await prisma.user.findUnique({ where: { email }, select: { id: true, isBanned: true } }) : null;
+    const user = email ? await prisma.user.findUnique({ where: { email }, select: { id: true, isBanned: true, role: true } }) : null;
     if (!user || user.isBanned || !code) {
       return NextResponse.json({ error: "Invalid or expired verification code." }, { status: 400 });
     }
 
+    if (user.role === "SUPER_ADMIN" && adminPasswordError(newPassword)) {
+      return NextResponse.json({ error: adminPasswordError(newPassword) }, { status: 400 });
+    }
+
     // Uses the code up: it works once, within ten minutes, and cancels itself after five wrong guesses
     const check = await checkOtp(user.id, "PASSWORD_RESET", code);
-    if (!check.ok) return NextResponse.json({ error: check.error }, { status: 400 });
+    if (!check.ok) return otpCheckResponse(check);
 
     const passwordHash = await bcrypt.hash(newPassword, 10);
     await prisma.user.update({ where: { id: user.id }, data: { passwordHash, ...endAllSessions() } });

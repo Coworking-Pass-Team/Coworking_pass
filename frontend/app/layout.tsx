@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { Geist, Tajawal } from 'next/font/google';
 import '@/app/globals.css';
 import { AppProvider } from '@/app/store';
+import ReconnectingBadge from '@/components/ui/ReconnectingBadge';
 import { I18nProvider } from '@/i18n';
 import { LANG_COOKIE_NAME, resolveLang } from '@/i18n/server';
 
@@ -22,8 +23,8 @@ const latinFont = Geist({
 });
 
 export const metadata: Metadata = {
-  title: 'Coworking Pass - Saudi Arabia\'s Coworking Platform',
-  description: 'Access premium coworking spaces in Riyadh, Jeddah, Dammam, and beyond. Book by the day, month, or year.',
+  title: 'Muttaka — Flexible Workspaces & Coworking Pass in Saudi Arabia',
+  description: 'مُتَّكَأ لمساحات العمل المرنة والمكاتب المشتركة في المملكة. Access premium coworking spaces in Riyadh, Jeddah, Dammam, and beyond. Book by the day, month, or year.',
   icons: {
     icon: '/favicon.ico',
   },
@@ -44,6 +45,7 @@ export default async function RootLayout({
         <I18nProvider initialLang={lang}>
           <AppProvider>
             {children}
+            <ReconnectingBadge />
           </AppProvider>
         </I18nProvider>
       </body>

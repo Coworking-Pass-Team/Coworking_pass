@@ -69,10 +69,13 @@ export async function POST(request: NextRequest) {
       }
 
       const originalPayment = await prisma.payment.findFirst({
-        where: { referenceId: subscriptionId, status: 'SUCCESS', NOT: { paymentFor: 'REFUND' } },
+        where: { userId: subscription.userId, referenceId: subscriptionId, status: 'SUCCESS', paymentFor: 'SUBSCRIPTION', method: 'WALLET' },
         orderBy: { createdAt: 'desc' },
       })
-      const refundAmount = originalPayment?.amount ?? subscription.plan?.price ?? 0
+      if (!originalPayment) {
+        return NextResponse.json({ error: 'No verified subscription payment exists to refund.' }, { status: 409 })
+      }
+      const refundAmount = originalPayment.amount
       const planName = subscription.plan?.planName || 'Pass'
 
       const result = await prisma.$transaction(async (tx) => {
@@ -163,7 +166,7 @@ export async function POST(request: NextRequest) {
 
     // Refund exactly what was paid for this booking
     const originalPayment = await prisma.payment.findFirst({
-      where: { referenceId: bookingId, status: 'SUCCESS', NOT: { paymentFor: 'REFUND' } },
+      where: { userId: booking.userId, referenceId: bookingId, status: 'SUCCESS', paymentFor: direct ? 'DIRECT_BOOKING' : 'HOURLY_BOOKING', method: 'WALLET' },
       orderBy: { createdAt: 'desc' },
     })
     if (!originalPayment) {

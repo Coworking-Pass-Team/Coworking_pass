@@ -57,8 +57,8 @@ export default function AccountSuspendedModal({ onSignOut }: AccountSuspendedMod
         </h2>
         <p id="account-suspended-body" className="text-sm text-moss leading-relaxed">
           {t('suspended.body')}{' '}
-          <a href="mailto:support@coworkingpass.sa" className="font-semibold text-soot underline">
-            support@coworkingpass.sa
+          <a href="mailto:support@muttakasa.com" className="font-semibold text-soot underline">
+            support@muttakasa.com
           </a>{' '}
           {t('suspended.bodyEnd')}
         </p>

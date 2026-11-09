@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { notifyPendingJoinRequestsOf } from "@/lib/company/join";
-import { checkOtp } from "@/lib/auth/otp";
+import { checkOtp, otpCheckResponse } from "@/lib/auth/otp";
 
 
 
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
 
     const check = await checkOtp(userId, "EMAIL_VERIFICATION", String(code));
     if (!check.ok) {
-      return NextResponse.json({ error: check.error }, { status: 400 });
+      return otpCheckResponse(check);
     }
 
     await prisma.user.update({

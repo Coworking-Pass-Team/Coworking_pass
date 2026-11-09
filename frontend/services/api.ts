@@ -3,16 +3,11 @@
  * Handles communication between the frontend and backend authentication & OTP endpoints.
  */
 
+import { apiOrigin, fetchWithRetry } from '@/lib/api-config';
+
+/** Backend origin (NEXT_PUBLIC_API_URL, see lib/api-config.ts). */
 function getAuthBaseUrl(): string {
-  const envUrl = process.env.NEXT_PUBLIC_API_URL;
-  if (envUrl) {
-    const cleaned = envUrl.replace(/\/$/, '');
-    return cleaned.endsWith('/api') ? cleaned.replace(/\/api$/, '') : cleaned;
-  }
-  if (typeof window !== 'undefined' && window.location?.port === '3001') {
-    return 'http://localhost:3001';
-  }
-  return 'https://coworking-pass-backend.vercel.app';
+  return apiOrigin();
 }
 
 
@@ -126,7 +121,7 @@ export async function registerUserApi(payload: RegisterPayload): Promise<Registe
   const url = `${getAuthBaseUrl()}/api/auth/register`;
   try {
     const backendRole = mapRoleToBackend(payload.role);
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -177,7 +172,7 @@ export async function registerUserApi(payload: RegisterPayload): Promise<Registe
 export async function verifyEmailApi(payload: VerifyEmailPayload): Promise<VerifyEmailResponse> {
   const url = `${getAuthBaseUrl()}/api/auth/verify-email`;
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -218,7 +213,7 @@ export async function verifyEmailApi(payload: VerifyEmailPayload): Promise<Verif
 export async function loginUserApi(payload: LoginPayload): Promise<LoginResponse> {
   const url = `${getAuthBaseUrl()}/api/auth/login`;
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -262,7 +257,7 @@ export async function loginUserApi(payload: LoginPayload): Promise<LoginResponse
 export async function verifyLoginApi(payload: VerifyLoginPayload): Promise<VerifyLoginResponse> {
   const url = `${getAuthBaseUrl()}/api/auth/verify-login`;
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -352,7 +347,7 @@ export async function createDirectBookingApi(payload: {
       }
       if (!uuidRegex.test(targetUserId)) {
         try {
-          const usersRes = await fetch(`${getAuthBaseUrl()}/api/users`, { headers: getAuthHeaders() });
+          const usersRes = await fetchWithRetry(`${getAuthBaseUrl()}/api/users`, { headers: getAuthHeaders() });
           if (usersRes.ok) {
             const usersList = await usersRes.json();
             if (Array.isArray(usersList) && usersList.length > 0) {
@@ -377,7 +372,7 @@ export async function createDirectBookingApi(payload: {
       status: payload.status || 'CONFIRMED',
     };
 
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(finalPayload),
@@ -395,7 +390,7 @@ export async function createDirectBookingApi(payload: {
 export async function updateDirectBookingApi(bookingId: string, updates: { status: string }) {
   const url = `${getAuthBaseUrl()}/api/direct-bookings/${bookingId}`;
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(updates),
@@ -413,7 +408,7 @@ export async function updateDirectBookingApi(bookingId: string, updates: { statu
 export async function deleteDirectBookingApi(bookingId: string) {
   const url = `${getAuthBaseUrl()}/api/direct-bookings/${bookingId}`;
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
@@ -431,7 +426,7 @@ export async function createCompanyApi(payload: { companyName: string; hrAdminId
   const url = `${getAuthBaseUrl()}/api/companies`;
   try {
     const companyName = payload.companyName?.trim() || 'New Organization';
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({
@@ -468,7 +463,7 @@ export interface PaymentItemApi {
 export async function getPaymentsApi() {
   const url = `${getAuthBaseUrl()}/api/payments`;
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'GET',
       headers: getAuthHeaders(),
     });
@@ -493,7 +488,7 @@ export async function createPaymentApi(payload: {
 }) {
   const url = `${getAuthBaseUrl()}/api/payments`;
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(payload),
@@ -511,7 +506,7 @@ export async function createPaymentApi(payload: {
 export async function updatePaymentApi(paymentId: string, payload: { status?: string; amount?: number; method?: string; paymentFor?: string }) {
   const url = `${getAuthBaseUrl()}/api/payments/${paymentId}`;
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(payload),
@@ -529,7 +524,7 @@ export async function updatePaymentApi(paymentId: string, payload: { status?: st
 export async function deletePaymentApi(paymentId: string) {
   const url = `${getAuthBaseUrl()}/api/payments/${paymentId}`;
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
@@ -557,7 +552,7 @@ export interface PayoutItemApi {
 export async function getPayoutsApi() {
   const url = `${getAuthBaseUrl()}/api/payouts`;
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'GET',
       headers: getAuthHeaders(),
     });
@@ -580,7 +575,7 @@ export async function createPayoutApi(payload: {
 }) {
   const url = `${getAuthBaseUrl()}/api/payouts`;
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(payload),
@@ -598,7 +593,7 @@ export async function createPayoutApi(payload: {
 export async function updatePayoutApi(payoutId: string, payload: { status?: string; billingMonth?: string; totalVisitsReceived?: number; amountDue?: number }) {
   const url = `${getAuthBaseUrl()}/api/payouts/${payoutId}`;
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(payload),
@@ -616,7 +611,7 @@ export async function updatePayoutApi(payoutId: string, payload: { status?: stri
 export async function deletePayoutApi(payoutId: string) {
   const url = `${getAuthBaseUrl()}/api/payouts/${payoutId}`;
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
@@ -645,7 +640,7 @@ export interface SubscriptionItemApi {
 export async function getSubscriptionsApi() {
   const url = `${getAuthBaseUrl()}/api/subscriptions`;
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'GET',
       headers: getAuthHeaders(),
     });
@@ -710,7 +705,7 @@ export async function createSubscriptionApi(payload: {
       planId: targetPlanId,
     };
 
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(finalPayload),
@@ -728,7 +723,7 @@ export async function createSubscriptionApi(payload: {
 export async function updateSubscriptionApi(subscriptionId: string, updates: Partial<{ status: string; planId: string; startDate: string; endDate: string; visitsUsed: number }>) {
   const url = `${getAuthBaseUrl()}/api/subscriptions/${subscriptionId}`;
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(updates),
@@ -746,7 +741,7 @@ export async function updateSubscriptionApi(subscriptionId: string, updates: Par
 export async function deleteSubscriptionApi(subscriptionId: string) {
   const url = `${getAuthBaseUrl()}/api/subscriptions/${subscriptionId}`;
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
@@ -763,7 +758,7 @@ export async function deleteSubscriptionApi(subscriptionId: string) {
 export async function getMembershipPlansApi() {
   const url = `${getAuthBaseUrl()}/api/membership-plans`;
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'GET',
       headers: getAuthHeaders(),
     });
@@ -783,7 +778,7 @@ export async function createMembershipPlanApi(payload: {
 }) {
   const url = `${getAuthBaseUrl()}/api/membership-plans`;
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(payload),
@@ -801,7 +796,7 @@ export async function createMembershipPlanApi(payload: {
 export async function updateMembershipPlanApi(planId: string, updates: Partial<{ planName: string; type: string; totalVisitsAllowed: number; price: number }>) {
   const url = `${getAuthBaseUrl()}/api/membership-plans/${planId}`;
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(updates),
@@ -819,7 +814,7 @@ export async function updateMembershipPlanApi(planId: string, updates: Partial<{
 export async function deleteMembershipPlanApi(planId: string) {
   const url = `${getAuthBaseUrl()}/api/membership-plans/${planId}`;
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
@@ -858,7 +853,7 @@ export interface HourlyBookingItemApi {
 export async function getHourlyBookingsApi() {
   const url = `${getAuthBaseUrl()}/api/hourly-bookings`;
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'GET',
       headers: getAuthHeaders(),
     });
@@ -900,7 +895,7 @@ export async function createHourlyBookingApi(payload: {
       }
       if (!uuidRegex.test(targetUserId)) {
         try {
-          const usersRes = await fetch(`${getAuthBaseUrl()}/api/users`, { headers: getAuthHeaders() });
+          const usersRes = await fetchWithRetry(`${getAuthBaseUrl()}/api/users`, { headers: getAuthHeaders() });
           if (usersRes.ok) {
             const usersList = await usersRes.json();
             if (Array.isArray(usersList) && usersList.length > 0) {
@@ -926,7 +921,7 @@ export async function createHourlyBookingApi(payload: {
       sectionType: payload.sectionType,
     };
 
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(finalPayload),
@@ -944,7 +939,7 @@ export async function createHourlyBookingApi(payload: {
 export async function updateHourlyBookingApi(bookingId: string, updates: Partial<{ status: string; startDate: string; endDate: string; hoursUsed: number }>) {
   const url = `${getAuthBaseUrl()}/api/hourly-bookings/${bookingId}`;
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(updates),
@@ -962,7 +957,7 @@ export async function updateHourlyBookingApi(bookingId: string, updates: Partial
 export async function deleteHourlyBookingApi(bookingId: string) {
   const url = `${getAuthBaseUrl()}/api/hourly-bookings/${bookingId}`;
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
@@ -979,7 +974,7 @@ export async function deleteHourlyBookingApi(bookingId: string) {
 export async function getWorkspaceSectionsApi() {
   const url = `${getAuthBaseUrl()}/api/workspace-sections`;
   try {
-    const response = await fetch(url, { method: 'GET', headers: getAuthHeaders() });
+    const response = await fetchWithRetry(url, { method: 'GET', headers: getAuthHeaders() });
     const data = await response.json().catch(() => ([]));
     if (!response.ok) return { success: false, data: [] };
     return { success: true, data: Array.isArray(data) ? data : [] };
@@ -991,7 +986,7 @@ export async function getWorkspaceSectionsApi() {
 export async function getHourlyPackagesApi() {
   const url = `${getAuthBaseUrl()}/api/hourly-packages`;
   try {
-    const response = await fetch(url, { method: 'GET', headers: getAuthHeaders() });
+    const response = await fetchWithRetry(url, { method: 'GET', headers: getAuthHeaders() });
     const data = await response.json().catch(() => ([]));
     if (!response.ok) return { success: false, data: [] };
 
@@ -1003,7 +998,7 @@ export async function getHourlyPackagesApi() {
         if (secRes.success && Array.isArray(secRes.data) && secRes.data.length > 0) {
           const meetingSec = secRes.data.find((s: any) => ['MEETING_ROOM', 'THEATER'].includes(s.type)) || secRes.data[0];
           if (meetingSec) {
-            const createPkgRes = await fetch(url, {
+            const createPkgRes = await fetchWithRetry(url, {
               method: 'POST',
               headers: getAuthHeaders(),
               body: JSON.stringify({
@@ -1055,7 +1050,7 @@ export async function createPointsTransactionApi(payload: PointsTransactionPaylo
       }
       if (!uuidRegex.test(targetUserId)) {
         try {
-          const usersRes = await fetch(`${getAuthBaseUrl()}/api/users`, { headers: getAuthHeaders() });
+          const usersRes = await fetchWithRetry(`${getAuthBaseUrl()}/api/users`, { headers: getAuthHeaders() });
           if (usersRes.ok) {
             const usersList = await usersRes.json();
             if (Array.isArray(usersList) && usersList.length > 0) {
@@ -1066,7 +1061,7 @@ export async function createPointsTransactionApi(payload: PointsTransactionPaylo
       }
     }
 
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({
@@ -1087,7 +1082,7 @@ export async function createPointsTransactionApi(payload: PointsTransactionPaylo
 export async function getLoyaltyPointsApi(userId?: string) {
   const url = `${getAuthBaseUrl()}/api/loyalty-points${userId ? `?userId=${encodeURIComponent(userId)}` : ''}`;
   try {
-    const response = await fetch(url, { method: 'GET', headers: getAuthHeaders() });
+    const response = await fetchWithRetry(url, { method: 'GET', headers: getAuthHeaders() });
     const data = await response.json().catch(() => ([]));
     if (!response.ok) return { success: false, data: [] };
     return { success: true, data: Array.isArray(data) ? data : [] };
@@ -1099,7 +1094,7 @@ export async function getLoyaltyPointsApi(userId?: string) {
 export async function getPointsTransactionsApi() {
   const url = `${getAuthBaseUrl()}/api/points-transactions`;
   try {
-    const response = await fetch(url, { method: 'GET', headers: getAuthHeaders() });
+    const response = await fetchWithRetry(url, { method: 'GET', headers: getAuthHeaders() });
     const data = await response.json().catch(() => ([]));
     if (!response.ok) return { success: false, data: [] };
     return { success: true, data: Array.isArray(data) ? data : [] };
@@ -1118,7 +1113,7 @@ export interface QrCheckInPayload {
 export async function createQrCheckInApi(payload: QrCheckInPayload) {
   const url = `${getAuthBaseUrl()}/api/qr-check-ins`;
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({
@@ -1141,7 +1136,7 @@ export async function createQrCheckInApi(payload: QrCheckInPayload) {
 /** Public per-workspace check-in counters for today (no personal data, no sign-in needed). */
 export async function getQrSummaryApi(): Promise<{ success: boolean; counts: Record<string, number> }> {
   try {
-    const response = await fetch(`${getAuthBaseUrl()}/api/qr-check-ins?summary=today`, { method: 'GET', cache: 'no-store' });
+    const response = await fetchWithRetry(`${getAuthBaseUrl()}/api/qr-check-ins?summary=today`, { method: 'GET', cache: 'no-store' });
     if (!response.ok) return { success: false, counts: {} };
     const data = await response.json().catch(() => ({}));
     return { success: true, counts: (data && typeof data.counts === 'object' && data.counts) || {} };
@@ -1153,7 +1148,7 @@ export async function getQrSummaryApi(): Promise<{ success: boolean; counts: Rec
 export async function getQrCheckInsApi() {
   const url = `${getAuthBaseUrl()}/api/qr-check-ins`;
   try {
-    const response = await fetch(url, { method: 'GET', headers: getAuthHeaders(), cache: 'no-store' });
+    const response = await fetchWithRetry(url, { method: 'GET', headers: getAuthHeaders(), cache: 'no-store' });
     const data = await response.json().catch(() => ([]));
     if (!response.ok) return { success: false, data: [] };
     return { success: true, data: Array.isArray(data) ? data : [] };
@@ -1177,7 +1172,7 @@ export interface LoyaltyRulePayload {
 export async function getLoyaltyRulesApi() {
   const url = `${getAuthBaseUrl()}/api/loyalty-rules`;
   try {
-    const response = await fetch(url, { method: 'GET', headers: getAuthHeaders() });
+    const response = await fetchWithRetry(url, { method: 'GET', headers: getAuthHeaders() });
     const data = await response.json().catch(() => ([]));
     if (!response.ok) return { success: false, data: [] };
     return { success: true, data: Array.isArray(data) ? data : [] };
@@ -1189,7 +1184,7 @@ export async function getLoyaltyRulesApi() {
 export async function createLoyaltyRuleApi(payload: LoyaltyRulePayload) {
   const url = `${getAuthBaseUrl()}/api/loyalty-rules`;
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(payload),
@@ -1207,7 +1202,7 @@ export async function createLoyaltyRuleApi(payload: LoyaltyRulePayload) {
 export async function updateLoyaltyRuleApi(id: string, payload: { status: string; approvedBy?: string; isActive?: boolean; adminFeedback?: string }) {
   const url = `${getAuthBaseUrl()}/api/loyalty-rules/${encodeURIComponent(id)}`;
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(payload),
@@ -1225,7 +1220,7 @@ export async function updateLoyaltyRuleApi(id: string, payload: { status: string
 export async function deleteLoyaltyRuleApi(id: string) {
   const url = `${getAuthBaseUrl()}/api/loyalty-rules/${encodeURIComponent(id)}`;
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
@@ -1242,7 +1237,7 @@ export async function deleteLoyaltyRuleApi(id: string) {
 export async function getCompaniesApi() {
   const url = `${getAuthBaseUrl()}/api/companies`;
   try {
-    const response = await fetch(url, { method: 'GET', headers: getAuthHeaders() });
+    const response = await fetchWithRetry(url, { method: 'GET', headers: getAuthHeaders() });
     const data = await response.json().catch(() => ([]));
     if (!response.ok) return { success: false, data: [] };
     return { success: true, data: Array.isArray(data) ? data : [] };
@@ -1254,7 +1249,7 @@ export async function getCompaniesApi() {
 export async function getCompanyApi(id: string) {
   const url = `${getAuthBaseUrl()}/api/companies/${id}`;
   try {
-    const response = await fetch(url, { method: 'GET', headers: getAuthHeaders() });
+    const response = await fetchWithRetry(url, { method: 'GET', headers: getAuthHeaders() });
     const data = await response.json().catch(() => null);
     if (!response.ok) return { success: false, error: data?.error || 'Failed to fetch company' };
     return { success: true, data };
@@ -1267,7 +1262,7 @@ export async function getCompanyApi(id: string) {
 export async function addCompanyEmployeeApi(companyId: string, email: string) {
   const url = `${getAuthBaseUrl()}/api/companies/${companyId}/employees`;
   try {
-    const response = await fetch(url, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ email }) });
+    const response = await fetchWithRetry(url, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ email }) });
     const data = await response.json().catch(() => null);
     if (!response.ok) return { success: false as const, error: (data?.error as string) || 'Failed to add the team member.' };
     return { success: true as const, data: data as { id: string; name: string; email: string } };
@@ -1280,7 +1275,7 @@ export async function addCompanyEmployeeApi(companyId: string, email: string) {
 export async function removeCompanyEmployeeApi(companyId: string, userId: string) {
   const url = `${getAuthBaseUrl()}/api/companies/${companyId}/employees/${userId}`;
   try {
-    const response = await fetch(url, { method: 'DELETE', headers: getAuthHeaders() });
+    const response = await fetchWithRetry(url, { method: 'DELETE', headers: getAuthHeaders() });
     const data = await response.json().catch(() => null);
     if (!response.ok) return { success: false as const, error: (data?.error as string) || 'Failed to remove the team member.' };
     return { success: true as const, reclaimed: typeof data?.reclaimed === 'number' ? (data.reclaimed as number) : 0 };
@@ -1304,7 +1299,7 @@ export interface CompanyJoinRequestItem {
 
 async function joinRequestCall<T>(path: string, init: RequestInit, fallbackError: string) {
   try {
-    const response = await fetch(`${getAuthBaseUrl()}/api/company-join-requests${path}`, { ...init, headers: getAuthHeaders() });
+    const response = await fetchWithRetry(`${getAuthBaseUrl()}/api/company-join-requests${path}`, { ...init, headers: getAuthHeaders() });
     const data = await response.json().catch(() => null);
     if (!response.ok) return { success: false as const, error: (data?.error as string) || fallbackError };
     return { success: true as const, data: data as T };
@@ -1336,7 +1331,7 @@ export const answerJoinRequestApi = (id: string, action: 'approve' | 'decline') 
 export async function depositCompanyWalletApi(companyId: string, amount: number, options?: { description?: string; referenceId?: string }) {
   const url = `${getAuthBaseUrl()}/api/companies/${companyId}/deposit`;
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({ amount, ...(options?.description ? { description: options.description } : {}), ...(options?.referenceId ? { referenceId: options.referenceId } : {}) }),
@@ -1352,7 +1347,7 @@ export async function depositCompanyWalletApi(companyId: string, amount: number,
 export async function withdrawCompanyWalletApi(companyId: string, amount: number, options?: { description?: string; referenceId?: string }) {
   const url = `${getAuthBaseUrl()}/api/companies/${companyId}/withdraw`;
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({ amount, description: options?.description, referenceId: options?.referenceId }),
@@ -1378,7 +1373,7 @@ export interface RescheduleResult {
 
 async function postReschedule(url: string, body: Record<string, unknown>): Promise<RescheduleResult> {
   try {
-    const response = await fetch(url, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(body) });
+    const response = await fetchWithRetry(url, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(body) });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) return { success: false, error: data.error || 'The booking could not be rescheduled', code: data.code, requiredHours: data.requiredHours };
     return { success: true, priceDifference: data.priceDifference ?? 0, settledOn: data.settledOn };
@@ -1406,7 +1401,7 @@ export async function allocateCompanyFundsApi(
 ): Promise<{ success: true; data: { total: number; recipients: number; balance: number; allocations: AllocationLineApi[] } } | { success: false; error: string; code?: string }> {
   const url = `${getAuthBaseUrl()}/api/companies/${companyId}/allocate`;
   try {
-    const response = await fetch(url, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(payload) });
+    const response = await fetchWithRetry(url, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(payload) });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) return { success: false, error: data.error || 'Failed to allocate funds', code: data.code };
     return { success: true, data };
@@ -1428,7 +1423,7 @@ export interface MemberFundsRow {
 /** HR admin: company money held by each team member and their monthly spending limits. */
 export async function getCompanyMemberFundsApi(companyId: string): Promise<{ success: boolean; data: MemberFundsRow[] }> {
   try {
-    const response = await fetch(`${getAuthBaseUrl()}/api/companies/${companyId}/funds`, { headers: getAuthHeaders() });
+    const response = await fetchWithRetry(`${getAuthBaseUrl()}/api/companies/${companyId}/funds`, { headers: getAuthHeaders() });
     const data = await response.json().catch(() => []);
     return response.ok && Array.isArray(data) ? { success: true, data } : { success: false, data: [] };
   } catch (_) {
@@ -1439,7 +1434,7 @@ export async function getCompanyMemberFundsApi(companyId: string): Promise<{ suc
 /** HR admin: set (SAR per month) or clear (null) how much company money a member may spend. */
 export async function setCompanyMemberLimitApi(companyId: string, userId: string, monthlyLimit: number | null) {
   try {
-    const response = await fetch(`${getAuthBaseUrl()}/api/companies/${companyId}/funds`, {
+    const response = await fetchWithRetry(`${getAuthBaseUrl()}/api/companies/${companyId}/funds`, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify({ userId, monthlyLimit }),
@@ -1456,7 +1451,7 @@ export async function setCompanyMemberLimitApi(companyId: string, userId: string
 export async function getCompanyAllocationsApi(companyId: string): Promise<{ success: boolean; data: { id: string; amount: number; employeeId: string | null; employeeName: string; createdAt: string }[] }> {
   const url = `${getAuthBaseUrl()}/api/companies/${companyId}/allocate`;
   try {
-    const response = await fetch(url, { headers: getAuthHeaders() });
+    const response = await fetchWithRetry(url, { headers: getAuthHeaders() });
     const data = await response.json().catch(() => []);
     return response.ok && Array.isArray(data) ? { success: true, data } : { success: false, data: [] };
   } catch (_) {
@@ -1466,7 +1461,7 @@ export async function getCompanyAllocationsApi(companyId: string): Promise<{ suc
 
 async function postAuthJson(path: string, body: Record<string, unknown>): Promise<{ success: boolean; message?: string; error?: string }> {
   try {
-    const response = await fetch(`${getAuthBaseUrl()}/api/auth/${path}`, {
+    const response = await fetchWithRetry(`${getAuthBaseUrl()}/api/auth/${path}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -1482,7 +1477,7 @@ async function postAuthJson(path: string, body: Record<string, unknown>): Promis
 /** Signs this device's token out on the server (best effort: the browser forgets the token either way). */
 export async function logoutApi(token: string): Promise<void> {
   try {
-    await fetch(`${getAuthBaseUrl()}/api/auth/logout`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, keepalive: true });
+    await fetchWithRetry(`${getAuthBaseUrl()}/api/auth/logout`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, keepalive: true });
   } catch (_) {
     // Offline: the token still expires on its own
   }
@@ -1498,7 +1493,7 @@ export const resetPasswordApi = (email: string, code: string, newPassword: strin
 export async function updateCompanyApi(id: string, data: any) {
   const url = `${getAuthBaseUrl()}/api/companies/${id}`;
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -1514,7 +1509,7 @@ export async function updateCompanyApi(id: string, data: any) {
 export async function createTicketApi(payload: { companyId?: string | null; userId?: string; onBehalfOfEmail?: string; subject: string; message?: string; category?: string; priority?: string }) {
   const url = `${getAuthBaseUrl()}/api/tickets`;
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(payload),
@@ -1530,7 +1525,7 @@ export async function createTicketApi(payload: { companyId?: string | null; user
 export async function createTicketReplyApi(payload: { ticketId: string; userId: string; message: string }) {
   const url = `${getAuthBaseUrl()}/api/ticket-replies`;
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(payload),
@@ -1546,7 +1541,7 @@ export async function createTicketReplyApi(payload: { ticketId: string; userId: 
 export async function getTicketsApi() {
   const url = `${getAuthBaseUrl()}/api/tickets`;
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       headers: getAuthHeaders(),
     });
     const data = await response.json().catch(() => ([]));
@@ -1560,7 +1555,7 @@ export async function getTicketsApi() {
 export async function updateTicketStatusApi(id: string, status: string) {
   const url = `${getAuthBaseUrl()}/api/tickets/${id}`;
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify({ status }),
@@ -1581,7 +1576,7 @@ export type ReportPeriod = 'today' | 'week' | 'month' | 'year';
 export async function getAdminReportApi(period: ReportPeriod) {
   const url = `${getAuthBaseUrl()}/api/admin/reports?period=${period}`;
   try {
-    const response = await fetch(url, { method: 'GET', headers: getAuthHeaders() });
+    const response = await fetchWithRetry(url, { method: 'GET', headers: getAuthHeaders() });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) return { success: false as const, error: (data as any).error || 'Failed to load report' };
     return { success: true as const, data };

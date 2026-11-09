@@ -139,7 +139,7 @@ export default function Contact() {
 
           {/* Card 2: Email Support */}
           <a
-            href="mailto:info@coworkingpass.sa"
+            href="mailto:info@muttakasa.com"
             style={{
               backgroundColor: 'var(--plaster-surface, #FFFFFF)',
               borderColor: 'var(--border, rgba(45, 53, 54, 0.12))',
@@ -153,7 +153,7 @@ export default function Contact() {
               <h2 className="text-base font-semibold text-soot mb-0.5 font-serif-display leading-snug">
                 {t('contact.emailSupport')}
               </h2>
-              <p className="text-sm font-semibold text-soot">info@coworkingpass.sa</p>
+              <p className="text-sm font-semibold text-soot">info@muttakasa.com</p>
               <p className="text-xs text-moss mt-0.5">{t('contact.responseWithin24Hours')}</p>
             </div>
           </a>

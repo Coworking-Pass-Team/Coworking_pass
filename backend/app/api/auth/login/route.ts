@@ -1,3 +1,5 @@
+import { otpLimitResponse } from "@/lib/auth/otp";
+import { adminPasswordError } from "@/lib/auth/admin-password";
 import { suspendedResponse } from "@/lib/auth/verify-token";
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
@@ -59,6 +61,9 @@ export async function POST(request: Request) {
       await recordFailedAttempt(cleanEmail);
       return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
     }
+    if (user.role === "SUPER_ADMIN" && adminPasswordError(password)) {
+      return NextResponse.json({ error: "Reset your password to meet the Super Admin password policy.", code: "ADMIN_PASSWORD_RESET_REQUIRED" }, { status: 403 });
+    }
     await clearAttempts(cleanEmail);
 
     if (user.isBanned) {
@@ -105,6 +110,8 @@ export async function POST(request: Request) {
       userId: user.id,
     });
   } catch (error) {
+    const limited = otpLimitResponse(error);
+    if (limited) return limited;
     console.error("[Login API Error]:", error);
     return NextResponse.json({
       error: "Internal server error.",

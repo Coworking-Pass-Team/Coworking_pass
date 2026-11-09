@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
- * Playwright E2E test configuration for Coworking Pass platform.
+ * Playwright E2E test configuration for Muttaka platform.
  * Runs tests against the locally running frontend (port 3000).
  * Screenshots are saved to testing/screenshots/ for review.
  */

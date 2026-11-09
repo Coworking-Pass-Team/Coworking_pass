@@ -1,16 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { apiOrigin } from '@/lib/api-config';
 
 /**
  * Thin pass-through to the backend. It never mints credentials: the caller's own Authorization header is
  * forwarded, so the backend decides what that user may read or record. Requests without a token are refused.
  */
+/** Same backend as the rest of the app (lib/api-config.ts); it used to fall back to localhost only. */
 function getBackendUrl(): string {
-  const envUrl = process.env.NEXT_PUBLIC_API_URL;
-  if (envUrl) {
-    const cleaned = envUrl.replace(/\/$/, '');
-    return cleaned.endsWith('/api') ? cleaned.replace(/\/api$/, '') : cleaned;
-  }
-  return 'http://localhost:3001';
+  return apiOrigin();
 }
 
 function unauthorized() {

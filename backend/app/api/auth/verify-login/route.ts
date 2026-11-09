@@ -2,7 +2,7 @@ import { suspendedResponse } from "@/lib/auth/verify-token";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { signSessionToken } from "@/lib/auth/sessions";
-import { checkOtp } from "@/lib/auth/otp";
+import { checkOtp, otpCheckResponse } from "@/lib/auth/otp";
 
 /**
  * @swagger
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     // The newest unused, unexpired code only; wrong guesses are counted and cancel the code after five
     const check = await checkOtp(userId, "LOGIN", String(code));
     if (!check.ok) {
-      return NextResponse.json({ error: check.error }, { status: 400 });
+      return otpCheckResponse(check);
     }
 
     const user = await prisma.user.findUnique({

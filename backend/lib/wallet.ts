@@ -1,3 +1,4 @@
+import { money } from "@/lib/security/input";
 import { Prisma } from "@prisma/client";
 import { refundPersonalWallet } from "@/lib/company/credit";
 
@@ -36,6 +37,7 @@ export async function findCompanyForUser(tx: WalletTx, userId: string) {
  * ledger row. Must be called inside a prisma.$transaction so the balance and ledger stay consistent.
  */
 export async function creditWallet(tx: WalletTx, move: WalletMovement): Promise<WalletMovementResult> {
+  move = { ...move, amount: money(move.amount) };
   const companyId = await findCompanyForUser(tx, move.userId);
 
   if (companyId) {

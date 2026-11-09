@@ -6,6 +6,9 @@
 export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
 
+  // Security configuration failures must abort startup, outside the best-effort schema sync.
+  await import("./lib/auth/verify-token");
+
   try {
     const { ensureDatabaseSchema } = await import("./lib/db/schema-sync");
     const result = await ensureDatabaseSchema();

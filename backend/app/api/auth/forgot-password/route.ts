@@ -1,6 +1,7 @@
+import { otpLimitResponse } from "@/lib/auth/otp";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { deliverOtp, issueOtp, recentlyIssued } from "@/lib/auth/otp";
+import { deliverOtp, issueOtp } from "@/lib/auth/otp";
 import { parseLocale, toEmailLocale } from "@/lib/mailer";
 
 /** Same answer whether or not the address has an account, so the form cannot be used to find out who is registered. */
@@ -35,7 +36,7 @@ export async function POST(request: Request) {
 
     const user = await prisma.user.findUnique({ where: { email }, select: { id: true, email: true, isBanned: true, emailVerified: true, locale: true } });
     // Suspended and unverified accounts get no code (an unverified one finishes sign-up instead)
-    if (user && !user.isBanned && user.emailVerified && !(await recentlyIssued(user.id, "PASSWORD_RESET"))) {
+    if (user && !user.isBanned && user.emailVerified) {
       const requested = parseLocale(body.locale);
       if (requested && requested !== user.locale) {
         await prisma.user.update({ where: { id: user.id }, data: { locale: requested } });
@@ -45,6 +46,8 @@ export async function POST(request: Request) {
     }
     return NextResponse.json(GENERIC);
   } catch (error) {
+    const limited = otpLimitResponse(error);
+    if (limited) return limited;
     console.error("[Forgot password]:", error);
     return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }

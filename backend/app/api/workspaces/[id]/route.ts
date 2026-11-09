@@ -5,6 +5,7 @@ import { canViewHiddenWorkspace } from "@/lib/workspaces/visibility";
 import { prisma } from "@/lib/prisma";
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 import { canManageWorkspace } from "@/lib/ownership";
+import { publicPartner } from "@/lib/workspaces/public-partner";
 
 
 
@@ -108,6 +109,7 @@ export async function GET(
 
     const formatted = {
       ...workspace,
+      partner: publicPartner(workspace.partner),
       images: Array.isArray(workspace.images) ? workspace.images : [],
       amenities: Array.isArray(workspace.amenities)
         ? workspace.amenities.map((wa) => wa.amenity.name).filter(Boolean)

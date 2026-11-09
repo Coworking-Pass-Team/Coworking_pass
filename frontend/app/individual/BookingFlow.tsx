@@ -431,10 +431,20 @@ export default function BookingFlow() {
   };
 
   const confirmBooking = () => {
+    if (!useWalletBalance) {
+      showToast('Please select wallet payment. Card checkout is currently unavailable.', 'error');
+      return;
+    }
+    if (useLoyaltyPoints || planInfo.isCovered || (planInfo.coveredHours || 0) > 0) {
+      showToast('Pass and points redemption is currently unavailable for this checkout.', 'error');
+      return;
+    }
     if (submittingRef.current) return;
     submittingRef.current = true;
+    // Instant feedback: the pending card appears now; the booking itself is added optimistically below and
+    // rolled back (with a wallet refund) if the server refuses it
     setLoading(true);
-    setTimeout(async () => {
+    void (async () => {
       // Make sure the venue can still take this booking before anything is charged
       const availability = await checkSeatAvailability({
         spaceId: space.id,
@@ -454,16 +464,7 @@ export default function BookingFlow() {
         return;
       }
 
-      // Charge the wallet first; only create the booking if the debit succeeded
-      if (useWalletBalance && walletDeduction > 0 && withdrawFromWallet) {
-        const payment = await withdrawFromWallet(walletDeduction, `Booking payment for ${space.name}`, checkoutKeyRef.current);
-        if (!payment.success) {
-          submittingRef.current = false;
-          setLoading(false);
-          return;
-        }
-      }
-
+      // The server charges the wallet atomically when creating the booking.
       const pointsUsed = useLoyaltyPoints ? maxRedeemablePoints : 0;
       if (pointsUsed > 0) {
         const updatedPoints = Math.max(0, availablePoints - pointsUsed);
@@ -538,13 +539,13 @@ export default function BookingFlow() {
         paidWithPass: isPassBooking,
         coveredHours: planInfo.coveredHours,
         payableHours: planInfo.payableHours,
-      }, useWalletBalance && walletDeduction > 0 ? { amount: walletDeduction, key: checkoutKeyRef.current, target: 'personal' } : undefined);
+      });
 
       setConfirmedBooking(booking);
       setStep(3);
       setLoading(false);
       showToast(t('bf.bookedToast'), 'success');
-    }, 900);
+    })();
   };
 
   // Confirmation screen
@@ -1562,6 +1563,22 @@ export default function BookingFlow() {
               </>
             )}
           </div>
+
+          {/* Shown the moment the booking is submitted, while availability and payment are checked */}
+          {loading && (
+            <div role="status" aria-live="polite" data-testid="booking-pending" className="rounded-2xl border border-emerald-700/20 bg-emerald-50/70 p-4 flex items-center gap-3 animate-[reveal_0.35s_ease-out_both]">
+              <div className="w-9 h-9 rounded-full bg-emerald-700 text-white flex items-center justify-center shrink-0">
+                <Check size={18} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-semibold text-soot">{t('bf.pendingTitle')}</div>
+                <div className="text-xs text-moss truncate">
+                  {space.name} · {startDate}{isHourly ? ` · ${timeRange(startTime, endTime)}` : ''}
+                </div>
+                <div className="h-1 mt-2 rounded-full ui-skeleton" />
+              </div>
+            </div>
+          )}
 
           <div className="flex gap-3 pt-2">
             <button

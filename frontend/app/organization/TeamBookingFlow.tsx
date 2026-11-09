@@ -374,10 +374,18 @@ export default function TeamBooking() {
   };
 
   const confirmBooking = () => {
+    if (!useWalletBalance) {
+      showToast('Please select wallet payment. Card checkout is currently unavailable.', 'error');
+      return;
+    }
+    if (useLoyaltyPoints || planInfo.isCovered || (planInfo.coveredHours || 0) > 0) {
+      showToast('Pass and points redemption is currently unavailable for this checkout.', 'error');
+      return;
+    }
     if (submittingRef.current) return;
     submittingRef.current = true;
     setLoading(true);
-    setTimeout(async () => {
+    void (async () => {
       // Make sure the venue can still take this booking before anything is charged
       const availability = await checkSeatAvailability({
         spaceId: space.id,
@@ -397,20 +405,7 @@ export default function TeamBooking() {
         return;
       }
 
-      // Charge the wallet first; only create the booking if the debit succeeded
-      if (useWalletBalance && walletDeduction > 0) {
-        const payment = isUsingCompanyWallet && withdrawFromCompanyWallet
-          ? await withdrawFromCompanyWallet(walletDeduction, currentUser.companyId, `Team booking payment for ${space.name}`, checkoutKeyRef.current)
-          : (!isUsingCompanyWallet && withdrawFromWallet
-            ? await withdrawFromWallet(walletDeduction, `Team booking payment for ${space.name}`, checkoutKeyRef.current)
-            : { success: true, message: '' });
-        if (!payment.success) {
-          submittingRef.current = false;
-          setLoading(false);
-          return;
-        }
-      }
-
+      // The server charges the wallet atomically when creating the booking.
       const isPassBooking = Boolean(
         currentUser.hasActivePass && (
           totalPriceToPay === 0 || 
@@ -445,9 +440,7 @@ export default function TeamBooking() {
         paidWithPass: isPassBooking,
         coveredHours: planInfo.coveredHours,
         payableHours: planInfo.payableHours,
-      }, useWalletBalance && walletDeduction > 0
-        ? { amount: walletDeduction, key: checkoutKeyRef.current, target: isUsingCompanyWallet ? 'company' : 'personal' }
-        : undefined);
+      });
 
       // Update loyalty points for organization / user
       const pointsUsed = useLoyaltyPoints ? maxRedeemablePoints : 0;
@@ -481,7 +474,7 @@ export default function TeamBooking() {
         pointsUsed > 0 ? t('tb.reservedToastRedeemed', { earned: earnedPoints, redeemed: pointsUsed }) : t('tb.reservedToastPlain', { earned: earnedPoints }),
         'success'
       );
-    }, 1000);
+    })();
   };
 
   // Success Screen

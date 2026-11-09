@@ -7,9 +7,9 @@ export const getApiDocs = () => {
     definition: {
       openapi: "3.0.0",
       info: {
-        title: "Coworking Pass API",
+        title: "Muttaka API",
         version: "1.0.0",
-        description: "توثيق كامل لكل الـ APIs الخاصة بمشروع Coworking Pass",
+        description: "توثيق كامل لكل الـ APIs الخاصة بمشروع Muttaka",
       },
       components: {
         securitySchemes: {

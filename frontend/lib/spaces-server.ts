@@ -1,4 +1,5 @@
 import { INITIAL_SPACES } from '@/data/demo-data';
+import { apiBase, fetchWithRetry } from '@/lib/api-config';
 import { Space, getSpaceCategory, getWorkspaceCategory } from '@/types';
 
 export interface SpacesServerData {
@@ -16,20 +17,13 @@ export async function getSpacesServer(): Promise<SpacesServerData> {
   let spaces: Space[] = INITIAL_SPACES;
 
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || 'https://coworking-pass-backend.vercel.app/api';
-    const baseUrl = apiUrl.replace(/\/$/, '');
-    const fullUrl = baseUrl.endsWith('/api') ? `${baseUrl}/workspaces` : `${baseUrl}/api/workspaces`;
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 3000);
-
-    const res = await fetch(fullUrl, {
-      signal: controller.signal,
+    // 9 s per attempt and one retry: enough for a cold serverless start without holding the page for too long
+    const res = await fetchWithRetry(`${apiBase()}/workspaces`, {
+      timeoutMs: 9000,
+      retries: 1,
       next: { revalidate: 60 },
       headers: { Accept: 'application/json' },
     });
-
-    clearTimeout(timeout);
 
     if (res.ok) {
       const data = await res.json();

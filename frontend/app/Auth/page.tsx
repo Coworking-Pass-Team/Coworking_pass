@@ -654,7 +654,7 @@ export function SignUpScreen() {
             </h1>
             <p className="text-moss text-xs sm:text-sm leading-relaxed">
               {step === 1
-                ? translateMessage('Select how you plan to use Coworking Pass')
+                ? translateMessage('Select how you plan to use Muttaka')
                 : step === 'org'
                 ? t('auth.orgChoiceSubtitle')
                 : translateMessage(`Step 2 of 2: Registering as ${translateMessage(erdBadge.label)}`)}
@@ -1498,7 +1498,7 @@ export function ForgotPasswordScreen() {
       <AuthVisualBanner
         quote="Account recovery is seamless and protected by two-factor verification across the network."
         author="Security Operations"
-        role="Coworking Pass Platform"
+        role="Muttaka Platform"
       />
     </div>
   );
@@ -1512,6 +1512,29 @@ export function OtpVerificationScreen() {
   const [loading, setLoading] = useState(false);
   const [countdown, setCountdown] = useState(60);
   const [canResend, setCanResend] = useState(false);
+  const [lockoutSeconds, setLockoutSeconds] = useState(0);
+  const [resending, setResending] = useState(false);
+  const target = otpSession?.targetEmailOrPhone || '';
+  useEffect(() => {
+    const key = `otp-lock:${target}`;
+    let until = Number(sessionStorage.getItem(key) || 0);
+    const tick = () => setLockoutSeconds(Math.max(0, Math.ceil((until - Date.now()) / 1000)));
+    const onThrottle = (event: Event) => {
+      const detail = (event as CustomEvent).detail;
+      if (detail.code === 'OTP_LOCKED') {
+        until = Date.now() + Number(detail.retryAfter || 900) * 1000;
+        sessionStorage.setItem(key, String(until));
+        tick();
+      } else if (detail.code === 'OTP_COOLDOWN') {
+        setCountdown(Number(detail.retryAfter || 60));
+        setCanResend(false);
+      }
+    };
+    tick();
+    window.addEventListener('otp-throttle', onThrottle);
+    const timer = setInterval(tick, 1000);
+    return () => { clearInterval(timer); window.removeEventListener('otp-throttle', onThrottle); };
+  }, [target]);
   const [isPendingApproval, setIsPendingApproval] = useState(false);
   const [pendingEmail, setPendingEmail] = useState('');
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -1519,6 +1542,8 @@ export function OtpVerificationScreen() {
   // Focus first input & reset form on OTP session change
   useEffect(() => {
     setLoading(false);
+    setCountdown(60);
+    setCanResend(false);
     setDigits(['', '', '', '', '', '']);
     setError('');
     inputRefs.current[0]?.focus();
@@ -1592,6 +1617,7 @@ export function OtpVerificationScreen() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading || lockoutSeconds > 0) return;
     const code = digits.join('');
     if (code.length < 6) {
       setError(t('auth.errCode'));
@@ -1619,12 +1645,15 @@ export function OtpVerificationScreen() {
     }
   };
 
-  const handleResend = () => {
-    if (!canResend) return;
-    resendOtp();
-    setCountdown(60);
+  const handleResend = async () => {
+    if (!canResend || resending || lockoutSeconds > 0) return;
+    setResending(true);
     setCanResend(false);
+    setCountdown(60);
     setError('');
+    try { await resendOtp(); }
+    catch (err) { setError(err instanceof Error ? err.message : 'Could not resend code.'); }
+    finally { setResending(false); }
   };
 
   const recipient = otpSession?.targetEmailOrPhone || translateMessage('your registered contact');
@@ -1731,7 +1760,7 @@ export function OtpVerificationScreen() {
         <AuthVisualBanner
           quote="Empowering coworking space providers across Saudi Arabia to expand their reach and welcome verified professionals and teams."
           author="Space Partner Team"
-          role="Coworking Pass Partner Network"
+          role="Muttaka Partner Network"
           tag="Partner Quality & Trust"
         />
       </div>
@@ -1822,7 +1851,7 @@ export function OtpVerificationScreen() {
 
             <button
               type="submit"
-              disabled={loading || digits.join('').length < 6}
+              disabled={lockoutSeconds > 0 || loading || digits.join('').length < 6}
               className="btn-primary w-full py-3.5 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {loading ? (
@@ -1836,6 +1865,7 @@ export function OtpVerificationScreen() {
             </button>
           </form>
 
+          {lockoutSeconds > 0 && <p role="status" className="text-red-600 text-sm">{`Too many attempts. Try again in ${Math.floor(lockoutSeconds / 60)}:${String(lockoutSeconds % 60).padStart(2, '0')}.`}</p>}
           {/* Resend & Timer */}
           <div className="mt-6 text-center text-xs text-moss space-y-2">
             <div>
@@ -1850,6 +1880,7 @@ export function OtpVerificationScreen() {
                   <button
                     type="button"
                     onClick={handleResend}
+                    disabled={lockoutSeconds > 0 || resending}
                     className="text-soot font-bold hover:underline cursor-pointer"
                   >
                     {t('auth.resendCode')}
@@ -1880,7 +1911,7 @@ export function OtpVerificationScreen() {
       <AuthVisualBanner
         quote="Multi-factor authentication guarantees trusted and authenticated identity verification across all spaces in Saudi Arabia."
         author="Security Operations"
-        role="Coworking Pass Platform"
+        role="Muttaka Platform"
         tag="Two-Factor Verified Access"
       />
     </div>
@@ -2064,7 +2095,7 @@ export function ResetPasswordScreen() {
       <AuthVisualBanner
         quote="A strong and updated password keeps your workspaces, teams, and billing secure across Saudi Arabia."
         author="Account Security"
-        role="Coworking Pass Platform"
+        role="Muttaka Platform"
         tag="Secure Password Reset"
       />
     </div>

@@ -70,6 +70,7 @@ enum OtpPurpose {
 }
 
 enum PaymentMethod {
+  WALLET
   MADA
   VISA
   APPLE_PAY
@@ -331,6 +332,7 @@ model WorkspaceAmenity {
 // ============ 4. Plans & Bookings ============
 
 model MembershipPlan {
+  durationDays Int @default(30)
   id                 String       @id @default(uuid())
   planName           String
   type               PlanAudience
@@ -341,6 +343,8 @@ model MembershipPlan {
 }
 
 model Subscription {
+  /// Server-calculated checkout price; null on legacy rows, which cannot be charged automatically.
+  payableAmount Float?
   id         String          @id @default(uuid())
   userId     String
   planId     String
@@ -354,6 +358,8 @@ model Subscription {
 }
 
 model DirectBooking {
+  /// Server-calculated checkout price; null on legacy rows, which cannot be charged automatically.
+  payableAmount Float?
   id           String              @id @default(uuid())
   userId       String
   workspaceId  String
@@ -376,6 +382,8 @@ model DirectBooking {
 }
 
 model HourlyBooking {
+  /// Server-calculated checkout price; null on legacy rows, which cannot be charged automatically.
+  payableAmount Float?
   id              String          @id @default(uuid())
   userId          String
   workspaceId     String?
@@ -591,4 +599,19 @@ model TicketReply {
 
   ticket Ticket @relation(fields: [ticketId], references: [id])
   user   User   @relation(fields: [userId], references: [id])
+}
+
+model IdempotencyRecord {
+  id          String   @id
+  requestHash String
+  status      Int
+  body        Json
+  createdAt   DateTime @default(now())
+}
+
+model OtpThrottle {
+  userId      String   @id
+  failures    Int      @default(0)
+  lockedUntil DateTime?
+  lastSentAt  DateTime?
 }

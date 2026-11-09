@@ -171,12 +171,12 @@ test.describe('QR scan page', () => {
     await page.goto(BASE_URL + '/pass?spaceId=space-1&spaceName=Test');
     await page.waitForTimeout(2500);
     const ar = await page.evaluate(() => document.body.innerText);
-    expect(ar).toMatch(/العودة إلى كوورك باس/);
-    expect(ar).not.toMatch(/Access Granted|Return to Coworking Pass|Encrypted/);
+    expect(ar).toMatch(/العودة إلى مُتَّكَأ/);
+    expect(ar).not.toMatch(/Access Granted|Return to Muttaka|Encrypted/);
     await setLanguage(page, 'en');
     await page.goto(BASE_URL + '/pass?spaceId=space-1&spaceName=Test');
     await page.waitForTimeout(2500);
-    expect(await page.evaluate(() => document.body.innerText)).toMatch(/Return to Coworking Pass/);
+    expect(await page.evaluate(() => document.body.innerText)).toMatch(/Return to Muttaka/);
   });
 });
 

@@ -1,8 +1,10 @@
+import { settleCheckout } from "@/lib/security/checkout";
+import { idempotent } from "@/lib/security/idempotency";
+import { money, positiveInteger, inputResponse, InputError } from "@/lib/security/input";
 import { NextRequest, NextResponse } from 'next/server';
 import { resolveAttendeeIds, notifyAttendees } from '@/lib/company/team';
 import { prisma } from '@/lib/prisma';
 import { getTokenFromRequest, unauthorizedResponse, suspendedResponse } from '@/lib/auth/verify-token';
-import { seedStandardWorkspaces } from '@/lib/db/seed-data';
 import { getOwnedWorkspaceIds } from '@/lib/ownership';
 import { directBookingEffectiveStatus } from '@/lib/booking/lifecycle';
 import { directBookingEnd, effectiveCapacity, getOccupiedSeats, getOccupiedSeatsForSection } from '@/lib/booking/capacity';
@@ -94,31 +96,19 @@ export async function GET(request: Request) {
  *       400:
  *         description: رصيد الشركة غير كافٍ لهذا الحجز
  */
-export async function POST(request: NextRequest) {
+export const POST = idempotent("direct-bookings", async (request, db) => {
   try {
     const user = await getTokenFromRequest(request);
     if (!user) return unauthorizedResponse(request);
 
     const body = await request.json();
-    const { userId, workspaceId, sectionId, durationType, durationDetails, durationDays, durationMonths, bookingDate, status = 'CONFIRMED', spaceName, city } = body;
+    const { userId, workspaceId, sectionId, durationType, durationDays, durationMonths, bookingDate } = body;
 
     // تطبيع المدينة
-    const resolveCity = (name?: string, sentCity?: string): string => {
-      if (sentCity && sentCity.trim()) return sentCity.trim();
-      const n = (name || '').toLowerCase();
-      if (n.includes('jeddah') || n.includes('جدة')) return 'Jeddah';
-      if (n.includes('dammam') || n.includes('الدمام')) return 'Dammam';
-      if (n.includes('riyadh') || n.includes('الرياض')) return 'Riyadh';
-      if (n.includes('khobar') || n.includes('الخبر')) return 'Al Khobar';
-      if (n.includes('mecca') || n.includes('مكة')) return 'Mecca';
-      if (n.includes('medina') || n.includes('المدينة')) return 'Medina';
-      return 'Riyadh';
-    };
-
     // Bookings always belong to the authenticated caller; only super admins may book on behalf of others
     const effectiveUserId: string = user.role === 'SUPER_ADMIN' && userId ? userId : user.userId;
 
-    const bookingOwner = await prisma.user.findUnique({ where: { id: effectiveUserId }, select: { id: true, isBanned: true } });
+    const bookingOwner = await db.user.findUnique({ where: { id: effectiveUserId }, select: { id: true, isBanned: true } });
     if (!bookingOwner) {
       return NextResponse.json({ error: 'User not found.' }, { status: 404 });
     }
@@ -127,11 +117,12 @@ export async function POST(request: NextRequest) {
     }
 
     const validDurations = ['DAILY', 'MONTHLY', 'YEARLY'];
-    const normalizedDuration = (durationType || 'DAILY').toUpperCase();
-    const finalDuration = validDurations.includes(normalizedDuration) ? normalizedDuration : 'DAILY';
+    const normalizedDuration = typeof durationType === 'string' ? durationType.toUpperCase() : 'DAILY';
+    if (!validDurations.includes(normalizedDuration)) throw new InputError('Invalid duration type.');
+    const finalDuration = normalizedDuration;
 
     //  BE-07: منع الحجز المتزامن (Universal Pass)
-    const activeBooking = await prisma.directBooking.findFirst({
+    const activeBooking = await db.directBooking.findFirst({
       where: {
         userId: effectiveUserId,
         status: 'CONFIRMED',
@@ -149,159 +140,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let targetWorkspaceId = workspaceId;
-    let targetSectionId = sectionId;
+    const ws = await db.workspace.findUnique({ where: { id: workspaceId || "" }, include: { sections: true } });
+    const sec = ws?.sections.find(s => s.id === sectionId);
+    if (!ws || !sec) throw new InputError("Select an existing workspace and section.");
+    const targetWorkspaceId = ws.id;
+    const targetSectionId = sec.id;
+    const units = positiveInteger(finalDuration === 'DAILY' ? durationDays : finalDuration === 'MONTHLY' ? durationMonths : 1, 1, finalDuration === 'DAILY' ? 365 : 12);
+    const seats = positiveInteger(body.seats, 1, 1000);
+    const rate = finalDuration === 'DAILY' ? sec.dailyRate : finalDuration === 'MONTHLY' ? sec.monthlyRate : sec.yearlyRate;
+    const payableAmount = money(money(rate) * units * seats);
 
-    const resolvedCity = resolveCity(spaceName, city);
-    const cleanCity = resolvedCity.replace(/al\s+/i, '').trim();
-
-    let ws = targetWorkspaceId ? await prisma.workspace.findUnique({
-      where: { id: targetWorkspaceId },
-      include: { sections: true }
-    }) : null;
-
-    if (!ws && spaceName) {
-      const trimmedName = spaceName.trim();
-
-      ws = await prisma.workspace.findFirst({
-        where: {
-          name: { equals: trimmedName, mode: 'insensitive' },
-          city: { contains: cleanCity, mode: 'insensitive' }
-        },
-        include: { sections: true }
-      });
-
-      if (!ws) {
-        ws = await prisma.workspace.findFirst({
-          where: {
-            name: { contains: trimmedName, mode: 'insensitive' },
-            city: { contains: cleanCity, mode: 'insensitive' }
-          },
-          include: { sections: true }
-        });
-      }
-
-      if (!ws) {
-        const firstWord = trimmedName.split(/\s+/)[0];
-        if (firstWord && firstWord.length > 2) {
-          ws = await prisma.workspace.findFirst({
-            where: {
-              name: { contains: firstWord, mode: 'insensitive' },
-              city: { contains: cleanCity, mode: 'insensitive' }
-            },
-            include: { sections: true }
-          });
-        }
-      }
-
-      if (!ws) {
-        ws = await prisma.workspace.findFirst({
-          where: { name: { equals: trimmedName, mode: 'insensitive' } },
-          include: { sections: true }
-        });
-      }
-
-      if (!ws) {
-        ws = await prisma.workspace.findFirst({
-          where: { name: { contains: trimmedName, mode: 'insensitive' } },
-          include: { sections: true }
-        });
-      }
-    }
-
-    if (!ws && cleanCity) {
-      ws = await prisma.workspace.findFirst({
-        where: { city: { contains: cleanCity, mode: 'insensitive' } },
-        include: { sections: true }
-      });
-    }
-
-    if (!ws) {
-      await seedStandardWorkspaces();
-      if (spaceName) {
-        ws = await prisma.workspace.findFirst({
-          where: { name: { contains: spaceName.trim(), mode: 'insensitive' } },
-          include: { sections: true },
-        });
-      }
-    }
-
-    if (!ws && (spaceName || targetWorkspaceId)) {
-      let partner = await prisma.partner.findFirst();
-      if (!partner) {
-        partner = await prisma.partner.create({
-          data: {
-            brandName: 'Coworking Partner Network',
-            contactEmail: 'partner@coworkingpass.sa',
-            taxNumber: '310000000000003',
-            revenueSharePercentage: 15,
-          },
-        });
-      }
-
-      const wsName = spaceName ? spaceName.trim() : 'Coworking Space';
-      const wsCity = resolveCity(spaceName, city);
-      ws = await prisma.workspace.create({
-        data: {
-          partnerId: partner.id,
-          name: wsName,
-          city: wsCity,
-          dailyRate: 110,
-          monthlyRate: 1400,
-          yearlyRate: 14000,
-          passVisitValue: 1,
-          totalCapacity: 40,
-          locationMapUrl: `https://maps.google.com/?q=${encodeURIComponent(wsCity)}`,
-        },
-        include: { sections: true },
-      });
-    }
-
-    if (!ws) {
-      return NextResponse.json({ error: 'Requested workspace not found.' }, { status: 404 });
-    }
-
-    targetWorkspaceId = ws.id;
-
-    let sec = ws.sections && ws.sections.length > 0
-      ? (targetSectionId ? ws.sections.find((s) => s.id === targetSectionId) : null) || ws.sections[0]
-      : null;
-
-    if (!sec) {
-      sec = await prisma.workspaceSection.create({
-        data: {
-          workspaceId: ws.id,
-          type: 'DESK',
-          name: `${ws.name} - General Desk Area`,
-          capacity: ws.totalCapacity || 30,
-          dailyRate: ws.dailyRate || 100,
-        }
-      });
-    }
-
-    targetSectionId = sec.id;
-
-    // The corporate wallet is charged only through POST /api/companies/[id]/withdraw (idempotent, ledgered).
-    // Deducting here as well would charge the company twice for a single booking.
-
-    let finalDurationDetails = durationDetails;
-    if (!finalDurationDetails) {
-      if (finalDuration === 'DAILY') {
-        const d = Number(durationDays) || 1;
-        finalDurationDetails = `${d} ${d === 1 ? 'Day' : 'Days'}`;
-      } else if (finalDuration === 'MONTHLY') {
-        const m = Number(durationMonths) || 1;
-        finalDurationDetails = `${m} ${m === 1 ? 'Month' : 'Months'}`;
-      } else if (finalDuration === 'YEARLY') {
-        finalDurationDetails = '1 Year';
-      } else {
-        finalDurationDetails = '1 Day';
-      }
-    }
-
-    await prisma.$executeRawUnsafe(
-      'ALTER TABLE "DirectBooking" ADD COLUMN IF NOT EXISTS "durationDetails" TEXT;'
-    ).catch(() => {});
+    const finalDurationDetails = `${units} ${finalDuration === 'DAILY' ? 'Days' : finalDuration === 'MONTHLY' ? 'Months' : 'Year'}`;
 
     // Hidden workspaces cannot be booked by the public
     const hiddenError = await hiddenWorkspaceError(targetWorkspaceId, user);
@@ -314,11 +163,11 @@ export async function POST(request: NextRequest) {
     // Team members this company booking is for (only an HR admin's own team members are kept)
     const attendeeIds = await resolveAttendeeIds(effectiveUserId, body.attendeeIds);
     const lockedWorkspaceId: string = targetWorkspaceId;
-    const created = await prisma.$transaction(async (tx) => {
+    const created = await (async (tx: typeof db) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${'hourly-slot:' + lockedWorkspaceId}))`;
 
     // Capacity check: reject requests that would exceed the venue's total seats for the booked period
-    const requestedSeats = Math.max(1, Math.floor(Number(body.seats) || 1));
+    const requestedSeats = seats;
     const bookingStart = parseDateAndTimeToKsaDate(bookingDate, null, 9);
 
     if (ws.sections.length > 1 && sec.capacity > 0) {
@@ -343,9 +192,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return await tx.directBooking.create({
+    const booking = await tx.directBooking.create({
       data: {
         userId: effectiveUserId,
+        payableAmount,
         attendeeIds,
         seats: requestedSeats,
         workspaceId: targetWorkspaceId,
@@ -353,7 +203,7 @@ export async function POST(request: NextRequest) {
         durationType: finalDuration as DurationType,
         durationDetails: finalDurationDetails,
         bookingDate: parseDateAndTimeToKsaDate(bookingDate, null, 9),
-        status: (status as DirectBookingStatus) || 'CONFIRMED',
+        status: 'CONFIRMED',
         createdAt: getKsaNow(),
       },
       include: {
@@ -362,13 +212,15 @@ export async function POST(request: NextRequest) {
         section: true,
       },
     });
-    });
+    await settleCheckout(tx, effectiveUserId, booking.id, "DIRECT_BOOKING", payableAmount, ws.id);
+    return booking;
+    })(db);
 
     // A NextResponse here means the capacity check inside the transaction rejected the request
     if (created instanceof NextResponse) return created;
     const booking = created;
 
-    await prisma.notification.create({
+    await db.notification.create({
       data: {
         userId: effectiveUserId,
         type: 'BOOKING_CONFIRMED',
@@ -388,10 +240,12 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(booking, { status: 201 });
   } catch (error) {
+    const invalid = inputResponse(error);
+    if (invalid) return invalid;
     console.error('❌ Error creating direct booking:', error);
     return NextResponse.json(
       { error: errorMessage(error, 'Failed to create direct booking.') },
       { status: 500 }
     );
   }
-}
+});

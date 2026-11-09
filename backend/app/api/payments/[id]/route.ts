@@ -1,3 +1,4 @@
+import { financialBody, money, inputResponse } from "@/lib/security/input";
 import { NextRequest, NextResponse } from 'next/server';
 import { canManageWorkspace } from '@/lib/ownership';
 import { requireRoles } from '@/lib/ownership';
@@ -36,6 +37,8 @@ export async function GET(
 
     return NextResponse.json(payment);
   } catch (error) {
+    const invalid = inputResponse(error);
+    if (invalid) return invalid;
     console.error('❌ Error fetching payment:', error);
     return NextResponse.json({ error: 'Failed to fetch payment details.' }, { status: 500 });
   }
@@ -54,26 +57,26 @@ export async function PUT(
     if (roleDenied) return roleDenied;
 
     const { id } = await params;
-    const body = await request.json();
+    const body = await financialBody(request);
 
     const updateData: Prisma.PaymentUncheckedUpdateInput = {};
     if (body.status !== undefined) {
       updateData.status = body.status === 'FAILED' ? 'FAILED' : 'SUCCESS';
     }
     if (body.amount !== undefined) {
-      updateData.amount = Number(body.amount);
+      updateData.amount = money(body.amount);
     }
     if (body.method !== undefined) {
-      updateData.method = body.method.toUpperCase();
+      updateData.method = String(body.method).toUpperCase() as Prisma.PaymentUncheckedUpdateInput["method"];
     }
     if (body.paymentFor !== undefined) {
-      updateData.paymentFor = body.paymentFor.toUpperCase();
+      updateData.paymentFor = String(body.paymentFor).toUpperCase() as Prisma.PaymentUncheckedUpdateInput["paymentFor"];
     }
     if (body.referenceId !== undefined) {
-      updateData.referenceId = body.referenceId;
+      updateData.referenceId = String(body.referenceId);
     }
     if (body.gatewayTransactionId !== undefined) {
-      updateData.gatewayTransactionId = body.gatewayTransactionId;
+      updateData.gatewayTransactionId = String(body.gatewayTransactionId);
     }
 
     const payment = await prisma.payment.update({
@@ -86,6 +89,8 @@ export async function PUT(
 
     return NextResponse.json(payment);
   } catch (error) {
+    const invalid = inputResponse(error);
+    if (invalid) return invalid;
     console.error('❌ Error updating payment:', error);
     return NextResponse.json({ error: 'Failed to update payment.' }, { status: 500 });
   }
@@ -111,6 +116,8 @@ export async function DELETE(
 
     return NextResponse.json({ message: 'Payment deleted successfully.' });
   } catch (error) {
+    const invalid = inputResponse(error);
+    if (invalid) return invalid;
     console.error('❌ Error deleting payment:', error);
     return NextResponse.json({ error: 'Failed to delete payment.' }, { status: 500 });
   }

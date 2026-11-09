@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { checkOtp } from "@/lib/auth/otp";
+import { checkOtp, otpCheckResponse } from "@/lib/auth/otp";
 
 /**
  * @swagger
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     if (!user || !code) return NextResponse.json({ error: "Invalid or expired verification code." }, { status: 400 });
 
     const check = await checkOtp(user.id, "PASSWORD_RESET", code, false);
-    if (!check.ok) return NextResponse.json({ error: check.error }, { status: 400 });
+    if (!check.ok) return otpCheckResponse(check);
     return NextResponse.json({ message: "Code accepted." });
   } catch (error) {
     console.error("[Verify reset code]:", error);

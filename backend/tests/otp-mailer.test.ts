@@ -37,11 +37,13 @@ describe("email configuration", () => {
     expect(isEmailConfigured()).toBe(true);
   });
 
-  it("uses the configured sender and falls back to Resend's test sender", () => {
+  it("uses the configured sender, adds the brand name to a bare address, and falls back to Resend's test sender", () => {
     delete process.env.RESEND_FROM_EMAIL;
-    expect(getFromAddress()).toBe("Coworking Pass <onboarding@resend.dev>");
-    process.env.RESEND_FROM_EMAIL = " Coworking Pass <no-reply@example.sa> ";
-    expect(getFromAddress()).toBe("Coworking Pass <no-reply@example.sa>");
+    expect(getFromAddress()).toBe('"Muttaka | مُتَّكَأ" <onboarding@resend.dev>');
+    process.env.RESEND_FROM_EMAIL = " Muttaka Team <no-reply@example.sa> ";
+    expect(getFromAddress()).toBe("Muttaka Team <no-reply@example.sa>");
+    process.env.RESEND_FROM_EMAIL = "no-reply@muttakasa.com";
+    expect(getFromAddress()).toBe('"Muttaka | مُتَّكَأ" <no-reply@muttakasa.com>');
   });
 });
 
@@ -56,7 +58,7 @@ describe("email language", () => {
 
   it("writes the Arabic code email right to left, in Arabic, with the code left to right", () => {
     const { subject, html } = renderCodeEmail("otp", "482913", "ar");
-    expect(subject).toBe("رمز التحقق - كوورك باس");
+    expect(subject).toBe("رمز التحقق - مُتَّكَأ");
     expect(html).toContain('dir="rtl"');
     expect(html).toContain('lang="ar"');
     expect(html).toContain("صالح لمدة 10 دقائق");
@@ -67,7 +69,7 @@ describe("email language", () => {
 
   it("writes the English reset email left to right, in English", () => {
     const { subject, html } = renderCodeEmail("reset", "120345", "en");
-    expect(subject).toBe("Reset your password - Coworking Pass");
+    expect(subject).toBe("Reset your password - Muttaka");
     expect(html).toContain('dir="ltr"');
     expect(html).toContain("valid for 10 minutes");
     expect(html).not.toMatch(/[؀-ۿ]/);

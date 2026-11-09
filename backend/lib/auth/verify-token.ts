@@ -1,3 +1,4 @@
+import { JWT_SECRET } from "./secrets";
 import jwt from "jsonwebtoken";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
@@ -48,7 +49,7 @@ export async function getTokenFromRequest(request: Request): Promise<TokenPayloa
   const token = authHeader.split(" ")[1];
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as TokenPayload;
+    const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ["HS256"] }) as TokenPayload;
 
     const [state, revoked] = await Promise.all([getUserState(decoded.userId), isTokenRevoked(token)]);
     // A suspended account is reported as such (403 ACCOUNT_SUSPENDED) even if its sessions were also revoked

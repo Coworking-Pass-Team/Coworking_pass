@@ -33,7 +33,7 @@ export default function AccountSuspendedScreen() {
         <div className="flex justify-center mb-2">
           <div className="flex items-center gap-2.5">
             <LogoImage className="h-9 w-auto" />
-            <span className="font-semibold text-soot text-lg tracking-tight">Coworking Pass</span>
+            <span className="font-semibold text-soot text-lg tracking-tight">Muttaka</span>
           </div>
         </div>
 
@@ -70,10 +70,10 @@ export default function AccountSuspendedScreen() {
             <div className="flex items-center justify-between gap-2">
               <span className="text-[11px] text-moss/80">{t('suspended.supportEmail')}</span>
               <a
-                href="mailto:support@coworkingpass.sa?subject=Account%20Suspension%20Review"
+                href="mailto:support@muttakasa.com?subject=Account%20Suspension%20Review"
                 className="font-semibold text-soot hover:text-moss underline decoration-soot/30 transition-colors"
               >
-                support@coworkingpass.sa
+                support@muttakasa.com
               </a>
             </div>
             <div className="flex items-center justify-between gap-2">
@@ -90,7 +90,7 @@ export default function AccountSuspendedScreen() {
         {/* Actions */}
         <div className="space-y-2.5 pt-1">
           <a
-            href="mailto:support@coworkingpass.sa?subject=Account%20Suspension%20Review"
+            href="mailto:support@muttakasa.com?subject=Account%20Suspension%20Review"
             className="w-full py-3.5 px-4 rounded-xl font-semibold text-sm bg-soot text-plaster hover:bg-moss active:scale-[0.99] transition-all duration-200 shadow-md flex items-center justify-center gap-2 cursor-pointer"
           >
             <Mail size={16} />

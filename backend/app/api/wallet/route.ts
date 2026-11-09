@@ -1,3 +1,5 @@
+import { idempotent } from "@/lib/security/idempotency";
+import { money, positiveInteger, inputResponse, InputError } from "@/lib/security/input";
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
@@ -81,7 +83,7 @@ export async function GET(request: NextRequest) {
 }
 
 // POST: إيداع/سحب/استرجاع من المحفظة
-export async function POST(request: NextRequest) {
+export const POST = idempotent("wallet", async (request, db) => {
   try {
     const user = await getTokenFromRequest(request);
     if (!user) return unauthorizedResponse(request);
@@ -90,7 +92,8 @@ export async function POST(request: NextRequest) {
     if (!payload || typeof payload !== 'object') {
       return NextResponse.json({ error: 'Request body must be valid JSON.' }, { status: 400 })
     }
-    const { userId, amount, type, description, referenceId } = payload
+    const { userId, type, description, referenceId } = payload
+    const amount = money(payload.amount)
 
     if (!userId || !amount || !type) {
       return NextResponse.json(
@@ -107,6 +110,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'You can only modify your own wallet.' }, { status: 403 })
     }
 
+    if (user.role !== 'SUPER_ADMIN') return NextResponse.json({ error: 'Wallet mutations require verified settlement. Use checkout or the refund endpoint.' }, { status: 403 });
+
     const typeUpper = (type || '').toString().toUpperCase();
     if (!['DEPOSIT', 'WITHDRAW', 'REFUND'].includes(typeUpper)) {
       return NextResponse.json({ error: 'type must be DEPOSIT, WITHDRAW or REFUND.' }, { status: 400 })
@@ -120,7 +125,7 @@ export async function POST(request: NextRequest) {
     // Cancellation and subscription refunds are calculated by the server in /api/refund.
     const chargeReference = typeUpper === 'REFUND' && safeReference ? safeReference.split(':')[0] : '';
     const charge = chargeReference
-      ? await prisma.walletTransaction.findFirst({ where: { userId, type: 'WITHDRAW', referenceId: chargeReference } })
+      ? await db.walletTransaction.findFirst({ where: { userId, type: 'WITHDRAW', referenceId: chargeReference } })
       : null;
     if (typeUpper === 'REFUND' && user.role !== 'SUPER_ADMIN') {
       if (!charge) {
@@ -129,7 +134,7 @@ export async function POST(request: NextRequest) {
       if (amount > charge.amount) {
         return NextResponse.json({ error: 'A refund cannot exceed the original payment.' }, { status: 400 });
       }
-      const alreadyRefunded = await prisma.walletTransaction.findFirst({
+      const alreadyRefunded = await db.walletTransaction.findFirst({
         where: { userId, type: 'REFUND', referenceId: { startsWith: `${chargeReference}:` }, NOT: { referenceId: safeReference } },
         select: { id: true },
       });
@@ -140,7 +145,7 @@ export async function POST(request: NextRequest) {
 
     // One transaction per request; a repeated referenceId for the same wallet and type is applied only once,
     // so a double click or a retried request can never debit (or refund) twice.
-    const outcome = await prisma.$transaction(async (tx) => {
+    const outcome = await (async (tx: typeof db) => {
       if (safeReference) {
         await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${'wallet:' + userId + ':' + typeUpper + ':' + safeReference}))`;
         const existing = await tx.walletTransaction.findFirst({
@@ -191,7 +196,7 @@ export async function POST(request: NextRequest) {
         },
       });
       return { duplicate: false as const, balance: updatedWallet.balance, transaction };
-    });
+    })(db);
 
     if ('refused' in outcome && outcome.refused) {
       return NextResponse.json({ error: outcome.refused.error, code: outcome.refused.code }, { status: outcome.refused.status });
@@ -208,10 +213,12 @@ export async function POST(request: NextRequest) {
     }, { status: outcome.duplicate ? 200 : 201 })
 
   } catch (error) {
+    const invalid = inputResponse(error);
+    if (invalid) return invalid;
     console.error('❌ Error processing wallet:', error)
     return NextResponse.json(
       { error: 'Failed to process wallet transaction.' },
       { status: 500 }
     )
   }
-}
+});

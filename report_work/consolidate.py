@@ -1,0 +1,27 @@
+from pathlib import Path
+
+root = Path(__file__).parent
+source = (root / 'six_findings.py').read_text(encoding='utf-8')
+source = source.replace('The six reported vulnerabilities', 'The ten reported vulnerabilities')
+source = source.replace("    st.paragraph_format.space_after = Pt(6)", "    st.paragraph_format.space_after = Pt(6)\n    st.paragraph_format.space_before = Pt(10)")
+source = source.replace('Report date: 9 November 2026', 'Supplemental reference: Coworking Pass Confirmed Findings, pages 1–3\\nReport date: 9 November 2026')
+source = source.replace("table(['Finding','Severity','Code status']", """findings.extend([
+('F-07','Critical','Subscription Object Authorization','The supplemental report used two independent accounts in Burp Suite. An attacker token read and changed the victim subscription expiry via GET and PUT /api/subscriptions/[id], without an ownership check.','backend/app/api/subscriptions/[id]/route.ts checks authentication and persisted userId on GET and PUT; unrelated accounts receive 403. SUPER_ADMIN bypasses ownership only. Purchased subscriptions remain immutable: authorized PUT returns 405, preventing free extensions or status changes. Owners read their records and cancel through the existing refund path.','security-confirmed-findings.test.ts tests GET/PUT denial for unrelated and unauthenticated users, owner/admin reads, and no mutation for authorized PUT. This closes IDOR without reopening entitlement editing.'),
+('F-08','High','Stored XSS in Homepage JSON-LD','The supplemental report stored a workspace name/description containing </script><script>...</script> through PUT /api/workspaces/[id]. JSON.stringify emitted literal angle brackets into the homepage script, allowing HTML parser breakout.','frontend/lib/json-ld.ts serializes JSON and Unicode-escapes <, >, &, U+2028 and U+2029. frontend/app/page.tsx uses serializeJsonLd for the script content. Encoding at the output boundary protects existing stored payloads and preserves the original text when JSON is parsed.','Four regression cases cover closing script tags, mixed-case tags, HTML comments, Arabic text and Unicode separators. Tests assert no literal HTML-sensitive characters and exact data round-trip. Homepage integration was inspected; live browser retesting remains a deployment check.'),
+('F-09','High','Public Partner Data Disclosure','Anonymous GET /api/workspaces/[id] returned the complete related Partner record, exposing tax identifiers and contact email. The workspace list had the same response exposure.','backend/lib/workspaces/public-partner.ts uses an explicit id/brandName allowlist. Both backend/app/api/workspaces/[id]/route.ts and backend/app/api/workspaces/route.ts replace the nested partner record with this public representation. Workspace city remains available; taxNumber, taxId, crNumber, email and phone are excluded.','Route tests inject sensitive partner fields into database fixtures and assert that detail and list responses contain only the allowed partner fields. A hidden-workspace test confirms anonymous requests still receive 404.'),
+('F-10','High','Administrator Provisioning Through Public Reads','The supplemental report found GET /api/loyalty-rules called seedLoyaltyRules on an empty table, formerly provisioning admin@coworkingpass.sa with password and returning proposer/approver email addresses.','backend/app/api/loyalty-rules/route.ts no longer imports or invokes a seed routine. A Prisma field allowlist excludes proposer/approver identities. Empty results return []. The workspace list automatic seed path was also removed. Earlier seed-data.ts hardening already removed default admin creation and requires an existing securely provisioned admin.','Tests verify empty loyalty and workspace reads never invoke seeding or user creation, and confirm the loyalty query selects only rule fields. Current seed helper was inspected to confirm missing administrators cause an error rather than account provisioning.')
+])
+table(['Finding','Severity','Code status']""")
+source = source.replace("head('2  Detailed Findings')", "d.add_page_break()\nhead('2  Detailed Findings')")
+source = source.replace("    head(f'{a}", "    if a in ('F-04', 'F-07'): d.add_page_break()\n    head(f'{a}")
+source = source.replace("head('3  Quality Assurance Summary')", "d.add_page_break()\nhead('3  Quality Assurance Summary')")
+source = source.replace('111 passed across 14 test files', '129 passed across 15 test files')
+source = source.replace('The 111-test result supersedes the earlier 109-test / 13-file run.', 'The 129-test result includes the previous 111 tests plus 18 supplemental regression tests. Backend npm test and both npm run typecheck commands passed on 9 November 2026.')
+source = source.replace('Configure strong Super Admin credentials', 'Audit and disable any historical default administrator accounts; removing a seed path does not remove accounts already provisioned. Configure strong Super Admin credentials')
+source = source.replace("    d.add_paragraph().paragraph_format.space_after=Pt(1)", """    borders=OxmlElement('w:tblBorders')
+    for edge in ('top','left','bottom','right','insideH','insideV'):
+        border=OxmlElement('w:'+edge); border.set(qn('w:val'),'single'); border.set(qn('w:sz'),'4'); border.set(qn('w:color'),'D9D9D9'); borders.append(border)
+    t._tbl.tblPr.append(borders)
+    d.add_paragraph().paragraph_format.space_after=Pt(1)""")
+(root / 'ten_findings.py').write_text(source, encoding='utf-8')
+exec(compile(source, str(root / 'ten_findings.py'), 'exec'))

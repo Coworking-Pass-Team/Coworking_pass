@@ -22,6 +22,7 @@ import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-tok
  *         description: تم بدء عملية الاسترجاع (حالة PENDING)
  */
 export async function POST(request: NextRequest) {
+  if (process.env.NODE_ENV === "production") return NextResponse.json({ error: "Not found." }, { status: 404 });
   try {
     const user = await getTokenFromRequest(request);
 if (!user) return unauthorizedResponse(request);

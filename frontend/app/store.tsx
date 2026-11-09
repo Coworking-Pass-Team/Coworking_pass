@@ -53,6 +53,7 @@ import {
 import { useI18n } from '@/i18n';
 import AccountSuspendedModal from '@/components/auth/AccountSuspendedModal';
 import { INITIAL_SPACES, INITIAL_USERS, INITIAL_BOOKINGS, INITIAL_SUPPORT_TICKETS } from '@/data/demo-data';
+import { apiBase, fetchWithRetry } from '@/lib/api-config';
 import {
   registerUserApi,
   verifyEmailApi,
@@ -85,13 +86,9 @@ import {
   updateTicketStatusApi
 } from '@/services/api';
 
+/** REST base (NEXT_PUBLIC_API_URL, see lib/api-config.ts). */
 export function getApiBaseUrl(): string {
-  const envUrl = process.env.NEXT_PUBLIC_API_URL;
-  if (envUrl) {
-    const cleaned = envUrl.replace(/\/$/, '');
-    return cleaned.endsWith('/api') ? cleaned : `${cleaned}/api`;
-  }
-  return 'https://coworking-pass-backend.vercel.app/api';
+  return apiBase();
 }
 
 export const API_BASE_URL = getApiBaseUrl();
@@ -104,6 +101,9 @@ export interface WalletCharge {
   key: string;
   target: 'personal' | 'company';
 }
+
+/** Where the spaces on screen come from: still loading, the live catalogue, or the curated fallback. */
+export type SpacesStatus = 'loading' | 'live' | 'fallback';
 
 /** A wallet as the server reports it; team members also see the company money it holds (spent first). */
 export interface WalletSnapshot {
@@ -167,7 +167,7 @@ async function fetchPartnersFromApi(token?: string): Promise<Partner[]> {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     const storedToken = token || getStoredToken();
     if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
-    const response = await fetch(`${getApiBaseUrl()}/partners`, { method: 'GET', headers });
+    const response = await fetchWithRetry(`${getApiBaseUrl()}/partners`, { method: 'GET', headers });
     if (!response.ok) return [];
     const data = await response.json();
     return Array.isArray(data) ? (data as Partner[]) : [];
@@ -181,7 +181,7 @@ async function fetchUsersFromApi(token?: string): Promise<any[]> {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     const storedToken = token || getStoredToken();
     if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
-    const response = await fetch(`${getApiBaseUrl()}/users`, { method: 'GET', headers });
+    const response = await fetchWithRetry(`${getApiBaseUrl()}/users`, { method: 'GET', headers });
     if (!response.ok) return [];
     const data = await response.json();
     return Array.isArray(data) ? data : [];
@@ -190,17 +190,18 @@ async function fetchUsersFromApi(token?: string): Promise<any[]> {
   }
 }
 
-async function fetchWorkspacesFromApi(token?: string): Promise<WorkspaceApi[]> {
+/** The live catalogue, or null when the API could not be reached (the screens then keep the curated spaces). */
+async function fetchWorkspacesFromApi(token?: string): Promise<WorkspaceApi[] | null> {
   try {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     const storedToken = token || getStoredToken();
     if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
-    const response = await fetch(`${getApiBaseUrl()}/workspaces`, { method: 'GET', headers });
-    if (!response.ok) return [];
+    const response = await fetchWithRetry(`${getApiBaseUrl()}/workspaces`, { method: 'GET', headers });
+    if (!response.ok) return null;
     const data = await response.json();
     return Array.isArray(data) ? (data as WorkspaceApi[]) : [];
   } catch (error: any) {
-    return [];
+    return null;
   }
 }
 
@@ -212,7 +213,7 @@ async function fetchHourlyBookingsFromApi(token?: string): Promise<HourlyBooking
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${storedToken}`,
     };
-    const response = await fetch(`${getApiBaseUrl()}/hourly-bookings`, { method: 'GET', headers });
+    const response = await fetchWithRetry(`${getApiBaseUrl()}/hourly-bookings`, { method: 'GET', headers });
     if (!response.ok) return [];
     const data = await response.json();
     return Array.isArray(data) ? (data as HourlyBookingApi[]) : [];
@@ -229,7 +230,7 @@ async function fetchPayoutsFromApi(token?: string): Promise<PayoutApi[]> {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${storedToken}`,
     };
-    const response = await fetch(`${getApiBaseUrl()}/payouts`, { method: 'GET', headers });
+    const response = await fetchWithRetry(`${getApiBaseUrl()}/payouts`, { method: 'GET', headers });
     if (!response.ok) return [];
     const data = await response.json();
     return Array.isArray(data) ? (data as PayoutApi[]) : [];
@@ -246,7 +247,7 @@ async function fetchMembershipPlansFromApi(token?: string): Promise<MembershipPl
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${storedToken}`,
     };
-    const response = await fetch(`${getApiBaseUrl()}/membership-plans`, { method: 'GET', headers });
+    const response = await fetchWithRetry(`${getApiBaseUrl()}/membership-plans`, { method: 'GET', headers });
     if (!response.ok) return [];
     const data = await response.json();
     return Array.isArray(data) ? (data as MembershipPlanApi[]) : [];
@@ -263,7 +264,7 @@ async function fetchSubscriptionsFromApi(token?: string): Promise<SubscriptionAp
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${storedToken}`,
     };
-    const response = await fetch(`${getApiBaseUrl()}/subscriptions`, { method: 'GET', headers });
+    const response = await fetchWithRetry(`${getApiBaseUrl()}/subscriptions`, { method: 'GET', headers });
     if (!response.ok) return [];
     const data = await response.json();
     return Array.isArray(data) ? (data as SubscriptionApi[]) : [];
@@ -280,7 +281,7 @@ async function fetchDirectBookingsFromApi(token?: string): Promise<DirectBooking
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${storedToken}`,
     };
-    const response = await fetch(`${getApiBaseUrl()}/direct-bookings`, { method: 'GET', headers });
+    const response = await fetchWithRetry(`${getApiBaseUrl()}/direct-bookings`, { method: 'GET', headers });
     if (!response.ok) return [];
     const data = await response.json();
     return Array.isArray(data) ? (data as DirectBookingApi[]) : [];
@@ -297,7 +298,7 @@ async function fetchPaymentsFromApi(token?: string): Promise<PaymentApi[]> {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${storedToken}`,
     };
-    const response = await fetch(`${getApiBaseUrl()}/payments`, { method: 'GET', headers });
+    const response = await fetchWithRetry(`${getApiBaseUrl()}/payments`, { method: 'GET', headers });
     if (!response.ok) return [];
     const data = await response.json();
     return Array.isArray(data) ? (data as PaymentApi[]) : [];
@@ -519,6 +520,8 @@ interface AppContextType {
   spaces: Space[];
   /** False until the first workspaces fetch has settled (drives loading skeletons). */
   spacesLoaded: boolean;
+  /** "fallback" while the API is unreachable: the curated spaces are shown and the catalogue is refetched in the background. */
+  spacesStatus: SpacesStatus;
   favorites: string[];
   toggleFavorite: (spaceId: string) => void;
   addSpace: (space: Omit<Space, 'id'>) => void;
@@ -696,6 +699,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [pendingResetCode, setPendingResetCode] = useState('');
   const [otpSession, setOtpSession] = useState<OtpSession | null>(null);
   const [spacesLoaded, setSpacesLoaded] = useState(false);
+  const [spacesStatus, setSpacesStatus] = useState<SpacesStatus>('loading');
+  const [spacesRetry, setSpacesRetry] = useState(0);
   const [spaces, setSpaces] = useState<Space[]>(() => {
     let customSpaces: Space[] = [];
     if (typeof window !== 'undefined') {
@@ -1082,7 +1087,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       const storedToken = getStoredToken();
       if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
-      const response = await fetch(`${getApiBaseUrl()}/membership-plans`, {
+      const response = await fetchWithRetry(`${getApiBaseUrl()}/membership-plans`, {
         method: 'POST',
         headers,
         body: JSON.stringify(planData),
@@ -1107,7 +1112,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       const storedToken = getStoredToken();
       if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
-      const response = await fetch(`${getApiBaseUrl()}/membership-plans/${planId}`, {
+      const response = await fetchWithRetry(`${getApiBaseUrl()}/membership-plans/${planId}`, {
         method: 'PUT',
         headers,
         body: JSON.stringify(updates),
@@ -1129,7 +1134,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       const storedToken = getStoredToken();
       if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
-      const response = await fetch(`${getApiBaseUrl()}/membership-plans/${planId}`, {
+      const response = await fetchWithRetry(`${getApiBaseUrl()}/membership-plans/${planId}`, {
         method: 'DELETE',
         headers,
       });
@@ -1166,7 +1171,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       const storedToken = getStoredToken();
       if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
-      const response = await fetch(`${getApiBaseUrl()}/subscriptions`, {
+      const response = await fetchWithRetry(`${getApiBaseUrl()}/subscriptions`, {
         method: 'POST',
         headers,
         body: JSON.stringify(subData),
@@ -1191,7 +1196,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       const storedToken = getStoredToken();
       if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
-      const response = await fetch(`${getApiBaseUrl()}/subscriptions/${subscriptionId}`, {
+      const response = await fetchWithRetry(`${getApiBaseUrl()}/subscriptions/${subscriptionId}`, {
         method: 'PUT',
         headers,
         body: JSON.stringify(updates),
@@ -1213,7 +1218,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       const storedToken = getStoredToken();
       if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
-      const response = await fetch(`${getApiBaseUrl()}/subscriptions/${subscriptionId}`, {
+      const response = await fetchWithRetry(`${getApiBaseUrl()}/subscriptions/${subscriptionId}`, {
         method: 'DELETE',
         headers,
       });
@@ -1367,7 +1372,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       const storedToken = getStoredToken();
       if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
-      const response = await fetch(`${getApiBaseUrl()}/refund`, {
+      const response = await fetchWithRetry(`${getApiBaseUrl()}/refund`, {
         method: 'POST',
         headers,
         body: JSON.stringify(payload),
@@ -1632,7 +1637,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       const storedToken = getStoredToken();
       if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
-      const response = await fetch(`${getApiBaseUrl()}/direct-bookings`, {
+      const response = await fetchWithRetry(`${getApiBaseUrl()}/direct-bookings`, {
         method: 'POST',
         headers,
         body: JSON.stringify(bookingData),
@@ -1657,7 +1662,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       const storedToken = getStoredToken();
       if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
-      const response = await fetch(`${getApiBaseUrl()}/direct-bookings/${bookingId}`, {
+      const response = await fetchWithRetry(`${getApiBaseUrl()}/direct-bookings/${bookingId}`, {
         method: 'PUT',
         headers,
         body: JSON.stringify(updates),
@@ -1679,7 +1684,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       const storedToken = getStoredToken();
       if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
-      const response = await fetch(`${getApiBaseUrl()}/direct-bookings/${bookingId}`, {
+      const response = await fetchWithRetry(`${getApiBaseUrl()}/direct-bookings/${bookingId}`, {
         method: 'DELETE',
         headers,
       });
@@ -1712,7 +1717,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
 
-      const res = await fetch(`${getApiBaseUrl()}/amenities`, { headers });
+      const res = await fetchWithRetry(`${getApiBaseUrl()}/amenities`, { headers });
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data)) {
@@ -1777,7 +1782,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
 
-      const res = await fetch(`${getApiBaseUrl()}/notifications`, { headers });
+      const res = await fetchWithRetry(`${getApiBaseUrl()}/notifications`, { headers });
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data)) {
@@ -1823,7 +1828,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       const storedToken = getStoredToken();
       if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
-      const response = await fetch(`${getApiBaseUrl()}/payments`, {
+      const response = await fetchWithRetry(`${getApiBaseUrl()}/payments`, {
         method: 'POST',
         headers,
         body: JSON.stringify(paymentData),
@@ -1848,7 +1853,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       const storedToken = getStoredToken();
       if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
-      const response = await fetch(`${getApiBaseUrl()}/payments/${paymentId}`, {
+      const response = await fetchWithRetry(`${getApiBaseUrl()}/payments/${paymentId}`, {
         method: 'PUT',
         headers,
         body: JSON.stringify(updates),
@@ -1873,7 +1878,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       const storedToken = getStoredToken();
       if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
-      const response = await fetch(`${getApiBaseUrl()}/payments/${paymentId}`, {
+      const response = await fetchWithRetry(`${getApiBaseUrl()}/payments/${paymentId}`, {
         method: 'DELETE',
         headers,
       });
@@ -1899,7 +1904,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const storedToken = getStoredToken();
       if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
 
-      const response = await fetch(`${getApiBaseUrl()}/wallet?userId=${encodeURIComponent(uid)}`, {
+      const response = await fetchWithRetry(`${getApiBaseUrl()}/wallet?userId=${encodeURIComponent(uid)}`, {
         method: 'GET',
         headers,
       });
@@ -1934,7 +1939,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const storedToken = getStoredToken();
       if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
 
-      const response = await fetch(`${getApiBaseUrl()}/wallet`, {
+      const response = await fetchWithRetry(`${getApiBaseUrl()}/wallet`, {
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -1980,7 +1985,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const storedToken = getStoredToken();
       if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
 
-      const response = await fetch(`${getApiBaseUrl()}/wallet`, {
+      const response = await fetchWithRetry(`${getApiBaseUrl()}/wallet`, {
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -2026,7 +2031,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       const storedToken = getStoredToken();
       if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
-      const response = await fetch(`${getApiBaseUrl()}/wallet`, {
+      const response = await fetchWithRetry(`${getApiBaseUrl()}/wallet`, {
         method: 'POST',
         headers,
         body: JSON.stringify({ userId: currentUser.id, amount, type: 'REFUND', description, referenceId }),
@@ -2107,7 +2112,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   /** Halls / theaters of a workspace with the sessions already booked for each on the given date. */
   const fetchUnitAvailability = async (spaceId: string, date: string): Promise<SpaceUnitAvailability[] | null> => {
     try {
-      const response = await fetch(`${getApiBaseUrl()}/workspaces/${spaceId}/units?date=${encodeURIComponent(date)}`);
+      const response = await fetchWithRetry(`${getApiBaseUrl()}/workspaces/${spaceId}/units?date=${encodeURIComponent(date)}`);
       if (!response.ok) return null;
       const data = await response.json();
       return Array.isArray(data.units)
@@ -2125,7 +2130,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   ): Promise<{ success: boolean; error?: string; units?: SpaceUnit[] }> => {
     try {
       const token = getStoredToken();
-      const response = await fetch(`${getApiBaseUrl()}/workspaces/${spaceId}/units`, {
+      const response = await fetchWithRetry(`${getApiBaseUrl()}/workspaces/${spaceId}/units`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({ units }),
@@ -2156,7 +2161,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (params.unitId) query.set('sectionId', params.unitId);
       // The token lets the server apply per-customer rules (one active daily / monthly booking) before anything is charged
       const token = getStoredToken();
-      const response = await fetch(`${getApiBaseUrl()}/workspaces/${params.spaceId}/availability?${query.toString()}`, {
+      const response = await fetchWithRetry(`${getApiBaseUrl()}/workspaces/${params.spaceId}/availability?${query.toString()}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       });
       if (!response.ok) return params.strict ? { ok: false, message: 'Could not verify availability right now. Please try again.' } : { ok: true };
@@ -2455,7 +2460,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         headers['Authorization'] = `Bearer ${storedToken}`;
       }
 
-      const response = await fetch(`${getApiBaseUrl()}/hourly-bookings`, {
+      const response = await fetchWithRetry(`${getApiBaseUrl()}/hourly-bookings`, {
         method: 'POST',
         headers,
         body: JSON.stringify(bookingData),
@@ -2498,7 +2503,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         headers['Authorization'] = `Bearer ${storedToken}`;
       }
 
-      const response = await fetch(`${getApiBaseUrl()}/hourly-bookings/${bookingId}`, {
+      const response = await fetchWithRetry(`${getApiBaseUrl()}/hourly-bookings/${bookingId}`, {
         method: 'PUT',
         headers,
         body: JSON.stringify(updates),
@@ -2532,7 +2537,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         headers['Authorization'] = `Bearer ${storedToken}`;
       }
 
-      const response = await fetch(`${getApiBaseUrl()}/hourly-bookings/${bookingId}`, {
+      const response = await fetchWithRetry(`${getApiBaseUrl()}/hourly-bookings/${bookingId}`, {
         method: 'DELETE',
         headers,
       });
@@ -2582,7 +2587,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         headers['Authorization'] = `Bearer ${storedToken}`;
       }
 
-      const response = await fetch(`${getApiBaseUrl()}/payouts`, {
+      const response = await fetchWithRetry(`${getApiBaseUrl()}/payouts`, {
         method: 'POST',
         headers,
         body: JSON.stringify(payoutData),
@@ -2624,7 +2629,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         headers['Authorization'] = `Bearer ${storedToken}`;
       }
 
-      const response = await fetch(`${getApiBaseUrl()}/payouts/${payoutId}`, {
+      const response = await fetchWithRetry(`${getApiBaseUrl()}/payouts/${payoutId}`, {
         method: 'PUT',
         headers,
         body: JSON.stringify(updates),
@@ -2658,7 +2663,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         headers['Authorization'] = `Bearer ${storedToken}`;
       }
 
-      const response = await fetch(`${getApiBaseUrl()}/payouts/${payoutId}`, {
+      const response = await fetchWithRetry(`${getApiBaseUrl()}/payouts/${payoutId}`, {
         method: 'DELETE',
         headers,
       });
@@ -2681,7 +2686,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const fetchWorkspaces = async (): Promise<WorkspaceApi[]> => {
     try {
       const data = await fetchWorkspacesFromApi();
-      if (Array.isArray(data) && data.length > 0) {
+      if (data === null) {
+        // Keep whatever is on screen (live rows from earlier, or the curated spaces) and retry in the background
+        setSpacesStatus((prev) => (prev === 'live' ? 'live' : 'fallback'));
+        return workspacesApi;
+      }
+      setSpacesStatus('live');
+      if (data.length > 0) {
         setWorkspacesApi(data);
         const userEmail = currentUser?.email?.toLowerCase();
         const userPartner = partners.find(p => p.contactEmail?.toLowerCase() === userEmail);
@@ -2910,7 +2921,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         headers['Authorization'] = `Bearer ${storedToken}`;
       }
 
-      const response = await fetch(`${getApiBaseUrl()}/workspaces`, {
+      const response = await fetchWithRetry(`${getApiBaseUrl()}/workspaces`, {
         method: 'POST',
         headers,
         body: JSON.stringify(workspaceData),
@@ -2967,7 +2978,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         headers['Authorization'] = `Bearer ${storedToken}`;
       }
 
-      const response = await fetch(`${getApiBaseUrl()}/workspaces/${workspaceId}`, {
+      const response = await fetchWithRetry(`${getApiBaseUrl()}/workspaces/${workspaceId}`, {
         method: 'PUT',
         headers,
         body: JSON.stringify(updates),
@@ -3001,7 +3012,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         headers['Authorization'] = `Bearer ${storedToken}`;
       }
 
-      const response = await fetch(`${getApiBaseUrl()}/workspaces/${workspaceId}`, {
+      const response = await fetchWithRetry(`${getApiBaseUrl()}/workspaces/${workspaceId}`, {
         method: 'DELETE',
         headers,
       });
@@ -3039,7 +3050,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         'Authorization': `Bearer ${storedToken}`,
       };
 
-      const response = await fetch(`${getApiBaseUrl()}/partners`, {
+      const response = await fetchWithRetry(`${getApiBaseUrl()}/partners`, {
         method: 'POST',
         headers,
         body: JSON.stringify(partnerData),
@@ -3086,7 +3097,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         headers['Authorization'] = `Bearer ${storedToken}`;
       }
 
-      const response = await fetch(`${getApiBaseUrl()}/partners/${partnerId}`, {
+      const response = await fetchWithRetry(`${getApiBaseUrl()}/partners/${partnerId}`, {
         method: 'PUT',
         headers,
         body: JSON.stringify(updates),
@@ -3122,7 +3133,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         headers['Authorization'] = `Bearer ${storedToken}`;
       }
 
-      const response = await fetch(`${getApiBaseUrl()}/partners/${partnerId}`, {
+      const response = await fetchWithRetry(`${getApiBaseUrl()}/partners/${partnerId}`, {
         method: 'DELETE',
         headers,
       });
@@ -3201,6 +3212,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return { success: false, error: err.message };
     }
   };
+
+  // While the API is asleep or unreachable, try again after 5, 15, 30 and then every 60 seconds
+  useEffect(() => {
+    if (spacesStatus !== 'fallback') return;
+    const delay = [5000, 15000, 30000].at(spacesRetry) ?? 60000;
+    const timer = setTimeout(() => {
+      fetchWorkspaces().catch(() => { }).finally(() => setSpacesRetry((n) => n + 1));
+    }, delay);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [spacesStatus, spacesRetry]);
 
   useEffect(() => {
     fetchWorkspaces().catch(() => { }).finally(() => setSpacesLoaded(true));
@@ -3972,7 +3994,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
     if (updated.role === 'organization') navigate('org-dashboard');
     else navigate('ind-dashboard');
-    showToast(`Account verified! Welcome to Coworking Pass, ${updated.name}!`, 'success');
+    showToast(`Account verified! Welcome to Muttaka, ${updated.name}!`, 'success');
     return { success: true };
   };
 
@@ -3989,6 +4011,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         businessName: otpSession.extraData?.businessName,
         crNumber: otpSession.extraData?.crNumber,
       });
+      if (!apiRes.success) throw new Error(apiRes.error || "Could not resend code.");
       if (apiRes.userId || apiRes.devOtp) {
         setOtpSession(prev => prev ? { ...prev, userId: apiRes.userId || prev.userId, devOtp: apiRes.devOtp } : null);
       }
@@ -3997,11 +4020,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         email: otpSession.user.email,
         password: otpSession.user.password,
       });
+      if (!apiRes.success) throw new Error(apiRes.error || "Could not resend code.");
       if (apiRes.userId || apiRes.devOtp) {
         setOtpSession(prev => prev ? { ...prev, userId: apiRes.userId || prev.userId, devOtp: apiRes.devOtp } : null);
       }
     } else if (otpSession.mode === 'forgot-password') {
-      await forgotPasswordApi(otpSession.user.email);
+      const result = await forgotPasswordApi(otpSession.user.email);
+      if (!result.success) throw new Error(result.error || "Could not resend code.");
     }
     showToast(`New verification code sent to ${otpSession.targetEmailOrPhone}`, 'info');
   };
@@ -4049,7 +4074,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (role === 'organization') navigate('org-dashboard');
     else if (role === 'provider') navigate('provider-dashboard');
     else navigate('ind-dashboard');
-    showToast('Welcome to Coworking Pass!');
+    showToast('Welcome to Muttaka!');
   };
 
   const updateCurrentUser = (updates: Partial<User>, options?: { silent?: boolean }) => {
@@ -4320,7 +4345,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               if (space.units && space.units.length > 0) {
                 const savedUnits = await saveSpaceUnits(createdWs.id, space.units);
                 if (!savedUnits.success) showToast(savedUnits.error || 'Failed to save halls.', 'error');
-              } else await fetch(`${getApiBaseUrl()}/workspace-sections`, {
+              } else await fetchWithRetry(`${getApiBaseUrl()}/workspace-sections`, {
                 method: 'POST',
                 headers,
                 body: JSON.stringify({
@@ -4440,19 +4465,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
             const headers: Record<string, string> = { 'Content-Type': 'application/json' };
             headers['Authorization'] = `Bearer ${storedToken}`;
             try {
-              const secRes = await fetch(`${getApiBaseUrl()}/workspace-sections`, { headers });
+              const secRes = await fetchWithRetry(`${getApiBaseUrl()}/workspace-sections`, { headers });
               if (secRes.ok) {
                 const sections = await secRes.json();
                 if (Array.isArray(sections)) {
                   const existingSec = sections.find((s: any) => s.workspaceId === targetDbId);
                   if (existingSec) {
-                    await fetch(`${getApiBaseUrl()}/workspace-sections/${existingSec.id}`, {
+                    await fetchWithRetry(`${getApiBaseUrl()}/workspace-sections/${existingSec.id}`, {
                       method: 'PUT',
                       headers,
                       body: JSON.stringify({ type: dbSecType }),
                     });
                   } else {
-                    await fetch(`${getApiBaseUrl()}/workspace-sections`, {
+                    await fetchWithRetry(`${getApiBaseUrl()}/workspace-sections`, {
                       method: 'POST',
                       headers,
                       body: JSON.stringify({
@@ -4498,7 +4523,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               const headers: Record<string, string> = { 'Content-Type': 'application/json' };
               headers['Authorization'] = `Bearer ${storedToken}`;
               try {
-                await fetch(`${getApiBaseUrl()}/workspace-sections`, {
+                await fetchWithRetry(`${getApiBaseUrl()}/workspace-sections`, {
                   method: 'POST',
                   headers,
                   body: JSON.stringify({
@@ -4836,7 +4861,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
         if (!sectionId && validWorkspaceId) {
           try {
-            const secRes = await fetch(`${getApiBaseUrl()}/workspace-sections`, { headers });
+            const secRes = await fetchWithRetry(`${getApiBaseUrl()}/workspace-sections`, { headers });
             if (secRes.ok) {
               const sections = await secRes.json();
               if (Array.isArray(sections)) {
@@ -4851,7 +4876,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           try {
             const spaceType = targetSpace?.type || 'desk';
             const dbSecType = mapFrontendTypeToDbSectionType(spaceType);
-            const secCreateRes = await fetch(`${getApiBaseUrl()}/workspace-sections`, {
+            const secCreateRes = await fetchWithRetry(`${getApiBaseUrl()}/workspace-sections`, {
               method: 'POST',
               headers,
               body: JSON.stringify({
@@ -4886,7 +4911,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                 : '1 Year'
           );
 
-          const directRes = await fetch(`${getApiBaseUrl()}/direct-bookings`, {
+          const directRes = await fetchWithRetry(`${getApiBaseUrl()}/direct-bookings`, {
             method: 'POST',
             headers,
             body: JSON.stringify({
@@ -4906,7 +4931,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             }),
           });
 
-          if (!directRes.ok && (directRes.status === 409 || directRes.status === 400 || charge?.amount)) {
+          if (!directRes.ok) {
             const rejection = await directRes.json().catch(() => ({} as any));
             await compensate(rejection.error || 'This booking could not be confirmed. Please choose another time.');
           }
@@ -4920,6 +4945,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               setBookings(prev => prev.map(b => b.id === newBooking.id ? {
                 ...b,
                 id: dbBooking.id,
+                totalPrice: dbBooking.payableAmount,
                 spaceId: dbBooking.workspaceId || b.spaceId,
                 spaceName: dbBooking.workspace?.name || b.spaceName,
                 spaceCity: dbBooking.workspace?.city || b.spaceCity,
@@ -4929,7 +4955,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             fetchWorkspaces();
             if (dbBooking?.id) awardPoints(dbBooking.id);
             // Pass-covered bookings cost nothing, so no payment is recorded for them
-            if ((booking.totalPrice || 0) > 0) await fetch(`${getApiBaseUrl()}/payments`, {
+            if ((booking.totalPrice || 0) > 0) await fetchWithRetry(`${getApiBaseUrl()}/payments`, {
               method: 'POST',
               headers,
               body: JSON.stringify({
@@ -4947,7 +4973,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (booking.plan === 'hourly') {
           let pkgId: string | null = null;
           try {
-            const pkgRes = await fetch(`${getApiBaseUrl()}/hourly-packages`, { headers });
+            const pkgRes = await fetchWithRetry(`${getApiBaseUrl()}/hourly-packages`, { headers });
             if (pkgRes.ok) {
               const pkgs = await pkgRes.json();
               if (Array.isArray(pkgs)) {
@@ -4962,7 +4988,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
           if (!pkgId && sectionId) {
             try {
-              const pkgCreateRes = await fetch(`${getApiBaseUrl()}/hourly-packages`, {
+              const pkgCreateRes = await fetchWithRetry(`${getApiBaseUrl()}/hourly-packages`, {
                 method: 'POST',
                 headers,
                 body: JSON.stringify({
@@ -5008,7 +5034,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
           if (sectionId && pkgId) {
             try {
-              const hbRes = await fetch(`${getApiBaseUrl()}/hourly-bookings`, {
+              const hbRes = await fetchWithRetry(`${getApiBaseUrl()}/hourly-bookings`, {
                 method: 'POST',
                 headers,
                 body: JSON.stringify({
@@ -5029,7 +5055,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                   status: 'ACTIVE',
                 }),
               });
-              if (!hbRes.ok && (hbRes.status === 409 || hbRes.status === 400 || charge?.amount)) {
+              if (!hbRes.ok) {
                 const rejection = await hbRes.json().catch(() => ({} as any));
                 await compensate(rejection.error || 'This booking could not be confirmed. Please choose another time.');
               }
@@ -5043,6 +5069,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                   setBookings(prev => prev.map(b => b.id === newBooking.id ? {
                     ...b,
                     id: hbData.id,
+                  totalPrice: hbData.payableAmount,
                     spaceId: hbData.workspaceId || b.spaceId,
                     spaceName: hbData.workspace?.name || hbData.section?.workspace?.name || b.spaceName,
                     spaceCity: hbData.workspace?.city || hbData.section?.workspace?.city || b.spaceCity,
@@ -5051,7 +5078,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
                 fetchWorkspaces();
                 if (hbData?.id) awardPoints(hbData.id);
-                if ((booking.totalPrice || 0) > 0) await fetch(`${getApiBaseUrl()}/payments`, {
+                if ((booking.totalPrice || 0) > 0) await fetchWithRetry(`${getApiBaseUrl()}/payments`, {
                   method: 'POST',
                   headers,
                   body: JSON.stringify({
@@ -5255,7 +5282,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const storedToken = getStoredToken();
         const headers: Record<string, string> = { 'Content-Type': 'application/json' };
         if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
-        await fetch(`${getApiBaseUrl()}/notifications`, {
+        await fetchWithRetry(`${getApiBaseUrl()}/notifications`, {
           method: 'PUT',
           headers,
           body: JSON.stringify({ id, isRead: true }),
@@ -5279,7 +5306,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const storedToken = getStoredToken();
         const headers: Record<string, string> = { 'Content-Type': 'application/json' };
         if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
-        await fetch(`${getApiBaseUrl()}/notifications`, {
+        await fetchWithRetry(`${getApiBaseUrl()}/notifications`, {
           method: 'PUT',
           headers,
           body: JSON.stringify({ id, isRead: nextReadState }),
@@ -5300,7 +5327,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const storedToken = getStoredToken();
         const headers: Record<string, string> = { 'Content-Type': 'application/json' };
         if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
-        await fetch(`${getApiBaseUrl()}/notifications`, {
+        await fetchWithRetry(`${getApiBaseUrl()}/notifications`, {
           method: 'PUT',
           headers,
           body: JSON.stringify({ all: true, isRead: true }),
@@ -5364,7 +5391,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (targetUserId) {
           const notifType = mapToNotificationTypeEnum(notifData.type, notifData.title);
 
-          const res = await fetch(`${getApiBaseUrl()}/notifications`, {
+          const res = await fetchWithRetry(`${getApiBaseUrl()}/notifications`, {
             method: 'POST',
             headers,
             body: JSON.stringify({
@@ -5411,7 +5438,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           (targetUser?.email && u.email && u.email.toLowerCase() === targetUser.email.toLowerCase())
         ));
 
-      const response = await fetch(`${getApiBaseUrl()}/users/${dbId}`, {
+      const response = await fetchWithRetry(`${getApiBaseUrl()}/users/${dbId}`, {
         method: 'PUT',
         headers,
         body: JSON.stringify({ isBanned: true }),
@@ -5472,7 +5499,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           (targetUser?.email && u.email && u.email.toLowerCase() === targetUser.email.toLowerCase())
         ));
 
-      const response = await fetch(`${getApiBaseUrl()}/users/${dbId}`, {
+      const response = await fetchWithRetry(`${getApiBaseUrl()}/users/${dbId}`, {
         method: 'PUT',
         headers,
         body: JSON.stringify({ isBanned: false }),
@@ -5522,7 +5549,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const storedToken = getStoredToken();
       if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
 
-      const response = await fetch(`${getApiBaseUrl()}/users/${userId}`, {
+      const response = await fetchWithRetry(`${getApiBaseUrl()}/users/${userId}`, {
         method: 'DELETE',
         headers,
       });
@@ -5562,7 +5589,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
       const target = users.find(u => u.id === id || (u as any).dbId === id);
       const dbId = (target as any)?.dbId || target?.id || id;
-      const response = await fetch(`${getApiBaseUrl()}/users/${dbId}`, { method: 'PUT', headers, body: JSON.stringify(body) });
+      const response = await fetchWithRetry(`${getApiBaseUrl()}/users/${dbId}`, { method: 'PUT', headers, body: JSON.stringify(body) });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) return { success: false, error: data.error || 'Failed to update user' };
       return { success: true };
@@ -5649,7 +5676,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
 
-      const response = await fetch(`${getApiBaseUrl()}/waitlist`, {
+      const response = await fetchWithRetry(`${getApiBaseUrl()}/waitlist`, {
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -5703,13 +5730,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (!storedToken) return;
       const headers: Record<string, string> = { 'Content-Type': 'application/json', Authorization: `Bearer ${storedToken}` };
       try {
-        const listRes = await fetch(`${getApiBaseUrl()}/waitlist`, { headers });
+        const listRes = await fetchWithRetry(`${getApiBaseUrl()}/waitlist`, { headers });
         const rows = listRes.ok ? await listRes.json() : [];
         const mine = (Array.isArray(rows) ? rows : []).filter(
           (r: any) => r.userId === userId && r.workspaceId === spaceId && r.status === 'WAITLISTED'
         );
         for (const entry of mine) {
-          await fetch(`${getApiBaseUrl()}/waitlist/${entry.id}`, { method: 'DELETE', headers });
+          await fetchWithRetry(`${getApiBaseUrl()}/waitlist/${entry.id}`, { method: 'DELETE', headers });
         }
       } catch (err) {
         console.warn('Waitlist leave sync notice:', err);
@@ -6048,7 +6075,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const headers: Record<string, string> = { 'Content-Type': 'application/json' };
         if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
 
-        const res = await fetch(`${getApiBaseUrl()}/amenities`, {
+        const res = await fetchWithRetry(`${getApiBaseUrl()}/amenities`, {
           method: 'POST',
           headers,
           body: JSON.stringify({
@@ -6136,14 +6163,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const headers: Record<string, string> = { 'Content-Type': 'application/json' };
         if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
 
-        let putRes = await fetch(`${getApiBaseUrl()}/amenities/${requestId}`, {
+        let putRes = await fetchWithRetry(`${getApiBaseUrl()}/amenities/${requestId}`, {
           method: 'PUT',
           headers,
           body: JSON.stringify({ status: 'APPROVED' }),
         });
 
         if (!putRes.ok) {
-          const postRes = await fetch(`${getApiBaseUrl()}/amenities`, {
+          const postRes = await fetchWithRetry(`${getApiBaseUrl()}/amenities`, {
             method: 'POST',
             headers,
             body: JSON.stringify({
@@ -6157,7 +6184,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             const postData = await postRes.json();
             const realId = postData.amenity?.id || postData.id;
             if (realId) {
-              await fetch(`${getApiBaseUrl()}/amenities/${realId}`, {
+              await fetchWithRetry(`${getApiBaseUrl()}/amenities/${realId}`, {
                 method: 'PUT',
                 headers,
                 body: JSON.stringify({ status: 'APPROVED' }),
@@ -6209,14 +6236,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const headers: Record<string, string> = { 'Content-Type': 'application/json' };
         if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
 
-        let putRes = await fetch(`${getApiBaseUrl()}/amenities/${requestId}`, {
+        let putRes = await fetchWithRetry(`${getApiBaseUrl()}/amenities/${requestId}`, {
           method: 'PUT',
           headers,
           body: JSON.stringify({ status: 'REJECTED', reason: reason || undefined }),
         });
 
         if (!putRes.ok) {
-          const postRes = await fetch(`${getApiBaseUrl()}/amenities`, {
+          const postRes = await fetchWithRetry(`${getApiBaseUrl()}/amenities`, {
             method: 'POST',
             headers,
             body: JSON.stringify({
@@ -6230,7 +6257,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             const postData = await postRes.json();
             const realId = postData.amenity?.id || postData.id;
             if (realId) {
-              await fetch(`${getApiBaseUrl()}/amenities/${realId}`, {
+              await fetchWithRetry(`${getApiBaseUrl()}/amenities/${realId}`, {
                 method: 'PUT',
                 headers,
                 body: JSON.stringify({ status: 'REJECTED' }),
@@ -6418,7 +6445,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const storedToken = getStoredToken();
         const headers: Record<string, string> = {};
         if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
-        await fetch(`${getApiBaseUrl()}/amenities/${requestId}`, {
+        await fetchWithRetry(`${getApiBaseUrl()}/amenities/${requestId}`, {
           method: 'DELETE',
           headers,
         });
@@ -6519,7 +6546,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       paymentsApi, fetchPayments, createPayment, updatePayment, deletePayment,
       currentUser, login, signup, logout, setPendingUser, pendingUser,
       userLocation, locationStatus, locationErrorMessage, requestUserLocation,
-      spaces, spacesLoaded, favorites, toggleFavorite, addSpace, updateSpace, toggleSpaceVisibility, deleteSpace,
+      spaces, spacesLoaded, spacesStatus, favorites, toggleFavorite, addSpace, updateSpace, toggleSpaceVisibility, deleteSpace,
       bookings: bookingsWithLifecycle, addBooking, cancelBooking, requestRefund, updateBookingStatus, deleteBooking,
       amenityRequests, approvedCustomAmenities, requestCustomAmenity, approveAmenityRequest, rejectAmenityRequest, deleteAmenityRequest, getApprovedAmenities, fetchAmenities,
       supportTickets, fetchTickets, addSupportTicket, updateTicketStatus, replyToTicket, sendTicketMessage, closeMyTicket,

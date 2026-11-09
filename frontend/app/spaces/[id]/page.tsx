@@ -90,7 +90,8 @@ function SpaceDetailsView() {
     addToCart,
     getSpaceCrowding,
     showToast,
-    bookings
+    bookings,
+    spacesStatus
   } = useApp();
 
   const passActive = isUserPassHolder(currentUser);
@@ -213,6 +214,33 @@ function SpaceDetailsView() {
     if (expectedEnd !== endTime) setEndTime(expectedEnd);
   }, [space, isHourlySpace, selectedPlan, bookingDate, selectedHours, startTime, endTime]);
 
+
+  // The live catalogue is still loading (or waking up): show the page's shape instead of "not found"
+  if (!space && spacesStatus !== 'live') {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" aria-busy="true" aria-label={t('common.loading')} data-testid="space-details-skeleton">
+        <div className="ui-skeleton h-4 w-24 rounded-lg mb-6" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-5">
+            <div className="ui-skeleton aspect-[16/9] rounded-[28px]" />
+            <div className="ui-skeleton h-8 w-3/5 rounded-xl" />
+            <div className="ui-skeleton h-4 w-2/5 rounded-lg" />
+            <div className="space-y-2.5 pt-2">
+              <div className="ui-skeleton h-3.5 w-full rounded-lg" />
+              <div className="ui-skeleton h-3.5 w-11/12 rounded-lg" />
+              <div className="ui-skeleton h-3.5 w-4/5 rounded-lg" />
+            </div>
+          </div>
+          <div className="bg-white rounded-[28px] border border-zinc-200/70 p-6 space-y-4 h-fit">
+            <div className="ui-skeleton h-7 w-1/2 rounded-xl" />
+            <div className="ui-skeleton h-11 w-full rounded-2xl" />
+            <div className="ui-skeleton h-11 w-full rounded-2xl" />
+            <div className="ui-skeleton h-12 w-full rounded-full mt-2" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!space) {
     return (
@@ -392,7 +420,7 @@ function SpaceDetailsView() {
 
   const hoursDisplay = (space as any).openHours || (space as any).hours || 'Sun–Thu: 8am–10pm | Fri: 2pm–10pm';
   const phoneDisplay = space.phone || '+966 11 234 5678';
-  const emailDisplay = space.email || 'info@coworkingpass.sa';
+  const emailDisplay = space.email || 'info@muttakasa.com';
 
   return (
     <div className="min-h-screen bg-plaster text-soot py-8 px-4 sm:px-6 lg:px-8">

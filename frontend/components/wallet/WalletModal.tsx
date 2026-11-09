@@ -8,6 +8,7 @@ import {
   X, ShieldCheck, RefreshCw, CheckCircle2, History 
 } from 'lucide-react';
 import { useApp, type WalletSnapshot } from '@/app/store';
+import ListSkeleton from '@/components/ui/ListSkeleton';
 
 interface WalletModalProps {
   isOpen: boolean;
@@ -318,7 +319,9 @@ export default function WalletModal({ isOpen, onClose }: WalletModalProps) {
               </span>
             </div>
 
-            {walletTransactions.length === 0 ? (
+            {walletTransactions.length === 0 && isLoadingWallet ? (
+              <ListSkeleton rows={3} compact label={t('common.loading')} />
+            ) : walletTransactions.length === 0 ? (
               <div className="p-8 text-center bg-white/50 dark:bg-white/5 rounded-2xl border border-dashed border-soot/15 dark:border-white/10">
                 <Wallet className="mx-auto mb-2 text-soot/30 dark:text-white/30" size={32} />
                 <p className="text-xs text-soot/60 dark:text-white/60 font-medium">{t('wallet.noTransactions')}</p>

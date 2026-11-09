@@ -240,6 +240,10 @@ export default function Pricing() {
   };
 
   const handleConfirmSubscription = async () => {
+    if (selectedPaymentMethod !== 'WALLET') {
+      showToast('Please select wallet payment. Other payment methods are currently unavailable.', 'error');
+      return;
+    }
     if (!checkoutPlan || !checkoutPlan.price || !currentUser) return;
 
     // Strict account-type check before calling API
@@ -260,9 +264,7 @@ export default function Pricing() {
         showToast('Insufficient wallet balance for this subscription. Please top-up or choose another payment method.', 'error');
         return;
       }
-      if (withdrawFromWallet) {
-        await withdrawFromWallet(checkoutPlan.price, `Subscription: ${checkoutPlan.name}`);
-      }
+      // Subscription creation performs the wallet debit in its database transaction.
     }
 
     setIsProcessingPayment(true);
@@ -284,6 +286,8 @@ export default function Pricing() {
         endDate,
         status: 'ACTIVE',
       });
+
+      if (!res.success) throw new Error(res.error || "Subscription checkout failed.");
 
       // 2. Backend Payment recording
       await createPaymentApi({

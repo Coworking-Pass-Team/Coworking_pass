@@ -16,7 +16,7 @@ function PassVerificationContent() {
   const bookingId = searchParams.get('bookingId') || 'BK-DEMO-01';
   const spaceId = searchParams.get('spaceId') || 'space-1';
   const userId = searchParams.get('userId') || currentUser?.id || 'c5d1e5f2-6d95-4147-9175-2955b2b64a8a';
-  const spaceName = searchParams.get('spaceName') || 'Coworking Pass Space';
+  const spaceName = searchParams.get('spaceName') || 'Muttaka Space';
   const plan = searchParams.get('plan') || 'Daily Pass';
   const seats = searchParams.get('seats') || '1';
   const startDate = searchParams.get('startDate');

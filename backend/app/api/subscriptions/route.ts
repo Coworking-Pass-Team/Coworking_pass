@@ -1,3 +1,6 @@
+import { settleCheckout } from "@/lib/security/checkout";
+import { idempotent } from "@/lib/security/idempotency";
+import { money, positiveInteger, inputResponse, InputError } from "@/lib/security/input";
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
@@ -75,7 +78,7 @@ export async function GET(request: Request) {
  *       404:
  *         description: المستخدم أو الخطة غير موجودة
  */
-export async function POST(request: NextRequest) {
+export const POST = idempotent("subscriptions", async (request, db) => {
   try {
     const user = await getTokenFromRequest(request);
     if (!user) {
@@ -83,26 +86,26 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { userId, planId, startDate, endDate, status = 'ACTIVE' } = body;
+    const { userId, planId } = body;
 
     const effectiveUserId = (user && user.role === 'SUPER_ADMIN' && userId) ? userId : (user ? user.userId : null);
 
-    if (!effectiveUserId || !planId || !startDate || !endDate) {
+    if (!effectiveUserId || !planId) {
       return NextResponse.json(
-        { error: 'All fields are required: userId, planId, startDate, endDate' },
+        { error: 'A planId is required.' },
         { status: 400 }
       );
     }
 
     //  BE-08: فحص جمهور الباقة (B2C vs B2B)
     const [userData, plan] = await Promise.all([
-      prisma.user.findUnique({
+      db.user.findUnique({
         where: { id: effectiveUserId },
         select: { id: true, companyId: true, role: true }
       }),
-      prisma.membershipPlan.findUnique({
+      db.membershipPlan.findUnique({
         where: { id: planId },
-        select: { id: true, type: true, planName: true }
+        select: { id: true, type: true, planName: true, price: true, durationDays: true }
       })
     ]);
 
@@ -137,13 +140,18 @@ export async function POST(request: NextRequest) {
     }
 
     // إنشاء الاشتراك
-    const subscription = await prisma.subscription.create({
+    // Validity comes from the purchased catalog plan.
+    const starts = new Date();
+    const ends = new Date(starts);
+    ends.setUTCDate(ends.getUTCDate() + positiveInteger(plan.durationDays, 30, 366));
+    const subscription = await db.subscription.create({
       data: {
         userId: effectiveUserId,
         planId,
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
-        status: status === 'ACTIVE' || status === 'EXPIRED' || status === 'CANCELLED' ? status : 'ACTIVE',
+        payableAmount: money(plan.price),
+        startDate: starts,
+        endDate: ends,
+        status: 'ACTIVE',
         visitsUsed: 0,
       },
       include: {
@@ -152,12 +160,15 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    await settleCheckout(db, effectiveUserId, subscription.id, "SUBSCRIPTION", money(plan.price));
     return NextResponse.json(subscription, { status: 201 });
   } catch (error) {
+    const invalid = inputResponse(error);
+    if (invalid) return invalid;
     console.error('❌ Error creating subscription:', error);
     return NextResponse.json(
       { error: 'Failed to create subscription.' },
       { status: 500 }
     );
   }
-}
+});

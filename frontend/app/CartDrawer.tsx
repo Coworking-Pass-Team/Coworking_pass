@@ -42,7 +42,7 @@ function formatDateNice(dateStr?: string) {
 export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   const { t, translateMessage, localizeTime, formatDate } = useI18n();
   const st = useSpaceText();
-  const { cart, removeFromCart, updateCartItemSeats, clearCart, checkoutCart, currentUser, spaces, navigate, withdrawFromWallet } = useApp();
+  const { cart, removeFromCart, updateCartItemSeats, clearCart, checkoutCart, currentUser, spaces, navigate, withdrawFromWallet, showToast } = useApp();
   const [step, setStep] = useState<'cart' | 'review'>('cart');
   const [useLoyaltyPoints, setUseLoyaltyPoints] = useState(false);
   const [useWalletBalance, setUseWalletBalance] = useState(false);
@@ -95,6 +95,10 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   };
 
   const handleFinalCheckout = async () => {
+    if (!useWalletBalance || useLoyaltyPoints || hasActiveSubscription) {
+      showToast('Checkout currently supports wallet payment without pass or points redemption.', 'error');
+      return;
+    }
     if (checkoutInFlightRef.current) return;
     checkoutInFlightRef.current = true;
     if (!currentUser) {
@@ -106,20 +110,11 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
     // One idempotency key per checkout attempt: a repeated request with the same key never debits twice
     const chargeKey = `cart-${currentUser.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-    // Charge the wallet first; abort checkout if the debit fails
-    if (useWalletBalance && walletDeduction > 0 && withdrawFromWallet) {
-      const payment = await withdrawFromWallet(walletDeduction, 'Cart Checkout Payment', chargeKey);
-      if (!payment.success) {
-        checkoutInFlightRef.current = false;
-        return;
-      }
-    }
-
     const pointsToRedeem = useLoyaltyPoints ? maxRedeemablePoints : 0;
     // Bookings that the server later rejects get their share of the wallet debit back automatically
     const createdBookings = checkoutCart(
       pointsToRedeem,
-      useWalletBalance && walletDeduction > 0 ? { amount: walletDeduction, key: chargeKey } : undefined
+      undefined
     );
     checkoutInFlightRef.current = false;
     onClose();

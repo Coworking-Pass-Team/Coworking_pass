@@ -1,3 +1,5 @@
+import { adminPasswordError } from "./admin-password";
+import { randomBytes } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 
@@ -23,6 +25,8 @@ export function planSuperAdmin(env: Env = process.env): SuperAdminPlan {
   const email = env.SUPER_ADMIN_EMAIL?.trim().toLowerCase();
   const password = env.SUPER_ADMIN_PASSWORD;
   if (email && password) {
+    const error = adminPasswordError(password);
+    if (error) throw new Error(error);
     return { mode: "configured", email, password, resetPassword: env.SUPER_ADMIN_RESET_PASSWORD === "true" };
   }
   if (env.DEV_SEED_ADMIN === "true" && env.NODE_ENV !== "production") {
@@ -40,6 +44,7 @@ export async function provisionSuperAdmin(plan: SuperAdminPlan = planSuperAdmin(
   const notes: string[] = [];
 
   if (plan.mode === "dev-default") {
+    if (process.env.NODE_ENV === "production") throw new Error("Development admin seeding is disabled in production.");
     const email = LEGACY_ADMIN_EMAIL;
     const passwordHash = await bcrypt.hash(LEGACY_ADMIN_PASSWORD, 10);
     const existing = await prisma.user.findUnique({ where: { email } });
@@ -59,6 +64,8 @@ export async function provisionSuperAdmin(plan: SuperAdminPlan = planSuperAdmin(
   }
 
   if (plan.mode === "configured") {
+    const error = adminPasswordError(plan.password);
+    if (error) throw new Error(error);
     const existing = await prisma.user.findUnique({ where: { email: plan.email } });
     if (!existing) {
       await prisma.user.create({
@@ -86,8 +93,8 @@ export async function provisionSuperAdmin(plan: SuperAdminPlan = planSuperAdmin(
   const legacy = await prisma.user.findUnique({ where: { email: LEGACY_ADMIN_EMAIL } });
   const keepsConfiguredEmail = plan.mode === "configured" && plan.email === LEGACY_ADMIN_EMAIL;
   if (legacy && !keepsConfiguredEmail && (await hasLegacyPassword(legacy.passwordHash))) {
-    const unusable = await bcrypt.hash(`revoked-${Date.now()}-${Math.random()}`, 10);
-    await prisma.user.update({ where: { id: legacy.id }, data: { passwordHash: unusable } });
+    const unusable = await bcrypt.hash(randomBytes(48).toString("hex"), 10);
+    await prisma.user.update({ where: { id: legacy.id }, data: { passwordHash: unusable, sessionsRevokedAt: new Date() } });
     notes.push("Revoked the legacy public admin password");
   }
   return notes;

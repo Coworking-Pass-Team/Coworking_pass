@@ -475,7 +475,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Why Coworking Pass */}
+      {/* Why Muttaka */}
       <section className="py-24 max-w-6xl mx-auto px-4 sm:px-6">
         <div className="max-w-3xl mb-12">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-soot/5 border border-soot/10 text-moss text-xs font-semibold mb-4 shadow-xs">

@@ -1,3 +1,4 @@
+import { financialBody, money, inputResponse } from "@/lib/security/input";
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token"
@@ -54,8 +55,8 @@ export async function POST(
     }
 
     const { id } = await params;
-    const body = await request.json();
-    const amount = body.amount;
+    const body = await financialBody(request);
+    const amount = money(body.amount);
 
     if (typeof amount !== 'number' || !Number.isFinite(amount) || amount <= 0) {
       return NextResponse.json(
@@ -142,6 +143,8 @@ export async function POST(
     });
 
   } catch (error) {
+    const invalid = inputResponse(error);
+    if (invalid) return invalid;
     console.error('Error withdrawing from company wallet:', error);
     return NextResponse.json(
       { error: 'Failed to withdraw from company wallet.' },

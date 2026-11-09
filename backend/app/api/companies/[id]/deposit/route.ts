@@ -1,3 +1,4 @@
+import { financialBody, money, inputResponse } from "@/lib/security/input";
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token"
@@ -45,17 +46,11 @@ export async function POST(
   try {
     const user = await getTokenFromRequest(request);
     if (!user) return unauthorizedResponse(request);
-
-    if (user.role !== 'HR_ADMIN' && user.role !== 'SUPER_ADMIN') {
-      return NextResponse.json(
-        { error: 'Unauthorized. Only HR Admin or Super Admin permitted.' },
-        { status: 403 }
-      );
-    }
+    if (user.role !== "SUPER_ADMIN") return NextResponse.json({ error: "Funding requires verified payment settlement." }, { status: 403 });
 
     const { id } = await params
-    const body = await request.json()
-    const amount = body.amount
+    const body = await financialBody(request)
+    const amount = money(body.amount)
 
     if (typeof amount !== 'number' || !Number.isFinite(amount) || amount <= 0) {
       return NextResponse.json(
@@ -72,14 +67,6 @@ export async function POST(
       return NextResponse.json(
         { error: 'Company not found.' },
         { status: 404 }
-      )
-    }
-
-    // An HR admin may only fund their own company wallet
-    if (user.role === 'HR_ADMIN' && company.hrAdminId !== user.userId) {
-      return NextResponse.json(
-        { error: 'You can only manage your own company wallet.' },
-        { status: 403 }
       )
     }
 
@@ -124,6 +111,8 @@ export async function POST(
     })
 
   } catch (error) {
+    const invalid = inputResponse(error);
+    if (invalid) return invalid;
     console.error('❌ Error depositing:', error)
     return NextResponse.json(
       { error: 'Failed to deposit into company wallet.' },

@@ -1,5 +1,4 @@
 import { prisma } from '@/lib/prisma';
-import bcrypt from 'bcryptjs';
 import { ensureDatabaseSchema } from '@/lib/db/schema-sync';
 import type { Prisma } from '@prisma/client';
 
@@ -768,18 +767,7 @@ export async function seedLoyaltyRules() {
     });
   }
 
-  if (!admin) {
-    const passwordHash = await bcrypt.hash('password', 10);
-    admin = await prisma.user.create({
-      data: {
-        name: 'Platform Super Admin',
-        email: 'admin@coworkingpass.sa',
-        passwordHash,
-        role: 'SUPER_ADMIN',
-        emailVerified: true,
-      },
-    });
-  }
+  if (!admin) throw new Error('Provision a Super Admin securely before seeding loyalty rules.');
 
   // 2. Rule 1: كسب 10 نقاط لكل 100 ريال تُدفع
   const existingEarning = await prisma.loyaltyRule.findFirst({

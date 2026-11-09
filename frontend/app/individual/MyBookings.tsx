@@ -35,6 +35,7 @@ import { useBookingSelection } from '@/hooks/useBookingSelection';
 import { hourlyEffectiveStatus, sortBookings, type BookingSortOrder } from '@/lib/booking-lifecycle';
 import { deleteDirectBookingApi, getHourlyBookingsApi, updateHourlyBookingApi, HourlyBookingItemApi } from '@/services/api';
 import RescheduleModal, { type RescheduleTarget } from '@/components/bookings/RescheduleModal';
+import ListSkeleton from '@/components/ui/ListSkeleton';
 
 const FALLBACK_SPACE_IMAGE = 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80';
 
@@ -264,10 +265,8 @@ function MyBookingsContent() {
             actions={[{ key: 'cancel', kind: 'cancel', label: t('bookingsList.cancelSelected'), run: bulkCancelHourly }]}
           />
 
-          {loadingHourly ? (
-            <div className="text-center py-12 bg-white rounded-3xl border border-soot/8 text-moss text-xs">
-              {t('myBookings.loadingHourly')}
-            </div>
+          {loadingHourly && hourlyBookings.length === 0 ? (
+            <ListSkeleton rows={3} label={t('myBookings.loadingHourly')} />
           ) : hourlyBookings.length === 0 ? (
             <div className="text-center py-12 bg-white rounded-3xl border border-soot/8 text-moss text-xs">
               {t('myBookings.noHourly')}

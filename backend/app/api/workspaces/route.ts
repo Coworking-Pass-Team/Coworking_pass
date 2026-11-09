@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { publicPartner } from "@/lib/workspaces/public-partner";
 import { getOccupiedSeatsToday } from "@/lib/booking/capacity";
 import { redactHiddenWorkspace } from "@/lib/workspaces/visibility";
 import { isValidHhmm } from "@/lib/workspaces/operating-hours";
@@ -62,7 +63,6 @@ async function syncWorkspaceAmenities(workspaceId: string, amenities: string[]) 
   }
 }
 
-import { seedStandardWorkspaces } from "@/lib/db/seed-data";
 import { errorMessage } from "@/lib/errors";
 import { effectiveCapacity } from "@/lib/booking/capacity";
 
@@ -73,7 +73,7 @@ export async function GET(request: Request) {
     const minPrice = searchParams.get("minPrice");
     const maxPrice = searchParams.get("maxPrice");
 
-    let workspaces = await prisma.workspace.findMany({
+    const workspaces = await prisma.workspace.findMany({
       where: {
         ...(city && { city: { equals: city, mode: "insensitive" } }),
         ...(minPrice && { dailyRate: { gte: Number(minPrice) } }),
@@ -81,14 +81,6 @@ export async function GET(request: Request) {
       },
       include: { partner: true, sections: { include: { hourlyPackages: true } }, amenities: { include: { amenity: true } } },
     });
-
-    // إذا كانت قاعدة البيانات جديدة وخالية، نغذيها تلقائياً بجميع مساحات الشبكة الرسمية
-    if (workspaces.length === 0 && !city && !minPrice && !maxPrice) {
-      await seedStandardWorkspaces();
-      workspaces = await prisma.workspace.findMany({
-        include: { partner: true, sections: { include: { hourlyPackages: true } }, amenities: { include: { amenity: true } } },
-      });
-    }
 
     // Live availability for today, computed from confirmed bookings
     const occupiedByWorkspace = await getOccupiedSeatsToday(workspaces.map((w) => w.id));
@@ -104,6 +96,7 @@ export async function GET(request: Request) {
       ? redactHiddenWorkspace(w)
       : ({
       ...w,
+      partner: publicPartner(w.partner),
       totalCapacity: effectiveCapacity(w),
       occupiedSeats: occupiedByWorkspace.get(w.id) || 0,
       availableCapacity: Math.max(0, effectiveCapacity(w) - (occupiedByWorkspace.get(w.id) || 0)),

@@ -13,11 +13,12 @@ import { getSpacesServer } from '@/lib/spaces-server';
 import { T } from '@/i18n';
 import { LANG_COOKIE_NAME, resolveLang, translateServer } from '@/i18n/server';
 import { cookies } from 'next/headers';
+import { serializeJsonLd } from '@/lib/json-ld';
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://coworkingpass.sa'),
-  title: 'Coworking Pass | Flexible Coworking Spaces Across Saudi Arabia',
-  description: 'Instantly access flexible, fully equipped coworking spaces in Riyadh, Jeddah, Dammam, and beyond. Book private offices, meeting rooms, and theaters across Saudi Arabia.',
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://muttakasa.com'),
+  title: 'Muttaka — Flexible Workspaces & Coworking Pass in Saudi Arabia',
+  description: 'مُتَّكَأ لمساحات العمل المرنة والمكاتب المشتركة في المملكة. Instantly access flexible, fully equipped coworking spaces in Riyadh, Jeddah, Dammam, and beyond. Book private offices, meeting rooms, and theaters across Saudi Arabia.',
   keywords: [
     'coworking saudi arabia',
     'coworking riyadh',
@@ -25,29 +26,32 @@ export const metadata: Metadata = {
     'dammam meeting rooms',
     'flexible workspace',
     'private office saudi',
+    'muttaka',
+    'متكأ',
     'coworking pass',
     'office spaces khobar',
     'meeting halls saudi arabia',
   ],
   openGraph: {
-    title: 'Coworking Pass - Saudi Arabia\'s Premier Coworking Network',
-    description: 'Instantly access flexible, fully equipped coworking spaces in Riyadh, Jeddah, Dammam, and beyond. Book by the day, month, or year.',
-    url: 'https://coworkingpass.sa',
-    siteName: 'Coworking Pass',
+    title: 'Muttaka — Flexible Workspaces & Coworking Pass in Saudi Arabia',
+    description: 'مُتَّكَأ لمساحات العمل المرنة والمكاتب المشتركة في المملكة. Book coworking spaces, offices and meeting rooms by the hour, day, month or year.',
+    url: 'https://muttakasa.com',
+    siteName: 'Muttaka | مُتَّكَأ',
     images: [
       {
         url: '/landing-hero.jpg',
         width: 1200,
         height: 630,
-        alt: 'Coworking Pass - Workspaces Across Saudi Arabia',
+        alt: 'Muttaka — Flexible Workspaces & Coworking Pass in Saudi Arabia',
       },
     ],
     locale: 'en_US',
+    alternateLocale: ['ar_SA'],
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Coworking Pass | Flexible Coworking Spaces Across Saudi Arabia',
+    title: 'Muttaka — Flexible Workspaces & Coworking Pass in Saudi Arabia',
     description: 'Find and book flexible desks, offices, and conference halls across the Kingdom with zero lock-in.',
     images: ['/landing-hero.jpg'],
   },
@@ -65,11 +69,12 @@ export default async function Page() {
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
-    name: 'Coworking Pass',
-    url: 'https://coworkingpass.sa',
+    name: 'Muttaka',
+    alternateName: 'مُتَّكَأ',
+    url: 'https://muttakasa.com',
     potentialAction: {
       '@type': 'SearchAction',
-      target: 'https://coworkingpass.sa/spaces?city={search_term_string}',
+      target: 'https://muttakasa.com/spaces?city={search_term_string}',
       'query-input': 'required name=search_term_string',
     },
     hasPart: featuredSpaces.map(space => ({
@@ -104,7 +109,7 @@ export default async function Page() {
       {/* Schema.org Structured Data */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
 
       <div className="min-h-screen flex flex-col bg-plaster">

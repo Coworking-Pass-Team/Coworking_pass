@@ -1,11 +1,19 @@
 import { Resend } from "resend";
 
-/** The Resend test sender; it only delivers to the address that owns the Resend account. */
-const DEFAULT_FROM = "Coworking Pass <onboarding@resend.dev>";
+/** Sender name on every email, in both languages (quoted: it holds a "|" and Arabic letters). */
+export const SENDER_NAME = "Muttaka | مُتَّكَأ";
 
-/** Sender shown on every email: set RESEND_FROM_EMAIL once a domain is verified in Resend. */
+/** The Resend test sender; it only delivers to the address that owns the Resend account. */
+const DEFAULT_FROM = `"${SENDER_NAME}" <onboarding@resend.dev>`;
+
+/**
+ * Sender shown on every email: set RESEND_FROM_EMAIL once a domain is verified in Resend. A bare address
+ * (no-reply@muttakasa.com) gets the brand name in front; a value with its own name is used as it is.
+ */
 export function getFromAddress(): string {
-  return process.env.RESEND_FROM_EMAIL?.trim() || DEFAULT_FROM;
+  const configured = process.env.RESEND_FROM_EMAIL?.trim();
+  if (!configured) return DEFAULT_FROM;
+  return configured.includes("<") ? configured : `"${SENDER_NAME}" <${configured}>`;
 }
 
 /** True once a real Resend key is configured (the build-time placeholder does not count). */
@@ -66,21 +74,21 @@ function frame(locale: EmailLocale, maxWidth: number, inner: string): string {
 
 const CODE_COPY = {
   ar: {
-    otpSubject: "رمز التحقق - كوورك باس",
+    otpSubject: "رمز التحقق - مُتَّكَأ",
     otpHeading: "رمز التحقق الخاص بك",
-    otpIntro: "استخدم الرمز التالي لمرة واحدة لإكمال التحقق في كوورك باس:",
-    resetSubject: "إعادة تعيين كلمة المرور - كوورك باس",
+    otpIntro: "استخدم الرمز التالي لمرة واحدة لإكمال التحقق في مُتَّكَأ:",
+    resetSubject: "إعادة تعيين كلمة المرور - مُتَّكَأ",
     resetHeading: "إعادة تعيين كلمة المرور",
-    resetIntro: "تلقّينا طلبًا لإعادة تعيين كلمة مرور حسابك في كوورك باس. أدخل هذا الرمز لاختيار كلمة مرور جديدة. إذا لم تطلب ذلك فتجاهل هذه الرسالة وستبقى كلمة مرورك كما هي:",
+    resetIntro: "تلقّينا طلبًا لإعادة تعيين كلمة مرور حسابك في مُتَّكَأ. أدخل هذا الرمز لاختيار كلمة مرور جديدة. إذا لم تطلب ذلك فتجاهل هذه الرسالة وستبقى كلمة مرورك كما هي:",
     validity: "هذا الرمز صالح لمدة 10 دقائق. لا تشارك هذا الرمز مع أي شخص.",
   },
   en: {
-    otpSubject: "Verification Code - Coworking Pass",
+    otpSubject: "Verification Code - Muttaka",
     otpHeading: "Your Verification Code",
-    otpIntro: "Use the following one-time code to complete verification in Coworking Pass:",
-    resetSubject: "Reset your password - Coworking Pass",
+    otpIntro: "Use the following one-time code to complete verification in Muttaka:",
+    resetSubject: "Reset your password - Muttaka",
     resetHeading: "Reset Your Password",
-    resetIntro: "We received a request to reset your Coworking Pass password. Enter this code to choose a new one. If you did not ask for this, you can ignore this email and your password stays the same:",
+    resetIntro: "We received a request to reset your Muttaka password. Enter this code to choose a new one. If you did not ask for this, you can ignore this email and your password stays the same:",
     validity: "This code is valid for 10 minutes. Do not share this code with anyone.",
   },
 } as const;
@@ -118,10 +126,10 @@ export function sendPasswordResetEmail(to: string, code: string, locale: EmailLo
 
 const PARTNER_COPY = {
   ar: {
-    approvedSubject: (brand: string) => `تهانينا! تم اعتماد ${brand} - كوورك باس`,
+    approvedSubject: (brand: string) => `تهانينا! تم اعتماد ${brand} - مُتَّكَأ`,
     network: "شبكة شركاء المساحات",
     approvedHeading: "تهانينا! تم اعتماد حسابك 🎉",
-    approvedBody: (brand: string) => `يسعدنا إبلاغك بأنه تم التحقق من بيانات مساحتك وسجلها التجاري لـ <strong>${brand}</strong> واعتمادها. أصبحت الآن شريكًا فعّالًا في شبكة كوورك باس.`,
+    approvedBody: (brand: string) => `يسعدنا إبلاغك بأنه تم التحقق من بيانات مساحتك وسجلها التجاري لـ <strong>${brand}</strong> واعتمادها. أصبحت الآن شريكًا فعّالًا في شبكة مُتَّكَأ.`,
     nextHeading: "ما الذي يمكنك فعله الآن؟",
     next: [
       "سجّل الدخول إلى لوحة تحكم شريك المساحات.",
@@ -129,18 +137,18 @@ const PARTNER_COPY = {
       "اضبط أسعار الساعة واليوم لتبدأ باستقبال الحجوزات فورًا.",
     ],
     cta: "الدخول إلى لوحة التحكم",
-    footer: "إذا كانت لديك أي أسئلة فتواصل مع دعم الشركاء.<br/>فريق كوورك باس &bull; المملكة العربية السعودية",
-    rejectedSubject: (brand: string) => `تحديث بخصوص طلب ${brand} - كوورك باس`,
+    footer: "إذا كانت لديك أي أسئلة فتواصل مع دعم الشركاء.<br/>فريق مُتَّكَأ &bull; المملكة العربية السعودية",
+    rejectedSubject: (brand: string) => `تحديث بخصوص طلب ${brand} - مُتَّكَأ`,
     rejectedHeading: "تحديث حالة طلب الشراكة",
-    rejectedBody: (brand: string) => `شكرًا لاهتمامك بالانضمام إلى كوورك باس. بعد مراجعة بيانات التسجيل الخاصة بـ <strong>${brand}</strong> بعناية، لا يمكننا اعتماد طلبك في الوقت الحالي.`,
+    rejectedBody: (brand: string) => `شكرًا لاهتمامك بالانضمام إلى مُتَّكَأ. بعد مراجعة بيانات التسجيل الخاصة بـ <strong>${brand}</strong> بعناية، لا يمكننا اعتماد طلبك في الوقت الحالي.`,
     reason: "السبب:",
-    contact: "للاستفسار يرجى التواصل مع فريق الدعم على support@coworkingpass.sa.",
+    contact: "للاستفسار يرجى التواصل مع فريق الدعم على support@muttakasa.com.",
   },
   en: {
-    approvedSubject: (brand: string) => `Congratulations! ${brand} has been approved - Coworking Pass`,
+    approvedSubject: (brand: string) => `Congratulations! ${brand} has been approved - Muttaka`,
     network: "Space Venue Partner Network",
     approvedHeading: "Congratulations! Your Account is Approved 🎉",
-    approvedBody: (brand: string) => `We are pleased to inform you that your venue credentials and Commercial Registration for <strong>${brand}</strong> have been verified and approved. You are now an active partner on the Coworking Pass network.`,
+    approvedBody: (brand: string) => `We are pleased to inform you that your venue credentials and Commercial Registration for <strong>${brand}</strong> have been verified and approved. You are now an active partner on the Muttaka network.`,
     nextHeading: "What can you do now?",
     next: [
       "Log in to your Space Partner Dashboard.",
@@ -148,12 +156,12 @@ const PARTNER_COPY = {
       "Configure hourly and day pass rates to start receiving reservations immediately.",
     ],
     cta: "Sign In to Your Dashboard",
-    footer: "If you have any questions, feel free to contact partner support.<br/>Coworking Pass Team &bull; Kingdom of Saudi Arabia",
-    rejectedSubject: (brand: string) => `Update regarding your application for ${brand} - Coworking Pass`,
+    footer: "If you have any questions, feel free to contact partner support.<br/>Muttaka Team &bull; Kingdom of Saudi Arabia",
+    rejectedSubject: (brand: string) => `Update regarding your application for ${brand} - Muttaka`,
     rejectedHeading: "Partner Application Status Update",
-    rejectedBody: (brand: string) => `Thank you for your interest in joining Coworking Pass. After careful review of the registration information for <strong>${brand}</strong>, we are unable to approve your application at this time.`,
+    rejectedBody: (brand: string) => `Thank you for your interest in joining Muttaka. After careful review of the registration information for <strong>${brand}</strong>, we are unable to approve your application at this time.`,
     reason: "Reason:",
-    contact: "For further inquiries, please contact our support team at support@coworkingpass.sa.",
+    contact: "For further inquiries, please contact our support team at support@muttakasa.com.",
   },
 } as const;
 
@@ -168,7 +176,7 @@ export function sendPartnerApprovalEmail(to: string, brandName: string, locale: 
       locale,
       600,
       `<div style="text-align: center; margin-bottom: 24px;">
-          <h1 style="color: #1b4332; font-size: 24px; margin: 0; font-weight: 700;">${locale === "ar" ? "كوورك باس" : "Coworking Pass"}</h1>
+          <h1 style="color: #1b4332; font-size: 24px; margin: 0; font-weight: 700;">${locale === "ar" ? "مُتَّكَأ" : "Muttaka"}</h1>
           <p style="color: #6b7280; font-size: 13px; margin-top: 4px;">${copy.network}</p>
         </div>
 

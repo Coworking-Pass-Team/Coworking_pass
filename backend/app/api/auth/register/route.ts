@@ -1,3 +1,4 @@
+import { otpLimitResponse } from "@/lib/auth/otp";
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
@@ -236,6 +237,8 @@ if (existingUser && !existingUser.emailVerified) {
       { status: 201 }
     );
   } catch (error) {
+    const limited = otpLimitResponse(error);
+    if (limited) return limited;
     console.error("❌ Error registering user:", error);
     return NextResponse.json({ error: "Internal server error during account registration." }, { status: 500 });
   }

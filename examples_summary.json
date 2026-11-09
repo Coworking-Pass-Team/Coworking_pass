@@ -1,0 +1,595 @@
+{
+  "ex1": {
+    "toc": [
+      [
+        1,
+        "Introduction",
+        7
+      ],
+      [
+        2,
+        "Purpose of Training",
+        7
+      ],
+      [
+        2,
+        "Objectives",
+        7
+      ],
+      [
+        1,
+        "Organization: [SDAIA]",
+        8
+      ],
+      [
+        2,
+        "Company Overview",
+        8
+      ],
+      [
+        2,
+        "Department and Training Context",
+        8
+      ],
+      [
+        1,
+        "Training Activities at Organization ",
+        9
+      ],
+      [
+        2,
+        "Weekly Overview",
+        9
+      ],
+      [
+        2,
+        "Tools and Technologies",
+        9
+      ],
+      [
+        2,
+        "Challenges and Solutions",
+        10
+      ],
+      [
+        1,
+        "Projects and Contributions at NCِِAI",
+        12
+      ],
+      [
+        2,
+        "Tarf",
+        12
+      ],
+      [
+        3,
+        "Project Description",
+        12
+      ],
+      [
+        3,
+        "MY Role",
+        12
+      ],
+      [
+        2,
+        "Legal System",
+        12
+      ],
+      [
+        3,
+        "Project Description",
+        12
+      ],
+      [
+        3,
+        "My Role",
+        12
+      ],
+      [
+        2,
+        "Satellite Image Classification",
+        13
+      ],
+      [
+        3,
+        "Project Description",
+        13
+      ],
+      [
+        3,
+        "My Role",
+        13
+      ],
+      [
+        2,
+        "Sentiment Analysis Exploration",
+        13
+      ],
+      [
+        3,
+        "Project Description",
+        14
+      ],
+      [
+        2,
+        "Text-to-SQL System",
+        14
+      ],
+      [
+        3,
+        "Project Description",
+        14
+      ],
+      [
+        3,
+        "My Role",
+        14
+      ],
+      [
+        2,
+        "News Scraping (SPA Project)",
+        14
+      ],
+      [
+        3,
+        "Project Description",
+        15
+      ],
+      [
+        3,
+        "My Role",
+        15
+      ],
+      [
+        2,
+        "Agriculture System",
+        15
+      ],
+      [
+        3,
+        "Project Description",
+        15
+      ],
+      [
+        3,
+        "My Role",
+        15
+      ],
+      [
+        1,
+        "Skills Gained",
+        17
+      ],
+      [
+        2,
+        "Technical Skills",
+        17
+      ],
+      [
+        2,
+        "Soft Skills",
+        17
+      ],
+      [
+        1,
+        "Evaluation of the Training",
+        19
+      ],
+      [
+        2,
+        "Strengths",
+        19
+      ],
+      [
+        2,
+        "Areas for Improvement",
+        19
+      ],
+      [
+        2,
+        "Suggestions",
+        19
+      ],
+      [
+        1,
+        "Conclusion",
+        21
+      ],
+      [
+        1,
+        "References",
+        21
+      ],
+      [
+        1,
+        "Training Plan",
+        1
+      ],
+      [
+        1,
+        "Additional Screenshots or Materials",
+        1
+      ]
+    ],
+    "preview": "--- Page 1 ---\n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \nC!””#$# !% C!&’()*+$\nD#’,-)&#+) !% C!&’()#- S.*#+.# ,+/ A-)*%*.*,”\nI+)#””*$#+.#\nCooperative Training Report\nAugust 2025\nWri!en By: …\n--- Page 2 ---\nStudent Name: …\nStudent ID: …\nTraining Organization:\n• Saudi Authority for Data and Arti”cial Intelligence-SDAIA (3ed Mar – 8th Aug)\nField Supervisor : ..\nAcademic Supervisor: Dr. Daren FadolalKarim\nCooperative Training Report\n2\n--- Page 3 ---\nAcknowledgment\nI would like to express my sincere gratitude to both Umm Al-#ra University and my train-\ning organization, the Saudi Data and AI Authority (SDAIA), for providing me with the op-\nportunity to complete my COOP training and gain valuable hands-on experience in the\n”eld of arti”cial intelligence.\nSpecial thanks to my academic supervisor, Dr. Daren AL-Karim, for his continuous\nsupport and guidance throughout this journey. I also extend my heartfelt appreciation to\nmy ”eld supervisors, Dr. Hassan Al-Shahrani and Mr. Saad, for their mentorship, valuable\ninsights, and e$orts during my time at the organization.\nI am deeply thankful to my family for their unwavering support especially my mother\nand father, who endured my absence during this period and encouraged me through every\nstage. I would also like to express my appreciation to my uncle Ahmed and my sister Manar,\nwho kindly hosted me in Riyadh and helped improve the quality of my experience.\nFinally, my deepest gratitude goes to my dear friend Shahad, who stood by my side\nduring all the challenges, witnessed every step of my journey, and o$ered me constant\nsupport and encouragement.\nCooperative Training Report\n1\n--- Page 4 ---\nAbstract\n%is report provides a comprehensive overview of the COOP training undertaken at the\nSaudi Data and AI Authority (SDAIA). %e primary objective of the training was to bridge\nacademic learning with practical experience in the ”eld of arti”cial intelligence. %e report\noutlines the organizational structure, highlights key projects completed across various AI\ndomains, describes the tools and technologies used, and re&ects on the challenges faced and\nskills developed. %rough this hands-on experience, the training signi”cantly contributed\nto enhancing both technical and professional competencies, preparing for real-world in-\ndustry demands.\nCooperative Training Report\n2\n--- Page 5 ---\nContents\n1\nIntroduction\n5\n1.1\nPurpose of Training . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .\n5\n1.2\nObjectives\n. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .\n5\n2\nOrganization: [SDAIA]\n6\n2.1\nCompany Overview . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .\n6\n2.2\nDepartment and Training Context . . . . . . . . . . . . . . . . . . . . . . .\n6\n3\nTraining Activities at Organization\n7\n3.1\nWeekly Overview . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .\n7\n3.2\nTools and Technologies . . . . . . . . . . . . . . . . . . . . . . . . . . . . .\n7\n3.3\nChallenges and Solutions . . . . . . . . . . . . . . . . . . . . . . . . . . . .\n8\n4\nProjects and Contributions at NCAI\n10\n4.1\nTarf . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .\n10\n4.1.1\nProject Description . . . . . . . . . . . . . . . . . . . . . . . . . . .\n10\n4.1.2\nMY Role . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .\n10\n4.2\nLegal System . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .\n10\n4.2.1\nProject Description . . . . . . . . . . . . . . . . . . . . . . . . . . .\n10\n4.2.2\nMy Role . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .\n11\n4.3\nSatellite Image Classi”cation . . . . . . . . . . . . . . . . . . . . . . . . . .\n11\n4.3.1\nProject Description . . . . . . . . . . . . . . . . . . . . . . . . . . .\n11\n4.3.2\nMy Role . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .\n11\n4.4\nSentiment Analysis Exploration\n. . . . . . . . . . . . . . . . ",
+    "page_count": 22
+  },
+  "ex2": {
+    "toc": [
+      [
+        1,
+        "Introduction",
+        7
+      ],
+      [
+        2,
+        "Purpose of Training",
+        7
+      ],
+      [
+        2,
+        "Objectives",
+        7
+      ],
+      [
+        1,
+        "Training at TechWin",
+        8
+      ],
+      [
+        2,
+        "Company Overview",
+        8
+      ],
+      [
+        2,
+        "Department and Training Context",
+        8
+      ],
+      [
+        2,
+        "Training Topics Overview",
+        8
+      ],
+      [
+        3,
+        "Back-End Curriculum",
+        8
+      ],
+      [
+        3,
+        "Standalone Tasks",
+        11
+      ],
+      [
+        3,
+        "Enrichment Sessions",
+        13
+      ],
+      [
+        2,
+        "Projects and Contributions at TechWin",
+        15
+      ],
+      [
+        3,
+        "Maqas - Project Description",
+        15
+      ],
+      [
+        3,
+        "Development process",
+        15
+      ],
+      [
+        3,
+        "My Role",
+        19
+      ],
+      [
+        2,
+        "Tools and Technologies",
+        19
+      ],
+      [
+        2,
+        "Challenges and Solutions",
+        20
+      ],
+      [
+        2,
+        "Voluntary Contributions",
+        21
+      ],
+      [
+        1,
+        "Training at KAUST Academy",
+        22
+      ],
+      [
+        2,
+        "Company Overview",
+        22
+      ],
+      [
+        2,
+        "Department and Training Context",
+        22
+      ],
+      [
+        2,
+        "Training Topics Overview",
+        22
+      ],
+      [
+        3,
+        "Computer Vision",
+        23
+      ],
+      [
+        3,
+        "Reinforcement Learning",
+        23
+      ],
+      [
+        3,
+        "Natural Language Processing",
+        24
+      ],
+      [
+        3,
+        "Enrichments",
+        24
+      ],
+      [
+        3,
+        "Kaggle Competitions",
+        26
+      ],
+      [
+        2,
+        "Projects and Contributions",
+        27
+      ],
+      [
+        3,
+        "GRC Agent - Project Description",
+        27
+      ],
+      [
+        3,
+        "Development process",
+        27
+      ],
+      [
+        3,
+        "My Role",
+        30
+      ],
+      [
+        2,
+        "Tools and Technologies",
+        31
+      ],
+      [
+        2,
+        "Challenges and Solutions",
+        33
+      ],
+      [
+        1,
+        "Comparison and Reflections",
+        36
+      ],
+      [
+        2,
+        "Learning Outcomes from Both Organizations",
+        36
+      ],
+      [
+        2,
+        "Differences in Work Environment",
+        36
+      ],
+      [
+        2,
+        "Skills Comparison and Integration",
+        37
+      ],
+      [
+        1,
+        "Skills Gained",
+        38
+      ],
+      [
+        2,
+        "Technical Skills",
+        38
+      ],
+      [
+        2,
+        "Soft Skills",
+        39
+      ],
+      [
+        1,
+        "Evaluation of the Training",
+        40
+      ],
+      [
+        2,
+        "Strengths",
+        40
+      ],
+      [
+        2,
+        "Areas for Improvement",
+        40
+      ],
+      [
+        2,
+        "Suggestions",
+        40
+      ],
+      [
+        1,
+        "Conclusion",
+        42
+      ],
+      [
+        1,
+        "References",
+        42
+      ],
+      [
+        1,
+        "Additional Materials",
+        1
+      ],
+      [
+        1,
+        "TechWin Training Plan",
+        44
+      ],
+      [
+        1,
+        "KAUST Academy Training Plan",
+        47
+      ]
+    ],
+    "preview": "--- Page 1 ---\n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \nC!””#$# !% C!&’()*+$\nD#’,-)&#+) !% C!&’()#- S.*#+.# ,+/ A-)*%*.*,”\nI+)#””*$#+.#\nCooperative Training Report\nAugust 2025\nWri!en By: …\n--- Page 2 ---\nStudent Name: …\nStudent ID: …\nTraining Organization(s):\n• TechWin (April 6th – May 29th)\nField Supervisor I: Mohamad …\n• KAUST Academy (June 15th – August 8th)\nField Supervisor II: …\nAcademic Supervisor: Dr. Daren Fadolalkarim\nSubmission Date: August 2025\nCooperative Training Report\n2\n--- Page 3 ---\nAcknowledgment\nI would like to express my sincere gratitude to both Umm Al-”ra University and my train-\ning organizations, TechWin and KAUST Academy, for providing me with the opportunity\nto complete my COOP training, and to my family for their unwavering, precious support.\n#is experience was a transformative milestone in my career. I bene$ted largely and deeply,\nthank Allah for all his generous, always blessings.\nSpecial thanks to my academic supervisor, Dr. Daren Fadolalkarim. Your guidance,\nsupport and care shaped and contributed to making our training as amazing as it was, may\nAllah reward you with his generosity.\nMy gratitude is extended to all mentors who guided me throughout this journey, $rst\nof which are Mr. Mohamad Al-Ahmer and Mr. Mohammed Adnan, the incredible TechWin\nManagers. Your tremendous e%orts and noble goals a&er Allah’s will are what provided us\nwith the most wonderful training experience. We will always remember your enormous\ngenerosity and pray that Allah blesses you with be!er than your best wishes.\nI also deeply and vastly thank the amazing TAs who helped us throughout our journey,\nMs. Hebah Soleman and Mr. Yazan Alshuaibi. Your knowledge, expertise, and invaluable\nassistance were absolutely pivotal to our utmost bene$t. On top of that, we were truly\nblessed by having Ms. Riham Bakhashwein’s guidance in our project. May it all be within\nyour good deeds.\nFinally, I sincerely appreciate the brilliant chance of having such excellent team mem-\nbers. I thank everyone who collaborated with me to achieve these remarkable results, and\nmost speci$cally thank Alanoud, Tala, and Maithaa. It was a true pleasure working with\nyou all, may Allah grant you of reaching your highest ambitions.\nCooperative Training Report\n1\n--- Page 4 ---\nAbstract\n#is report presents a summary of the COOP training conducted at TechWin and KAUST\nAcademy. #e training aimed to provide practical experience aligned with my academic\nbackground. It describes the organizations pro$les, projects undertaken, tools used, chal-\nlenges faced, skills gained, with a comparison of the two experiences.\nCooperative Training Report\n2\n--- Page 5 ---\nContents\n1\nIntroduction\n5\n1.1\nPurpose of Training . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .\n5\n1.2\nObjectives\n. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .\n5\n2\nTraining at TechWin\n6\n2.1\nCompany Overview . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .\n6\n2.2\nDepartment and Training Context . . . . . . . . . . . . . . . . . . . . . . .\n6\n2.3\nTraining Topics Overview . . . . . . . . . . . . . . . . . . . . . . . . . .\n6\n2.3.1\nBack-End Curriculum . . . . . . . . . . . . . . . . . . . . . . . . . .\n7\n2.3.2\nStandalone Tasks . . . . . . . . . . . . . . . . . . . . . . . . . . . .\n9\n2.3.3\nEnrichment Sessions . . . . . . . . . . . . . . . . . . . . . . . . . .\n11\n2.4\nProjects and Contributions at TechWin . . . . . . . . . . . . . . . . . . . .\n13\n2.4.1\nMaqas - Project Description . . . . . . . . . . . . . . . . . . . . . .\n13\n2.4.2\nDevelopment process . . . . . . . . . . . . . . . . . . . . . . . . . .\n14\n2.4.3\nMy Role . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .\n17\n2.5\nTools and Technologies . . . . . . . . . . . . . . . . . . . . . . . . . . . .\n17\n2.6\nChallenges and Solutions\n. . . . . . . . . . . . . . . . . . . . . . . . . .\n18\n2.7\nVoluntary Contributions\n. . . . . . ",
+    "page_count": 47
+  },
+  "tmpl": {
+    "toc": [
+      [
+        1,
+        "Introduction",
+        7
+      ],
+      [
+        2,
+        "Purpose of Training",
+        7
+      ],
+      [
+        2,
+        "Objectives",
+        7
+      ],
+      [
+        1,
+        "Organization A [Company Name]",
+        8
+      ],
+      [
+        2,
+        "Company Overview",
+        8
+      ],
+      [
+        2,
+        "Training Activities",
+        8
+      ],
+      [
+        3,
+        "Department and Training Context",
+        8
+      ],
+      [
+        3,
+        "Monthly Overview",
+        8
+      ],
+      [
+        3,
+        "Projects and Contributions",
+        8
+      ],
+      [
+        3,
+        "Connection to University Courses and Reflection",
+        8
+      ],
+      [
+        1,
+        "Skills Gained",
+        10
+      ],
+      [
+        2,
+        "Technical Skills",
+        10
+      ],
+      [
+        2,
+        "Soft Skills",
+        10
+      ],
+      [
+        1,
+        "Challenges and Solutions",
+        11
+      ],
+      [
+        1,
+        "Evaluation of the Training",
+        12
+      ],
+      [
+        2,
+        "Strengths",
+        12
+      ],
+      [
+        2,
+        "Areas for Improvement",
+        12
+      ],
+      [
+        2,
+        "Suggestions",
+        12
+      ],
+      [
+        1,
+        "Conclusion",
+        13
+      ],
+      [
+        1,
+        "References",
+        13
+      ],
+      [
+        1,
+        "Training Plan",
+        15
+      ],
+      [
+        1,
+        "Additional Screenshots or Materials",
+        16
+      ],
+      [
+        1,
+        "How to Include Figures in LaTeX",
+        17
+      ],
+      [
+        1,
+        "How to Include Tables in LaTeX",
+        18
+      ],
+      [
+        1,
+        "How to Add References Using BibTeX",
+        19
+      ]
+    ],
+    "preview": "--- Page 1 ---\n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \n \nCollege of Computing\nDepartment of Computer Science and Artificial\nIntelligence\nCooperative Training Report\nDecember 2026\nWritten By: Student’s Name Here\n--- Page 2 ---\nStudent Name: [Student’s Name]\nStudent ID: 44XXXXXXX\nTraining Organization(s):\nCompany A (Start – End)\nField Supervisor I: [Field Supervisor’s Name]\nAcademic Supervisor: Dr. [Academic Supervisor’s Name]\nCooperative Training Report\n2\n--- Page 3 ---\nAcknowledgment [Optional]\nI would like to express my sincere gratitude to both Umm Al-Qura University and my train-\ning organization(s) for providing me with the opportunity to complete my COOP training.\nSpecial thanks to my academic supervisor, Dr. [Name], and all mentors who guided me\nthroughout this journey.\nCooperative Training Report\n1\n--- Page 4 ---\nAbstract[Optional]\nThe abstract is a short summary of the cooperative training report. It should briefly de-\nscribe the training organization, the department or unit where the training took place, the\nmain tasks completed, the skills gained, and the overall value of the training experience.The\nabstract should be written in one short paragraph.\nCooperative Training Report\n2\n--- Page 5 ---\nContents\n1\nIntroduction\n5\n1.1\nPurpose of Training . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .\n5\n1.2\nObjectives\n. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .\n5\n2\nOrganization A [Company Name]\n6\n2.1\nCompany Overview . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .\n6\n2.2\nTraining Activities . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .\n6\n2.2.1\nDepartment and Training Context . . . . . . . . . . . . . . . . . . .\n6\n2.2.2\nMonthly Overview . . . . . . . . . . . . . . . . . . . . . . . . . . .\n6\n2.2.3\nProjects and Contributions . . . . . . . . . . . . . . . . . . . . . . .\n6\n2.2.4\nConnection to University Courses and Reflection . . . . . . . . . .\n7\n3\nSkills Gained\n8\n3.1\nTechnical Skills . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .\n8\n3.2\nSoft Skills . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .\n8\n4\nChallenges and Solutions\n9\n5\nEvaluation of the Training\n10\n5.1\nStrengths . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .\n10\n5.2\nAreas for Improvement . . . . . . . . . . . . . . . . . . . . . . . . . . . . .\n10\n5.3\nSuggestions . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .\n10\n6\nConclusion\n11\nReferences\n12\nA Training Plan\n13\nB\nAdditional Screenshots or Materials\n14\nC How to Include Figures in LaTeX\n15\nD How to Include Tables in LaTeX\n16\n3\n--- Page 6 ---\nE\nHow to Add References Using BibTeX\n17\nCooperative Training Report\n4\n--- Page 7 ---\nChapter 1\nIntroduction\n1.1\nPurpose of Training\nThe COOP program is a mandatory graduation requirement at Umm Al-Qura University\nwith the aim of equipping students with real-world experience.\n1.2\nObjectives\nThe main objectives include:\n• Applying theoretical knowledge to real-life technical tasks.\n• Improving technical skills such as coding, debugging, and working with software\ntools.\n• Developing professional soft skills such as communication and teamwork.\n• Understanding industry workflows and software development lifecycles.\nCooperative Training Report\n5\n--- Page 8 ---\nChapter 2\nOrganization A [Company Name]\n2.1\nCompany Overview\nAdd your content\n2.2\nTraining Activities\nIn this section, describe the main activities you completed during your training at Organi-\nzation A. You should explain where you worked, what tasks you performed, and how your\nwork contributed to the organization.\nYou may organize this section using the following points:\n2.2.1\nDepartment and Training Context\nBriefly describe the department or unit where you completed your training.\nExample:\nI completed my training in the Information Technology Department. The de-\npartment is responsible for s",
+    "page_count": 19
+  }
+}

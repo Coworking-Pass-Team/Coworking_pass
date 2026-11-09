@@ -4,21 +4,17 @@ import { requireRoles } from '@/lib/ownership';
 import { prisma } from '@/lib/prisma'
 import { getTokenFromRequest, unauthorizedResponse } from "@/lib/auth/verify-token";
 
-import { seedLoyaltyRules } from '@/lib/db/seed-data';
-
 export async function GET() {
   try {
-    let rules = await prisma.loyaltyRule.findMany({
-      include: {
-        proposer: { select: { name: true, email: true } },
-        approver: { select: { name: true, email: true } }
+    // Public reads expose rule terms only and never provision data or users.
+    const rules = await prisma.loyaltyRule.findMany({
+      select: {
+        id: true, ruleName: true, ruleType: true, pointsValue: true,
+        monetaryValue: true, description: true, status: true, isActive: true,
+        createdAt: true,
       },
       orderBy: { createdAt: 'desc' }
     });
-
-    if (rules.length === 0) {
-      rules = await seedLoyaltyRules();
-    }
 
     return NextResponse.json(rules);
   } catch (error) {

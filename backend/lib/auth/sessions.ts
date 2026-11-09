@@ -1,3 +1,4 @@
+import { JWT_SECRET } from "./secrets";
 import crypto from "node:crypto";
 import jwt from "jsonwebtoken";
 import { prisma } from "@/lib/prisma";
@@ -18,7 +19,7 @@ export interface SessionClaims {
 
 /** Signs a new session token. A random token id makes every sign-in unique, even two in the same second. */
 export function signSessionToken(user: { id: string; role: string }): string {
-  return jwt.sign({ userId: user.id, role: user.role, issuedAtMs: Date.now() }, process.env.JWT_SECRET!, {
+  return jwt.sign({ userId: user.id, role: user.role, issuedAtMs: Date.now() }, JWT_SECRET, {
     expiresIn: "1d",
     jwtid: crypto.randomUUID(),
   });
@@ -28,7 +29,7 @@ export function signSessionToken(user: { id: string; role: string }): string {
 export async function revokeToken(token: string): Promise<boolean> {
   let payload: jwt.JwtPayload;
   try {
-    payload = jwt.verify(token, process.env.JWT_SECRET!) as jwt.JwtPayload;
+    payload = jwt.verify(token, JWT_SECRET, { algorithms: ["HS256"] }) as jwt.JwtPayload;
   } catch {
     return false;
   }
