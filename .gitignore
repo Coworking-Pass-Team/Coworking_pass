@@ -37,3 +37,7 @@ docs/ar/
 
 # Real team accounts for the seed script (emails and shared password; never commit)
 backend/scripts/team-accounts.json
+
+# Temporary report render images
+report_work/render/
+
