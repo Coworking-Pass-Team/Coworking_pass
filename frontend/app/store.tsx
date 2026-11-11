@@ -1,5 +1,6 @@
 'use client';
 
+import { screenPaths, screenFromPath } from "@/lib/screen-routes";
 import { withLifecycleStatus } from '@/lib/booking-lifecycle';
 import React, { createContext, useContext, useState, useEffect, useMemo, useRef, ReactNode } from 'react';
 import {
@@ -662,28 +663,9 @@ function notificationCategory(serverType?: string): Notification['type'] {
 /** Notifications saved on the server have uuid ids; the ones only shown locally start with "notif-". */
 const isServerNotificationId = (id: string) => !id.startsWith('notif-');
 
-// Screens that can be reopened after a page refresh, per kind of account (the app keeps its screen in memory, not in the URL)
-const NAV_STORAGE_KEY = 'cp_nav';
-const SHARED_SCREENS = ['browse', 'space-details', 'pricing', 'contact', 'privacy-policy', 'terms-of-service', 'legal'];
-const SIGNED_IN_SCREENS = ['notifications', 'loyalty', 'waitlist'];
-const GUEST_ONLY_SCREENS = ['login', 'signup', 'choose-type', 'forgot-password'];
-const ROLE_SCREENS: Record<string, string[]> = {
-  individual: ['ind-dashboard', 'booking-flow', 'my-bookings', 'booking-details', 'ind-profile', 'ind-settings', 'my-tickets'],
-  organization: ['org-dashboard', 'company-bookings', 'company-team', 'team-booking', 'team-bookings', 'org-profile', 'org-settings', 'my-tickets'],
-  provider: ['provider-dashboard', 'provider-spaces', 'provider-bookings', 'provider-loyalty-proposals', 'provider-profile', 'provider-settings', 'my-tickets'],
-};
-function isRestorableScreen(screen: string, role?: string): boolean {
-  if (SHARED_SCREENS.includes(screen)) return true;
-  if (!role) return GUEST_ONLY_SCREENS.includes(screen);
-  if (SIGNED_IN_SCREENS.includes(screen)) return true;
-  if (role === 'admin') return screen.startsWith('admin-');
-  return (ROLE_SCREENS[role] || []).includes(screen);
-}
-
 export function AppProvider({ children }: { children: ReactNode }) {
   const { translateMessage } = useI18n();
   const [nav, setNav] = useState<NavState>({ screen: 'landing', params: {} });
-  const [history, setHistory] = useState<NavState[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   // The stored copy always follows the in-memory user, so code that reads it never restores an old wallet or points balance
   useEffect(() => {
@@ -3579,42 +3561,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [currentUser?.id, currentUser?.role, currentUser?.companyId]);
 
-  // Reopen the screen the user was on after a refresh instead of dropping them on the home page
-  const [navRestored, setNavRestored] = useState(false);
+  // The URL is the source of truth on refresh and browser history navigation.
   useEffect(() => {
-    try {
-      const rawNav = sessionStorage.getItem(NAV_STORAGE_KEY);
-      const rawUser = localStorage.getItem('cp_currentUser');
-      const savedUser = rawUser ? JSON.parse(rawUser) : null;
-      if (rawNav && !savedUser?.isBlocked) {
-        const saved = JSON.parse(rawNav);
-        if (saved && typeof saved.screen === 'string' && isRestorableScreen(saved.screen, savedUser?.role)) {
-          setNav({ screen: saved.screen as Screen, params: saved.params && typeof saved.params === 'object' ? saved.params : {} });
-        }
-      }
-    } catch (_) { }
-    setNavRestored(true);
+    const restore = () => {
+      const screen = screenFromPath(window.location.pathname);
+      const entry = window.history.state?.muttakaNav;
+      setNav({ screen, params: entry?.screen === screen ? entry.params ?? {} : {} });
+    };
+    restore();
+    window.addEventListener('popstate', restore);
+    return () => window.removeEventListener('popstate', restore);
   }, []);
-  useEffect(() => {
-    if (!navRestored) return;
-    try {
-      if (nav.screen === 'landing' || !isRestorableScreen(nav.screen, currentUser?.role)) sessionStorage.removeItem(NAV_STORAGE_KEY);
-      else sessionStorage.setItem(NAV_STORAGE_KEY, JSON.stringify({ screen: nav.screen, params: nav.params }));
-    } catch (_) { }
-  }, [nav, navRestored, currentUser?.role]);
-
   const navigate = (screen: Screen, params: Record<string, any> = {}) => {
-    setHistory(prev => [...prev.slice(-9), nav]);
+    if (screen === nav.screen && JSON.stringify(params) === JSON.stringify(nav.params)) return;
+    if (typeof window !== 'undefined') {
+      window.history.pushState({ ...window.history.state, muttakaNav: { screen, params } }, '', screenPaths[screen]);
+    }
     setNav({ screen, params });
     if (typeof window !== 'undefined') window.scrollTo(0, 0);
   };
 
   const goBack = () => {
-    if (history.length > 0) {
-      const prev = history[history.length - 1];
-      setHistory(h => h.slice(0, -1));
-      setNav(prev);
-    }
+    window.history.back();
   };
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {

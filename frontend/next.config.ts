@@ -1,3 +1,4 @@
+import { screenPaths } from "./lib/screen-routes";
 import type { NextConfig } from "next";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -12,12 +13,12 @@ const nextConfig: NextConfig = {
     '127.0.0.1:3000',
   ],
   async rewrites() {
-    return [
+    return { beforeFiles: Object.values(screenPaths).filter(path => path !== "/").map(path => ({ source: path, destination: "/" })), afterFiles: [
       {
         source: '/api/:path*',
         destination: `${BACKEND_URL}/api/:path*`,
       },
-    ];
+    ], fallback: [] };
   },
 };
 

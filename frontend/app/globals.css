@@ -437,3 +437,6 @@ html[dir="rtl"] input[type="password"] {
 .flag-emoji {
   font-family: "Twemoji Country Flags", "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
 }
+
+/* Reserve both icon gutters even when input and wrapper directions differ. */
+.relative:has(> .absolute) > input { padding-left: 3rem; padding-right: 3rem; }

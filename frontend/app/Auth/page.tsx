@@ -215,13 +215,14 @@ export function LoginScreen() {
                 </div>
                 <input
                   type="email"
+                  dir="ltr"
                   value={email}
                   onChange={(e) => {
                     setEmail(e.target.value);
                     if (fieldErrors.email) setFieldErrors((errs) => ({ ...errs, email: '' }));
                   }}
                   placeholder="name@company.com"
-                  className={`w-full ps-10 pe-4 py-3 rounded-xl bg-plaster-surface border ${
+                  className={`w-full px-12 py-3 rounded-xl bg-plaster-surface border ${
                     fieldErrors.email ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-soot/15 focus-visible:ring-2 focus-visible:ring-eucalyptus'
                   } text-soot placeholder:text-moss/50 text-sm shadow-xs transition-all`}
                 />
@@ -249,18 +250,20 @@ export function LoginScreen() {
                 </div>
                 <input
                   type={showPassword ? 'text' : 'password'}
+                  dir="ltr"
                   value={password}
                   onChange={(e) => {
                     setPassword(e.target.value);
                     if (fieldErrors.password) setFieldErrors((errs) => ({ ...errs, password: '' }));
                   }}
                   placeholder="••••••••"
-                  className={`w-full ps-10 pe-11 py-3 rounded-xl bg-plaster-surface border ${
+                  className={`w-full px-12 py-3 rounded-xl bg-plaster-surface border ${
                     fieldErrors.password ? 'border-rose-500 ring-2 ring-rose-500/20' : 'border-soot/15 focus-visible:ring-2 focus-visible:ring-eucalyptus'
                   } text-soot placeholder:text-moss/50 text-sm shadow-xs transition-all`}
                 />
                 <button
                   type="button"
+                  aria-pressed={showPassword}
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute inset-y-0 end-0 pe-3.5 flex items-center text-moss hover:text-soot cursor-pointer"
                   aria-label={t('auth.togglePassword')}
@@ -810,6 +813,7 @@ export function SignUpScreen() {
                     } shadow-xs`}
                   >
                     <PhoneInput
+                      dir="ltr"
                       international
                       defaultCountry="SA"
                       value={phone}
@@ -847,6 +851,7 @@ export function SignUpScreen() {
                   </div>
                   <input
                     type="email"
+                  dir="ltr"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@example.com"
@@ -873,6 +878,7 @@ export function SignUpScreen() {
                       </div>
                       <input
                         type="email"
+                  dir="ltr"
                         value={hrEmail}
                         onChange={(e) => {
                           setHrEmail(e.target.value);
@@ -1003,6 +1009,7 @@ export function SignUpScreen() {
                     </div>
                     <input
                       type={showPassword ? 'text' : 'password'}
+                  dir="ltr"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder={t('auth.minChars')}
@@ -1010,7 +1017,8 @@ export function SignUpScreen() {
                     />
                     <button
                       type="button"
-                      onClick={() => setShowPassword(!showPassword)}
+                      aria-pressed={showPassword}
+                  onClick={() => setShowPassword(!showPassword)}
                       className="absolute inset-y-0 end-0 pe-2.5 flex items-center text-moss hover:text-soot cursor-pointer"
                       aria-label={t('auth.togglePassword')}
                     >
@@ -1448,13 +1456,14 @@ export function ForgotPasswordScreen() {
                 </div>
                 <input
                   type="email"
+                  dir="ltr"
                   value={email}
                   onChange={(e) => {
                     setEmail(e.target.value);
                     if (error) setError('');
                   }}
                   placeholder="you@example.com"
-                  className="w-full ps-10 pe-4 py-3 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all"
+                  className="w-full px-12 py-3 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all"
                   required
                 />
               </div>
@@ -2003,17 +2012,19 @@ export function ResetPasswordScreen() {
                 </div>
                 <input
                   type={showPassword ? 'text' : 'password'}
+                  dir="ltr"
                   value={password}
                   onChange={(e) => {
                     setPassword(e.target.value);
                     if (error) setError('');
                   }}
                   placeholder={t('auth.atLeast6')}
-                  className="w-full ps-10 pe-11 py-3 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all"
+                  className="w-full px-12 py-3 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all"
                   required
                 />
                 <button
                   type="button"
+                  aria-pressed={showPassword}
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute inset-y-0 end-0 pe-3.5 flex items-center text-moss hover:text-soot cursor-pointer"
                 >
@@ -2033,13 +2044,14 @@ export function ResetPasswordScreen() {
                 </div>
                 <input
                   type={showConfirmPassword ? 'text' : 'password'}
+                  dir="ltr"
                   value={confirmPassword}
                   onChange={(e) => {
                     setConfirmPassword(e.target.value);
                     if (error) setError('');
                   }}
                   placeholder={t('auth.repeatNewPassword')}
-                  className="w-full ps-10 pe-11 py-3 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all"
+                  className="w-full px-12 py-3 rounded-xl bg-plaster-surface border border-soot/15 text-soot placeholder:text-moss/50 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all"
                   required
                 />
                 <button

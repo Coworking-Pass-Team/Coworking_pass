@@ -108,7 +108,10 @@ function EmployeePassesRedirect() {
 
 function Router() {
   const { nav, currentUser, logout } = useApp();
-  const screen = nav.screen;
+  const publicScreens = ['landing', 'browse', 'space-details', 'pricing', 'contact', 'legal', 'privacy-policy', 'terms-of-service', 'login', 'signup', 'choose-type', 'forgot-password', 'otp-verify', 'reset-password', 'account-suspended'];
+  const dashboard = currentUser?.role === 'admin' ? 'admin-dashboard' : currentUser?.role === 'organization' ? 'org-dashboard' : currentUser?.role === 'provider' ? 'provider-dashboard' : 'ind-dashboard';
+  const screen = !currentUser && !publicScreens.includes(nav.screen) ? 'login'
+    : currentUser && nav.screen === 'ind-dashboard' ? dashboard : nav.screen;
 
   // Account suspended screen: show when screen is 'account-suspended' or if currentUser is blocked
   if (screen === 'account-suspended' || currentUser?.isBlocked) {
