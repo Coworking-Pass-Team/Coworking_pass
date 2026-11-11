@@ -9,11 +9,13 @@ vi.mock("@/lib/prisma", () => ({ prisma: {
     return next;
   },
 } }));
-import { checkOtp, issueOtp, otpCheckResponse, OtpLimitError } from "@/lib/auth/otp";
+vi.mock("@/lib/mailer", () => ({ isEmailConfigured: () => false, sendOtpEmail: vi.fn(), sendPasswordResetEmail: vi.fn() }));
+import { checkOtp, deliverOtp, issueOtp, otpCheckResponse, OtpLimitError } from "@/lib/auth/otp";
 
 let state: any;
 let records: any[];
 beforeEach(async () => {
+  vi.stubEnv("ALLOW_MASTER_OTP", "false");
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-11-08T12:00:00Z"));
   state = null;
@@ -30,13 +32,31 @@ beforeEach(async () => {
       create: async ({ data }: any) => { const row = { id: String(records.length), attempts: 0, isUsed: false, ...data }; records.push(row); return row; },
       findFirst: async ({ where }: any) => [...records].reverse().find(r => r.purpose === where.purpose && !r.isUsed && r.expiresAt > new Date()),
       update: async ({ where, data }: any) => { const r = records.find(r => r.id === where.id); Object.assign(r, { ...data, attempts: data.attempts ? r.attempts + data.attempts.increment : r.attempts }); return r; },
-      updateMany: async ({ where, data }: any) => { records.filter(r => !r.isUsed && (!where.purpose || r.purpose === where.purpose)).forEach(r => Object.assign(r, data)); return { count: records.length }; },
+      updateMany: async ({ where, data }: any) => { records.filter(r => r.userId === where.userId && !r.isUsed && (!where.purpose || r.purpose === where.purpose)).forEach(r => Object.assign(r, data)); return { count: records.length }; },
     },
   };
 });
-afterEach(() => vi.useRealTimers());
+afterEach(() => { vi.useRealTimers(); vi.unstubAllEnvs(); vi.restoreAllMocks(); });
 
 describe("persistent account OTP protection", () => {
+  it("accepts the enabled master code and consumes only the user's matching codes", async () => {
+    vi.stubEnv("ALLOW_MASTER_OTP", "true");
+    records.push({ userId: "u", purpose: "LOGIN", isUsed: false }, { userId: "u", purpose: "PASSWORD_RESET", isUsed: false }, { userId: "other", purpose: "LOGIN", isUsed: false });
+    state = { lockedUntil: new Date(Date.now() + 60_000) };
+    expect(await checkOtp("u", "LOGIN", "123456", false)).toEqual({ ok: true });
+    expect(records.map(r => r.isUsed)).toEqual([true, false, false]);
+  });
+  it("rejects the master code when disabled", async () => {
+    expect(await checkOtp("u", "LOGIN", "123456")).toMatchObject({ ok: false });
+  });
+  it("allows console delivery in production only when master OTP is enabled", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    await expect(deliverOtp("test@example.com", "654321", "LOGIN")).rejects.toThrow("OTP delivery is not configured.");
+    vi.stubEnv("ALLOW_MASTER_OTP", "true");
+    await expect(deliverOtp("test@example.com", "654321", "LOGIN")).resolves.toBe("console");
+    expect(log).toHaveBeenCalledWith(expect.stringContaining("654321"));
+  });
   it("allows only one concurrent resend and shares the 60-second cooldown across purposes", async () => {
     const results = await Promise.allSettled([issueOtp("u", "LOGIN"), issueOtp("u", "LOGIN")]);
     expect(results.filter(r => r.status === "fulfilled")).toHaveLength(1);
