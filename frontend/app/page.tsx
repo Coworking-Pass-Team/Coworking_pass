@@ -9,6 +9,7 @@ import LandingCtaButtons from '@/components/landing/LandingCtaButtons';
 import LandingViewAllButton from '@/components/landing/LandingViewAllButton';
 import LandingClientWrapper from '@/components/landing/LandingClientWrapper';
 import LandingBento from '@/components/landing/LandingBento';
+import LandingFaq from '@/components/landing/LandingFaq';
 import { getSpacesServer } from '@/lib/spaces-server';
 import { T } from '@/i18n';
 import { LANG_COOKIE_NAME, resolveLang, translateServer } from '@/i18n/server';
@@ -349,6 +350,8 @@ export default async function Page() {
 
             <LandingBento />
           </section>
+
+          <LandingFaq />
 
           {/* CTA Section */}
           <section className="py-20 max-w-6xl mx-auto px-4 sm:px-6 w-full">
