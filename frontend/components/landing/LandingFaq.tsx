@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown, HelpCircle } from 'lucide-react';
+import { ArrowRight, ChevronDown, HelpCircle } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import ar from '@/i18n/ar.json';
 import en from '@/i18n/en.json';
@@ -19,16 +19,27 @@ export default function LandingFaq() {
   };
 
   return (
-    <div className="pb-10 px-4 sm:px-6 text-center">
+    <div className="max-w-6xl mx-auto w-full pb-16 px-4 sm:px-6">
       <button
         type="button"
         aria-haspopup="dialog"
         aria-expanded={open}
+        aria-labelledby="faq-card-title"
+        aria-describedby="faq-card-description"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center justify-center gap-2 rounded-full border border-soot/12 bg-plaster-surface px-5 py-3 text-sm font-medium text-moss hover:text-soot hover:bg-soot/5 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus"
+        className="group w-full flex flex-col md:flex-row items-start md:items-center gap-6 sm:gap-8 rounded-3xl border border-moss/25 bg-plaster-surface p-7 sm:p-10 text-start shadow-sm hover:border-moss/50 hover:shadow-md transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus focus-visible:ring-offset-4"
       >
-        <HelpCircle aria-hidden="true" size={18} />
-        {t('landing.faq.title')}
+        <span className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-2xl bg-soot text-plaster shadow-sm">
+          <HelpCircle aria-hidden="true" className="w-8 h-8 sm:w-10 sm:h-10" />
+        </span>
+        <span className="flex-1 min-w-0">
+          <span id="faq-card-title" className="block text-2xl sm:text-3xl font-serif-display text-soot leading-snug">{t('landing.faq.triggerTitle')}</span>
+          <span id="faq-card-description" className="block mt-3 text-sm sm:text-base text-moss leading-relaxed max-w-xl">{t('landing.faq.triggerSubtitle')}</span>
+        </span>
+        <span className="inline-flex items-center justify-center gap-3 w-full md:w-auto shrink-0 rounded-full bg-soot px-6 py-3.5 text-sm font-semibold text-plaster group-hover:bg-moss transition-colors">
+          {t('landing.faq.triggerAction')}
+          <ArrowRight aria-hidden="true" size={18} className="shrink-0" />
+        </span>
       </button>
       <Modal open={open} onClose={closeModal} title={t('landing.faq.title')} subtitle={t('landing.faq.subtitle')} size="3xl">
         <div className="space-y-3.5 text-start">
