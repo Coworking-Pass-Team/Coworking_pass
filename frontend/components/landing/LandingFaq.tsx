@@ -5,23 +5,33 @@ import { ChevronDown, HelpCircle } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import ar from '@/i18n/ar.json';
 import en from '@/i18n/en.json';
+import Modal from '@/components/ui/Modal';
 
 export default function LandingFaq() {
   const { t, lang } = useI18n();
   const faqs = (lang === 'ar' ? ar : en).landing.faq.items;
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [open, setOpen] = useState(false);
+
+  const closeModal = () => {
+    setOpen(false);
+    setOpenFaq(null);
+  };
 
   return (
-    <section aria-labelledby="landing-faq-title" className="pb-20 pt-6 max-w-6xl mx-auto px-4 sm:px-6 w-full">
-      <div className="rounded-3xl border border-soot/12 bg-plaster-surface p-6 sm:p-12 shadow-sm">
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-11 h-11 rounded-2xl bg-soot/5 border border-soot/10 mb-3 text-moss">
-            <HelpCircle aria-hidden="true" size={22} />
-          </div>
-          <h2 id="landing-faq-title" className="text-2xl sm:text-4xl font-serif-display text-soot tracking-tight">{t('landing.faq.title')}</h2>
-          <p className="text-xs sm:text-sm text-moss mt-2 font-medium">{t('landing.faq.subtitle')}</p>
-        </div>
-        <div className="space-y-3.5 max-w-4xl mx-auto">
+    <div className="pb-10 px-4 sm:px-6 text-center">
+      <button
+        type="button"
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        onClick={() => setOpen(true)}
+        className="inline-flex items-center justify-center gap-2 rounded-full border border-soot/12 bg-plaster-surface px-5 py-3 text-sm font-medium text-moss hover:text-soot hover:bg-soot/5 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus"
+      >
+        <HelpCircle aria-hidden="true" size={18} />
+        {t('landing.faq.title')}
+      </button>
+      <Modal open={open} onClose={closeModal} title={t('landing.faq.title')} subtitle={t('landing.faq.subtitle')} size="3xl">
+        <div className="space-y-3.5 text-start">
           {faqs.map((item, index) => {
             const isOpen = openFaq === index;
             return (
@@ -48,7 +58,7 @@ export default function LandingFaq() {
             );
           })}
         </div>
-      </div>
-    </section>
+      </Modal>
+    </div>
   );
 }

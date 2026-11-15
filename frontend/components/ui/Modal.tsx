@@ -1,5 +1,8 @@
+'use client';
+
 import { X } from 'lucide-react';
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, useId, useRef } from 'react';
+import { useI18n } from '@/i18n';
 
 export interface ModalProps {
   open: boolean;
@@ -12,17 +15,23 @@ export interface ModalProps {
 }
 
 export default function Modal({ open, onClose, title, subtitle, children, footer, size = 'md' }: ModalProps) {
+  const { t } = useI18n();
+  const titleId = useId();
+  const subtitleId = useId();
+  const dialogRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
-    if (open) {
-      document.body.style.overflow = 'hidden';
-      document.documentElement.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-      document.documentElement.style.overflow = '';
-    }
+    if (!open) return;
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const bodyOverflow = document.body.style.overflow;
+    const rootOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    dialogRef.current?.querySelector<HTMLButtonElement>('button')?.focus();
     return () => {
-      document.body.style.overflow = '';
-      document.documentElement.style.overflow = '';
+      document.body.style.overflow = bodyOverflow;
+      document.documentElement.style.overflow = rootOverflow;
+      if (previousFocus?.isConnected) previousFocus.focus();
     };
   }, [open]);
 
@@ -43,6 +52,36 @@ export default function Modal({ open, onClose, title, subtitle, children, footer
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={title ? titleId : undefined}
+        aria-describedby={subtitle ? subtitleId : undefined}
+        tabIndex={-1}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') {
+            event.preventDefault();
+            event.stopPropagation();
+            onClose();
+          }
+          if (event.key === 'Tab') {
+            const focusable = Array.from(event.currentTarget.querySelectorAll<HTMLElement>(
+              'button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+            )).filter(element => !element.matches(':disabled') && element.tabIndex >= 0 && element.getClientRects().length > 0);
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (!first) {
+              event.preventDefault();
+              event.currentTarget.focus();
+            } else if (event.shiftKey && document.activeElement === first) {
+              event.preventDefault();
+              last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+              event.preventDefault();
+              first.focus();
+            }
+          }
+        }}
         className={`bg-plaster-surface rounded-3xl border border-soot/15 shadow-2xl w-full ${widths[size]} max-h-[90vh] flex flex-col overflow-hidden relative z-10 animate-in zoom-in-95 duration-200`}
         onClick={(e) => e.stopPropagation()}
       >
@@ -50,13 +89,14 @@ export default function Modal({ open, onClose, title, subtitle, children, footer
         {title ? (
           <div className="px-6 sm:px-8 py-5 border-b border-soot/10 flex items-center justify-between bg-plaster-dark/30 shrink-0 rounded-t-3xl">
             <div>
-              <h3 className="text-xl font-serif-display font-normal text-soot tracking-tight">{title}</h3>
-              {subtitle && <p className="text-xs text-moss mt-0.5">{subtitle}</p>}
+              <h3 id={titleId} className="text-xl font-serif-display font-normal text-soot tracking-tight">{title}</h3>
+              {subtitle && <p id={subtitleId} className="text-xs text-moss mt-0.5">{subtitle}</p>}
             </div>
             <button
+              type="button"
               onClick={onClose}
               className="p-2 rounded-full text-moss hover:text-soot hover:bg-soot/8 transition-colors cursor-pointer focus:outline-none"
-              aria-label="Close modal"
+              aria-label={t('common.close')}
             >
               <X size={18} />
             </button>
@@ -64,9 +104,10 @@ export default function Modal({ open, onClose, title, subtitle, children, footer
         ) : (
           <div className="absolute top-4 end-4 z-20">
             <button
+              type="button"
               onClick={onClose}
               className="p-2 rounded-full text-moss hover:text-soot hover:bg-soot/8 transition-colors cursor-pointer focus:outline-none"
-              aria-label="Close modal"
+              aria-label={t('common.close')}
             >
               <X size={18} />
             </button>
