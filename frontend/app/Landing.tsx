@@ -550,8 +550,6 @@ export default function Landing() {
       </section>
 
 
-      <LandingFaq />
-
       {/* CTA Section - Full Width Floating Banner */}
       <section className="py-20 max-w-6xl mx-auto px-4 sm:px-6 w-full">
         <div className="relative w-full bg-soot rounded-3xl p-10 sm:p-16 text-center overflow-hidden border border-soot/20 shadow-2xl">
@@ -586,6 +584,8 @@ export default function Landing() {
           </div>
         </div>
       </section>
+
+      <LandingFaq />
 
       {/* Footer */}
       <Footer />
