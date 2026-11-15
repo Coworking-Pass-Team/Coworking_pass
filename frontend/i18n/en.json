@@ -363,6 +363,7 @@
     "lounge": "Lounge"
   },
   "browse": {
+    "sortLabel": "Sort by",
     "spacesAvailableOne": "{count} Space Available",
     "spacesAvailableMany": "{count} Spaces Available",
     "allCities": "All Cities",
@@ -577,6 +578,36 @@
     "support": "Support"
   },
   "landing": {
+    "faq": {
+      "title": "Frequently Asked Questions",
+      "subtitle": "Everything you need to know about Coworking Pass, bookings, and corporate solutions.",
+      "items": [
+        {
+          "q": "How does Coworking Pass work?",
+          "a": "Coworking Pass connects you to a verified network of top flexible workspaces, meeting rooms, and theaters across Saudi Arabia. You can either book spaces on-demand (hourly or daily) or subscribe to a Universal Pass for seamless, multi-city access with zero booking friction."
+        },
+        {
+          "q": "Can I book a meeting room or office without a monthly subscription?",
+          "a": "Yes! Direct pay-as-you-go booking is fully supported. You can select any private office, meeting room, or theater and pay directly per hour or day without being committed to a recurring plan."
+        },
+        {
+          "q": "Which cities and spaces are covered across the Kingdom?",
+          "a": "Our partner network covers key business hubs across Riyadh, Jeddah, Makkah, Madinah, Dammam, and Al Khobar, featuring premium desks, high-tech meeting rooms, and event theaters."
+        },
+        {
+          "q": "How does check-in work when I arrive at a space?",
+          "a": "Every confirmed booking or active pass visit generates a dynamic QR pass in your account. Simply present the QR code at the reception upon arrival for instant check-in."
+        },
+        {
+          "q": "How does the corporate solution work for companies and teams?",
+          "a": "Companies receive a dedicated HR Admin portal with a shared corporate wallet. HR managers can invite employees, allocate individual balances or seats, and receive unified ZATCA-compliant monthly VAT invoices."
+        },
+        {
+          "q": "Can I cancel or reschedule my booking?",
+          "a": "Yes. Every booking includes one free reschedule (up to 6 hours before hourly sessions, or 24 hours before daily passes). Cancellations and refunds are credited back to your digital wallet instantly according to platform policy."
+        }
+      ]
+    },
     "heroBadge": "Saudi Arabia's Premier Coworking Network",
     "heroLine1": "Your Perfect Workspace,",
     "heroLine2": "Anywhere in the Kingdom.",

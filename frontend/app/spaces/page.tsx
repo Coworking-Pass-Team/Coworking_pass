@@ -1,5 +1,5 @@
 'use client';
-import { useI18n } from '@/i18n';
+import { useI18n, type TranslationKey } from '@/i18n';
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Search, SlidersHorizontal, X, MapPin, ChevronDown, Check, ArrowUpDown, Sparkles, Building2, Presentation, Clapperboard, LayoutGrid, Navigation, Loader2, MapPinOff, Info } from 'lucide-react';
 import { useApp } from '@/app/store';
@@ -8,7 +8,7 @@ import SpaceCard from '@/components/spaces/SpaceCard';
 import Badge from '@/components/ui/Badge';
 import App from '@/app/app';
 import { WithChrome } from '@/components/layout/Chrome';
-import { ALL_SPACE_TYPES, getSpaceCategory, normalizeSpaceType, SpaceCategory, calculateHaversineDistance, getSpaceCoordinates, SAUDI_CITIES } from '@/types';
+import { getSpaceCategory, SpaceCategory, calculateHaversineDistance, getSpaceCoordinates, SAUDI_CITIES } from '@/types';
 
 const CITIES = ['All Cities', ...SAUDI_CITIES];
 const CATEGORY_TABS: { id: 'all' | SpaceCategory; label: string; icon: any }[] = [
@@ -16,11 +16,6 @@ const CATEGORY_TABS: { id: 'all' | SpaceCategory; label: string; icon: any }[] =
   { id: 'office', label: 'Offices', icon: Building2 },
   { id: 'hall', label: 'Halls', icon: Presentation },
   { id: 'theater', label: 'Theaters', icon: Clapperboard },
-];
-
-const ALL_TYPES = [
-  { id: 'all', label: 'All Types' },
-  ...ALL_SPACE_TYPES.map(t => ({ id: t.value as string, label: t.label })),
 ];
 
 const AMENITIES = ['WiFi', 'Coffee', 'Printer', 'Parking', 'Prayer Room', 'Meeting Rooms', 'Projector', 'Sound System'];
@@ -31,7 +26,16 @@ const SORT_OPTIONS = [
   'Price: High to Low',
   'Rating',
   'Availability',
-];
+] as const;
+type SortOption = typeof SORT_OPTIONS[number];
+const SORT_KEYS = {
+  'Recommended': 'browse.sort.Recommended',
+  'Nearest to Me': 'browse.sort.NearestToMe',
+  'Price: Low to High': 'browse.sort.PriceLowToHigh',
+  'Price: High to Low': 'browse.sort.PriceHighToLow',
+  'Rating': 'browse.sort.Rating',
+  'Availability': 'browse.sort.Availability',
+} as const satisfies Record<SortOption, TranslationKey>;
 
 /**
  * Route entry for /spaces. Rendered by Next outside the SPA router, so any navigation to another
@@ -61,10 +65,9 @@ function BrowseView() {
   const [query, setQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<'all' | SpaceCategory>(initialCategory);
   const [city, setCity] = useState(initialCity === 'All Cities' ? '' : initialCity);
-  const [spaceType, setSpaceType] = useState('all');
   const [maxPrice, setMaxPrice] = useState(5000);
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
-  const [sort, setSort] = useState(userLocation ? 'Nearest to Me' : 'Recommended');
+  const [sort, setSort] = useState<SortOption>(userLocation ? 'Nearest to Me' : 'Recommended');
   const [showFilters, setShowFilters] = useState(false);
   const [availableOnly, setAvailableOnly] = useState(false);
   const [dismissedLocationBanner, setDismissedLocationBanner] = useState(false);
@@ -95,7 +98,6 @@ function BrowseView() {
   useEffect(() => {
     if (nav?.params?.category) {
       setCategoryFilter(nav.params.category);
-      setSpaceType('all');
     }
     if (nav?.params?.city) {
       setCity(nav.params.city === 'All Cities' ? '' : nav.params.city);
@@ -150,9 +152,9 @@ function BrowseView() {
     });
   }, [visible, userLocation]);
 
-  const sortLabel = (option: string) => t(('browse.sort.' + option.replace(/[^A-Za-z]/g, '')) as never);
+  const sortLabel = (option: SortOption) => t(SORT_KEYS[option]);
 
-  const handleSortChange = async (option: string) => {
+  const handleSortChange = async (option: SortOption) => {
     setSort(option);
     setSortDropdownOpen(false);
     if (option === 'Nearest to Me') {
@@ -181,7 +183,6 @@ function BrowseView() {
       }
       if (categoryFilter !== 'all' && getSpaceCategory(s) !== categoryFilter) return false;
       if (city && s.city !== city) return false;
-      if (spaceType !== 'all' && normalizeSpaceType(s.type) !== spaceType) return false;
       
       if ((s.pricing?.daily ?? 0) > maxPrice) return false;
       
@@ -216,20 +217,19 @@ function BrowseView() {
     }
 
     return list;
-  }, [spacesWithDistance, query, categoryFilter, city, spaceType, maxPrice, availableOnly, selectedAmenities, sort, userLocation]);
+  }, [spacesWithDistance, query, categoryFilter, city, maxPrice, availableOnly, selectedAmenities, sort, userLocation]);
 
   const clearFilters = () => {
     setQuery('');
     setCategoryFilter('all');
     setCity('');
-    setSpaceType('all');
     setMaxPrice(5000);
     setSelectedAmenities([]);
     setAvailableOnly(false);
   };
 
   const hasActiveFilters = Boolean(
-    query || categoryFilter !== 'all' || city || spaceType !== 'all' || maxPrice < 5000 || selectedAmenities.length > 0 || availableOnly
+    query || categoryFilter !== 'all' || city || maxPrice < 5000 || selectedAmenities.length > 0 || availableOnly
   );
 
   const toggleAmenity = (a: string) => {
@@ -272,7 +272,6 @@ function BrowseView() {
                 type="button"
                 onClick={() => {
                   setCategoryFilter(tab.id);
-                  setSpaceType('all');
                 }}
                 aria-pressed={isSelected}
                 className={`flex items-center gap-2 h-11 ps-4 pe-2 rounded-full border text-sm font-medium transition-all duration-200 cursor-pointer active:scale-[0.98] ${
@@ -375,48 +374,6 @@ function BrowseView() {
               <span className="w-2 h-2 rounded-full bg-eucalyptus ms-0.5" />
             )}
           </button>
-
-          <div className="relative min-w-[190px]" ref={sortRef}>
-            <button
-              type="button"
-              onClick={() => setSortDropdownOpen(!sortDropdownOpen)}
-              className="w-full flex items-center justify-between gap-2 px-4 h-12 rounded-full border border-zinc-200/90 bg-white text-soot text-sm font-medium hover:bg-plaster-dark/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all cursor-pointer"
-            >
-              <div className="flex items-center gap-2 truncate">
-                <ArrowUpDown size={14} className="text-moss shrink-0" />
-                <span className="truncate">{sortLabel(sort)}</span>
-              </div>
-              <ChevronDown
-                size={15}
-                className={`text-moss transition-transform duration-200 shrink-0 ${sortDropdownOpen ? 'rotate-180 text-soot' : ''}`}
-              />
-            </button>
-
-            {sortDropdownOpen && (
-              <div className="absolute top-full end-0 w-52 mt-2 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
-                <div className="space-y-0.5">
-                  {SORT_OPTIONS.map(o => {
-                    const isSelected = sort === o;
-                    return (
-                      <button
-                        key={o}
-                        type="button"
-                        onClick={() => handleSortChange(o)}
-                        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors cursor-pointer text-start ${
-                          isSelected
-                            ? 'bg-soot text-plaster font-semibold'
-                            : 'text-soot hover:bg-plaster-dark/60'
-                        }`}
-                      >
-                        <span>{sortLabel(o)}</span>
-                        {isSelected && <Check size={14} className="text-eucalyptus" />}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
         </div>
 
         {!dismissedLocationBanner && (
@@ -548,29 +505,51 @@ function BrowseView() {
               )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-              <div>
-                <label className="text-xs font-semibold uppercase tracking-wider text-moss mb-3 block">
-                  {t('browse.workspaceType')}
-                </label>
-                <div className="flex flex-col gap-1.5">
-                  {ALL_TYPES.map(typeItem => (
-                    <button
-                      key={typeItem.id}
-                      type="button"
-                      onClick={() => setSpaceType(typeItem.id)}
-                      className={`text-start text-xs sm:text-sm px-3.5 py-2 rounded-xl transition-all font-medium cursor-pointer ${
-                        spaceType === typeItem.id
-                          ? 'bg-soot text-plaster font-semibold shadow-xs'
-                          : 'text-soot hover:bg-plaster-dark/50'
-                      }`}
-                    >
-                      {typeItem.id === 'all' ? t('browse.allTypes') : st.typeLabel(typeItem.id)}
-                    </button>
-                  ))}
+            <div className="relative w-full sm:w-72 mb-6" ref={sortRef}>
+              <button
+                type="button"
+                onClick={() => setSortDropdownOpen(!sortDropdownOpen)}
+                aria-expanded={sortDropdownOpen}
+                aria-label={t('browse.sortLabel')}
+                className="w-full flex items-center justify-between gap-2 px-4 h-12 rounded-full border border-zinc-200/90 bg-white text-soot text-sm font-medium hover:bg-plaster-dark/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-eucalyptus shadow-xs transition-all cursor-pointer"
+              >
+                <div className="flex items-center gap-2 truncate">
+                  <ArrowUpDown size={14} className="text-moss shrink-0" />
+                  <span className="truncate">{sortLabel(sort)}</span>
                 </div>
-              </div>
+                <ChevronDown
+                  size={15}
+                  className={`text-moss transition-transform duration-200 shrink-0 ${sortDropdownOpen ? 'rotate-180 text-soot' : ''}`}
+                />
+              </button>
 
+              {sortDropdownOpen && (
+                <div className="absolute top-full end-0 w-52 mt-2 p-1.5 bg-plaster-surface border border-soot/15 rounded-2xl shadow-xl z-50 animate-in fade-in-50 zoom-in-95 duration-100">
+                  <div className="space-y-0.5">
+                    {SORT_OPTIONS.map(o => {
+                      const isSelected = sort === o;
+                      return (
+                        <button
+                          key={o}
+                          type="button"
+                          onClick={() => handleSortChange(o)}
+                          className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors cursor-pointer text-start ${
+                            isSelected
+                              ? 'bg-soot text-plaster font-semibold'
+                              : 'text-soot hover:bg-plaster-dark/60'
+                          }`}
+                        >
+                          <span>{sortLabel(o)}</span>
+                          {isSelected && <Check size={14} className="text-eucalyptus" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <label className="text-xs font-semibold uppercase tracking-wider text-moss">

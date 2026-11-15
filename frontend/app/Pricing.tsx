@@ -3,7 +3,7 @@
 import { useI18n } from '@/i18n';
 import React, { useState, useEffect } from 'react';
 import {
-  Check, ArrowRight, Sparkles, HelpCircle, Building2, User, ChevronDown,
+  Check, ArrowRight, Sparkles, Building2, User,
   CreditCard, ShieldCheck, CheckCircle2, AlertCircle, ArrowUpRight, Zap, RefreshCw, X, Wallet
 } from 'lucide-react';
 import { useApp } from '@/app/store';
@@ -123,29 +123,6 @@ const corporatePlans: PlanItem[] = [
   },
 ];
 
-const faqs = [
-  {
-    q: 'Can I cancel or upgrade my pass anytime?',
-    a: 'Yes. All daily and monthly passes can be cancelled or upgraded directly from your dashboard with zero penalty fees before the next billing cycle.',
-  },
-  {
-    q: 'What does my pass cover?',
-    a: 'Meeting rooms and theaters are covered by your monthly hours (8 on the Monthly Pass, 12 on the Yearly Pass), drawn from one balance shared between both. Extra hours are charged at the space\'s hourly rate. Private offices are always paid directly.',
-  },
-  {
-    q: 'Which cities across Saudi Arabia are included?',
-    a: 'Your pass gives you seamless access to verified locations across Riyadh, Jeddah, Dammam, Khobar, Madinah, and Makkah.',
-  },
-  {
-    q: 'How does team allocation work for organizations?',
-    a: 'HR Admins receive a centralized management console to assign passes, invite team members, configure branch permissions, and monitor utilization in real time.',
-  },
-  {
-    q: 'Are all listed prices inclusive of VAT?',
-    a: 'Yes. All listed prices include 15% Saudi VAT, and every payment is recorded in your wallet history.',
-  },
-];
-
 type PaymentMethodType = 'MADA' | 'APPLE_PAY' | 'CREDIT_CARD' | 'CORPORATE_INVOICE' | 'WALLET';
 
 export default function Pricing() {
@@ -156,7 +133,6 @@ export default function Pricing() {
   const isInd = Boolean(currentUser && !isOrg);
 
   const [guestBillingType, setGuestBillingType] = useState<'individual' | 'corporate'>('individual');
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   // Authenticated users are strictly locked to their account type
   const billingType: 'individual' | 'corporate' = currentUser
@@ -599,77 +575,6 @@ export default function Pricing() {
           })}
         </div>
 
-        {/* Unified Large FAQ Card */}
-        <div 
-          style={{
-            backgroundColor: 'var(--plaster-surface, #FFFFFF)',
-            borderColor: 'var(--border, rgba(45, 53, 54, 0.15))',
-          }}
-          className="w-full rounded-3xl border p-8 sm:p-12 shadow-md"
-        >
-          <div className="text-center mb-10">
-            <HelpCircle size={28} style={{ color: 'var(--moss, #697C70)' }} className="mx-auto mb-3" />
-            <h2 
-              style={{ color: 'var(--soot, #2D3536)' }}
-              className="text-2xl sm:text-3xl font-serif-display font-normal"
-            >
-              {t('pricing.faqTitle')}
-            </h2>
-            <p 
-              style={{ color: 'var(--moss, #697C70)' }}
-              className="text-xs sm:text-sm mt-1.5 font-medium"
-            >
-              {t('pricing.faqHint')}
-            </p>
-          </div>
-
-          {/* Styled Question Items */}
-          <div className="space-y-3.5">
-            {faqs.map((item, idx) => {
-              const isOpen = openFaq === idx;
-              return (
-                <div
-                  key={item.q}
-                  onClick={() => setOpenFaq(isOpen ? null : idx)}
-                  style={{
-                    backgroundColor: isOpen 
-                      ? 'var(--plaster-surface, #FFFFFF)' 
-                      : 'var(--plaster-dark, #F7F5F0)',
-                    borderColor: isOpen 
-                      ? 'var(--soot, #2D3536)' 
-                      : 'var(--border, rgba(45, 53, 54, 0.12))',
-                  }}
-                  className={`rounded-2xl border p-5 sm:p-6 transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md ${
-                    isOpen ? 'ring-1 ring-soot/10 shadow-sm' : 'hover:-translate-y-0.5'
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-4">
-                    <span 
-                      style={{ color: 'var(--soot, #2D3536)' }}
-                      className="font-serif-display text-base sm:text-lg font-normal tracking-wide"
-                    >
-                      {translateMessage(item.q)}
-                    </span>
-                    <ChevronDown
-                      size={20}
-                      style={{ color: isOpen ? 'var(--soot, #2D3536)' : 'var(--moss, #697C70)' }}
-                      className={`shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
-                    />
-                  </div>
-
-                  {isOpen && (
-                    <div 
-                      style={{ color: 'var(--moss, #697C70)' }}
-                      className="mt-4 pt-3.5 border-t border-soot/10 text-xs sm:text-sm leading-relaxed"
-                    >
-                      {translateMessage(item.a)}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
 
       </div>
 
