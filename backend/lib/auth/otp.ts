@@ -64,6 +64,10 @@ export async function recentlyIssued(userId: string, purpose: OtpPurpose): Promi
  * instead, so local and QA runs keep working; once a key is configured it is never logged.
  */
 export async function deliverOtp(email: string, code: string, purpose: OtpPurpose, locale: EmailLocale = "ar"): Promise<"email" | "console"> {
+  if (process.env.ALLOW_MASTER_OTP === "true") {
+    console.log(`[OTP] Testing mode: ${purpose} for ${email}: ${code}`);
+    return "console";
+  }
   if (!isEmailConfigured()) {
     if (process.env.NODE_ENV === "production" && process.env.ALLOW_MASTER_OTP !== "true") throw new Error("OTP delivery is not configured.");
     console.log(`[OTP] Resend is not configured, so the ${purpose} code for ${email} is: ${code} (valid 10 minutes)`);

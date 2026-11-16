@@ -1,7 +1,7 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import bcrypt from "bcryptjs";
 
-const harness = vi.hoisted(() => ({ db: {} as any, queue: Promise.resolve() as Promise<unknown> }));
+const harness = vi.hoisted(() => ({ db: {} as any, queue: Promise.resolve() as Promise<unknown>, emailConfigured: false }));
 vi.mock("@/lib/prisma", () => ({ prisma: {
   $transaction: (work: (tx: any) => unknown) => {
     const next = harness.queue.then(() => work(harness.db));
@@ -9,13 +9,14 @@ vi.mock("@/lib/prisma", () => ({ prisma: {
     return next;
   },
 } }));
-vi.mock("@/lib/mailer", () => ({ isEmailConfigured: () => false, sendOtpEmail: vi.fn(), sendPasswordResetEmail: vi.fn() }));
+vi.mock("@/lib/mailer", () => ({ isEmailConfigured: () => harness.emailConfigured, sendOtpEmail: vi.fn(), sendPasswordResetEmail: vi.fn() }));
 import { checkOtp, deliverOtp, issueOtp, otpCheckResponse, OtpLimitError } from "@/lib/auth/otp";
 
 let state: any;
 let records: any[];
 beforeEach(async () => {
   vi.stubEnv("ALLOW_MASTER_OTP", "false");
+  harness.emailConfigured = false;
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-11-08T12:00:00Z"));
   state = null;
@@ -54,6 +55,13 @@ describe("persistent account OTP protection", () => {
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
     await expect(deliverOtp("test@example.com", "654321", "LOGIN")).rejects.toThrow("OTP delivery is not configured.");
     vi.stubEnv("ALLOW_MASTER_OTP", "true");
+    await expect(deliverOtp("test@example.com", "654321", "LOGIN")).resolves.toBe("console");
+    expect(log).toHaveBeenCalledWith(expect.stringContaining("654321"));
+  });
+  it("uses console delivery in testing mode even if email is configured", async () => {
+    vi.stubEnv("ALLOW_MASTER_OTP", "true");
+    harness.emailConfigured = true;
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
     await expect(deliverOtp("test@example.com", "654321", "LOGIN")).resolves.toBe("console");
     expect(log).toHaveBeenCalledWith(expect.stringContaining("654321"));
   });
