@@ -1,0 +1,24 @@
+const assert=require('node:assert/strict');
+require('./browser')(async ({call,evaluate,send,attach,until,url})=>{
+  const key=async(key,code=key)=>{for(const type of ['keyDown','keyUp'])await call('Input.dispatchKeyEvent',{type,key,code})};
+  const current=()=>evaluate('Deck.snapshot().current');
+  assert.equal(await current(),0);assert.equal(await evaluate('Particles.count'),30000);
+  await key('PageDown');assert.equal(await current(),1);await key('PageUp');assert.equal(await current(),0);
+  await key('1','Digit1');await key('Enter');assert.equal(await current(),1);
+  await key('b','KeyB');await key('PageUp');assert.equal(await current(),1);assert.equal(await evaluate('Deck.snapshot().blank'),'');
+  await key('w','KeyW');await key('PageDown');assert.equal(await current(),1);
+  await key('g','KeyG');assert.equal(await evaluate('document.querySelectorAll("#cards button").length'),2);
+  await until(()=>evaluate('Array.from(document.querySelectorAll("#cards img")).filter(i=>i.complete&&i.naturalWidth>0).length===2'),'overview images');
+  await evaluate('document.querySelector("#cards button").click()');assert.equal(await current(),0);
+  await key('h','KeyH');assert.ok(await evaluate('help.open'));await key('Escape');
+  await key('d','KeyD');await key('End');assert.match(await evaluate('tester.textContent'),/last/);
+  await key('l','KeyL');assert.ok(await evaluate('Deck.snapshot().progress'));
+  await call('Page.reload');await until(()=>evaluate('window.Deck?.ready && Deck.snapshot().current===1'),'saved click');
+  await key('p','KeyP');let target;await until(async()=>{target=(await send('Target.getTargets')).targetInfos.find(t=>t.url.includes('/presenter.html'));return target},'presenter');
+  const consolePage=await attach(target.targetId);
+  await until(()=>consolePage.evaluate('document.querySelector("#counter")?.textContent==="Click 2 / 2"'),'presenter handshake');
+  await consolePage.evaluate('document.querySelector("[data-action=back]").click()');await until(async()=>await current()===0,'presenter back');
+  await until(()=>consolePage.evaluate('document.querySelector("#notes p[lang=ar]")!==null'),'bilingual notes');
+  await call('Page.navigate',{url:url+'?lite'});await until(()=>evaluate('window.Deck?.ready && Particles.count===10000'),'lite mode');
+  console.log('Offline clicker, jump, blanking, help, thumbnails, presenter, refresh, and lite checks passed.');
+}).catch(e=>{console.error(e);process.exitCode=1});

@@ -1,0 +1,6 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Muttaka · Presenter</title><link rel="stylesheet" href="css/show.css"><link rel="stylesheet" href="css/presenter.css"><body>
+<header><div><small id="counter">Waiting for the audience window</small><h1 id="title">Presenter</h1></div><div class="clocks"><label>Local time <time id="clock"></time></label><label>Talk timer <time id="timer">00:00</time></label></div></header>
+<main><section class="screens"><article><h2>Now</h2><iframe id="now" tabindex="-1" title="Current audience scene"></iframe></article><article><h2>Next</h2><iframe id="next" tabindex="-1" title="Upcoming beat"></iframe></article></section>
+<section><h2>Speaker notes</h2><div id="notes" aria-live="polite">Open this window by pressing P on the audience display.</div></section></main>
+<footer><button data-action="back">← Back</button><button data-action="next">Next →</button><button data-action="black">Black</button><button data-action="reset">Reset timer</button></footer>
+<script src="js/presenter.js"></script></body></html>
