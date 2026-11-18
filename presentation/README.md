@@ -1,6 +1,17 @@
-# Muttaka clicker rehearsal
+# Muttaka · Coworking Pass
 
-Keep this folder together. Double-click `index.html` and choose Microsoft Edge or Google Chrome. The opening shows only a drifting map. Click once to see **Test**. Press Back to return. This edition has two click stops, pages 0 and 1.
+Keep this folder together. Double-click `index.html` in Microsoft Edge or Google Chrome. Page 0 opens on the drifting map. Click once to introduce Muttaka. The defense has 14 scenes and 33 stops, including the opening.
+
+## Pace the defense
+
+Use one language to present each idea. The other version of the notes is available for questions. These are suggested speaking times for a 17-minute defense before Q&A.
+
+| Pages | Minutes | Speaking cue |
+| --- | --- | --- |
+| 0–3 | 3 | Follow a team that needs a room for one afternoon. Tell the same story from the venue’s side. |
+| 4–7 | 5 | Take that booking from search and seat selection through wallet settlement to the partner’s books. |
+| 8–10 | 6 | Trace one server request, explain the ten fixes in four groups, then explain what the 129 tests establish. |
+| 11–13 | 3 | Distinguish the revenue projection from an observed result. Describe the deployment gates and open the floor. |
 
 ## Rehearse
 
@@ -35,4 +46,4 @@ node presentation/tools/make-thumbnails.js
 node presentation/tools/verify.js
 ```
 
-The tools launch a temporary headless browser and open the same local file the audience sees. If the browser is in a different location, set `BROWSER_EXE` to its full executable path. The smoke check currently expects the two rehearsal stops. Update its expected stops when the real scenes arrive. See [CLAUDE.md](CLAUDE.md) for authoring and [docs/sources.md](docs/sources.md) for claim tracking.
+The tools launch a temporary headless browser and open the same local file the audience sees. If the browser is in a different location, set `BROWSER_EXE` to its full executable path. The check visits every beat in reverse, checks its notes and layout, exercises the controls, and opens the presenter window. See [CLAUDE.md](CLAUDE.md) for authoring and [docs/sources.md](docs/sources.md) for claim tracking.

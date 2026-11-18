@@ -1,6 +1,6 @@
-# Maintaining the Muttaka rehearsal
+# Maintaining the Muttaka defense
 
-Open index.html directly from disk. Keep all runtime assets in this folder and use classic scripts. The screen is a scaled 1920 × 1080 stage. The Start scene is page 0. Replace the temporary Test page when the first project scene is added.
+Open index.html directly from disk. Keep all runtime assets in this folder and use classic scripts. The screen is a scaled 1920 × 1080 stage. The quiet opening is page 0. Edit the four js/scenes-act files for the scene copy and speaker notes. Each beat supplies a headline, emphasis, caption, English notes and Arabic notes. js/forms.js defines the particle targets, and js/visuals.js draws the booking, audit and chart details.
 
 ## Add a click
 
